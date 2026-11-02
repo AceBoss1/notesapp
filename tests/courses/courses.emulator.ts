@@ -105,6 +105,29 @@ const fails = async (p: Promise<unknown>, status: number, why: string) => {
   assert.equal((await db.doc(`enrolments/${c.id}_u_r`).get()).exists, false);
   assert.equal((await db.doc("courseSlugs/excel-basics").get()).exists, false);
   assert.deepEqual((await myCourses(db, "u_t")).map((x) => x.title).sort(), ["Advanced Excel", "One lesson"]);
+
+  // YouTube lessons: notes under the video, and the creator's credit from the lookup (oEmbed in the route)
+  const cr = await createCourse(db, "u_t", { title: "Credits" });
+  const tedCredit = { title: "How to practice emotional first aid | Guy Winch | TED", name: "TED", url: "https://www.youtube.com/@TED" };
+  let lookups = 0;
+  const lookup = async (id: string) => { lookups++; return id === "F2hc2FLOdhI" ? tedCredit : null; };
+  const v = await addLesson(db, "u_t", cr.id, { kind: "youtube", title: "Emotional first aid", url: "https://youtu.be/F2hc2FLOdhI", body: "## Notes\n\nIn this video, Guy Winch shows…" }, new Date(), undefined, lookup);
+  assert.deepEqual(v.videoCredit, tedCredit); assert.equal(v.body, "## Notes\n\nIn this video, Guy Winch shows…"); assert.equal(lookups, 1);
+  let vd = (await db.doc(`courses/${cr.id}/lessons/${v.id}`).get()).data()!;
+  assert.deepEqual(vd.videoCredit, tedCredit, "the credit is stored on the lesson"); assert.ok(vd.body.startsWith("## Notes"));
+  // YouTube not answering on an edit keeps the credit the lesson had for the same video
+  await updateLesson(db, "u_t", cr.id, v.id, { kind: "youtube", title: "Emotional first aid", url: "F2hc2FLOdhI", body: "" }, new Date(), undefined, async () => null);
+  vd = (await db.doc(`courses/${cr.id}/lessons/${v.id}`).get()).data()!;
+  assert.deepEqual(vd.videoCredit, tedCredit); assert.equal(vd.body, undefined, "notes can be cleared");
+  // another video: the old credit goes; switching to text drops it too
+  await updateLesson(db, "u_t", cr.id, v.id, { kind: "youtube", title: "Other", url: "https://youtu.be/Vl0H-qTclOg" }, new Date(), undefined, lookup);
+  assert.equal((await db.doc(`courses/${cr.id}/lessons/${v.id}`).get()).data()!.videoCredit, undefined, "a credit belongs to its video");
+  await updateLesson(db, "u_t", cr.id, v.id, { kind: "text", title: "Now text", body: "Hi", videoCredit: tedCredit }, new Date(), undefined, lookup);
+  assert.equal((await db.doc(`courses/${cr.id}/lessons/${v.id}`).get()).data()!.videoCredit, undefined, "text lessons carry no credit");
+  // an older YouTube lesson with neither still reads as before
+  await db.doc(`courses/${cr.id}/lessons/old1`).set({ order: 9, title: "Old", kind: "youtube", youtubeId: "Vl0H-qTclOg" });
+  const { lessonOf } = await import("../../lib/courses-server");
+  assert.deepEqual(lessonOf("old1", (await db.doc(`courses/${cr.id}/lessons/old1`).get()).data()!), { id: "old1", order: 9, title: "Old", kind: "youtube", youtubeId: "Vl0H-qTclOg" });
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

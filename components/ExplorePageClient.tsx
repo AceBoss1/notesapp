@@ -19,13 +19,15 @@ import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { useAcademy } from "@/lib/courses-client";
 import { courseHref } from "@/lib/courses";
 import type { MarketItem } from "@/lib/shop-directory";
+import { EventCard, type Ev } from "@/components/events/Events";
 
 // Explore (/explore, Moda redesign): what used to be the Topics, People and Channels tabs of Journals, now that Journals is the feed,
-// plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each.
-type Tab = "topics" | "people" | "channels" | "communities" | "market" | "academy";
+// plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each. Events: every public,
+// upcoming event (not members-only, not from an invite-only community), soonest first (GET /api/events?explore=1).
+type Tab = "topics" | "people" | "channels" | "communities" | "events" | "market" | "academy";
 type CommunityRow = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; joinMode: string };
 const TABS: { id: Tab; label: string }[] = [
-  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
+  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "events", label: "Events" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
 ];
 const SHOW = 24;
 
@@ -44,6 +46,11 @@ export default function ExplorePageClient() {
     if (tab !== "communities" || communities) return;
     fetch("/api/community").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setCommunities(d.communities ?? [])).catch(() => setCommunities([]));
   }, [tab, communities]);
+  const [events, setEvents] = useState<Ev[] | null>(null);
+  useEffect(() => {
+    if (tab !== "events" || events) return;
+    fetch("/api/events?explore=1").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setEvents(d.events ?? [])).catch(() => setEvents([]));
+  }, [tab, events]);
   useEffect(() => {
     if (tab !== "market" || market) return;
     fetch("/api/public/market").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setMarket(d.items ?? [])).catch(() => setMarket([]));
@@ -79,14 +86,15 @@ export default function ExplorePageClient() {
   const courseList = useMemo(() => (courses ?? [])
     .filter((c) => !q || c.title.toLowerCase().includes(q) || c.ownerName.toLowerCase().includes(q) || c.topics.some((t) => t.includes(q)))
     .sort((a, b) => b.viewsWeek - a.viewsWeek || b.enrolCount - a.enrolCount).slice(0, SHOW), [courses, q]);
+  const eventList = useMemo(() => (events ?? []).filter((e) => !q || [e.title, e.city, e.state, e.place, e.hostName, e.communityName ?? ""].some((x) => x.toLowerCase().includes(q))), [events, q]);
   const communityList = useMemo(() => (communities ?? []).filter((c) => !q || c.name.toLowerCase().includes(q) || c.tagline.toLowerCase().includes(q)), [communities, q]);
   const match = <P extends { displayName: string; username: string }>(list: P[]) => (q ? list.filter((p) => p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q)) : list);
 
   return (
     <div className="px-4 py-6 lg:px-0">
       <h1 className="font-display text-4xl text-ink">Explore</h1>
-      <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, things to buy and courses on #NotesApp.</p>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : "Find people and channels"} aria-label="Search Explore"
+      <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy and courses on #NotesApp.</p>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
         className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
       <div className="mt-5 flex gap-2 overflow-x-auto" role="tablist">
         {TABS.map((t) => (
@@ -129,6 +137,13 @@ export default function ExplorePageClient() {
                     ))}
                   </ul>
                 ) : <p className="py-10 text-center text-sm text-slate">{q ? "No communities match that search." : <>No communities yet. <Link href="/community" className="font-semibold text-crimson">Start one</Link>.</>}</p>}
+              </Shelf>
+            )}
+            {tab === "events" && (
+              <Shelf title="Events" why={<>Services, meetings, launches and classes anyone can attend, soonest first, with paid tickets where the host sells them. <Link href="/trending?tab=events" className="font-semibold text-crimson">Trending events →</Link></>}>
+                {events === null ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : eventList.length
+                  ? <ul className="grid gap-3 sm:grid-cols-2">{eventList.slice(0, SHOW).map((e) => <EventCard key={e.id} e={e} />)}</ul>
+                  : <p className="py-10 text-center text-sm text-slate">{q ? "No events match that search." : <>No upcoming events yet. <Link href="/events" className="font-semibold text-crimson">Add one</Link>.</>}</p>}
               </Shelf>
             )}
             {tab === "academy" && (

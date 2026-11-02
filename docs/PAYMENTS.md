@@ -21,6 +21,13 @@ Why this split:
 - **Flutterwave only where we need it:** it reaches the countries and currencies Paystack and Paylony don't, without moving
   Nigerian payments that already work.
 
+**Paystack transfer OTP (v0.114.0).** With "Confirm transfers before sending" (Transfers OTP) on in the Paystack dashboard, each
+payout's `POST /transfer` answers `status: "otp"` and waits; Finance types the emailed code under **Awaiting OTP** on
+`/admin/payments`, which calls `POST /transfer/finalize_transfer { transfer_code, otp }` (or `POST /transfer/resend_otp
+{ transfer_code, reason: "transfer" }`), see `lib/payout-otp-server.ts`. We send one transfer per payout, never `POST /transfer/bulk`,
+which Paystack refuses while OTP is on. Switching OTP off (Settings → Preferences) makes payouts fully automatic, at the cost that the
+secret key alone can then move money.
+
 ## 2. Which provider a payment goes to
 
 | The payment | Goes to | If that fails |

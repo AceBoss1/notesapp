@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MARKET_SHOPS, MARKET_SPOTS, RESIDENT, RESIDENTS_AT, STREET_ENTRY, type MarketSpot, type StreetPlace } from "@/lib/life/catalog";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 // Power in your room: from NEPA (grid), none (a blackout), the Power GO, or a generator.
 export type Power = "grid" | "out" | "go" | "gen" | "tank";
@@ -114,7 +115,7 @@ export function createWorld(canvas: HTMLCanvasElement, opts: { low?: boolean } =
       const tex = canvasTex(800, 450, (c, cw, chh) => {
         c.fillStyle = "#7A0328"; c.fillRect(0, 0, cw, chh); c.fillStyle = "#ffffff"; c.textAlign = "center";
         c.font = "bold 74px sans-serif"; c.fillText("Your advert here", cw / 2, 190);
-        c.font = "36px sans-serif"; c.fillText("notesapp.name.ng/advertise", cw / 2, 270); c.font = "28px sans-serif"; c.fillText("1600 × 900 · tap to see how", cw / 2, 330);
+        c.font = "36px sans-serif"; c.fillText(`${ROOT_DOMAIN}/advertise`, cw / 2, 270); c.font = "28px sans-serif"; c.fillText("1600 × 900 · tap to see how", cw / 2, 330);
       });
       part(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }), 0, up + h / 2, 0);
     }

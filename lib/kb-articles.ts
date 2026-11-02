@@ -1,4 +1,4 @@
-import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, ROOT_DOMAIN } from "./host";
+import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, PREP_URL, ROOT_DOMAIN } from "./host";
 import { AD_PACKAGES } from "./ad-packages";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
@@ -15,7 +15,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -78,6 +78,8 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 **For publishers:** under **Account → Referrals**, set a share (up to 50%) on any shop item on sale here, download or paid course. It goes on the marketplace at once; set 0 to take it off. The share comes out of your part of the sale, and #NotesApp's commission is worked out as usual.
 
 **Getting paid:** earnings wait 7 days (14 for delivered shop items) so payments can clear; a refund takes back what it earned. Then take them as **cash** to your bank account, from ₦2,000 (add one on the Referrals page if you don't sell), or as **NotesApp Credit** with 10% more, any amount.
+
+**Your monthly report:** on the 1st of each month we email you a report on the month before, but only if something happened: friends who joined, paid conversions, affiliate sales, what you earned, and your available, pending and withdrawn balances, with a table of the month's sign-ups and sales. Buyers and friends are never named. Turn it off under **Account settings → Email** ([/profile/account#email](/profile/account#email)) or with the link at the bottom of the email; your Referrals page always has the same numbers.
 
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 
@@ -151,6 +153,8 @@ You can also choose how long Nana thinks before answering: **Quick** on every pl
 
 **Answer bank.** When you open a chat with a general question someone has asked before (for example "How do I get paid?"), Nana may answer straight away from her answer bank. That's free and doesn't use your allowance. Only general questions go in, never anything personal.
 
+**Course covers.** Making a course cover with Nana in Notes Academy uses a little of your allowance too (Pearl designs it; drawing the picture is free). When your allowance and credit are used up, covers stop until the allowance refreshes. Your plan's daily number of covers applies either way.
+
 With [your own AI account connected](/help/connect-your-own-ai) there is no allowance and no limit from us.`),
     A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
 You can connect your own Anthropic (Claude) account so that Nana, the writing help in drafts, sharing and messages, and the team hub (for staff) use it. The AI cost goes to your account, and #NotesApp puts no daily limit on you.
@@ -182,7 +186,7 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 
 **Codes, referrals and affiliates:** under Pro or Business on the [pricing page](/pricing), **Have a discount code?** takes a #NotesApp plan code off your first payment, or takes a member's referral code for a first month free (a month off a yearly plan); see [Discount codes and coupons](/help/discount-codes). Every publishing plan can make its own discount codes, and every member can earn from [referrals and the affiliate marketplace](/help/referrals).
 
-**Communities:** [giving](/help/giving) has no commission, only a charge like a bank transfer; [paid event tickets](/help/event-tickets) carry your plan's usual commission.
+**Communities:** [giving](/help/giving) has no commission, only a charge like a bank transfer; [paid event tickets](/help/event-tickets) have no commission either, only the same small charge per ticket.
 
 **Coming as paid add-ons:** ${ADD_ONS_LINE}
 
@@ -219,7 +223,7 @@ On paid sessions, journal subscriptions and gifts, #NotesApp takes a commission 
 
 On store sales, the commission is on the item price only (your delivery fee is yours): physical goods ${pct("basic", "physicalCommission", "physicalCommissionFloor")} on Free Basic, ${pct("pro", "physicalCommission", "physicalCommissionFloor")} on Pro, ${pct("business", "physicalCommission", "physicalCommissionFloor")} on Business; digital downloads ${pct("basic", "digitalCommission", "digitalCommissionFloor")}, ${pct("pro", "digitalCommission", "digitalCommissionFloor")} and ${pct("business", "digitalCommission", "digitalCommissionFloor")}. Enterprise rates are agreed with us.
 
-**Paid event tickets** carry the same commission as sessions, on your plan. **Giving** to a community has no commission: just a charge like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost by card; see [Giving to a community](/help/giving).
+**Paid event tickets** have no commission on any plan: like giving, each ticket has a small charge (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost; see [Paid event tickets](/help/event-tickets). **Giving** to a community has no commission: just a charge like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost by card; see [Giving to a community](/help/giving).
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -231,6 +235,8 @@ Once you have a publishing account (Free Basic or above), write from [Write](/wr
 You can add one video per post (MP4 or WebM, up to ${VIDEO_MAX_SECONDS / 60} minutes), played in our own player. How many videos you can upload a week depends on your plan.
 
 Pick up to 3 topics for each journal (and add your own hashtags), so readers who chose those topics see it first in their feed and their weekly digest; see [Choosing your interests and topics](/help/interests-and-topics).
+
+**Share to Journals:** on a journal, a course, a shop item, a service, a public event, a certificate, a coupon or a public community post, tap **Share** and choose **Share to Journals**. A new draft opens with it quoted at the top: its title as a link, its cover and "Shared from @name", crediting whoever made it. Add a title and your thoughts, then save the draft or publish it when you're ready: nothing is published for you. You need a publishing account to write, and to be signed in (visitors are asked to sign in and come back to finish).
 
 Readers can follow your journal, comment, like, share and save. You can also [boost a post](/help/boost-a-post) to reach more readers, or [co-author](/help/co-authoring) with other members. Browse examples on [Journals](/journals).`),
     A("kiswahili-journals", "Journals and voice notes in Kiswahili", "Publishing and earning", `
@@ -338,7 +344,9 @@ At the top of every conversation is the person's picture, their name with any ba
 
 **Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins see a **⚙️ Manage** button at the top of the group. From there they can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Admins can also tap **Remove** under any message to take it out of the group: everyone then sees "Message removed by a group admin" in its place, and any files in it are deleted. If you don't see these options, you aren't an admin of that group: the members list marks who is. Anyone can leave or mute a group, and any message from someone else can be reported to #NotesApp; if we act on a report, the message is removed ("Message removed by #NotesApp").` : ""}
 
-${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).` : ""}`)]
+${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).
+
+**Share to Moments:** on a journal, a course, a shop item, a service (someone's 1:1 sessions or a service on their site), a public event, a certificate, a coupon or a public community post, tap **Share** and choose **Share to Moments**. You see its card (title, cover, the price for an item or a service, and who made it), can add a caption, pick 24, 48 or 72 hours and tap **Post**. The moment links to the item and credits its creator ("Shared from @name"); the same people see it as your other moments, it counts towards your moments for the day, and in teen mode it is only for people you follow back. It isn't offered on drafts, members-only posts or anything you can't see.` : ""}`)]
       : []),
     ...(MESSAGES_LIVE
       ? [A("chat-photos-and-media", "Photos, videos, links and docs in a chat", "Publishing and earning", `
@@ -489,7 +497,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **The journal feed:** [Journals](/journals) has four tabs: **For you** (journals on [your interests](/interests) first, then everything newest first), **Following** (people you follow), **Latest** and **Top · 7d** (what people read most this week). Like, comment, share or save a journal from the feed; saved journals are in [Saved](/saved). **Most read this week** and **Who to follow** appear between posts on a phone and on the right on a computer. Journals marked **Promoted** are boosted.
 
-**Explore:** [Explore](/explore) is where to browse topics, people and channels, with **Market** and **Academy** tabs for the week's most looked-at products and courses.
+**Explore:** [Explore](/explore) is where to browse topics, people, channels and communities, with an **Events** tab (every public event that hasn't happened yet, soonest first, searchable by title, city or host) and **Market** and **Academy** tabs for the week's most looked-at products and courses.
 
 **The order elsewhere:** [Notes Market](/shop) and [Notes Academy](/academy) show things in the same order: **For you** first, then **Most viewed** (the last 7 days), then **Recent**.
 
@@ -499,7 +507,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (it reads **✓ Following** once you follow; tap it to unfollow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
 
-**Trending** has the same tabs: Notes, Store, Courses and Publishers.
+**Trending** has the same tabs: Notes, Store and Courses, plus **Events**, Communities and Publishers. Events are ranked by interest in the period (today, 7 or 30 days): a ticket sold counts most, then a Going or Interested, then a visit to the event's page. Only public events that haven't happened yet are listed: never members-only events, cancelled ones, or events of a community joined only by invite.
 
 **Badges** always come right after a person's name, before their @username, wherever their picture and name appear.
 `),
@@ -513,21 +521,23 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **A paid course:** watch its free previews first, then tap **Buy the course** and pay by card, bank transfer or from your wallet. Have a code from the teacher? Choose **Have a discount code?** before you pay ([Discount codes and coupons](/help/discount-codes)). It's yours for good and plays on up to 2 of your devices; to watch on a new one, remove an old one when it asks. Uploaded videos never download, and your @username and email drift faintly across them. The certificate is usually included in the price.
 - **Refunds:** you can get a refund within 7 days of buying a paid course, as long as you haven't started it (opening a paid lesson counts as starting). Tap **get a refund** on the course's page; the money goes back the way you paid.
 - **Live classes and the course group:** many courses have a **course group** on #NotesApp, a members-only Space in the teacher's [community](/help/community-spaces), where learners ask questions and help each other; some also run live classes, in a community [audio room](/help/community-audio-rooms) or through a meeting link, with recordings. Once you've enrolled or bought, **Join the course group** (it joins you in one tap and opens the Space) and **Join the live class** appear on the course's page. A few older courses still have a WhatsApp or Telegram group instead, shown the same way.
-- Video lessons play in YouTube's privacy-enhanced player, so you stay on #NotesApp. A video is ticked off by itself once you've watched most of it; you can always tap **Mark as done** yourself, or **Mark as not done** to undo it. Text lessons end with a **Mark as done** button. A quiz is ticked off when you pass it (see Quizzes below).
+- Video lessons play in YouTube's privacy-enhanced player, so you stay on #NotesApp. Under a YouTube video you'll see who made it, with a link to their channel, and the tutor's lesson notes when there are some. A video is ticked off by itself once you've watched most of it; you can always tap **Mark as done** yourself, or **Mark as not done** to undo it. Text lessons end with a **Mark as done** button. A quiz is ticked off when you pass it (see Quizzes below).
 - Your progress and the **Continue** button are on the course page, and courses you've started are under **Continue learning** on Notes Academy.
 - **Certificates:** once every lesson is done, tap **Get your certificate** on the course page. Check the name (it can't be changed once issued), then pay from ${certificateMin()} plus the teacher's margin, by card or from your wallet. It's issued straight away with an ID (NA-C-…) and a QR code; anyone can check it at [/certificates](/certificates). Add it to LinkedIn, share it, save it as a PDF or download it as a picture (PNG) from its page. To show the picture on LinkedIn, choose **Add media → Add a link** on the certificate there and paste the image link (**Copy image link** on the certificate's page). Shared links show the certificate itself. Claim within ${CERTIFICATE_LATE_TEXT().grace} days of finishing: after that a late claim fee of ${CERTIFICATE_LATE_TEXT().weekly} of the price is added each week, up to ${CERTIFICATE_LATE_TEXT().cap} more.
 - **Like, save and review:** tap ♥ on a course to like it and the bookmark to save it (it's kept under **Saved → Courses**; you can also save from the bookmark on any course card). Once you've done half the lessons, rate the course from 1 to 5 stars and say what you learned, in **What learners say** on its page. One review each, and you can edit it; the teacher can reply once. A course shows its stars once it has 2 reviews.
 - **Recommendations:** on someone's profile, tap **Recommend**, choose how you know them, give 1 to 5 stars and write a few sentences. It appears only after they approve it: on their profile, beside their journals and on their site's About page.
 
 **Teaching a course**
-- Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing). On an organisation's team (Business or Enterprise), choose **Teach as** your organisation when you start a course: it's published under the organisation's name, and its admins can edit it too.
+- Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing). On an organisation's team (Business or Enterprise), choose **Teach as** your organisation when you start a course: it's published under the organisation's name, with **Taught by** and your name under it on the course page, and its admins can edit it too.
 - Go to [Teach a course](/academy/teach) and tap **New course**. A working title is all you need to start.
 - **1. Describe it:** a clear title, a short summary of what learners will be able to do, up to 3 topics and a wide cover picture. The course's address follows the title until you first publish.
+- **Make a cover with Nana:** no picture? Under the cover, tap **✨ Make a cover with Nana**, say what it should show if you like ("a farmer with a phone, green and gold"), and Nana designs one from your course: our own African patterns (adire, kente-like stripes, mud cloth), an icon, your title in bold type and a small Notes Academy mark. Tap **Use as cover**, **Edit** it ("make it green", "add a laptop", "shorter headline") or **Try another**; your last few covers stay there to go back to. It works on free and paid courses, for the lead, co-tutors and admins. Each new cover or edit counts one of the day's covers: Free Basic ${coversPerDay("basicDaily")}, Pro ${coversPerDay("proDaily")}, Business ${coversPerDay("businessDaily")}, Enterprise ${coversPerDay("enterpriseDaily")} a day, starting again at midnight Lagos time (so on Free Basic, one cover and two edits, or three different ones). Nana's design comes from your Nana allowance, then your Nana credit; when both are used up, covers stop until the allowance refreshes, and the editor says when.
 - **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
 - **Course group:** a place on #NotesApp for your learners, instead of a WhatsApp or Telegram group. Under About the course, link one of your communities and a Space in it, tap **Add a members-only Space for this course** to one you run, or tap **Start a community for this course**: it's joined only by invite link, and your learners get the link with a **Join the course group** button. No community yet? Start one on [Community](/community); see [Spaces](/help/community-spaces) and [Circles](/help/community-circles). If your community is open to anyone, its members-only Spaces are open to all its members, not only your learners. A WhatsApp or Telegram link saved on an older course keeps showing to its learners until you link a course group (which replaces it) or remove it; new outside group links can't be added.
 - **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
 - **Tutors:** teach alone, or invite up to 4 co-tutors by @username with what they can do (**Can view**, or **Can view and edit** the course's content and lessons) and their share of each sale. Each one reads the terms and agrees before they're listed, and is paid their share at their own plan's fee. The price, the shares, the tutors and publishing stay with the lead. See [Co-teaching a course](/help/co-teaching).
 - **Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. On a paid course you can also upload videos (Business and Enterprise, up to 200 MB each) and PDFs (up to 50 MB), and tick **Free preview** on the lessons anyone may open before buying. Group lessons in **modules** if you like. Add the minutes; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
+- **Notes and credit on YouTube lessons:** a YouTube lesson can have **lesson notes** under the video, written like a text lesson: a summary, steps or an exercise. When you save it, we fill in the video's title and creator from YouTube and show "Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator." under the player, linking to their channel. If you use someone else's public video, introduce it in your notes in your own words ("In this video, … shows…").
 - **Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only its tutors can see a draft.
 - You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress; a course people have bought can't be deleted (unpublish it instead, and they keep it).
 - **Your academy (certificates):** set it up once at [Your academy](/academy/teach/setup): the name and logo on your certificates, who signs them (a photo of the signature on white paper; we remove the white), an accrediting institution if you have one (its logo shows once #NotesApp has checked it) and your margin on top of our ${certificateMin()}. You receive the margin less our usual commission, and your share grows with any late claim fee. Courses our team has reviewed get the "#NotesApp Certified Course" seal.
@@ -584,8 +594,26 @@ When there's something to show, the digest also has four items from [Notes Marke
 
 You need a confirmed email address to get it, and it only comes when there's something to read.
 `),
+    A("feedback", "Give us feedback", "Getting started", `
+Tell us how #NotesApp is going for you: open [Contact → Feedback](/contact?topic=feedback) (or choose **Feedback** in the contact form's list). Five quick questions:
+
+- how your time on #NotesApp has been, from 😞 to 😍 (1 to 5);
+- what you love;
+- what's missing or broken;
+- how likely you are to recommend us to a friend (0 to 10);
+- whether we can contact you about your answers (yes or no).
+
+It works whether you're signed in or not. Signed in, your name and email are filled in and your reply is linked to your account. It goes straight to our team's inbox, and we read every one. To report a bug that needs a reply, or a post or account, use the contact form's other topics.
+`),
+    A("announcements", "News and announcements from #NotesApp", "Getting started", `
+Now and then we send every member a short message: what's new, what's coming, and ways to take part (like our one-month update on 1 November 2026). It comes to your bell (📢) and, if you like, by email. Tap the bell to read it on its own page.
+
+**Turning the emails off:** every announcement email has an **Unsubscribe from announcements** link at the bottom (your email app's own Unsubscribe button works too), or switch **News and announcements from #NotesApp** off under **Emails** in [Account settings](/profile/account#email). The bell still shows them. If you switched the [weekly digest](/help/weekly-digest) off before announcements existed, we take that as a no to announcement emails too, until you switch them on.
+
+Students in teen mode and child profiles never get them by email. Emails about your bookings, orders, payments and account always come, whatever you choose.
+`),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
-Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
+Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. On #NotesApp itself, the same menus (on journals, courses, shop items, services, public events, certificates, coupons and public community posts) offer **Share to Moments** (a moment that links to it, with an optional caption) and **Share to Journals** (a journal draft that quotes it, for your own thoughts); both credit the creator and are for signed-in members. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
     A("business-books", "Business books: walk-in sales, expenses, money owed and profit", "Selling", `
 [Business books](/profile/books), under My account, keeps the books for the selling you do **in person**, next to your online store: who bought what, what you spent, who owes you, and what you made today, this week and this month.
@@ -721,11 +749,13 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 An event has a start and end (Lagos time), where it is, and or a **Join live** link. For a talk in your community, host it in an [audio room](/help/community-audio-rooms) on #NotesApp (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${ROOM_LISTENERS_MAX_P2P} listening). For video or a bigger audience, which our own streaming doesn't do yet, the link can be YouTube Live, Facebook Live, Zoom, Google Meet or any https link. It can repeat **every week** or **every month**, until a date if you like.
 
-People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city. If you change or cancel an event, everyone going or interested is told.
+People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city, in **Explore → Events**, and in **Trending → Events** when people are buying tickets, RSVPing or visiting. Members-only events and events of an invite-only community never are. If you change or cancel an event, everyone going or interested is told.
 
 **Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ₦100) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
     A("event-tickets", "Paid event tickets and check-in", "Teams and organisations", `
-**For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts, less your plan's usual commission, the same as for sessions.
+**For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts.
+
+**Charges:** no commission, on every plan, the same as [giving](/help/giving): each ticket has a small charge by its price (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus Paystack's card charge at cost on the payment (1.5%, plus ₦100 from ₦2,500, at most ₦2,000). The buyer pays the ticket price; the charges come out of it. For example, one ₦5,000 ticket: ₦10 charge and ₦175 card charge, so you get ₦4,815. Tickets sold before 2 November 2026 keep the commission they were sold with.
 
 **For buyers:** choose the type and how many (up to ${TICKETS_PER_ORDER_MAX} at a time) and pay by card or bank through Paystack. Each ticket gets its own code and **QR code**, under [My tickets](/tickets), on the event's page, and in your confirmation email. Each lets one person in, once. When a type is sold out, it says so before you pay.
 
@@ -962,7 +992,11 @@ No ads are shown to students in teen mode, and their data isn't sold or used to 
     A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
 Every ${PREP_NAME} question is checked by a reviewer before students see it.
 
-**Joining:** reviewers come by invite link. NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
+**Volunteer:** anyone can offer to review at [${PREP_HOST}/reviewers](${PREP_URL}/reviewers): choose the subjects you know (any of the 18), the exams (JAMB, WAEC, NECO), your background (teacher, examiner, graduate in the subject or student) and your years of experience; a phone number is optional. Signed in, your name and email are filled in. We look at every sign-up ourselves. Once you're approved, your reviewer access is switched on if you have a NotesApp account with that email, or you get an invite link to create one; either way we email you.
+
+**The reviewers' community (optional):** tick **Join the reviewers' community** when you sign up and you'll get the invite link to the private Naija Exam Prep Reviewers community with your approval. It has Spaces for Start here, Sciences, Arts and humanities, Commercial, and Questions to discuss. You can review without joining.
+
+**Joining by invite link:** NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
 
 **Reviewing:** the review queue (${PREP_HOST}/review) shows only questions in your subjects. For each one, check that the marked answer is right, the explanation is clear and correct, and the question is fair. **Approve** it, or **Ask for changes** with a note saying what to fix. You can't review a question you wrote. Starter questions are labelled **Nana AI-assisted draft**: check them as carefully as any other.
 
@@ -1073,6 +1107,12 @@ The [Staff library](/admin/team/library) holds SOPs, the employee handbook, poli
 The [Message hub](/admin/team/messages) is for messages between staff: **To**, optional **Cc**, a subject, the message and up to 10 files. Messages always stay in the hub; tick **Also send by email** to email everyone as well. Files go only to the people in **To** (and the sender): people in Cc get the message and are told the files went to To, which is how personal material stays personal. Inbox, Copied to me and Sent are separate tabs, with unread dots and Reply. Everyday group conversation stays in the Team room in Messages.`),
     A("hub-roles", "Staff roles and departments", `
 Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech, Legal & compliance, Engineering. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
+    A("hub-payout-otp", "Payouts that wait for a Paystack OTP", `
+When "Transfers OTP" is on in Paystack, a payout that is released (by **Release** on [Payments & payouts](/admin/payments) or by the scheduled release) doesn't move until someone types the code Paystack emails the business. It shows at the top of Payments & payouts under **Awaiting OTP**, and as "awaiting OTP" in the table, with the amount, the publisher and the reference from Paystack's email (payout_…).
+
+Type the 6-digit code in that payout's field and tap **Confirm**. Each code works only for its own payout, so with several waiting, each has its own field. A code lasts 30 minutes from when Paystack sent it (the time left is shown); if it has run out, or the email didn't come, tap **Resend OTP** and use the newest email. After 5 wrong codes, resend for a new one. Once confirmed, the payout follows the usual path: Paystack's result arrives by webhook and the entry becomes paid out (or back to held with the reason if it failed).
+
+Finance only. Who confirmed or resent each code, and the result, is recorded; the code itself is never stored. To pay out with no OTP at all, the owner can switch Transfers OTP off in the Paystack dashboard (Settings → Preferences): safer to keep on, because then nobody with the API key alone can move money.`),
     A("hub-help-admin", "Writing help articles and reading Nana's chats", `
 At [Help & Nana](/admin/help) the team writes the help articles that visitors read at the help centre and that Nana answers from. An article with the same address as a built-in one replaces it. The Chats tab shows what people asked Nana, highlights questions she could not answer and requests for a person (these also appear in the Leads inbox), and lets you mark a chat as followed up or turn a gap into a new article.`),
   ];

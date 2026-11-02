@@ -4,8 +4,9 @@ import { useState } from "react";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import { buttonHref, byYear, durationText, menuActionOf, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
-import { MAIN_HOST } from "@/lib/host";
+import { useMainSiteUrl } from "@/lib/use-family-url";
 import { useSite } from "./SiteContext";
+import { ShareButton } from "@/components/share/ShareToNotesApp";
 
 // The content sections of a member's site (lib/site-kits.ts), in the member's order. Colours come from the site's colour set (the crimson
 // classes follow it), so every look and every colour set draws them the same way.
@@ -117,8 +118,10 @@ function Heading({ children }: { children: React.ReactNode }) {
 // Services and prices. With times, tabs or pictures (the beauty kits' menu, like a spa's), they show as cards in tabs (All, Facials,
 // Massages …), each with its time, its price and Book now while the member's sessions are on; otherwise as a simple price list.
 function Services() {
-  const { blocks, booking, base, kit } = useSite();
+  const { blocks, booking, base, kit, username } = useSite();
   const action = menuActionOf(kit);
+  // Each service can be shared to Moments and Journals ("<username>~<n>", lib/share-targets.ts), or to another app.
+  const share = (x: (typeof blocks.services.items)[number], cls?: string) => <ShareButton shareRef={{ kind: "service", id: `${username}~${blocks.services.items.indexOf(x)}` }} path={`${base}/#services`} title={x.name} label="" className={cls ?? "rounded-full px-2 py-1 text-base leading-none text-slate hover:bg-paper hover:text-crimson"} />;
   const items = blocks.services.items;
   const [tab, setTab] = useState("All");
   const menu = items.some((x) => x.minutes || x.group || x.image);
@@ -130,7 +133,7 @@ function Services() {
           {items.map((x, n) => (
             <li key={n} className="flex items-start justify-between gap-4 p-4">
               <span><span className="block font-ui text-sm font-bold text-ink">{x.name}</span>{x.note && <span className="block text-xs text-slate">{x.note}</span>}</span>
-              {x.price && <span className="shrink-0 font-ui text-sm font-bold text-crimson">{x.price}</span>}
+              <span className="flex shrink-0 items-center gap-1">{x.price && <span className="font-ui text-sm font-bold text-crimson">{x.price}</span>}{share(x)}</span>
             </li>
           ))}
         </ul>
@@ -157,8 +160,9 @@ function Services() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {x.image && <img src={x.image} alt="" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />}
             <div className="flex flex-1 flex-col p-5">
+              <div className="flex items-start justify-between gap-2"><div>
               {x.group && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate">{x.group}</p>}
-              <p className="mt-1 font-display text-xl leading-snug text-ink">{x.name}</p>
+              <p className="mt-1 font-display text-xl leading-snug text-ink">{x.name}</p></div>{share(x)}</div>
               {x.note && <p className="mt-1 text-sm text-slate">{x.note}</p>}
               <p className="mt-3 flex flex-1 items-end gap-3 font-ui text-sm">
                 {x.minutes ? <span className="text-slate">{durationText(x.minutes)}</span> : null}
@@ -218,6 +222,7 @@ function Testimonials() {
 }
 function Team() {
   const { blocks } = useSite();
+  const main = useMainSiteUrl();
   return (
     <section className="mt-14">
       <Heading>Our team</Heading>
@@ -230,7 +235,7 @@ function Team() {
               : <span aria-hidden className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-crimson/10 font-display text-2xl text-crimson">{x.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>}
             {/* Tagged: their name links to their #NotesApp profile. */}
             {x.username
-              ? <a href={`https://${MAIN_HOST}/u/${x.username}`} target="_blank" rel="noopener noreferrer" className="mt-3 block font-ui text-sm font-bold text-ink hover:text-crimson">{x.name} <span className="font-normal text-crimson">@{x.username}</span></a>
+              ? <a href={`${main}/u/${x.username}`} target="_blank" rel="noopener noreferrer" className="mt-3 block font-ui text-sm font-bold text-ink hover:text-crimson">{x.name} <span className="font-normal text-crimson">@{x.username}</span></a>
               : <p className="mt-3 font-ui text-sm font-bold text-ink">{x.name}</p>}
             {x.role && <p className="text-xs text-slate">{x.role}</p>}
           </li>

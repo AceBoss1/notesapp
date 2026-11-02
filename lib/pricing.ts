@@ -4,6 +4,7 @@ import { BOOST_PACKAGES } from "./boost-config";
 import { AD_PACKAGES } from "./ad-packages";
 import { GEMS, GEM_INFO, isReset, type Gem, type GemRates, type ResetEvery } from "./nana-gems";
 import { TRIAL_DAYS, addonTrialDays } from "./trials";
+import { COVER_LIMIT_MAX, DEFAULT_COVER_LIMITS, type CoverLimits } from "./covers";
 
 // Prices and revenue rates that an admin can change from /admin/pricing, in one plain object. The rest of the app still reads TIERS,
 // GOLD_PRICING, BOOST_PACKAGES, AD_PACKAGES and BADGE_PRICE_KOBO; applyPricing() writes the chosen values into those in place, so
@@ -51,6 +52,9 @@ export type PricingConfig = {
   // freeEntries: walk-in sales and expenses a month (online orders never count); freeCustomers: customers owing at once;
   // freeImportRows: rows in one imported file (Pro and above: BOOKS_IMPORT_MAX_ROWS).
   books: { freeEntries: number; freeCustomers: number; freeImportRows: number };
+  // Course covers made with Nana (lib/covers.ts): how many a member makes a day on each plan (new designs and edits count 1 each).
+  // The owner's rule: Free Basic 3 a day; Free (Standard) can't publish, so 0. The Pearl tokens come from the Nana allowance as usual.
+  academyCovers: CoverLimits;
   badgeKobo: number;
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
@@ -74,6 +78,7 @@ export function currentPricing(): PricingConfig {
     logistics: { ...LOGISTICS },
     inventory: { ...INVENTORY },
     books: { ...BOOKS },
+    academyCovers: { ...ACADEMY_COVERS },
     nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo, resetEvery: NANA.resetEvery, allowanceGems: NANA.allowanceGems, usdKobo: NANA.usdKobo, rates: { pearl: { ...NANA.rates.pearl }, emerald: { ...NANA.rates.emerald }, ruby: { ...NANA.rates.ruby } } },
     badgeKobo: BADGE_PRICE_KOBO,
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
@@ -90,6 +95,8 @@ const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
 // Decided 19 Oct 2026: the add-on is ₦4,500 a month with a free trial that needs no card; the cut on shipping is 10%, at least ₦100.
 // The trial is 15 days and never longer (owner, 21 Oct 2026: every trial is 15 days, lib/trials.ts).
 // Decided 21 Oct 2026: inventory is included on Business and Enterprise; Free Basic and Pro add it for ₦1,500 a month, after a 15-day free trial.
+// Decided 1 Nov 2026 (owner): Free Basic 3 covers a day; Pro 10, Business 25, Enterprise 50.
+const ACADEMY_COVERS: CoverLimits = { ...DEFAULT_COVER_LIMITS };
 const INVENTORY: PricingConfig["inventory"] = { addonMonthlyKobo: 1_500 * 100, trialDays: TRIAL_DAYS };
 // Decided 2 Nov 2026 (docs/BUSINESS-BOOKS.md, option A): 150 entries a month and 20 customers owing on Free Basic; review after three months.
 const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 };
@@ -148,6 +155,7 @@ export function applyPricing(c: PricingConfig): void {
   Object.assign(LOGISTICS, c.logistics);
   Object.assign(INVENTORY, c.inventory);
   Object.assign(BOOKS, c.books);
+  Object.assign(ACADEMY_COVERS, c.academyCovers);
   Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
   NANA.resetEvery = c.nana.resetEvery; NANA.allowanceGems = c.nana.allowanceGems; NANA.usdKobo = c.nana.usdKobo;
   for (const g of GEMS) Object.assign(NANA.rates[g], c.nana.rates[g]);
@@ -213,6 +221,14 @@ export function cleanPricing(input: unknown): PricingConfig {
   const bk = i.books === undefined ? d.books : rec(i.books);
   const count = (v: unknown, what: string, min: number, max: number) => { const x = Math.round(Number(v)); if (!Number.isFinite(x) || x < min || x > max) throw new PricingError(`${what}: enter a whole number from ${min} to ${max.toLocaleString("en-NG")}.`); return x; };
   const books = { freeEntries: count(bk.freeEntries, "Business books, Free Basic entries a month", 10, 100_000), freeCustomers: count(bk.freeCustomers, "Business books, Free Basic customers owing", 1, 100_000), freeImportRows: count(bk.freeImportRows, "Business books, Free Basic rows per import", 10, 5_000) };
+  // Added later too: a config without it keeps the default.
+  const ac = i.academyCovers === undefined ? d.academyCovers : rec(i.academyCovers);
+  const daily = (k: keyof CoverLimits, name: string) => {
+    const v = ac[k] === undefined ? d.academyCovers[k] : Number(ac[k]);
+    if (!Number.isInteger(v) || v < 0 || v > COVER_LIMIT_MAX) throw new PricingError(`Course covers a day, ${name}: a whole number from 0 to ${COVER_LIMIT_MAX}.`);
+    return v;
+  };
+  const academyCovers: CoverLimits = { freeDaily: daily("freeDaily", "Free"), basicDaily: daily("basicDaily", "Free Basic"), proDaily: daily("proDaily", "Pro"), businessDaily: daily("businessDaily", "Business"), enterpriseDaily: daily("enterpriseDaily", "Enterprise") };
   const n = i.nana === undefined ? d.nana : rec(i.nana), nb = rec(n.budgets);
   const nana = {
     // Free (Standard) was added later: a config without it gets the default
@@ -245,7 +261,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
-    coursePackages, certificateLate, logistics, inventory, books, nana,
+    coursePackages, certificateLate, logistics, inventory, books, academyCovers, nana,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
@@ -287,3 +303,5 @@ export const breakEven = (tierName: "pro" | "business") => {
 export const inventoryAddonPrice = () => nairaText(INVENTORY.addonMonthlyKobo);
 export const inventoryTrialDays = () => INVENTORY.trialDays;
 export const booksCaps = () => ({ ...BOOKS });
+// Course covers a day on a plan (lib/covers.ts), for the pricing page and the help.
+export const coversPerDay = (k: keyof CoverLimits) => ACADEMY_COVERS[k];

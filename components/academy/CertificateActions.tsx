@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useMember } from "@/lib/member-client";
+import ShareToNotesApp from "@/components/share/ShareToNotesApp";
 
-// The buttons on a certificate's page: LinkedIn, X, WhatsApp and Copy link for anyone; for the learner it belongs to, Download PDF, Download
+// The buttons on a certificate's page: LinkedIn, X, WhatsApp, Copy link, Share to Moments and Share to Journals for anyone; for the learner it belongs to, Download PDF, Download
 // image (PNG, /certificates/<id>/image.png) and the image's link, to paste into LinkedIn's Add media → Add a link.
 export default function CertificateActions({ id, ownerUid, url, learnerName, courseTitle, linkedIn }: { id: string; ownerUid: string; url: string; learnerName: string; courseTitle: string; linkedIn: string }) {
   const { user } = useMember();
@@ -23,6 +24,7 @@ export default function CertificateActions({ id, ownerUid, url, learnerName, cou
         {mine && <a href={`/certificate-print/${id}`} target="_blank" rel="noopener" className={btn}>Download PDF</a>}
         {mine && <a href={`/certificates/${id}/image.png?download=1`} download={`Notes-Academy-certificate-${id}.png`} className={btn}>Download image</a>}
         {mine && <button type="button" onClick={() => copy("image")} className={btn}>{copied === "image" ? "Copied ✓" : "Copy image link"}</button>}
+        <ShareToNotesApp shareRef={{ kind: "certificate", id }} look="pill" />
       </div>
       {mine && <p className="mt-3 rounded-lg bg-paper p-3 text-xs text-slate"><strong className="text-ink">The picture on LinkedIn:</strong> after Add to LinkedIn profile, choose <em>Add media → Add a link</em> and paste the image link (Copy image link). Download PDF opens a print-ready copy: choose “Save as PDF”.</p>}
       <p className="mt-3 text-xs text-slate">This page shows only what&apos;s printed on the certificate.</p>

@@ -13,7 +13,7 @@ export function visitSource(): { ref: string; utm: string } {
   }
 }
 
-export function recordView(kind: "note" | "profile", id: string): void {
+export function recordView(kind: "note" | "profile" | "event", id: string): void {
   try {
     const key = `tracked:${kind}:${id}`;
     if (sessionStorage.getItem(key)) return;

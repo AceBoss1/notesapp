@@ -14,6 +14,7 @@ import {
 import { getUserByUid } from "@/lib/users";
 import { notifyLiked } from "@/lib/notifications";
 import { xIntentText } from "@/lib/social-text";
+import ShareToNotesApp from "@/components/share/ShareToNotesApp";
 
 const SHARE_TARGETS = [
   {
@@ -86,6 +87,8 @@ export default function SocialBar({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      // A sheet opened from the menu (Share to Moments, the sign-in prompt) lives under <body>: clicks there aren't "outside".
+      if ((e.target as Element | null)?.closest?.("[data-share-layer]")) return;
       if (shareRef.current && !shareRef.current.contains(e.target as Node)) {
         setShareOpen(false);
       }
@@ -166,6 +169,8 @@ export default function SocialBar({
 
           {shareOpen && (
             <div className="absolute left-0 top-full mt-2 w-56 border border-rule bg-card shadow-lg z-10">
+              {/* On #NotesApp itself first: a moment that links here, or a journal draft that quotes it (lib/share-targets.ts). */}
+              <ShareToNotesApp shareRef={{ kind: "journal", id: noteId }} look="menu" onPicked={() => { setShareOpen(false); recordShare(); }} />
               {SHARE_TARGETS.map((t) => (
                 <button
                   key={t.label}

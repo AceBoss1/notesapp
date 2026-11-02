@@ -5,6 +5,7 @@ import { hasDept } from "@/lib/admin-access";
 import { EXAM_IDS, EXAMS, PREP_NAME, type ExamId, type Pack, type Question, type Subject } from "@/lib/exam-prep";
 import ReviewCard from "@/components/exam-prep/ReviewCard";
 import QuestionEditor, { draftOf, type Draft } from "@/components/exam-prep/QuestionEditor";
+import { PREP_HOST, PREP_URL } from "@/lib/host";
 
 // Admin → Naija Exam Prep. Editorial (questions, import, publishing, subjects, reviewers, reports) for content; packs, access,
 // grants and refunds for finance; usage for product. The API checks the same departments (app/api/admin/exam-prep).
@@ -33,7 +34,7 @@ export default function AdminExamPrep() {
     <section className="mx-auto max-w-5xl px-4 py-14">
       <p className="eyebrow text-crimson">Admin · Academy</p>
       <h1 className="mt-1 font-display text-4xl">{PREP_NAME}</h1>
-      <p className="mt-2 text-sm text-slate">JAMB, WAEC and NECO practice at prep.notesapp.name.ng. Questions go draft → in review → approved → published; packs are NotesApp revenue.</p>
+      <p className="mt-2 text-sm text-slate">JAMB, WAEC and NECO practice at {PREP_HOST}. Questions go draft → in review → approved → published; packs are NotesApp revenue.</p>
       {!tabs.length && <p className="mt-6 text-sm">This page is for Editorial, Finance or Product & tech.</p>}
       <div className="mt-6 flex flex-wrap gap-1.5">{tabs.map((t) => <button key={t.key} onClick={() => setTab(t.key)} className={`rounded-full px-3 py-1.5 text-sm ${tab === t.key ? "bg-ink text-paper" : "border border-rule"}`}>{t.label}</button>)}</div>
       <div className="mt-6">
@@ -186,7 +187,7 @@ function Reviewers({ api }: { api: Api }) {
   const month = new Date().toISOString().slice(0, 7);
   async function invite() {
     setE(""); setLink("");
-    try { const r = await api<{ token: string }>("", { action: "invite", subjects: pick, kind, days, maxUses, note }); setLink(`https://prep.notesapp.name.ng/review/invite?t=${r.token}`); setNote(""); load(); } catch (x) { setE((x as Error).message); }
+    try { const r = await api<{ token: string }>("", { action: "invite", subjects: pick, kind, days, maxUses, note }); setLink(`${PREP_URL}/review/invite?t=${r.token}`); setNote(""); load(); } catch (x) { setE((x as Error).message); }
   }
   return (
     <div>
@@ -361,7 +362,7 @@ function Schools({ api }: { api: <T>(q: string, body?: unknown) => Promise<T> })
             </div>
           </div>
         ))}
-        {!d.schools.length && <p className="text-sm text-slate">No school has applied yet. Schools apply at prep.notesapp.name.ng/schools.</p>}
+        {!d.schools.length && <p className="text-sm text-slate">No school has applied yet. Schools apply at {PREP_HOST}/schools.</p>}
       </div>
       <form className="card space-y-2 p-4" onSubmit={(e) => { e.preventDefault(); void act({ action: "school_agreement", ...ag }, "Agreement saved. Approved schools can sign it now."); }}>
         <p className="font-semibold text-ink">Onboarding data agreement</p>

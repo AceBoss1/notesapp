@@ -1,4 +1,5 @@
 import { currentPricing } from "./pricing";
+import { ROOT_DOMAIN } from "./host";
 
 // The questions on every course page and on Notes Academy itself (components/academy/AcademyFaq.tsx) and in the help centre
 // (lib/kb-articles.ts, so Nana knows them too). Prices come from Admin → Pricing when the page is drawn.
@@ -9,7 +10,7 @@ export function academyFaq(): { q: string; a: string }[] {
   return [
     { q: "How and when do I get my certificate?", a: "As soon as you've finished every lesson, a Get your certificate button appears on the course page. Check your name, pay, and it's issued straight away with its own ID and QR code. You'll find it again on the course page." },
     { q: "What does the certificate cost?", a: `On a paid course it's usually included in the price: the course page says so. On a free course, the certificate costs ${min} (#NotesApp's part) plus the teacher's own margin; you see the total before you pay, by card or from your NotesApp Credit wallet. Claim it within ${l.graceDays} days of finishing: after that a late claim fee of ${Math.round(l.weeklyRate * 100)}% of the price is added each week, up to ${Math.round(l.capRate * 100)}% more.` },
-    { q: "Can employers check my certificate?", a: "Yes. Anyone can scan its QR code, or enter its ID (NA-C-…) at notesapp.name.ng/certificates, and see that it's genuine. You can add it to your LinkedIn profile, share it, or save it as a PDF." },
+    { q: "Can employers check my certificate?", a: `Yes. Anyone can scan its QR code, or enter its ID (NA-C-…) at ${ROOT_DOMAIN}/certificates, and see that it's genuine. You can add it to your LinkedIn profile, share it, or save it as a PDF.` },
     { q: "Do courses have quizzes?", a: "Some do: the teacher decides. Choose one answer for each question and tap Submit answers. It's marked straight away, and you see your score, whether you passed, the right answer to each question and the teacher's explanation. Didn't pass? Try again as often as you like. A quiz counts as done once you pass it, and you need every lesson done for your certificate." },
     { q: "Can I change the name on my certificate?", a: "Check the spelling before you pay: once it's issued, the name can't be changed. If something went wrong, contact us and we'll help." },
     { q: "How long do I have access to this course?", a: "For good: a paid course you've bought stays yours even if the teacher stops selling it, and a free one for as long as the teacher keeps it on Notes Academy. Every update and new lesson comes at no extra cost, and your progress and your certificate stay yours." },
