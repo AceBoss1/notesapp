@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { linkTokens } from "./linkify";
+import { hearsOnlyFromFollowed, mayReach } from "./young";
 
 // Server-only. "@ada mentioned you" bells for mentions in public places: comments on journals, journals, moments, store reviews
 // and sellers' replies, and approved recommendations. Never for chats (messages, group chats, Notes Life chat): those are
@@ -7,7 +8,8 @@ import { linkTokens } from "./linkify";
 //
 // Each person is told once per thing they're mentioned in (mentionNotices/{kind}_{sourceId}_{uid}), so editing a comment or a
 // journal only tells the people who are newly mentioned. Nobody is told about their own mention, and a block either way
-// (dmBlocks) means no bell. At most MENTION_MAX people per thing.
+// (dmBlocks) means no bell. At most MENTION_MAX people per thing. A teen (or users.keepRepliesFollowers after 18) gets a bell only
+// from someone they follow; moments go further and refuse the mention (mentionGate in lib/moments-server.ts).
 export type MentionKind = "comment" | "journal" | "moment" | "review" | "review_reply" | "recommendation";
 export const MENTION_MAX = 10;
 const NO_INBOX = new Set(["na-notesapp"]);
@@ -65,11 +67,19 @@ export async function notifyMentions(db: Firestore, s: MentionSource, now = new 
     db.doc(`users/${p.uid}`),
   ]);
   const snaps = await db.getAll(...refs);
+  // Teen mode (and users.keepRepliesFollowers after 18): a bell only when the teen follows whoever mentioned them.
+  const guarded = people.map((p, i) => (hearsOnlyFromFollowed(snaps[i * 4 + 3].data()) ? i : -1)).filter((i) => i >= 0);
+  const followed = new Set<number>();
+  if (guarded.length && s.author.username) {
+    const f = await db.getAll(...guarded.map((i) => db.doc(`follows/${people[i].uid}_${s.author.username}`)));
+    guarded.forEach((i, k) => { if (f[k].exists) followed.add(i); });
+  }
   const batch = db.batch();
   let sent = 0;
   people.forEach((p, i) => {
     const [notice, blockedBy, blocked, user] = snaps.slice(i * 4, i * 4 + 4);
     if (notice.exists || blockedBy.exists || blocked.exists || !user.exists || user.data()?.suspended === true) return;
+    if (!mayReach({ target: user.data(), self: false, targetFollowsThem: followed.has(i) })) return;
     const at = now.toISOString();
     batch.set(notice.ref, { kind: s.kind, sourceId: s.sourceId, recipientUid: p.uid, authorUid: s.author.uid, createdAt: at });
     batch.set(db.collection("notifications").doc(), {
