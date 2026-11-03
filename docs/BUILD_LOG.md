@@ -2623,7 +2623,7 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
-**Live mode in audio rooms (v0.125.0, 2 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
+**Live mode in audio rooms (v0.126.0, 3 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
 The owner's decisions: the host (and speakers if the host allows) turns video on and off during a relay room, as a second track
 through the relay capped at 480p, about 600 kbps and 24 fps; off goes back to audio without reconnecting; while it's off everyone sees
 the host's poster (an upload, the profile picture or the challenge art; a picture, never video, never counted); viewers get Audio only,
@@ -2641,7 +2641,33 @@ are used, and after the grace the next stage beat cuts every camera at Cloudflar
 500) after checking nothing writes per listener. Rooms are community-scoped, so teen mode's follower rules have nothing to add here.
 Emulator and rules tests ran from a temporary config on port 8213.
 
-**Live chat and signals for big audio rooms on a Durable Object (v0.126.0, 2 Nov 2026)** — Step 2b of the rooms plan. A relay room's
+**Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
+
+**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, 2 Nov 2026)** — The owner reported that one-to-one voice
+calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
+front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
+sets `navigator.audioSession.type = "play-and-record"` (Safari 16.4+), and Notes Life's game sound sets "playback"; on Android, Chrome
+chooses the call route from the microphone that was opened, and for "default" it picks a wired headset, then USB, then Bluetooth, then
+the speakerphone, never the earpiece (Chromium `CommunicationDeviceSelector.java`). Chrome's microphone list on Android holds the routes
+by name ("Headset earpiece", "Speakerphone", "Wired headset", "Bluetooth headset", "USB audio"), and its speaker list only "default",
+so `setSinkId` can't move a call there; opening the "Headset earpiece" microphone (with echo cancellation, which switches Android to call
+mode) does. Also, a 1:1 video call attached the other person's stream to an unmuted `<video>` as well as the `<audio>`, so the voice
+played twice. `lib/call-audio.ts` holds the rules (platform, device labels, the choices each platform allows, which route to use:
+picked in this call > a headset that's there unless the remembered choice is a headset > remembered > earpiece for voice, speaker for
+video), and `components/calls/useCallAudio.ts` applies them in both call screens: the iPhone audio session set before the microphone
+opens and restored after, Android routes and computer microphones swapped in with `RTCRtpSender.replaceTrack` (no reconnect), computer
+speakers by `setSinkId` on every remote `<audio>` (group video tiles now play sound through a hidden `<audio>` too), and the list
+reloaded on `devicechange`. The Sound button shows only where there's a real choice; iPad has no earpiece, and on iPhone AirPods and
+Bluetooth are chosen in Control Centre. Narrow phones get slightly smaller call buttons so five fit in a row. Tests: `test:calls`.
+
+**API image uploads (v0.125.0, 3 Nov 2026)** — Enterprise partners publishing through the API had no way to add images, so
+partner sites fell back to their own image hosts (Precheks' Cloudinary preset had gone). New `POST /api/v1/uploads`
+(`app/api/v1/uploads/route.ts`, scope `write:posts`, behind the same `v1()` key, API-access and plan check as every v1 route)
+returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
+only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
+Console scope label, the roadmap, the API help article and README say so.
+
+**Live chat and signals for big audio rooms on a Durable Object (v0.127.0, 3 Nov 2026)** — Step 2b of the rooms plan. A relay room's
 Firestore chat costs one read per person per message, so a 10,000-listener room can't afford a live read of it. Each relay room opened
 while `NEXT_PUBLIC_LIVE_ROOMS_URL` and `LIVE_ROOMS_SECRET` are set (`edge: true` on the room doc; a room keeps what it opened with) gets
 one Cloudflare Durable Object (`workers/live-rooms`, its own package.json, tsconfig and wrangler.toml; excluded from the app's

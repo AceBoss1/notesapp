@@ -341,3 +341,16 @@ export function publicPricing(c: PricingConfig = currentPricing()): PricingConfi
 }
 // Course covers a day on a plan (lib/covers.ts), for the pricing page and the help.
 export const coversPerDay = (k: keyof CoverLimits) => ACADEMY_COVERS[k];
+
+// The compare table on /pricing: neighbouring plans whose cell says exactly the same thing are shown once, spanning those plans
+// (owner, 2 Nov 2026: "take out repetitions"). Worked out from the live text, so a change in Admin that makes two plans differ
+// splits the cell again by itself.
+export function mergeCells(cells: string[]): { text: string; span: number; from: number }[] {
+  const out: { text: string; span: number; from: number }[] = [];
+  cells.forEach((text, i) => {
+    const last = out[out.length - 1];
+    if (last && last.text === text) last.span++;
+    else out.push({ text, span: 1, from: i });
+  });
+  return out;
+}

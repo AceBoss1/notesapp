@@ -1,6 +1,6 @@
 // Prices an admin can change (lib/pricing.ts): the certificate late claim fee and the Nana allowances. Run: npm run test:pricing → "ALL OK".
 import assert from "node:assert/strict";
-import { DEFAULT_PRICING, PricingError, certificatePrice, cleanPricing } from "../../lib/pricing";
+import { DEFAULT_PRICING, PricingError, certificatePrice, cleanPricing, mergeCells } from "../../lib/pricing";
 
 const done = "2026-10-01T10:00:00Z";
 const at = (days: number) => new Date(Date.parse(done) + days * 86_400_000);
@@ -75,4 +75,9 @@ const longHold = clone(); longHold.books.debtHoldDays = 90;
 assert.throws(() => cleanPricing(longHold), PricingError, "60 days at most");
 const manySeats = clone(); manySeats.books.staffSeatsPro = -1;
 assert.throws(() => cleanPricing(manySeats), PricingError);
+// The compare table shows a repeated cell once, spanning the plans that share it, and only neighbours merge.
+assert.deepEqual(mergeCells(["a", "a", "a", "a", "a"]), [{ text: "a", span: 5, from: 0 }]);
+assert.deepEqual(mergeCells(["—", "x", "x", "x", "x"]), [{ text: "—", span: 1, from: 0 }, { text: "x", span: 4, from: 1 }]);
+assert.deepEqual(mergeCells(["a", "b", "a", "a", "c"]).map((c) => c.span), [1, 1, 2, 1]);
+assert.deepEqual(mergeCells([]), []);
 console.log("ALL OK");

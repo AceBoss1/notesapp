@@ -11,9 +11,9 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.126.0",
+    version: "v0.127.0",
     bump: "minor",
-    date: "2026-11-02",
+    date: "2026-11-03",
     changes: [
       { kind: "added", text: "Chat in big audio rooms keeps up live: in rooms on our relay, the room chat, the number listening and raised hands now travel over one live connection to our chat service, run on Cloudflare, so a room of thousands sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. It switches on once the chat service is connected; until then rooms work exactly as before." },
       { kind: "added", text: "Slow mode is the host's tool in these rooms: at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on once the room is very big). The host and moderators can also mute someone in the chat (and unmute them later) or remove them from the room, and a message they take down disappears from every screen at once." },
@@ -23,9 +23,9 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.125.0",
+    version: "v0.126.0",
     bump: "minor",
-    date: "2026-11-02",
+    date: "2026-11-03",
     changes: [
       { kind: "added", text: "Live mode in Community audio rooms: in a room through our relay, the host can turn their camera on and off during the room (and let speakers do the same), without anyone reconnecting. Video is kept light so it works on ordinary phone data." },
       { kind: "added", text: "A poster for every room: the host picks a picture when they start (one they upload, their profile picture or the challenge art) and can change it any time. Everyone sees it while video is off. It's only a picture, so it never uses video data." },
@@ -34,6 +34,33 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Gentle tips for the host: when listeners start dropping while video is off, a suggestion to try a short burst of video; after a long stretch of video, or when few minutes are left, a reminder to go back to audio." },
       { kind: "added", text: "If the host offers paid sessions, Book a session stays at the top of the room for everyone listening, and opens in a new tab so you don't leave." },
       { kind: "added", text: "For the team: Admin → Limits → Audio rooms has a Live mode section (video on or off, video minutes per live, the grace when they run out, when each tip shows, and the video's size, frame rate and quality cap), and the help and the Audio rooms page quote what's saved there. Rooms can now be set to hold up to 10,000 listeners." },
+    ],
+  },
+  {
+    version: "v0.125.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "API image uploads for Enterprise partners: `POST /v1/uploads` (scope `write:posts`) gives a one-time link for putting an image in your account's media storage, for a post's featured image or pictures inside it. Images only (JPEG, PNG, WebP, GIF, AVIF), up to 10 MB; the link lasts 5 minutes. Described in the API docs." },
+      { kind: "changed", text: "The Console's `write:posts` permission now reads \"Create & edit posts, upload images\"." },
+    ],
+  },
+  {
+    version: "v0.124.3",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "fixed", text: "Voice calls on phones play through the earpiece, like a phone call, instead of the loudspeaker. Video calls still use the speaker. Headphones and Bluetooth take over when they're plugged in or connected, even during a call." },
+      { kind: "added", text: "A Sound button in one-to-one and group calls: choose Earpiece or Speaker (iPhone), Earpiece, Speaker, Headphones or Bluetooth (Android), or which speakers and microphone to use (computers). Your choice is remembered on that device. On iPhone, AirPods and Bluetooth are picked in Control Centre." },
+      { kind: "fixed", text: "In a video call, the other person's voice no longer plays twice on some browsers." },
+    ],
+  },
+  {
+    version: "v0.124.2",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "changed", text: "The plan comparison on Pricing no longer repeats itself: when neighbouring plans have exactly the same answer (giving, paying what you owe online, voice notes, calls and more), it is written once across those plans. If a setting later makes them differ, each plan shows its own again." },
     ],
   },
   {
