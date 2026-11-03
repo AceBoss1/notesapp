@@ -6,6 +6,8 @@
 //   adminRole: "super" | "admin"     a super admin sees everything and manages the team; an admin sees only the departments below.
 //                                    A bare `admin: true` with no adminRole (every account set up before roles existed) counts as super.
 //   depts: ["support", ...]          the departments an admin works in
+//   cos: true                        the Chief of Staff (an admin): until there is an HR team, assigns other admins to any department,
+//                                    moves them between departments and removes their access; never their own, never a super admin's
 // The owner (OWNER_EMAIL, the founder) is a super admin who alone appoints and removes other super admins.
 
 export const DEPARTMENTS = [
@@ -24,23 +26,29 @@ export const DEPT_LABEL = Object.fromEntries(DEPARTMENTS.map((d) => [d.key, d.la
 export const isDept = (d: unknown): d is Dept => typeof d === "string" && (DEPT_KEYS as string[]).includes(d);
 
 export type AdminRole = "super" | "admin";
-export type Access = { role: AdminRole; depts: Dept[] };
+export type Access = { role: AdminRole; depts: Dept[]; cos?: boolean };
 
 // What the claims on a signed-in account say. null = not staff.
 export function accessFromClaims(claims: Record<string, unknown> | null | undefined): Access | null {
   if (!claims || claims.admin !== true) return null;
   if (claims.adminRole === undefined || claims.adminRole === "super") return { role: "super", depts: [] };
   const depts = Array.isArray(claims.depts) ? claims.depts.filter(isDept) : [];
-  return { role: "admin", depts: Array.from(new Set(depts)) }; // anything else is the safe reading: an admin with only the departments listed
+  // anything else is the safe reading: an admin with only the departments listed
+  return { role: "admin", depts: Array.from(new Set(depts)), ...(claims.cos === true ? { cos: true } : {}) };
 }
 
 export const isSuper = (a: Access | null | undefined) => a?.role === "super";
+// The Chief of Staff (an admin with the cos claim) assigns departments until there is an HR team.
+export const isChiefOfStaff = (a: Access | null | undefined) => a?.role === "admin" && a.cos === true;
+// Who may open Team access and assign departments: super admins and the Chief of Staff.
+export const canManageTeam = (a: Access | null | undefined) => isSuper(a) || isChiefOfStaff(a);
 // Super admins have every department; an admin has the ones they were given.
 export const hasDept = (a: Access | null | undefined, d: Dept) => !!a && (a.role === "super" || a.depts.includes(d));
 export const hasAnyDept = (a: Access | null | undefined, ds: readonly Dept[]) => ds.some((d) => hasDept(a, d));
 
-// Every page in the admin area and who can open it: "all" (any staff), "super", or the departments that include it.
-export type Need = "all" | "super" | readonly Dept[];
+// Every page in the admin area and who can open it: "all" (any staff), "super", "team" (super admins and the Chief of Staff),
+// or the departments that include it.
+export type Need = "all" | "super" | "team" | readonly Dept[];
 export type Section = { href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
@@ -89,13 +97,14 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/maintenance", label: "Maintenance", need: "super", group: "Admin" },
   { href: "/admin/backups", label: "Backups", need: "super", group: "Admin" }, // the owner only; the page says so to other super admins
   { href: "/admin/seed", label: "Seed", need: "super", group: "Admin" },
-  { href: "/admin/access", label: "Team access", need: "super", group: "Admin" },
+  { href: "/admin/access", label: "Team access", need: "team", group: "Admin" },
 ];
 
 export function canOpen(a: Access | null | undefined, need: Need): boolean {
   if (!a) return false;
   if (need === "all") return true;
   if (need === "super") return a.role === "super";
+  if (need === "team") return canManageTeam(a);
   return hasAnyDept(a, need);
 }
 
@@ -116,6 +125,6 @@ export const allowedSections = (a: Access | null | undefined) =>
 
 export function roleLabel(a: Access | null | undefined, owner = false): string {
   if (!a) return "";
-  return owner ? "Owner" : a.role === "super" ? "Super admin" : "Admin";
+  return owner ? "Owner" : a.role === "super" ? "Super admin" : a.cos ? "Chief of Staff" : "Admin";
 }
 export const deptSummary = (a: Access | null | undefined) => (a?.role === "super" ? "Everything" : (a?.depts ?? []).map((d) => DEPT_LABEL[d]).join(", ") || "No departments");
