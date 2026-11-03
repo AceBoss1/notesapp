@@ -2,21 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { AccessChangeError, accessLog, changeAccess, listStaff } from "@/lib/admin-access-server";
-import { DEPARTMENTS } from "@/lib/admin-access";
+import { DEPARTMENTS, canManageTeam, isSuper } from "@/lib/admin-access";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-// Super admins: GET → who has staff access (with roles and departments), what you may do, and the recent changes.
-// POST { email, role: "super" | "admin" | "none", depts? } → appoints, edits or removes someone. Only the owner can touch super admins.
+// Super admins and the Chief of Staff: GET → who has staff access (with roles and departments), what you may do, and the recent changes.
+// POST { email, role: "super" | "admin" | "none", depts?, cos? } → appoints, edits or removes someone. Only the owner can touch super
+// admins or name the Chief of Staff; the Chief of Staff manages admins only, never their own access (lib/admin-access-server.ts).
 export async function GET(req: NextRequest) {
   try {
     const me = await verifyAdminAccess(bearer(req));
-    if (me.access.role !== "super") throw new AccessChangeError(403, "Only a super admin can see this.");
+    if (!canManageTeam(me.access)) throw new AccessChangeError(403, "Only a super admin or the Chief of Staff can see this.");
     const db = getAdminDb();
     const [people, log] = await Promise.all([listStaff(db), accessLog(db)]);
-    return NextResponse.json({ me: { uid: me.uid, owner: me.owner }, people, log, departments: DEPARTMENTS }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ me: { uid: me.uid, owner: me.owner, super: isSuper(me.access) }, people, log, departments: DEPARTMENTS }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof AccessChangeError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't load team access");

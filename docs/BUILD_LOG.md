@@ -2779,3 +2779,10 @@ files and Stream videos. Tests: `test:media` (rules, limits, watermark on JPEG a
 limits, Stream processing and rejection, audiences, blocks, teen rules, downloads, site pictures, the album, pinned posts and Moments
 past expiry, deletion), the rules test (all four collections client-proof), all in CI. Not in M1: the `/media` feed, comments,
 reactions, gifts, shares and reports of Media posts, the automatic safety check, lives (phases M2 to M5 in `docs/MEDIA.md`).
+
+**Chief of Staff in Team access (team hub, 3 Nov 2026)** — The owner asked for the Chief of Staff to assign new team members to any
+department and move existing ones, as there is no HR team yet, but never themselves. A `cos: true` custom claim on an admin
+(`lib/admin-access.ts`: `isChiefOfStaff`, `canManageTeam`, the new `"team"` need for /admin/access, "Chief of Staff" in `roleLabel`);
+`changeAccess` in `lib/admin-access-server.ts` lets the Chief of Staff add, move and remove admins but refuses their own access, any super
+admin, appointing one, and naming or changing a Chief of Staff (owner only; a non-owner super admin can't change the Chief of Staff either).
+Team access shows the role and, for the owner, a Chief of Staff tick on an admin's row. Test: `npm run test:access` (emulators).
