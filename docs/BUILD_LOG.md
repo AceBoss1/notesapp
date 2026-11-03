@@ -2823,3 +2823,22 @@ is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. S
 dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
 before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
 Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.
+
+**Fan levels and Premium / VIP / VVIP subscriptions (v0.135.0, 3 Nov 2026)** — The owner asked for three subscription categories
+(VVIP ₦10,000–₦500,000, VIP ₦5,000–₦200,000, Premium ₦1,000–₦100,000 a month; #NotesApp takes the rate plus 20% / 10% of it on
+VVIP / VIP, "like in gifts"), a fan level built from subscribing, gifting, sharing, reactions and comments with Top Fan badges for
+#1–99 that show wherever the fan comments in the creator's space, subscriber badges (🏆 VVIP, 🛡 Army, 🌄 Starter) and live
+entrances for the top three (yacht or private jet with VVIP, SUV or sports car, e-bike or bicycle). The mockups were approved with
+the open details chosen as: creators price each tier within the range, each tier includes the ones below, existing subscribers are
+Premium, points are all-time (1 per ₦100 paid; share 10, comment 3, reaction 1, with daily caps 5 / 10 / 20 so they can't be farmed),
+the fan picks their vehicle, and the creator can hide the list. Design: tiers sit beside the old single subscription fields
+(`subscription.tiers`, the old ones mirroring Premium) so every older reader keeps working and no data migration is needed; a tier
+is a separate Paystack plan, so renewals find the record by plan code as before and keep the tier's commission share. A tier change
+can't be prorated through a Paystack plan charge, so it starts the new tier now at full price and carries the days left on the old
+one, then stops the old plan's subscription on Paystack. Points live in one server-only document per (creator, fan) with today's
+counts in it, so a cap check and the add are one transaction; the top 99 are one indexed query cached a minute per server, and the
+badges for a whole comment thread are one request. Live entrances reuse the room doc everyone already reads (one `entrance` field,
+the latest only) rather than a new channel. Teen mode: teens show on lists only to their followers and a teen creator's list is
+hidden. Tests: `test:fans` (ranges, the owner's 8% example, old settings, audiences, badges, bands, vehicles), `test:fans-server`
+(caps, self, top list, badges, hidden list, teens, fan level, vehicles, entrances, comment and reaction points through the real code,
+admin settings), rules, `test:help` live figures.
