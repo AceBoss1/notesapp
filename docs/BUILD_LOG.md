@@ -2802,6 +2802,7 @@ for super admins and the Chief of Staff, open/close by super admins, applicants 
 letter, option grant and announcement templates from the owner's documents, personal details removed), `/careers`, `/careers/[id]`,
 `/api/public/careers`, `/api/careers/apply`, `/api/admin/hr`. Server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`,
 `staffMeta`. Tests: `npm run test:hr` (the rules, then the emulator) and a rules test.
+
 **Passkeys (v0.132.0, 3 Nov 2026)** — The owner asked for passkeys or security keys for all users, usable at the team hub too. WebAuthn
 with `@simplewebauthn/server` and `/browser` (v14): `lib/passkeys.ts` (pure: the RP ID is the domain family's root from `lib/host.ts`, so
 a passkey made on www.naapp.tech works across app., life. and prep.naapp.tech; members' own domains get none; allowed origins; names),

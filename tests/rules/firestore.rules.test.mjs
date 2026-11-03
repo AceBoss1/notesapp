@@ -1473,6 +1473,9 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
     await assertFails(setDoc(doc(db, "careerApplications/r1_bob"), { uid: "bob" }));
     await assertFails(getDoc(doc(db, "hrDrafts/d1")));
     await assertFails(getDoc(doc(db, "staffMeta/librarySeed")));
+  }
+});
+
 test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
