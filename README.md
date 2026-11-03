@@ -3,11 +3,13 @@
 Where African creators, professionals and businesses publish, take bookings, sell and get paid in Naira. Next.js 14 (App
 Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystack, Resend, Anthropic (Nana).
 
-**New here? Read `HANDOVER.md` first** (how the work is done, what's waiting, the map of the code), then this page.
+**New here? Read `HANDOVER.md` first** (how the work is done, what's waiting, the map of the code), then this page. The owner's
+set-up steps outside the code are in `docs/OWNER_SETUP.md`.
 
 | Doc | What's in it |
 |---|---|
 | `HANDOVER.md` | The state of the code, what's waiting on the owner, how the work is done, map of the code, tests, known gaps |
+| `docs/OWNER_SETUP.md` | The owner's set-up guide: every step outside the code (Firebase, Cloudflare, Cloud Run, cron-job.org, domains, counsel, tests), in order, with costs and troubleshooting |
 | `docs/ENVIRONMENT.md` | Every setting (environment variable), made from `lib/config.ts` |
 | `docs/DEPLOY.md` | Deploy checklist, where to look when something's wrong, scripts |
 | `docs/ENGINEERING_GUIDE.md` | The founder's guide for the engineering team: principles, the Na- names, the stages and their dashboard triggers, recovery from a breach, Nana and the platform at scale |

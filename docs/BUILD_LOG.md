@@ -2649,3 +2649,13 @@ partner sites fell back to their own image hosts (Precheks' Cloudinary preset ha
 returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
 only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
 Console scope label, the roadmap, the API help article and README say so.
+
+**Owner set-up guide (docs, 3 Nov 2026)** — The owner steps for the recent features were spread across HANDOVER items 91 to 101 and
+the pending branches' notes. `docs/OWNER_SETUP.md` gathers them in one place, in order, for a non-developer: one `firebase deploy
+--only firestore` for every pending rule (run again after each merge) and the three TTL policies not yet declared in
+`firestore.indexes.json` (`agentProposals.purgeAt`, `agentUsage.expireAt`, `agentEvents.expireAt`); the Cloudflare Realtime SFU app
+and TURN key; the live rooms worker (Workers Paid, the API token, GitHub secrets, the workflow, `LIVE_ROOMS_SECRET`,
+`NEXT_PUBLIC_LIVE_ROOMS_URL`); the Cloud Run recorder (APIs, Secret Manager with the accessor role, the deploy command, `RECORDER_URL`
+/ `RECORDER_SECRET`); Stream; the cron-job.org agents job; `mcp.` authorised domains; optional transcripts; the counsel list; a
+testing checklist with the /status rows to expect; costs only from our docs or marked to verify; and troubleshooting quoting the
+code's own messages. Internal doc: no changelog entry. HANDOVER and README point to it.
