@@ -73,6 +73,8 @@ export type Note = {
   videoPoster?: string;
   videoDuration?: number;
   videoSize?: number;
+  // A replay of a live (lib/live-recording.ts), set only by the server when the host taps Share to Journal; the post embeds its player.
+  replayId?: string;
 };
 
 export type NoteWithComputed = Note & {

@@ -6,6 +6,7 @@ import { ensurePricing } from "./pricing-server";
 import { getLimitOverrides } from "./limits-server";
 import { getAgentSettings } from "./agents/config-server";
 import { liveRoomFigures } from "./rooms-server";
+import { liveRecordingFigures } from "./live-recording-server";
 
 // The knowledge base the Help centre and Nana AI read: the built-in articles plus whatever staff have written at Admin → Help & Nana.
 // A staff article with the same slug as a built-in one replaces it (that is how staff correct or extend a built-in answer); unpublish or
@@ -26,14 +27,16 @@ export async function staffArticles(db: Firestore): Promise<(StaffDoc & { id: st
 // the Nana and connected-agent settings (Admin → Limits). Each read is cached for half a minute or less, so this is cheap. A failed read
 // keeps what is in force (or the defaults) rather than blanking the help.
 export async function loadKbLive(db: Firestore): Promise<KbLive> {
-  const [limits, agents, , rooms] = await Promise.all([
+  const [limits, agents, , rooms, recording] = await Promise.all([
     getLimitOverrides(db).catch(() => undefined),
     getAgentSettings(db).catch(() => undefined),
     ensurePricing(db).catch(() => undefined),
     // Audio room sizes (Admin → Limits → Audio rooms): what a room opened now holds.
     liveRoomFigures(db).catch(() => undefined),
+    // Live recording (Admin → Limits → Live recording): keep days, the longest recording, whether the recorder is set up.
+    liveRecordingFigures(db).catch(() => undefined),
   ]);
-  return { limits, agents, rooms };
+  return { limits, agents, rooms, recording };
 }
 
 // Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles

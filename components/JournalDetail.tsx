@@ -9,6 +9,7 @@ import { getAuthorProfile, getUserByUid, roleLabelFor } from "@/lib/users";
 import BadgeToast from "@/components/BadgeToast";
 import BoostNudge from "@/components/BoostNudge";
 import VideoPlayer from "@/components/VideoPlayer";
+import ReplayPlayer from "@/components/replays/ReplayPlayer";
 import { videoPublicUrl } from "@/lib/video-rules";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgesOf } from "@/lib/name-badges";
@@ -188,6 +189,8 @@ export default async function JournalDetail({
         {note.videoKey && !note.premium && (
           <VideoPlayer src={videoPublicUrl(note.videoKey)} poster={note.videoPoster} duration={note.videoDuration} size={note.videoSize} title={note.title} />
         )}
+        {/* A replay of a live (Share to Journal): the player checks who may watch (everyone, or the host's subscribers on a premium post). */}
+        {note.replayId && <ReplayPlayer id={note.replayId} compact />}
         {(() => {
           const gate = (
             <PremiumGate

@@ -36,7 +36,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `R2_ACCESS_KEY_ID` | **yes** | R2 key id. The token must cover both buckets (media and private) with Object Read & Write. |
 | `R2_SECRET_ACCESS_KEY` | **yes** | R2 secret. |
 | `R2_BUCKET_NAME` | no | Public media bucket (default notesapp-media): images, avatars, post videos. |
-| `R2_PRIVATE_BUCKET` | no | Private bucket for paid downloads and message files (a name). |
+| `R2_PRIVATE_BUCKET` | no | Private bucket for paid downloads, message files and live recordings (a name). |
 | `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (https://media.notesapp.name.ng). |
 | `CLOUDFLARE_STREAM_TOKEN` | **yes** | Cloudflare API token with Stream: Edit, for video lessons of view-only items and courses. Without it only PDF lessons work. |
 | `CLOUDFLARE_ACCOUNT_ID` | no | Cloudflare account for Stream when it isn't R2_ACCOUNT_ID. |
@@ -152,9 +152,19 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `CLOUDFLARE_TURN_API_TOKEN` | **yes** | Cloudflare TURN token. |
 | `CLOUDFLARE_REALTIME_APP_ID` | no | App ID of the Cloudflare Realtime Serverless SFU app (Realtime → Serverless SFU). With the token, new community audio rooms use the relay, for hundreds of listeners (Admin → Limits → Audio rooms sets how many, and can switch it off); without both, rooms run phone to phone. /status shows whether Cloudflare accepts them. |
 | `CLOUDFLARE_REALTIME_APP_TOKEN` | **yes** | App Token (secret) of that same Realtime SFU app. Server-only: browsers never see it. |
+| `NEXT_PUBLIC_LIVE_ROOMS_URL` | no | The live-rooms worker's address, wss://notesapp-live-rooms.YOUR-SUBDOMAIN.workers.dev (workers/live-rooms; HANDOVER item 99). With LIVE_ROOMS_SECRET, relay audio rooms opened from then on carry their chat, listener count, raised hands and stage signals over one WebSocket per person to a Cloudflare Durable Object, instead of everyone reading Firestore for every message: for rooms of thousands. Empty: the chat and count go through Firestore as before. |
+| `LIVE_ROOMS_SECRET` | **yes** | Shared secret between the site and the live-rooms worker (the same value in both: Vercel, and npx wrangler secret put LIVE_ROOMS_SECRET): signs the 10-minute room tokens and every message between the two. Make one with: node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))". Without it the live-rooms worker isn't used. |
 | `TURN_URLS` | no | Our own TURN server instead: comma-separated addresses. |
 | `TURN_USERNAME` | no | Our own TURN server's username. |
 | `TURN_CREDENTIAL` | **yes** | Our own TURN server's password. |
+
+## Live recording
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `RECORDER_URL` | no | Address of the room recorder service (services/room-recorder, on Cloud Run: docs/RECORDER.md), like https://room-recorder-xxxx.a.run.app. With RECORDER_SECRET, hosts can switch recording on before a live; without both the switch is hidden. |
+| `RECORDER_SECRET` | **yes** | The secret shared with the room recorder (the same value in its RECORDER_SECRET): signs every request between the app and the recorder and the recorder page's room tokens. Make one with: openssl rand -hex 32. |
+| `REPLAY_TRANSCRIBE` | no | Transcripts for replays: off (the default), nkenne-english or nkenne-swahili (NKENNEAi speech to text, needs NKENNE_API_KEY; only recordings whose sound file is under 25 MB, about an hour and a half). Without it, Share to Journal drafts without a transcript or Nana summary. |
 
 ## Feature switches
 
