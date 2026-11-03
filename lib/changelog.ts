@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.125.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "API image uploads for Enterprise partners: `POST /v1/uploads` (scope `write:posts`) gives a one-time link for putting an image in your account's media storage, for a post's featured image or pictures inside it. Images only (JPEG, PNG, WebP, GIF, AVIF), up to 10 MB; the link lasts 5 minutes. Described in the API docs." },
+      { kind: "changed", text: "The Console's `write:posts` permission now reads \"Create & edit posts, upload images\"." },
+    ],
+  },
+  {
     version: "v0.124.3",
     bump: "patch",
     date: "2026-11-02",

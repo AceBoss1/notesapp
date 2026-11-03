@@ -11,7 +11,7 @@ import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "API Docs",
-  description: "The #NotesApp API for Enterprise partners, as used by precheks.com.ng: authentication, posts, bookings, orders, earnings and webhooks; the MCP server for AI assistants; and how Business and Enterprise accounts connect their own domain.",
+  description: "The #NotesApp API for Enterprise partners, as used by precheks.com.ng: authentication, posts, image uploads, bookings, orders, earnings and webhooks; the MCP server for AI assistants; and how Business and Enterprise accounts connect their own domain.",
 };
 
 const code = "overflow-x-auto rounded bg-ink px-4 py-3 font-mono text-xs leading-relaxed text-paper";
@@ -24,7 +24,7 @@ export default function DocsPage() {
   return (
     <>
       <PageHero eyebrow="Docs" title={<>#NotesApp API</>}>
-        <p>Server-to-server access for Enterprise partners: publish posts, and read your own bookings, orders and earnings. Get access by contacting us, then create keys in the <Link href="/console" className="text-crimson underline">Console</Link>.
+        <p>Server-to-server access for Enterprise partners: publish posts (with images), and read your own bookings, orders and earnings. Get access by contacting us, then create keys in the <Link href="/console" className="text-crimson underline">Console</Link>.
         Changes are listed in the <Link href="/changelog" className="text-crimson underline">Changelog</Link> and announced on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>, where you can ask the team and other developers about the API and the MCP server.</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">

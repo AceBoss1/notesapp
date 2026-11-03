@@ -21,7 +21,7 @@ type Dns = { type: string; name: string; value: string };
 type Domain = { host: string; status: "pending" | "active"; home: "profile" | "store"; note: string; dns: Dns[] };
 
 const SCOPES: [string, string][] = [
-  ["read:posts", "Read your posts"], ["write:posts", "Create & edit posts"], ["read:bookings", "Read bookings"],
+  ["read:posts", "Read your posts"], ["write:posts", "Create & edit posts, upload images"], ["read:bookings", "Read bookings"],
   ["read:orders", "Read orders & download sales"], ["read:earnings", "Read earnings"],
 ];
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
