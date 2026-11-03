@@ -413,6 +413,26 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
+97. **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, branch `push/call-audio-route`; 95 and 96 are
+    reserved for pending PRs, as are v0.123.2 and v0.124.0):** nothing to deploy. Root cause: iPhone Safari routes a page that has
+    the microphone open to the loudspeaker unless `navigator.audioSession.type` is "play-and-record" (and Notes Life's game sound sets
+    "playback"); Android Chrome, left on the "default" microphone, picks wired > USB > Bluetooth > speakerphone and only uses the
+    earpiece when the microphone called "Headset earpiece" is opened. Also, 1:1 video played the remote voice through both the
+    `<video>` and the `<audio>` element. Now `lib/call-audio.ts` (pure rules, `tests/calls/audio.test.ts` in `test:calls`) and
+    `components/calls/useCallAudio.ts` (used by `CallManager.tsx` and `GroupCall.tsx`): iPhone sets the audio session for the call
+    ("play-and-record" = earpiece, "auto" = speaker; the previous type comes back afterwards); Android opens Chrome's route by
+    microphone id (with echo cancellation, which puts Android in call mode) and swaps it in with `replaceTrack`; computers use
+    `setSinkId` for speakers (Firefox: "Choose another speaker…" via `selectAudioOutput`) and a separate microphone list. Remote
+    sound always plays through `<audio>` elements (videos are muted). Headsets win on `devicechange` unless the person picked
+    something in this call; choices are remembered per device in `localStorage` (`na-call-sound`). Can't be done from a web page:
+    choosing AirPods/Bluetooth on iPhone (Control Centre), any route on iPad (no earpiece), and Android browsers other than Chrome
+    (no route names: the note says so). Untested on real phones from here: please try a voice and a video call on an iPhone and an
+    Android phone, with and without headphones.
+
+101. **Pricing table without repeats (v0.124.2, branch `push/pricing-merge-cells`; 97–100 are reserved for pending PRs):** nothing to
+    deploy. In the /pricing compare table, neighbouring plans whose cell says the same thing are shown once across those plans
+    (`mergeCells` in `lib/pricing.ts`, worked out from the live text, so an Admin change that makes plans differ splits the cell again).
+
 98. **Live mode in audio rooms: video, poster, Audio only, video-minutes budget, host prompts (v0.126.0, branch `push/live-mode`, cut
     from `push/rooms-relay`; 96 is PR #253 and 97 is reserved for the calls PR):** needs item 96 merged and the relay's keys set; on
     phone-to-phone rooms only the poster applies. **Deploy:** `firebase deploy --only firestore:rules` (new server-only
