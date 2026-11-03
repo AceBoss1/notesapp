@@ -2812,3 +2812,14 @@ apply as with a password), `/api/passkeys` (list, rename, remove), `/api/passkey
 `lib/passkeys-client.ts`, `components/PasskeySignIn.tsx` (the sign-in form and Staff login) and `components/PasskeySettings.tsx`
 (Account settings). Both collections server-only in `firestore.rules`; erasing an account removes its passkeys. Tests:
 `npm run test:passkeys` (the rules, then a full ceremony against the emulators with a software P-256 authenticator) and a rules test.
+
+## Help backfill from Nana's unanswered questions (built 3 November 2026)
+
+Nana's "Couldn't answer" list showed questions the help centre either didn't cover or covered under other words. New articles:
+`post-a-moment` (moments are what other apps call a status or story, and a moment never changes your profile picture),
+`verify-your-email` (the yellow bar's Resend link, the 60-second wait, and "I've verified"; not the same as the verified badge),
+`nana-suggestions-on-forms` (swipe or ✕ to remove a suggestion, Not now to hide the box), `currency-and-exchange-rates` (everything
+is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. Search now folds status/story into "moment",
+dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
+before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
+Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.

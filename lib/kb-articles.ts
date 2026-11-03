@@ -639,6 +639,45 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
 `),
+    ...(MOMENTS_LIVE ? [A("post-a-moment", "Posting a moment (status or story)", "Getting started", `
+A moment is what other apps call a status or a story: a picture, a video or a line of text that shows on your profile picture and disappears after 24, 48 or 72 hours.
+
+**To post one:** open [Journals](/journals). At the start of the Moments row, tap the **+** on your own picture (or the **+** on your picture on your profile) and choose **Add a moment**. In **New moment**, pick **Text**, **Picture** or **Video**, add a caption (you can @mention people) and, if you like, a voice-over, choose **Disappears after** 24, 48 or 72 hours, and tap **Share moment**. A video can be up to 90 seconds; a longer one is split into parts, as far as your weekly allowance goes.
+
+**A moment does not change your profile picture.** If you were trying to change your picture, tap the same **+** and choose **Update profile picture** instead, or use [Edit profile](/profile/edit) (see [Changing your profile picture](/help/profile-pictures-and-links)).
+
+**Seeing moments:** tap **View my moments** on the same menu to see yours and who viewed them. Other people's moments are in the Moments row on [Journals](/journals), or tap their picture. Who can see yours, teen mode and sharing a journal or item to Moments are explained in [Messages, group chats and moments](/help/messages-moments-groups).
+`)] : []),
+    A("verify-your-email", "Verify your email: resend the verification link", "Getting started", `
+When you sign up we send a link to your email address. Until you open it, a yellow bar at the top of #NotesApp says **Verify your email to send messages, make calls and pay on #NotesApp**.
+
+**Didn't get it, or the link expired?** Tap **Resend link** on that bar. A new link is sent to the address on your account (the bar tells you which). You can ask again after 60 seconds; if you ask too often you'll be asked to wait a few minutes. Check your spam or promotions folder, and search for an email from #NotesApp.
+
+**After you open the link,** come back and tap **I've verified**. The bar goes away and messages, calls and payments open up. If it says "Not verified yet", open the newest link in your email first (older links stop working once a new one is sent).
+
+**Wrong email address?** Change it on [Account](/profile/account), then resend the link to the new address. Still stuck? [Contact support](/help/contact-and-support).
+
+Verifying your email is not the same as a verification badge (the ✔ next to a name): see [Verified badge](/help/verified-badge) for that.
+`),
+    A("nana-suggestions-on-forms", "Nana's suggestions on forms: add, remove or hide them", "Getting started", `
+When you type a title, Nana suggests things to go with it in a **Nana suggests** box: topics for a journal or course, a category for a shop item (for example **Fashion › Maxi dresses** when you tap **Add item** in your store), and lines for a course. Nothing is added unless you choose it.
+
+- **Use a suggestion:** tap it, or swipe it right.
+- **Remove one you don't want:** swipe it left, or tap its **✕** (on a computer, select it and press Delete or Backspace). **Undo** brings it back. Removed suggestions stay removed for that title on that device.
+- **Hide the whole box:** tap **Not now**. It stays hidden while the title is the same.
+- **Ask again:** the refresh button in the box brings back everything you removed and asks Nana again.
+
+Suggestions marked **NEW** don't exist yet; they're created when you save. You can always ignore the box and choose from the full list below it.
+`),
+    A("currency-and-exchange-rates", "Currency: naira, dollars and exchange rates", "Plans and pricing", `
+Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank.
+
+**Exchange rates:** #NotesApp doesn't publish a dollar-to-naira (or any other) exchange rate, and Nana can't give a live rate. Rates change through the day, so check your bank, your card provider or a trusted rates site.
+
+**Paying with a foreign card:** your bank converts the naira amount to your card's currency at its own rate and may add a fee; your statement shows what you were charged. Refunds are made in naira, so the amount back on a foreign card can differ slightly because of the rate.
+
+See [Plans and prices](/help/plans-and-prices) for what each plan costs.
+`),
     ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
 
@@ -1252,6 +1291,11 @@ Open [Team hub](/admin/team). Every item has a status (To do, Doing, Blocked, Ne
 When you give someone an item they get a bell. Its owner is reminded of the due date 3 days and 1 day before, on the day, and once if it goes overdue (a bell each time, plus an email for tomorrow, today and overdue). Changing the date or the owner starts the reminders again.
 
 The morning summary (email and bell, switch either off on the hub) lists what is due, blocked or waiting on you. The [weekly review](/admin/team/review) shows the week in numbers and work, with a place for wins, lessons and next week's focus; focus lines can become next week's items. Meetings get their own chat room, decisions and actions, and the team room is the everyday group chat for staff.`),
+    A("hub-new-task", "Adding a task on the team hub", `
+Open [Team hub](/admin/team) and tap **+ New task** at the top. Give it a **Title** (required) and, if you like, **Details** (steps, context and links), a **Due date** (or tap Today, In 1 week or In 2 weeks), **When** (Today, This week, Later), a **Status**, who owns it, its departments and whether it **Repeats**. A **Blocked** task asks what it is blocked on and who can unblock it; a **Needs a decision** task asks what has to be decided. Tap **Add task**.
+
+For a quick one, type the title in **Quick add** on the work board and tap **Add**; open the item afterwards to fill in the rest. The owner gets a bell and the due-date reminders (see [Using the team hub work board](/help/hub-work-board)).
+`),
     A("hub-money-ledger", "Recording money in the ledger", `
 The [Money ledger](/admin/team/finance) holds expenses, payroll and money in that is not platform revenue (grants, sponsorships, direct transfers), with receipts, next to platform revenue. Finance records entries dated today or up to 3 days back, adds receipts to any entry and can void recent ones with a reason. Product can read everything except payroll lines. Only the owner can enter older dates, edit an entry, void old history and import a CSV. Nothing is ever deleted: a voided entry stays with who voided it and why. Salaries are paid from [Payroll](/admin/team/payroll), which writes its own Payroll entries here.`),
     A("hub-expenses-due", "Expenses due: who pays, and by when", `
