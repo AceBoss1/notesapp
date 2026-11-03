@@ -1092,6 +1092,54 @@ test("audio rooms on the relay: Cloudflare sessions, the room settings and the r
   }
 });
 
+test("audio rooms, Live mode: the video minutes and prompts are server-only, and only the server says whose camera is up or sets the poster", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-11-02T10:00:00Z", seen: "2026-11-02T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "communityRooms/r4"), { cid: "grace", communityName: "Grace", title: "Live", hostUid: "host", hostName: "H", speakers: ["spk"], hands: {}, joined: { host: seen, spk: seen }, status: "live", mode: "relay", createdAt: seen.at, videoOn: { host: seen.at }, stageVideo: false, poster: "/images/challenge/challenge-banner.webp" });
+    await setDoc(doc(f, "communityRooms/r4/people/lis"), seen);
+    await setDoc(doc(f, "communityRooms/r4/live/state"), { usedMs: 60000, open: { host: seen.at }, samples: [{ at: seen.at, n: 10 }], prompted: {} });
+    await setDoc(doc(f, "communityRooms/r4/relay/host"), { sessionId: "cf", at: seen.at, push: { trackName: "host-mic", mid: "0" }, video: { trackName: "host-cam", mid: "1" } });
+  });
+  const h = as("host"), s = as("spk"), l = as("lis"), x = as("stranger"), boss = as("boss", { admin: true });
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r4"))); // a listener sees whose camera is up and the poster
+  for (const db of [h, s, l, x, boss]) {
+    await assertFails(getDoc(doc(db, "communityRooms/r4/live/state"))); // the minutes go to the host through the server
+    await assertFails(getDocs(collection(db, "communityRooms/r4/live")));
+    await assertFails(getDoc(doc(db, "communityRooms/r4/relay/host"))); // nor the camera's track
+  }
+  await assertFails(setDoc(doc(h, "communityRooms/r4/live/state"), { usedMs: 0, open: {}, samples: [] })); // nobody resets the clock
+  await assertFails(updateDoc(doc(h, "communityRooms/r4/live/state"), { usedMs: 0 }));
+  await assertFails(deleteDoc(doc(h, "communityRooms/r4/live/state")));
+  await assertFails(updateDoc(doc(s, "communityRooms/r4"), { "videoOn.spk": "t" })); // a speaker can't mark their camera up
+  await assertFails(updateDoc(doc(s, "communityRooms/r4"), { stageVideo: true })); // nor allow themselves video
+  await assertFails(updateDoc(doc(h, "communityRooms/r4"), { poster: "https://elsewhere.test/x.png" })); // the poster is set through the server
+  await assertFails(updateDoc(doc(h, "communityRooms/r4"), { videoOn: {} }));
+});
+
+test("audio rooms on the live-rooms worker: edge state (bans, hands, the exact count) and listening time are server-only; edgeIn is the server's", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-11-02T10:00:00Z", seen: "2026-11-02T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "communityRooms/r5"), { cid: "grace", communityName: "Grace", title: "Edge", hostUid: "host", hostName: "H", speakers: [], hands: {}, joined: { host: seen }, status: "live", mode: "relay", createdAt: seen.at, edge: true, edgeAt: seen.at });
+    await setDoc(doc(f, "communityRooms/r5/people/lis"), { ...seen, edgeIn: true });
+    await setDoc(doc(f, "communityRooms/r5/edge/state"), { banned: { bad: seen.at }, count: 9, countAt: seen.at, hands: { lis: { name: "x", avatar: "", at: seen.at } } });
+    await setDoc(doc(f, "communityRooms/r5/listenTime/lis"), { ms: 60000, sessions: 1, open: true, openAt: 1, first: 1, last: 0, role: "listener" });
+  });
+  const h = as("host"), l = as("lis"), x = as("stranger"), boss = as("boss", { admin: true });
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r5"))); // the listener still reads the room (people/ exists, no heartbeat needed)
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r5/people/lis")));
+  for (const db of [h, l, x, boss]) {
+    await assertFails(getDoc(doc(db, "communityRooms/r5/edge/state")));
+    await assertFails(getDoc(doc(db, "communityRooms/r5/listenTime/lis")));
+    await assertFails(getDocs(collection(db, "communityRooms/r5/listenTime")));
+  }
+  await assertFails(setDoc(doc(l, "communityRooms/r5/listenTime/lis"), { ms: 99999999 })); // nobody adds to their own time
+  await assertFails(updateDoc(doc(l, "communityRooms/r5/people/lis"), { edgeIn: true }));
+  await assertFails(updateDoc(doc(h, "communityRooms/r5/edge/state"), { banned: {} })); // nor lifts a ban
+  await assertFails(updateDoc(doc(h, "communityRooms/r5"), { edgeAt: "t", listening: 0 }));
+});
+
 test("audio rooms on the relay: listeners live in people/ (server-written, each reads their own), and the chat goes through the server", async () => {
   const seen = { name: "x", avatar: "", at: "2026-10-22T10:00:00Z", seen: "2026-10-22T10:00:00Z" };
   await env.withSecurityRulesDisabled(async (ctx) => {

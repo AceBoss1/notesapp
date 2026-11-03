@@ -436,6 +436,90 @@ on `main` that isn't understood is raised with the owner first.
     deploy. In the /pricing compare table, neighbouring plans whose cell says the same thing are shown once across those plans
     (`mergeCells` in `lib/pricing.ts`, worked out from the live text, so an Admin change that makes plans differ splits the cell again).
 
+98. **Live mode in audio rooms: video, poster, Audio only, video-minutes budget, host prompts (v0.126.0, branch `push/live-mode`, cut
+    from `push/rooms-relay`; 96 is PR #253 and 97 is reserved for the calls PR):** needs item 96 merged and the relay's keys set; on
+    phone-to-phone rooms only the poster applies. **Deploy:** `firebase deploy --only firestore:rules` (new server-only
+    `communityRooms/{id}/live/{doc}`); no new indexes; no new env vars (posters use the existing R2 upload, new purpose `poster`, kept
+    under `posters/{uid}/`). **Settings** (Admin → Limits → Audio rooms → Live mode, `serverConfig/rooms`, read live in the help and on
+    /community/audio-rooms): video on (on), video minutes per live (15; each camera on counts), grace when they run out (30 s), "back to
+    audio" when this many minutes are left (2) or after a burst of (3 min), the drop prompt's suggested minutes (2), drop share (10%)
+    and window (2 min), and the camera caps (600 kbps, 24 fps, 480p). The relay listener setting's ceiling went from 5,000 to 10,000
+    (default still 500). **How it works:** `lib/rooms-live.ts` (pure: who may send/pull video, the minutes, samples, prompts, Audio
+    only's default) and `lib/rooms-live-server.ts` (the shared state behind small functions: `noteListenerSample`, `markVideoOn`,
+    `markVideoOff`, `stopVideo`, `enforceVideoBudget`, `hostLive`, `closeLive`, so step 2b can move the transport). The camera goes up
+    through `/api/community/rooms` action "relay", op `video` (host; speakers only when the host ticks "Speakers can turn video on",
+    `stageVideo`) as a second track on the person's existing Cloudflare session (track name on `relay/{uid}.video`), op `unvideo` closes
+    it with `force` (no reconnect); `pull` with `video: true` pulls cameras (a viewer on Audio only never asks). The room doc carries only
+    `videoOn` (uid → when), `stageVideo`, `poster`, `hostUsername`/`hostBooks`, and `videoUsedMs` when it ends; the minutes, open
+    cameras, listener samples (one per 15-second count window, taken in `recount`) and prompt times are in `live/state`. The host's beat
+    returns `host` (minutes left, prompt, grace); a speaker's beat with a camera up enforces the budget; listeners' beats never touch it.
+    Budget: a camera can't go up once the minutes are used (checked before Cloudflare and again in the transaction); once used with a
+    camera up, the grace starts and the next host or sending-speaker beat after it cuts every camera at Cloudflare. Posters: action
+    "poster" (source upload | profile | challenge | none; an upload must be in the host's own `posters/{uid}/` folder), also accepted
+    on "start". Audio only: `localStorage` "rooms.audioOnly", default on for `navigator.connection.effectiveType` slow-2g/2g/3g or
+    `saveData`. **Teen mode:** rooms are community-scoped (members only, no follower audience), so a teen moderator hosting is unchanged
+    from before; nothing new to mirror from `lib/young.ts`. **Scale:** nothing writes per listener or sends the full listener list;
+    each camera on/off is one room-doc write (read by everyone in the room); samples and prompts go to `live/state`. **Step 2b**
+    (`push/live-chat-edge`): the count and beats moving to a Durable Object should keep calling `noteListenerSample` (or its
+    replacement) and pass the host's `hostLive` back on its beat; the camera ops stay on the relay route. **Untested live:** real video
+    through Cloudflare's SFU in browsers (the `sendEncodings` caps, a second transceiver on the same connection, `replaceTrack(null)`
+    then a new transceiver for the next burst, Safari), and the prompts' feel in a real room. Tests: `test:rooms` (new
+    `rooms-live.test.ts`), `test:rooms-server` (new `rooms-live.emulator.ts`: video on/off, speakers, pulls, minutes, drop prompt,
+    budget grace and refusal, posters, clean-up), `test:rules` (one new test), `test:help` (Live figures from a saved config),
+    `test:limits`, `test:uploads`.
+99. **Live chat and signals for big audio rooms on a Cloudflare Durable Object (v0.127.0, branch `push/live-chat-edge`, cut from
+    `push/rooms-relay`; 97 and 98 are reserved for pending PRs):** built and **off until the worker is deployed and both settings are
+    set**; until then relay rooms keep the Firestore chat and count exactly as in item 96. Why: in a relay room every chat message is
+    read by everyone in it (10,000 listeners = 10,000 reads a message). Now each relay room opened while it's on (`edge: true` on the
+    room doc) has one Durable Object (`workers/live-rooms`, class `LiveRoom`, WebSocket Hibernation API) holding everyone's socket: it
+    broadcasts the chat (slow mode at the edge: automatic past the "slow mode above" setting, or the host's own switch; a rate limit per
+    connection; 2 KB per frame), the live listener count, raised hands, stage moves and camera on/off (mirrored from step 2a's server
+    state: `markVideoOn`/`markVideoOff` tell the room; browsers can't), and lets the host and moderators remove a message, mute and
+    unmute, or ban for the room. Firestore stays the source of truth: a socket needs a 10-minute
+    token our server mints only for someone the room already let in (`/api/community/rooms` action `livetoken`; joining still holds the
+    cap), stage moves and the end are pushed by our server (signed), and the room sends back, signed, the chat in batches (every 3 s or
+    50 messages) to `/api/community/rooms/edge`, which writes `communityRooms/{id}/chat` (the record, and what anyone on the fallback
+    polls), removals, and into `communityRooms/{id}/edge/state` (server-only by the existing rules): bans, raised hands (the host's
+    beat returns them, so they survive a socket failure) and the exact count every 15 s (the cap's count; Live mode's
+    `noteListenerSample` runs on each report, so drop prompts work). The room doc, which everyone in the room reads, gets the count only
+    once a minute (`edgeAt`). **Listeners on the worker don't heartbeat:** they write their people/ doc once on join; the worker reports
+    each person's sessions (first tab in, last tab out), which mark people/`edgeIn` and add up in `communityRooms/{id}/listenTime/{uid}`
+    (server-only: ms, sessions, first/last, role; one write per person per batch, kept after the room ends for the challenge's counted
+    listeners; open sessions are closed at the end). "Here" for such a listener is `edgeIn` while the worker reports (`listenerPresent`
+    in `lib/rooms.ts`); if it stops reporting for 150 s, listeners' apps (already on the fallback) heartbeat again and the people/
+    recount takes over. The host's beat (and its `hostLive` minutes and prompts) is unchanged. The browser reconnects with backoff and,
+    after 3 failures, polls Firestore for new chat every 10 s, heartbeats, and sends through the server (which also forwards to the
+    room) while it keeps trying. **Still a live read:** everyone in an edge room still listens to the room doc (the stage, cameras,
+    the poster and pulls come from it), so its writes are read by everyone: the stage's heartbeats (up to 5 people every 20 s), stage
+    moves, cameras and the count once a minute, about 16 writes a minute, so roughly 160,000 reads a minute in a 10,000-listener room.
+    Moving the stage and cameras onto the socket too (the room doc read once on join) would remove that, but it means reworking how
+    the room screen pulls audio and video, which step 2a just built; left for a follow-up. **Owner steps:** (1) Cloudflare → Workers & Pages → Plans: the **Workers Paid** plan
+    ($5 a month; Durable Objects with WebSockets need it for this load). (2) My Profile → API Tokens → Create Token → "Edit Cloudflare
+    Workers" template (Account: Workers Scripts: Edit, which includes Durable Objects; your account only) → copy it; note the Account
+    ID from the Workers overview. (3) GitHub → the repository → Settings → Secrets and variables → Actions: add `CLOUDFLARE_API_TOKEN`
+    and `CLOUDFLARE_ACCOUNT_ID` (optionally `LIVE_ROOMS_SECRET` too, and the workflow sets it on the worker). (4) Make the shared secret
+    once: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. (5) Actions → **Deploy live rooms** → Run
+    workflow; it prints the worker's `https://notesapp-live-rooms.<subdomain>.workers.dev` address. (6) Set the worker's secret:
+    `cd workers/live-rooms && npx wrangler@4.40.0 secret put LIVE_ROOMS_SECRET` (skip if you added the repository secret in 3);
+    `https://…workers.dev/health` then answers `ok`. (7) Vercel → Settings → Environment Variables, Production: `LIVE_ROOMS_SECRET` =
+    the same value (**Sensitive**), and `NEXT_PUBLIC_LIVE_ROOMS_URL` = `wss://notesapp-live-rooms.<subdomain>.workers.dev`. (8)
+    Redeploy. /status → "Live room chat" says "worker ready" (it reaches the worker and proves both secrets match, or says which is
+    wrong). Start a test room: the help's "Chat in big rooms" paragraph appears, and the host sees "Slow mode (automatic: off)" under
+    the chat. No new Firestore rules or indexes (the `edge` subcollection is denied to browsers by default; the settings push queries
+    `status ==` and `edge ==`, equality only). Without the workflow: `npx wrangler deploy` from `workers/live-rooms`
+    (`workers/live-rooms/README.md`). The worker deploys again by itself on pushes to `main` that touch it, and skips (green) while the
+    two repository secrets are missing. **Cost to watch:** Durable Objects bill requests (a WebSocket message counts as 1/20 of a
+    request; "ping" keep-alives are answered by the runtime without waking the room) and duration (a hibernating room costs nothing
+    between messages); each chat message is one incoming message and N outgoing sends. **Unverified until it is deployed:** no part ran
+    on Cloudflare; the Durable Object was tested against an in-memory stand-in of the runtime (storage, alarm, hibernatable sockets
+    with attachments and tags), so check in one live room: sockets connecting through `wss://`, hibernation and waking (attachments,
+    storage), the alarm cadence, `setWebSocketAutoResponse` for "ping", the 101 upgrade, and the batch reaching Vercel. Tests:
+    `test:live-rooms` (tokens and signatures, rate limits, slow mode, batching, the count cadence, the help; the Durable Object with
+    fakes, including waking from hibernation, a failed batch and its retry, bans and the end; and `tsc -p workers/live-rooms`),
+    `test:live-rooms-server` (emulator: tokens only for people let in, with their role and never past a ban, the cap with the edge's
+    count, batch signatures, the chat record, removals, the count and the recount standing aside, stage/chat/unchat/end pushed to the
+    room, and a real `LiveRoom` wired to the server code end to end), plus `test:rooms`, `test:rooms-server`, `test:help`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

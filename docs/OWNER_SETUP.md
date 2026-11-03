@@ -16,8 +16,8 @@ Some steps depend on code that is still waiting to be merged. They are marked **
 | Audio rooms on the Cloudflare relay | 96 | v0.124.0 | On `main` |
 | Calls: earpiece, speaker and Sound picker | 97 | v0.124.3 | On `main` |
 | Pricing table without repeats | 101 | v0.124.2 | On `main` |
-| Live mode (video, poster, Audio only) | 98 | v0.126.0 | Branch `push/live-mode` (after merge) |
-| Live chat on a Cloudflare worker | 99 | v0.127.0 | Branch `push/live-chat-edge` (after merge) |
+| Live mode (video, poster, Audio only) | 98 | v0.126.0 | On `main` |
+| Live chat on a Cloudflare worker | 99 | v0.127.0 | On `main` |
 | Live recording and replays | 100 | v0.128.0 | Branch `push/live-replays` (after merge) |
 
 ---
@@ -36,7 +36,7 @@ Tick each one off. Times are rough, for someone doing it the first time. Costs a
 | 5 | Cloudflare Realtime: Serverless SFU app and TURN key into Vercel, redeploy | [2](#2-cloudflare-realtime-audio-room-relay-and-call-relay) | 20 min | First 1,000 GB a month free, then pay per GB |
 | 6 | Check Cloudflare Stream is set (courses, replays, Media) | [5](#5-cloudflare-stream) | 5 min | Per minute stored and watched |
 | 7 | Run the first test: audio room on the relay, and calls on two phones | [10](#10-testing-checklist) | 30 min | Free |
-| 8 | **(after merge)** Live rooms worker: Workers Paid, API token, GitHub secrets, run the workflow, Vercel settings | [3](#3-cloudflare-workers-live-rooms-chat-for-big-rooms) | 45 min | $5 a month, plus use |
+| 8 | Live rooms worker: Workers Paid, API token, GitHub secrets, run the workflow, Vercel settings | [3](#3-cloudflare-workers-live-rooms-chat-for-big-rooms) | 45 min | $5 a month, plus use |
 | 9 | **(after merge)** Counsel review of the recording wording and privacy paragraph | [9](#9-legal-and-counsel-review) | Counsel's time | Counsel's fee |
 | 10 | **(after merge, and after 9)** Room recorder on Google Cloud Run, then Vercel settings | [4](#4-google-cloud-run-room-recorder) | 60 min | Pay while recording (estimate below); can use Google credits |
 | 11 | Optional: replay transcripts with NKENNEAi | [8](#8-optional-replay-transcripts-with-nkenneai) | 5 min | NKENNEAi usage |
@@ -79,7 +79,7 @@ Open **https://www.naapp.tech/status**. Each row shows one of: **Operational** (
 |---|---|---|
 | **Calls and audio rooms** | The TURN relay for calls | Operational, text ends "(relay ready)" |
 | **Audio rooms relay** | The Cloudflare Realtime SFU app | Operational, text ends "(relay ready)" |
-| **Live room chat** (after merge) | The live rooms worker | Operational, text ends "(worker ready)" |
+| **Live room chat** | The live rooms worker | Operational, text ends "(worker ready)" |
 | **Video courses** | Cloudflare Stream | Operational |
 | **Digital downloads** | The private R2 bucket (recordings are kept there) | Operational |
 | **Scheduled jobs** | That cron-job.org is calling the reminders job | Operational |
@@ -243,7 +243,7 @@ Both are in the same place in Cloudflare.
 
 ## 3. Cloudflare Workers: live rooms chat for big rooms
 
-**(after merge of `push/live-chat-edge`, item 99.)** Needs section 2 done first.
+**(Item 99, on `main`.)** Needs section 2 done first.
 
 In a relay room, every chat message is read by everyone in the room through Firestore. With thousands of listeners that gets
 expensive. This moves the chat, the listener count and raised hands onto a small Cloudflare program (a "worker"). Until it is set
@@ -585,7 +585,7 @@ Do this after each part is set up. You need **three phones** (ideally one iPhone
 - [ ] Send a few chat messages from each phone.
 - [ ] End the room. Everyone leaves cleanly.
 
-### Live mode (after merge of `push/live-mode`)
+### Live mode (after section 2)
 
 - [ ] The host turns **video** on. Listeners see it. Turn it off again.
 - [ ] Tick **Speakers can turn video on**; the speaker turns their camera on and off.

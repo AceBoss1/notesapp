@@ -935,6 +935,10 @@ service cloud.firestore {
       // Relay rooms (lib/rooms.ts, mode "relay"): each person's Cloudflare session id and microphone track. Server-only: nobody can read
       // another's session (or their own), so the only way to send or receive sound is through the server's checks.
       match /relay/{uid} { allow read, write: if false; }
+      // Live mode (lib/rooms-live.ts): the video minutes, the cameras up, the listener samples and the host's prompts. Server-only: the
+      // host reads their minutes through the server, and nobody can reset the clock. Who has a camera up (videoOn), whether speakers may
+      // (stageVideo) and the poster are on the room doc, which only the server writes.
+      match /live/{doc} { allow read, write: if false; }
       match /links/{linkId} {
         allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
         allow create: if inRoom() && request.resource.data.from == request.auth.uid
