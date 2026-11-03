@@ -1475,3 +1475,20 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
     await assertFails(getDoc(doc(db, "staffMeta/librarySeed")));
   }
 });
+
+test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "passkeys/cred1"), { uid: "alice", publicKey: "x", counter: 0, rpID: "naapp.tech" });
+    await setDoc(doc(db, "passkeyChallenges/c1"), { kind: "login", challenge: "x", rpID: "naapp.tech" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "passkeys/cred1")));
+    await assertFails(getDocs(query(collection(db, "passkeys"), where("uid", "==", "alice"))));
+    await assertFails(setDoc(doc(db, "passkeys/cred2"), { uid: "alice", publicKey: "y", counter: 0 }));
+    await assertFails(updateDoc(doc(db, "passkeys/cred1"), { counter: 99 }));
+    await assertFails(deleteDoc(doc(db, "passkeys/cred1")));
+    await assertFails(getDoc(doc(db, "passkeyChallenges/c1")));
+    await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
+  }
+});

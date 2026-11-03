@@ -618,6 +618,8 @@
     {
       "collectionGroup": "careerApplications",
       "fieldPath": "purgeAt",
+      "collectionGroup": "passkeyChallenges",
+      "fieldPath": "expireAt",
       "ttl": true,
       "indexes": [
         {

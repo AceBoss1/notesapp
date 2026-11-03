@@ -49,6 +49,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
       "Gold identity checks are done by Dojah. We receive only a pass or fail result and never store ID numbers, selfies or documents.",
       "Organisations are checked against their CAC registration before they are marked verified, and are labelled unverified until then.",
       "Email must be verified before you can pay. Emails are never shown on public profiles.",
+      "Sign in with a passkey (your fingerprint, face, screen lock or a security key) instead of a password, on every account and at the team hub's Staff login. Passkeys can't be guessed or phished, and they never leave your device.",
       "Accounts can be suspended with a reason, for a set time or until lifted, and the member can appeal. Reports of nudity or violence reach our team straight away and are reviewed within 24 hours.",
     ],
   },

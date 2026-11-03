@@ -601,6 +601,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
     names the Chief of Staff from Team access (an admin's row → Edit departments → tick Chief of Staff). Test: `npm run test:access`.
 
+105. **Passkeys (v0.132.0, branch `push/passkeys`):** deploy `firebase deploy --only firestore` (server-only rules for `passkeys` and
+    `passkeyChallenges`, and the TTL on `passkeyChallenges.expireAt`). New dependencies `@simplewebauthn/server` and `@simplewebauthn/browser`.
+    A passkey belongs to one domain family, so members add one again after the move to naapp.tech. Test: `npm run test:passkeys`.
+
 106. **Careers (v0.131.0), with Nana-HR and the staff library in the team hub (no changelog entry for the team hub parts; branch `push/nana-hr`, built on `push/cos-departments` (104)):** deploy
     `firebase deploy --only firestore` (server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`, `staffMeta`; the TTL on
     `careerApplications.purgeAt`). New dependency `remark-gfm`. The library and the five vacancies seed themselves on first use. After

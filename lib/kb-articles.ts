@@ -173,6 +173,14 @@ You can also tell us, if you like, what you do, your role and where you work. It
 Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [${APP_HOST}](${APP_URL}), you sign in or create your account right on the welcome screen.
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("passkeys", "Signing in with a passkey", "Getting started", `
+A passkey lets you sign in with your fingerprint, face, phone screen lock or a security key instead of typing your password. It can't be guessed or phished, and it never leaves your device.
+
+**Add one:** sign in, open [Account settings](/profile/account#passkeys) → **Passkeys**, give it a name if you like (for example "My phone") and tap **Add a passkey**. Your phone or computer asks you to confirm with your fingerprint, face or screen lock. You can keep up to 10 passkeys, for example one on your phone and one on your laptop.
+
+**Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
+
+**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys. Deleting your account removes your passkeys too.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

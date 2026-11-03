@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.132.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Passkeys for every account: add one under Account settings → Passkeys, then tap Sign in with a passkey and confirm with your fingerprint, face, screen lock or a security key. No password to type, nothing to phish. Up to 10 per account; remove any you no longer use." },
+    ],
+  },
+  {
     version: "v0.131.0",
     bump: "minor",
     date: "2026-11-03",
