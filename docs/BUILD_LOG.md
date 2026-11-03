@@ -2786,7 +2786,33 @@ department and move existing ones, as there is no HR team yet, but never themsel
 `changeAccess` in `lib/admin-access-server.ts` lets the Chief of Staff add, move and remove admins but refuses their own access, any super
 admin, appointing one, and naming or changing a Chief of Staff (owner only; a non-owner super admin can't change the Chief of Staff either).
 Team access shows the role and, for the owner, a Chief of Staff tick on an admin's row. Test: `npm run test:access` (emulators).
-**Animated gifts and daily gift targets (v0.130.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
+
+**Careers (v0.131.0); Nana-HR and the staff library (team hub), 3 Nov 2026** — The owner approved the Nana-HR spec and asked for the careers page
+with five seeded vacancies (CMO, User Acquisition Lead, Growth & partnerships team lead, Customer care team lead, Trust & safety team
+lead), every SOP, brief and the handbook seeded where it belongs, and Nana-HR drafting new hires' documents from the Chief of Staff's
+templates. Built on `push/cos-departments`. Library: `body`, `depts`, `seedKey`/`seedHash` on `staffDocs` (`lib/staff-ops.ts`);
+`content/staff-library/*.md` (exported from the approved docs) and the Engineering Guide become `lib/staff-library-content.ts`
+(`node scripts/staff-library-content.mjs`); `lib/staff-library-seed.ts` seeds or refreshes them once per content version (fixed ids,
+a changed text bumps the version and clears acknowledgements); the library reads a document (`?read=`, remark + remark-gfm + remark-html,
+sanitised) and counts the open. New department `executive` (Executive office). Nana-HR: `lib/nana-hr-server.ts` (rules, the library
+the person may open, their own week, leave and pay basis) passed to `chat()` as `hr` (a cached system block), NanaPanel context "hr",
+`/admin/team/hr`. Careers: `lib/careers.ts` (rules, seed roles), `lib/careers-server.ts` (public roles, apply once per role, the board
+for super admins and the Chief of Staff, open/close by super admins, applicants told at interview, offer and decline, a 6-month TTL
+`purgeAt` from closing, Nana-HR's screening summary without the applicant's name or email, drafts), `lib/hr-drafts.ts` (the offer
+letter, option grant and announcement templates from the owner's documents, personal details removed), `/careers`, `/careers/[id]`,
+`/api/public/careers`, `/api/careers/apply`, `/api/admin/hr`. Server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`,
+`staffMeta`. Tests: `npm run test:hr` (the rules, then the emulator) and a rules test.
+
+**Passkeys (v0.132.0, 3 Nov 2026)** — The owner asked for passkeys or security keys for all users, usable at the team hub too. WebAuthn
+with `@simplewebauthn/server` and `/browser` (v14): `lib/passkeys.ts` (pure: the RP ID is the domain family's root from `lib/host.ts`, so
+a passkey made on www.naapp.tech works across app., life. and prep.naapp.tech; members' own domains get none; allowed origins; names),
+`lib/passkeys-server.ts` (registration and sign-in ceremonies; one-time challenges in `passkeyChallenges` with a 5-minute TTL on
+`expireAt`; credentials in `passkeys/{credentialId}`; sign-in ends in a Firebase custom token, so custom claims such as staff access
+apply as with a password), `/api/passkeys` (list, rename, remove), `/api/passkeys/register` and `/api/passkeys/login` (two steps each),
+`lib/passkeys-client.ts`, `components/PasskeySignIn.tsx` (the sign-in form and Staff login) and `components/PasskeySettings.tsx`
+(Account settings). Both collections server-only in `firestore.rules`; erasing an account removes its passkeys. Tests:
+`npm run test:passkeys` (the rules, then a full ceremony against the emulators with a software P-256 authenticator) and a rules test.
+**Animated gifts and daily gift targets (v0.133.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
 the same 7-day hold and commission; a catalogue of named animated gifts with big values; and a daily gift target that pins creators
 at the top of Trending and Explore. The catalogue lives in `lib/gift-catalogue.ts` (pure, client-safe): ten drawings fixed in code
 (`GIFT_MOTIFS`), each with a name, a price and on/off that admins edit, in the order they choose, in Admin → Pricing → Gifts. It is
@@ -2811,7 +2837,7 @@ prices and the verified rule, Lagos midnight, target and distinct senders, shelf
 from the wallet → ledger, daily total, page show, bell → target with three senders → shelf, teen only for followers), the rules
 test (`giftDaily` server-only, `giftShows` signed-in read) run from a temporary copy on port 8241.
 
-**Gifts, second pass: the owner's 14 gifts, VIP gifts and their commission (v0.130.0, 3 Nov 2026)** — The owner replaced the ten-gift
+**Gifts, second pass: the owner's 14 gifts, VIP gifts and their commission (v0.133.0, 3 Nov 2026)** — The owner replaced the ten-gift
 catalogue with fourteen (six premium, ₦200 to ₦20,000; eight VIP, ₦25,000 to ₦1,000,000, verified senders only) and asked that each
 "plays full screen with a mix of some or all of rays, stars, fireworks, sounds and confetti", that each VIP gift be announced
 sitewide with a link to join the live, and that #NotesApp take an extra 10% (premium) or 20% (VIP) **of the normal commission rate**.

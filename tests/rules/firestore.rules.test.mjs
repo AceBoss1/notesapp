@@ -1488,3 +1488,38 @@ test("live recordings and replays are server-only, and a post's replay can't be 
   await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: "someone-elses" }));
   await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: deleteField() }));
 });
+
+test("careers, applications, Nana-HR drafts and seed markers are server-only, even for staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "careerRoles/r1"), { title: "CMO", status: "open" });
+    await setDoc(doc(db, "careerApplications/r1_alice"), { uid: "alice", roleId: "r1", coverNote: "x" });
+    await setDoc(doc(db, "hrDrafts/d1"), { drafts: [] });
+    await setDoc(doc(db, "staffMeta/librarySeed"), { version: "x" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "careerRoles/r1")));
+    await assertFails(setDoc(doc(db, "careerRoles/r2"), { title: "x", status: "open" }));
+    await assertFails(getDoc(doc(db, "careerApplications/r1_alice")));
+    await assertFails(setDoc(doc(db, "careerApplications/r1_bob"), { uid: "bob" }));
+    await assertFails(getDoc(doc(db, "hrDrafts/d1")));
+    await assertFails(getDoc(doc(db, "staffMeta/librarySeed")));
+  }
+});
+
+test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "passkeys/cred1"), { uid: "alice", publicKey: "x", counter: 0, rpID: "naapp.tech" });
+    await setDoc(doc(db, "passkeyChallenges/c1"), { kind: "login", challenge: "x", rpID: "naapp.tech" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "passkeys/cred1")));
+    await assertFails(getDocs(query(collection(db, "passkeys"), where("uid", "==", "alice"))));
+    await assertFails(setDoc(doc(db, "passkeys/cred2"), { uid: "alice", publicKey: "y", counter: 0 }));
+    await assertFails(updateDoc(doc(db, "passkeys/cred1"), { counter: 99 }));
+    await assertFails(deleteDoc(doc(db, "passkeys/cred1")));
+    await assertFails(getDoc(doc(db, "passkeyChallenges/c1")));
+    await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
+  }
+});

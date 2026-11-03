@@ -37,9 +37,21 @@ export async function listDocs(db: Firestore, me: Me, includeArchived = false): 
     .filter((d) => canSeeDoc(d, me) && (includeArchived || !d.archived))
     .sort((a, b) => a.title.localeCompare(b.title))
     // Everyone sees whether they have confirmed; who else has is for the people who maintain the library (ackStatus).
-    .map((d) => ({ ...d, acked: !!d.ackedBy[me.uid], ackCount: Object.keys(d.ackedBy).length, ackedBy: {}, openCount: Object.keys(d.openedBy ?? {}).length, openedBy: {} }));
+    // The text itself is fetched one document at a time (readDoc); the list only says there is one.
+    .map(({ body, ...d }) => ({ ...d, hasBody: typeof body === "string" && body.length > 0, acked: !!d.ackedBy[me.uid], ackCount: Object.keys(d.ackedBy).length, ackedBy: {}, openCount: Object.keys(d.openedBy ?? {}).length, openedBy: {} }));
   const names = await nameMap(db);
   return { docs, canEdit: canEditDocs(me.access), people: Object.entries(names).map(([uid, name]) => ({ uid, name })), names };
+}
+
+// One text document to read in the library (the handbook, an SOP, a brief). Reading it counts as opening it (the 👁 list).
+export async function readDoc(db: Firestore, me: Me, id: string, now = new Date()): Promise<StaffDoc & { body: string }> {
+  need(!!me.access, "The staff library is for staff.");
+  const ref = db.collection(DOCS).doc(String(id));
+  const s = await ref.get();
+  const d = s.exists ? toDoc(s.id, s.data()!) : null;
+  need(!!d && canSeeDoc(d, me) && typeof d.body === "string", "That document isn't in your library.", 404);
+  await ref.update({ [`openedBy.${me.uid}`]: now.toISOString() }).catch(() => {});
+  return d as StaffDoc & { body: string };
 }
 
 export async function createDoc(db: Firestore, me: Me, input: DocInput, now = new Date()): Promise<StaffDoc> {

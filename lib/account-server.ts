@@ -204,6 +204,10 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   }
   await deleteAll(db, ["mediaUsage", "mediaSettings"].map((c) => db.doc(`${c}/${uid}`)));
   counts.media = media.size;
+  // Passkeys: the account's sign-in keys go with it (lib/passkeys-server.ts).
+  const passkeys = await db.collection("passkeys").where("uid", "==", uid).get();
+  await deleteAll(db, passkeys.docs.map((d) => d.ref));
+  counts.passkeys = passkeys.size;
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();

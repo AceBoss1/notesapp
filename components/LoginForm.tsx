@@ -9,6 +9,8 @@ import { goBack } from "@/lib/return-to";
 import PageHero from "@/components/PageHero";
 import { sendPasswordResetEmail } from "firebase/auth";
 import PasswordInput from "@/components/PasswordInput";
+import PasskeySignIn from "@/components/PasskeySignIn";
+import type { User } from "firebase/auth";
 
 // The sign-in form (with a forgot-password step). `embedded` drops the page header and padding so it fits inside a card (the app address's welcome screen), signs in
 // there and carries on to the journal; `onSwitch` swaps "Create an account" for an in-place switch.
@@ -26,15 +28,20 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
   // Already signed in here and sent over from a member's own site? Carry on straight back to it.
   useEffect(() => onAuthStateChanged(auth, (u) => { if (u) goBack(u); }), []);
 
+  // After any sign-in (password or passkey): the admin profile check, then back to a member's own site or the page that asked.
+  async function afterSignIn(u: User) {
+    await ensureAdminProfile(u); // no-op for regular readers
+    if (!(await goBack(u))) router.push(embedded || new URLSearchParams(window.location.search).has("next") ? nextPath() : "/");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      await ensureAdminProfile(cred.user); // no-op for regular readers
       // came from a member's own domain? sign in there and go back. Otherwise the page that asked (?next=, e.g. a course to enrol in).
-      if (!(await goBack(cred.user))) router.push(embedded || new URLSearchParams(window.location.search).has("next") ? nextPath() : "/");
+      await afterSignIn(cred.user);
     } catch (err) {
       const code = (err as { code?: string }).code;
       setError(
@@ -122,6 +129,7 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
           {loading ? "Signing in…" : "Sign In"}
         </button>
       </form>
+      <PasskeySignIn onSignedIn={afterSignIn} className="mt-6" />
       <p className="mt-4 text-sm">
         {embedded ? (
           <button type="button" onClick={() => { setForgot(true); setError(""); }} className="text-crimson-bright font-semibold">Forgot password?</button>

@@ -875,6 +875,12 @@ service cloud.firestore {
       match /{sub=**} { allow read, write: if false; }
     }
     match /adminViewLog/{id} { allow read, write: if false; }
+    match /careerRoles/{id} { allow read, write: if false; } // roles: public fields through /api/public/careers, the rest in the team hub (server only)
+    match /careerApplications/{id} { allow read, write: if false; } // applications, Nana-HR summaries; TTL purgeAt (server only)
+    match /hrDrafts/{id} { allow read, write: if false; } // Nana-HR's onboarding drafts (server only)
+    match /staffMeta/{id} { allow read, write: if false; } // seed markers for the staff library and careers (server only)
+    match /passkeys/{id} { allow read, write: if false; } // passkey public keys and counters (lib/passkeys-server.ts): server only
+    match /passkeyChallenges/{id} { allow read, write: if false; } // one-time passkey challenges, 5 minutes (TTL expireAt): server only
     match /payoutOtpLog/{id} { allow read, write: if false; } // who confirmed or resent a Paystack transfer OTP, and the result (never the OTP): server only
     match /backupLog/{id} { allow read, write: if false; } // Admin → Backups: who switched on, scheduled or restored what (server-only)
     match /socialConnections/{id} { allow read, write: if false; } // connected LinkedIn / X accounts (encrypted tokens): server only

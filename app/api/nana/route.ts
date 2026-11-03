@@ -7,6 +7,7 @@ import { NanaError } from "@/lib/nana";
 import { chat } from "@/lib/nana-server";
 import { aiStatus } from "@/lib/ai-connect";
 import { hubContextFor } from "@/lib/nana-hub";
+import { HR_RULES, hrLibraryFor, hrRecordsFor } from "@/lib/nana-hr-server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120; // Thorough answers (Enterprise) can take longer
@@ -39,11 +40,16 @@ export async function POST(req: NextRequest) {
     }
 
     let hubContext: string | undefined;
+    let hr: { rules: string; library: string; records: string } | undefined;
     if (body.context === "hub") {
       const me = await verifyAdminAccess(token); // throws unless this is a signed-in staff member
       hubContext = await hubContextFor(db, me.uid, signedIn?.name || me.email);
+    } else if (body.context === "hr") {
+      const me = await verifyAdminAccess(token); // Nana-HR is for signed-in staff only
+      const [library, records] = await Promise.all([hrLibraryFor(db, me), hrRecordsFor(db, { ...me, name: signedIn?.name || me.email })]);
+      hr = { rules: HR_RULES, library: library.text, records };
     }
-    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext, gem: body.gem, effort: body.effort }), { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext, hr, gem: body.gem, effort: body.effort }), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof NanaError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't reach Nana");

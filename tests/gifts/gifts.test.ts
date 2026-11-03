@@ -80,7 +80,7 @@ assert.equal(G.upliftedRate(0.9, 1), 1, "never over 100%");
 // ── Saved with the pricing config, applied live ──────────────────────────────────────────────────────────────────────────────────
 assert.deepEqual(DEFAULT_PRICING.gifts, SET0);
 const { gifts: _old, ...beforeGifts } = clone(DEFAULT_PRICING);
-assert.deepEqual(cleanPricing(beforeGifts).gifts, DEFAULT_PRICING.gifts, "a saved config from before v0.130.0 still loads");
+assert.deepEqual(cleanPricing(beforeGifts).gifts, DEFAULT_PRICING.gifts, "a saved config from before v0.133.0 still loads");
 const cfg = clone(DEFAULT_PRICING);
 cfg.gifts.catalogue[7].priceKobo = 60_000 * 100; cfg.gifts.catalogue[3].enabled = false; cfg.gifts.daily.targetKobo = 80_000 * 100;
 assert.deepEqual(cleanPricing(clone(cfg)), cfg);

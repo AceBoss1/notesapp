@@ -20,6 +20,7 @@ import VisibilitySettings from "@/components/VisibilitySettings";
 import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
+import PasskeySettings from "@/components/PasskeySettings";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 const input = "mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
@@ -178,6 +179,8 @@ export default function AccountPage() {
         {note(pwMsg)}
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>
       </form>
+
+      {user && <PasskeySettings user={user} />}
 
       <section id="appearance" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
         <h2 className="font-display text-2xl text-ink">Day or night</h2>

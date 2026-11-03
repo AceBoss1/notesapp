@@ -595,7 +595,7 @@ on `main` that isn't understood is raised with the owner first.
     comments, reactions, gifts UI, shares to Moments/Journals of a Media post, reports on Media posts, the automatic safety check,
     and **video downloads** (Stream burns a watermark profile into every rendition at upload, so a per-creator watermarked MP4 needs
     a second, watermarked copy: `POST /stream/copy` with `watermark.uid`, then `POST /stream/{uid}/downloads`; see `docs/MEDIA.md`).
-103. **Animated gifts, VIP gifts and daily gift targets (v0.130.0, branch `push/gifts-animated`):** deploy the Firestore rules
+103. **Animated gifts, VIP gifts and daily gift targets (v0.133.0, branch `push/gifts-animated`):** deploy the Firestore rules
     (`giftDaily` server-only, `giftShows` read by signed-in members, `giftBursts` public read) and the two new `giftDaily` indexes
     (`day` + `grossKobo` desc, `day` + `netKobo` desc) before the code. Owner decisions of 3 Nov 2026. The catalogue
     (`lib/gift-catalogue.ts`), the owner's list: six **premium** gifts (Garden Egg ₦200, Kola Nut ₦1,000, Zobo Bottle ₦2,000, Jollof
@@ -624,6 +624,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 
 104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
     names the Chief of Staff from Team access (an admin's row → Edit departments → tick Chief of Staff). Test: `npm run test:access`.
+
+105. **Passkeys (v0.132.0, branch `push/passkeys`):** deploy `firebase deploy --only firestore` (server-only rules for `passkeys` and
+    `passkeyChallenges`, and the TTL on `passkeyChallenges.expireAt`). New dependencies `@simplewebauthn/server` and `@simplewebauthn/browser`.
+    A passkey belongs to one domain family, so members add one again after the move to naapp.tech. Test: `npm run test:passkeys`.
+
+106. **Careers (v0.131.0), with Nana-HR and the staff library in the team hub (no changelog entry for the team hub parts; branch `push/nana-hr`, built on `push/cos-departments` (104)):** deploy
+    `firebase deploy --only firestore` (server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`, `staffMeta`; the TTL on
+    `careerApplications.purgeAt`). New dependency `remark-gfm`. The library and the five vacancies seed themselves on first use. After
+    editing the handbook, SOPs or briefs, export them to `content/staff-library/` and run `node scripts/staff-library-content.mjs`.
+    Interview booking by Nana-HR is not built yet (the hiring manager messages the applicant on NotesApp). Test: `npm run test:hr`.
 
 ## 3. How the work is done (please keep these)
 

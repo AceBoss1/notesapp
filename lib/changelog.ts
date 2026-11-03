@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.130.0",
+    version: "v0.133.0",
     bump: "minor",
     date: "2026-11-03",
     changes: [
@@ -21,6 +21,22 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Top gifted today: creators who receive the day's gift target from enough different people are pinned at the top of Trending and Explore until midnight in Lagos, most received first. Members in teen mode only appear there for people who follow them." },
       { kind: "changed", text: "The gift sheet is new: animated gifts or any amount, a message, send anonymously, and pay with NotesApp Credit or by card in one place." },
       { kind: "added", text: "Admin → Pricing → Gifts: rename, reprice, switch off and reorder the animated gifts, set where VIP gifts start, the extra commission on premium and VIP gifts, whether VIP gifts are announced, and the daily target, the places on the shelf, whether it counts what senders paid or what creators keep, and how many different senders are needed. The help, /gifts and /pricing follow." },
+    ],
+  },
+  {
+    version: "v0.132.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Passkeys for every account: add one under Account settings → Passkeys, then tap Sign in with a passkey and confirm with your fingerprint, face, screen lock or a security key. No password to type, nothing to phish. Up to 10 per account; remove any you no longer use." },
+    ],
+  },
+  {
+    version: "v0.131.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Careers at #NotesApp: open roles at /careers, each with what you'd do and what we're looking for. Apply with your NotesApp account; a person reads every application, and every applicant hears back. Applications are deleted 6 months after the role closes unless you ask us to keep yours." },
     ],
   },
   {
