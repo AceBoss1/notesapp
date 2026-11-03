@@ -8,6 +8,7 @@ export class StaffOpsError extends Error {
 export const DOC_CATEGORIES = [
   { key: "sop", label: "SOP (standard operating procedure)" },
   { key: "handbook", label: "Employee handbook" },
+  { key: "brief", label: "Department brief" },
   { key: "policy", label: "Policy" },
   { key: "template", label: "Template or form" },
   { key: "other", label: "Other staff material" },
@@ -29,6 +30,10 @@ export type StaffFile = { key: string; name: string; type: string; size: number 
 export type StaffDoc = {
   id: string; title: string; category: DocCategory; description: string; version: number; scope: DocScope; dept?: Dept; receivers: string[];
   files: StaffFile[]; requiresAck: boolean; ackedBy: Record<string, string>; archived: boolean;
+  // Text documents (the handbook, SOP manuals and department briefs): Markdown kept with the document, read in the library and used by
+  // Nana-HR. `depts` widens a "dept" document to more than one department. Seeded documents carry their seed key and content hash
+  // (lib/staff-library-seed.ts).
+  body?: string; depts?: Dept[]; seedKey?: string; seedHash?: string;
   openedBy?: Record<string, string>; // who opened one of its files, and when they last did (the 👁 list)
   createdAt: string; createdByUid: string; createdByName: string; updatedAt: string;
 };
@@ -48,10 +53,10 @@ export function cleanDoc(input: DocInput): Pick<StaffDoc, "title" | "category" |
 
 export type Viewer = { uid: string; access: Access | null };
 // Super admins see every shared document; a personal one is seen only by its receivers and whoever added it.
-export function canSeeDoc(d: Pick<StaffDoc, "scope" | "dept" | "receivers" | "createdByUid">, v: Viewer): boolean {
+export function canSeeDoc(d: Pick<StaffDoc, "scope" | "dept" | "receivers" | "createdByUid"> & { depts?: Dept[] }, v: Viewer): boolean {
   if (!v.access) return false;
   if (d.scope === "all") return true;
-  if (d.scope === "dept") return isSuper(v.access) || (!!d.dept && hasDept(v.access, d.dept));
+  if (d.scope === "dept") return isSuper(v.access) || (!!d.dept && hasDept(v.access, d.dept)) || (d.depts ?? []).some((x) => hasDept(v.access, x));
   return d.receivers.includes(v.uid) || d.createdByUid === v.uid;
 }
 export const canEditDocs = (a: Access | null) => isSuper(a) || hasDept(a, "support") || hasDept(a, "product") || hasDept(a, "legal"); // super admins, customer care and product maintain the library

@@ -68,6 +68,7 @@ const PRODUCT = [
 const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
+  { href: "/careers", label: "Careers" },
   { href: "/contact", label: "Contact" },
   { href: "/pricing", label: "Pricing" },
   { href: "/roadmap", label: "Roadmap" },

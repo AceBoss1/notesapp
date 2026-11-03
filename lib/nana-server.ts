@@ -127,6 +127,8 @@ export type ChatInput = {
   chatId?: unknown; name?: unknown; email?: unknown; messages?: unknown; page?: unknown;
   signedIn?: { uid: string; name: string; email: string } | null; // from the verified sign-in, never from the request body
   hubContext?: string; // staff only: what the team hub knows about this person, built by the server after checking they are staff
+  // Nana-HR (staff only, lib/nana-hr-server.ts): her rules, the library documents this person may open, and their own records.
+  hr?: { rules: string; library: string; records: string };
   gem?: unknown; effort?: unknown; // what the member chose; brought down to what their plan allows (lib/nana-gems.ts)
 };
 export type ChatResult = { reply: string; chatId: string; handoff: boolean; gap: boolean; mode: "ai" | "kb"; via: Via; notice?: string; gem?: Gem; effort?: Effort };
@@ -160,7 +162,7 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
   const articles: KbArticle[] = await getArticles(db, now.getTime());
   const page = typeof input.page === "string" && /^\/[A-Za-z0-9\-._~/]{0,120}$/.test(input.page) ? input.page : undefined;
   const staffKb = input.hubContext !== undefined ? internalArticles() : [];
-  const hub = input.hubContext !== undefined;
+  const hub = input.hubContext !== undefined || !!input.hr;
   // Members choose a gem and effort within their plan; visitors and the team hub use Pearl, Quick. The hub is staff work, so it isn't
   // taken from anyone's allowance (the daily caps still apply).
   const tier = who.uid ? await memberTier(db, who.uid) : "standard";
@@ -178,9 +180,11 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
     // Instructions and article titles: the same for everyone, so kept ready for an hour (a cache write costs 2× input, each read 0.1×).
     { type: "text", text: buildSystem(articles), cache_control: { type: "ephemeral", ttl: "1h" } },
     ...(staffKb.length ? [{ type: "text" as const, text: `TEAM-ONLY KNOWLEDGE (you are talking with a #NotesApp staff member inside the team hub; use this for questions about the hub and admin tools, and never tell anyone else about it):\n\n${staffKb.map((a) => `### ${a.title}\nPage: ${a.slug}\n${a.body}`).join("\n\n")}`, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }] : []),
+    // Nana-HR: her rules and the library this person may open, kept ready for an hour like the instructions above.
+    ...(input.hr ? [{ type: "text" as const, text: `${input.hr.rules}\n\n${input.hr.library}`, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }] : []),
     // Only the articles that match this conversation, in full (lib/nana-prompt.ts pickArticles).
     { type: "text", text: knowledgeBlock(pickArticles(articles, messages.filter((m) => m.role === "user").map((m) => String(m.content)))) },
-    { type: "text", text: visitorBlock(key ? { name: "there", signedIn: !!who.uid } : { name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") },
+    { type: "text", text: visitorBlock(key ? { name: "there", signedIn: !!who.uid } : { name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") + (input.hr ? `\n\n${input.hr.records}` : "") },
   ];
 
   const ran: Ran = banked
@@ -216,6 +220,7 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
     ...base, name: who.name, email: who.email, lastAt: now.toISOString(), count: (Number(base.count) || 0) + 1, transcript,
     handoff: !!base.handoff || parsed.handoff, gap: !!base.gap || parsed.gap, lastVia: via, ...(page ? { page } : {}),
     ...(input.hubContext !== undefined ? { hub: true } : {}),
+    ...(input.hr ? { hub: true, hr: true } : {}),
     ...(parsed.gap ? { lastGapQuestion: asked.slice(0, 300) } : {}),
   });
   // Someone asked for a person: it lands in the Leads inbox the support team already works from.
