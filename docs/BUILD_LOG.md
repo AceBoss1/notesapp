@@ -2733,6 +2733,15 @@ summary needs the transcript. Teen mode: a host or a speaker in teen mode keeps 
 (`audienceFor`). Settings follow the rooms pattern (`serverConfig/recording`, a 30-second cache, its own section in Admin → Limits so
 the audio room settings stay untouched for parallel work), with two plan switches in the limits table for who can record and publish.
 Merged with 2a (Live mode) on the same day: the recorder pulls each camera that's up as a video track and draws the poster while every camera is off; a speaker's camera in a recorded room waits for their agreement like their microphone; the recorder is never a listener (no people/ doc), so it's in no count and costs no video minutes. Emulator and rules tests ran from temporary copies on ports 8217, 8218 and 8227.
+**Owner set-up guide (docs, 3 Nov 2026)** — The owner steps for the recent features were spread across HANDOVER items 91 to 101 and
+the pending branches' notes. `docs/OWNER_SETUP.md` gathers them in one place, in order, for a non-developer: one `firebase deploy
+--only firestore` for every pending rule (run again after each merge) and the three TTL policies not yet declared in
+`firestore.indexes.json` (`agentProposals.purgeAt`, `agentUsage.expireAt`, `agentEvents.expireAt`); the Cloudflare Realtime SFU app
+and TURN key; the live rooms worker (Workers Paid, the API token, GitHub secrets, the workflow, `LIVE_ROOMS_SECRET`,
+`NEXT_PUBLIC_LIVE_ROOMS_URL`); the Cloud Run recorder (APIs, Secret Manager with the accessor role, the deploy command, `RECORDER_URL`
+/ `RECORDER_SECRET`); Stream; the cron-job.org agents job; `mcp.` authorised domains; optional transcripts; the counsel list; a
+testing checklist with the /status rows to expect; costs only from our docs or marked to verify; and troubleshooting quoting the
+code's own messages. Internal doc: no changelog entry. HANDOVER and README point to it.
 **Animated gifts and daily gift targets (v0.130.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
 the same 7-day hold and commission; a catalogue of named animated gifts with big values; and a daily gift target that pins creators
 at the top of Trending and Explore. The catalogue lives in `lib/gift-catalogue.ts` (pure, client-safe): ten drawings fixed in code

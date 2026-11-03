@@ -7,6 +7,9 @@ Read `docs/ENGINEERING_GUIDE.md` first for where the platform is going and why. 
 `docs/DEPLOY.md`, how the newer pieces work in `docs/ARCHITECTURE.md`, the full history in `docs/BUILD_LOG.md`.
 This note covers how the work is done, what's in flight, and what to watch.
 
+**Owner set-up steps** (Firebase deploy and TTL policies, Cloudflare Realtime, the live rooms worker, the Cloud Run recorder, Stream,
+cron-job.org, authorised domains, counsel review and the testing checklist) are gathered, click by click, in `docs/OWNER_SETUP.md`.
+
 ---
 
 ## 1. Where the code is right now
