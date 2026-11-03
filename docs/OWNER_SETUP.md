@@ -9,7 +9,7 @@ code. Every secret in this guide is a placeholder like `YOUR_…`: never paste a
 The main address in the examples is **naapp.tech** (`NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` is set). Where a step needs both domain
 families, **notesapp.name.ng** is named too.
 
-Some steps depend on code that is still waiting to be merged. They are marked **(after merge)**:
+All the code for these steps is now on `main`:
 
 | Feature | HANDOVER item | Version | Where it is now |
 |---|---|---|---|
@@ -18,7 +18,7 @@ Some steps depend on code that is still waiting to be merged. They are marked **
 | Pricing table without repeats | 101 | v0.124.2 | On `main` |
 | Live mode (video, poster, Audio only) | 98 | v0.126.0 | On `main` |
 | Live chat on a Cloudflare worker | 99 | v0.127.0 | On `main` |
-| Live recording and replays | 100 | v0.128.0 | Branch `push/live-replays` (after merge) |
+| Live recording and replays | 100 | v0.128.0 | On `main` |
 
 ---
 
@@ -37,8 +37,8 @@ Tick each one off. Times are rough, for someone doing it the first time. Costs a
 | 6 | Check Cloudflare Stream is set (courses, replays, Media) | [5](#5-cloudflare-stream) | 5 min | Per minute stored and watched |
 | 7 | Run the first test: audio room on the relay, and calls on two phones | [10](#10-testing-checklist) | 30 min | Free |
 | 8 | Live rooms worker: Workers Paid, API token, GitHub secrets, run the workflow, Vercel settings | [3](#3-cloudflare-workers-live-rooms-chat-for-big-rooms) | 45 min | $5 a month, plus use |
-| 9 | **(after merge)** Counsel review of the recording wording and privacy paragraph | [9](#9-legal-and-counsel-review) | Counsel's time | Counsel's fee |
-| 10 | **(after merge, and after 9)** Room recorder on Google Cloud Run, then Vercel settings | [4](#4-google-cloud-run-room-recorder) | 60 min | Pay while recording (estimate below); can use Google credits |
+| 9 | Counsel review of the recording wording and privacy paragraph | [9](#9-legal-and-counsel-review) | Counsel's time | Counsel's fee |
+| 10 | **(after 9)** Room recorder on Google Cloud Run, then Vercel settings | [4](#4-google-cloud-run-room-recorder) | 60 min | Pay while recording (estimate below); can use Google credits |
 | 11 | Optional: replay transcripts with NKENNEAi | [8](#8-optional-replay-transcripts-with-nkenneai) | 5 min | NKENNEAi usage |
 | 12 | Full testing checklist and /status check | [10](#10-testing-checklist) | 60 min | Free |
 
@@ -91,7 +91,7 @@ The recorder has no row on /status. You check it with its own `/health` address 
 ## 1. Firebase: rules, indexes and TTL policies
 
 One command publishes **all** waiting rules and indexes at once. It covers teen mode on Moments and Notes Life (item 91), Business
-books, the agent layer (item 93), the audio rooms relay (item 96) and, once merged, Live mode (98) and recording and replays (100).
+books, the agent layer (item 93), the audio rooms relay (item 96), Live mode (98) and recording and replays (100), and, once they are merged, Media and animated gifts.
 Item 99 (the worker) has no rules of its own.
 
 **Important:** the command publishes what is on `main` at that moment. Run it now, and **run it again after each pending branch is
@@ -349,7 +349,7 @@ Note the address starts with **`wss://`**, not `https://`. Then **redeploy** (se
 
 ## 4. Google Cloud Run: room recorder
 
-**(after merge of `push/live-replays`, item 100, and after counsel's review in section 9.)** Needs sections 2 and 5 done.
+**(Item 100, on `main`; after counsel's review in section 9.)** Needs sections 2 and 5 done.
 
 The recorder is a small service that joins a live room as a silent listener and records it. Until it is set up, the **Record this
 live** switch is hidden from hosts and nothing is recorded. The full technical notes are in `docs/RECORDER.md`.
@@ -490,7 +490,7 @@ is the same value as `CRON_SECRET` in Vercel.
 | Status check | `https://www.naapp.tech/api/status` | Every 5 minutes (no header needed) | Should already exist |
 | **Nana's agent jobs (new, item 93)** | `https://www.naapp.tech/api/cron/agents` | **Every 15 minutes** | **Add it** |
 
-The reminders job also deletes old unpublished recordings and makes queued replay transcripts once item 100 is merged. Nothing
+The reminders job also deletes old unpublished recordings and makes queued replay transcripts (item 100). Nothing
 else needs adding for that.
 
 Adding the agents job:
@@ -538,7 +538,7 @@ the domain is unauthorised.
 
 ## 8. Optional: replay transcripts with NKENNEAi
 
-**(after merge of `push/live-replays`.)** Transcripts let Share to Journal add a transcript and Nana's summary to the draft.
+**(Item 100.)** Transcripts let Share to Journal add a transcript and Nana's summary to the draft.
 
 1. Check `NKENNE_API_KEY` is set in Vercel (it already is if the Kiswahili buttons show).
 2. In Vercel, add `REPLAY_TRANSCRIBE` (not Sensitive) with one of:
@@ -705,7 +705,7 @@ The messages below are quoted from the code, so you will see these exact words o
 | The workflow run is green but says "Live rooms not deployed" | `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_ACCOUNT_ID` is missing in GitHub (names must match exactly) |
 | The workflow fails with "Authentication error" or a 10000 code | The API token lacks Workers permissions or is for another account. Make it again from the **Edit Cloudflare Workers** template |
 | The workflow fails mentioning Durable Objects or a plan | The account isn't on **Workers Paid** (section 3.1) |
-| No "Run workflow" button | The live chat branch isn't merged into `main` yet |
+| No "Run workflow" button | Open the **Actions** tab on `main`; if it's still missing, the workflow file `.github/workflows/deploy-live-rooms.yml` isn't on `main` |
 
 ### Google Cloud Run (recorder)
 

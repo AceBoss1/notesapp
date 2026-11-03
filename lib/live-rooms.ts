@@ -1,4 +1,4 @@
-// Live room chat and signals on the edge (v0.126.0): the protocol and the pure rules shared by the browser (components/community/
+// Live room chat and signals on the edge (v0.127.0): the protocol and the pure rules shared by the browser (components/community/
 // useLiveChannel.ts), our server (lib/live-rooms-server.ts) and the Cloudflare worker (workers/live-rooms, which imports this file and
 // lib/rooms.ts into its build). No imports beyond lib/rooms.ts, which is pure too.
 //

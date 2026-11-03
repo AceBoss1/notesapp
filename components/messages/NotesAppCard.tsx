@@ -8,8 +8,8 @@ import type { ChatCard } from "@/lib/chat-cards";
 // The card under a message with a #NotesApp link: a journal (Read), a store item (Buy), a course (Enrol) or a profile. Falls back to nothing
 // when the link isn't public (a draft, an item not on sale); the message itself still has the link.
 const seen = new Map<string, ChatCard | null>();
-const ICON: Record<ChatCard["kind"], string> = { journal: "📰", item: "🛍", course: "🎓", profile: "👤" };
-const LABEL: Record<ChatCard["kind"], string> = { journal: "Journal", item: "Notes Market", course: "Notes Academy", profile: "Profile" };
+const ICON: Record<ChatCard["kind"], string> = { journal: "📰", item: "🛍", course: "🎓", profile: "👤", replay: "▶" };
+const LABEL: Record<ChatCard["kind"], string> = { journal: "Journal", item: "Notes Market", course: "Notes Academy", profile: "Profile", replay: "Replay" };
 
 export default function NotesAppCard({ url, user, mine = false }: { url: string; user: User | null; mine?: boolean }) {
   const [c, setC] = useState<ChatCard | null | undefined>(seen.get(url));

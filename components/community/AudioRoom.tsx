@@ -10,6 +10,7 @@ import { DEFAULT_ROOM_FIGURES, ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, l
 import { AUDIO_ONLY_KEY, CHALLENGE_POSTER, anyVideo, canVideo, chooseAudioOnly, minutesLeftText, videoConstraints, videoEncoding, videoPullsFor, type HostLive, type NetInfo, type PosterSource } from "@/lib/rooms-live";
 import { uploadToR2 } from "@/lib/upload";
 import { ago, capi, field } from "./api";
+import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type RecordingFigures } from "@/lib/live-recording";
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 import type { LiveHand } from "@/lib/live-rooms";
 
@@ -24,7 +25,7 @@ import type { LiveHand } from "@/lib/live-rooms";
 //   (a picture, never video). A viewer on Audio only never pulls the cameras. The host's beat brings their video minutes and prompts.
 
 type Ice = { urls: string | string[]; username?: string; credential?: string }[];
-type Card = { id: string; title: string; hostName: string; listening: number; speakers: string[]; faces: { name: string; avatar: string }[] };
+type Card = { id: string; title: string; hostName: string; listening: number; speakers: string[]; recorded?: boolean; faces: { name: string; avatar: string }[] };
 type RelayRes = { answer?: RTCSessionDescriptionInit; offer?: RTCSessionDescriptionInit | null; renegotiate?: boolean; tracks?: { uid: string; mid: string; kind?: "audio" | "video" }[]; host?: HostLive };
 type VideoCfg = { on: boolean; kbps: number; fps: number; height: number };
 // Audio only, from this device's choice or its connection (lib/rooms-live.ts chooseAudioOnly). Storage can be missing: then the default.
@@ -34,6 +35,7 @@ const readAudioOnly = () => {
   const net = typeof navigator !== "undefined" ? (navigator as Navigator & { connection?: NetInfo }).connection : undefined;
   return chooseAudioOnly(stored, net);
 };
+type RecChoice = RecordingFigures & { canRecord: boolean };
 
 export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: boolean; onOpen: (id: string, title?: string) => void }) {
   const [rooms, setRooms] = useState<Card[] | null>(null);
@@ -42,7 +44,10 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState("");
   const [poster, setPoster] = useState<{ source: PosterSource; url?: string; preview?: string }>({ source: "none" });
-  const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); }).catch(() => setRooms([])), [cid]);
+    // Recording (lib/live-recording.ts): off by default; hidden with a note while the recorder isn't set up; ticked and fixed when forced.
+  const [rec, setRec] = useState<RecChoice | null>(null);
+  const [record, setRecord] = useState(false);
+    const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures; recording?: RecChoice | null }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); setRec(d.recording ?? null); }).catch(() => setRooms([])), [cid]);
   useEffect(() => { load(); const t = setInterval(load, 20_000); return () => clearInterval(t); }, [load]);
   if (rooms === null || (!rooms.length && !canHost)) return null;
   return (
@@ -54,7 +59,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
       {open && (
         <form className="flex flex-wrap items-center gap-2 border-b border-rule p-4" onSubmit={async (e) => {
           e.preventDefault(); setErr("");
-          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title, ...(poster.source !== "none" ? { poster: { source: poster.source, url: poster.url } } : {}) }); setOpen(false); setTitle(""); setPoster({ source: "none" }); onOpen(r.id, title); }
+          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title, record: !!rec?.forced || (record && !!rec?.canRecord), ...(poster.source !== "none" ? { poster: { source: poster.source, url: poster.url } } : {}) }); setOpen(false); setTitle(""); setPoster({ source: "none" }); onOpen(r.id, title); }
           catch (x) { setErr(x instanceof Error ? x.message : "Couldn't start the room."); }
         }}>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="What's it about? e.g. Sunday Q&A" aria-label="Room name" className={`${field} min-w-0 flex-1`} />
@@ -62,7 +67,11 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
           <button type="button" className="text-xs text-slate underline" onClick={() => setOpen(false)}>Cancel</button>
           {err && <p className="w-full text-sm text-crimson" role="alert">{err}</p>}
           <div className="w-full"><PosterChoice value={poster} onChange={setPoster} onError={setErr} light /></div>
-          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. Nothing is recorded.{figures.relay && figures.live?.video ? ` You can turn video on during the room (${figures.live.budgetMinutes} video minutes a live); the poster shows while it's off.` : ""}</p>
+          {rec?.canRecord && figures.relay
+            ? <label className="flex w-full items-start gap-2 text-xs text-ink"><input type="checkbox" checked={rec.forced || record} disabled={rec.forced} onChange={(e) => setRecord(e.target.checked)} className="mt-0.5 h-4 w-4 accent-crimson" />
+                <span><b>Record this live</b>{rec.forced ? " (every live is recorded for safety for now)" : ""}. Everyone who joins is told, speakers agree before their mic goes on, and you agree too. Kept {rec.keepDays} days, then deleted unless you publish the replay. <a href={RECORDING_HELP} className="underline" target="_blank" rel="noreferrer">More</a></span></label>
+            : <p className="w-full text-xs text-slate">{rec && !rec.available ? "Recording isn't available yet." : rec && !figures.relay ? "Recording needs the relay, which isn't on yet." : ""}</p>}
+          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. {rec?.forced || record ? "This live will be recorded." : "Nothing is recorded."}{figures.relay && figures.live?.video ? ` You can turn video on during the room (${figures.live.budgetMinutes} video minutes a live); the poster shows while it's off.` : ""}</p>
         </form>
       )}
       {rooms.length ? (
@@ -71,7 +80,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
             <li key={r.id} className="flex items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
                 <p className="truncate font-ui text-sm font-bold text-ink">{r.title}</p>
-                <p className="text-xs text-slate">with {r.hostName}{r.speakers.length ? ` +${r.speakers.length} on stage` : ""} · {r.listening} in the room</p>
+                <p className="text-xs text-slate">with {r.hostName}{r.speakers.length ? ` +${r.speakers.length} on stage` : ""} · {r.listening} in the room{r.recorded ? <span className="text-crimson"> · ● Recorded</span> : null}</p>
                 <span className="mt-2 flex -space-x-2">{r.faces.map((f, i) => <Avatar key={i} src={f.avatar} alt={f.name} size={28} className="!h-7 !w-7 rounded-full ring-2 ring-card" />)}</span>
               </div>
               <button type="button" onClick={() => onOpen(r.id, r.title)} className="btn-primary !px-4 !py-2 text-xs">Join</button>
@@ -340,7 +349,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     });
     liveRef.current = { startVideo, stopVideo, resync: () => { if (latest && relayMode) void videoSync(latest); } };
     const relayReconcile = async (r: RoomDoc) => {
-      const onStage = roomRole(r, me) !== "listener";
+      // A recorded room: a speaker's microphone waits for their one-tap agreement (the server refuses it until then too).
+      const onStage = roomRole(r, me) !== "listener" && recordingPrompt(r, me) !== "consent";
       if (onStage && !micOn) {
         micOn = true;
         try { await ensureMic(); await startPush(); }
@@ -467,7 +477,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         <div className="min-w-0">
           <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName ?? "Audio room"} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
-          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}, nothing recorded` : "Connecting…")}</p>
+          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
+          {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
+          {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {minutesLeftText(hostLive.minutesLeft)}</p>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
@@ -533,6 +545,17 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       </div>
 
       {Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} />)}
+
+      {room && recordingPrompt(room, me) === "consent" && (
+        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.08] p-4" role="alertdialog" aria-label={RECORDING_NOTICE}>
+          <p className="font-ui text-sm font-bold">{RECORDING_NOTICE}</p>
+          <p className="mt-1 text-xs text-white/70">You&apos;re on stage. If you speak, your voice is in the recording, which the host may publish as a replay. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">More</a></p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" disabled={busy === "consent"} onClick={() => act({ action: "consent" }, "consent")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">I agree, turn my mic on</button>
+            <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Back to listening</button>
+          </div>
+        </div>
+      )}
 
       <footer className="flex items-center justify-center gap-4 border-t border-white/10 px-5 pb-[calc(env(safe-area-inset-bottom)_+_1rem)] pt-4">
         {role === "listener" ? (

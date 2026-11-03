@@ -265,7 +265,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : !why && recent ? { ...st, state: "degraded" as ServiceState } : st;
         })()
   );
-  // The live-rooms worker (workers/live-rooms, v0.126.0): chat and live signals for big relay rooms on a Cloudflare Durable Object. Only
+  // The live-rooms worker (workers/live-rooms, v0.127.0): chat and live signals for big relay rooms on a Cloudflare Durable Object. Only
   // listed as working once NEXT_PUBLIC_LIVE_ROOMS_URL and LIVE_ROOMS_SECRET are both set; the check reaches the worker and proves both
   // sides hold the same secret. Rooms fall back to the Firestore chat when it fails, so trouble is "slow", not "down".
   const liveName = "Live room chat", liveDesc = "Chat, listener count and raised hands for big audio rooms, live over Cloudflare";

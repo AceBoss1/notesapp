@@ -36,7 +36,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `R2_ACCESS_KEY_ID` | **yes** | R2 key id. The token must cover both buckets (media and private) with Object Read & Write. |
 | `R2_SECRET_ACCESS_KEY` | **yes** | R2 secret. |
 | `R2_BUCKET_NAME` | no | Public media bucket (default notesapp-media): images, avatars, post videos. |
-| `R2_PRIVATE_BUCKET` | no | Private bucket for paid downloads and message files (a name). |
+| `R2_PRIVATE_BUCKET` | no | Private bucket for paid downloads, message files and live recordings (a name). |
 | `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (https://media.notesapp.name.ng). |
 | `CLOUDFLARE_STREAM_TOKEN` | **yes** | Cloudflare API token with Stream: Edit, for video lessons of view-only items and courses. Without it only PDF lessons work. |
 | `CLOUDFLARE_ACCOUNT_ID` | no | Cloudflare account for Stream when it isn't R2_ACCOUNT_ID. |
@@ -157,6 +157,14 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `TURN_URLS` | no | Our own TURN server instead: comma-separated addresses. |
 | `TURN_USERNAME` | no | Our own TURN server's username. |
 | `TURN_CREDENTIAL` | **yes** | Our own TURN server's password. |
+
+## Live recording
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `RECORDER_URL` | no | Address of the room recorder service (services/room-recorder, on Cloud Run: docs/RECORDER.md), like https://room-recorder-xxxx.a.run.app. With RECORDER_SECRET, hosts can switch recording on before a live; without both the switch is hidden. |
+| `RECORDER_SECRET` | **yes** | The secret shared with the room recorder (the same value in its RECORDER_SECRET): signs every request between the app and the recorder and the recorder page's room tokens. Make one with: openssl rand -hex 32. |
+| `REPLAY_TRANSCRIBE` | no | Transcripts for replays: off (the default), nkenne-english or nkenne-swahili (NKENNEAi speech to text, needs NKENNE_API_KEY; only recordings whose sound file is under 25 MB, about an hour and a half). Without it, Share to Journal drafts without a transcript or Nana summary. |
 
 ## Feature switches
 

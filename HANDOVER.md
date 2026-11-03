@@ -520,6 +520,61 @@ on `main` that isn't understood is raised with the owner first.
     count, batch signatures, the chat record, removals, the count and the recount standing aside, stage/chat/unchat/end pushed to the
     room, and a real `LiveRoom` wired to the server code end to end), plus `test:rooms`, `test:rooms-server`, `test:help`.
 
+100. **Live recording and replays, step 2c (v0.128.0, branch `push/live-replays`, cut from `push/rooms-relay`, with 2a `push/live-mode` (98) merged in; 97 and
+    99 are reserved for pending PRs, including step 2b chat on the edge):** built and **off until the recorder is set up**: without
+    `RECORDER_URL` and `RECORDER_SECRET` the Record this live switch is hidden (with a note), nothing is recorded and every room works as
+    before. **Owner steps:** (1) Deploy the recorder on Google Cloud Run (Google Cloud credits) following `docs/RECORDER.md`: build
+    `services/room-recorder` (Dockerfile included), deploy with CPU always allocated, at least 2 GiB memory, a 60-minute request timeout
+    and `RECORDER_SECRET` (make one with `openssl rand -hex 32`) and `APP_ORIGIN` (the site's own address) set. (2) Vercel →
+    Environment Variables, Production: `RECORDER_URL` = the Cloud Run service URL, `RECORDER_SECRET` = the same secret (Sensitive);
+    `R2_PRIVATE_BUCKET` must already be set (recordings are kept there). Replays need `CLOUDFLARE_STREAM_TOKEN` (already used for course
+    videos). Redeploy. (3) `firebase deploy --only firestore` (rules: new server-only `roomRecordings` and `replays`, and a post's
+    `replayId` can't be added or changed from a browser; no new indexes, every query is single-field). (4) Optional transcripts:
+    `REPLAY_TRANSCRIBE` = `nkenne-english` or `nkenne-swahili` uses NKENNEAi speech to text (`NKENNE_API_KEY`, already set for
+    Kiswahili). It is the only speech-to-text provider in the codebase; it takes one file up to 25 MB, so only recordings whose sound file
+    is under that (about an hour and a half at 32 kbps) get a transcript, and whether it accepts WebM/Opus (our recorder's format) must be
+    checked with one real replay. Without it, transcripts are off and Share to Journal drafts without a transcript or Nana summary.
+    (5) **Counsel review (NDPA):** the notice wording ("This live is being recorded", the speaker's one-tap agreement, the help article
+    `live-recording-and-replays` and the new privacy paragraph) should be checked by counsel before recording is switched on. The privacy
+    paragraph was added without bumping `LEGAL_VERSION` (no re-acceptance asked); bump it if counsel says the change is material.
+    (6) A live test: start a relay room with Record this live, bring a speaker up (they agree), talk for a minute, end it, then check
+    Media → Recordings (Play), publish a replay, open it from Explore → Replays, tap Share to Journal, and unpublish.
+    **How it works:** the host's switch (or Admin's force switch) marks the room `recording` with a recording id; the server creates
+    `roomRecordings/{rid}` and calls the recorder (`POST /start`, HMAC-signed, `lib/recorder-sign.ts`) with the hidden page URL
+    `/rooms/record/{room}?token=…` (a 15-minute-plus-length, one-room, receive-only token: the page can only pull, answer and close on the
+    relay, never push) and the upload URL `/api/rooms/recorder`. The recorder opens the page in headless Chromium, which mixes the stage's
+    microphones (Web Audio) and draws the picture on a canvas (the host's video track when one arrives, else the room's `poster` field,
+    else a title card) and records two files with MediaRecorder: `stage` (picture and sound) and `audio` (sound only, for transcripts).
+    Every ~10 s each chunk is signed and uploaded; chunks wait as small objects in the private bucket until 5 MiB make a multipart part
+    (R2's minimum), and finalize sends the rest as the last part. Ending the room calls `POST /stop`; the keep timer
+    (`keepDays` after the end) starts then. The reminders cron deletes unpublished recordings past their date (job "recordings"), finishes
+    any the recorder never finalized, and makes queued transcripts ("replayTranscripts"). Publishing copies the stage file to Cloudflare
+    Stream (`/stream/copy` from a 6-hour signed link, `requireSignedURLs`), into `replays/{id}`; it shows in the host's Media area
+    (`/profile/media`, a placeholder page around `components/replays/ReplaysList.tsx` for the Media studio to reuse) and, for everyone or
+    subscribers, on Explore and Trending (new Replays tabs). **Owner change (2 Nov 2026):** a replay is not a journal post unless the
+    host taps Share to Journal (a draft with `replayId`, Nana's summary and chapters, and the transcript; premium when the replay is for
+    subscribers). Unpublishing removes the replay, its post and its Stream copy; inside the first keep window the timer restarts, after
+    it the recording is deleted. Teen mode: a host or a speaker in teen mode keeps the replay inside the community and off every list.
+    Admin → Live recordings (`/admin/recordings`, Trust & safety and Legal) plays any recording for safety review.
+    **Settings:** Admin → Limits → Live recording (`serverConfig/recording`): days to keep (30), longest recording (4 hours), record
+    every relay room (off); plan switches "Audio rooms and live" in the limits table: who can record and who can publish replays (every
+    plan by default). The help reads all of them live (`tests/help/live-figures.test.ts`).
+    **With 2a (Live mode, merged into this branch):** the recorder page pulls every stage microphone and every camera that's up
+    (`videoPullsFor`, pulled with `video: true`; the host's camera and those of speakers the host allows, side by side on the canvas)
+    and draws the room's `poster` while every camera is off (else a title card). In a recorded room a speaker's camera, like their
+    microphone, waits for their agreement. The recorder has no `people/` doc and no heartbeat, so it's in no listener count, drop prompt
+    or challenge figure, and pulling cameras never touches the video-minutes budget (it counts cameras up, not viewers). `startRoom`'s
+    arguments are now `(…, deps, poster?, opts: { record })`. **With 2b (chat on the edge, to merge after):** nothing of the recorder
+    goes through the chat or the count; keep it out of any listener presence the Durable Object adds.
+    **Unverified until it runs for real:** the recorder in Cloud Run's headless Chromium against the real relay (audio mixing,
+    MediaRecorder in headless mode, Cloud Run keeping CPU between requests), R2 multipart against the real bucket, Stream's copy-from-URL
+    of a WebM with a still picture, and NKENNEAi with WebM. Tests: `test:recording` (consent and notice, whether a room records, keep
+    dates, audiences and teen mode, the share card, signing in both the app and the service, the page token), `test:recording-server`
+    (emulator with a real stand-in recorder HTTP server checking signatures: start and stop calls, consent before the mic, the
+    receive-only page, chunk ingest and multipart finalize into a stand-in bucket, playing, the keep-days cron, publish, audiences,
+    transcripts, Share to Journal, unpublish, the force switch and a recorder that can't start), `test:rules` (one new test),
+    `test:help`, `test:rooms`, `test:rooms-server`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

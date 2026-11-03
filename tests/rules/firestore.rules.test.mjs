@@ -1412,3 +1412,27 @@ test("the agent layer's collections are server-only: no member reads or writes g
   await assertFails(updateDoc(doc(as("pub"), "agentProposals/p1"), { status: "done" }));
   await assertFails(deleteDoc(doc(as("pub"), "agentActions/a1")));
 });
+
+// Live recordings and replays (lib/live-recording.ts, v0.128.0): server-only; a journal post's replayId comes only from the server.
+test("live recordings and replays are server-only, and a post's replay can't be added or changed from a browser", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "roomRecordings/rec1"), { hostUid: "pub", roomId: "r1", status: "ready", published: false, files: {} });
+    await setDoc(doc(db, "replays/rp1"), { hostUid: "pub", rid: "rec1", audience: "public", listed: true, status: "ready", streamUid: "s1" });
+    await setDoc(doc(db, "notes/replaypost"), { authorUid: "pub", title: "t", status: "draft", replayId: "rp1" });
+  });
+  for (const who of [as("pub"), as("alice"), anon()]) {
+    await assertFails(getDoc(doc(who, "roomRecordings/rec1"))); // even the host: through /api/replays (a 15-minute link)
+    await assertFails(getDoc(doc(who, "replays/rp1"))); // through the replay's page, which checks the audience
+    await assertFails(getDocs(query(collection(who, "roomRecordings"), where("hostUid", "==", "pub"))));
+  }
+  await assertFails(updateDoc(doc(as("pub"), "roomRecordings/rec1"), { published: true }));
+  await assertFails(setDoc(doc(as("pub"), "roomRecordings/rec2"), { hostUid: "pub", status: "ready" }));
+  await assertFails(updateDoc(doc(as("pub"), "replays/rp1"), { audience: "public", listed: true }));
+  await assertFails(deleteDoc(doc(as("pub"), "replays/rp1")));
+  // A browser can't make a post that points at a replay, nor repoint or drop the one the server set; editing the rest still works.
+  await assertFails(setDoc(doc(as("pub"), "notes/n9"), { authorUid: "pub", title: "t", replayId: "rp1" }));
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/replaypost"), { title: "edited", status: "published" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: "someone-elses" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: deleteField() }));
+});

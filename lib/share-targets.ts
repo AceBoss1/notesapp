@@ -7,7 +7,7 @@
 // The card is always built on the server from the item as it is now (lib/share-targets-server.ts): drafts, private and members-only
 // things, revoked certificates and ended coupons have no card, so they can't be shared this way.
 
-export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post", "item", "service", "event"] as const;
+export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post", "item", "service", "event", "replay"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 export const isShareKind = (v: unknown): v is ShareKind => SHARE_KINDS.includes(v as ShareKind);
 
@@ -27,7 +27,7 @@ export type ShareCard = {
   price?: string; // shop items and services: "₦15,000" (a session also says how long)
 };
 
-export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post", item: "Shop item", service: "Service", event: "Event" };
+export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post", item: "Shop item", service: "Service", event: "Event", replay: "Replay" };
 export const SHARE_TITLE_MAX = 140;
 
 const clean = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -113,6 +113,12 @@ export function eventCard(id: string, e: { title?: string; visibility?: string; 
   if (!e || e.visibility !== "public" || e.cancelled === true || !e.title) return null;
   const when = e.startsAt && !Number.isNaN(Date.parse(e.startsAt)) ? new Date(e.startsAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" }) : "";
   return { kind: "event", id, title: clean(e.title, SHARE_TITLE_MAX), path: `/events/${id}`, creatorUsername: handle(e.hostUsername), creatorName: clean(e.communityName || e.hostName, 80) || undefined, label: when ? `Event · ${when}` : SHARE_LABEL.event };
+}
+
+// A published replay of a live (lib/live-recording.ts), for everyone or the host's subscribers; a replay kept inside its community has no card.
+export function replayCard(id: string, r: { title?: string; audience?: string; status?: string; hostUsername?: string; hostName?: string; hostAvatar?: string } | undefined): ShareCard | null {
+  if (!r || !r.title || (r.audience !== "public" && r.audience !== "subscribers")) return null;
+  return { kind: "replay", id, title: clean(r.title, SHARE_TITLE_MAX), path: `/replays/${id}`, image: safeImage(r.hostAvatar), creatorUsername: handle(r.hostUsername), creatorName: clean(r.hostName, 80) || undefined, label: r.audience === "subscribers" ? "Replay · subscribers" : SHARE_LABEL.replay };
 }
 
 // ---- What each share makes.

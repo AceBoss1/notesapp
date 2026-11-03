@@ -1,5 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { cleanShareRef, certificateCard, courseCard, couponCard, eventCard, itemCard, journalCard, postCard, sessionCard, siteServiceCard, type ShareCard } from "./share-targets";
+import { cleanShareRef, certificateCard, courseCard, couponCard, eventCard, itemCard, journalCard, postCard, replayCard, sessionCard, siteServiceCard, type ShareCard } from "./share-targets";
 import { isDiscoverable, isPublicPost, type Community } from "./community";
 import { couponCard as openCoupon } from "./discounts-server";
 
@@ -45,5 +45,7 @@ export async function resolveShareCard(db: Firestore, refIn: unknown): Promise<S
     }
     case "event":
       return eventCard(ref.id, (await db.doc(`events/${ref.id}`).get()).data());
+    case "replay":
+      return replayCard(ref.id, (await db.doc(`replays/${ref.id}`).get()).data());
   }
 }

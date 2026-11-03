@@ -1,4 +1,4 @@
-// Signed tokens and signed bodies between #NotesApp's server and the live-rooms worker (workers/live-rooms, v0.126.0). Pure: only
+// Signed tokens and signed bodies between #NotesApp's server and the live-rooms worker (workers/live-rooms, v0.127.0). Pure: only
 // WebCrypto (crypto.subtle), TextEncoder and btoa/atob, which Node 20+, browsers and Cloudflare Workers all have, so the worker imports
 // this same file into its build. Never import Node-only modules here.
 //

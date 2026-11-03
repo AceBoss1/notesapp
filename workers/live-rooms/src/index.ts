@@ -1,4 +1,4 @@
-// The live-rooms worker (#NotesApp v0.126.0): routes /rooms/<id>/… to that room's Durable Object (src/room.ts). The object checks the
+// The live-rooms worker (#NotesApp v0.127.0): routes /rooms/<id>/… to that room's Durable Object (src/room.ts). The object checks the
 // token or the signature itself; this entry only picks the room. GET /health answers ok (for a quick check after deploying).
 import type { Env } from "./cf";
 export { LiveRoom } from "./room";
