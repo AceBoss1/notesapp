@@ -319,10 +319,13 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
           {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
           {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} label="🎁 Gift me" />}
-          {hasPremium && (
+          {(hasPremium || (!synthetic && !suspended)) && (
             <div id="subscribe" className="scroll-mt-28 rounded-full">
-              <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />
+              <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} creatorName={profile.displayName} />
             </div>
+          )}
+          {!synthetic && !suspended && (
+            <Link href={`/u/${profile.username}/fans`} className="inline-flex items-center gap-1 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-semibold text-ink hover:border-crimson">🏆 Top fans</Link>
           )}
         </div>
       </div>

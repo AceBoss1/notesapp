@@ -2,89 +2,111 @@
 
 import AppLink from "@/components/AppLink";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { isSubscribed } from "@/lib/subscriptions";
 import { startCheckout } from "@/lib/checkout";
 import { formatNaira, PublisherSettings } from "@/lib/booking-time";
+import { SUB_TIERS, TIER_BADGE, TIER_NAME, openTiers, tierOf, tierOffers, type SubTier, type TierOffers } from "@/lib/fans";
+import { TierChip } from "@/components/fans/FanBadges";
 
-export default function SubscribeButton({ username, publisherUid }: { username: string; publisherUid?: string }) {
+// Subscribing to a creator (lib/fans.ts): Premium, VIP and VVIP, whichever they offer, each at the creator's monthly price. A subscriber
+// sees their tier and can change it: the new tier starts now and the days left on the old one are added on (lib/payments.ts).
+const PERKS: Record<SubTier, string[]> = {
+  premium: ["Their Premium posts, course notes and replays", "🌄 Starter badge in their space", "Builds your fan level", "As their #2 or #3 fan: a car or bike entrance in their lives"],
+  vip: ["Everything in Premium", "Their VIP posts and VIP lives", "🛡 Army badge in their space", "Fan level grows with every month"],
+  vvip: ["Everything in VIP", "Their VVIP posts and lives", "🏆 VVIP badge everywhere in their space", "As their 🥇 top fan: arrive in their lives by yacht or private jet"],
+};
+
+type Mine = { tier: SubTier; active: boolean } | null;
+async function mySub(uid: string, username: string): Promise<Mine> {
+  const s = (await getDoc(doc(db, "subscriptions", `${uid}_${username}`))).data();
+  if (!s) return null;
+  const active = s.status === "demo" || (!!s.currentPeriodEnd && Date.parse(String(s.currentPeriodEnd)) > Date.now());
+  return active ? { tier: tierOf(s), active } : null;
+}
+
+export default function SubscribeButton({ username, publisherUid, creatorName }: { username: string; publisherUid?: string; creatorName?: string }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [subscribed, setSubscribed] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [mine, setMine] = useState<Mine | undefined>(undefined);
+  const [offers, setOffers] = useState<TierOffers | null | undefined>(undefined); // null = not offered
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<SubTier | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [priceKobo, setPriceKobo] = useState<number | null | undefined>(undefined); // null = not offered
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-
   useEffect(() => {
-    if (!publisherUid) {
-      setPriceKobo(null);
-      return;
-    }
-    getDoc(doc(db, "publisherSettings", publisherUid))
-      .then((snap) => {
-        const sub = (snap.data() as PublisherSettings | undefined)?.subscription;
-        setPriceKobo(sub?.enabled && sub.planCode ? sub.priceKobo : null);
-      })
-      .catch(() => setPriceKobo(null));
-  }, [publisherUid]);
-
+    // Without the creator's id (a premium entry's gate), look it up from their username.
+    const uidOf = publisherUid ? Promise.resolve(publisherUid) : getDoc(doc(db, "usernames", username)).then((u) => String(u.data()?.uid ?? ""));
+    uidOf.then((uid) => (uid ? getDoc(doc(db, "publisherSettings", uid)) : Promise.reject()))
+      .then((snap) => { const o = tierOffers((snap.data() as PublisherSettings | undefined)?.subscription); setOffers(openTiers(o).length ? o : null); })
+      .catch(() => setOffers(null));
+  }, [publisherUid, username]);
   useEffect(() => {
-    if (!user) {
-      setSubscribed(null);
-      return;
-    }
-    isSubscribed(user.uid, username).then(setSubscribed);
+    if (!user) { setMine(null); return; }
+    mySub(user.uid, username).then(setMine).catch(() => setMine(null));
   }, [user, username]);
 
-  if (user === undefined || priceKobo === undefined || (user && subscribed === null)) {
-    return <div className="h-10 w-40 animate-pulse rounded-full bg-rule" />;
-  }
-
-  if (priceKobo === null && !subscribed) return null; // publisher hasn't opened subscriptions
+  if (user === undefined || offers === undefined || (user && mine === undefined)) return <div className="h-10 w-40 animate-pulse rounded-full bg-rule" />;
+  if (offers === null && !mine) return null; // the creator hasn't opened subscriptions
 
   if (!user) {
-    return (
-      <AppLink href="/signup" className="btn-primary !px-5 !py-2 text-xs">
-        Sign up to subscribe
-      </AppLink>
-    );
+    return <AppLink href="/signup" className="btn-primary !px-5 !py-2 text-xs">Sign up to subscribe</AppLink>;
   }
 
-  if (subscribed) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-crimson/30 bg-crimson/10 px-5 py-2 font-ui text-xs font-semibold text-crimson-bright">
-        ✓ Subscribed
-      </span>
-    );
-  }
-
-  async function handleSubscribe() {
+  async function choose(tier: SubTier) {
     if (!user) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await startCheckout(user, { kind: "subscription", username });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't start payment.");
-      setBusy(false);
-    }
+    setBusy(tier); setError(null);
+    try { await startCheckout(user, { kind: "subscription", username, tier }); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't start payment."); setBusy(null); }
   }
+  const tiers = offers ? openTiers(offers) : [];
+  const from = tiers.length ? Math.min(...tiers.map((t) => offers![t].priceKobo)) : 0;
+  const first = (creatorName || `@${username}`).split(" ")[0];
 
   return (
     <div>
-      <button
-        onClick={handleSubscribe}
-        disabled={busy}
-        className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50"
-      >
-        {busy ? "Redirecting…" : `Subscribe · ${formatNaira(priceKobo ?? 0)}/month`}
-      </button>
+      {mine ? (
+        <button type="button" onClick={() => setOpen(true)} disabled={!tiers.length} className="inline-flex items-center gap-1.5 rounded-full border border-crimson/30 bg-crimson/10 px-4 py-2 font-ui text-xs font-semibold text-crimson-bright">
+          ✓ Subscribed · {TIER_BADGE[mine.tier].emoji} {TIER_NAME[mine.tier]}{tiers.length > 1 ? " · Change" : ""}
+        </button>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className="btn-primary !px-5 !py-2 text-xs">
+          Subscribe · from {formatNaira(from)}/month
+        </button>
+      )}
       {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
+      {open && offers && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 sm:items-center" role="dialog" aria-modal aria-label={`Subscribe to ${first}`} onClick={() => setOpen(false)}>
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-display text-2xl text-ink">Subscribe to {creatorName || `@${username}`}</p>
+                <p className="text-xs text-slate">Monthly · cancel any time · paid with NotesApp Credit or card</p>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="rounded-full px-2 text-xl text-slate">✕</button>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {SUB_TIERS.filter((t) => offers[t].enabled && offers[t].planCode).map((t) => {
+                const current = mine?.tier === t;
+                return (
+                  <div key={t} className={`relative rounded-2xl border bg-card p-4 ${t === "vip" ? "border-crimson-bright ring-2 ring-crimson-bright/30" : "border-rule"}`}>
+                    <TierChip tier={t} />
+                    <p className="mt-2 font-display text-2xl text-ink">{TIER_NAME[t]}</p>
+                    <p className="font-ui text-2xl font-extrabold text-crimson">{formatNaira(offers[t].priceKobo)}<span className="text-xs font-normal text-slate"> /month</span></p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-[13.5px] text-ink">{PERKS[t].map((p) => <li key={p}>{p.replace("Their", `${first}'s`)}</li>)}</ul>
+                    <button type="button" disabled={current || !!busy} onClick={() => choose(t)} className={`mt-3 w-full rounded-full px-4 py-2 font-ui text-sm font-bold ${current ? "bg-rule text-slate" : t === "vip" ? "bg-crimson text-white" : "border border-rule bg-card text-ink hover:border-crimson"}`}>
+                      {current ? "Your tier" : busy === t ? "Redirecting…" : mine ? `Switch to ${TIER_NAME[t]}` : `Choose ${TIER_NAME[t]}`}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-xs text-slate">{mine ? "Switching starts the new tier now at its price; the days left on your current tier are added on, and your old tier stops renewing." : `${first} sets each price. Each tier includes the ones below it.`}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

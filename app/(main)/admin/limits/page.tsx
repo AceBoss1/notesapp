@@ -6,6 +6,7 @@ import { LIMITS, LIMIT_TIERS, LIMIT_TIER_LABEL, type LimitTable } from "@/lib/li
 import { AGENT_DEFAULTS, AGENT_SETTINGS, type AgentSettings } from "@/lib/agents/config";
 import { ROOM_DEFAULTS, ROOM_SETTINGS, type RoomSettings } from "@/lib/rooms";
 import RecordingSettingsPanel from "@/components/admin/RecordingSettingsPanel";
+import FanSettingsPanel from "@/components/admin/FanSettingsPanel";
 
 // Size and count limits by plan (message files, moments, courses), the plan switches for Notes Academy (free courses, paid courses,
 // uploaded video) and for Nana's operator and connected agents, shown as tick boxes, and the numbers behind Nana's jobs and agents
@@ -125,6 +126,7 @@ export default function AdminLimitsPage() {
         <button onClick={reset} disabled={!table} className="btn-ghost">Reset to defaults</button>
       </div>
       {user && <RecordingSettingsPanel user={user} />}
+      {user && <FanSettingsPanel user={user} />}
     </div>
   );
 }

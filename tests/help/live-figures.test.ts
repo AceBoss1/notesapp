@@ -18,6 +18,7 @@ import { resetAgentSettingsCache } from "../../lib/agents/config-server";
 import { resetRecordingSettingsCache } from "../../lib/live-recording-server";
 import { PLAN_SHARE } from "../../lib/referrals";
 import { resetRoomSettingsCache } from "../../lib/rooms-server";
+import { resetFanCaches } from "../../lib/fans-server";
 
 const ROOT = join(__dirname, "..", "..");
 const defaults = builtInArticles();
@@ -43,6 +44,7 @@ const saved: Record<string, unknown> = {
   "serverConfig/limits": { overrides: limits },
   "serverConfig/agents": { overrides: agents },
   "serverConfig/recording": { overrides: { keepDays: 21, maxHours: 3 } },
+  "serverConfig/fans": { overrides: { vipMin: 6_000, vvipMax: 450_000, vipUpliftPct: 15 } },
   // Audio rooms' Live mode (Admin → Limits → Audio rooms → Live): the help quotes these, never the defaults.
   "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3 } },
 };
@@ -54,7 +56,7 @@ const db = {
 
 (async () => {
   assert.deepEqual(cleanPricing(structuredClone(cfg)), cfg, "the test config passes the admin form's checks");
-  clearKbCache(); resetLimitCache(); resetAgentSettingsCache(); resetRoomSettingsCache(); resetRecordingSettingsCache();
+  clearKbCache(); resetLimitCache(); resetAgentSettingsCache(); resetRoomSettingsCache(); resetRecordingSettingsCache(); resetFanCaches();
   const live = await getArticles(db);
 
   // Commission on paid sessions, subscriptions and gifts (one rate), per plan.
@@ -68,6 +70,10 @@ const db = {
     assert.ok(b.includes("31% on Free Basic") && b.includes("22% on Pro") && b.includes("12% on Business"), `${slug} quotes the live rates`);
     assert.ok(!b.includes("35%"), `${slug} has no default rate`);
   }
+  // Subscription tiers (Admin → Limits → Subscriptions and fans).
+  const subs = body(live, "subscriptions");
+  for (const x of ["**VIP** (₦6,000 to ₦200,000)", "**VVIP** (₦10,000 to ₦450,000)", "your rate plus 15% of it", "your rate plus 20% of it", "9.2% and 9.6%"]) assert.ok(subs.includes(x), `subscriptions shows ${x}`);
+  for (const x of ["₦5,000 to ₦200,000", "₦500,000)", "plus 10% of it"]) assert.ok(!subs.includes(x), `subscriptions no longer shows ${x}`);
   // Prices.
   assert.ok(body(live, "verified-badge").includes("₦1,234") && !body(live, "verified-badge").includes("₦999"), "badge price");
   const plans = body(live, "plans-and-prices");

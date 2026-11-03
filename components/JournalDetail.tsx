@@ -18,6 +18,7 @@ import SocialBar from "@/components/SocialBar";
 import SocialPublish from "@/components/SocialPublish";
 import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
+import { noteAudience } from "@/lib/fans";
 import GiftButton from "@/components/GiftButton";
 import AdSlot from "@/components/AdSlot";
 import { UnverifiedOrgNotice } from "@/components/OrgNotice";
@@ -195,6 +196,7 @@ export default async function JournalDetail({
           const gate = (
             <PremiumGate
               premium={!!note.premium}
+              audience={noteAudience(note)}
               authorUsername={linkedUsername || ""}
               authorName={note.author}
               contentHtml={contentHtml}
@@ -275,7 +277,7 @@ export default async function JournalDetail({
 
       <AdSlot placement="post" publisher={authorProfile ?? undefined} publisherUid={authorProfile?.uid} />
 
-      <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} linkProfiles={!site} />
+      <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} linkProfiles={!site} creatorUsername={linkedUsername || note.authorUsername || undefined} />
 
       {moreNotes.length > 0 && (
         <div className="mt-16 border-t-2 border-ink pt-10">

@@ -1,5 +1,6 @@
 "use client";
 
+import { FanChips, useFanBadges } from "@/components/fans/FanBadges";
 import LinkedText from "@/components/LinkedText";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -44,13 +45,15 @@ export function RatingBreakdown({ summary, breakdown, label }: { summary: Rating
 //   ownerUid: across a seller's items (read only)
 //   courseId: a course's reviews (learners who've done half the lessons can review; the teacher replies once to each).
 // The average and the split show from `minShown` reviews (courses: lib/courses.ts RATING_SHOWN_FROM).
-export default function ReviewsPanel({ itemId, ownerUid, courseId, user, sellerUid, title = "Reviews", minShown = 1 }: {
+export default function ReviewsPanel({ itemId, ownerUid, courseId, user, sellerUid, title = "Reviews", minShown = 1, creatorUsername }: {
   itemId?: string; ownerUid?: string; courseId?: string; user: User | null | undefined; sellerUid?: string; title?: string; minShown?: number;
+  creatorUsername?: string; // the seller or teacher: their fans' and subscribers' badges show on reviews (lib/fans.ts)
 }) {
   const course = !!courseId;
   const owner = course ? "teacher" : "seller";
   const badge = course ? "Finished the course" : "Bought it";
   const [data, setData] = useState<Data | null>(null);
+  const fanBadges = useFanBadges(creatorUsername, (data?.reviews ?? []).map((r) => r.uid));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [rating, setRating] = useState(0);
@@ -126,6 +129,7 @@ export default function ReviewsPanel({ itemId, ownerUid, courseId, user, sellerU
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-ui text-sm font-bold text-ink">
                       <span className="flex min-w-0 items-center">{r.username ? <Link href={`/u/${r.username}`} className="truncate hover:underline">{r.name}</Link> : r.name}<NameBadgeIcons username={r.username} size={13} /></span>
+                      <FanChips badge={fanBadges[r.uid]} />
                       {r.verified !== false && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-emerald-700">
                           {course ? <AcademyIcon className="h-3.5 w-3.5" /> : <span aria-hidden>🛍</span>}{badge}

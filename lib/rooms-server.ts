@@ -15,6 +15,7 @@ import type { LiveHand } from "./live-rooms";
 import { CHALLENGE_POSTER, POSTER_FOLDER, canPullVideo, canVideo, type HostLive, type PosterSource } from "./rooms-live";
 import { closeLive, enforceVideoBudget, hostLive, markVideoOff, markVideoOn, noteListenerSample, stopVideo, videoBudgetLeft } from "./rooms-live-server";
 import { r2PublicUrl } from "./r2";
+import { liveEntrance } from "./fans-server";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -181,11 +182,13 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     // those who joined in the last minute, still connecting: whichever is higher).
     const edgeN = r.edge ? edgeCount(await readEdgeState(db, ref.id), now.getTime()) : null;
     if (!listenerPresent(before, r, now.getTime()) && Math.max(await activeListeners(ref, now), edgeN ?? 0) >= cap) throw new CommunityError(409, roomFullText(cap));
+    const arriving = !listenerPresent(before, r, now.getTime());
     await pref.set({ ...me, at: before?.at ?? at, seen: at, ...(before?.chatAt ? { chatAt: before.chatAt } : {}), ...(before?.edgeIn ? { edgeIn: true } : {}) } satisfies RoomPersonDoc);
     await recount(db, ref.id, now).catch(() => null);
+    if (arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
     return { ok: true, mode: "relay", cap };
   }
-  return db.runTransaction(async (t) => {
+  const res = await db.runTransaction(async (t) => {
     const cur = (await t.get(ref)).data() as RoomDoc;
     if (cur.status !== "live" || !presentIn(cur, now.getTime()).includes(cur.hostUid)) throw new CommunityError(410, "The room has ended.");
     const mode: RoomMode = "p2p";
@@ -193,8 +196,17 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     if (!cur.joined[uid] && roomIsFull(cur, cap, now.getTime())) throw new CommunityError(409, roomFullText(cap));
     const at = now.toISOString();
     t.update(ref, { [`joined.${uid}`]: { ...me, at, seen: at }, peak: Math.max(cur.peak ?? 1, presentIn(cur, now.getTime()).length + 1) });
-    return { ok: true as const, mode, cap };
+    return { ok: true as const, mode, cap, arriving: !cur.joined[uid] };
   });
+  if (res.arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
+  return { ok: true, mode: res.mode, cap: res.cap };
+}
+
+// A top-three fan of the host arriving or leaving (lib/fans.ts live entrances): the room doc's `entrance` field, which everyone in the room
+// already reads, plays the vehicle and the banner on every screen. Only the latest is kept. Never blocks joining or leaving.
+async function announceEntrance(db: Firestore, ref: FirebaseFirestore.DocumentReference, hostUid: string, uid: string, way: "in" | "out", now: Date) {
+  const e = await liveEntrance(db, hostUid, uid, way, now).catch(() => null);
+  if (e) await ref.update({ entrance: e }).catch(() => {});
 }
 
 export async function beatRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ live: boolean; host?: HostLive; hands?: Record<string, LiveHand> }> {
@@ -238,6 +250,7 @@ export async function leaveRoom(db: Firestore, uid: string, id: unknown, now = n
     await peopleOf(ref).doc(uid).delete().catch(() => {});
     await recount(db, ref.id, now).catch(() => null);
   }
+  await announceEntrance(db, ref, r.hostUid, uid, "out", now);
   return { ended: false };
 }
 

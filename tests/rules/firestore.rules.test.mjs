@@ -1492,3 +1492,20 @@ test("passkeys and their challenges are server-only, even for the passkey's owne
     await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
   }
 });
+
+test("fan levels: points and vehicle picks are server-only; a subscription's tier can't be set from the browser", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "fanScores/pub_alice"), { creatorUid: "pub", fanUid: "alice", points: 250, day: "2026-11-03", dayCounts: {} });
+    await setDoc(doc(d, "fanPrefs/alice"), { vehicles: { 1: "jet" } });
+  });
+  for (const who of ["alice", "pub"]) {
+    await assertFails(getDoc(doc(as(who), "fanScores/pub_alice")));
+    await assertFails(setDoc(doc(as(who), "fanScores/pub_alice"), { points: 999999 }));
+    await assertFails(getDoc(doc(as(who), "fanPrefs/alice")));
+    await assertFails(setDoc(doc(as(who), "fanPrefs/alice"), { vehicles: { 1: "yacht" } }));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "fanScores"), where("creatorUid", "==", "pub"))));
+  await assertFails(setDoc(doc(as("alice"), "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active", tier: "vvip" }));
+  await assertFails(getDoc(doc(anon(), "fanScores/pub_alice")));
+});

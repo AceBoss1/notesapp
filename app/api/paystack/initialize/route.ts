@@ -42,6 +42,8 @@ import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } fr
 import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
 import { giftCheckout } from "@/lib/giving-server";
+import { TIER_NAME, isSubTier, openTiers, tierOffers, tierRate, type SubTier } from "@/lib/fans";
+import { getFanSettings } from "@/lib/fans-server";
 import { CommunityError } from "@/lib/community-server";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -801,16 +803,21 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       };
     } else if (kind === "subscription") {
-      const sub = pub.settings?.subscription;
-      if (!sub?.enabled || !sub.planCode) {
-        return NextResponse.json({ error: "Subscriptions aren't open for this journal." }, { status: 409 });
+      // A tier (lib/fans.ts): Premium unless the browser asks for VIP or VVIP. Its price and plan come from the creator's settings, and
+      // #NotesApp's rate is the creator's plus the tier's share of it, fixed now on this payment (renewals keep the tier's share).
+      const offers = tierOffers(pub.settings?.subscription);
+      const tier: SubTier = isSubTier(body.tier) ? body.tier : "premium";
+      const offer = offers[tier];
+      if (!offer.enabled || !offer.planCode) {
+        return NextResponse.json({ error: tier === "premium" && !openTiers(offers).length ? "Subscriptions aren't open for this journal." : `${TIER_NAME[tier]} isn't offered by this creator.` }, { status: 409 });
       }
-      plan = sub.planCode;
+      await getFanSettings(db);
+      plan = offer.planCode;
       record = {
-        reference, kind: "subscription", uid: user.uid, email: user.email, amountKobo: sub.priceKobo,
+        reference, kind: "subscription", uid: user.uid, email: user.email, amountKobo: offer.priceKobo,
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
-        commissionRate: pub.commissionRate,
-        subscription: { username, planCode: sub.planCode },
+        commissionRate: tierRate(pub.commissionRate, tier),
+        subscription: { username, planCode: offer.planCode, tier },
         createdAt: new Date().toISOString(),
       };
     } else if (kind === "gift") {
