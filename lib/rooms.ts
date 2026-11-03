@@ -52,6 +52,9 @@ export type RoomDoc = {
   // (0 = off). handInfo: the name and picture of each raised hand, since listeners aren't in `joined`.
   listening?: number; countedAt?: string; chatSlow?: number;
   handInfo?: Record<string, { name: string; avatar: string }>;
+  // Relay rooms opened while the live-rooms worker is on (v0.126.0, lib/live-rooms.ts): the chat, the live count, raised hands and stage
+  // signals go over a WebSocket to the room's Durable Object; edgeAt is when the worker last reported the count (it then sets listening).
+  edge?: boolean; edgeAt?: string;
   // Live mode (lib/rooms-live.ts), relay rooms: whose camera is up now (uid → when it went up; a new time means "pull it again"),
   // whether the host lets speakers turn video on, and the poster everyone sees while video is off (a picture URL, never video).
   // Server-written, like the rest of the room. videoUsedMs: the video minutes this live used, written when it ends (for replays, 2c).
@@ -60,7 +63,8 @@ export type RoomDoc = {
   hostUsername?: string; hostBooks?: boolean;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
-export type RoomPersonDoc = RoomPerson & { chatAt?: string };
+// edgeIn (v0.126.0): in a room on the live-rooms worker, the worker last reported this listener connected (they don't heartbeat there).
+export type RoomPersonDoc = RoomPerson & { chatAt?: string; edgeIn?: boolean };
 // Server-only (communityRooms/{id}/relay/{uid}): the person's Cloudflare session and the microphone track they send, if any.
 // video: the camera track they send (Live mode), if any.
 export type RoomRelayRecord = { sessionId: string; at: string; push?: { trackName: string; mid: string } | null; video?: { trackName: string; mid: string } | null };
@@ -159,21 +163,30 @@ export const listenerCap = (mode: RoomMode | undefined, s: RoomSettings): number
 export const roomFullText = (cap: number) => `The room is full: ${cap.toLocaleString("en-GB")} people can listen at a time.`;
 
 // What the help, the public pages and the "Start a room" form say about room size, from the settings: what a room opened now holds.
-// live: Live mode's figures (lib/rooms-live.ts), for the help and the Audio rooms page.
+// live: Live mode's figures (lib/rooms-live.ts), for the help and the Audio rooms page. liveChat (v0.126.0): relay rooms carry their chat,
+// count and hands on the live-rooms worker (lib/live-rooms.ts); present only when true.
 export type RoomLiveFigures = { video: boolean; budgetMinutes: number; graceSeconds: number; nearlyLeftMinutes: number; burstMinutes: number; tryMinutes: number; dropPercent: number; dropWindowMinutes: number; height: number; fps: number; kbps: number };
-export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number; live: RoomLiveFigures };
+export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number; live: RoomLiveFigures; liveChat?: true };
 export const roomLiveFigures = (s: RoomSettings = ROOM_DEFAULTS): RoomLiveFigures => ({
   video: s.videoOn > 0, budgetMinutes: s.videoBudgetMinutes, graceSeconds: s.videoGraceSeconds, nearlyLeftMinutes: s.videoNearlyLeftMinutes, burstMinutes: s.videoBurstMinutes,
   tryMinutes: s.videoTryMinutes, dropPercent: s.dropPercent, dropWindowMinutes: s.dropWindowMinutes, height: s.videoHeight, fps: s.videoFps, kbps: s.videoKbps,
 });
-export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false): RoomFigures => {
+export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false, liveChat = false): RoomFigures => {
   const mode = chooseRoomMode(s, keysSet);
-  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds, live: roomLiveFigures(s) };
+  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds, live: roomLiveFigures(s), ...(liveChat && mode === "relay" ? { liveChat: true as const } : {}) };
 };
 export const DEFAULT_ROOM_FIGURES = roomFigures();
 
 // ── Presence and the count in relay rooms ──
 export const isFresh = (p: Pick<RoomPerson, "seen"> | undefined, now = Date.now()) => !!p && now - Date.parse(p.seen) < ROOM_GONE_MS;
+// Rooms on the live-rooms worker (v0.126.0, lib/live-rooms.ts): the worker reports the count to the room doc at most every
+// EDGE_DOC_COUNT_MS (edgeAt); after EDGE_STALE_MS without a report our server counts people/ again and listeners heartbeat again.
+export const EDGE_DOC_COUNT_MS = 60_000;
+export const EDGE_STALE_MS = 150_000;
+export const edgeFresh = (r: Pick<RoomDoc, "edge" | "edgeAt">, now = Date.now()) => !!r.edge && !!r.edgeAt && now - Date.parse(r.edgeAt) < EDGE_STALE_MS;
+// A relay listener here now: heard from recently (their heartbeat or their join), or, on the live-rooms worker while it reports,
+// connected to it (edgeIn), since listeners there don't heartbeat.
+export const listenerPresent = (p: RoomPersonDoc | undefined, r: Pick<RoomDoc, "edge" | "edgeAt">, now = Date.now()) => !!p && (isFresh(p, now) || (!!p.edgeIn && edgeFresh(r, now)));
 // Whether the count on the room doc is due to be refreshed.
 export const countDue = (r: Pick<RoomDoc, "countedAt">, now = Date.now()) => !r.countedAt || now - Date.parse(r.countedAt) >= ROOM_COUNT_EVERY_MS;
 // Everyone in a room: phone to phone, everyone in `joined`; on the relay, the stage here plus the counted listeners.

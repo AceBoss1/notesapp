@@ -2666,3 +2666,40 @@ partner sites fell back to their own image hosts (Precheks' Cloudinary preset ha
 returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
 only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
 Console scope label, the roadmap, the API help article and README say so.
+
+**Live chat and signals for big audio rooms on a Durable Object (v0.127.0, 3 Nov 2026)** — Step 2b of the rooms plan. A relay room's
+Firestore chat costs one read per person per message, so a 10,000-listener room can't afford a live read of it. Each relay room opened
+while `NEXT_PUBLIC_LIVE_ROOMS_URL` and `LIVE_ROOMS_SECRET` are set (`edge: true` on the room doc; a room keeps what it opened with) gets
+one Cloudflare Durable Object (`workers/live-rooms`, its own package.json, tsconfig and wrangler.toml; excluded from the app's
+tsconfig) holding every socket through the Hibernation API, so a quiet room bills nothing. Chat, the live listener count (distinct
+people, not tabs, broadcast at most every 2 s), raised hands, stage moves and a video on/off signal go over the socket. Trust: the
+socket needs a 10-minute HMAC-SHA256 token (`lib/live-token.ts`, pure WebCrypto, imported by both sides) minted only for someone the
+room already let in; the role can change only by our server's signed push (`role` after `setSpeaker`), which also overrides an older
+token on reconnect; moderators come from the community role at mint time. Slow mode, the rate limits (a token bucket per connection,
+kept in the socket's attachment so it survives hibernation) and the size limit are enforced at the edge; the host can now switch slow
+mode on or off (or leave it automatic, from the existing settings, pushed to rooms at creation and when an admin saves them).
+Firestore stays the record: the object batches the chat (3 s or 50 messages), removals and bans to `/api/community/rooms/edge` (signed
+over the exact body, 5-minute clock window), which writes `communityRooms/{id}/chat` with the object's ids (same shape as
+`sendRoomChat`'s, so a removal through either side finds it) and the room doc's count at most every 15 s plus a 45 s keepalive;
+`recount` stands aside while the edge reports (`edgeFresh`, 45 s) and the cap takes the higher count. Messages sent through the server
+(the fallback) are forwarded to the object to broadcast, not batched back. A failed batch stays in the object's storage and retries
+with backoff (5 s up to 2 min); the end op closes every socket, sends the final batch with the peak (kept in `edge/state.finalPeak`)
+and clears the object, which then refuses old tokens. The client side is one hook, `components/community/useLiveChannel.ts`, so the
+room screen only swaps its chat source, count and hands (step 2a edits the same component in parallel); after three failed connects
+it polls Firestore for new chat every 10 s and sends through the server. Deploy: `.github/workflows/deploy-live-rooms.yml`
+(cloudflare/wrangler-action, skips green without the two repository secrets) or `npx wrangler deploy`. Tested without Cloudflare: the
+object against in-memory fakes (including a second instance on the same state as the "woken" object) and end to end against the
+Firestore emulator with our server's code on both sides.
+
+Second round (same release, after merging step 2a): listeners in rooms on the worker no longer heartbeat their people/ doc. The worker
+reports each person's sessions (first tab in, last tab out, deduplicated by an "o:<uid>" mark in the object's storage) in the signed
+batches; our server sets people/`edgeIn` and adds the time up per person in `listenTime/{uid}` (one write per person per batch, never
+per heartbeat), closing anything still open when the room ends. Presence for those listeners is `edgeIn` while the worker reports
+(`listenerPresent`, 150 s), so tokens, pulls, Bring up and People here keep working without heartbeats, and a dead worker puts
+everyone back on heartbeats through the client's fallback. The exact count goes to `edge/state` every 15 s (the cap) and the room doc
+only once a minute, since everyone reads it; Live mode's `noteListenerSample` now runs on the worker's counts. Raised hands are kept in
+`edge/state` too and come back on the host's beat; chat mutes can be undone; camera on/off over the socket is told by our server from
+`markVideoOn`/`markVideoOff` instead of trusted from the browser. /status gained "Live room chat" (a signed ping proves both secrets
+match). The room doc is still a live read for everyone in the room (the stage and cameras drive the pulls); moving that onto the socket
+was left for a follow-up because it means reworking the pull logic step 2a just built.
+

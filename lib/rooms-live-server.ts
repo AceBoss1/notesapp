@@ -6,6 +6,7 @@ import {
 } from "./rooms-live";
 import type { RelayClient } from "./rooms-relay-server";
 import { CommunityError } from "./community-server";
+import { tellLiveRoom } from "./live-rooms-edge";
 
 // Live mode's server side (lib/rooms-live.ts): the video minutes, the cameras that are up, the listener samples and the host's prompts.
 // Each piece of shared state sits behind one small function here (noteListenerSample, markVideoOn, markVideoOff, hostLive), so the
@@ -37,14 +38,17 @@ export async function noteListenerSample(db: Firestore, roomId: string, n: numbe
 export async function markVideoOn(db: Firestore, roomId: string, uid: string, s: RoomSettings, now = new Date()): Promise<void> {
   const room = db.doc(`communityRooms/${roomId}`), ref = stateRef(db, roomId);
   const at = now.toISOString();
-  await db.runTransaction(async (t) => {
+  const edge = await db.runTransaction(async (t) => {
     const [r, raw] = [(await t.get(room)).data() as RoomDoc | undefined, (await t.get(ref)).data()];
     const st = asState(raw);
     if (!r || !canVideo(r, uid, s, now.getTime())) throw new CommunityError(403, "Only the host, and speakers when the host allows it, can turn video on.");
     if (!st.open[uid] && (budgetUsed(st, s, now.getTime()) || st.graceUntil)) throw new CommunityError(409, USED_UP);
     t.set(ref, liveVideoOn(st, uid, at));
     if (!r.videoOn?.[uid]) t.update(room, { [`videoOn.${uid}`]: at });
+    return !!r.edge;
   });
+  // Step 2b: rooms on the live-rooms worker get the signal over the socket at once; this state stays the source of truth.
+  if (edge) await tellLiveRoom(roomId, { op: "video", uid, on: true });
 }
 
 // Before Cloudflare hears of a camera: refused once this live's minutes are used up (or the grace after them has started).
@@ -59,14 +63,15 @@ export async function markVideoOff(db: Firestore, roomId: string, uids: string[]
   if (!uids.length) return;
   const room = db.doc(`communityRooms/${roomId}`), ref = stateRef(db, roomId);
   const at = now.toISOString();
-  await db.runTransaction(async (t) => {
+  await db.runTransaction(async (t): Promise<string[]> => {
     const [r, raw] = [(await t.get(room)).data() as RoomDoc | undefined, (await t.get(ref)).data()];
     let st = asState(raw);
     for (const u of uids) st = liveVideoOff(st, u, at);
     if (raw || Object.keys(st.open).length) t.set(ref, st);
     const gone = uids.filter((u) => r?.videoOn?.[u]);
     if (r && gone.length) t.update(room, Object.fromEntries(gone.map((u) => [`videoOn.${u}`, FieldValue.delete()])));
-  });
+    return r?.edge ? gone : [];
+  }).then(async (gone) => { for (const u of gone) await tellLiveRoom(roomId, { op: "video", uid: u, on: false }); });
 }
 
 // Cuts someone's camera at Cloudflare (forced, no SDP exchange) and forgets the track; then marks it down.
