@@ -10,6 +10,8 @@ import { GROUP_CALL_EVENT, GroupCallScreen, setLiveGroupCalls, type GroupStart, 
 import { ringsFor } from "@/lib/group-calls";
 import { CALLS_LIVE } from "@/lib/moments-rules";
 import { CALL_RING_MS, CALL_STALE_MS, duration, safetyCode, sdpFingerprint, type CallDoc, type CallKind } from "@/lib/calls";
+import { micConstraints } from "@/lib/call-audio";
+import { applySink, useCallAudio } from "@/components/calls/useCallAudio";
 
 // Free one-to-one calls in Messages. Mounted once in the main layout: it rings for incoming calls anywhere on the site, and opens the call screen
 // when you start a call from a conversation (placeCall). The two browsers connect directly (WebRTC); calls/{id} only carries the handshake.
@@ -148,6 +150,10 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const ctl = useRef<RTCDataChannel | null>(null);
   const endRef = useRef<(reason: "ended" | "missed" | "failed") => void>(() => {});
   useRingtone(phase === "ringing" && active.role === "caller");
+  // Where the sound plays (earpiece on voice calls, speaker on video) and which microphone: lib/call-audio.ts.
+  const [micOn, setMicOn] = useState(false);
+  const sound = useCallAudio({ kind, ready: micOn, stream: local, senders: () => pcRef.current?.getSenders() ?? [], muted });
+  useEffect(() => { applySink(remoteAudio.current, sound.sinkId); }, [sound.sinkId]);
 
   useEffect(() => {
     let pc: RTCPeerConnection | null = null;
@@ -230,8 +236,9 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
 
     (async () => {
       try {
-        local.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === "video" ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false });
+        local.current = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: kind === "video" ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false });
         if (localVideo.current && kind === "video") localVideo.current.srcObject = local.current;
+        if (!over) setMicOn(true);
         if (kind === "video") navigator.mediaDevices.enumerateDevices().then((d) => setCams(d.filter((x) => x.kind === "videoinput").length)).catch(() => {});
         if (kind === "video") setCanShare(typeof navigator.mediaDevices.getDisplayMedia === "function" && window.matchMedia("(pointer: fine)").matches);
       } catch {
@@ -325,6 +332,6 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       muted={muted} camOff={camOff} canFlip={cams !== 1 && !sharing} facing={facing}
       safetyCode={phase === "live" ? code : ""} canShare={canShare && phase === "live"} sharing={sharing} theirShare={theirShare} onShare={share}
       onMute={toggleMute} onFlip={flipCam} onCam={toggleCam} onEnd={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")}
-      remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} />
+      remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} sound={sound} />
   );
 }

@@ -28,6 +28,7 @@ export default function CallsPage() {
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate">
             <li>Call anyone you follow who follows you back, from your conversation with them in <Link href="/messages" className="text-crimson underline">Messages</Link>. It rings on their phone or computer, and on the installed app even when it isn&apos;t open.</li>
             <li>Switch between voice and video, front and back camera, and move or swap your own picture.</li>
+            <li>Voice calls play through your phone&apos;s earpiece, like a phone call; video calls through the speaker. Tap <strong className="text-ink">Sound</strong> to choose the earpiece, speaker, headphones or Bluetooth (on a computer, which speakers and microphone), in group calls too. On iPhone, AirPods and Bluetooth are picked in Control Centre.</li>
             <li>On a computer, share your screen in a video call: a window, a tab or the whole screen. Phones can&apos;t share their screen.</li>
             <li>Every call leaves a line in the conversation, a missed one rings your bell, and Call back is one tap.</li>
           </ul>
