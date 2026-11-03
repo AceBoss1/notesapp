@@ -5,6 +5,7 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import { LIMITS, LIMIT_TIERS, LIMIT_TIER_LABEL, type LimitTable } from "@/lib/limits";
 import { AGENT_DEFAULTS, AGENT_SETTINGS, type AgentSettings } from "@/lib/agents/config";
 import { ROOM_DEFAULTS, ROOM_SETTINGS, type RoomSettings } from "@/lib/rooms";
+import { CORNER_LABEL, WATERMARK_CORNERS, WATERMARK_DEFAULTS, WATERMARK_SETTINGS, type WatermarkSettings } from "@/lib/media-video-dl";
 
 // Size and count limits by plan (message files, moments, courses), the plan switches for Notes Academy (free courses, paid courses,
 // uploaded video) and for Nana's operator and connected agents, shown as tick boxes, and the numbers behind Nana's jobs and agents
@@ -16,6 +17,7 @@ export default function AdminLimitsPage() {
   const [table, setTable] = useState<LimitTable | null>(null);
   const [agents, setAgents] = useState<AgentSettings | null>(null);
   const [rooms, setRooms] = useState<RoomSettings | null>(null);
+  const [watermark, setWatermark] = useState<WatermarkSettings | null>(null);
   const [relayKeys, setRelayKeys] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -25,18 +27,18 @@ export default function AdminLimitsPage() {
     const r = await fetch("/api/admin/limits", { ...init, headers: { Authorization: `Bearer ${await user!.getIdToken()}`, "Content-Type": "application/json" } });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Something went wrong");
-    return j as { limits: LimitTable; agents: AgentSettings; rooms: RoomSettings; relayKeys: boolean };
+    return j as { limits: LimitTable; agents: AgentSettings; rooms: RoomSettings; watermark: WatermarkSettings; relayKeys: boolean };
   }, [user]);
-  useEffect(() => { if (user) call().then((j) => { setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setRelayKeys(j.relayKeys); }).catch((e) => setError(e.message)); }, [user, call]);
+  useEffect(() => { if (user) call().then((j) => { setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setWatermark(j.watermark); setRelayKeys(j.relayKeys); }).catch((e) => setError(e.message)); }, [user, call]);
 
   const set = (key: string, tier: string, v: string) => setTable((t) => t && ({ ...t, [key]: { ...t[key as keyof LimitTable], [tier]: v === "" ? NaN : Number(v) } }));
   async function save() {
     setBusy(true); setError(""); setSaved(false);
-    try { const j = await call({ method: "POST", body: JSON.stringify({ limits: table, agents, rooms }) }); setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setRelayKeys(j.relayKeys); setSaved(true); }
+    try { const j = await call({ method: "POST", body: JSON.stringify({ limits: table, agents, rooms, watermark }) }); setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setWatermark(j.watermark); setRelayKeys(j.relayKeys); setSaved(true); }
     catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
     finally { setBusy(false); }
   }
-  const reset = () => { setTable((t) => t && (Object.fromEntries(LIMITS.map((l) => [l.key, { ...l.defaults }])) as LimitTable)); setAgents({ ...AGENT_DEFAULTS }); setRooms({ ...ROOM_DEFAULTS }); };
+  const reset = () => { setTable((t) => t && (Object.fromEntries(LIMITS.map((l) => [l.key, { ...l.defaults }])) as LimitTable)); setAgents({ ...AGENT_DEFAULTS }); setRooms({ ...ROOM_DEFAULTS }); setWatermark({ ...WATERMARK_DEFAULTS }); };
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
@@ -106,6 +108,25 @@ export default function AdminLimitsPage() {
                   ? <input type="checkbox" checked={rooms[a.key] > 0} onChange={(e) => setRooms({ ...rooms, [a.key]: e.target.checked ? 1 : 0 })} aria-label={a.label} className="h-4 w-4 accent-crimson" />
                   : <input type="number" inputMode="numeric" min={a.min} max={a.max} step={1} value={Number.isNaN(rooms[a.key]) ? "" : rooms[a.key]}
                     onChange={(e) => setRooms({ ...rooms, [a.key]: e.target.value === "" ? NaN : Number(e.target.value) })} aria-label={a.label} className="w-24 rounded border border-rule px-2 py-1" />}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        </section>
+      )}
+      {watermark && (
+        <section className="mt-10">
+          <h2 className="font-display text-2xl text-ink">Video download watermark</h2>
+          <p className="mt-1 text-sm text-slate">The see-through mark (the NotesApp &ldquo;na&rdquo; mark, @username and NotesApp) burned into the copy of a Media video that people download, when its creator allows downloads. The video people watch has no mark. A change applies to download copies made from now on; copies already made keep their mark.</p>
+          <table className="mt-4 w-full border-collapse text-sm"><tbody>
+            {WATERMARK_SETTINGS.map((a) => (
+              <tr key={a.key} className="border-b border-rule">
+                <td className="py-2 pr-4">{a.label} {a.kind !== "corner" && <span className="text-slate">({a.unit}, {a.min}–{a.max}; default {a.def})</span>}</td>
+                <td className="px-2 py-2">{a.kind === "corner"
+                  ? <select value={watermark[a.key]} onChange={(e) => setWatermark({ ...watermark, [a.key]: Number(e.target.value) })} aria-label={a.label} className="rounded border border-rule px-2 py-1">
+                      {WATERMARK_CORNERS.map((c, i) => <option key={c} value={i}>{CORNER_LABEL[c]}</option>)}
+                    </select>
+                  : <input type="number" inputMode="numeric" min={a.min} max={a.max} step={1} value={Number.isNaN(watermark[a.key]) ? "" : watermark[a.key]}
+                    onChange={(e) => setWatermark({ ...watermark, [a.key]: e.target.value === "" ? NaN : Number(e.target.value) })} aria-label={a.label} className="w-24 rounded border border-rule px-2 py-1" />}</td>
               </tr>
             ))}
           </tbody></table>

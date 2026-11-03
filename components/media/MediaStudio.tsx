@@ -8,6 +8,7 @@ import {
   type MediaAudience, type MediaPostView,
 } from "@/lib/media-rules";
 import { LIMIT_TIER_LABEL } from "@/lib/limits";
+import { VIDEO_DL_NOTE } from "@/lib/media-video-dl";
 import { loadStudio, mediaApi, sendToStream, videoLength } from "@/lib/media-client";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { Icon, Pattern } from "./MediaTile";
@@ -190,7 +191,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         <Row title="Comments" sub="Turn off any time. Comments arrive with the Media feed."><Switch label="Comments" on={sw.allowComments} onChange={(v) => setSw({ ...sw, allowComments: v })} /></Row>
         <Row title="Allow shares" sub="Moments, journals, chats and other apps"><Switch label="Allow shares" disabled={s.teen} on={sw.allowShares && !s.teen} onChange={(v) => setSw({ ...sw, allowShares: v })} /></Row>
         <Row title="Gifts" sub="Paid to you after a 7-day hold"><Switch label="Gifts" disabled={s.teen} on={sw.allowGifts && !s.teen} onChange={(v) => setSw({ ...sw, allowGifts: v })} /></Row>
-        <Row title="Allow watermarked downloads" sub={isVideo ? "Video downloads are coming soon; pictures work now." : "Off unless you turn it on. Each download carries @you and the NotesApp mark."}><Switch label="Allow watermarked downloads" disabled={s.teen} on={sw.allowDownloads && !s.teen} onChange={(v) => setSw({ ...sw, allowDownloads: v })} /></Row>
+        <Row title="Allow watermarked downloads" sub={isVideo ? VIDEO_DL_NOTE : "Off unless you turn it on. Each download carries @you and the NotesApp mark."}><Switch label="Allow watermarked downloads" disabled={s.teen} on={sw.allowDownloads && !s.teen} onChange={(v) => setSw({ ...sw, allowDownloads: v })} /></Row>
         <Row title="Pin to the top of my Media" sub={`Up to ${MEDIA_PINNED_MAX} pinned · ${pinnedNow} now`}><Switch label="Pin to the top of my Media" disabled={!sw.pinned && pinnedNow >= MEDIA_PINNED_MAX} on={sw.pinned} onChange={(v) => setSw({ ...sw, pinned: v })} /></Row>
       </div>
 
@@ -253,6 +254,12 @@ function YourPosts({ s, onChanged }: { s: Studio; onChanged: () => void }) {
             </div>
           </div>
           {p.status === "rejected" && p.rejectedReason && <p className="mt-2 text-xs text-red-700">{p.rejectedReason}</p>}
+          {/* A video's watermarked download copy (lib/media-video-dl.ts): being made, ready, or why it couldn't be. */}
+          {p.kind === "video" && p.allowDownloads && p.status === "ready" && (
+            <p className={`mt-2 text-xs ${p.videoDownload === "failed" ? "text-red-700" : "text-slate"}`}>
+              {p.videoDownload === "ready" ? "⤓ Download ready, with your see-through mark." : p.videoDownload === "failed" ? (p.videoDownloadWhy || "The download copy couldn't be made.") : "⤓ Making the watermarked download copy… usually a few minutes."}
+            </p>
+          )}
           {openId === p.id && (
             <div className="mt-2 rounded-2xl bg-paper px-3">
               <Row title="Who can see it">
@@ -262,7 +269,7 @@ function YourPosts({ s, onChanged }: { s: Studio; onChanged: () => void }) {
               </Row>
               <Row title="Pinned"><Switch label="Pinned" on={p.pinned} onChange={(v) => patch(p, { pinned: v })} /></Row>
               <Row title="Comments"><Switch label="Comments" on={p.allowComments} onChange={(v) => patch(p, { allowComments: v })} /></Row>
-              <Row title="Allow watermarked downloads" sub={p.kind === "video" ? "Video downloads are coming soon." : undefined}><Switch label="Allow watermarked downloads" disabled={s.teen} on={p.allowDownloads} onChange={(v) => patch(p, { allowDownloads: v })} /></Row>
+              <Row title="Allow watermarked downloads" sub={p.kind === "video" ? VIDEO_DL_NOTE : undefined}><Switch label="Allow watermarked downloads" disabled={s.teen} on={p.allowDownloads} onChange={(v) => patch(p, { allowDownloads: v })} /></Row>
               <Row title="Delete this post"><button type="button" onClick={() => remove(p)} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700">Delete</button></Row>
             </div>
           )}

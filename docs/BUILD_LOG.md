@@ -2687,3 +2687,16 @@ files and Stream videos. Tests: `test:media` (rules, limits, watermark on JPEG a
 limits, Stream processing and rejection, audiences, blocks, teen rules, downloads, site pictures, the album, pinned posts and Moments
 past expiry, deletion), the rules test (all four collections client-proof), all in CI. Not in M1: the `/media` feed, comments,
 reactions, gifts, shares and reports of Media posts, the automatic safety check, lives (phases M2 to M5 in `docs/MEDIA.md`).
+
+**Watermarked video downloads for Media (v0.131.0, 3 Nov 2026)** — The owner said yes to video downloads, "emphasis on TRANSPARENT
+watermark". Stream can only burn a watermark in when a video is uploaded or copied, and it then shows in playback too, so the video
+people watch stays as it is and downloads come from a second, marked copy: Stream makes an MP4 of the original (the only thing its
+copy-from-link can fetch), copies it with a watermark profile, the original's MP4 is deleted, and MP4 downloads are switched on for the
+copy only, which keeps signed links on (an hour-long `downloadable` token per download). The mark is a transparent PNG drawn with next/og
+(the "na" square, @username, NotesApp, white with a soft dark edge, no backing) and Stream applies the opacity: 40% by default and
+capped at 70% so it never turns solid. Stream's profile is one fixed image, so @username on the video means one profile per creator
+(`mediaWatermarks/{uid}`), remade when the username or the admin's look changes. The steps are a pure function (`nextDlStep`) run from
+the studio, the download button and the existing cron job, so no webhook is needed; any error or a day without finishing removes what
+was made and gives the bytes back. The copy's bytes count in Media storage (the owner was told it roughly doubles a downloadable
+video). Tests: `test:media` (the look, the steps, the signed link, the PNG's transparent corner), `test:media-server` (a fake Stream
+through every step, storage, failure, a full store, a new look, deletion, teens), rules. Not run against real Stream.

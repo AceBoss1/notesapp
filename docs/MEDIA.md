@@ -158,12 +158,12 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
 - **Video:** Stream direct creator upload with public playback (`createPublicDirectUpload` in `lib/stream.ts`, `maxDurationSeconds` = the
   plan's longest video). A post is "processing" until Stream has it ready; it is checked when the studio opens and by the cron. Rejected
   (too long, failed, never arrived in a day): removed from Stream, slot and bytes given back.
-- **Watermarked downloads:** pictures only in M1 (`lib/media-watermark.tsx`): server-side, @username + the NotesApp mark, JPEG out, never the
+- **Watermarked downloads:** pictures in M1 (`lib/media-watermark.tsx`): server-side, @username + the NotesApp mark, JPEG out, never the
   original. **Videos (TODO, M2):** Cloudflare Stream can burn a *watermark profile* (`POST /accounts/{id}/stream/watermarks`, an image) into a
   video, but only when the video is uploaded or copied (`watermark: { uid }` on `direct_upload` or `POST /stream/copy`), and it then shows in
   every rendition, playback included. MP4 downloads are made with `POST /stream/{uid}/downloads`. So a watermarked video download means a
   second, watermarked copy per video (one watermark profile per creator, made from their @username badge), with downloads enabled on the copy
-  only: about double the storage for each video that allows downloads. Until then the switch says video downloads are coming.
+  only: about double the storage for each video that allows downloads. **Built in v0.131.0, below.**
 - **Pinned Moments:** `pinMoment` and `listPinnedMoments` in `lib/moments-server.ts`; the moment viewer has 📌 Pin / Unpin; up to 10.
 - **Profile picture history:** `profilePictures` (kept since v0.43); the picture in use is now also recorded server-side by
   `profileAlbum` whenever Media reads it.
@@ -171,8 +171,33 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
   `/profile/media` placeholder around `ReplaysList` goes into the studio's "Live & replays" tab (marked MERGE POINT).
 - **Tests:** `npm run test:media`, `npm run test:media-server`, and the rules test.
 
+## Watermarked video downloads (v0.131.0, 3 Nov 2026)
+
+The owner's answer: "Yes, emphasis on TRANSPARENT watermark." Code: `lib/media-video-dl.ts` (pure: the look, the steps, signed links),
+`lib/media-video-dl-server.ts` (profiles, the steps, storage), Stream calls in `lib/stream.ts`, the mark in `lib/media-watermark.tsx`
+(`renderVideoMark`).
+
+- **The mark:** a PNG with a transparent background, drawn with next/og: the crimson "na" square, "@username" and "NotesApp" in white
+  with a soft dark edge. No backing pill. Stream lays it on at the admin's opacity (default 40%, at most 70%: never solid), width (22%
+  of the video), padding (4%) and corner (bottom right), from Admin → Limits → Video download watermark (`serverConfig/mediaWatermark`,
+  30-second cache). **One profile per creator** (`mediaWatermarks/{uid}`: profile uid + a key of username and look), because Stream's
+  profile is one fixed image and the owner wanted @username on the video; it is made on first use and made again (the old one deleted)
+  when the username or the look changes. The saved file is also named `@username-notesapp-<id>.mp4` (`?filename=` on the link).
+- **The steps** (`nextDlStep`, run by the studio, the download button and the cron's `mediaVideos` job; `dlPending` is the query):
+  `source` (MP4 of the original, the only thing Stream can copy from) → `copying` (`POST /stream/copy` with `watermark.uid`,
+  `requireSignedURLs: true`) → `rendering` (the original's MP4 is deleted; MP4 of the copy) → `ready`. Any error, or a day without
+  finishing, → `failed`: whatever was made is removed, the bytes go back, and the creator sees why; off and on tries again.
+- **Storage:** the copy's bytes go into `mediaUsage.bytes` and the post's `bytes` when downloads go on (refused with a message when
+  storage is full), follow the copy's real size when it is ready, and come back when downloads go off, the copy fails, or the post is
+  deleted.
+- **Downloading:** `GET /api/media/posts/{id}/download?video=1` → `{ url, filename }`, a link signed for an hour
+  (`downloadable: true` token in place of the copy's id). Same rules as pictures: whoever can see the post, never a teen's, counted once
+  per download. Others only see the button once the copy is ready.
+- **Not tried against real Stream yet:** the multipart watermark upload, copy-from-URL of a public MP4, the copy's MP4 with a signed
+  token, and `?filename=`.
+
 ### Left for M2 and later
 
 The `/media` vertical feed (For you, Following, Live now) and ranking; comments (with `mayCommentOnMedia` for teens), reactions, gifts and
 their UI; sharing a Media post to Moments, Journals and chats (`lib/share-targets.ts` gets a `media` kind); reports on Media posts and the
-automatic safety check ("Checking"); video downloads (above); Explore and Trending tabs; live, replays and the challenge (phases 3 to 5).
+automatic safety check ("Checking"); Explore and Trending tabs; live, replays and the challenge (phases 3 to 5).

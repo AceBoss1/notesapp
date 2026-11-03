@@ -9,7 +9,11 @@ import {
 import { LIMITS, LIMIT_TIERS, capOf, cleanOverrides, limitFor } from "../../lib/limits";
 import { VIDEO_WEEKLY_LIMIT } from "../../lib/video-rules";
 import { MOMENT_VIDEO_WEEKLY_LIMIT } from "../../lib/moments-rules";
-import { badgeBox, blendOver, watermarkPicture, type Rgba } from "../../lib/media-watermark";
+import { badgeBox, blendOver, renderVideoMark, watermarkPicture, type Rgba } from "../../lib/media-watermark";
+import {
+  DL_GIVE_UP_MS, WATERMARK_DEFAULTS, cleanWatermarkOverrides, dlPending, dlView, nextDlStep, signedDownloadUrl, streamWatermarkParams, watermarkProfileKey,
+  watermarkSettings, type VideoDl,
+} from "../../lib/media-video-dl";
 
 const ROOT = join(__dirname, "..", "..");
 const rel = (o: Partial<Relation> = {}): Relation => ({ signedIn: true, self: false, viewerFollows: false, followsViewer: false, subscribed: false, blocked: false, ...o });
@@ -126,6 +130,46 @@ const adult = { teen: false }, teen = { teen: true }, kept = { keepRepliesFollow
     const x0 = b0.width - bx.w - bx.margin, y0 = b0.height - bx.h - bx.margin;
     assert.ok(diff(x0 + 4, y0 + 4, x0 + bx.w - 4, y0 + bx.h - 4) > 25, "the badge is stamped in the corner");
     assert.ok(diff(0, 0, 120, 120) < 12, "the rest of the picture is kept");
+  }
+
+  // ── Watermarked video downloads (lib/media-video-dl.ts) ──
+  // The look: see-through by default and never solid; whole numbers within each range; corners by Stream's names.
+  assert.deepEqual(streamWatermarkParams(WATERMARK_DEFAULTS), { opacity: 0.4, scale: 0.22, padding: 0.04, position: "lowerRight" });
+  assert.deepEqual(cleanWatermarkOverrides({ opacityPct: 100, sizePct: "30", paddingPct: 2.5, corner: 2, junk: 1 }), { sizePct: 30, corner: 2 }, "100% (solid) and fractions are refused");
+  assert.equal(streamWatermarkParams(watermarkSettings({ corner: 3 })).position, "upperLeft");
+  assert.ok(watermarkSettings({ opacityPct: 90 }).opacityPct <= 70, "the mark stays see-through");
+  assert.notEqual(watermarkProfileKey("Tunde", WATERMARK_DEFAULTS), watermarkProfileKey("tunde2", WATERMARK_DEFAULTS));
+  assert.equal(watermarkProfileKey("Tunde", WATERMARK_DEFAULTS), watermarkProfileKey("tunde", WATERMARK_DEFAULTS), "usernames are matched without case");
+  // The steps: the original's MP4 → the marked copy → the copy's MP4 → ready; any error fails; a day without finishing gives up.
+  const t0 = Date.parse("2026-11-03T10:00:00Z");
+  const dl = (state: VideoDl["state"], extra: Partial<VideoDl> = {}): VideoDl => ({ state, startedAt: new Date(t0).toISOString(), updatedAt: "", profileUid: "wm1", bytes: 10, ...extra });
+  const now = t0 + 60_000;
+  assert.deepEqual(nextDlStep(dl("source"), { now, sourceDownload: { status: "inprogress", url: "" } }), { do: "wait" });
+  assert.deepEqual(nextDlStep(dl("source"), { now, sourceDownload: { status: "ready", url: "https://c/sv/downloads/default.mp4" } }), { do: "copy", url: "https://c/sv/downloads/default.mp4" });
+  assert.equal(nextDlStep(dl("source"), { now, sourceDownload: { status: "error", url: "" } }).do, "fail");
+  assert.equal(nextDlStep(dl("source"), { now, sourceDownload: null }).do, "fail");
+  assert.deepEqual(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: false } }), { do: "wait" });
+  assert.deepEqual(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: true } }), { do: "render" });
+  assert.equal(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: false, state: "error" } }).do, "fail");
+  assert.deepEqual(nextDlStep(dl("rendering", { copyUid: "c1" }), { now, copy: { readyToStream: true, size: 99 }, copyDownload: { status: "ready", url: "https://c/c1/downloads/default.mp4" } }), { do: "ready", url: "https://c/c1/downloads/default.mp4", bytes: 99 });
+  assert.equal(nextDlStep(dl("rendering", { copyUid: "c1" }), { now: t0 + DL_GIVE_UP_MS + 1, copyDownload: { status: "inprogress", url: "" } }).do, "fail", "gives up after a day");
+  assert.deepEqual(nextDlStep(dl("ready"), { now }), { do: "wait" });
+  assert.ok(dlPending(dl("copying")) && !dlPending(dl("ready")) && !dlPending(dl("failed")) && !dlPending(undefined));
+  assert.deepEqual([dlView(dl("source")), dlView(dl("rendering")), dlView(dl("ready")), dlView(dl("failed")), dlView(undefined)], ["preparing", "preparing", "ready", "failed", undefined]);
+  // The copy keeps signed links on: its MP4 address carries a token in place of its id.
+  assert.equal(signedDownloadUrl("https://customer-x.cloudflarestream.com/c1/downloads/default.mp4", "c1", "T.k", "tunde-notesapp-ab12cd.mp4"), "https://customer-x.cloudflarestream.com/T.k/downloads/default.mp4?filename=tunde-notesapp-ab12cd.mp4");
+  // The mark is a PNG with a transparent background (Stream lays it on see-through).
+  {
+    const png = await renderVideoMark("tundemoney");
+    assert.equal(png.subarray(1, 4).toString(), "PNG");
+    const req = eval("require") as NodeRequire;
+    const { decodeBuffer } = req("next/dist/server/lib/squoosh/impl") as { decodeBuffer: (b: Buffer) => Promise<Rgba> };
+    const img = await decodeBuffer(png);
+    const data = img.data;
+    assert.equal(data[3], 0, "the top-left corner is fully see-through");
+    let clear = 0, solid = 0;
+    for (let k = 3; k < data.length; k += 4) { if (data[k] === 0) clear++; else if (data[k] === 255) solid++; }
+    assert.ok(clear > data.length / 8 && solid > 100, "mostly see-through around a drawn mark");
   }
 
   // The download route is traced with the codecs, and the studio and tab exist.
