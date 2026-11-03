@@ -54,7 +54,7 @@ function Effects({ fx, big }: { fx: GiftEffect[]; big: boolean }) {
         </span>
       ))}
       {fx.includes("confetti") && Array.from({ length: Math.round(30 * n) }, (_, i) => (
-        <span key={`c${i}`} className="gift-ov-bit" style={{ left: `${(i * 37) % 100}%`, background: COLOURS[i % COLOURS.length], animationDelay: `${(i % 8) * 0.17}s`, transform: `rotate(${i * 23}deg)` }} />
+        <span key={`c${i}`} className="gift-ov-bit" style={{ left: `${(i * 37 + (i % 3) * 11) % 100}%`, background: COLOURS[i % COLOURS.length], animationDelay: `${-((i * 0.53) % 2.4).toFixed(2)}s`, animationDuration: `${3 + (i % 5) * 0.35}s`, transform: `rotate(${i * 23}deg)` }} />
       ))}
     </div>
   );
