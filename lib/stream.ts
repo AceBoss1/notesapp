@@ -26,6 +26,15 @@ export function createDirectUpload(sellerUid: string, name: string) {
   });
 }
 
+// Media videos (lib/media-server.ts): public playback, because Media posts are public (their audience is checked by our own API before a
+// post is listed). Stream refuses an upload longer than the plan's longest Media video. `meta.purpose` tells them apart in /admin/stream.
+export function createPublicDirectUpload(creatorUid: string, maxSeconds: number, name: string) {
+  return cf<{ uploadURL: string; uid: string }>("/direct_upload", {
+    method: "POST",
+    body: JSON.stringify({ maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: false, creator: creatorUid, meta: { name, purpose: "media" } }),
+  });
+}
+
 // A video made from a file Cloudflare fetches itself (a replay copied from the private bucket through a short-lived signed link), with
 // the same signed-playback rule as every other video here.
 export function copyFromUrl(url: string, creator: string, name: string) {
@@ -35,7 +44,7 @@ export function copyFromUrl(url: string, creator: string, name: string) {
   });
 }
 
-export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number };
+export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number; status?: { state?: string } };
 export async function getVideo(uid: string): Promise<StreamVideo | null> {
   try {
     return await cf<StreamVideo>(`/${encodeURIComponent(uid)}`);

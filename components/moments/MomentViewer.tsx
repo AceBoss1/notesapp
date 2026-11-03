@@ -117,6 +117,19 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
     if (!rest.length) return onClose();
     setItems(rest); setI(Math.min(i, rest.length - 1));
   });
+  // Pinned, a moment stays at the top of your Media past its time; unpinned after its time is up, it goes.
+  const togglePin = () => act(async () => {
+    const r = await api<{ pinned: boolean; removed: boolean }>(`/api/moments/${m.id}`, { body: { action: m.pinned ? "unpin" : "pin" } });
+    onChanged?.();
+    if (r.removed) {
+      const rest = items.filter((x) => x.id !== m.id);
+      if (!rest.length) return onClose();
+      setItems(rest); setI(Math.min(i, rest.length - 1));
+      return;
+    }
+    setItems(items.map((x) => (x.id === m.id ? { ...x, pinned: r.pinned } : x)));
+    setNote(r.pinned ? "Pinned to your Media. It stays there after its time is up, until you unpin it." : "Unpinned.");
+  });
   const react = (emoji: string) => act(async () => {
     if (!m.liked) {
       const r = await api<{ liked: boolean; likeCount: number }>(`/api/moments/${m.id}`, { body: { action: "like" } });
@@ -174,7 +187,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         <div className="flex items-center justify-between px-3 pb-2 text-sm">
           <Link href={`/u/${m.ownerUsername}`} className="flex items-center gap-2 font-bold hover:underline">{owner?.avatar ? <Avatar src={owner.avatar} alt="" size={32} square={!!owner.isOrg} /> : null}{owner?.displayName ? <span>{owner.displayName}</span> : null}<NameBadgeIcons username={m.ownerUsername} size={14} onDark /><span className="font-normal text-white/70">@{m.ownerUsername}</span></Link>
           <span className="text-white/70">
-            {m.resharedFrom ? `reshared from @${m.resharedFrom.ownerUsername} · ` : ""}{timeLeftLabel(m.expiresAt)}
+            {m.resharedFrom ? `reshared from @${m.resharedFrom.ownerUsername} · ` : ""}{m.pinned && timeLeftLabel(m.expiresAt) === "expired" ? "📌 Pinned" : timeLeftLabel(m.expiresAt)}
           </span>
           <button onClick={onClose} aria-label="Close" className="px-2 text-2xl leading-none">×</button>
         </div>
@@ -215,7 +228,10 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
           {m.mine ? (
             <div className="flex items-center justify-between gap-3 text-sm text-white/90 lg:hidden">
               <button type="button" onClick={() => { pause(); setShowViewers((v) => !v); }} aria-expanded={showViewers} className="rounded-full bg-white/15 px-4 py-2 font-semibold backdrop-blur">👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · 🔁 {m.reshareCount} {showViewers ? "▾" : "▴"}</button>
-              <button disabled={busy} onClick={removeMoment} className="rounded-full border border-white/40 px-4 py-2 hover:bg-white/10">Delete</button>
+              <span className="flex gap-2">
+                <button disabled={busy} onClick={togglePin} className="rounded-full border border-white/40 px-4 py-2 hover:bg-white/10">{m.pinned ? "Unpin" : "📌 Pin"}</button>
+                <button disabled={busy} onClick={removeMoment} className="rounded-full border border-white/40 px-4 py-2 hover:bg-white/10">Delete</button>
+              </span>
             </div>
           ) : (
             <>
@@ -283,7 +299,8 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
                   <div key={String(l)} className="rounded-xl bg-white/10 py-3"><p className="font-display text-2xl">{n}</p><p className="mt-0.5 text-[10px] uppercase tracking-wide text-white/60">{ic} {l}</p></div>
                 ))}
               </div>
-              <button disabled={busy} onClick={removeMoment} className="mt-4 w-full rounded-full border border-white/40 py-2 text-sm hover:bg-white/10">Delete this moment</button>
+              <button disabled={busy} onClick={togglePin} className="mt-4 w-full rounded-full border border-white/40 py-2 text-sm hover:bg-white/10">{m.pinned ? "Unpin from my Media" : "📌 Pin to my Media"}</button>
+              <button disabled={busy} onClick={removeMoment} className="mt-2 w-full rounded-full border border-white/40 py-2 text-sm hover:bg-white/10">Delete this moment</button>
             </div>
             <div className={`${card} min-h-0 flex-1 overflow-y-auto`}>
               <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Who watched</p>
@@ -297,7 +314,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         <div className={card}>
           <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">This moment</p>
           <p className="mt-2 font-display text-2xl">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : m.kind === "link" ? `Shared ${m.link?.label.toLowerCase() ?? "link"}` : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""}</p>
-          <p className="mt-2 text-xs text-white/60">Posted {ago(m.createdAt)} ago · lasts {m.hours} hours · {timeLeftLabel(m.expiresAt)}</p>
+          <p className="mt-2 text-xs text-white/60">Posted {ago(m.createdAt)} ago · lasts {m.hours} hours · {m.pinned ? "📌 pinned to Media, stays until unpinned" : timeLeftLabel(m.expiresAt)}</p>
         </div>
         {nextGroup && onSelectGroup && <p className="text-center text-xs text-white/50">Moves on to {nextGroup.displayName} next</p>}
       </aside>

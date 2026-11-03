@@ -14,6 +14,7 @@ import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
 import { effectiveTier, type AccountTier } from "./users";
 import { limit } from "./limits-server";
 import { isAutoFollowed } from "./journals-directory";
+import { MOMENTS_PINNED_MAX } from "./media-rules";
 import { MENTION_BLOCKED, REPLY_BLOCKED, RESHARE_BLOCKED, firstName, hearsOnlyFromFollowed, mayReach, mayReshare, teenAudience } from "./young";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
@@ -40,6 +41,9 @@ type MomentDoc = {
   // momentId/ownerUsername: who it was reshared from (a reshare of a reshare points at the one before); root*: the original.
   resharedFrom?: { momentId: string; ownerUsername: string; rootMomentId: string; rootOwnerUid: string };
   reported?: boolean; // someone reported it: its files are kept as evidence until the report is resolved
+  // Pinned to the top of the owner's Media (owner, 3 Nov 2026): it stays past its 24–72 hours while pinned. The TTL field (expireAt) is
+  // taken off while it is pinned and the sweep passes it by; unpinning one whose time is up lets it go there and then.
+  pinned?: boolean; pinnedAt?: string;
 };
 
 export type MomentView = {
@@ -50,6 +54,7 @@ export type MomentView = {
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
   viewCount?: number; // only for the owner
   resharedFrom?: { ownerUsername: string };
+  pinned?: boolean;
 };
 
 const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
@@ -130,8 +135,12 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
     ...(m.ownerUid === viewerUid ? { viewCount: m.viewCount } : {}),
     ...(m.resharedFrom ? { resharedFrom: { ownerUsername: m.resharedFrom.ownerUsername } } : {}),
+    ...(m.pinned ? { pinned: true } : {}),
   };
 }
+
+// Still showing: its time isn't up, or it is pinned (then it stays until it is unpinned or deleted).
+const isShowing = (m: MomentDoc, now: Date) => m.pinned === true || !isMomentExpired(m.expiresAt, now);
 
 export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown };
 
@@ -328,7 +337,7 @@ export async function listForOwner(db: Firestore, viewerUid: string, ownerUserna
 async function loadActive(db: Firestore, viewerUid: string, id: string, now: Date): Promise<{ m: MomentDoc }> {
   const m = (await db.doc(`moments/${id}`).get()).data() as MomentDoc | undefined;
   // Missing, expired and not-in-the-audience all look the same.
-  if (!m || isMomentExpired(m.expiresAt, now) || !(await canSee(db, viewerUid, m))) throw new MomentError(404, "That moment isn't available any more.");
+  if (!m || !isShowing(m, now) || !(await canSee(db, viewerUid, m))) throw new MomentError(404, "That moment isn't available any more.");
   return { m };
 }
 
@@ -338,7 +347,7 @@ export async function toggleLike(db: Firestore, uid: string, id: string, now = n
   const ref = db.doc(`moments/${id}`);
   return db.runTransaction(async (t) => {
     const had = (await t.get(likeRef)).exists;
-    if (had) t.delete(likeRef); else t.set(likeRef, { uid, at: now.toISOString(), expireAt: new Date(m.expiresAt) });
+    if (had) t.delete(likeRef); else t.set(likeRef, { uid, at: now.toISOString(), ...(m.pinned ? {} : { expireAt: new Date(m.expiresAt) }) }); // a pinned one's go with it
     t.update(ref, { likeCount: FieldValue.increment(had ? -1 : 1) });
     return { liked: !had, likeCount: Math.max(0, m.likeCount + (had ? -1 : 1)) };
   });
@@ -351,7 +360,7 @@ export async function recordView(db: Firestore, uid: string, id: string, now = n
   const viewRef = db.doc(`moments/${id}/views/${uid}`);
   await db.runTransaction(async (t) => {
     if ((await t.get(viewRef)).exists) return;
-    t.set(viewRef, { uid, at: now.toISOString(), expireAt: new Date(m.expiresAt) });
+    t.set(viewRef, { uid, at: now.toISOString(), ...(m.pinned ? {} : { expireAt: new Date(m.expiresAt) }) });
     t.update(db.doc(`moments/${id}`), { viewCount: FieldValue.increment(1) });
   });
 }
@@ -360,6 +369,7 @@ export async function recordView(db: Firestore, uid: string, id: string, now = n
 export async function reshare(db: Firestore, user: { uid: string; username: string }, id: string, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   const { m } = await loadActive(db, user.uid, id, now);
   if (m.ownerUid === user.uid) throw new MomentError(400, "That's already your moment.");
+  if (isMomentExpired(m.expiresAt, now)) throw new MomentError(400, "This moment's time is up, so it can't be reshared (it stays on its owner's Media because it's pinned).");
   // A reshare of a reshare is allowed; it points at the original so the chain can be traced and cleaned up together.
   const rootMomentId = m.resharedFrom?.rootMomentId ?? id;
   const rootOwnerUid = m.resharedFrom?.rootOwnerUid ?? m.ownerUid;
@@ -369,8 +379,8 @@ export async function reshare(db: Firestore, user: { uid: string; username: stri
   const [rootOwner, owner] = await db.getAll(db.doc(`users/${rootOwnerUid}`), db.doc(`users/${m.ownerUid}`));
   if (!mayReshare(rootOwner.data()) || !mayReshare(owner.data())) throw new MomentError(403, RESHARE_BLOCKED);
   const newId = `rs_${user.uid}_${id}`; // one reshare per member per moment
-  const { reported: _reported, ...rest } = m;
-  void _reported;
+  const { reported: _reported, pinned: _pinned, pinnedAt: _pinnedAt, ...rest } = m;
+  void _reported; void _pinned; void _pinnedAt;
   const full: MomentDoc = {
     ...rest, ownerUid: user.uid, ownerUsername: user.username, createdAt: now.toISOString(),
     likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false,
@@ -425,11 +435,60 @@ async function removeMoment(db: Firestore, id: string, m: MomentDoc, deps: Momen
   await db.recursiveDelete(db.doc(`moments/${id}`)); // the likes and views under it go too
 }
 
-// Run by the scheduler: removes moments whose time is up, and their files. Reads are already refusing them.
+// Run by the scheduler: removes moments whose time is up, and their files. Reads are already refusing them. Pinned ones are passed by
+// (they stay on the owner's Media); the query pages past them so a long list of pinned moments can't stall the sweep.
 export async function sweepExpiredMoments(db: Firestore, deps: MomentDeps, now = new Date(), batch = 200): Promise<number> {
-  const snap = await db.collection("moments").where("expiresAt", "<=", now.toISOString()).limit(batch).get();
-  for (const d of snap.docs) await removeMoment(db, d.id, d.data() as MomentDoc, deps);
-  return snap.size;
+  let removed = 0;
+  let after: string | null = null;
+  for (let page = 0; page < 10 && removed < batch; page++) {
+    let q = db.collection("moments").where("expiresAt", "<=", now.toISOString()).orderBy("expiresAt").limit(batch);
+    if (after) q = q.startAfter(after);
+    const snap = await q.get();
+    for (const d of snap.docs) {
+      const m = d.data() as MomentDoc;
+      if (m.pinned === true) continue;
+      await removeMoment(db, d.id, m, deps);
+      removed++;
+    }
+    if (snap.size < batch) break;
+    after = String(snap.docs[snap.docs.length - 1].data().expiresAt);
+  }
+  return removed;
+}
+
+// Pin a moment to the top of the owner's Media, or unpin it. Pinned, it stays past its time (the TTL field is removed); unpinned after its
+// time is up, it goes now, with its files; unpinned before, it keeps its original time.
+export async function pinMoment(db: Firestore, uid: string, id: string, pin: boolean, deps: MomentDeps, now = new Date()): Promise<{ pinned: boolean; removed: boolean }> {
+  const ref = db.doc(`moments/${id}`);
+  const m = (await ref.get()).data() as MomentDoc | undefined;
+  if (!m || m.ownerUid !== uid || !isShowing(m, now)) throw new MomentError(404, "That moment wasn't found.");
+  if (pin) {
+    if (m.pinned) return { pinned: true, removed: false };
+    const mine = await db.collection("moments").where("ownerUid", "==", uid).get(); // one field, no index needed
+    if (mine.docs.filter((d) => d.data().pinned === true).length >= MOMENTS_PINNED_MAX) throw new MomentError(409, `You can pin up to ${MOMENTS_PINNED_MAX} moments. Unpin one first.`);
+    await ref.update({ pinned: true, pinnedAt: now.toISOString(), expireAt: FieldValue.delete() });
+    return { pinned: true, removed: false };
+  }
+  if (!m.pinned) return { pinned: false, removed: false };
+  if (isMomentExpired(m.expiresAt, now)) {
+    await removeMoment(db, id, { ...m, pinned: false }, deps);
+    return { pinned: false, removed: true };
+  }
+  await ref.update({ pinned: false, pinnedAt: FieldValue.delete(), expireAt: new Date(m.expiresAt) });
+  return { pinned: false, removed: false };
+}
+
+// A member's pinned moments, newest pin first, for the top of their Media; only for viewers in the moment's audience (the same check as
+// the ring). Expired ones are included: that's what pinning is for.
+export async function listPinnedMoments(db: Firestore, viewerUid: string | null, ownerUid: string, deps: MomentDeps): Promise<MomentView[]> {
+  if (!viewerUid) return []; // moments are never shown signed out
+  const snap = await db.collection("moments").where("ownerUid", "==", ownerUid).get();
+  const pinned = snap.docs.map((d) => ({ id: d.id, m: d.data() as MomentDoc })).filter((d) => d.m.pinned === true);
+  if (!pinned.length || !(await canSee(db, viewerUid, pinned[0].m))) return [];
+  const ok = await Promise.all(pinned.map((d) => (d.m.ownerUid === viewerUid ? true : rootOk(db, viewerUid, d.m))));
+  const shown = pinned.filter((_, i) => ok[i]);
+  const liked = await likedSet(db, viewerUid, shown.map((d) => d.id));
+  return shown.sort((a, b) => String(b.m.pinnedAt ?? "").localeCompare(String(a.m.pinnedAt ?? ""))).map((d) => toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
 }
 
 // A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
@@ -563,7 +622,7 @@ export type Viewer = { uid: string; username: string; displayName: string; avata
 // Who has seen a moment: the owner only. Each person once, newest first.
 export async function listViewers(db: Firestore, ownerUid: string, id: string, now = new Date()): Promise<Viewer[]> {
   const m = (await db.doc(`moments/${id}`).get()).data() as MomentDoc | undefined;
-  if (!m || m.ownerUid !== ownerUid || isMomentExpired(m.expiresAt, now)) throw new MomentError(404, "That moment isn't available any more.");
+  if (!m || m.ownerUid !== ownerUid || !isShowing(m, now)) throw new MomentError(404, "That moment isn't available any more.");
   const snap = await db.collection(`moments/${id}/views`).orderBy("at", "desc").limit(200).get();
   if (snap.empty) return [];
   const users = await db.getAll(...snap.docs.map((d) => db.doc(`users/${d.id}`)));

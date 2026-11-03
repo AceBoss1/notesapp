@@ -8,6 +8,8 @@ import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-serve
 import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import { sweepExpiredMoments, sweepStaleAudio } from "@/lib/moments-server";
+import { sweepProcessingVideos } from "@/lib/media-server";
+import { mediaDeps } from "@/lib/media-api";
 import { sweepMessageUploads } from "@/lib/messages-server";
 import { sweepMessageRequests } from "@/lib/message-edits";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
@@ -93,6 +95,7 @@ async function run() {
   // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
   const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
   // Moments past their 24, 48 or 72 hours are deleted with their files (reads already refuse them).
+  await job("mediaVideos", async () => sweepProcessingVideos(db, mediaDeps())); // Media videos Stream has finished (or rejected)
   await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
   // One email a day to the team about open reports (nothing when there are none).
   await job("sweepMessageRequests", () => sweepMessageRequests(db));

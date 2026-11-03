@@ -574,6 +574,27 @@ on `main` that isn't understood is raised with the owner first.
     receive-only page, chunk ingest and multipart finalize into a stand-in bucket, playing, the keep-days cron, publish, audiences,
     transcripts, Share to Journal, unpublish, the force switch and a recorder that can't start), `test:rules` (one new test),
     `test:help`, `test:rooms`, `test:rooms-server`.
+102. **Media, phase M1 (v0.129.0, branch `push/media-core`; plan in `docs/MEDIA.md`):** before or after merging, the owner:
+    - `firebase deploy --only firestore` (server-only rules for `mediaPosts` and its `views`, `mediaUploads`, `mediaUsage`, `mediaSettings`).
+    - The TTL policy on `mediaUploads.expireAt` is in `firestore.indexes.json` (a video upload never posted goes after 2 days).
+    - Media videos need `CLOUDFLARE_STREAM_TOKEN` (already set for courses; Stream:Edit). Media uses Stream's **public** playback
+      (`requireSignedURLs: false`, `meta.purpose: "media"`), so nothing to change in the Stream dashboard; videos show in
+      `/admin/stream` with the creator's uid. Without the token the studio takes pictures only.
+    - Check Admin → Limits → **Media** (defaults from `docs/MEDIA.md`: videos a week 0/2/7/14/30, longest 60 s/60 s/3 min/3 min/10 min,
+      picture posts a day 5/10/20/40/100, storage 1/5/20/50/200 GB).
+    - `NEXT_PUBLIC_MEDIA_LIVE=false` hides Media everywhere (it is on by default).
+    Code: `lib/media-rules.ts` (pure: audiences, teen rule, site pictures, settings), `lib/media-server.ts` (posting, quotas in
+    `mediaUsage/{uid}`, Stream processing via `refreshVideo` and the cron's `mediaVideos` job, creator page, studio, downloads),
+    `lib/media-watermark.tsx` (next/og badge + Next's own WebAssembly codecs: decode, stamp @username + mark bottom right, JPEG out;
+    traced in `next.config.js`), `lib/media-replays.ts` (`replaysFor`: the creator's ready, listed replays from #256, newest first, the host's picture as the tile),
+    `/api/media/*`, `components/media/*`, `/u/[username]/media`, `/profile/media`. Moments: `pinMoment` / `listPinnedMoments` in
+    `lib/moments-server.ts` (pinned ones lose their TTL field and are skipped by the sweep; unpinning an expired one deletes it).
+    Profile picture history: the picture in use is recorded server-side when Media reads the album (`profileAlbum`), on top of the
+    browser's note after each change. **Merged with #256:** the studio's Lives & replays tab is `<ReplaysList />`, and `/profile/media`
+    shows `ReplaysList` alone while Media is switched off, so hosts keep their recordings either way. **Not done in M1 (docs/MEDIA.md "M2"):** the `/media` feed,
+    comments, reactions, gifts UI, shares to Moments/Journals of a Media post, reports on Media posts, the automatic safety check,
+    and **video downloads** (Stream burns a watermark profile into every rendition at upload, so a per-creator watermarked MP4 needs
+    a second, watermarked copy: `POST /stream/copy` with `watermark.uid`, then `POST /stream/{uid}/downloads`; see `docs/MEDIA.md`).
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 

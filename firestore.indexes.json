@@ -595,6 +595,25 @@
       "fieldPath": "expireAt",
       "ttl": true,
       "indexes": []
+    },
+    {
+      "collectionGroup": "mediaUploads",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        }
+      ]
     }
   ]
 }
