@@ -6,6 +6,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAdminProfile } from "@/lib/users";
 import PasswordInput from "@/components/PasswordInput";
+import PasskeySignIn from "@/components/PasskeySignIn";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -62,6 +63,7 @@ export default function AdminLoginPage() {
           {loading ? "Signing in…" : "Sign In"}
         </button>
       </form>
+      <PasskeySignIn className="mt-6" onSignedIn={async (u) => { await ensureAdminProfile(u); router.push("/admin"); }} />
     </section>
   );
 }
