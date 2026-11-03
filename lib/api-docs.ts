@@ -52,6 +52,17 @@ export const ENDPOINTS: Endpoint[] = [
     example: `{ "id": "n_2", "status": "published", "…": "…" }`,
   },
   {
+    id: "upload", method: "POST", path: "/v1/uploads", scope: "write:posts", summary: "Get a one-time URL for uploading an image (for a featured image, or pictures inside a post). PUT the file to `upload_url` within 5 minutes with the same `Content-Type`, then use `public_url`.",
+    params: [
+      { name: "filename", in: "body", required: true, text: "The file's name, e.g. `cover.jpg`." },
+      { name: "content_type", in: "body", required: true, text: "`image/jpeg`, `image/png`, `image/webp`, `image/gif` or `image/avif`." },
+      { name: "size", in: "body", required: true, text: "The file's size in bytes, up to 10 MB." },
+    ],
+    example: `// 201 Created
+{ "upload_url": "https://…r2.cloudflarestorage.com/…", "public_url": "https://media…/api/uid_123/1791100800-cover.jpg",
+  "key": "api/uid_123/1791100800-cover.jpg", "method": "PUT", "headers": { "Content-Type": "image/jpeg" }, "expires_in": 300 }`,
+  },
+  {
     id: "bookings", method: "GET", path: "/v1/bookings", scope: "read:bookings", summary: "Sessions booked with you. Client contact details are never returned.",
     params: [{ name: "status", in: "query", text: "e.g. `confirmed`." }, { name: "limit", in: "query", text: "1–100." }, { name: "cursor", in: "query", text: "Pagination cursor." }],
     example: `{ "data": [ { "id": "ref_1", "date": "2026-10-12", "slot": "10:00", "minutes": 60,

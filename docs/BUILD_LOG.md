@@ -2623,7 +2623,7 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
-**Live mode in audio rooms (v0.125.0, 2 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
+**Live mode in audio rooms (v0.126.0, 3 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
 The owner's decisions: the host (and speakers if the host allows) turns video on and off during a relay room, as a second track
 through the relay capped at 480p, about 600 kbps and 24 fps; off goes back to audio without reconnecting; while it's off everyone sees
 the host's poster (an upload, the profile picture or the challenge art; a picture, never video, never counted); viewers get Audio only,
@@ -2659,3 +2659,10 @@ opens and restored after, Android routes and computer microphones swapped in wit
 speakers by `setSinkId` on every remote `<audio>` (group video tiles now play sound through a hidden `<audio>` too), and the list
 reloaded on `devicechange`. The Sound button shows only where there's a real choice; iPad has no earpiece, and on iPhone AirPods and
 Bluetooth are chosen in Control Centre. Narrow phones get slightly smaller call buttons so five fit in a row. Tests: `test:calls`.
+
+**API image uploads (v0.125.0, 3 Nov 2026)** — Enterprise partners publishing through the API had no way to add images, so
+partner sites fell back to their own image hosts (Precheks' Cloudinary preset had gone). New `POST /api/v1/uploads`
+(`app/api/v1/uploads/route.ts`, scope `write:posts`, behind the same `v1()` key, API-access and plan check as every v1 route)
+returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
+only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
+Console scope label, the roadmap, the API help article and README say so.

@@ -29,7 +29,7 @@
     "test:certificates": "npx -y tsx tests/certificates/certificates.test.ts",
     "test:team": "npx -y tsx tests/team/team.test.ts",
     "test:chat": "npx -y tsx tests/messages/chat-tools.test.ts",
-    "test:uploads": "npx -y tsx tests/uploads/webp.test.ts",
+    "test:uploads": "npx -y tsx tests/uploads/webp.test.ts && npx -y tsx tests/uploads/api-uploads.test.ts",
     "test:cart": "npx -y tsx tests/cart/cart.test.ts",
     "test:mcp": "npx -y tsx tests/mcp/protocol.test.ts",
     "test:agents": "npx -y tsx tests/agents/agents.test.ts && npx -y tsx tests/agents/domains.test.ts && NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech npx -y tsx tests/agents/domains.test.ts",
