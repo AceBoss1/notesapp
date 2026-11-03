@@ -622,6 +622,9 @@ on `main` that isn't understood is raised with the owner first.
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
+104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
+    names the Chief of Staff from Team access (an admin's row → Edit departments → tick Chief of Staff). Test: `npm run test:access`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
