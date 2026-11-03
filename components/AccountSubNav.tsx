@@ -5,10 +5,12 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import SectionNav from "./SectionNav";
 import { WALLET_LIVE } from "@/lib/wallet";
+import { MEDIA_LIVE } from "@/lib/media-rules";
 
 const LINKS = [
   { href: "/write", label: "My journal" },
   { href: "/profile/edit", label: "Edit profile" },
+  ...(MEDIA_LIVE ? [{ href: "/profile/media", label: "Media" }] : []),
   { href: "/profile/publishing", label: "Rates & payouts" },
   { href: "/profile/analytics", label: "Analytics" },
   { href: "/profile/media", label: "Media" },

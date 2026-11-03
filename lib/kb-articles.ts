@@ -10,6 +10,7 @@ import { GOLD_PRICING } from "./gold";
 import { MERCH_DELIVERY_KOBO } from "./merch";
 import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
+import { MEDIA_LIVE, MEDIA_PICTURES_MAX, MEDIA_PINNED_MAX, MOMENTS_PINNED_MAX, secondsText } from "./media-rules";
 import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
@@ -630,7 +631,7 @@ ${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),
 - **Market**: [Notes Market](/shop), every #NotesApp store in one place.
 - **Academy**: [Notes Academy](/academy), free and paid courses.
 - **Messages**: your conversations and calls ([Messages](/messages)).
-- **Profile**: your own profile, with its Notes, Store and Courses tabs.
+- **Profile**: your own profile, with its Notes, ${MEDIA_LIVE ? "Media, " : ""}Store and Courses tabs.
 
 **On a computer:** the journal feed has the same places in a menu on the left, and Most read and Who to follow on the right. On the other pages, the top bar links to Journals, Market, Academy, Trending, Pricing and About; Contact is in the footer and on the About page.
 
@@ -638,12 +639,37 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
     A("profile-pictures-and-links", "Your profile picture, past pictures and social links", "Getting started", `
 **Changing your picture:** tap the **+** on your picture (on your profile, or on "You" at the top of the journal feed) and choose **Update profile picture**, or use [Edit profile](/profile/edit).
 
-**Past pictures:** tap anyone's profile picture to see their pictures, newest first. Swipe left or right on a phone, or use **‹ ›** (or the arrow keys) on a computer; each shows the date it became their picture. Your pictures are kept from your next change on (the picture you're replacing is kept too). To take an old one out of your history, open your pictures and tap **Remove from history**; the one you're using now can't be removed until you change it. If someone also has a moment up, tapping their picture asks which you'd like to see.
+**Past pictures:** tap anyone's profile picture to see their pictures, newest first. Swipe left or right on a phone, or use **‹ ›** (or the arrow keys) on a computer; each shows the date it became their picture. Your pictures are kept from your next change on (the picture you're replacing is kept too), and the one you use now is recorded on our side as well. They also show as an album on your [Media](/help/media). To take an old one out of your history, open your pictures and tap **Remove from history**; the one you're using now can't be removed until you change it. If someone also has a moment up, tapping their picture asks which you'd like to see.
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
 `),
+    ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
+**Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
+
+**What's on your Media:**
+- **Your posts:** a video, or up to ${MEDIA_PICTURES_MAX} pictures in one post. Every video uses its original sound (there is no music library).
+- **Pinned:** pin up to ${MEDIA_PINNED_MAX} posts to the top. You can also pin up to ${MOMENTS_PINNED_MAX} moments: open your moment and tap **📌 Pin**. A pinned moment stays on your Media after its 24, 48 or 72 hours, until you unpin it. Unpin one whose time is up and it is deleted there and then.
+- **Pictures from your site:** the cover, top banner, gallery and service pictures on [your site](/help/your-site) show in your Media straight away. In your studio you can hide any of them, or turn them all off.
+- **Profile pictures:** your past profile pictures, as an album, newest first. You can turn the album off.
+- **Lives & replays:** your published replays will show here once going live arrives in Media.
+
+**Posting:** open your [Media studio](/profile/media) (Profile → Media), choose a video or pictures, and add a caption. Pictures are made WebP before they're sent, like everywhere on #NotesApp. Videos go to Cloudflare Stream, which plays them at the right quality for your connection, and they show on your Media within about a minute. You need a verified email to post.
+
+**Who can see each post:** **Everyone**, **Followers**, or **Subscribers** (people who subscribe to your journal). You can change it later from **⋯** on the post. You can also choose whether to allow comments, shares and gifts. Comments, reactions and gifts arrive with the Media feed.
+
+**Downloads:** off unless you turn on **Allow watermarked downloads** for a post. When it's on, people who can see the post can download its pictures. Each download carries your @username and the NotesApp mark, stamped on our server, and the original file is never sent. Video downloads are coming later.
+
+**How much you can post** (set by plan, in Admin → Limits):
+${LIMIT_TIERS.map((x) => `- **${LIMIT_TIER_LABEL[x]}:** ${lim("mediaVideosPerWeek", x) > 0 ? `${lim("mediaVideosPerWeek", x)} video${lim("mediaVideosPerWeek", x) === 1 ? "" : "s"} a week, each up to ${secondsText(lim("mediaVideoMaxSeconds", x))}` : "no videos"}; ${lim("mediaPicturePostsPerDay", x)} picture posts a day; ${lim("mediaStorageGB", x) === 0 ? "no storage limit" : `${lim("mediaStorageGB", x)} GB of storage`}`).join("\n")}
+
+Media videos are counted apart from journal videos and video moments. Weeks start on Monday. If a video is rejected (for example, longer than your plan allows), its slot is given back. Deleting a post frees its storage.
+
+**Teen mode:** a teen's Media is shown only to people who follow each other with them, and never to anyone signed out, whatever the post says. Nobody can download, share or send gifts on a teen's Media, and only people the teen follows can mention them.
+
+**Blocking:** someone you block can't see your Media, and you can't see theirs.
+`)] : []),
     A("pictures-and-uploads", "Pictures you upload (WebP)", "Getting started", `
-Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats, moments and adverts) are turned into **WebP** on your phone or computer before they're sent. WebP files are much smaller than JPEG or PNG for the same look, so your pages load faster and use less of your visitors' data.
+Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats, moments, Media and adverts) are turned into **WebP** on your phone or computer before they're sent. WebP files are much smaller than JPEG or PNG for the same look, so your pages load faster and use less of your visitors' data.
 
 **Very large photos** are made smaller: profile pictures to 1024 pixels on the long side, others to 2560.
 

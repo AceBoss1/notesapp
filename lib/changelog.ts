@@ -24,6 +24,21 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.129.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Media, the first part: a Media tab on every profile, between Notes and Store, with its own count, and /u/yourname/media as its own page. It shows your videos and pictures in a grid, with All, Videos, Pictures, Profile pictures and Lives & replays. Pinned moments and up to 3 pinned posts sit at the top." },
+      { kind: "added", text: "The Media studio (Profile → Media, /profile/media): post a video or up to 10 pictures with a caption and original sound, choose who can see it (everyone, followers or subscribers), and turn comments, shares, gifts and pinning on or off. Your posts are listed with their views and downloads, and you can change or delete any of them. Videos go to Cloudflare Stream, which plays them at the right quality for each connection. Pictures are made WebP before they're sent." },
+      { kind: "added", text: "Watermarked downloads: off unless you turn them on for a post. When they're on, people who can see the post can download its pictures, stamped on our server with your @username and the NotesApp mark. The original file is never sent. Video downloads come later." },
+      { kind: "added", text: "Pictures already on your site (the cover, top banner, gallery and service pictures) show in your Media straight away. Each has a Hide switch in the studio, and one switch hides them all." },
+      { kind: "added", text: "Your past profile pictures show as an album on your Media. The picture you use now is also recorded on our side, so it is never missed from your history." },
+      { kind: "added", text: "Admin → Limits has a new Media group: Media videos a week (the same ladder as post videos: none on Free Standard, then 2, 7, 14 and 30), the longest Media video (60 seconds on Free Basic, 3 minutes on Pro and Business, 10 minutes on Enterprise), picture posts a day (5, 10, 20, 40 and 100) and Media storage (1, 5, 20, 50 and 200 GB). The pricing table and the help read these figures live." },
+      { kind: "added", text: "Teen mode on Media: a teen's Media is shown only to people who follow each other with them, never to anyone signed out. Their posts can't be downloaded, shared or sent gifts, and only people they follow can mention them." },
+      { kind: "changed", text: "Moments: pin a moment (📌 Pin when you open your own) to keep it at the top of your Media after its 24, 48 or 72 hours, up to 10 at a time. Unpin one whose time is up and it is deleted there and then." },
+    ],
+  },
+  {
     version: "v0.128.0",
     bump: "minor",
     date: "2026-11-03",

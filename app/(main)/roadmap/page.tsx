@@ -4,6 +4,7 @@ import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { MEDIA_LIVE } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
 import { certificateMin } from "@/lib/pricing";
@@ -261,6 +262,7 @@ export default async function RoadmapPage() {
               <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
               <li>Your own domain (Business and Enterprise) and, on Enterprise, the server-to-server API (posts, image uploads, bookings, orders, earnings), Console keys and webhooks — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
+              {MEDIA_LIVE && <li>Media, the first part: a Media tab on every profile (and /u/yourname/media) with your videos and pictures, pinned posts and pinned moments (which stay after their 24 to 72 hours while pinned), your site&apos;s pictures and your past profile pictures as an album; a Media studio to post a video (Cloudflare Stream) or up to 10 pictures, choose everyone, followers or subscribers, and allow watermarked picture downloads; Media limits by plan in Admin → Limits; teen mode for mutual followers only</li>}
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Pin up to 3 messages in a chat and up to 3 chats in your inbox, see when someone is typing, and edit or delete your own messages (once a message has been read, the reader is asked first). Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
               {WALLET_LIVE && <li>The NotesApp Credit <Link href="/profile/wallet" className="text-crimson underline">wallet</Link>: top up once (Bonus Credits on ₦5,000 and more) and pay for boosts, badges, adverts, gifts, shop items and sessions without your card each time</li>}
@@ -306,6 +308,8 @@ export default async function RoadmapPage() {
               <li>Google ads on the web and AdMob in the apps</li>
               <li>Nana suggests replies</li>
               <li>Bigger audio and video meetings (more than 6 people), meeting chat (under team discussion)</li>
+              <li>Media, next: the full-screen Media feed (For you, Following, Live now), comments, reactions and gifts on Media posts, sharing and reporting them, watermarked video downloads, then going live in Media with replays and the #1MillionNairaNotesAppChallenge</li>
+              {!MEDIA_LIVE && <li>Media: your own videos and pictures on your profile</li>}
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}
               {!CALLS_LIVE && <li>Audio and video calls inside messages</li>}

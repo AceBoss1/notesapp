@@ -36,7 +36,7 @@ export async function looksLikeImage(file: File): Promise<boolean> {
 // down to `maxSide` (a profile picture needs far less than a cover). The original is kept when the browser can't make WebP or the
 // WebP comes out bigger.
 // "poster": the picture an audio room shows while video is off (lib/rooms-live.ts), in the host's own posters/ folder.
-export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "poster";
+export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "media" | "poster";
 export const WEBP_QUALITY = 0.82;
 export function webpPlan(type: string, purpose: UploadPurpose): { maxSide: number } | null {
   if (purpose === "academy") return null;
