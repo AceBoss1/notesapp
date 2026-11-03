@@ -48,3 +48,24 @@ export function fitWithin(width: number, height: number, maxSide: number): { wid
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 export const webpName = (name: string) => `${name.replace(/\.[A-Za-z0-9]{1,5}$/, "") || "picture"}.webp`;
+
+// POST /api/v1/uploads (partner API): the request body checked, and where the file goes.
+export type ApiUploadRequest = { filename: string; contentType: string; size: number };
+export function checkApiUpload(b: unknown): { ok: true; req: ApiUploadRequest } | { ok: false; message: string } {
+  if (!b || typeof b !== "object") return { ok: false, message: "Send a JSON body." };
+  const o = b as Record<string, unknown>;
+  const filename = typeof o.filename === "string" ? o.filename.trim().slice(0, 120) : "";
+  if (!filename) return { ok: false, message: "`filename` is required." };
+  const contentType = typeof o.content_type === "string" ? o.content_type : "";
+  if (ALLOWED_TYPES[contentType] !== "image") {
+    return { ok: false, message: "`content_type` must be image/jpeg, image/png, image/webp, image/gif or image/avif." };
+  }
+  const max = maxUploadBytes("image", false);
+  const size = o.size;
+  if (typeof size !== "number" || !Number.isInteger(size) || size <= 0 || size > max) {
+    return { ok: false, message: `\`size\` must be the file's size in bytes, up to ${max / 1048576} MB.` };
+  }
+  return { ok: true, req: { filename, contentType, size } };
+}
+export const apiUploadKey = (uid: string, filename: string, now: number) =>
+  `api/${uid}/${now}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;

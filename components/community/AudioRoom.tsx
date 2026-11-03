@@ -11,6 +11,8 @@ import { AUDIO_ONLY_KEY, CHALLENGE_POSTER, anyVideo, canVideo, chooseAudioOnly, 
 import { uploadToR2 } from "@/lib/upload";
 import { ago, capi, field } from "./api";
 import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type RecordingFigures } from "@/lib/live-recording";
+import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
+import type { LiveHand } from "@/lib/live-rooms";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -106,6 +108,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [unread, setUnread] = useState(0);
   const [mode, setMode] = useState<RoomMode>("p2p");
   const [cap, setCap] = useState(0); // how many may listen in this room (from the setting, sent on join)
+  // Relay rooms on the live-rooms worker: the chat, the live count and raised hands over one WebSocket (useLiveChannel.ts); off, or
+  // while it can't connect, everything below falls back to the room doc and Firestore as before.
+  const live = useLiveChannel(id, me, room);
+  const liveUpRef = useRef(false); liveUpRef.current = live.status === "live";
+  const [edgeHands, setEdgeHands] = useState<Record<string, LiveHand> | null>(null); // the host's beat: hands the worker reported
+  useEffect(() => { if (/removed/i.test(live.gone)) leaveRef.current(live.gone); }, [live.gone]);
   // Live mode: the cameras I receive, my own camera (a preview), the camera limits, Audio only, and the host's minutes and prompt.
   const [videos, setVideos] = useState<Record<string, MediaStream>>({});
   const [myCam, setMyCam] = useState<MediaStream | null>(null);
@@ -399,7 +407,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         void (relayMode ? relayReconcile(r) : reconcile(r));
       }, () => finish("The room has ended.")));
       beat = setInterval(() => {
-        capi<{ live: boolean; host?: HostLive }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); tookLive(x.host); }).catch(() => {});
+        // A listener connected to the live-rooms worker doesn't heartbeat: the worker says they're here (and tells them when it ends).
+        const skip = liveUpRef.current && !!latest && roomRole(latest, me) === "listener";
+        if (!skip) capi<{ live: boolean; host?: HostLive; hands?: Record<string, LiveHand> }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); tookLive(x.host); setEdgeHands(x.hands ?? null); }).catch(() => {});
         if (relayMode && latest) { void relaySync(latest); void videoSync(latest); } // picks up a pull that failed in a race
       }, ROOM_BEAT_MS);
       // Who is talking: a ring round their picture while their sound is above a whisper.
@@ -420,7 +430,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const stage = room ? stageOf(room) : [];
   const relayRoom = room?.mode === "relay";
   const listeners = room && !relayRoom ? listenersOf(room) : []; // phone to phone: the list; on the relay, the count and "People here"
-  const listening = room ? listenerCount(room) : 0;
+  const listening = live.count ?? (room ? listenerCount(room) : 0);
   const full = cap > 0 && listening >= cap;
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [camBusy, setCamBusy] = useState(false);
@@ -431,9 +441,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     const t = setTimeout(() => void liveRef.current.stopVideo().catch(() => {}), Math.max(0, Date.parse(graceUntil) - Date.now()));
     return () => clearTimeout(t);
   }, [graceUntil, myCam]);
-  const who = (u: string) => room?.joined[u] ?? room?.handInfo?.[u];
-  const hands = room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
-  const handUp = !!room?.hands?.[me];
+  // Hands: over the socket; while it's down, the ones the worker reported (on the host's beat) with any raised through the server.
+  const liveHands = live.hands ?? (edgeHands ? { ...edgeHands, ...Object.fromEntries(Object.entries(room?.handInfo ?? {}).filter(([u]) => room?.hands?.[u]).map(([u, h]) => [u, { ...h, at: room!.hands[u] }])) } : null);
+  const who = (u: string) => room?.joined[u] ?? liveHands?.[u] ?? room?.handInfo?.[u];
+  const hands = liveHands ? Object.entries(liveHands).filter(([u]) => !stage.includes(u)).map(([u, h]) => [u, h.at] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]))
+    : room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
+  const handUp = live.hands ? !!live.hands[me] : !!room?.hands?.[me];
   const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
   // Live mode.
   const flash = (m: string) => { setNote(m); setTimeout(() => setNote(""), 3000); };
@@ -546,7 +559,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 
       <footer className="flex items-center justify-center gap-4 border-t border-white/10 px-5 pb-[calc(env(safe-area-inset-bottom)_+_1rem)] pt-4">
         {role === "listener" ? (
-          <button type="button" onClick={() => act({ action: "hand", up: !handUp })} className={`rounded-full px-5 py-3 font-ui text-sm font-bold ${handUp ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{handUp ? "✋ Hand raised · lower it" : "✋ Raise hand to speak"}</button>
+          <button type="button" onClick={() => { if (!live.raise(!handUp)) void act({ action: "hand", up: !handUp }); }} className={`rounded-full px-5 py-3 font-ui text-sm font-bold ${handUp ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{handUp ? "✋ Hand raised · lower it" : "✋ Raise hand to speak"}</button>
         ) : (
           <>
             <MuteButton muted={muted} onToggle={toggleMute} />
@@ -563,7 +576,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       </div>
       {room && (
         <aside className={`${chatOpen ? "fixed inset-x-0 bottom-0 z-10 flex h-[75vh] rounded-t-3xl shadow-2xl" : "hidden"} flex-col border-white/10 bg-[#211816] lg:static lg:flex lg:h-auto lg:w-96 lg:rounded-none lg:border-l lg:shadow-none`} aria-label="Room chat">
-          <RoomChatPanel id={id} me={me} room={room} relay={relayRoom} canRemove={role === "host"} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
+          <RoomChatPanel id={id} me={me} room={room} relay={relayRoom} live={live} canRemove={role === "host" || !!live.you?.mod} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
         </aside>
       )}
     </div>
@@ -571,20 +584,27 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 }
 
 // The room's chat (lib/rooms.ts): everyone in the room types here while it's on; host and speakers are marked. The newest stays in view.
-function RoomChatPanel({ id, me, room, relay, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
-  const [msgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
+// On the live-rooms worker (live.on) the messages come over the room's WebSocket instead of a live read of the chat collection.
+function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+  const [fsMsgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
+  const msgs = live.on ? live.msgs : fsMsgs;
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const seen = useRef<Set<string> | null>(null); // others' messages already counted (null until the first load, which isn't "new")
   const onNewRef = useRef(onNew); onNewRef.current = onNew;
-  useEffect(() => onSnapshot(query(collection(db, "communityRooms", id, "chat"), orderBy("at"), limitToLast(100)), (s) => {
-    const list = s.docs.map((d) => ({ ...(d.data() as RoomChat), id: d.id }));
+  const countNew = useCallback((list: { id: string; from: string }[]) => {
+    if (!seen.current && !list.length) return; // still loading: the first messages aren't "new"
     const theirs = list.filter((m) => m.from !== me).map((m) => m.id);
     if (seen.current) for (const mid of theirs) if (!seen.current.has(mid)) onNewRef.current();
     seen.current = new Set([...(seen.current ?? []), ...theirs]);
+  }, [me]);
+  useEffect(() => { if (live.on) countNew(live.msgs); }, [live.on, live.msgs, countNew]);
+  useEffect(() => (live.on ? undefined : onSnapshot(query(collection(db, "communityRooms", id, "chat"), orderBy("at"), limitToLast(100)), (s) => {
+    const list = s.docs.map((d) => ({ ...(d.data() as RoomChat), id: d.id }));
+    countNew(list);
     setMsgs(list);
-  }, () => {}), [id, me]);
+  }, () => {})), [id, live.on, countNew]);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, open]);
   const mine = room.joined[me];
   async function send(e: React.FormEvent) {
@@ -592,6 +612,8 @@ function RoomChatPanel({ id, me, room, relay, canRemove, open, onClose, onNew, r
     const t = text.trim();
     if (!t || (!mine && !relay)) return;
     setText(""); setErr("");
+    // On the live-rooms worker, over the socket (slow mode and limits are held there); through the server while it's reconnecting.
+    if (live.send(t.slice(0, ROOM_CHAT_MAX))) return;
     // Relay rooms: through the server, which holds slow mode in big rooms (lib/rooms-server.ts sendRoomChat).
     if (relay) { try { await capi("/api/community/rooms", { action: "chat", id, text: t.slice(0, ROOM_CHAT_MAX) }); } catch (x) { setErr(x instanceof Error ? x.message : "Couldn't send. Try again."); setText(t); } return; }
     if (!mine) return;
@@ -614,7 +636,15 @@ function RoomChatPanel({ id, me, room, relay, canRemove, open, onClose, onNew, r
               <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
               <p className="whitespace-pre-line break-words text-sm text-white/85">{m.text}</p>
             </div>
-            {canRemove && m.from !== me && <button type="button" onClick={() => remove(m.id)} className="self-start text-[11px] text-white/40 opacity-0 hover:text-white group-hover:opacity-100 focus:opacity-100">Remove</button>}
+            {canRemove && m.from !== me && (
+              <span className="flex flex-col items-end gap-0.5 self-start opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>
+                {live.status === "live" && m.from !== room.hostUid && (live.mutedList.includes(m.from)
+                  ? <button type="button" onClick={() => live.mute(m.from, false)} className="text-[11px] text-white/40 hover:text-white">Unmute</button>
+                  : <button type="button" onClick={() => live.mute(m.from, true)} className="text-[11px] text-white/40 hover:text-white">Mute</button>)}
+                {live.status === "live" && m.from !== room.hostUid && <button type="button" onClick={() => confirm(`Remove ${m.name} from this room?`) && live.ban(m.from)} className="text-[11px] text-white/40 hover:text-white">Remove from room</button>}
+              </span>
+            )}
           </div>
         ))}
         <div ref={end} />
@@ -623,8 +653,20 @@ function RoomChatPanel({ id, me, room, relay, canRemove, open, onClose, onNew, r
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="Drop a note in the room…" aria-label="Drop a note in the room" className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
         <button className="rounded-full bg-white px-4 py-2.5 font-ui text-sm font-bold text-ink disabled:opacity-40" disabled={!text.trim()}>Send</button>
       </form>
-      {relay && (room.chatSlow ?? 0) > 0 && room.hostUid !== me && !room.speakers.includes(me) && <p className="px-4 pb-2 text-xs text-white/45">Slow mode: a big room, so one message every {room.chatSlow} seconds each.</p>}
-      {err && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err}</p>}
+      {relay && (live.status === "live" ? live.slow : room.chatSlow ?? 0) > 0 && room.hostUid !== me && !room.speakers.includes(me) && <p className="px-4 pb-2 text-xs text-white/45">Slow mode: one message every {live.status === "live" ? live.slow : room.chatSlow} seconds each.</p>}
+      {live.status === "live" && room.hostUid === me && (
+        <p className="flex items-center gap-2 px-4 pb-2 text-xs text-white/55">Slow mode{live.hostSlow === null ? ` (automatic${live.slow ? ": on" : ": off"})` : live.hostSlow ? ": on" : ": off"}
+          <button type="button" onClick={() => live.setSlow(live.hostSlow === true ? false : live.hostSlow === false ? null : true)} className="rounded-full bg-white/10 px-2 py-0.5 font-semibold hover:bg-white/20">{live.hostSlow === true ? "Turn off" : live.hostSlow === false ? "Automatic" : "Turn on"}</button>
+        </p>
+      )}
+      {live.you?.muted && <p className="px-4 pb-2 text-xs text-white/45">The host has muted you in this chat.</p>}
+      {canRemove && live.status === "live" && live.mutedList.length > 0 && (
+        <p className="flex flex-wrap items-center gap-1.5 px-4 pb-2 text-xs text-white/55">Muted in the chat:
+          {live.mutedList.map((u) => <button key={u} type="button" onClick={() => live.mute(u, false)} className="rounded-full bg-white/10 px-2 py-0.5 hover:bg-white/20" aria-label={`Unmute ${msgs.find((x) => x.from === u)?.name ?? "them"}`}>{msgs.find((x) => x.from === u)?.name ?? "Someone"} · Unmute</button>)}
+        </p>
+      )}
+      {live.status === "fallback" && <p className="px-4 pb-2 text-xs text-white/45">Reconnecting the live chat… new messages show every few seconds meanwhile.</p>}
+      {(err || live.err) && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err || live.err}</p>}
     </>
   );
 }

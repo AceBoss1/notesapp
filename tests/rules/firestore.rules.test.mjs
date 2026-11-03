@@ -1117,6 +1117,29 @@ test("audio rooms, Live mode: the video minutes and prompts are server-only, and
   await assertFails(updateDoc(doc(h, "communityRooms/r4"), { videoOn: {} }));
 });
 
+test("audio rooms on the live-rooms worker: edge state (bans, hands, the exact count) and listening time are server-only; edgeIn is the server's", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-11-02T10:00:00Z", seen: "2026-11-02T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "communityRooms/r5"), { cid: "grace", communityName: "Grace", title: "Edge", hostUid: "host", hostName: "H", speakers: [], hands: {}, joined: { host: seen }, status: "live", mode: "relay", createdAt: seen.at, edge: true, edgeAt: seen.at });
+    await setDoc(doc(f, "communityRooms/r5/people/lis"), { ...seen, edgeIn: true });
+    await setDoc(doc(f, "communityRooms/r5/edge/state"), { banned: { bad: seen.at }, count: 9, countAt: seen.at, hands: { lis: { name: "x", avatar: "", at: seen.at } } });
+    await setDoc(doc(f, "communityRooms/r5/listenTime/lis"), { ms: 60000, sessions: 1, open: true, openAt: 1, first: 1, last: 0, role: "listener" });
+  });
+  const h = as("host"), l = as("lis"), x = as("stranger"), boss = as("boss", { admin: true });
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r5"))); // the listener still reads the room (people/ exists, no heartbeat needed)
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r5/people/lis")));
+  for (const db of [h, l, x, boss]) {
+    await assertFails(getDoc(doc(db, "communityRooms/r5/edge/state")));
+    await assertFails(getDoc(doc(db, "communityRooms/r5/listenTime/lis")));
+    await assertFails(getDocs(collection(db, "communityRooms/r5/listenTime")));
+  }
+  await assertFails(setDoc(doc(l, "communityRooms/r5/listenTime/lis"), { ms: 99999999 })); // nobody adds to their own time
+  await assertFails(updateDoc(doc(l, "communityRooms/r5/people/lis"), { edgeIn: true }));
+  await assertFails(updateDoc(doc(h, "communityRooms/r5/edge/state"), { banned: {} })); // nor lifts a ban
+  await assertFails(updateDoc(doc(h, "communityRooms/r5"), { edgeAt: "t", listening: 0 }));
+});
+
 test("audio rooms on the relay: listeners live in people/ (server-written, each reads their own), and the chat goes through the server", async () => {
   const seen = { name: "x", avatar: "", at: "2026-10-22T10:00:00Z", seen: "2026-10-22T10:00:00Z" };
   await env.withSecurityRulesDisabled(async (ctx) => {
@@ -1390,7 +1413,7 @@ test("the agent layer's collections are server-only: no member reads or writes g
   await assertFails(deleteDoc(doc(as("pub"), "agentActions/a1")));
 });
 
-// Live recordings and replays (lib/live-recording.ts, v0.127.0): server-only; a journal post's replayId comes only from the server.
+// Live recordings and replays (lib/live-recording.ts, v0.128.0): server-only; a journal post's replayId comes only from the server.
 test("live recordings and replays are server-only, and a post's replay can't be added or changed from a browser", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

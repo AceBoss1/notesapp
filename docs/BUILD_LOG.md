@@ -2623,7 +2623,7 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
-**Live mode in audio rooms (v0.125.0, 2 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
+**Live mode in audio rooms (v0.126.0, 3 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
 The owner's decisions: the host (and speakers if the host allows) turns video on and off during a relay room, as a second track
 through the relay capped at 480p, about 600 kbps and 24 fps; off goes back to audio without reconnecting; while it's off everyone sees
 the host's poster (an upload, the profile picture or the challenge art; a picture, never video, never counted); viewers get Audio only,
@@ -2641,7 +2641,69 @@ are used, and after the grace the next stage beat cuts every camera at Cloudflar
 500) after checking nothing writes per listener. Rooms are community-scoped, so teen mode's follower rules have nothing to add here.
 Emulator and rules tests ran from a temporary config on port 8213.
 
-**Live recording and replays (v0.127.0, 2 Nov 2026, step 2c of lives; off until the recorder is set up)** — The decided rule ("Recording for safety review, with the host's consent … Kept 30 days, then deleted unless the host publishes the
+**Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
+
+**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, 2 Nov 2026)** — The owner reported that one-to-one voice
+calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
+front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
+sets `navigator.audioSession.type = "play-and-record"` (Safari 16.4+), and Notes Life's game sound sets "playback"; on Android, Chrome
+chooses the call route from the microphone that was opened, and for "default" it picks a wired headset, then USB, then Bluetooth, then
+the speakerphone, never the earpiece (Chromium `CommunicationDeviceSelector.java`). Chrome's microphone list on Android holds the routes
+by name ("Headset earpiece", "Speakerphone", "Wired headset", "Bluetooth headset", "USB audio"), and its speaker list only "default",
+so `setSinkId` can't move a call there; opening the "Headset earpiece" microphone (with echo cancellation, which switches Android to call
+mode) does. Also, a 1:1 video call attached the other person's stream to an unmuted `<video>` as well as the `<audio>`, so the voice
+played twice. `lib/call-audio.ts` holds the rules (platform, device labels, the choices each platform allows, which route to use:
+picked in this call > a headset that's there unless the remembered choice is a headset > remembered > earpiece for voice, speaker for
+video), and `components/calls/useCallAudio.ts` applies them in both call screens: the iPhone audio session set before the microphone
+opens and restored after, Android routes and computer microphones swapped in with `RTCRtpSender.replaceTrack` (no reconnect), computer
+speakers by `setSinkId` on every remote `<audio>` (group video tiles now play sound through a hidden `<audio>` too), and the list
+reloaded on `devicechange`. The Sound button shows only where there's a real choice; iPad has no earpiece, and on iPhone AirPods and
+Bluetooth are chosen in Control Centre. Narrow phones get slightly smaller call buttons so five fit in a row. Tests: `test:calls`.
+
+**API image uploads (v0.125.0, 3 Nov 2026)** — Enterprise partners publishing through the API had no way to add images, so
+partner sites fell back to their own image hosts (Precheks' Cloudinary preset had gone). New `POST /api/v1/uploads`
+(`app/api/v1/uploads/route.ts`, scope `write:posts`, behind the same `v1()` key, API-access and plan check as every v1 route)
+returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
+only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
+Console scope label, the roadmap, the API help article and README say so.
+
+**Live chat and signals for big audio rooms on a Durable Object (v0.127.0, 3 Nov 2026)** — Step 2b of the rooms plan. A relay room's
+Firestore chat costs one read per person per message, so a 10,000-listener room can't afford a live read of it. Each relay room opened
+while `NEXT_PUBLIC_LIVE_ROOMS_URL` and `LIVE_ROOMS_SECRET` are set (`edge: true` on the room doc; a room keeps what it opened with) gets
+one Cloudflare Durable Object (`workers/live-rooms`, its own package.json, tsconfig and wrangler.toml; excluded from the app's
+tsconfig) holding every socket through the Hibernation API, so a quiet room bills nothing. Chat, the live listener count (distinct
+people, not tabs, broadcast at most every 2 s), raised hands, stage moves and a video on/off signal go over the socket. Trust: the
+socket needs a 10-minute HMAC-SHA256 token (`lib/live-token.ts`, pure WebCrypto, imported by both sides) minted only for someone the
+room already let in; the role can change only by our server's signed push (`role` after `setSpeaker`), which also overrides an older
+token on reconnect; moderators come from the community role at mint time. Slow mode, the rate limits (a token bucket per connection,
+kept in the socket's attachment so it survives hibernation) and the size limit are enforced at the edge; the host can now switch slow
+mode on or off (or leave it automatic, from the existing settings, pushed to rooms at creation and when an admin saves them).
+Firestore stays the record: the object batches the chat (3 s or 50 messages), removals and bans to `/api/community/rooms/edge` (signed
+over the exact body, 5-minute clock window), which writes `communityRooms/{id}/chat` with the object's ids (same shape as
+`sendRoomChat`'s, so a removal through either side finds it) and the room doc's count at most every 15 s plus a 45 s keepalive;
+`recount` stands aside while the edge reports (`edgeFresh`, 45 s) and the cap takes the higher count. Messages sent through the server
+(the fallback) are forwarded to the object to broadcast, not batched back. A failed batch stays in the object's storage and retries
+with backoff (5 s up to 2 min); the end op closes every socket, sends the final batch with the peak (kept in `edge/state.finalPeak`)
+and clears the object, which then refuses old tokens. The client side is one hook, `components/community/useLiveChannel.ts`, so the
+room screen only swaps its chat source, count and hands (step 2a edits the same component in parallel); after three failed connects
+it polls Firestore for new chat every 10 s and sends through the server. Deploy: `.github/workflows/deploy-live-rooms.yml`
+(cloudflare/wrangler-action, skips green without the two repository secrets) or `npx wrangler deploy`. Tested without Cloudflare: the
+object against in-memory fakes (including a second instance on the same state as the "woken" object) and end to end against the
+Firestore emulator with our server's code on both sides.
+
+Second round (same release, after merging step 2a): listeners in rooms on the worker no longer heartbeat their people/ doc. The worker
+reports each person's sessions (first tab in, last tab out, deduplicated by an "o:<uid>" mark in the object's storage) in the signed
+batches; our server sets people/`edgeIn` and adds the time up per person in `listenTime/{uid}` (one write per person per batch, never
+per heartbeat), closing anything still open when the room ends. Presence for those listeners is `edgeIn` while the worker reports
+(`listenerPresent`, 150 s), so tokens, pulls, Bring up and People here keep working without heartbeats, and a dead worker puts
+everyone back on heartbeats through the client's fallback. The exact count goes to `edge/state` every 15 s (the cap) and the room doc
+only once a minute, since everyone reads it; Live mode's `noteListenerSample` now runs on the worker's counts. Raised hands are kept in
+`edge/state` too and come back on the host's beat; chat mutes can be undone; camera on/off over the socket is told by our server from
+`markVideoOn`/`markVideoOff` instead of trusted from the browser. /status gained "Live room chat" (a signed ping proves both secrets
+match). The room doc is still a live read for everyone in the room (the stage and cameras drive the pulls); moving that onto the socket
+was left for a follow-up because it means reworking the pull logic step 2a just built.
+
+**Live recording and replays (v0.128.0, 2 Nov 2026, step 2c of lives; off until the recorder is set up)** — The decided rule ("Recording for safety review, with the host's consent … Kept 30 days, then deleted unless the host publishes the
 replay") and the owner's choices of 2 November: the host switches recording on before going live (off by default; Admin can force it
 for safety later), everyone is told before they use a microphone, speakers agree with one tap, the recorder runs on our servers and
 never on a phone, recordings are server-only and deleted after the keep days unless published, and the host can publish a replay.

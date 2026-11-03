@@ -152,6 +152,8 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `CLOUDFLARE_TURN_API_TOKEN` | **yes** | Cloudflare TURN token. |
 | `CLOUDFLARE_REALTIME_APP_ID` | no | App ID of the Cloudflare Realtime Serverless SFU app (Realtime → Serverless SFU). With the token, new community audio rooms use the relay, for hundreds of listeners (Admin → Limits → Audio rooms sets how many, and can switch it off); without both, rooms run phone to phone. /status shows whether Cloudflare accepts them. |
 | `CLOUDFLARE_REALTIME_APP_TOKEN` | **yes** | App Token (secret) of that same Realtime SFU app. Server-only: browsers never see it. |
+| `NEXT_PUBLIC_LIVE_ROOMS_URL` | no | The live-rooms worker's address, wss://notesapp-live-rooms.YOUR-SUBDOMAIN.workers.dev (workers/live-rooms; HANDOVER item 99). With LIVE_ROOMS_SECRET, relay audio rooms opened from then on carry their chat, listener count, raised hands and stage signals over one WebSocket per person to a Cloudflare Durable Object, instead of everyone reading Firestore for every message: for rooms of thousands. Empty: the chat and count go through Firestore as before. |
+| `LIVE_ROOMS_SECRET` | **yes** | Shared secret between the site and the live-rooms worker (the same value in both: Vercel, and npx wrangler secret put LIVE_ROOMS_SECRET): signs the 10-minute room tokens and every message between the two. Make one with: node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))". Without it the live-rooms worker isn't used. |
 | `TURN_URLS` | no | Our own TURN server instead: comma-separated addresses. |
 | `TURN_USERNAME` | no | Our own TURN server's username. |
 | `TURN_CREDENTIAL` | **yes** | Our own TURN server's password. |

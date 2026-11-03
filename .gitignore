@@ -36,3 +36,5 @@ playwright-report/
 # screenshot set-up only (never shipped)
 public/demo-cert/
 /mobile/node_modules
+/workers/live-rooms/node_modules
+/workers/live-rooms/.wrangler

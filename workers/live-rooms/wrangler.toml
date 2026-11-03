@@ -1,0 +1,22 @@
+# The live-rooms worker: chat and live signals for big audio rooms (#NotesApp v0.127.0; HANDOVER item 99).
+# Deploy: the "Deploy live rooms" GitHub Actions workflow, or by hand from this folder: npx wrangler deploy
+# Its one secret: npx wrangler secret put LIVE_ROOMS_SECRET (the same value as LIVE_ROOMS_SECRET on Vercel).
+# No domain is set here: the worker answers on its workers.dev address (or a route the owner adds in the dashboard), and that wss://
+# address goes into NEXT_PUBLIC_LIVE_ROOMS_URL on Vercel. Where to send the chat's record is told to each room by our server.
+name = "notesapp-live-rooms"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "LIVE_ROOM"
+class_name = "LiveRoom"
+
+# SQLite-backed Durable Objects (needed on the free plan, fine on the paid one). Never edit a migration that has been deployed; add a
+# new [[migrations]] block with the next tag instead.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LiveRoom"]
+
+[observability]
+enabled = true

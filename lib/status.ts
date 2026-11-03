@@ -15,6 +15,7 @@ import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
 import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
 import { relayCheck, relayConfigured } from "./rooms-relay-server";
+import { liveRoomsCheck, liveRoomsOn } from "./live-rooms-edge";
 import { getRoomSettings } from "./rooms-server";
 import { redis, sharedStoreConfigured } from "./shared-store";
 import { SITE_URL } from "@/lib/host";
@@ -262,6 +263,20 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           const recent = last && last.ok === false && last.why && Date.now() - Date.parse(last.at ?? "") < 30 * 60_000 ? last.why : "";
           const st = toStatus("rooms-relay", relayName, why ? `${relayDesc} (${why})` : recent ? `${relayDesc} (a room met trouble in the last half hour: ${recent})` : `${relayDesc} (relay ready)`, r);
           return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : !why && recent ? { ...st, state: "degraded" as ServiceState } : st;
+        })()
+  );
+  // The live-rooms worker (workers/live-rooms, v0.127.0): chat and live signals for big relay rooms on a Cloudflare Durable Object. Only
+  // listed as working once NEXT_PUBLIC_LIVE_ROOMS_URL and LIVE_ROOMS_SECRET are both set; the check reaches the worker and proves both
+  // sides hold the same secret. Rooms fall back to the Firestore chat when it fails, so trouble is "slow", not "down".
+  const liveName = "Live room chat", liveDesc = "Chat, listener count and raised hands for big audio rooms, live over Cloudflare";
+  checks.push(
+    !liveRoomsOn()
+      ? Promise.resolve(notConfigured("live-rooms", liveName, `${liveDesc} (not set up: rooms use the Firestore chat until the worker is deployed and NEXT_PUBLIC_LIVE_ROOMS_URL and LIVE_ROOMS_SECRET are set in Vercel)`))
+      : (async () => {
+          let why = "";
+          const r = await timed(async (signal) => { const c = await liveRoomsCheck(fetch, signal); why = c.why ?? ""; return c.ok; });
+          const st = toStatus("live-rooms", liveName, why ? `${liveDesc} (${why})` : `${liveDesc} (worker ready)`, r);
+          return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : st;
         })()
   );
   // Device notifications need the three VAPID settings; this only confirms they are present.
