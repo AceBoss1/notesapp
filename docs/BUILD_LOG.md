@@ -2812,6 +2812,17 @@ apply as with a password), `/api/passkeys` (list, rename, remove), `/api/passkey
 `lib/passkeys-client.ts`, `components/PasskeySignIn.tsx` (the sign-in form and Staff login) and `components/PasskeySettings.tsx`
 (Account settings). Both collections server-only in `firestore.rules`; erasing an account removes its passkeys. Tests:
 `npm run test:passkeys` (the rules, then a full ceremony against the emulators with a software P-256 authenticator) and a rules test.
+
+## Help backfill from Nana's unanswered questions (built 3 November 2026)
+
+Nana's "Couldn't answer" list showed questions the help centre either didn't cover or covered under other words. New articles:
+`post-a-moment` (moments are what other apps call a status or story, and a moment never changes your profile picture),
+`verify-your-email` (the yellow bar's Resend link, the 60-second wait, and "I've verified"; not the same as the verified badge),
+`nana-suggestions-on-forms` (swipe or ✕ to remove a suggestion, Not now to hide the box), `currency-and-exchange-rates` (everything
+is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. Search now folds status/story into "moment",
+dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
+before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
+Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.
 **Animated gifts and daily gift targets (v0.133.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
 the same 7-day hold and commission; a catalogue of named animated gifts with big values; and a daily gift target that pins creators
 at the top of Trending and Explore. The catalogue lives in `lib/gift-catalogue.ts` (pure, client-safe): ten drawings fixed in code

@@ -129,7 +129,7 @@ export function SubtopicChips({ subtopics, onRemove }: { subtopics: Subtopic[]; 
 }
 
 export function CategorySuggestions({ title, category, subcategory, onPick }: { title: string; category: string; subcategory: string; onPick: (category: string, subcategory: string) => void }) {
-  const { data, busy, refresh, hidden } = useSuggestion<CategorySuggestion>("item", title);
+  const { data, busy, refresh, hidden, hide } = useSuggestion<CategorySuggestion>("item", title);
   const gone = useDismissed(scopeOf("item", title));
   if (hidden || !data?.options.length) return null;
   const idOf = (o: CategorySuggestion["options"][number]) => `${o.category}/${o.subcategory?.slug ?? ""}`;
@@ -151,7 +151,10 @@ export function CategorySuggestions({ title, category, subcategory, onPick }: { 
       </div>
       {!shown.length && <AllRemoved />}
       <UndoBar last={gone.last} onUndo={gone.undo} />
-      <p className="mt-2 text-xs text-slate">Or choose from all categories below.</p>
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" onClick={hide} className="text-sm font-semibold text-slate underline">Not now</button>
+        <p className="text-xs text-slate">Or choose from all categories below.</p>
+      </div>
     </Panel>
   );
 }

@@ -41,6 +41,8 @@ export function pickArticles(all: KbArticle[], userMessages: string[], max = ART
   const topic = queryWords(latest).length <= 2 && earlier[0] ? `${earlier[0]} ${latest}` : latest;
   const out: KbArticle[] = [];
   const add = (xs: KbArticle[]) => { for (const a of xs) if (out.length < max && !out.includes(a)) out.push(a); };
+  // A short follow-up ("what about mcp?") is searched on its own first, so the earlier topic can't crowd out what was just asked.
+  if (topic !== latest) add(searchArticles(all, latest, 2));
   add(searchArticles(all, topic, 4));
   for (const q of earlier.slice(0, 3)) add(searchArticles(all, q, 2));
   let size = 0;
