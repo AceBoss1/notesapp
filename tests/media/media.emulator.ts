@@ -172,6 +172,15 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   assert.equal((await shown()).length, 4);
   await rejects(setMediaSettings(db, "u_tunde", { hide: { id: "../x", hidden: true } }), /Which picture/);
 
+  // ── Lives & replays (#256): ready, listed replays only, newest first, the host's picture as the tile ──
+  const rp = (id: string, o: Record<string, unknown>) => db.doc(`replays/${id}`).set({ rid: id, roomId: "r", cid: "c", communityName: "C", hostUid: "u_tunde", hostUsername: "tunde", hostName: "Tunde", hostAvatar: "https://cdn.test/t.webp", title: id, audience: "public", listed: true, kind: "audio", status: "ready", streamUid: "s", duration: 61.4, createdAt: "2026-11-01T10:00:00Z", publishedAt: "2026-11-01T10:00:00Z", views: 0, ...o });
+  await rp("old", {}); await rp("new", { publishedAt: "2026-11-02T10:00:00Z", audience: "subscribers" });
+  await rp("processing", { status: "processing" }); await rp("kept", { audience: "community", listed: false });
+  await rp("other", { hostUid: "u_someone" });
+  const reps = (await creatorMedia(db, fan, "tunde", deps, momentDeps)).replays;
+  assert.deepEqual(reps.map((r) => r.id), ["new", "old"], "listed and ready, newest first");
+  assert.deepEqual(reps[1], { id: "old", title: "old", poster: "https://cdn.test/t.webp", durationSec: 61, href: "/replays/old", createdAt: "2026-11-01T10:00:00Z" });
+
   // ── The profile picture album: recorded on the server from now on ──
   await db.collection("profilePictures").add({ uid: "u_tunde", url: "https://cdn.test/avatars/u_tunde/old.webp", createdAt: "2026-10-01T00:00:00.000Z" });
   let cm = await creatorMedia(db, fan, "tunde", deps, momentDeps);
@@ -235,7 +244,7 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   cm = await creatorMedia(db, fan, "tunde", deps, momentDeps);
   assert.equal(cm.counts.posts, cm.posts.length);
   assert.equal(cm.counts.all, cm.posts.length + cm.sitePictures.length + cm.album.length + cm.replays.length);
-  assert.deepEqual(cm.replays, [], "no replays until the replays feature lands");
+  assert.equal(cm.counts.replays, 2, "the two listed replays count on the tab");
   assert.equal(cm.counts.videos, 1);
   const bytesBefore = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
   await deleteMediaPost(db, "u_tunde", p1.id, deps);

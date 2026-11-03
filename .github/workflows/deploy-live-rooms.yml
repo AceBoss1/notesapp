@@ -1,0 +1,59 @@
+name: Deploy live rooms
+# The live-rooms worker (workers/live-rooms: chat and live signals for big audio rooms, a Cloudflare Worker with one Durable Object per
+# room; HANDOVER item 99). Runs by hand (Actions → Deploy live rooms → Run workflow) and on every push to main that changes the worker
+# or the shared files it builds from. Needs two repository secrets the owner adds (Settings → Secrets and variables → Actions):
+# CLOUDFLARE_API_TOKEN (a token with Workers Scripts: Edit; Durable Objects come with it) and CLOUDFLARE_ACCOUNT_ID. Without them the
+# job says so and stops, green. If the repository also has a LIVE_ROOMS_SECRET secret, it is set on the worker too; otherwise set it
+# once by hand: cd workers/live-rooms && npx wrangler secret put LIVE_ROOMS_SECRET (the same value as on Vercel).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "workers/live-rooms/**"
+      - "lib/live-token.ts"
+      - "lib/live-rooms.ts"
+      - "lib/rooms.ts"
+      - ".github/workflows/deploy-live-rooms.yml"
+
+concurrency: { group: deploy-live-rooms, cancel-in-progress: false }
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HAS_KEYS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+      HAS_SECRET: ${{ secrets.LIVE_ROOMS_SECRET != '' }}
+    steps:
+      - name: No Cloudflare keys yet
+        if: env.HAS_KEYS != 'true'
+        run: echo "::notice title=Live rooms not deployed::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets (HANDOVER item 99), then run this workflow again. Nothing was deployed."
+      - uses: actions/checkout@v4
+        if: env.HAS_KEYS == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_KEYS == 'true'
+        with: { node-version: 22 }
+      - name: Type-check the worker
+        if: env.HAS_KEYS == 'true'
+        run: npx -y -p typescript@5.9.3 tsc -p workers/live-rooms
+      - name: Deploy
+        if: env.HAS_KEYS == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/live-rooms
+          wranglerVersion: "4.40.0"
+          command: deploy
+      - name: Set LIVE_ROOMS_SECRET on the worker (only if the repository has it)
+        if: env.HAS_KEYS == 'true' && env.HAS_SECRET == 'true'
+        working-directory: workers/live-rooms
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LIVE_ROOMS_SECRET: ${{ secrets.LIVE_ROOMS_SECRET }}
+        run: printf '%s' "$LIVE_ROOMS_SECRET" | npx -y wrangler@4.40.0 secret put LIVE_ROOMS_SECRET
+      - name: Remind about the secret
+        if: env.HAS_KEYS == 'true' && env.HAS_SECRET != 'true'
+        run: echo "::notice title=Live rooms deployed::If you haven't yet, set the worker's secret once with npx wrangler secret put LIVE_ROOMS_SECRET (workers/live-rooms), the same value as LIVE_ROOMS_SECRET on Vercel. GET /health on the worker answers ok once it's set."

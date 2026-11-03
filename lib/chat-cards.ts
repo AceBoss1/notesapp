@@ -1,6 +1,6 @@
 // A #NotesApp link in a message (a journal, a store item, a course or a profile) shows as a card with what it is, a picture and a button,
 // instead of the ordinary web preview. Pure: which links count, read from the address alone (tests/messages/chat-tools.test.ts).
-export type CardKind = "journal" | "item" | "course" | "profile";
+export type CardKind = "journal" | "item" | "course" | "profile" | "replay";
 export type CardRef = { kind: CardKind; id: string };
 export type ChatCard = { kind: CardKind; href: string; title: string; subtitle: string; image: string; cta: string; badge?: string };
 
@@ -9,6 +9,7 @@ const PATHS: [RegExp, CardKind][] = [
   [/^\/shop\/([A-Za-z0-9_-]{1,64})\/?$/, "item"],
   [/^\/academy\/([a-z0-9][a-z0-9-]{0,120})\/?$/i, "course"],
   [/^\/u\/([a-z0-9][a-z0-9._-]{0,40})\/?$/i, "profile"],
+  [/^\/replays\/([A-Za-z0-9_-]{6,80})\/?$/, "replay"],
 ];
 const RESERVED = new Set(["teach", "new", "notesapp"]); // pages, not things
 
@@ -21,7 +22,7 @@ export function parseCardLink(raw: string, roots: string[]): CardRef | null {
   if (!roots.some((r) => host === r || host === `www.${r}` || host === `app.${r}`)) return null;
   for (const [re, kind] of PATHS) {
     const m = u.pathname.match(re);
-    if (m && !RESERVED.has(m[1].toLowerCase())) return { kind, id: kind === "item" ? m[1] : m[1].toLowerCase() };
+    if (m && !RESERVED.has(m[1].toLowerCase())) return { kind, id: kind === "item" || kind === "replay" ? m[1] : m[1].toLowerCase() };
   }
   return null;
 }

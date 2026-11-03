@@ -167,8 +167,9 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
 - **Pinned Moments:** `pinMoment` and `listPinnedMoments` in `lib/moments-server.ts`; the moment viewer has 📌 Pin / Unpin; up to 10.
 - **Profile picture history:** `profilePictures` (kept since v0.43); the picture in use is now also recorded server-side by
   `profileAlbum` whenever Media reads it.
-- **Lives & replays:** `replaysFor` in `lib/media-replays.ts` returns none until PR #256 (recording and replays) lands; that PR's
-  `/profile/media` placeholder around `ReplaysList` goes into the studio's "Live & replays" tab (marked MERGE POINT).
+- **Lives & replays:** `replaysFor` in `lib/media-replays.ts` lists the creator's ready, listed replays (#256: for everyone or for
+  subscribers, the same as Explore and Trending; never one kept inside its community), newest first, with the host's picture as the
+  tile. The studio's Lives & replays tab is `ReplaysList` (record, publish, share, Share to Journal).
 - **Tests:** `npm run test:media`, `npm run test:media-server`, and the rules test.
 
 ### Left for M2 and later

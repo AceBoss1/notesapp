@@ -13,6 +13,7 @@ const LINKS = [
   ...(MEDIA_LIVE ? [{ href: "/profile/media", label: "Media" }] : []),
   { href: "/profile/publishing", label: "Rates & payouts" },
   { href: "/profile/analytics", label: "Analytics" },
+  { href: "/profile/media", label: "Media" },
   { href: "/bookings", label: "Bookings" },
   { href: "/profile/books", label: "Business books" },
   { href: "/profile/inventory", label: "Inventory" },

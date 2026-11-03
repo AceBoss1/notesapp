@@ -1,5 +1,6 @@
 "use client";
 
+import ReplaysList from "@/components/replays/ReplaysList";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Studio } from "@/lib/media-server";
@@ -14,7 +15,7 @@ import { Icon, Pattern } from "./MediaTile";
 
 // /profile/media, the Media studio (approved mockup media-studio-*.png): a new post (video to Cloudflare Stream, or up to 10 pictures as
 // WebP to our bucket), your posts with their figures and switches, and the pictures from your site with a Hide switch each. Lives & replays
-// arrive with the replays feature (PR #256 puts its ReplaysList here); the Challenge tab comes with phase 5 (docs/MEDIA.md).
+// holds your recordings and replays (components/replays/ReplaysList.tsx); the Challenge tab comes with phase 5 (docs/MEDIA.md).
 type Tab = "posts" | "live" | "settings";
 type Sort = "newest" | "viewed";
 
@@ -83,12 +84,9 @@ export default function MediaStudio() {
         </div>
       )}
       {tab === "live" && (
-        // MERGE POINT (PR #256, recording/replays): that branch adds a /profile/media placeholder around <ReplaysList />; put
-        // <ReplaysList /> here in place of this card, and lib/media-replays.ts replaysFor() feeds the creator's Lives & replays tab.
-        <div className={`${card} mt-4`}>
-          <h2 className="flex items-center gap-2 font-ui text-base font-extrabold text-ink"><Icon name="head" /> Lives & replays</h2>
-          <p className="mt-1 text-sm text-slate">Going live and keeping replays are coming to Media. When you publish a replay, it shows here and on the Lives &amp; replays tab of your Media, and recordings you don&apos;t publish are deleted after 30 days.</p>
-        </div>
+        // The recordings and replays from lives (PR #256): publish, share, Share to Journal; published ones show on the creator's Lives &
+        // replays tab (lib/media-replays.ts replaysFor).
+        <div className="mt-4"><ReplaysList /></div>
       )}
       {tab === "settings" && <div className="mt-4 max-w-2xl"><FromYourSite s={s} onChanged={setS} settingsOnly /></div>}
     </div>

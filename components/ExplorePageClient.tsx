@@ -20,14 +20,15 @@ import { useAcademy } from "@/lib/courses-client";
 import { courseHref } from "@/lib/courses";
 import type { MarketItem } from "@/lib/shop-directory";
 import { EventCard, type Ev } from "@/components/events/Events";
+import ReplayShelf from "@/components/replays/ReplayShelf";
 
 // Explore (/explore, Moda redesign): what used to be the Topics, People and Channels tabs of Journals, now that Journals is the feed,
 // plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each. Events: every public,
 // upcoming event (not members-only, not from an invite-only community), soonest first (GET /api/events?explore=1).
-type Tab = "topics" | "people" | "channels" | "communities" | "events" | "market" | "academy";
+type Tab = "topics" | "people" | "channels" | "communities" | "events" | "replays" | "market" | "academy";
 type CommunityRow = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; joinMode: string };
 const TABS: { id: Tab; label: string }[] = [
-  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "events", label: "Events" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
+  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "events", label: "Events" }, { id: "replays", label: "Replays" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
 ];
 const SHOW = 24;
 
@@ -144,6 +145,11 @@ export default function ExplorePageClient() {
                 {events === null ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : eventList.length
                   ? <ul className="grid gap-3 sm:grid-cols-2">{eventList.slice(0, SHOW).map((e) => <EventCard key={e.id} e={e} />)}</ul>
                   : <p className="py-10 text-center text-sm text-slate">{q ? "No events match that search." : <>No upcoming events yet. <Link href="/events" className="font-semibold text-crimson">Add one</Link>.</>}</p>}
+              </Shelf>
+            )}
+            {tab === "replays" && (
+              <Shelf title="Replays" why={<>Recorded lives their hosts chose to publish, newest first. <Link href="/trending?tab=replays" className="font-semibold text-crimson">Trending replays →</Link></>}>
+                <ReplayShelf sort="new" q={query} />
               </Shelf>
             )}
             {tab === "academy" && (
