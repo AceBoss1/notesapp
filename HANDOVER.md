@@ -611,6 +611,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     editing the handbook, SOPs or briefs, export them to `content/staff-library/` and run `node scripts/staff-library-content.mjs`.
     Interview booking by Nana-HR is not built yet (the hiring manager messages the applicant on NotesApp). Test: `npm run test:hr`.
 
+107. **Help backfill (no version, no changelog entry; branch `push/help-backfill`):** nothing to deploy. New help articles for
+    questions Nana couldn't answer: posting a moment (status/story), verifying your email (Resend link), Nana's suggestions on
+    forms, and currency (naira only, no exchange rates), plus a team hub article on adding a task. Search synonyms for status,
+    story, dp, photo and dollar (`lib/kb.ts`); a short follow-up such as "what about mcp?" is now searched on its own first
+    (`lib/nana-prompt.ts`). The Add item "Nana suggests" box now has **Not now**. When "Couldn't answer" fills up in
+    [Help & Nana](/admin/help), write the missing article or a synonym, then check it with `searchArticles`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
