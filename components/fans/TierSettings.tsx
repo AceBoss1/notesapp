@@ -17,8 +17,8 @@ export default function TierSettings({ value, onChange, counts }: { value: TierF
   const rate = rates?.session ?? null;
   const pct = (r: number) => `${+(r * 100).toFixed(2)}%`;
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[40rem] text-sm">
+    <div className="mt-4 w-full max-w-full overflow-x-auto">
+      <table className="w-full min-w-[36rem] text-sm">
         <thead><tr className="bg-crimson text-left text-[13px] text-white"><th className="px-3 py-2">Tier</th><th className="px-3 py-2">Offer</th><th className="px-3 py-2">Your price / month</th><th className="px-3 py-2">#NotesApp takes</th><th className="px-3 py-2">You keep</th>{counts && <th className="px-3 py-2">Subscribers</th>}</tr></thead>
         <tbody>
           {SUB_TIERS.map((t, i) => {

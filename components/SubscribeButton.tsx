@@ -79,7 +79,7 @@ export default function SubscribeButton({ username, publisherUid, creatorName }:
       {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
       {open && offers && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 sm:items-center" role="dialog" aria-modal aria-label={`Subscribe to ${first}`} onClick={() => setOpen(false)}>
-          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl bg-paper p-5 text-left sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-2xl text-ink">Subscribe to {creatorName || `@${username}`}</p>

@@ -314,7 +314,7 @@ export default function PublishingSettingsPage() {
           )}
         </div>
 
-        <div className="card p-6">
+        <div className="card min-w-0 max-w-full overflow-hidden p-6">
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={subOn} onChange={(e) => setSubOn(e.target.checked)} />
             <span className="eyebrow">Offer monthly subscriptions: Premium, VIP and VVIP</span>

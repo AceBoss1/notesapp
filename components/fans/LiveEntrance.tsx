@@ -36,7 +36,7 @@ export default function LiveEntrance({ entrance }: { entrance?: Entrance | null 
     <div className="pointer-events-none fixed inset-0 z-[72] overflow-hidden" role="status" aria-live="polite">
       <style>{`
 .le-ride{position:absolute;top:22%;width:min(70vw,360px);animation:le-${now.way} 4.6s cubic-bezier(.3,.7,.4,1) both}
-@keyframes le-in{0%{transform:translateX(-110vw)}55%{transform:translateX(calc(50vw - 50%))}70%{transform:translateX(calc(50vw - 50%))}100%{transform:translateX(calc(50vw - 50%));opacity:0}}
+@keyframes le-in{0%{transform:translateX(-110vw);opacity:1}55%{transform:translateX(calc(50vw - 50%));opacity:1}80%{transform:translateX(calc(50vw - 50%));opacity:1}100%{transform:translateX(calc(50vw - 50%));opacity:0}}
 @keyframes le-out{0%{transform:translateX(calc(50vw - 50%))}30%{transform:translateX(calc(50vw - 50%))}100%{transform:translateX(120vw)}}
 .le-card{animation:le-card 5.4s ease both}
 @keyframes le-card{0%{transform:translateY(30px);opacity:0}12%,85%{transform:none;opacity:1}100%{opacity:0}}
