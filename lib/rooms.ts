@@ -52,11 +52,18 @@ export type RoomDoc = {
   // (0 = off). handInfo: the name and picture of each raised hand, since listeners aren't in `joined`.
   listening?: number; countedAt?: string; chatSlow?: number;
   handInfo?: Record<string, { name: string; avatar: string }>;
+  // Live mode (lib/rooms-live.ts), relay rooms: whose camera is up now (uid → when it went up; a new time means "pull it again"),
+  // whether the host lets speakers turn video on, and the poster everyone sees while video is off (a picture URL, never video).
+  // Server-written, like the rest of the room. videoUsedMs: the video minutes this live used, written when it ends (for replays, 2c).
+  videoOn?: Record<string, string>; stageVideo?: boolean; poster?: string; videoUsedMs?: number;
+  // The host's @username and whether they take paid sessions (publisherSettings session.enabled), so "Book a session" stays in view.
+  hostUsername?: string; hostBooks?: boolean;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 export type RoomPersonDoc = RoomPerson & { chatAt?: string };
 // Server-only (communityRooms/{id}/relay/{uid}): the person's Cloudflare session and the microphone track they send, if any.
-export type RoomRelayRecord = { sessionId: string; at: string; push?: { trackName: string; mid: string } | null };
+// video: the camera track they send (Live mode), if any.
+export type RoomRelayRecord = { sessionId: string; at: string; push?: { trackName: string; mid: string } | null; video?: { trackName: string; mid: string } | null };
 // "stage": two people on stage, both ways. "listen": the host sending the stage's sound to one listener.
 export type RoomLinkKind = "stage" | "listen";
 export type RoomLink = { from: string; to: string; at: string; kind: RoomLinkKind; offer?: { type: string; sdp: string }; answer?: { type: string; sdp: string } };
@@ -92,16 +99,35 @@ export function linksFor(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined">, me
 export const roomIsFull = (r: Pick<RoomDoc, "hostUid" | "speakers" | "joined">, cap: number = ROOM_LISTENERS_MAX_P2P, now = Date.now()) => listenersOf(r, now).length >= cap;
 
 // ── Settings (Admin → Limits → Audio rooms; saved in serverConfig/rooms, read through lib/rooms-server.ts) ──
-export type RoomSettingKey = "relayOn" | "relayListeners" | "p2pListeners" | "chatSlowAbove" | "chatSlowSeconds";
-export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch" };
+export type RoomSettingKey = "relayOn" | "relayListeners" | "p2pListeners" | "chatSlowAbove" | "chatSlowSeconds"
+  | "videoOn" | "videoBudgetMinutes" | "videoGraceSeconds" | "videoNearlyLeftMinutes" | "videoBurstMinutes" | "videoTryMinutes"
+  | "dropPercent" | "dropWindowMinutes" | "videoKbps" | "videoFps" | "videoHeight";
+// group "live": Live mode (lib/rooms-live.ts), shown under its own heading in Admin → Limits → Audio rooms.
+export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" };
 export const ROOM_LISTENERS_MAX_RELAY = 500;
+// What the listener setting may be raised to. Rooms are planned for 10,000 listeners (owner, 2 Nov 2026): nothing writes once per
+// listener or sends everyone the full list (people/ and the count, above); the default stays at 500 until the owner raises it.
+export const ROOM_LISTENERS_CEILING = 10_000;
 export const ROOM_SETTINGS: RoomSettingDef[] = [
   { key: "relayOn", label: "Use the Cloudflare relay for audio rooms (only once CLOUDFLARE_REALTIME_APP_ID and _TOKEN are set; rooms already open keep theirs)", unit: "on/off", min: 0, max: 1, def: 1, kind: "switch" },
-  { key: "relayListeners", label: "Listeners per room with the relay", unit: "listeners", min: 1, max: 5_000, def: ROOM_LISTENERS_MAX_RELAY },
+  { key: "relayListeners", label: "Listeners per room with the relay", unit: "listeners", min: 1, max: ROOM_LISTENERS_CEILING, def: ROOM_LISTENERS_MAX_RELAY },
   { key: "p2pListeners", label: "Listeners per room phone to phone (the host's phone sends to each one)", unit: "listeners", min: 1, max: 30, def: ROOM_LISTENERS_MAX_P2P },
   // Each message is read by everyone in the room, so a big room's chat costs reads fast: slow mode spaces out each listener's messages.
-  { key: "chatSlowAbove", label: "Relay rooms: room chat goes into slow mode above this many listeners", unit: "listeners", min: 10, max: 5_000, def: 200 },
+  { key: "chatSlowAbove", label: "Relay rooms: room chat goes into slow mode above this many listeners", unit: "listeners", min: 10, max: ROOM_LISTENERS_CEILING, def: 200 },
   { key: "chatSlowSeconds", label: "Relay rooms: slow mode, seconds between one listener's messages (host and speakers are never slowed)", unit: "seconds", min: 2, max: 300, def: 10 },
+  // Live mode (owner, 2 Nov 2026; lib/rooms-live.ts): video through the relay, a poster when it's off, a video-minutes budget per live,
+  // and prompts to the host. A poster is only a picture: it never counts as video.
+  { key: "videoOn", label: "Live mode: the host (and speakers, if the host allows) can turn video on in relay rooms", unit: "on/off", min: 0, max: 1, def: 1, kind: "switch", group: "live" },
+  { key: "videoBudgetMinutes", label: "Video minutes per live (each camera on counts; counted by the server)", unit: "minutes", min: 1, max: 600, def: 15, group: "live" },
+  { key: "videoGraceSeconds", label: "When the video minutes run out: the host is told, and video turns off after", unit: "seconds", min: 5, max: 300, def: 30, group: "live" },
+  { key: "videoNearlyLeftMinutes", label: "\"Back to audio\" prompt when this many video minutes or fewer are left", unit: "minutes", min: 0, max: 60, def: 2, group: "live" },
+  { key: "videoBurstMinutes", label: "\"Back to audio\" prompt once video has been on this long without a break", unit: "minutes", min: 1, max: 120, def: 3, group: "live" },
+  { key: "videoTryMinutes", label: "How many minutes of video the drop prompt suggests (\"Try N minutes of video?\")", unit: "minutes", min: 1, max: 30, def: 2, group: "live" },
+  { key: "dropPercent", label: "Drop prompt: listeners fell by at least this share", unit: "%", min: 1, max: 90, def: 10, group: "live" },
+  { key: "dropWindowMinutes", label: "Drop prompt: within this many minutes", unit: "minutes", min: 1, max: 30, def: 2, group: "live" },
+  { key: "videoKbps", label: "Video quality cap per camera", unit: "kbps", min: 150, max: 2_500, def: 600, group: "live" },
+  { key: "videoFps", label: "Video frame rate", unit: "frames a second", min: 10, max: 30, def: 24, group: "live" },
+  { key: "videoHeight", label: "Video height", unit: "pixels (480 = 480p)", min: 240, max: 720, def: 480, group: "live" },
 ];
 export type RoomSettings = Record<RoomSettingKey, number>;
 export type RoomOverrides = Partial<RoomSettings>;
@@ -133,10 +159,16 @@ export const listenerCap = (mode: RoomMode | undefined, s: RoomSettings): number
 export const roomFullText = (cap: number) => `The room is full: ${cap.toLocaleString("en-GB")} people can listen at a time.`;
 
 // What the help, the public pages and the "Start a room" form say about room size, from the settings: what a room opened now holds.
-export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number };
+// live: Live mode's figures (lib/rooms-live.ts), for the help and the Audio rooms page.
+export type RoomLiveFigures = { video: boolean; budgetMinutes: number; graceSeconds: number; nearlyLeftMinutes: number; burstMinutes: number; tryMinutes: number; dropPercent: number; dropWindowMinutes: number; height: number; fps: number; kbps: number };
+export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number; live: RoomLiveFigures };
+export const roomLiveFigures = (s: RoomSettings = ROOM_DEFAULTS): RoomLiveFigures => ({
+  video: s.videoOn > 0, budgetMinutes: s.videoBudgetMinutes, graceSeconds: s.videoGraceSeconds, nearlyLeftMinutes: s.videoNearlyLeftMinutes, burstMinutes: s.videoBurstMinutes,
+  tryMinutes: s.videoTryMinutes, dropPercent: s.dropPercent, dropWindowMinutes: s.dropWindowMinutes, height: s.videoHeight, fps: s.videoFps, kbps: s.videoKbps,
+});
 export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false): RoomFigures => {
   const mode = chooseRoomMode(s, keysSet);
-  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds };
+  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds, live: roomLiveFigures(s) };
 };
 export const DEFAULT_ROOM_FIGURES = roomFigures();
 

@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.126.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Live mode in Community audio rooms: in a room through our relay, the host can turn their camera on and off during the room (and let speakers do the same), without anyone reconnecting. Video is kept light so it works on ordinary phone data." },
+      { kind: "added", text: "A poster for every room: the host picks a picture when they start (one they upload, their profile picture or the challenge art) and can change it any time. Everyone sees it while video is off. It's only a picture, so it never uses video data." },
+      { kind: "added", text: "Audio only for listeners: one tap stops downloading the video to save data. On a slow connection or with data saver on, rooms start on Audio only, and your choice is remembered on that device." },
+      { kind: "added", text: "Each live has a set number of video minutes, and the host sees how many are left. When they run out the host is told and video turns off by itself shortly after; the room carries on with sound and the poster." },
+      { kind: "added", text: "Gentle tips for the host: when listeners start dropping while video is off, a suggestion to try a short burst of video; after a long stretch of video, or when few minutes are left, a reminder to go back to audio." },
+      { kind: "added", text: "If the host offers paid sessions, Book a session stays at the top of the room for everyone listening, and opens in a new tab so you don't leave." },
+      { kind: "added", text: "For the team: Admin → Limits → Audio rooms has a Live mode section (video on or off, video minutes per live, the grace when they run out, when each tip shows, and the video's size, frame rate and quality cap), and the help and the Audio rooms page quote what's saved there. Rooms can now be set to hold up to 10,000 listeners." },
+    ],
+  },
+  {
     version: "v0.125.0",
     bump: "minor",
     date: "2026-11-03",
