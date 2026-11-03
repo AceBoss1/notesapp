@@ -999,7 +999,7 @@ You connect the domain in the Console by adding the DNS records we show. Buying 
 ## Setting up your site
 Open [Your site](/profile/site) (also linked from Edit profile and the Console): your domain shows there once it's connected, and the preview at ${ROOT_DOMAIN}/s/your-username always works. Choosing a kit, a look, colours and sections is in [Your own site](/help/your-site).`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
-Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs). Questions about the API or the MCP server can go to our [Discord](${SITE.discord}), where API changes are announced too.`),
+Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts (and upload their images) and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs). Questions about the API or the MCP server can go to our [Discord](${SITE.discord}), where API changes are announced too.`),
     A("naija-exam-prep", `${PREP_NAME}: JAMB, WAEC and NECO practice`, "Getting started", `
 ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. ${PREP_TAGLINE} It uses your NotesApp account.
 
