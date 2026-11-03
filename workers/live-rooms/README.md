@@ -1,6 +1,6 @@
 # Live rooms worker
 
-Chat and live signals for #NotesApp's big audio rooms (v0.126.0): a Cloudflare Worker with one Durable Object (`LiveRoom`) per room,
+Chat and live signals for #NotesApp's big audio rooms (v0.127.0): a Cloudflare Worker with one Durable Object (`LiveRoom`) per room,
 using the WebSocket Hibernation API. The design is in `lib/live-rooms.ts`; the owner's steps are HANDOVER item 99. This folder is not
 part of the Next.js build (the app's `tsconfig.json` excludes `workers/`); wrangler bundles `src/index.ts` together with the shared
 `lib/live-token.ts`, `lib/live-rooms.ts` and `lib/rooms.ts`.

@@ -26,6 +26,15 @@ export function createDirectUpload(sellerUid: string, name: string) {
   });
 }
 
+// A video made from a file Cloudflare fetches itself (a replay copied from the private bucket through a short-lived signed link), with
+// the same signed-playback rule as every other video here.
+export function copyFromUrl(url: string, creator: string, name: string) {
+  return cf<{ uid: string }>("/copy", {
+    method: "POST",
+    body: JSON.stringify({ url, requireSignedURLs: true, creator, meta: { name } }),
+  });
+}
+
 export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number };
 export async function getVideo(uid: string): Promise<StreamVideo | null> {
   try {

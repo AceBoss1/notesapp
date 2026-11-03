@@ -9,7 +9,7 @@ import type { LiveRole } from "@/lib/live-token";
 import type { RoomChat, RoomDoc } from "@/lib/rooms";
 import { capi } from "./api";
 
-// A relay room's chat and live signals over the live-rooms worker (lib/live-rooms.ts, v0.126.0): one WebSocket to the room's Durable
+// A relay room's chat and live signals over the live-rooms worker (lib/live-rooms.ts, v0.127.0): one WebSocket to the room's Durable
 // Object for the chat, the live listener count, raised hands and stage/video signals (camera on/off is decided by our server and only
 // mirrored here), so nobody reads Firestore for every message.
 // Used only when NEXT_PUBLIC_LIVE_ROOMS_URL is set and the room was opened on the worker (room.edge); otherwise `on` is false and the

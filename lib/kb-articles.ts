@@ -35,6 +35,7 @@ import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
+import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
@@ -54,7 +55,8 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // the Nana and connected-agent settings. Prices and rates are read from the live objects, so call this after ensurePricing().
 // Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one), and Live
 // mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures };
+// Live recording: the keep days, the longest recording and whether the recorder is set up (lib/live-recording.ts).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -66,6 +68,9 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const ag = live.agents ?? AGENT_DEFAULTS;
   const room = live.rooms ?? DEFAULT_ROOM_FIGURES;
   const roomListeners = n(room.listeners);
+  const rec = live.recording ?? DEFAULT_RECORDING_FIGURES;
+  // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
+  const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
   const rlive = room.live ?? DEFAULT_ROOM_FIGURES.live; // Live mode (lib/rooms-live.ts)
   const lim = (k: LimitKey, tier: (typeof LIMIT_TIERS)[number]) => limitFor(k, tier, live.limits);
   // A plan limit over the plans that publish: "30", or "10 to 50" when the plans differ (byPlan says so).
@@ -791,7 +796,7 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 **What non-members see:** a home page with your name, pictures and a line about you, and only what your admins choose: General (read only), About, Contact, public events, the member list, and a Join button. Until we've verified who runs the community, it shows a notice; [verification](/organisations) removes it.
 
-**Audio rooms:** like Clubhouse, inside your community. Admins and moderators tap **+ Start a room** on the community's Home, give it a name (Sunday Q&A, Midweek Bible study) and go live. The host can bring up to **4 members on stage** to speak at a time; everyone else listens. A listener taps **✋ Raise hand to speak**, and the host taps **Bring up** (or taps anyone in the room and **Invite to speak**); **Move to listeners** sends a speaker back, and a speaker can step down with **Back to listening**. A green ring shows who is talking. **Leave quietly** to go; the host leaving, or **End room**, ends it for everyone. Rooms are for members only, nothing is recorded, and a room holds up to **${roomListeners} listeners**${room.relay ? " (the sound goes through our relay, run by Cloudflare)" : " (phone to phone for now; bigger rooms come with our relay)"}.
+**Audio rooms:** like Clubhouse, inside your community. Admins and moderators tap **+ Start a room** on the community's Home, give it a name (Sunday Q&A, Midweek Bible study) and go live. The host can bring up to **4 members on stage** to speak at a time; everyone else listens. A listener taps **✋ Raise hand to speak**, and the host taps **Bring up** (or taps anyone in the room and **Invite to speak**); **Move to listeners** sends a speaker back, and a speaker can step down with **Back to listening**. A green ring shows who is talking. **Leave quietly** to go; the host leaving, or **End room**, ends it for everyone. Rooms are for members only, nothing is recorded unless the host switches [recording](/help/live-recording-and-replays) on (everyone is told), and a room holds up to **${roomListeners} listeners**${room.relay ? " (the sound goes through our relay, run by Cloudflare)" : " (phone to phone for now; bigger rooms come with our relay)"}.
 
 **Room chat:** while a room is on, everyone in it can type: questions for the speakers, prayer points, amens, links. On a computer the chat sits beside the room; on a phone tap **💬 Chat** (a red number shows what you missed). The host and speakers are marked, the host or a moderator can **Remove** a message, and the chat goes when the room ends: nothing is kept.
 
@@ -889,10 +894,10 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host or a moderator can **Remove** a message.
 
-**Ending:** **End room** ends it for everyone; the host leaving ends it too. Nothing is recorded, and the chat is deleted when the room ends.
+**Ending:** **End room** ends it for everyone; the host leaving ends it too. The chat is deleted when the room ends. Nothing is recorded unless the host switched recording on before going live: then everyone sees **${RECORDING_NOTICE}**, and speakers agree before their mic goes on. See [Recording and replays](/help/live-recording-and-replays).
 
 **How the sound travels:** ${room.relay
-  ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and is never recorded or kept. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).${room.liveChat
+  ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and isn't kept there; only a room the host chose to record is recorded, by our own recorder. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).${room.liveChat
     ? `\n\n**Chat in big rooms:** the chat, the listener count and raised hands travel live over one connection to our chat service, run on Cloudflare, so a room of thousands keeps up and everyone sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. **Slow mode is the host's tool:** at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on past ${n(room.chatSlowAbove)} listeners). The host or a moderator can also **Mute** someone in the chat (and **Unmute** them later) or **Remove from room** for the rest of the room; a message they take down disappears from every screen at once. The chat is still deleted when the room ends.`
     : ""}`
   : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
@@ -908,6 +913,20 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Book a session:** if the host offers paid sessions, **📅 Book a session** stays at the top of the room, with or without video; it opens their booking card in a new tab, so you don't leave the room.
 
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
+    A("live-recording-and-replays", "Recording a live, and replays", "Teams and organisations", `
+**Recording is off unless the host switches it on.** ${rec.available ? "" : "Recording isn't available on #NotesApp yet; this is how it will work. "}When you start an [audio room](/help/community-audio-rooms), tick **Record this live** before **Go live** (hosts on ${planList("liveRecording")} can). Only rooms that run through our relay can be recorded; if a room runs phone to phone, it isn't, and the host is told.${rec.forced ? " For now every relay room is recorded for safety review, whatever the host chooses, and everyone is told the same way." : ""}
+
+**Everyone is told.** In a recorded room everyone sees **${RECORDING_NOTICE}** at the top of the room, and the room shows **● Recorded** on the community's Home before you join. When the host brings you on stage, your mic (and your camera, if the host lets speakers use video) stays off until you tap **I agree, turn my mic on** (or **Back to listening**). Listeners aren't recorded unless they speak on stage; the room chat isn't recorded.
+
+**What's recorded and how:** the sound from the stage (the host and speakers), the cameras of the host and of speakers the host lets use video while they're on, and the room's poster while every camera is off, by a recorder that joins the room on our own servers, never on anyone's phone; it isn't counted as a listener and uses none of the live's video minutes. It records for up to ${rec.maxHours} hour${rec.maxHours === 1 ? "" : "s"}.
+
+**Kept ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, then deleted.** A recording is kept for ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} after the live ends so it can be checked if someone reports something (our Trust & safety team can play any recording; the host can play their own), then deleted for good, unless the host publishes it as a replay. Nobody else can download it.
+
+**Replays:** in **[Media](/profile/media)** the host sees each recording with the days left, and can **Publish** it (hosts on ${planList("replayPublish")} can), **Play** it or **Delete** it. A replay can be for **everyone** (it shows on Explore and Trending), for the host's **journal subscribers** (paid, like a premium post), or for **members of the community** only. If the host or anyone who spoke is in teen mode, the replay stays inside the community. A replay isn't a journal post: tap **Share to Journal** to make a draft post with the replay${rec.transcripts ? ", its transcript" : ""} and a summary Nana drafts${rec.transcripts ? "" : " once transcripts are on"}, which you edit and publish like any post, with **Book a session** under it. Replays can also be shared to Moments, a chat or other apps.
+
+**Unpublishing** removes the replay and its journal post. If that's within the first ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, the recording is kept another ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} and then deleted unless you publish it again; after that, it's deleted straight away.
+
+See our [Privacy policy](/privacy) for how recordings are handled.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `
 Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up as an Organisation with your CAC number (RC, BN or IT) and a work email, verify the email, and start a free ${ORG_TRIAL_DAYS}-day Business trial (no card, one per registration number). We then confirm the registration against the CAC register; until then the channel shows an "unverified organisation" notice.
 

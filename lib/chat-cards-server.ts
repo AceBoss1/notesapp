@@ -21,6 +21,12 @@ export async function cardFor(db: Firestore, ref: CardRef): Promise<ChatCard | n
     if (!c || c.status !== "published") return null;
     return { kind: "course", href: `/academy/${ref.id}`, title: String(c.title ?? "Course"), subtitle: `Free course · ${Number(c.lessonCount) || 0} lessons · ${String(c.ownerName ?? "")}`, image: String(c.cover ?? ""), cta: "Enrol" };
   }
+  if (ref.kind === "replay") {
+    // A replay of a live (lib/live-recording.ts): for everyone or the host's subscribers; one kept inside its community has no card.
+    const r = (await db.doc(`replays/${ref.id}`).get()).data();
+    if (!r || (r.audience !== "public" && r.audience !== "subscribers")) return null;
+    return { kind: "replay", href: `/replays/${ref.id}`, title: String(r.title ?? "Replay"), subtitle: `Replay of a live with ${String(r.hostName ?? "a member")}`, image: String(r.hostAvatar ?? ""), cta: "Watch", ...(r.audience === "subscribers" ? { badge: "Subscribers" } : {}) };
+  }
   const uid = (await db.doc(`usernames/${ref.id}`).get()).data()?.uid;
   const u = uid ? (await db.doc(`users/${uid}`).get()).data() : undefined;
   if (!u || u.suspended === true) return null;
