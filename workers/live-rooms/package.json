@@ -1,0 +1,14 @@
+{
+  "name": "notesapp-live-rooms",
+  "version": "0.126.0",
+  "private": true,
+  "description": "Chat and live signals for #NotesApp's big audio rooms: a Cloudflare Worker with one Durable Object per room. Not part of the Next.js build.",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}

@@ -11,7 +11,8 @@ export const LIMIT_TIER_LABEL: Record<AccountTier, string> = { standard: "Free S
 
 export type LimitKey = "messageAttachmentMB" | "messageAttachmentsPerMessage" | "messageVoiceNoteSeconds" | "momentVideosPerWeek" | "momentsPerDay"
   | "mediaVideosPerWeek" | "mediaVideoMaxSeconds" | "mediaPicturePostsPerDay" | "mediaStorageGB"
-  | CourseFlag | "coursesPerMember" | "coursesPerOrganisation" | "courseStorageGB" | "courseVideoHours" | "nanaOperator" | "nanaJobsPerDay" | "agentConnect";
+  | CourseFlag | "coursesPerMember" | "coursesPerOrganisation" | "courseStorageGB" | "courseVideoHours" | "nanaOperator" | "nanaJobsPerDay" | "agentConnect"
+  | "liveRecording" | "replayPublish";
 // kind "switch": a plan flag, 1 = on and 0 = off (a tick box in Admin → Limits). noLimitAt0: 0 means "no limit" rather than "none".
 export type LimitDef = { key: LimitKey; group: string; label: string; unit: string; min: number; max: number; defaults: Record<AccountTier, number>; kind?: "switch"; noLimitAt0?: boolean };
 
@@ -49,6 +50,10 @@ export const LIMITS: LimitDef[] = [
   { key: "nanaOperator", group: "Nana and connected agents", label: "Nana operator: jobs, drafts and Nana's inbox", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: { standard: 0, basic: 0, pro: 0, business: 1, enterprise: 1 } },
   { key: "nanaJobsPerDay", group: "Nana and connected agents", label: "Nana's job runs a day per member (each draft or summary counts)", unit: "runs", min: 0, max: 1000, defaults: { standard: 0, basic: 0, pro: 0, business: 60, enterprise: 200 } },
   { key: "agentConnect", group: "Nana and connected agents", label: "Connect outside AI assistants (Connect NotesApp)", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: { standard: 1, basic: 1, pro: 1, business: 1, enterprise: 1 } },
+  // Live recording and replays (lib/live-recording.ts), by the host's plan. On for everyone who can host by default (hosts are a
+  // community's admins and moderators, on any plan); Admin's "record every relay room" switch records whatever these say.
+  { key: "liveRecording", group: "Audio rooms and live", label: "Host can switch recording on before going live", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: flat(1) },
+  { key: "replayPublish", group: "Audio rooms and live", label: "Host can publish a recording as a replay", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: flat(1) },
 ];
 
 // Saved by an admin: only the numbers they changed from the defaults need to be here.

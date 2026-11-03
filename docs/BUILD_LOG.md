@@ -2623,6 +2623,23 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
+**Live mode in audio rooms (v0.126.0, 3 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
+The owner's decisions: the host (and speakers if the host allows) turns video on and off during a relay room, as a second track
+through the relay capped at 480p, about 600 kbps and 24 fps; off goes back to audio without reconnecting; while it's off everyone sees
+the host's poster (an upload, the profile picture or the challenge art; a picture, never video, never counted); viewers get Audio only,
+on by default on slow connections and remembered per device; each live has a video-minutes budget (15 by default) counted by the
+server, with a 30-second grace before video turns off; and the host is prompted when listeners drop ("Try 2 minutes of video?") or a
+burst runs long ("Back to audio to keep your video minutes."). Every number is a setting in a new Live mode group under Admin → Limits
+→ Audio rooms, quoted live by the help and /community/audio-rooms. Design: the room doc is read by everyone in the room, so it gains
+only who has a camera up (`videoOn`), `stageVideo`, the poster and the host's booking flag; the minutes, the open cameras, the listener
+samples and the prompt times live in a server-only `live/state` doc behind a handful of functions in `lib/rooms-live-server.ts`, so the
+parallel step 2b (chat and live signals on a Durable Object) can change the transport. Minutes are counted per camera from idempotent
+on/off events (a second on keeps the first start, an off for a camera that isn't up changes nothing); the samples ride on the
+existing 15-second recount, so the drop prompt costs one small write per window. The host's minutes and prompts come back on their
+own beat, so no listener read is added. Enforcement is server-side: a camera is refused before Cloudflare hears of it once the minutes
+are used, and after the grace the next stage beat cuts every camera at Cloudflare. The relay listener ceiling went to 10,000 (default
+500) after checking nothing writes per listener. Rooms are community-scoped, so teen mode's follower rules have nothing to add here.
+Emulator and rules tests ran from a temporary config on port 8213.
 
 **Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
 
@@ -2650,6 +2667,81 @@ returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's
 only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
 Console scope label, the roadmap, the API help article and README say so.
 
+**Live chat and signals for big audio rooms on a Durable Object (v0.127.0, 3 Nov 2026)** — Step 2b of the rooms plan. A relay room's
+Firestore chat costs one read per person per message, so a 10,000-listener room can't afford a live read of it. Each relay room opened
+while `NEXT_PUBLIC_LIVE_ROOMS_URL` and `LIVE_ROOMS_SECRET` are set (`edge: true` on the room doc; a room keeps what it opened with) gets
+one Cloudflare Durable Object (`workers/live-rooms`, its own package.json, tsconfig and wrangler.toml; excluded from the app's
+tsconfig) holding every socket through the Hibernation API, so a quiet room bills nothing. Chat, the live listener count (distinct
+people, not tabs, broadcast at most every 2 s), raised hands, stage moves and a video on/off signal go over the socket. Trust: the
+socket needs a 10-minute HMAC-SHA256 token (`lib/live-token.ts`, pure WebCrypto, imported by both sides) minted only for someone the
+room already let in; the role can change only by our server's signed push (`role` after `setSpeaker`), which also overrides an older
+token on reconnect; moderators come from the community role at mint time. Slow mode, the rate limits (a token bucket per connection,
+kept in the socket's attachment so it survives hibernation) and the size limit are enforced at the edge; the host can now switch slow
+mode on or off (or leave it automatic, from the existing settings, pushed to rooms at creation and when an admin saves them).
+Firestore stays the record: the object batches the chat (3 s or 50 messages), removals and bans to `/api/community/rooms/edge` (signed
+over the exact body, 5-minute clock window), which writes `communityRooms/{id}/chat` with the object's ids (same shape as
+`sendRoomChat`'s, so a removal through either side finds it) and the room doc's count at most every 15 s plus a 45 s keepalive;
+`recount` stands aside while the edge reports (`edgeFresh`, 45 s) and the cap takes the higher count. Messages sent through the server
+(the fallback) are forwarded to the object to broadcast, not batched back. A failed batch stays in the object's storage and retries
+with backoff (5 s up to 2 min); the end op closes every socket, sends the final batch with the peak (kept in `edge/state.finalPeak`)
+and clears the object, which then refuses old tokens. The client side is one hook, `components/community/useLiveChannel.ts`, so the
+room screen only swaps its chat source, count and hands (step 2a edits the same component in parallel); after three failed connects
+it polls Firestore for new chat every 10 s and sends through the server. Deploy: `.github/workflows/deploy-live-rooms.yml`
+(cloudflare/wrangler-action, skips green without the two repository secrets) or `npx wrangler deploy`. Tested without Cloudflare: the
+object against in-memory fakes (including a second instance on the same state as the "woken" object) and end to end against the
+Firestore emulator with our server's code on both sides.
+
+Second round (same release, after merging step 2a): listeners in rooms on the worker no longer heartbeat their people/ doc. The worker
+reports each person's sessions (first tab in, last tab out, deduplicated by an "o:<uid>" mark in the object's storage) in the signed
+batches; our server sets people/`edgeIn` and adds the time up per person in `listenTime/{uid}` (one write per person per batch, never
+per heartbeat), closing anything still open when the room ends. Presence for those listeners is `edgeIn` while the worker reports
+(`listenerPresent`, 150 s), so tokens, pulls, Bring up and People here keep working without heartbeats, and a dead worker puts
+everyone back on heartbeats through the client's fallback. The exact count goes to `edge/state` every 15 s (the cap) and the room doc
+only once a minute, since everyone reads it; Live mode's `noteListenerSample` now runs on the worker's counts. Raised hands are kept in
+`edge/state` too and come back on the host's beat; chat mutes can be undone; camera on/off over the socket is told by our server from
+`markVideoOn`/`markVideoOff` instead of trusted from the browser. /status gained "Live room chat" (a signed ping proves both secrets
+match). The room doc is still a live read for everyone in the room (the stage and cameras drive the pulls); moving that onto the socket
+was left for a follow-up because it means reworking the pull logic step 2a just built.
+
+**Live recording and replays (v0.128.0, 2 Nov 2026, step 2c of lives; off until the recorder is set up)** — The decided rule ("Recording for safety review, with the host's consent … Kept 30 days, then deleted unless the host publishes the
+replay") and the owner's choices of 2 November: the host switches recording on before going live (off by default; Admin can force it
+for safety later), everyone is told before they use a microphone, speakers agree with one tap, the recorder runs on our servers and
+never on a phone, recordings are server-only and deleted after the keep days unless published, and the host can publish a replay.
+Later the same day the owner changed one thing: **a published replay is not a journal post by default**. It shows in the host's Media
+area and on Explore and Trending; only "Share to Journal" makes a journal post (a draft with the transcript and Nana's summary).
+
+Why a recorder service and not the host's browser: a recording must not depend on the host's phone staying awake, and must include
+what the host can't record about themselves (the whole stage). The Cloudflare relay (v0.124.0) already lets anyone in the room pull the
+stage's tracks, so the recorder is just another receive-only participant: a hidden page in our own app
+(`/rooms/record/[id]?token=…`) opened by headless Chromium in a small Node service (`services/room-recorder`, Playwright, a
+Dockerfile, deployed on Cloud Run with Google Cloud credits: `docs/RECORDER.md`). Using our own page means the relay code, the mixing
+and MediaRecorder are ordinary browser code we can change with the app, and the service stays about 150 lines. The page's token is
+signed with a key derived from `RECORDER_SECRET`, names one room and one recording, and only allows pull/answer/close (the server
+refuses push); requests between the app and the service carry an HMAC over the body hash (`lib/recorder-sign.ts`, mirrored in
+`services/room-recorder/sign.mjs`, checked against each other in the tests).
+
+Storage: chunks arrive about every 10 seconds per file, far below R2's 5 MiB minimum part size, and a serverless function can't keep a
+buffer between requests, so each chunk is written as a small object and joined into a part once 5 MiB have arrived; finalize sends the
+rest as the last part. Nothing is lost if the recorder dies: the cron finishes a recording from what arrived. Two files are recorded:
+`stage` (a canvas picture with the mixed sound: the host's video track when one arrives, else the room's poster, else a title card) and
+`audio` (sound only, small enough for speech to text). Replays copy the stage file to Cloudflare Stream (copy from a signed link) so
+both audio-only and video replays stream with the same signed-playback rule as course videos.
+
+Transcripts: the only speech-to-text in the codebase is NKENNEAi (Kiswahili voice notes), with a 25 MB file limit, so transcription is
+a pluggable step (`Transcriber` in `lib/live-recording-server.ts`) that is off until `REPLAY_TRANSCRIBE` names a provider; Nana's
+summary needs the transcript. Teen mode: a host or a speaker in teen mode keeps the replay inside the community and off every list
+(`audienceFor`). Settings follow the rooms pattern (`serverConfig/recording`, a 30-second cache, its own section in Admin → Limits so
+the audio room settings stay untouched for parallel work), with two plan switches in the limits table for who can record and publish.
+Merged with 2a (Live mode) on the same day: the recorder pulls each camera that's up as a video track and draws the poster while every camera is off; a speaker's camera in a recorded room waits for their agreement like their microphone; the recorder is never a listener (no people/ doc), so it's in no count and costs no video minutes. Emulator and rules tests ran from temporary copies on ports 8217, 8218 and 8227.
+**Owner set-up guide (docs, 3 Nov 2026)** — The owner steps for the recent features were spread across HANDOVER items 91 to 101 and
+the pending branches' notes. `docs/OWNER_SETUP.md` gathers them in one place, in order, for a non-developer: one `firebase deploy
+--only firestore` for every pending rule (run again after each merge) and the three TTL policies not yet declared in
+`firestore.indexes.json` (`agentProposals.purgeAt`, `agentUsage.expireAt`, `agentEvents.expireAt`); the Cloudflare Realtime SFU app
+and TURN key; the live rooms worker (Workers Paid, the API token, GitHub secrets, the workflow, `LIVE_ROOMS_SECRET`,
+`NEXT_PUBLIC_LIVE_ROOMS_URL`); the Cloud Run recorder (APIs, Secret Manager with the accessor role, the deploy command, `RECORDER_URL`
+/ `RECORDER_SECRET`); Stream; the cron-job.org agents job; `mcp.` authorised domains; optional transcripts; the counsel list; a
+testing checklist with the /status rows to expect; costs only from our docs or marked to verify; and troubleshooting quoting the
+code's own messages. Internal doc: no changelog entry. HANDOVER and README point to it.
 **Media, phase M1 (v0.129.0, 3 Nov 2026)** — The owner approved the Media mockups (`docs/MEDIA.md`) and decided: Media is a tab on
 the public profile (Notes · Media · Store · Courses, with its own count; the phone tab bar is unchanged), and `/u/{username}/media`
 is that tab as a page (`ProfilePageClient` with `initialTab="media"`). The creator's grid (`components/media/CreatorMedia.tsx`):

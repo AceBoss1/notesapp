@@ -15,7 +15,9 @@ import { academyFaq } from "../../lib/academy-faq";
 import { commissionLine, myRates } from "../../lib/my-rates";
 import { resetLimitCache } from "../../lib/limits-server";
 import { resetAgentSettingsCache } from "../../lib/agents/config-server";
+import { resetRecordingSettingsCache } from "../../lib/live-recording-server";
 import { PLAN_SHARE } from "../../lib/referrals";
+import { resetRoomSettingsCache } from "../../lib/rooms-server";
 
 const ROOT = join(__dirname, "..", "..");
 const defaults = builtInArticles();
@@ -34,12 +36,15 @@ cfg.inventory.addonMonthlyKobo = 1_750 * 100;
 cfg.logistics.cutRate = 0.12;
 cfg.coursePackages.certificateMinKobo = 1_111 * 100;
 cfg.nana.resetEvery = "day";
-const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 }, mediaVideosPerWeek: { pro: 9 }, mediaVideoMaxSeconds: { pro: 240 }, mediaPicturePostsPerDay: { business: 33 }, mediaStorageGB: { enterprise: 0 } };
+const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 }, replayPublish: { standard: 0, basic: 0 }, mediaVideosPerWeek: { pro: 9 }, mediaVideoMaxSeconds: { pro: 240 }, mediaPicturePostsPerDay: { business: 33 }, mediaStorageGB: { enterprise: 0 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
   "platformSettings/pricing": { config: cfg },
   "serverConfig/limits": { overrides: limits },
   "serverConfig/agents": { overrides: agents },
+  "serverConfig/recording": { overrides: { keepDays: 21, maxHours: 3 } },
+  // Audio rooms' Live mode (Admin → Limits → Audio rooms → Live): the help quotes these, never the defaults.
+  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3 } },
 };
 // Just enough of Firestore for the loaders: doc(path).get() and an empty kbArticles collection.
 const db = {
@@ -49,7 +54,7 @@ const db = {
 
 (async () => {
   assert.deepEqual(cleanPricing(structuredClone(cfg)), cfg, "the test config passes the admin form's checks");
-  clearKbCache(); resetLimitCache(); resetAgentSettingsCache();
+  clearKbCache(); resetLimitCache(); resetAgentSettingsCache(); resetRoomSettingsCache(); resetRecordingSettingsCache();
   const live = await getArticles(db);
 
   // Commission on paid sessions, subscriptions and gifts (one rate), per plan.
@@ -88,6 +93,16 @@ const db = {
   assert.ok(!connect.includes("100 by default") && !connect.includes("₦2,000 by default"), "no default agent limits");
   const inbox = body(live, "nanas-inbox");
   assert.ok(inbox.includes("Wednesdays, 07:00") && inbox.includes("expires after 3 days") && inbox.includes("(Pro, Business and Enterprise)"), "Nana's jobs settings");
+  // Live recording (Admin → Limits → Live recording, and the "Audio rooms and live" plan switches).
+  const recording = body(live, "live-recording-and-replays");
+  assert.ok(recording.includes("Kept 21 days, then deleted") && recording.includes("up to 3 hours"), "the keep days and the longest recording");
+  assert.ok(!recording.includes("30 days") && !recording.includes("4 hours"), "no default keep days or length");
+  assert.ok(recording.includes("hosts on every plan can") && recording.includes("hosts on Pro, Business and Enterprise can"), "who can record and who can publish");
+  assert.ok(body(defaults, "live-recording-and-replays").includes("Kept 30 days"), "the default was different");
+  // Audio rooms' Live mode.
+  const rooms = body(live, "community-audio-rooms");
+  for (const x of ["22 video minutes", "40 seconds later", "fall by 15% or more within 4 minutes", "Try 3 minutes of video?", "for 6 minutes in a row"]) assert.ok(rooms.includes(x), `audio rooms help: ${x}`);
+  for (const x of ["15 video minutes", "30 seconds later", "Try 2 minutes"]) assert.ok(!rooms.includes(x), `audio rooms help has no default: ${x}`);
   // Fixed in code (not an admin setting) but quoted from the constant: the referral share.
   assert.ok(body(live, "referrals").includes(`${Math.round(PLAN_SHARE * 100)}% of what your friend pays`));
   // The defaults really were different (so the checks above prove something).

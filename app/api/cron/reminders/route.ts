@@ -31,6 +31,7 @@ import { birthdayBells } from "@/lib/young-server";
 import { trackJob } from "@/lib/ops-metrics-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
 import { monthlyReferralReports } from "@/lib/referral-report-server";
+import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -98,6 +99,10 @@ async function run() {
   await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
   // One email a day to the team about open reports (nothing when there are none).
   await job("sweepMessageRequests", () => sweepMessageRequests(db));
+  // Live recordings: past their keep days (Admin → Limits → Live recording) and not published, deleted; a recording the recorder never
+  // finished is finished from what arrived; queued replay transcripts, a few at a time (lib/live-recording-server.ts).
+  await job("recordings", async () => { const r = await sweepRecordings(db); return r.deleted + r.finished; });
+  await job("replayTranscripts", () => transcribeReplays(db));
   await job("sweepMessageUploads", () => (privateFilesConfigured() ? sweepMessageUploads(db, deleteObject) : Promise.resolve(0)));
   await job("liftExpiredSuspensions", () => liftExpiredSuspensions(db));
   await job("reportsDigest", async () => ((await sendReportsDigest(db)) ? 1 : 0));

@@ -11,6 +11,7 @@ import { hashtag } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import { ACADEMY_LIVE, courseHref, plural } from "@/lib/courses";
 import { whenText } from "@/lib/events";
+import ReplayShelf from "@/components/replays/ReplayShelf";
 
 // Trending (/trending): the most visited journals, store items, courses and publishers, with the same tabs as profiles (Notes ·
 // Store · Courses) plus Events, Communities and Publishers. Events: public and upcoming, by tickets sold, RSVPs and visits in the period. Journals can be narrowed to a topic, the reader's interests first.
@@ -20,8 +21,8 @@ type Item = { id: string; title: string; price: string; image: string; digital: 
 type Course = { id: string; slug: string; title: string; cover: string; teacher: string; teacherUsername: string; lessons: number; enrolled: number; views: number };
 type TrendingEvent = { id: string; title: string; nextStartAt: string; startsAt: string; endsAt: string; place: string; city: string; state: string; hostName: string; communityName?: string; going: number; views: number; rsvps: number; tickets: number; score: number };
 type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[]; courses?: Course[]; events?: TrendingEvent[] };
-type Tab = "notes" | "store" | "courses" | "events" | "communities" | "publishers";
-const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "events", label: "Events" }, { id: "communities", label: "Communities" }, { id: "publishers", label: "Publishers" }];
+type Tab = "notes" | "store" | "courses" | "events" | "replays" | "communities" | "publishers";
+const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "events", label: "Events" }, { id: "replays", label: "Replays" }, { id: "communities", label: "Communities" }, { id: "publishers", label: "Publishers" }];
 // An event's next start and end, for the line under its title.
 const eventWhen = (e: TrendingEvent) => { const s = new Date(e.nextStartAt); return whenText(s, new Date(s.getTime() + new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime())); };
 type TrendingCommunity = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; posts: number; comments: number; joined: number; score: number };
@@ -140,6 +141,13 @@ export default function TrendingPage() {
           </>
         )}
 
+        {tab === "replays" && (
+          <>
+            <p className="mb-3 text-xs text-slate">Replays of recorded lives, ranked by how often they were watched in this period. Replays kept inside a community aren&apos;t listed. <Link href="/explore?tab=replays" className="font-semibold text-crimson">Newest replays</Link></p>
+            <ReplayShelf sort="trending" days={days} />
+          </>
+        )}
+
         {tab === "communities" && (
           <>
             <p className="mb-3 text-xs text-slate">Communities anyone can find, ranked by what happened in them: new members count most, then posts, then comments. Invite-only communities aren&apos;t listed. <Link href="/explore?tab=communities" className="font-semibold text-crimson">All communities</Link></p>
@@ -167,7 +175,7 @@ export default function TrendingPage() {
             ))}
           </ol>
         )}
-        {data && tab !== "communities" && tab !== "events" && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
+        {data && tab !== "communities" && tab !== "events" && tab !== "replays" && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
         <BadgeToast />
       </section>
     </>
