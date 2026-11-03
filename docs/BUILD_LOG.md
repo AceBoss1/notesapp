@@ -2626,7 +2626,7 @@ are; /status gained "Audio rooms relay". Emulator and rules tests ran from a tem
 
 **Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
 
-**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, 2 Nov 2026)** — The owner reported that one-to-one voice
+**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, 2 Nov 2026)** — The owner reported that one-to-one voice
 calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
 front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
 sets `navigator.audioSession.type = "play-and-record"` (Safari 16.4+), and Notes Life's game sound sets "playback"; on Android, Chrome

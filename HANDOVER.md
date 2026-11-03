@@ -413,7 +413,7 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
-97. **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, branch `push/call-audio-route`; 95 and 96 are
+97. **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, branch `push/call-audio-route`; 95 and 96 are
     reserved for pending PRs, as are v0.123.2 and v0.124.0):** nothing to deploy. Root cause: iPhone Safari routes a page that has
     the microphone open to the loudspeaker unless `navigator.audioSession.type` is "play-and-record" (and Notes Life's game sound sets
     "playback"); Android Chrome, left on the "default" microphone, picks wired > USB > Bluetooth > speakerphone and only uses the

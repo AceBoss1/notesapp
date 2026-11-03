@@ -11,21 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.124.2",
-    bump: "patch",
-    date: "2026-11-02",
-    changes: [
-      { kind: "changed", text: "The plan comparison on Pricing no longer repeats itself: when neighbouring plans have exactly the same answer (giving, paying what you owe online, voice notes, calls and more), it is written once across those plans. If a setting later makes them differ, each plan shows its own again." },
-    ],
-  },
-  {
-    version: "v0.124.1",
+    version: "v0.124.3",
     bump: "patch",
     date: "2026-11-02",
     changes: [
       { kind: "fixed", text: "Voice calls on phones play through the earpiece, like a phone call, instead of the loudspeaker. Video calls still use the speaker. Headphones and Bluetooth take over when they're plugged in or connected, even during a call." },
       { kind: "added", text: "A Sound button in one-to-one and group calls: choose Earpiece or Speaker (iPhone), Earpiece, Speaker, Headphones or Bluetooth (Android), or which speakers and microphone to use (computers). Your choice is remembered on that device. On iPhone, AirPods and Bluetooth are picked in Control Centre." },
       { kind: "fixed", text: "In a video call, the other person's voice no longer plays twice on some browsers." },
+    ],
+  },
+  {
+    version: "v0.124.2",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "changed", text: "The plan comparison on Pricing no longer repeats itself: when neighbouring plans have exactly the same answer (giving, paying what you owe online, voice notes, calls and more), it is written once across those plans. If a setting later makes them differ, each plan shows its own again." },
     ],
   },
   {
