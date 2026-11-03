@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.124.2",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "changed", text: "The plan comparison on Pricing no longer repeats itself: when neighbouring plans have exactly the same answer (giving, paying what you owe online, voice notes, calls and more), it is written once across those plans. If a setting later makes them differ, each plan shows its own again." },
+    ],
+  },
+  {
     version: "v0.124.0",
     bump: "minor",
     date: "2026-11-02",
