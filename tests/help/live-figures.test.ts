@@ -35,8 +35,10 @@ cfg.logistics.cutRate = 0.12;
 cfg.coursePackages.certificateMinKobo = 1_111 * 100;
 cfg.nana.resetEvery = "day";
 // Animated gifts and the daily target (Admin → Pricing → Gifts).
-cfg.gifts.catalogue[2].name = "Party Jollof"; cfg.gifts.catalogue[2].priceKobo = 1_250 * 100; cfg.gifts.catalogue[1].enabled = false;
+cfg.gifts.catalogue[3].name = "Party Jollof"; cfg.gifts.catalogue[3].priceKobo = 1_250 * 100; cfg.gifts.catalogue[1].enabled = false;
 cfg.gifts.daily = { targetKobo: 65_000 * 100, slots: 4, basis: "net", minSenders: 5 };
+cfg.gifts.grand = { fromKobo: 40_000 * 100, announce: true };
+cfg.gifts.uplift = { premiumPct: 15, vipPct: 25 }; // Golden Gele (₦25,000) is then over the ₦20,000 cap: still ✔; Kente (₦50,000) the first grand
 const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
@@ -68,9 +70,12 @@ const db = {
   }
   // Animated gifts and Top gifted today.
   const gifts = body(live, "gifts");
-  for (const x of ["**Party Jollof** (a pot to share): ₦1,250", "₦65,000 after commission", "at least 5 different people", "the 4 who received the most", "choose one of 9 named gifts"]) assert.ok(gifts.includes(x), `gifts shows ${x}`);
-  for (const x of ["Jollof Pot", "Zobo Cup", "₦50,000 or more", "at least 3 different"]) assert.ok(!gifts.includes(x), `gifts no longer shows ${x}`);
-  assert.ok(body(defaults, "gifts").includes("**Jollof Pot** (a pot to share): ₦1,000") && body(defaults, "gifts").includes("₦50,000 or more"), "the defaults were different");
+  for (const x of ["**Party Jollof** (a plate to share): ₦1,250", "₦65,000 after commission", "at least 5 different people", "the 4 who received the most", "choose one of 13 named gifts", "Gifts marked ✔ (from ₦25,000)", "Each gift from ₦40,000 is also announced"]) assert.ok(gifts.includes(x), `gifts shows ${x}`);
+  for (const x of ["Jollof Plate", "Kola Nut", "₦50,000 or more", "at least 3 different", "from ₦25,000 is also announced"]) assert.ok(!gifts.includes(x), `gifts no longer shows ${x}`);
+  assert.ok(body(defaults, "gifts").includes("**Jollof Plate** (a plate to share): ₦5,000") && body(defaults, "gifts").includes("₦50,000 or more"), "the defaults were different");
+  // The extra commission on premium and VIP gifts follows Admin too.
+  assert.ok(gifts.includes("your rate plus 15% of it") && gifts.includes("your rate plus 25% of it") && gifts.includes("a premium gift is charged 9.2%"), "gift commission share is live");
+  assert.ok(body(defaults, "gifts").includes("your rate plus 10% of it") && body(defaults, "gifts").includes("a VIP gift 9.6%"), "the default shares");
   // Prices.
   assert.ok(body(live, "verified-badge").includes("₦1,234") && !body(live, "verified-badge").includes("₦999"), "badge price");
   const plans = body(live, "plans-and-prices");

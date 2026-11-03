@@ -15,10 +15,12 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-03",
     changes: [
-      { kind: "added", text: "Animated gifts: ten named gifts of our own design, from the Kola Nut (₦200) to the Kilimanjaro Sunrise (₦1,000,000), each with a short animation that plays for the person you gift, in their notification and for everyone on their page when it arrives. Sound is off unless you switch on Gift sounds. Gifts over ₦20,000 need a verified account to send. Paid from NotesApp Credit or through Paystack, with the same commission and 7-day hold as every gift." },
+      { kind: "added", text: "Animated gifts: 14 named gifts of our own design, from the Garden Egg (₦200) to the Kilimanjaro Sunrise (₦1,000,000). Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for the person you gift, in their notification and for everyone on their page when it arrives. Sound is off unless you switch on Gift sounds. Paid from NotesApp Credit or by card, with the plan's commission and the 7-day hold." },
+      { kind: "added", text: "VIP gifts: the eight gifts from ₦25,000 (Golden Gele to Kilimanjaro Sunrise) are for verified senders, play longer, and are announced to everyone on #NotesApp at that moment with a link to join the live (or the creator's page) and watch. A creator in teen mode is never announced; an anonymous sender stays anonymous." },
+      { kind: "changed", text: "Commission on animated gifts: the creator's normal rate plus 10% of it on the six premium gifts and plus 20% of it on the eight VIP gifts (with an 8% rate: 8.8% and 9.6%). A gift of a typed amount keeps the normal rate." },
       { kind: "added", text: "Top gifted today: creators who receive the day's gift target from enough different people are pinned at the top of Trending and Explore until midnight in Lagos, most received first. Members in teen mode only appear there for people who follow them." },
       { kind: "changed", text: "The gift sheet is new: animated gifts or any amount, a message, send anonymously, and pay with NotesApp Credit or by card in one place." },
-      { kind: "added", text: "Admin → Pricing → Gifts: rename, reprice, switch off and reorder the animated gifts, and set the daily target, the places on the shelf, whether it counts what senders paid or what creators keep, and how many different senders are needed. The help, /gifts and /pricing follow." },
+      { kind: "added", text: "Admin → Pricing → Gifts: rename, reprice, switch off and reorder the animated gifts, set where VIP gifts start, the extra commission on premium and VIP gifts, whether VIP gifts are announced, and the daily target, the places on the shelf, whether it counts what senders paid or what creators keep, and how many different senders are needed. The help, /gifts and /pricing follow." },
     ],
   },
   {

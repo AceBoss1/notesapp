@@ -1,5 +1,5 @@
 import type { Firestore, Transaction } from "firebase-admin/firestore";
-import { animatedGiftPrice, senderVerified, addGift, dailyId, lagosDayOf, shelfOrder, countedKobo, GIFT_SETTINGS, type AnimatedGift, type DailyTotal, type GiftMotif } from "./gift-catalogue";
+import { animatedGiftPrice, senderVerified, addGift, dailyId, lagosDayOf, shelfOrder, countedKobo, isGrand, isGiftMotif, GIFT_SETTINGS, type AnimatedGift, type DailyTotal, type GiftMotif } from "./gift-catalogue";
 import type { UserProfile } from "./users";
 import { keptOffLists } from "./young";
 import { storedSnapshot } from "./stat-cache";
@@ -38,6 +38,26 @@ export function writeGiftDaily(t: Transaction, db: Firestore, prev: DailyTotal |
 // What visitors of the receiver's page (and, later, a live room) play. Anonymous senders stay anonymous.
 export function writeGiftShow(t: Transaction, db: Firestore, toUid: string, s: { reference: string; giftId: GiftMotif; name: string; priceKobo: number; senderName: string; at: string }) {
   t.set(db.doc(`giftShows/${toUid}`), s);
+}
+
+// ── Grand gifts: the sitewide announcement ────────────────────────────────────────────────────────────────────────────────────────
+// giftBursts/latest (public read, server-written): the last grand gift, which every open page shows as a banner with a link to watch it
+// (components/GiftBurstBanner.tsx). Sent during a live that's still on, the link opens that live; otherwise the receiver's page. Never
+// for a receiver kept off lists (teen mode), and anonymous senders stay anonymous. Called after the payment is fulfilled.
+export type GiftBurst = { reference: string; giftId: GiftMotif; name: string; priceKobo: number; senderName: string; toName: string; toUsername: string; href: string; live: boolean; at: string };
+export async function announceGrandGift(db: Firestore, g: { reference: string; giftId?: unknown; name?: string; priceKobo: number; senderName: string; toUid: string; toUsername: string; liveId?: string; at?: string }): Promise<GiftBurst | null> {
+  if (!isGiftMotif(g.giftId) || !isGrand(g.priceKobo) || !GIFT_SETTINGS.grand.announce) return null;
+  const u = (await db.doc(`users/${g.toUid}`).get()).data() as UserProfile | undefined;
+  if (!u || u.suspended === true || keptOffLists(u as unknown as Record<string, unknown>)) return null;
+  let href = `/u/${encodeURIComponent(g.toUsername)}`;
+  let live = false;
+  if (g.liveId) {
+    const room = (await db.doc(`communityRooms/${g.liveId}`).get()).data();
+    if (room && room.status === "live" && typeof room.cid === "string") { href = `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(g.liveId)}`; live = true; }
+  }
+  const burst: GiftBurst = { reference: g.reference, giftId: g.giftId, name: g.name || "", priceKobo: g.priceKobo, senderName: g.senderName, toName: u.displayName || g.toUsername, toUsername: g.toUsername, href, live, at: g.at ?? new Date().toISOString() };
+  await db.doc("giftBursts/latest").set(burst);
+  return burst;
 }
 
 // ── The "Top gifted today" shelf ──────────────────────────────────────────────────────────────────────────────────────────────────

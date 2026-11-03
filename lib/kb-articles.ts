@@ -37,7 +37,7 @@ import { GROUP_CALL_MAX } from "./group-calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
-import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, needsVerified } from "./gift-catalogue";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftClass, needsVerified, verifiedRuleText } from "./gift-catalogue";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
 // the pricing page. Plain facts only; if something is not live yet, the article says so. Staff can add articles or override one by slug
@@ -305,14 +305,14 @@ For the publisher, subscription money is released to their verified bank account
     A("gifts", "Gifts", "Publishing and earning", `
 A reader can send a publisher, or one single post, a gift, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
-**Animated gifts:** choose one of ${enabledGifts().length} named gifts, each with its own short animation. It plays for the person you gift, in their notification, and for everyone looking at their page when it arrives (and, once lives open, for everyone in the live). Sound is off unless you switch on **Gift sounds** in the gift sheet. The gifts today:
+**Animated gifts:** choose one of ${enabledGifts().length} named gifts. Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for the person you gift, in their notification, and for everyone looking at their page when it arrives (and, once lives open, for everyone in the live). Sound is off unless you switch on **Gift sounds** in the gift sheet. The gifts today:
 ${enabledGifts().map((g) => `- **${g.name}** (${MOTIF_BLURB[g.id]}): ${money(g.priceKobo)}${needsVerified(g) ? " ✔" : ""}`).join("\n")}
 
-Gifts marked ✔ (over ${money(UNVERIFIED_GIFT_CAP_KOBO)}) need a verified account, the same limit as gifts to an unverified community. Or choose **Other** and type any amount from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}.
+Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the ✔ badge to send them.${GIFT_SETTINGS.grand.announce ? ` Each gift from ${money(GIFT_SETTINGS.grand.fromKobo)} is also announced to everyone on #NotesApp at that moment, with a link to join the live (or the creator's page) and watch it; a creator in teen mode is never announced, and an anonymous sender stays anonymous.` : ""} Or choose **Other** and type any amount from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}.
 
 **Paying:** from your NotesApp Credit, or by card, bank transfer or USSD through Paystack. You need a verified email to send a gift, and you cannot gift yourself.
 
-**For the publisher:** gifts are paid to your bank account 7 days after they arrive (a short dispute window), minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions. Animated gifts, and gifts sent in a live or on a post, are the same.
+**For the publisher:** gifts are paid to your bank account 7 days after they arrive (a short dispute window), minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions, for a gift of a typed amount. **Animated gifts** carry a little more: on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "premium").length} **premium gifts** #NotesApp takes your rate plus ${GIFT_SETTINGS.uplift.premiumPct}% of it, and on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "vip").length} **VIP gifts** (from ${money(GIFT_SETTINGS.grand.fromKobo)}, verified senders) your rate plus ${GIFT_SETTINGS.uplift.vipPct}% of it. For example, with an 8% rate a premium gift is charged ${+(8 * (1 + GIFT_SETTINGS.uplift.premiumPct / 100)).toFixed(2)}% and a VIP gift ${+(8 * (1 + GIFT_SETTINGS.uplift.vipPct / 100)).toFixed(2)}%. Gifts sent in a live or on a post are the same.
 
 **Top gifted today:** a creator who receives ${money(GIFT_SETTINGS.daily.targetKobo)}${GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time), from at least ${GIFT_SETTINGS.daily.minSenders} different people, is pinned in the **Top gifted today** shelf at the top of [Trending](/trending) and [Explore](/explore) for the rest of that day: the ${GIFT_SETTINGS.daily.slots} who received the most, and between two with the same amount, whoever got there first. A gift to yourself never counts. Members in teen mode only appear there for people who follow them.
 

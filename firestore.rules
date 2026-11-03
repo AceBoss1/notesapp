@@ -1213,6 +1213,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // The last grand gift (lib/gifts-server.ts announceGrandGift), announced on every open page with a link to watch it. Public: it holds
+    // only what the banner shows (no anonymous sender's name, never a teen receiver). Server-written.
+    match /giftBursts/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /slotLocks/{lockId} {
       allow read, write: if false;
     }

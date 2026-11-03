@@ -18,6 +18,7 @@ import PresenceBeat from "@/components/PresenceBeat";
 import CallManager from "@/components/calls/CallManager";
 import PayChooser from "@/components/PayChooser";
 import GiftOverlay from "@/components/GiftOverlay";
+import GiftBurstBanner from "@/components/GiftBurstBanner";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
@@ -139,6 +140,7 @@ const site = await getSiteSettingsCached();
         <CallManager />
         <PayChooser />
         <GiftOverlay />
+        <GiftBurstBanner />
         <Masthead links={NAV} appLinks={APP_NAV} />
 
         <main><AppFrame>{children}</AppFrame></main>

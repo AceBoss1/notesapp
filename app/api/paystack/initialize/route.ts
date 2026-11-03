@@ -43,6 +43,7 @@ import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
 import { giftCheckout } from "@/lib/giving-server";
 import { GiftError, priceAnimatedGift } from "@/lib/gifts-server";
+import { giftUplift, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -840,8 +841,9 @@ export async function POST(req: NextRequest) {
       record = {
         reference, kind: "gift", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
-        commissionRate: pub.commissionRate,
-        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName, ...(anim ? { animId: anim.id, animName: anim.name } : {}), ...(liveId ? { liveId } : {}) },
+        // Animated gifts: the normal rate plus the premium or VIP share of it (lib/gift-catalogue.ts), fixed now for this gift.
+        commissionRate: anim ? upliftedRate(pub.commissionRate, giftUplift(anim.priceKobo)) : pub.commissionRate,
+        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName, ...(anim ? { animId: anim.id, animName: anim.name, uplift: giftUplift(anim.priceKobo) } : {}), ...(liveId ? { liveId } : {}) },
         createdAt: new Date().toISOString(),
       };
     } else {

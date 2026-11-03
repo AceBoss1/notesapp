@@ -8,8 +8,7 @@ import MyCommission from "@/components/MyCommission";
 import { pct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
-import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftNaira, needsVerified } from "@/lib/gift-catalogue";
-import { UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftNaira, needsVerified, verifiedRuleText } from "@/lib/gift-catalogue";
 
 export const metadata: Metadata = {
   title: "Gifts",
@@ -35,10 +34,11 @@ export default async function GiftsPage() {
       <GiftArtStyles />
       <h2 className="font-display text-3xl text-ink">Animated gifts</h2>
       <p className="mt-2 max-w-2xl text-sm text-slate">
-        Our own designs, each with a short animation that plays for the person you gift and for everyone on their page when it arrives
-        (and in a live, for everyone watching). Sound is off unless you switch it on.
+        {enabledGifts().length} of our own designs. Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for
+        the person you gift and everyone on their page when it arrives (and in a live, for everyone watching). Sound is off unless you
+        switch it on. Gifts {verifiedRuleText()} are for verified senders{GIFT_SETTINGS.grand.announce ? ", and each is announced to everyone on #NotesApp with a link to come and watch" : ""}.
       </p>
-      <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {enabledGifts().map((g) => (
           <li key={g.id} className="card flex flex-col items-center p-4 text-center">
             <GiftArt id={g.id} size={84} title={g.name} />
@@ -56,7 +56,7 @@ export default async function GiftsPage() {
         ))}
         <span className="rounded-full border border-crimson px-5 py-2 font-mono text-sm text-crimson">or any amount from {formatNaira(GIFT_MIN_KOBO)} up to {formatNaira(GIFT_MAX_KOBO)}</span>
       </div>
-      <p className="mt-3 text-xs text-slate">Gifts marked ✔, over {formatNaira(UNVERIFIED_GIFT_CAP_KOBO)}, need a verified account to send.</p>
+      <p className="mt-3 text-xs text-slate">Gifts marked ✔ ({verifiedRuleText()}) are VIP gifts and need a verified account to send; the rest are premium gifts. On animated gifts #NotesApp takes the creator&apos;s normal commission plus {GIFT_SETTINGS.uplift.premiumPct}% of it (premium) or {GIFT_SETTINGS.uplift.vipPct}% of it (VIP); a gift of a typed amount keeps the normal rate.</p>
 
       <div className="card mt-10 border-[#E8B23A]/60 bg-gradient-to-br from-[#FFF6E0] to-paper p-7">
         <p className="font-ui text-base font-bold text-ink">🎁 Top gifted today</p>

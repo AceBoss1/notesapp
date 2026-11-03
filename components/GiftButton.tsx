@@ -7,8 +7,7 @@ import { auth, db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO } from "@/lib/boost-config";
 import { formatNaira, PublisherSettings } from "@/lib/booking-time";
-import { MOTIF_BLURB, enabledGifts, needsVerified, senderVerified, type AnimatedGift } from "@/lib/gift-catalogue";
-import { UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, isGrand, needsVerified, senderVerified, verifiedRuleText, type AnimatedGift } from "@/lib/gift-catalogue";
 import { WALLET_LIVE, nairaOf } from "@/lib/wallet";
 import { giftSoundOn, setGiftSound } from "@/lib/gift-play";
 import { useLivePricing } from "@/lib/useLivePricing";
@@ -115,7 +114,7 @@ export default function GiftButton({
   async function send() {
     setError(null);
     if (!user) return setError("Sign in to send a gift.");
-    if (chosen && locked(chosen)) return setError(`Gifts over ${formatNaira(UNVERIFIED_GIFT_CAP_KOBO)} need a verified account (the ✔ badge).`);
+    if (chosen && locked(chosen)) return setError(`${chosen.name} is for verified senders: gifts ${verifiedRuleText()} need the ✔ badge.`);
     if (!chosen && !(kobo >= GIFT_MIN_KOBO && kobo <= GIFT_MAX_KOBO)) return setError(`Gifts must be between ${formatNaira(GIFT_MIN_KOBO)} and ${formatNaira(GIFT_MAX_KOBO)}.`);
     if (payWith === "wallet" && short) return setError("There isn't enough in your NotesApp Credit for this gift. Pay by card, or choose a smaller one.");
     setBusy(true);
@@ -176,7 +175,7 @@ export default function GiftButton({
                 <input type="number" inputMode="numeric" min={GIFT_MIN_KOBO / 100} max={GIFT_MAX_KOBO / 100} value={custom} onChange={(e) => setCustom(e.target.value)} aria-label="Amount in naira"
                   placeholder={`Amount in naira (${formatNaira(GIFT_MIN_KOBO)} – ${formatNaira(GIFT_MAX_KOBO)})`} className="mt-3 w-full rounded-xl border border-rule bg-card px-4 py-3 text-base outline-none focus:border-crimson" />
               )}
-              {chosen && <p className="mt-2 text-xs text-slate"><b className="text-ink">{chosen.name}</b>: {MOTIF_BLURB[chosen.id]}. It plays for {first} and everyone on their page.{locked(chosen) ? ` Gifts over ${formatNaira(UNVERIFIED_GIFT_CAP_KOBO)} need a verified account.` : ""}</p>}
+              {chosen && <p className="mt-2 text-xs text-slate"><b className="text-ink">{chosen.name}</b>: {MOTIF_BLURB[chosen.id]}. It plays full screen for {first} and everyone on their page{isGrand(chosen.priceKobo) && GIFT_SETTINGS.grand.announce ? ", and everyone on #NotesApp is told, with a link to watch" : ""}.{needsVerified(chosen) ? ` For verified senders: gifts ${verifiedRuleText()} need the ✔ badge.` : ""}</p>}
 
               <label className="mt-4 block font-ui text-sm font-semibold text-ink" htmlFor="gift-msg">Message (optional)</label>
               <input id="gift-msg" value={message} maxLength={GIFT_MESSAGE_MAX} onChange={(e) => setMessage(e.target.value)} placeholder="Say thank you" className="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 text-base outline-none focus:border-crimson" />

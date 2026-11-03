@@ -66,6 +66,20 @@ const Sparkles = ({ c = GOLD }: { c?: string }) => (
 
 function Art({ id }: { id: GiftMotif }) {
   switch (id) {
+    case "gardenegg":
+      return (
+        <>
+          <ellipse cx="60" cy="102" rx="28" ry="5" fill="#E2D4B8" />
+          <g className="ga-bob">
+            <ellipse cx="60" cy="68" rx="26" ry="30" fill="#F1EEDC" stroke="#CFCBAE" strokeWidth="2" />
+            <path d="M44 56c4-10 12-14 20-14" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity=".8" />
+            <ellipse cx="74" cy="80" rx="6" ry="9" fill="#E3E0C6" />
+            <path d="M44 40c4-6 10-8 16-6 6-2 12 0 16 6-6 0-10 2-16 6-6-4-10-6-16-6z" fill={GREEN} />
+            <path d="M60 34V22" stroke={GREEN} strokeWidth="4" strokeLinecap="round" />
+          </g>
+          <Sparkles />
+        </>
+      );
     case "kola":
       return (
         <>
@@ -80,32 +94,36 @@ function Art({ id }: { id: GiftMotif }) {
       return (
         <>
           <g className="ga-bob">
-            <path d="M34 34h52l-7 64H41z" fill="#F4E9F0" stroke="#D9C2D0" strokeWidth="2" />
-            <path d="M37 50h46l-5 46H42z" fill={RED_D} />
-            <path d="M37 50h46l-1 8H38z" fill={RED} />
-            <rect x="66" y="14" width="5" height="44" rx="2.5" transform="rotate(14 68 36)" fill={GREEN} />
-            <circle cx="52" cy="54" r="4" fill={GREEN} /><path d="M50 52l4-6 3 5" fill={GREEN} />
+            <path d="M52 14h16v14c0 4 12 10 12 24v46c0 6-4 10-10 10H50c-6 0-10-4-10-10V52c0-14 12-20 12-24z" fill="#F4E9F0" stroke="#D9C2D0" strokeWidth="2" />
+            <path d="M42 56h36v42c0 4-3 7-7 7H49c-4 0-7-3-7-7z" fill={RED_D} />
+            <path d="M42 56h36v6H42z" fill={RED} />
+            <rect x="50" y="8" width="20" height="8" rx="2" fill={GREEN} />
+            <rect x="44" y="68" width="32" height="18" rx="3" fill={CREAM} />
+            <path d="M50 77h20" stroke={RED} strokeWidth="3" strokeLinecap="round" />
+            <circle cx="56" cy="72" r="2" fill={GREEN} /><circle cx="64" cy="72" r="2" fill={GREEN} />
+            <g clipPath="url(#ga-zobo-clip)"><rect className="ga-shine" x="40" y="10" width="10" height="100" fill="#fff" opacity=".5" /></g>
+            <clipPath id="ga-zobo-clip"><path d="M52 14h16v14c0 4 12 10 12 24v46c0 6-4 10-10 10H50c-6 0-10-4-10-10V52c0-14 12-20 12-24z" /></clipPath>
           </g>
-          <circle className="ga-rise" cx="50" cy="86" r="3" fill="#F5B7C6" />
-          <circle className="ga-rise d1" cx="62" cy="88" r="2.4" fill="#F5B7C6" />
-          <circle className="ga-rise d2" cx="70" cy="84" r="2" fill="#F5B7C6" />
+          <circle className="ga-rise" cx="52" cy="96" r="2.6" fill="#F5B7C6" />
+          <circle className="ga-rise d1" cx="62" cy="98" r="2.2" fill="#F5B7C6" />
+          <circle className="ga-rise d2" cx="68" cy="94" r="1.8" fill="#F5B7C6" />
         </>
       );
     case "jollof":
       return (
         <>
           <g fill="none" stroke="#CFC6BC" strokeWidth="4" strokeLinecap="round">
-            <path className="ga-rise" d="M46 38c-6-6 6-10 0-18" />
-            <path className="ga-rise d1" d="M60 36c-6-6 6-10 0-18" />
-            <path className="ga-rise d2" d="M74 38c-6-6 6-10 0-18" />
+            <path className="ga-rise" d="M46 50c-6-6 6-10 0-18" />
+            <path className="ga-rise d1" d="M60 46c-6-6 6-10 0-18" />
+            <path className="ga-rise d2" d="M74 50c-6-6 6-10 0-18" />
           </g>
-          <ellipse cx="60" cy="52" rx="34" ry="12" fill="#E2622A" />
-          <g fill="#F5A04A"><circle cx="48" cy="50" r="2" /><circle cx="58" cy="46" r="2" /><circle cx="70" cy="50" r="2" /><circle cx="64" cy="54" r="2" /></g>
-          <circle cx="54" cy="50" r="2.6" fill={GREEN} /><circle cx="73" cy="46" r="2.6" fill={GREEN} />
-          <path d="M22 56h76c0 22-14 38-38 38S22 78 22 56z" fill={INK} />
-          <path d="M22 56h76" stroke="#4A3428" strokeWidth="4" />
-          <rect x="12" y="58" width="12" height="6" rx="3" fill={INK} /><rect x="96" y="58" width="12" height="6" rx="3" fill={INK} />
-          <path d="M36 72c8 6 40 6 48 0" stroke={GOLD} strokeWidth="2.5" fill="none" strokeDasharray="4 4" />
+          <ellipse cx="60" cy="80" rx="50" ry="18" fill={CREAM} stroke="#D8CBB4" strokeWidth="2" />
+          <ellipse cx="60" cy="78" rx="38" ry="12" fill="none" stroke={GOLD} strokeWidth="1.6" strokeDasharray="3 4" />
+          <path d="M30 76c2-14 16-22 30-22s28 8 30 22c-10 6-50 6-60 0z" fill="#E2622A" />
+          <g fill="#F5A04A"><circle cx="44" cy="70" r="2" /><circle cx="56" cy="64" r="2" /><circle cx="70" cy="68" r="2" /><circle cx="62" cy="74" r="2" /><circle cx="50" cy="76" r="1.8" /></g>
+          <circle cx="52" cy="68" r="2.6" fill={GREEN} /><circle cx="76" cy="72" r="2.6" fill={GREEN} />
+          <path d="M80 74c6-6 14-4 16 2-6 4-12 4-16-2z" fill="#C9852E" />
+          <ellipse cx="38" cy="80" rx="7" ry="3.4" fill="#F2C14E" transform="rotate(-12 38 80)" />
         </>
       );
     case "drum":
@@ -179,6 +197,45 @@ function Art({ id }: { id: GiftMotif }) {
           <Sparkles />
         </>
       );
+    case "champagne":
+      return (
+        <>
+          <g className="ga-sway" style={{ transformOrigin: "60px 104px" }}>
+            <path d="M54 8h12v24c0 6 10 10 10 22v46c0 4-3 6-6 6H50c-3 0-6-2-6-6V54c0-12 10-16 10-22z" fill="#1D4D3A" stroke={INK} strokeWidth="2" />
+            <path d="M54 8h12v16H54z" fill={GOLD} />
+            <path d="M44 62h32v26H44z" fill={CREAM} />
+            <path d="M44 62h32v4H44zM44 84h32v4H44z" fill={GOLD} />
+            <text x="60" y="80" textAnchor="middle" fontSize="13" fontWeight="700" fontFamily="Georgia, serif" fill={RED}>C</text>
+            <clipPath id="ga-champ-clip"><path d="M54 8h12v24c0 6 10 10 10 22v46c0 4-3 6-6 6H50c-3 0-6-2-6-6V54c0-12 10-16 10-22z" /></clipPath>
+            <g clipPath="url(#ga-champ-clip)"><rect className="ga-shine" x="44" y="0" width="8" height="110" fill="#fff" opacity=".45" /></g>
+          </g>
+          <g fill={GOLD}>
+            <circle className="ga-rise" cx="56" cy="6" r="3" /><circle className="ga-rise d1" cx="64" cy="4" r="2.4" /><circle className="ga-rise d2" cx="60" cy="8" r="2" />
+            <circle className="ga-rise d1" cx="50" cy="10" r="1.8" /><circle className="ga-rise d2" cx="70" cy="10" r="1.8" />
+          </g>
+          <Sparkles />
+        </>
+      );
+    case "argungu":
+      return (
+        <>
+          <path d="M4 70c12-6 22 6 34 0s22-6 34 0 24 6 44 0v46H4z" fill="#3D6EA8" />
+          <path d="M4 82c12-6 22 6 34 0s22-6 34 0 24 6 44 0" stroke="#9CC3EA" strokeWidth="3" fill="none" />
+          <g className="ga-bob">
+            <path d="M30 62a30 22 0 0 1 60 0z" fill="none" stroke={BROWN} strokeWidth="3" />
+            <path d="M34 62l26-20 26 20M46 62l14-20 14 20" stroke={BROWN} strokeWidth="1.4" fill="none" />
+            <circle cx="60" cy="30" r="7" fill={BROWN} /><path d="M52 26c4-8 12-8 16 0z" fill={CREAM} />
+            <path d="M54 38h12l4 20H50z" fill={INDIGO} />
+          </g>
+          <g className="ga-trot">
+            <path d="M68 46c10-8 26-8 34 0-8 8-24 8-34 0z" fill={GOLD} stroke={GOLD_D} strokeWidth="2" />
+            <path d="M100 46l10-8v16z" fill={GOLD} stroke={GOLD_D} strokeWidth="2" />
+            <circle cx="76" cy="44" r="2.2" fill={INK} />
+          </g>
+          <g fill="#CFE3F6"><circle className="ga-rise" cx="34" cy="74" r="2.4" /><circle className="ga-rise d1" cx="84" cy="76" r="2" /><circle className="ga-rise d2" cx="62" cy="72" r="2.2" /></g>
+          <Sparkles />
+        </>
+      );
     case "durbar":
       return (
         <>
@@ -192,6 +249,26 @@ function Art({ id }: { id: GiftMotif }) {
             <path d="M68 32l14-20" stroke={GOLD_D} strokeWidth="2.5" /><path className="ga-sway" d="M82 12l14 4-14 6z" fill={RED} />
           </g>
           <path d="M14 98h92" stroke="#E2D4B8" strokeWidth="4" strokeLinecap="round" />
+          <Sparkles />
+        </>
+      );
+    case "ijele":
+      return (
+        <>
+          <g className="ga-trot">
+            <path d="M18 104c2-24 8-40 20-48h44c12 8 18 24 20 48z" fill={RED} />
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => <path key={i} d={`M${22 + i * 12.6} 104l6-30 6 30z`} fill={i % 2 ? GOLD : GREEN} />)}
+            <path d="M30 56h60l-6-10H36z" fill={GOLD} stroke={GOLD_D} strokeWidth="2" />
+            <rect x="34" y="34" width="52" height="12" rx="3" fill={INDIGO} />
+            {[0, 1, 2, 3, 4].map((i) => <circle key={i} cx={40 + i * 10} cy="40" r="3" fill={CREAM} />)}
+            <path d="M42 34c0-12 8-20 18-20s18 8 18 20z" fill={CLAY} />
+            <circle cx="52" cy="26" r="3" fill={INK} /><circle cx="68" cy="26" r="3" fill={INK} />
+            <path d="M56 32h8" stroke={INK} strokeWidth="2" strokeLinecap="round" />
+          </g>
+          <g className="ga-sway" style={{ transformOrigin: "60px 14px" }}>
+            <path d="M60 14V2" stroke={GOLD_D} strokeWidth="2" />
+            <path d="M48 8l12-8 12 8" stroke={GOLD} strokeWidth="3" fill="none" />
+          </g>
           <Sparkles />
         </>
       );

@@ -161,6 +161,17 @@ test("animated gifts: daily totals are server-only; the last gift shown on a pag
   await assertFails(getDoc(doc(as("alice"), "statCache/giftShelf_2026-11-03")));
 });
 
+test("grand gifts: the sitewide announcement is public to read and server-written only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "giftBursts/latest"), { reference: "r2", giftId: "kente", name: "Kente Crown", priceKobo: 5_000_000, senderName: "Alice", toName: "Pub", toUsername: "pub", href: "/u/pub", live: false, at: "x" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "giftBursts/latest")));
+  await assertSucceeds(getDoc(doc(as("alice"), "giftBursts/latest")));
+  await assertFails(setDoc(doc(as("alice"), "giftBursts/latest"), { giftId: "sunrise", href: "https://evil.example" }));
+  await assertFails(setDoc(doc(anon(), "giftBursts/latest"), { giftId: "sunrise" }));
+  await assertFails(setDoc(doc(as("pub"), "giftBursts/other"), { giftId: "sunrise" }));
+});
+
 test("plan records: owner reads their own, others cannot; users can't self-upgrade their tier", async () => {
   await assertSucceeds(getDoc(doc(as("pub"), "tierSubscriptions/pub")));
   await assertFails(getDoc(doc(as("alice"), "tierSubscriptions/pub")));

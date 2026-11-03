@@ -14,7 +14,7 @@ import { badgeIncluded } from "./tiers";
 import type { AccountTier } from "./users";
 
 // The drawings. Each catalogue entry is tied to one; the drawing itself is fixed in code (no uploaded or paid assets).
-export const GIFT_MOTIFS = ["kola", "zobo", "jollof", "drum", "adire", "gele", "kente", "baobab", "durbar", "sunrise"] as const;
+export const GIFT_MOTIFS = ["gardenegg", "kola", "zobo", "jollof", "drum", "adire", "gele", "kente", "baobab", "champagne", "argungu", "durbar", "ijele", "sunrise"] as const;
 export type GiftMotif = (typeof GIFT_MOTIFS)[number];
 export const isGiftMotif = (v: unknown): v is GiftMotif => typeof v === "string" && (GIFT_MOTIFS as readonly string[]).includes(v);
 
@@ -25,43 +25,84 @@ export type DailyTargetSettings = {
   basis: "gross" | "net"; // count what senders paid, or what the creator keeps after commission
   minSenders: number; // different people who must have sent gifts today (stops one person, or someone gifting themselves through a friend)
 };
-export type GiftSettings = { catalogue: AnimatedGift[]; daily: DailyTargetSettings };
+// Grand gifts (owner, 3 Nov 2026: "Verified senders only, each comes with a sitewide announcement"): from fromKobo up, a gift needs a
+// verified sender and, when announce is on, everyone on the app sees a banner with a link to the live (or page) to witness it.
+export type GrandGiftSettings = { fromKobo: number; announce: boolean };
+// Commission on animated gifts (owner, 3 Nov 2026): the gifts below the grand price are "premium" gifts, the grand ones "VIP" gifts
+// (verified senders). #NotesApp takes the creator's normal rate plus a share OF that rate: premiumPct (10) or vipPct (20). With an 8%
+// rate, a premium gift is charged 8.8% and a VIP gift 9.6%. Gifts of a typed amount ("Other") keep the normal rate.
+export type GiftUplift = { premiumPct: number; vipPct: number };
+export type GiftSettings = { catalogue: AnimatedGift[]; daily: DailyTargetSettings; grand: GrandGiftSettings; uplift: GiftUplift };
 
 // One line under each gift's name, what it stands for. Fixed with the drawing.
 export const MOTIF_BLURB: Record<GiftMotif, string> = {
+  gardenegg: "a small hello",
   kola: "a welcome",
   zobo: "a cool drink",
-  jollof: "a pot to share",
+  jollof: "a plate to share",
   drum: "a loud well done",
   adire: "made by hand",
   gele: "dressed for the party",
   kente: "royal thanks",
   baobab: "deep roots",
+  champagne: "pop the bottle",
+  argungu: "the great catch",
   durbar: "a grand procession",
+  ijele: "the king of masquerades",
   sunrise: "the biggest thank-you",
 };
 
-// Built-in catalogue, smallest first (owner: "a small one ~₦200 up to ₦100,000, ₦500,000 and ₦1,000,000").
+// What each gift plays with, full screen (components/GiftOverlay.tsx): some or all of rays, stars, fireworks, confetti and sound,
+// growing with the gift. Fixed with the drawing. Sound plays only for viewers who switched gift sounds on.
+export const GIFT_EFFECTS = ["rays", "stars", "fireworks", "confetti", "sound"] as const;
+export type GiftEffect = (typeof GIFT_EFFECTS)[number];
+export const MOTIF_EFFECTS: Record<GiftMotif, GiftEffect[]> = {
+  gardenegg: ["stars", "confetti"],
+  kola: ["stars", "sound"],
+  zobo: ["confetti", "sound"],
+  jollof: ["stars", "confetti", "sound"],
+  drum: ["rays", "confetti", "sound"],
+  adire: ["rays", "stars", "confetti"],
+  gele: ["rays", "stars", "confetti", "sound"],
+  kente: ["rays", "fireworks", "confetti", "sound"],
+  baobab: ["rays", "stars", "fireworks", "sound"],
+  champagne: ["stars", "fireworks", "confetti", "sound"],
+  argungu: ["rays", "stars", "fireworks", "confetti", "sound"],
+  durbar: ["rays", "stars", "fireworks", "confetti", "sound"],
+  ijele: ["rays", "stars", "fireworks", "confetti", "sound"],
+  sunrise: ["rays", "stars", "fireworks", "confetti", "sound"],
+};
+
+// Built-in catalogue, smallest first: the owner's list of 3 November 2026 (14 gifts, ₦200 to ₦1,000,000).
 export const DEFAULT_CATALOGUE: AnimatedGift[] = [
-  { id: "kola", name: "Kola Nut", priceKobo: 200 * 100, enabled: true },
-  { id: "zobo", name: "Zobo Cup", priceKobo: 500 * 100, enabled: true },
-  { id: "jollof", name: "Jollof Pot", priceKobo: 1_000 * 100, enabled: true },
-  { id: "drum", name: "Talking Drum", priceKobo: 2_000 * 100, enabled: true },
-  { id: "adire", name: "Adire Fan", priceKobo: 5_000 * 100, enabled: true },
-  { id: "gele", name: "Golden Gele", priceKobo: 10_000 * 100, enabled: true },
+  { id: "gardenegg", name: "Garden Egg", priceKobo: 200 * 100, enabled: true },
+  { id: "kola", name: "Kola Nut", priceKobo: 1_000 * 100, enabled: true },
+  { id: "zobo", name: "Zobo Bottle", priceKobo: 2_000 * 100, enabled: true },
+  { id: "jollof", name: "Jollof Plate", priceKobo: 5_000 * 100, enabled: true },
+  { id: "drum", name: "Talking Drum", priceKobo: 10_000 * 100, enabled: true },
+  { id: "adire", name: "Adire Fan", priceKobo: 20_000 * 100, enabled: true },
+  { id: "gele", name: "Golden Gele", priceKobo: 25_000 * 100, enabled: true },
   { id: "kente", name: "Kente Crown", priceKobo: 50_000 * 100, enabled: true },
   { id: "baobab", name: "Baobab of Blessings", priceKobo: 100_000 * 100, enabled: true },
+  { id: "champagne", name: "Circova Champagne", priceKobo: 150_000 * 100, enabled: true },
+  { id: "argungu", name: "Argungu Fishing", priceKobo: 250_000 * 100, enabled: true },
   { id: "durbar", name: "Durbar Horse", priceKobo: 500_000 * 100, enabled: true },
+  { id: "ijele", name: "Ijele Masquerade", priceKobo: 750_000 * 100, enabled: true },
   { id: "sunrise", name: "Kilimanjaro Sunrise", priceKobo: 1_000_000 * 100, enabled: true },
 ];
 export const DEFAULT_DAILY: DailyTargetSettings = { targetKobo: 50_000 * 100, slots: 6, basis: "gross", minSenders: 3 };
+export const DEFAULT_GRAND: GrandGiftSettings = { fromKobo: 25_000 * 100, announce: true };
+export const DEFAULT_UPLIFT: GiftUplift = { premiumPct: 10, vipPct: 20 };
+export const UPLIFT_MAX_PCT = 100;
 
 // The live settings: applyGiftSettings writes into this object (lib/pricing.ts applyPricing), so readers always see what's in force.
-export const GIFT_SETTINGS: GiftSettings = { catalogue: DEFAULT_CATALOGUE.map((g) => ({ ...g })), daily: { ...DEFAULT_DAILY } };
-export const currentGiftSettings = (): GiftSettings => ({ catalogue: GIFT_SETTINGS.catalogue.map((g) => ({ ...g })), daily: { ...GIFT_SETTINGS.daily } });
+export const GIFT_SETTINGS: GiftSettings = { catalogue: DEFAULT_CATALOGUE.map((g) => ({ ...g })), daily: { ...DEFAULT_DAILY }, grand: { ...DEFAULT_GRAND }, uplift: { ...DEFAULT_UPLIFT } };
+export const currentGiftSettings = (): GiftSettings => ({ catalogue: GIFT_SETTINGS.catalogue.map((g) => ({ ...g })), daily: { ...GIFT_SETTINGS.daily }, grand: { ...GIFT_SETTINGS.grand }, uplift: { ...GIFT_SETTINGS.uplift } });
 export function applyGiftSettings(s: GiftSettings): void {
   GIFT_SETTINGS.catalogue = s.catalogue.map((g) => ({ ...g }));
   Object.assign(GIFT_SETTINGS.daily, s.daily);
+  Object.assign(GIFT_SETTINGS.grand, s.grand ?? DEFAULT_GRAND);
+  Object.assign(GIFT_SETTINGS.uplift, s.uplift ?? DEFAULT_UPLIFT);
 }
 
 // Bounds an admin can set. The smallest animated gift is the smallest gift; the largest is a typo guard well above the ₦1,000,000 one.
@@ -70,8 +111,14 @@ export const ANIMATED_MAX_KOBO = 5_000_000 * 100;
 export const GIFT_NAME_MAX = 30;
 export const SLOTS_MAX = 20;
 export const MIN_SENDERS_MAX = 50;
-// From this price up, a gift fills the screen for longer (and gets its rays).
-export const GRAND_FROM_KOBO = 100_000 * 100;
+// How long a gift plays: every gift fills the screen; grand ones stay longer, and the biggest longest.
+export const playMs = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS) => (priceKobo >= 500_000 * 100 ? 7_000 : isGrand(priceKobo, s) ? 5_500 : 3_800);
+export const isGrand = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS) => priceKobo >= s.grand.fromKobo;
+// Premium (below the grand price) or VIP (from it), and the extra share of the creator's rate that kind of gift carries.
+export const giftClass = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS): "premium" | "vip" => (isGrand(priceKobo, s) ? "vip" : "premium");
+export const giftUplift = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS) => (giftClass(priceKobo, s) === "vip" ? s.uplift.vipPct : s.uplift.premiumPct) / 100;
+// The rate charged: the creator's rate plus that share of it (to 4 places, never over 100%).
+export const upliftedRate = (rate: number, uplift: number) => Math.min(1, Math.round(rate * (1 + Math.max(0, uplift)) * 10_000) / 10_000);
 
 export class GiftSettingsError extends Error {
   constructor(message: string, readonly status = 400) { super(message); }
@@ -82,8 +129,8 @@ const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 
 // Checks what an admin saved. A config saved before gifts existed (undefined) keeps the defaults. The catalogue's order is the order
 // given; a drawing left out is added at the end, switched off, so nothing is lost by an older form.
-export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue: DEFAULT_CATALOGUE, daily: DEFAULT_DAILY }): GiftSettings {
-  if (input === undefined) return { catalogue: d.catalogue.map((g) => ({ ...g })), daily: { ...d.daily } };
+export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue: DEFAULT_CATALOGUE, daily: DEFAULT_DAILY, grand: DEFAULT_GRAND, uplift: DEFAULT_UPLIFT }): GiftSettings {
+  if (input === undefined) return { catalogue: d.catalogue.map((g) => ({ ...g })), daily: { ...d.daily }, grand: { ...(d.grand ?? DEFAULT_GRAND) }, uplift: { ...(d.uplift ?? DEFAULT_UPLIFT) } };
   const i = rec(input);
   const list = Array.isArray(i.catalogue) ? i.catalogue : [];
   const seen = new Set<string>();
@@ -118,8 +165,21 @@ export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue:
   const targetKobo = Math.round(Number(dd.targetKobo));
   if (!Number.isFinite(targetKobo) || targetKobo < 1_000 * 100 || targetKobo > 100_000_000 * 100) throw new GiftSettingsError("Daily gift target: an amount from ₦1,000 to ₦100,000,000.");
   const basis = dd.basis === "net" ? "net" : dd.basis === "gross" ? "gross" : (() => { throw new GiftSettingsError("Daily gift target: count what senders paid (gross) or what the creator keeps (after commission)."); })();
+  const gg = i.grand === undefined ? (d.grand ?? DEFAULT_GRAND) : rec(i.grand);
+  const fromKobo = Math.round(Number(gg.fromKobo));
+  if (!Number.isFinite(fromKobo) || fromKobo < ANIMATED_MIN_KOBO || fromKobo > ANIMATED_MAX_KOBO || fromKobo % 100 !== 0) {
+    throw new GiftSettingsError(`Grand gifts: a price in whole naira from ${naira(ANIMATED_MIN_KOBO)} to ${naira(ANIMATED_MAX_KOBO)}.`);
+  }
+  const uu = i.uplift === undefined ? (d.uplift ?? DEFAULT_UPLIFT) : rec(i.uplift);
+  const pctOf = (v: unknown, what: string) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > UPLIFT_MAX_PCT || Math.round(n * 10) !== n * 10) throw new GiftSettingsError(`${what}: a percent of the creator's rate from 0 to ${UPLIFT_MAX_PCT} (one decimal at most).`);
+    return n;
+  };
   return {
     catalogue,
+    grand: { fromKobo, announce: gg.announce !== false },
+    uplift: { premiumPct: pctOf(uu.premiumPct, "Premium gifts, extra commission"), vipPct: pctOf(uu.vipPct, "VIP gifts, extra commission") },
     daily: { targetKobo, slots: whole(dd.slots, "Top gifted today, places", 1, SLOTS_MAX), basis, minSenders: whole(dd.minSenders, "Daily gift target, different senders", 1, MIN_SENDERS_MAX) },
   };
 }
@@ -137,15 +197,22 @@ export function senderVerified(p: SenderFlags | undefined | null, now = Date.now
   const paid = badgeIncluded(p.accountTier as AccountTier) || (typeof p.badgeUntil === "string" && Date.parse(p.badgeUntil) > now);
   return p.accountKind === "organisation" ? paid && p.org?.rcStatus === "verified" : paid;
 }
-export const needsVerified = (g: Pick<AnimatedGift, "priceKobo">) => g.priceKobo > UNVERIFIED_GIFT_CAP_KOBO;
+// A verified sender is needed from the grand price up, and for anything over the cap community giving uses for unverified senders.
+export const needsVerified = (g: Pick<AnimatedGift, "priceKobo">, s: GiftSettings = GIFT_SETTINGS) => isGrand(g.priceKobo, s) || g.priceKobo > UNVERIFIED_GIFT_CAP_KOBO;
+// The rule in words, for the sheet, the help and errors: "from ₦25,000", the cheapest gift that needs a verified sender (so it always
+// matches the catalogue in force).
+export const verifiedRuleText = (s: GiftSettings = GIFT_SETTINGS) => {
+  const need = s.catalogue.filter((g) => g.enabled && needsVerified(g, s)).map((g) => g.priceKobo);
+  return `from ${naira(need.length ? Math.min(...need) : s.grand.fromKobo)}`;
+};
 
-// What an animated gift costs and whether this sender may send it. Gifts above the unverified cap (the same cap community giving uses)
-// need a sender with a ✔ (or gold) badge. Returns the price, or a reason to show.
+// What an animated gift costs and whether this sender may send it. Grand gifts, and any above the unverified cap (the same cap community
+// giving uses), need a sender with a ✔ (or gold) badge. Returns the price, or a reason to show.
 export function animatedGiftPrice(id: unknown, senderVerified: boolean, s: GiftSettings = GIFT_SETTINGS): { ok: true; gift: AnimatedGift } | { ok: false; status: number; error: string } {
   const g = findGift(id, s);
   if (!g || !g.enabled) return { ok: false, status: 404, error: "That gift isn't available any more. Choose another." };
-  if (g.priceKobo > UNVERIFIED_GIFT_CAP_KOBO && !senderVerified) {
-    return { ok: false, status: 403, error: `Gifts over ${naira(UNVERIFIED_GIFT_CAP_KOBO)} need a verified account (the ✔ badge). Choose a smaller gift, or get verified first.` };
+  if (needsVerified(g, s) && !senderVerified) {
+    return { ok: false, status: 403, error: `${g.name} is for verified senders (the ✔ badge): gifts ${verifiedRuleText(s)} need a verified account. Choose a smaller gift, or get verified first.` };
   }
   return { ok: true, gift: g };
 }

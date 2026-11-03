@@ -26,8 +26,8 @@ import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
 import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
 import { writeGiftReceipt } from "./giving-server";
-import { readGiftDaily, writeGiftDaily, writeGiftShow } from "./gifts-server";
-import type { GiftMotif } from "./gift-catalogue";
+import { announceGrandGift, readGiftDaily, writeGiftDaily, writeGiftShow } from "./gifts-server";
+import { upliftedRate, type GiftMotif } from "./gift-catalogue";
 import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
@@ -91,7 +91,8 @@ export type PaymentRecord = {
   course?: { courseId: string; courseTitle: string; courseSlug: string }; // a paid course (lib/course-sales-server.ts)
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   // animId/animName: an animated gift from the catalogue (lib/gift-catalogue.ts), its price fixed at checkout. liveId: sent during a live.
-  gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string; animId?: GiftMotif; animName?: string; liveId?: string };
+  // uplift: the premium or VIP gift's extra share of the commission rate, fixed at checkout (commissionRate already includes it).
+  gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string; animId?: GiftMotif; animName?: string; liveId?: string; uplift?: number };
   // A basket (lib/cart.ts): the payment Paystack charges lists its orders; each order is an ordinary "store" payment carrying cartRef.
   // The basket's own record carries no money of its own in reports (its orders do).
   cart?: { orders: string[] };
@@ -217,7 +218,8 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
     if (!(Number(i.percent) > 0)) continue; // a view-only reviewer credited without a share
     const u = (await db.doc(`users/${i.inviteeUid}`).get()).data();
     if (!u || u.suspended) continue; // their share stays with the lead
-    co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic", u.customRates) });
+    const own = commissionRateFor((u.accountTier as AccountTier) || "basic", u.customRates);
+    co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: p.gift?.uplift ? upliftedRate(own, p.gift.uplift) : own });
   }
   if (!co.length) return [lead];
   lead.percent = 100 - co.reduce((s, c) => s + c.percent, 0);
@@ -978,6 +980,12 @@ async function notifyGiftShares(p: PaymentRecord, shares: Share[]) {
 async function notifyGift(p: PaymentRecord) {
   if (!p.gift) return;
   const db = getAdminDb();
+  // A grand gift: everyone on the app sees it announced, with a link to the live (lib/gifts-server.ts). Never blocks the rest.
+  if (p.gift.animId) {
+    await ensurePricing(); // the grand-gift price and the announce switch in force
+    await announceGrandGift(db, { reference: p.reference, giftId: p.gift.animId, name: p.gift.animName, priceKobo: p.amountKobo, senderName: p.gift.anonymous ? "" : p.gift.senderName, toUid: p.publisherUid, toUsername: p.gift.username, liveId: p.gift.liveId })
+      .catch((e) => console.error("[gifts] announcement failed", e));
+  }
   const who = p.gift.anonymous ? "Someone" : p.gift.senderName || "A reader";
   const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
   const about = p.gift.noteSlug ? " on one of your posts" : "";
