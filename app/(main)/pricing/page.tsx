@@ -20,6 +20,7 @@ import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom,
 import { loadLivePricing } from "@/lib/pricing-server";
 import { ROOT_DOMAIN } from "@/lib/host";
 import { UNVERIFIED_GIFT_CAP_KOBO, bandsText } from "@/lib/giving";
+import { GIFT_SETTINGS, enabledGifts, giftRange } from "@/lib/gift-catalogue";
 import { TICKET_PRICE_MIN_KOBO } from "@/lib/tickets";
 import { CREDIT_BONUS, MAX_AFFILIATE_PERCENT, MIN_CASH_KOBO, PLAN_MONTHS, PLAN_SHARE } from "@/lib/referrals";
 
@@ -100,7 +101,7 @@ const ROWS: Row[] = [
   {
     label: "Gifts from readers",
     href: "/gifts",
-    render: (t) => (t.canPublish ? `Receive gifts of ${formatNaira(GIFT_MIN_KOBO)} – ${formatNaira(GIFT_MAX_KOBO)} with Gift me on your profile and on every post` : "Send gifts"),
+    render: (t) => (t.canPublish ? `Receive ${enabledGifts().length} animated gifts (${formatNaira(giftRange().minKobo)} – ${formatNaira(giftRange().maxKobo)}) or any amount from ${formatNaira(GIFT_MIN_KOBO)} – ${formatNaira(GIFT_MAX_KOBO)}, on your profile, every post and lives · reach ${formatNaira(GIFT_SETTINGS.daily.targetKobo)} in a day from ${GIFT_SETTINGS.daily.minSenders}+ people to be pinned in Top gifted today` : "Send gifts, including animated gifts"),
   },
   {
     label: "Post boosts",

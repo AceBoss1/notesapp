@@ -433,6 +433,27 @@ on `main` that isn't understood is raised with the owner first.
     deploy. In the /pricing compare table, neighbouring plans whose cell says the same thing are shown once across those plans
     (`mergeCells` in `lib/pricing.ts`, worked out from the live text, so an Admin change that makes plans differ splits the cell again).
 
+103. **Animated gifts and daily gift targets (v0.130.0, branch `push/gifts-animated`; v0.126.0–v0.129.0 and 102 are reserved for
+    pending PRs):** deploy the Firestore rules (`giftDaily` server-only, `giftShows` read by signed-in members) and the two new
+    `giftDaily` indexes (`day` + `grossKobo` desc, `day` + `netKobo` desc) before the code. Owner decisions of 3 Nov 2026. The catalogue
+    (`lib/gift-catalogue.ts`: Kola Nut ₦200, Zobo Cup ₦500, Jollof Pot ₦1,000, Talking Drum ₦2,000, Adire Fan ₦5,000, Golden Gele
+    ₦10,000, Kente Crown ₦50,000, Baobab of Blessings ₦100,000, Durbar Horse ₦500,000, Kilimanjaro Sunrise ₦1,000,000) and the daily
+    settings (target ₦50,000 gross, 6 places, 3 different senders) are saved with the pricing config (`platformSettings/pricing`,
+    `gifts`) from Admin → Pricing → Gifts and applied live; a config saved before keeps the defaults. Drawings are inline SVG with CSS
+    animation in `components/GiftArt.tsx` (no files, no paid assets); `components/GiftOverlay.tsx` (mounted in the main layout) plays
+    them, and `playGift()` / the `notesapp:gift-play` event in `lib/gift-play.ts` is what the live room calls on each gift broadcast
+    once the live chat edge lands. Sending is an ordinary `kind: "gift"` payment with `giftId` (price from the catalogue on the server,
+    never the browser), through the same checkout (Paystack or NotesApp Credit), commission (`commissionRateFor`) and 7-day hold;
+    gifts over `UNVERIFIED_GIFT_CAP_KOBO` (₦20,000) need a sender with the ✔ or gold badge (`senderVerified`). `liveId` is accepted and
+    kept for lives. In `fulfillPayment`'s transaction the receiver's `giftDaily/{lagosDay}_{uid}` is read first and updated (gross,
+    after every author's commission, count, distinct senders, when the target was first reached), and `giftShows/{uid}` is set for
+    animated gifts (anonymous senders unnamed); the bell carries `giftAnim`. The shelf (`topGiftedToday`, `/api/gifts/top-today`,
+    `components/TopGiftedShelf.tsx`) is built from a list cached a minute in `statCache/giftShelf_{day}`; teens (and adults who kept
+    the listing protection) show only to people who follow them. **Open:** there is no linked-account check (same device, bank or
+    phone) anywhere in the code yet, so "different senders" counts distinct accounts only; plain typed-amount gifts keep the old
+    ₦500,000 maximum without the verified-sender rule; teen mode does not stop teens receiving money gifts from strangers today (the
+    owner may want that). Tests: `test:gifts`, `test:gifts-server`, the rules test, `test:help`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

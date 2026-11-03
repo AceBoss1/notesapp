@@ -7,11 +7,14 @@ import PageHero from "@/components/PageHero";
 import MyCommission from "@/components/MyCommission";
 import { pct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
+import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftNaira, needsVerified } from "@/lib/gift-catalogue";
+import { UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
 
 export const metadata: Metadata = {
   title: "Gifts",
   description:
-    "Say thanks to a publisher — or to a single post — with a gift in Naira, from Gift me on their profile or the gift button on a post. Paid through Paystack or the NotesApp Credit wallet, released to the publisher's bank account after a 7-day window.",
+    "Say thanks to a publisher, a single post or a live with an animated gift or any amount in Naira. Paid through Paystack or NotesApp Credit, released to the publisher's bank account after a 7-day window. The most gifted creators each day are pinned at the top of Trending and Explore.",
 };
 
 const EXAMPLE_KOBO = 5_000 * 100;
@@ -29,7 +32,23 @@ export default async function GiftsPage() {
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <GiftArtStyles />
+      <h2 className="font-display text-3xl text-ink">Animated gifts</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate">
+        Our own designs, each with a short animation that plays for the person you gift and for everyone on their page when it arrives
+        (and in a live, for everyone watching). Sound is off unless you switch it on.
+      </p>
+      <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {enabledGifts().map((g) => (
+          <li key={g.id} className="card flex flex-col items-center p-4 text-center">
+            <GiftArt id={g.id} size={84} title={g.name} />
+            <span className="mt-2 font-ui text-sm font-bold text-ink">{g.name}</span>
+            <span className="text-xs text-slate">{MOTIF_BLURB[g.id]}</span>
+            <span className="mt-1 font-display text-xl text-crimson">{giftNaira(g.priceKobo)}{needsVerified(g) ? <span className="ml-1 align-middle font-ui text-[11px] text-slate" title="Needs a verified account">✔</span> : null}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex flex-wrap gap-3">
         {GIFT_PRESETS_NAIRA.map((n) => (
           <span key={n} className="rounded-full border border-rule px-5 py-2 font-mono text-sm text-ink">
             {formatNaira(n * 100)}
@@ -37,11 +56,22 @@ export default async function GiftsPage() {
         ))}
         <span className="rounded-full border border-crimson px-5 py-2 font-mono text-sm text-crimson">or any amount from {formatNaira(GIFT_MIN_KOBO)} up to {formatNaira(GIFT_MAX_KOBO)}</span>
       </div>
+      <p className="mt-3 text-xs text-slate">Gifts marked ✔, over {formatNaira(UNVERIFIED_GIFT_CAP_KOBO)}, need a verified account to send.</p>
+
+      <div className="card mt-10 border-[#E8B23A]/60 bg-gradient-to-br from-[#FFF6E0] to-paper p-7">
+        <p className="font-ui text-base font-bold text-ink">🎁 Top gifted today</p>
+        <p className="mt-2 text-sm text-slate">
+          Receive {formatNaira(GIFT_SETTINGS.daily.targetKobo)}{GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time) from at
+          least {GIFT_SETTINGS.daily.minSenders} different people, and you&apos;re pinned at the top of <Link href="/trending" className="text-crimson underline">Trending</Link> and{" "}
+          <Link href="/explore" className="text-crimson underline">Explore</Link> for the rest of the day. The {GIFT_SETTINGS.daily.slots} creators who received the most are shown; with
+          the same amount, whoever got there first. Gifts in a live count too. Gifts to yourself never count, and members in teen mode only appear there for people who follow them.
+        </p>
+      </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {[
           { t: "Find Gift me", d: "Every publisher profile has a Gift me button, and every post a 🎁 (when the publisher accepts gifts). If Gift me is greyed out, the publisher hasn't set up payouts yet: the ℹ️ beside it explains." },
-          { t: "Choose an amount", d: "Pick a preset or type your own, add a short message, or send anonymously." },
+          { t: "Choose a gift", d: "Pick an animated gift or type your own amount, add a short message, or send anonymously." },
           { t: "Pay in Naira", d: "Card, bank transfer or USSD through Paystack, or your NotesApp Credit wallet. The publisher is notified by app and email." },
         ].map((s, i) => (
           <div key={s.t} className="card p-6">

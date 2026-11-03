@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.130.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Animated gifts: ten named gifts of our own design, from the Kola Nut (₦200) to the Kilimanjaro Sunrise (₦1,000,000), each with a short animation that plays for the person you gift, in their notification and for everyone on their page when it arrives. Sound is off unless you switch on Gift sounds. Gifts over ₦20,000 need a verified account to send. Paid from NotesApp Credit or through Paystack, with the same commission and 7-day hold as every gift." },
+      { kind: "added", text: "Top gifted today: creators who receive the day's gift target from enough different people are pinned at the top of Trending and Explore until midnight in Lagos, most received first. Members in teen mode only appear there for people who follow them." },
+      { kind: "changed", text: "The gift sheet is new: animated gifts or any amount, a message, send anonymously, and pay with NotesApp Credit or by card in one place." },
+      { kind: "added", text: "Admin → Pricing → Gifts: rename, reprice, switch off and reorder the animated gifts, and set the daily target, the places on the shelf, whether it counts what senders paid or what creators keep, and how many different senders are needed. The help, /gifts and /pricing follow." },
+    ],
+  },
+  {
     version: "v0.125.0",
     bump: "minor",
     date: "2026-11-03",

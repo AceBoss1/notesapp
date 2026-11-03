@@ -34,6 +34,9 @@ cfg.inventory.addonMonthlyKobo = 1_750 * 100;
 cfg.logistics.cutRate = 0.12;
 cfg.coursePackages.certificateMinKobo = 1_111 * 100;
 cfg.nana.resetEvery = "day";
+// Animated gifts and the daily target (Admin → Pricing → Gifts).
+cfg.gifts.catalogue[2].name = "Party Jollof"; cfg.gifts.catalogue[2].priceKobo = 1_250 * 100; cfg.gifts.catalogue[1].enabled = false;
+cfg.gifts.daily = { targetKobo: 65_000 * 100, slots: 4, basis: "net", minSenders: 5 };
 const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
@@ -63,6 +66,11 @@ const db = {
     assert.ok(b.includes("31% on Free Basic") && b.includes("22% on Pro") && b.includes("12% on Business"), `${slug} quotes the live rates`);
     assert.ok(!b.includes("35%"), `${slug} has no default rate`);
   }
+  // Animated gifts and Top gifted today.
+  const gifts = body(live, "gifts");
+  for (const x of ["**Party Jollof** (a pot to share): ₦1,250", "₦65,000 after commission", "at least 5 different people", "the 4 who received the most", "choose one of 9 named gifts"]) assert.ok(gifts.includes(x), `gifts shows ${x}`);
+  for (const x of ["Jollof Pot", "Zobo Cup", "₦50,000 or more", "at least 3 different"]) assert.ok(!gifts.includes(x), `gifts no longer shows ${x}`);
+  assert.ok(body(defaults, "gifts").includes("**Jollof Pot** (a pot to share): ₦1,000") && body(defaults, "gifts").includes("₦50,000 or more"), "the defaults were different");
   // Prices.
   assert.ok(body(live, "verified-badge").includes("₦1,234") && !body(live, "verified-badge").includes("₦999"), "badge price");
   const plans = body(live, "plans-and-prices");
@@ -127,6 +135,8 @@ const db = {
     { text: "₦100 to ₦100,000 at a time", why: "Notes Life: buying game money, fixed by the game's rules" },
     { text: "₦45,000", why: "an example of what a seller says to Nana (\"Sold 3 bags of rice ₦45,000…\"), not a price" },
     { text: "₦250,000 in", why: "the influencer challenge's prize split, fixed and not live yet" },
+    { text: "a ₦1,000,000 giveaway", why: "the influencer challenge's prize, fixed and not live yet (it happens to equal the largest animated gift)" },
+    { text: "and ₦500,000 cash", why: "the influencer challenge's prize split, fixed (it happens to equal an animated gift's price)" },
   ];
   const src = readFileSync(join(ROOT, "lib/kb-articles.ts"), "utf8");
   const start = src.indexOf("export function builtInArticles");
@@ -136,7 +146,7 @@ const db = {
   const percent = (r: number) => `${+(r * 100).toFixed(1)}%`;
   const d = DEFAULT_PRICING;
   const pctDefaults = new Set([d.basic, d.pro, d.business].flatMap((r) => [r.session, r.physical, r.digital, r.adShare]).concat([d.enterprise.adShare, d.enterprise.floorSession, d.enterprise.floorPhysical, d.enterprise.floorDigital, d.logistics.cutRate, d.certificateLate.weeklyRate, d.certificateLate.capRate]).filter((r) => r > 0).map(percent));
-  const koboDefaults = [d.pro.monthlyKobo, d.pro.yearlyKobo, d.business.monthlyKobo, d.business.yearlyKobo, d.enterprise.fromMonthlyKobo, d.enterprise.fromYearlyKobo, d.coursePackages.enterpriseCoursesMonthlyKobo, d.coursePackages.academyApiFromMonthlyKobo, d.coursePackages.certificateMinKobo, d.logistics.addonMonthlyKobo, d.logistics.cutMinKobo, d.inventory.addonMonthlyKobo, d.badgeKobo, d.gold.personal.monthlyKobo, d.gold.personal.depositKobo, d.gold.corporate.monthlyKobo, d.gold.corporate.depositKobo, ...Object.values(d.nana.budgets), ...d.nana.topUps.flatMap((t) => [t.priceKobo, t.creditKobo]), ...d.boosts.map((b) => b.priceKobo), ...d.ads.map((a) => a.priceKobo)];
+  const koboDefaults = [d.pro.monthlyKobo, d.pro.yearlyKobo, d.business.monthlyKobo, d.business.yearlyKobo, d.enterprise.fromMonthlyKobo, d.enterprise.fromYearlyKobo, d.coursePackages.enterpriseCoursesMonthlyKobo, d.coursePackages.academyApiFromMonthlyKobo, d.coursePackages.certificateMinKobo, d.logistics.addonMonthlyKobo, d.logistics.cutMinKobo, d.inventory.addonMonthlyKobo, d.badgeKobo, d.gold.personal.monthlyKobo, d.gold.personal.depositKobo, d.gold.corporate.monthlyKobo, d.gold.corporate.depositKobo, ...Object.values(d.nana.budgets), ...d.nana.topUps.flatMap((t) => [t.priceKobo, t.creditKobo]), ...d.boosts.map((b) => b.priceKobo), ...d.ads.map((a) => a.priceKobo), ...d.gifts.catalogue.map((g) => g.priceKobo), d.gifts.daily.targetKobo];
   const nairaDefaults = new Set(koboDefaults.map(naira));
   const found: string[] = [];
   let scanned = 0;

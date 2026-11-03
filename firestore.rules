@@ -1201,6 +1201,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Daily gift totals per receiver (lib/gifts-server.ts, the "Top gifted today" shelf): server-only. They hold who sent gifts.
+    match /giftDaily/{dayUid} {
+      allow read, write: if false;
+    }
+
+    // The last animated gift a member received, played to signed-in visitors of their page. Server-written; anonymous senders'
+    // names are never stored here.
+    match /giftShows/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /slotLocks/{lockId} {
       allow read, write: if false;
     }

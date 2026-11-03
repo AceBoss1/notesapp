@@ -141,6 +141,26 @@ test("boost stats readable by the buyer only; gifts by recipient and sender only
   await assertFails(getDoc(doc(as("mallory"), "gifts/g1")));
 });
 
+test("animated gifts: daily totals are server-only; the last gift shown on a page is read by signed-in visitors only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "giftDaily/2026-11-03_pub"), { day: "2026-11-03", uid: "pub", grossKobo: 5_000_000, netKobo: 4_000_000, count: 3, senders: ["alice", "b", "c"], lastAt: "x" });
+    await setDoc(doc(d, "giftShows/pub"), { reference: "r1", giftId: "kente", name: "Kente Crown", priceKobo: 5_000_000, senderName: "Alice", at: "x" });
+  });
+  for (const who of ["pub", "alice"]) {
+    await assertFails(getDoc(doc(as(who), "giftDaily/2026-11-03_pub")));
+    await assertFails(setDoc(doc(as(who), "giftDaily/2026-11-03_pub"), { grossKobo: 999_999_999 }));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "giftDaily"), where("day", "==", "2026-11-03"))));
+  await assertFails(getDoc(doc(anon(), "giftDaily/2026-11-03_pub")));
+  await assertSucceeds(getDoc(doc(as("alice"), "giftShows/pub")));
+  await assertSucceeds(getDoc(doc(as("pub"), "giftShows/pub")));
+  await assertFails(getDoc(doc(anon(), "giftShows/pub")));
+  await assertFails(setDoc(doc(as("alice"), "giftShows/pub"), { giftId: "sunrise", senderName: "fake", at: "y" }));
+  await assertFails(setDoc(doc(as("pub"), "giftShows/pub"), { giftId: "sunrise", senderName: "me", at: "y" }));
+  await assertFails(getDoc(doc(as("alice"), "statCache/giftShelf_2026-11-03")));
+});
+
 test("plan records: owner reads their own, others cannot; users can't self-upgrade their tier", async () => {
   await assertSucceeds(getDoc(doc(as("pub"), "tierSubscriptions/pub")));
   await assertFails(getDoc(doc(as("alice"), "tierSubscriptions/pub")));

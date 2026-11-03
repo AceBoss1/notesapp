@@ -10,6 +10,9 @@ import {
   AppNotification,
   NotificationType,
 } from "@/lib/notifications";
+import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
+import { findGift, isGiftMotif } from "@/lib/gift-catalogue";
+import { playGift } from "@/lib/gift-play";
 
 const ICON: Record<NotificationType, string> = {
   like: "♥",
@@ -83,6 +86,11 @@ export default function NotificationBell({ user, buttonClassName, panelClassName
   function handleClick(n: AppNotification) {
     markNotificationRead(n.id).catch(() => {});
     setOpen(false);
+    // An animated gift plays when its notification is opened (the price is the catalogue's; the message carries the exact amount).
+    if (isGiftMotif(n.giftAnim)) {
+      const g = findGift(n.giftAnim);
+      playGift({ giftId: n.giftAnim, name: g?.name ?? "A gift", priceKobo: g?.priceKobo ?? 0, key: `bell_${n.id}` });
+    }
     if (n.linkHref) router.push(n.linkHref);
   }
 
@@ -115,6 +123,7 @@ export default function NotificationBell({ user, buttonClassName, panelClassName
             )}
           </div>
 
+          {notifications.some((n) => isGiftMotif(n.giftAnim)) && <GiftArtStyles />}
           {notifications.length === 0 ? (
             <p className="p-6 text-center text-sm text-slate">
               Nothing yet — likes, comments, and follows show up here.
@@ -129,7 +138,7 @@ export default function NotificationBell({ user, buttonClassName, panelClassName
                     n.read ? "" : "bg-crimson/5"
                   }`}
                 >
-                  <span className="mt-0.5 text-base leading-none">{ICON[n.type]}</span>
+                  {isGiftMotif(n.giftAnim) ? <span className="-my-1 flex-shrink-0"><GiftArt id={n.giftAnim} size={32} /></span> : <span className="mt-0.5 text-base leading-none">{ICON[n.type]}</span>}
                   <div className="flex-1">
                     <p className="text-sm text-ink">{n.message}</p>
                     <p className="mt-1 font-mono text-[10px] text-slate">{timeAgo(n.createdAt)}</p>

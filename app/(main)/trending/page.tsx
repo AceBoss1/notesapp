@@ -6,6 +6,7 @@ import Avatar from "@/components/Avatar";
 import AdSlot from "@/components/AdSlot";
 import BadgeToast from "@/components/BadgeToast";
 import RankedList from "@/components/RankedList";
+import TopGiftedShelf from "@/components/TopGiftedShelf";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
@@ -84,6 +85,8 @@ export default function TrendingPage() {
         </div>
       </section>
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
+        {/* Creators who reached today's gift target stay pinned here until midnight in Lagos (lib/gifts-server.ts). */}
+        <TopGiftedShelf className="mb-6" />
         <div role="tablist" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
           {TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={pill(tab === t.id)}>{t.label}</button>)}
         </div>
