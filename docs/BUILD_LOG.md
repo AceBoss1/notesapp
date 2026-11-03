@@ -2625,3 +2625,20 @@ are; /status gained "Audio rooms relay". Emulator and rules tests ran from a tem
 
 
 **Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
+
+**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.3, 2 Nov 2026)** — The owner reported that one-to-one voice
+calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
+front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
+sets `navigator.audioSession.type = "play-and-record"` (Safari 16.4+), and Notes Life's game sound sets "playback"; on Android, Chrome
+chooses the call route from the microphone that was opened, and for "default" it picks a wired headset, then USB, then Bluetooth, then
+the speakerphone, never the earpiece (Chromium `CommunicationDeviceSelector.java`). Chrome's microphone list on Android holds the routes
+by name ("Headset earpiece", "Speakerphone", "Wired headset", "Bluetooth headset", "USB audio"), and its speaker list only "default",
+so `setSinkId` can't move a call there; opening the "Headset earpiece" microphone (with echo cancellation, which switches Android to call
+mode) does. Also, a 1:1 video call attached the other person's stream to an unmuted `<video>` as well as the `<audio>`, so the voice
+played twice. `lib/call-audio.ts` holds the rules (platform, device labels, the choices each platform allows, which route to use:
+picked in this call > a headset that's there unless the remembered choice is a headset > remembered > earpiece for voice, speaker for
+video), and `components/calls/useCallAudio.ts` applies them in both call screens: the iPhone audio session set before the microphone
+opens and restored after, Android routes and computer microphones swapped in with `RTCRtpSender.replaceTrack` (no reconnect), computer
+speakers by `setSinkId` on every remote `<audio>` (group video tiles now play sound through a hidden `<audio>` too), and the list
+reloaded on `devicechange`. The Sound button shows only where there's a real choice; iPad has no earpiece, and on iPhone AirPods and
+Bluetooth are chosen in Control Centre. Narrow phones get slightly smaller call buttons so five fit in a row. Tests: `test:calls`.
