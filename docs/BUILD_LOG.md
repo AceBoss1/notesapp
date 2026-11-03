@@ -2780,7 +2780,7 @@ limits, Stream processing and rejection, audiences, blocks, teen rules, download
 past expiry, deletion), the rules test (all four collections client-proof), all in CI. Not in M1: the `/media` feed, comments,
 reactions, gifts, shares and reports of Media posts, the automatic safety check, lives (phases M2 to M5 in `docs/MEDIA.md`).
 
-**Watermarked video downloads for Media (v0.131.0, 3 Nov 2026)** — The owner said yes to video downloads, "emphasis on TRANSPARENT
+**Watermarked video downloads for Media (v0.134.0, 3 Nov 2026)** — The owner said yes to video downloads, "emphasis on TRANSPARENT
 watermark". Stream can only burn a watermark in when a video is uploaded or copied, and it then shows in playback too, so the video
 people watch stays as it is and downloads come from a second, marked copy: Stream makes an MP4 of the original (the only thing its
 copy-from-link can fetch), copies it with a watermark profile, the original's MP4 is deleted, and MP4 downloads are switched on for the

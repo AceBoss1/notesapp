@@ -163,7 +163,7 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
   video, but only when the video is uploaded or copied (`watermark: { uid }` on `direct_upload` or `POST /stream/copy`), and it then shows in
   every rendition, playback included. MP4 downloads are made with `POST /stream/{uid}/downloads`. So a watermarked video download means a
   second, watermarked copy per video (one watermark profile per creator, made from their @username badge), with downloads enabled on the copy
-  only: about double the storage for each video that allows downloads. **Built in v0.131.0, below.**
+  only: about double the storage for each video that allows downloads. **Built in v0.134.0, below.**
 - **Pinned Moments:** `pinMoment` and `listPinnedMoments` in `lib/moments-server.ts`; the moment viewer has 📌 Pin / Unpin; up to 10.
 - **Profile picture history:** `profilePictures` (kept since v0.43); the picture in use is now also recorded server-side by
   `profileAlbum` whenever Media reads it.
@@ -172,7 +172,7 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
   tile. The studio's Lives & replays tab is `ReplaysList` (record, publish, share, Share to Journal).
 - **Tests:** `npm run test:media`, `npm run test:media-server`, and the rules test.
 
-## Watermarked video downloads (v0.131.0, 3 Nov 2026)
+## Watermarked video downloads (v0.134.0, 3 Nov 2026)
 
 The owner's answer: "Yes, emphasis on TRANSPARENT watermark." Code: `lib/media-video-dl.ts` (pure: the look, the steps, signed links),
 `lib/media-video-dl-server.ts` (profiles, the steps, storage), Stream calls in `lib/stream.ts`, the mark in `lib/media-watermark.tsx`

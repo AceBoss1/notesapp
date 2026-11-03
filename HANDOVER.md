@@ -596,7 +596,7 @@ on `main` that isn't understood is raised with the owner first.
     and **video downloads** (Stream burns a watermark profile into every rendition at upload, so a per-creator watermarked MP4 needs
     a second, watermarked copy: `POST /stream/copy` with `watermark.uid`, then `POST /stream/{uid}/downloads`; see `docs/MEDIA.md`).
 
-104. **Watermarked video downloads for Media (v0.131.0, branch `push/media-video-downloads`, cut from `push/media-core` (102); merge
+108. **Watermarked video downloads for Media (v0.134.0, branch `push/media-video-downloads`, cut from `push/media-core` (102); merge
     after #259):** a creator who allows downloads on a video gets a second Cloudflare Stream copy with a see-through mark burned in
     (transparent PNG: "na" mark, @username, NotesApp), and MP4 downloads only on that copy; the video people watch stays clean. One
     Stream watermark profile per creator (`mediaWatermarks/{uid}`), the look from Admin → Limits → **Video download watermark**
