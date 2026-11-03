@@ -135,7 +135,9 @@ jobs:
 
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The production build before the smoke test now takes most of the old 45 minutes (3 Nov 2026: a run passed all 22 tests and was
+    # cancelled while shutting down at 45:04), so the job gets an hour.
+    timeout-minutes: 60
     needs: checks
     env:
       NEXT_TELEMETRY_DISABLED: 1
