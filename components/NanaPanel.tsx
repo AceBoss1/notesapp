@@ -14,14 +14,16 @@ import type { Effort, Gem } from "@/lib/nana-gems";
 
 // The Nana AI chat itself: used by the corner button, the pinned conversation in Messages, the Nana page and the team hub. Members are
 // recognised automatically; visitors give a name and email first. The conversation is kept in this tab (sessionStorage) and a visitor's name
-// and email in this browser (localStorage), so Nana does not ask twice. `context` "hub" is for staff inside the team hub.
-export type NanaContext = "site" | "messages" | "page" | "hub";
+// and email in this browser (localStorage), so Nana does not ask twice. `context` "hub" is for staff inside the team hub; "hr" is Nana-HR,
+// for staff questions about the handbook, SOPs, briefs and their own hours, leave and pay (lib/nana-hr-server.ts).
+export type NanaContext = "site" | "messages" | "page" | "hub" | "hr";
 const VISITOR_KEY = "na-nana-visitor";
 const SUGGESTIONS: Record<NanaContext, string[]> = {
   site: ["How much does it cost?", "How do I get paid?", "How do bookings and refunds work?", "How do I sell something?"],
   messages: ["How much does it cost?", "How do I get paid?", "How do group chats work?", "How do I sell something?"],
   page: ["How much does it cost?", "How do I get paid?", "How do bookings and refunds work?", "How do I sell something?"],
   hub: ["What should I focus on today?", "What's blocked or waiting on a decision?", "How do I record an expense?", "How do I write a help article?"],
+  hr: ["How much annual leave do I get?", "How many hours have I logged this week?", "When is pay day?", "What does my SOP say about escalation?"],
 };
 const read = <T,>(store: "session" | "local", key: string): T | null => {
   try { const v = (store === "session" ? sessionStorage : localStorage).getItem(key); return v ? (JSON.parse(v) as T) : null; } catch { return null; }
@@ -34,7 +36,7 @@ type Shown = NanaMsg & { error?: boolean; note?: string };
 
 export default function NanaPanel({ context = "site", onClose, className = "", autoFocus = true }: { context?: NanaContext; onClose?: () => void; className?: string; autoFocus?: boolean }) {
   const pathname = usePathname();
-  const CHAT_KEY = context === "hub" ? "na-nana-chat-hub" : "na-nana-chat";
+  const CHAT_KEY = context === "hub" ? "na-nana-chat-hub" : context === "hr" ? "na-nana-chat-hr" : "na-nana-chat";
   const [user, setUser] = useState<User | null>(null);
   const [memberName, setMemberName] = useState("");
   const [visitor, setVisitor] = useState<{ name: string; email: string } | null>(null);
@@ -82,14 +84,14 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
       if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
       const res = await fetch("/api/nana", {
         method: "POST", headers,
-        body: JSON.stringify({ messages: next.slice(-NANA_HISTORY_MAX).map(({ role, content: c }) => ({ role, content: c })), chatId, page: pathname, context: context === "hub" ? "hub" : "site", ...(user ? (context === "hub" ? {} : choice) : visitor) }),
+        body: JSON.stringify({ messages: next.slice(-NANA_HISTORY_MAX).map(({ role, content: c }) => ({ role, content: c })), chatId, page: pathname, context: context === "hub" || context === "hr" ? context : "site", ...(user ? (context === "hub" || context === "hr" ? {} : choice) : visitor) }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "Something went wrong. Please try again.");
       setChatId(j.chatId); setMode(j.mode === "kb" ? "kb" : "ai");
       if (j.handoff) setHandoff(true);
       setMsgs((m) => [...m, { role: "assistant", content: j.reply, ...(j.notice ? { note: j.notice } : {}) }]);
-      if (user && context !== "hub") void refresh(); // what's left of the allowance
+      if (user && context !== "hub" && context !== "hr") void refresh(); // what's left of the allowance
     } catch (e) {
       setMsgs((m) => [...m, { role: "assistant", content: e instanceof Error ? e.message : "Something went wrong. Please try again.", error: true }]);
     } finally {
@@ -108,15 +110,15 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
     setVisitor(v);
   }
   const reset = () => { setMsgs([]); setChatId(undefined); setHandoff(false); };
-  const hub = context === "hub";
+  const hub = context === "hub" || context === "hr";
 
   return (
     <div className={`flex min-h-0 flex-col bg-paper ${className}`}>
       <header className="flex items-center gap-3 border-b border-rule bg-card px-4 py-3">
         <Image src="/images/nana/nana-sm.webp" alt="" width={40} height={40} className="h-10 w-10 rounded-full" />
         <div className="min-w-0 flex-1">
-          <p className="font-ui text-sm font-bold text-ink">{NANA_NAME}{hub && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</p>
-          <p className="truncate text-xs text-slate">{mode === "kb" ? "Answering from the help centre" : hub ? "Your team hub helper" : "Your #NotesApp helper · ask me anything"}</p>
+          <p className="font-ui text-sm font-bold text-ink">{context === "hr" ? "Nana-HR" : NANA_NAME}{hub && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</p>
+          <p className="truncate text-xs text-slate">{mode === "kb" ? "Answering from the help centre" : context === "hr" ? "Answers from the handbook, your SOPs and your own records" : hub ? "Your team hub helper" : "Your #NotesApp helper · ask me anything"}</p>
         </div>
         {user && account && !hub && <NanaGemPicker account={account} choice={choice} onChoice={setChoice} />}
         {msgs.length > 0 && <button type="button" onClick={reset} className="rounded px-2 py-1 font-ui text-xs text-slate hover:text-crimson">New chat</button>}

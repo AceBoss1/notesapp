@@ -2786,3 +2786,19 @@ department and move existing ones, as there is no HR team yet, but never themsel
 `changeAccess` in `lib/admin-access-server.ts` lets the Chief of Staff add, move and remove admins but refuses their own access, any super
 admin, appointing one, and naming or changing a Chief of Staff (owner only; a non-owner super admin can't change the Chief of Staff either).
 Team access shows the role and, for the owner, a Chief of Staff tick on an admin's row. Test: `npm run test:access` (emulators).
+
+**Careers (v0.131.0); Nana-HR and the staff library (team hub), 3 Nov 2026** — The owner approved the Nana-HR spec and asked for the careers page
+with five seeded vacancies (CMO, User Acquisition Lead, Growth & partnerships team lead, Customer care team lead, Trust & safety team
+lead), every SOP, brief and the handbook seeded where it belongs, and Nana-HR drafting new hires' documents from the Chief of Staff's
+templates. Built on `push/cos-departments`. Library: `body`, `depts`, `seedKey`/`seedHash` on `staffDocs` (`lib/staff-ops.ts`);
+`content/staff-library/*.md` (exported from the approved docs) and the Engineering Guide become `lib/staff-library-content.ts`
+(`node scripts/staff-library-content.mjs`); `lib/staff-library-seed.ts` seeds or refreshes them once per content version (fixed ids,
+a changed text bumps the version and clears acknowledgements); the library reads a document (`?read=`, remark + remark-gfm + remark-html,
+sanitised) and counts the open. New department `executive` (Executive office). Nana-HR: `lib/nana-hr-server.ts` (rules, the library
+the person may open, their own week, leave and pay basis) passed to `chat()` as `hr` (a cached system block), NanaPanel context "hr",
+`/admin/team/hr`. Careers: `lib/careers.ts` (rules, seed roles), `lib/careers-server.ts` (public roles, apply once per role, the board
+for super admins and the Chief of Staff, open/close by super admins, applicants told at interview, offer and decline, a 6-month TTL
+`purgeAt` from closing, Nana-HR's screening summary without the applicant's name or email, drafts), `lib/hr-drafts.ts` (the offer
+letter, option grant and announcement templates from the owner's documents, personal details removed), `/careers`, `/careers/[id]`,
+`/api/public/careers`, `/api/careers/apply`, `/api/admin/hr`. Server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`,
+`staffMeta`. Tests: `npm run test:hr` (the rules, then the emulator) and a rules test.

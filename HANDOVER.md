@@ -601,6 +601,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
     names the Chief of Staff from Team access (an admin's row → Edit departments → tick Chief of Staff). Test: `npm run test:access`.
 
+106. **Careers (v0.131.0), with Nana-HR and the staff library in the team hub (no changelog entry for the team hub parts; branch `push/nana-hr`, built on `push/cos-departments` (104)):** deploy
+    `firebase deploy --only firestore` (server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`, `staffMeta`; the TTL on
+    `careerApplications.purgeAt`). New dependency `remark-gfm`. The library and the five vacancies seed themselves on first use. After
+    editing the handbook, SOPs or briefs, export them to `content/staff-library/` and run `node scripts/staff-library-content.mjs`.
+    Interview booking by Nana-HR is not built yet (the hiring manager messages the applicant on NotesApp). Test: `npm run test:hr`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

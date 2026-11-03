@@ -1457,3 +1457,21 @@ test("live recordings and replays are server-only, and a post's replay can't be 
   await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: "someone-elses" }));
   await assertFails(updateDoc(doc(as("pub"), "notes/replaypost"), { replayId: deleteField() }));
 });
+
+test("careers, applications, Nana-HR drafts and seed markers are server-only, even for staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "careerRoles/r1"), { title: "CMO", status: "open" });
+    await setDoc(doc(db, "careerApplications/r1_alice"), { uid: "alice", roleId: "r1", coverNote: "x" });
+    await setDoc(doc(db, "hrDrafts/d1"), { drafts: [] });
+    await setDoc(doc(db, "staffMeta/librarySeed"), { version: "x" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "careerRoles/r1")));
+    await assertFails(setDoc(doc(db, "careerRoles/r2"), { title: "x", status: "open" }));
+    await assertFails(getDoc(doc(db, "careerApplications/r1_alice")));
+    await assertFails(setDoc(doc(db, "careerApplications/r1_bob"), { uid: "bob" }));
+    await assertFails(getDoc(doc(db, "hrDrafts/d1")));
+    await assertFails(getDoc(doc(db, "staffMeta/librarySeed")));
+  }
+});

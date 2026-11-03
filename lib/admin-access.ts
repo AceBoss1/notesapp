@@ -18,6 +18,7 @@ export const DEPARTMENTS = [
   { key: "content", label: "Editorial", blurb: "Journals and notes." },
   { key: "product", label: "Product & tech", blurb: "Errors, video storage, limits, site settings, API access and domains." },
   { key: "engineering", label: "Engineering", blurb: "Builds and ships the platform: the work board, errors, video storage, limits, API access and site settings, with Product & tech." },
+  { key: "executive", label: "Executive office", blurb: "The Chief of Staff and executive assistants: the leadership's priorities, meetings and follow-ups, board papers, and people matters until there is an HR team." },
   { key: "legal", label: "Legal & compliance", blurb: "Reports and takedowns, member look-ups for data and legal requests, and the policies, contracts and templates in the staff library." },
 ] as const;
 export type Dept = (typeof DEPARTMENTS)[number]["key"];
@@ -57,6 +58,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/team/messages", label: "Message hub", need: "all", group: "Workspace" },
   { href: "/admin/team/library", label: "Staff library", need: "all", group: "Workspace" },
   { href: "/admin/team/time", label: "Time", need: "all", group: "Workspace" },
+  { href: "/admin/team/hr", label: "Nana-HR & hiring", need: "all", group: "Workspace" },
   { href: "/admin/team/finance", label: "Money ledger", need: ["finance", "product"], group: "Workspace" },
   { href: "/admin/team/grants", label: "Grants & subscriptions", need: ["finance", "product"], group: "Workspace" },
   { href: "/admin/journals", label: "Journals", need: ["content", "moderation"], group: "Content" },

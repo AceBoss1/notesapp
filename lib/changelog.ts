@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.131.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Careers at #NotesApp: open roles at /careers, each with what you'd do and what we're looking for. Apply with your NotesApp account; a person reads every application, and every applicant hears back. Applications are deleted 6 months after the role closes unless you ask us to keep yours." },
+    ],
+  },
+  {
     version: "v0.129.0",
     bump: "minor",
     date: "2026-11-03",
