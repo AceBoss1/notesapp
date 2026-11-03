@@ -2623,6 +2623,9 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
+
+**Pricing table without repeats (v0.124.2, 2 Nov 2026)** — The owner asked to take out repetitions in the /pricing compare table (giving's charges the same on all five plans, paying what you owe online the same on the four publishing plans, voice notes and calls the same everywhere, and pairs of plans with the same answer). `mergeCells` in `lib/pricing.ts` groups neighbouring cells with identical text into one cell with `colSpan`, centred; it runs on the live text every render, so merges follow Admin → Pricing and Limits. Test in `tests/pricing/pricing.test.ts`.
+
 **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, 2 Nov 2026)** — The owner reported that one-to-one voice
 calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
 front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
