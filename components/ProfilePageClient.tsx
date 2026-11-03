@@ -59,7 +59,7 @@ type DisplayProfile = {
   headline?: string; // "CEO at Acme", from the member's optional role and workplace
 };
 
-export default function ProfilePageClient({ params }: { params: { username: string } }) {
+export default function ProfilePageClient({ params, initialTab }: { params: { username: string }; initialTab?: "media" }) {
   const isOfficial = params.username === OFFICIAL_NOTESAPP_PROFILE.username;
   const isSocialChannel = params.username === NA_NOTESAPP_PROFILE.username;
   // Both are synthetic — no real Firebase Auth account, no `users`
@@ -372,8 +372,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
       )}
 
-      {/* Notes · Store · Courses (components/ProfileTabs.tsx). */}
-      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
+      {/* Notes · Media · Store · Courses (components/ProfileTabs.tsx). */}
+      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} initialTab={initialTab} synthetic={synthetic} />
 
       {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
           above comes here). Not on synthetic channel accounts. */}

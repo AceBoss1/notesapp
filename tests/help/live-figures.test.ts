@@ -34,7 +34,7 @@ cfg.inventory.addonMonthlyKobo = 1_750 * 100;
 cfg.logistics.cutRate = 0.12;
 cfg.coursePackages.certificateMinKobo = 1_111 * 100;
 cfg.nana.resetEvery = "day";
-const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 } };
+const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 }, mediaVideosPerWeek: { pro: 9 }, mediaVideoMaxSeconds: { pro: 240 }, mediaPicturePostsPerDay: { business: 33 }, mediaStorageGB: { enterprise: 0 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
   "platformSettings/pricing": { config: cfg },
@@ -76,6 +76,13 @@ const db = {
   // Limits (Admin → Limits) and the agent settings.
   assert.ok(body(live, "messages-moments-groups").includes("voice notes of up to 4 minutes"), "voice note limit");
   assert.ok(body(live, "academy").includes("Up to 12 to 30 courses depending on your plan"), "courses per member");
+  // Media (Admin → Limits, group "Media").
+  const media = body(live, "media");
+  assert.ok(media.includes("**Pro:** 9 videos a week, each up to 4 minutes"), "Media videos and length per plan");
+  assert.ok(media.includes("33 picture posts a day") && media.includes("**Enterprise:**") && media.includes("no storage limit"), "picture posts and storage");
+  assert.ok(!media.includes("**Pro:** 7 videos a week") && !media.includes("each up to 3 minutes; 20"), "no default Media figures for Pro");
+  assert.ok(body(defaults, "media").includes("**Pro:** 7 videos a week, each up to 3 minutes; 20 picture posts a day; 20 GB of storage"), "the defaults read as proposed in docs/MEDIA.md");
+  assert.ok(body(defaults, "media").includes("**Free Standard:** no videos; 5 picture posts a day; 1 GB of storage"));
   const connect = body(live, "connect-an-ai-assistant");
   assert.ok(connect.includes("150 by default") && connect.includes("₦3,000 by default") && connect.includes("Codes last 7 minutes"), "agent limits");
   assert.ok(!connect.includes("100 by default") && !connect.includes("₦2,000 by default"), "no default agent limits");

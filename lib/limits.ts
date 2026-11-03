@@ -4,11 +4,13 @@
 import type { AccountTier } from "./users";
 import { MOMENT_DAILY_LIMIT, MOMENT_VIDEO_WEEKLY_LIMIT } from "./moments-rules";
 import { getTierConfig, type TierConfig } from "./tiers";
+import { MEDIA_PICTURE_POSTS_DAILY, MEDIA_STORAGE_GB, MEDIA_VIDEO_MAX_SECONDS, MEDIA_VIDEO_WEEKLY_LIMIT } from "./media-rules";
 
 export const LIMIT_TIERS: AccountTier[] = ["standard", "basic", "pro", "business", "enterprise"];
 export const LIMIT_TIER_LABEL: Record<AccountTier, string> = { standard: "Free Standard", basic: "Basic", pro: "Pro", business: "Business", enterprise: "Enterprise" };
 
 export type LimitKey = "messageAttachmentMB" | "messageAttachmentsPerMessage" | "messageVoiceNoteSeconds" | "momentVideosPerWeek" | "momentsPerDay"
+  | "mediaVideosPerWeek" | "mediaVideoMaxSeconds" | "mediaPicturePostsPerDay" | "mediaStorageGB"
   | CourseFlag | "coursesPerMember" | "coursesPerOrganisation" | "courseStorageGB" | "courseVideoHours" | "nanaOperator" | "nanaJobsPerDay" | "agentConnect";
 // kind "switch": a plan flag, 1 = on and 0 = off (a tick box in Admin → Limits). noLimitAt0: 0 means "no limit" rather than "none".
 export type LimitDef = { key: LimitKey; group: string; label: string; unit: string; min: number; max: number; defaults: Record<AccountTier, number>; kind?: "switch"; noLimitAt0?: boolean };
@@ -27,6 +29,12 @@ export const LIMITS: LimitDef[] = [
   { key: "messageVoiceNoteSeconds", group: "Messages", label: "Longest voice note", unit: "seconds", min: 10, max: 900, defaults: flat(300) },
   { key: "momentVideosPerWeek", group: "Moments", label: "Video moments a week (each part of a long video counts)", unit: "videos", min: 0, max: 500, defaults: MOMENT_VIDEO_WEEKLY_LIMIT },
   { key: "momentsPerDay", group: "Moments", label: "New moments a day", unit: "moments", min: 1, max: 200, defaults: flat(MOMENT_DAILY_LIMIT) },
+  // Media (docs/MEDIA.md, owner 3 Nov 2026): videos and pictures on a creator's Media tab. Videos mirror the post-video ladder and are
+  // counted apart from post videos and video moments; a rejected upload gives its slot back. Storage counts Media pictures and videos.
+  { key: "mediaVideosPerWeek", group: "Media", label: "Media videos a week", unit: "videos", min: 0, max: 500, defaults: MEDIA_VIDEO_WEEKLY_LIMIT },
+  { key: "mediaVideoMaxSeconds", group: "Media", label: "Longest Media video", unit: "seconds", min: 15, max: 3_600, defaults: MEDIA_VIDEO_MAX_SECONDS },
+  { key: "mediaPicturePostsPerDay", group: "Media", label: "Picture posts a day (up to 10 pictures each)", unit: "posts", min: 0, max: 1_000, defaults: MEDIA_PICTURE_POSTS_DAILY },
+  { key: "mediaStorageGB", group: "Media", label: "Media storage, pictures and videos (0 = no limit)", unit: "GB", min: 0, max: 10_000, noLimitAt0: true, defaults: MEDIA_STORAGE_GB },
   // Notes Academy (docs/COURSES.md). Turning a switch off stops new courses, prices, publishing and uploads on that plan; what's already
   // published stays up, except that a paid course goes off sale while its owner's plan can't sell courses.
   { key: "freeCourses", group: "Courses", label: "Free courses (create and publish)", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: fromTiers("freeCourses") },

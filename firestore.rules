@@ -844,6 +844,16 @@ service cloud.firestore {
       allow read, write: if false;
       match /{sub=**} { allow read, write: if false; }
     }
+
+    // Media (lib/media-server.ts, docs/MEDIA.md): posts, video uploads, plan usage and studio settings. Server-only, like moments: every
+    // read goes through /api/media so the audience (everyone / followers / subscribers), teen mode and blocks can't be skipped.
+    match /mediaPosts/{id} {
+      allow read, write: if false;
+      match /{sub=**} { allow read, write: if false; }
+    }
+    match /mediaUploads/{id} { allow read, write: if false; }
+    match /mediaUsage/{uid} { allow read, write: if false; }
+    match /mediaSettings/{uid} { allow read, write: if false; }
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }

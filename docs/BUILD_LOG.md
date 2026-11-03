@@ -2649,3 +2649,41 @@ partner sites fell back to their own image hosts (Precheks' Cloudinary preset ha
 returns a presigned R2 PUT URL (5 minutes) and the public URL, with the editor's rules from `lib/upload-rules.ts` (images
 only, 10 MB). Files go under `api/<uid>/`. Documented in `lib/api-docs.ts` (the /docs page); `/docs`, `/organisations`, the
 Console scope label, the roadmap, the API help article and README say so.
+
+**Media, phase M1 (v0.129.0, 3 Nov 2026)** — The owner approved the Media mockups (`docs/MEDIA.md`) and decided: Media is a tab on
+the public profile (Notes · Media · Store · Courses, with its own count; the phone tab bar is unchanged), and `/u/{username}/media`
+is that tab as a page (`ProfilePageClient` with `initialTab="media"`). The creator's grid (`components/media/CreatorMedia.tsx`):
+their videos and pictures, the past profile pictures as an album, the site kit's pictures shown by default, Lives & replays, and
+pinned Moments and pinned posts at the top; a tile with no picture shows the African pattern (`na-pattern`). Data: `mediaPosts`
+(server-only like `moments`; read through `GET /api/media/u/{username}`, which applies the audience, teen mode and blocks for the
+viewer, signed in or not). Every post already carries M2's counters (`commentsCount`, `reactions`, `reactionsCount`, `giftsTotal`,
+`giftsCount`, `sharesCount`) at zero. Posting (`/profile/media`, `components/media/MediaStudio.tsx`): pictures through
+`/api/upload` purpose `media` (WebP in the browser, `media/{uid}/`, then the post checks each object exists in that folder, its
+size and its first bytes); video through Cloudflare Stream direct creator upload with public playback and the plan's longest video as
+`maxDurationSeconds` (`createPublicDirectUpload` in `lib/stream.ts`). Plan usage is one document (`mediaUsage/{uid}`: the ISO week's
+videos, the Lagos day's picture posts, bytes) changed in transactions; a video that Stream rejects, that comes out longer than the plan
+allows, or that never arrives within a day is marked rejected, removed from Stream and its slot and bytes given back (`refreshVideo`,
+run when the studio opens and by the cron). Admin → Limits gets a Media group (`mediaVideosPerWeek` = `VIDEO_WEEKLY_LIMIT`,
+`mediaVideoMaxSeconds`, `mediaPicturePostsPerDay`, `mediaStorageGB`, 0 = no limit); the pricing table's Media row and the `media`
+help article read them live (`tests/help/live-figures.test.ts` checks a changed set). Audience: everyone / followers / subscribers
+(an active `subscriptions/{uid}_{username}`); teen mode (`hearsOnlyFromFollowed`) overrides it with `teenAudience` (mutual followers,
+never signed out), forces downloads, shares and gifts off, and refuses @mentions of a teen from people they don't follow (the Moments
+rule; `mayCommentOnMedia` is exported for M2's comments). Watermarked downloads (default off): `GET /api/media/posts/{id}/download?i=`
+checks the post is visible to the viewer, allowed, not a teen's and a picture post, then `lib/media-watermark.tsx` decodes the original
+with Next's own WebAssembly codecs (`next/dist/server/lib/squoosh/impl`, as `lib/cover-render.tsx` does; its `ImageData.data` copies
+the pixels on every read, so they are read once), draws a pill with the "na" mark, @username and "NotesApp" with `next/og`, blends it
+bottom right and returns a JPEG; the original is never sent. Video downloads are not in M1: Stream's watermark profiles are burned into
+every rendition at upload and can't be added to an existing video, so a watermarked download needs a second copy
+(`POST /stream/copy` with `watermark: { uid }`, then `POST /stream/{uid}/downloads`), which doubles storage; left for M2 with the
+owner's say on cost. Site pictures (`sitePicturesOf`): cover, top banner, gallery and services (sections that are on), each once, with
+a stable id from its address so a Hide switch survives reordering; `mediaSettings/{uid}` holds the hidden ids, "hide all" and the album
+switch. Profile picture history already existed (`profilePictures`, recorded when the browser reports a change); `profileAlbum` now also
+records the picture in use on the server whenever Media reads it, so a missed change is caught. Pinned Moments: `pinMoment` (owner,
+up to 10) removes the TTL field, `sweepExpiredMoments` passes pinned ones by (paging past them so they can't stall it), `loadActive`
+and `listViewers` accept a pinned moment past its time, the ring (`listForOwner`) still shows live ones only, a reshare of an expired
+pinned moment is refused, and unpinning one whose time is up deletes it at once; the viewer has 📌 Pin / Unpin. Lives & replays read
+`replaysFor` (`lib/media-replays.ts`), which returns none until PR #256's replays land. Account deletion removes Media posts, their
+files and Stream videos. Tests: `test:media` (rules, limits, watermark on JPEG and WebP), `test:media-server` (emulator: uploads,
+limits, Stream processing and rejection, audiences, blocks, teen rules, downloads, site pictures, the album, pinned posts and Moments
+past expiry, deletion), the rules test (all four collections client-proof), all in CI. Not in M1: the `/media` feed, comments,
+reactions, gifts, shares and reports of Media posts, the automatic safety check, lives (phases M2 to M5 in `docs/MEDIA.md`).

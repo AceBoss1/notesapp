@@ -35,6 +35,7 @@ jobs:
       - run: npm run test:team
       - run: npm run test:chat
       - run: npm run test:uploads
+      - run: npm run test:media
       - run: npm run test:cart
       - run: npm run test:discounts
       - run: npm run test:referrals
@@ -83,6 +84,7 @@ jobs:
       - run: npm run test:exam-prep-server
       - run: npm run test:life-social-server
       - run: npm run test:young-server
+      - run: npm run test:media-server
       - run: npm run test:prep-schools-server
       - run: npm run test:kids-server
       - run: npm run test:time-server

@@ -191,6 +191,19 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     momentCount++;
   }
   counts.moments = momentCount;
+  // Media (lib/media-server.ts): their posts, the pictures in the bucket and the videos on Cloudflare Stream, and their usage and settings.
+  const media = await db.collection("mediaPosts").where("ownerUid", "==", uid).get();
+  for (const m of media.docs) {
+    const d = m.data();
+    for (const p of (d.pictures as { key: string }[] | undefined) ?? []) await deleteMedia(String(p.key)).catch(() => {});
+    if (d.video?.streamUid) {
+      const { deleteVideo, streamConfigured } = await import("./stream");
+      if (streamConfigured()) await deleteVideo(String(d.video.streamUid)).catch(() => {});
+    }
+    await db.recursiveDelete(m.ref);
+  }
+  await deleteAll(db, ["mediaUsage", "mediaSettings"].map((c) => db.doc(`${c}/${uid}`)));
+  counts.media = media.size;
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();

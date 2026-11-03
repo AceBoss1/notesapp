@@ -721,6 +721,27 @@ test("ad revenue is admin-only; publishers read only their own ad-share statemen
   await assertFails(updateDoc(doc(as("pub"), "adShareStatements/2026-10_pub"), { shareKobo: 9999999, status: "approved" }));
 });
 
+test("Media is API-only: posts, uploads, usage and settings are never read or written by clients, not even the owner", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "mediaPosts/p1"), { ownerUid: "pub", ownerUsername: "pub", kind: "pictures", audience: "everyone", status: "ready", pinned: false });
+    await setDoc(doc(d, "mediaPosts/p1/views/alice"), { uid: "alice" });
+    await setDoc(doc(d, "mediaUploads/u1"), { uid: "pub", streamUid: "s1", used: false });
+    await setDoc(doc(d, "mediaUsage/pub"), { uid: "pub", videos: 1, bytes: 10 });
+    await setDoc(doc(d, "mediaSettings/pub"), { uid: "pub", hideAllSite: false, hiddenSite: [] });
+  });
+  for (const ctx of [as("pub"), as("alice"), anon()]) {
+    for (const path of ["mediaPosts/p1", "mediaPosts/p1/views/alice", "mediaUploads/u1", "mediaUsage/pub", "mediaSettings/pub"]) await assertFails(getDoc(doc(ctx, path)));
+    await assertFails(getDocs(query(collection(ctx, "mediaPosts"), where("ownerUid", "==", "pub"))));
+  }
+  await assertFails(setDoc(doc(as("pub"), "mediaPosts/p2"), { ownerUid: "pub", kind: "pictures", audience: "everyone", status: "ready" }));
+  await assertFails(updateDoc(doc(as("pub"), "mediaPosts/p1"), { pinned: true, viewCount: 1000000 }));
+  await assertFails(deleteDoc(doc(as("pub"), "mediaPosts/p1")));
+  await assertFails(setDoc(doc(as("pub"), "mediaUsage/pub"), { videos: 0, bytes: 0 }));
+  await assertFails(setDoc(doc(as("pub"), "mediaSettings/pub"), { hideAllSite: true }));
+  await assertFails(updateDoc(doc(as("pub"), "mediaUploads/u1"), { used: false }));
+});
+
 test("moments are API-only; conversations are readable only by their two members and never writable", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();

@@ -163,6 +163,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_MESSAGES_LIVE` | no | Messages, group chats and the Conversation button: off unless set to true (also on when moments are). |
 | `NEXT_PUBLIC_MOMENTS_LIVE` | no | Moments: off unless set to true (turns messages on too). |
 | `NEXT_PUBLIC_CALLS_LIVE` | no | Voice and video calls: on whenever messages are, unless set to false. |
+| `NEXT_PUBLIC_MEDIA_LIVE` | no | Media (the Media tab on profiles, /u/{username}/media and the /profile/media studio): on unless set to false. Videos also need CLOUDFLARE_STREAM_TOKEN. |
 | `NEXT_PUBLIC_WALLET_LIVE` | no | The NotesApp Credit wallet: on unless set to false. |
 | `NEXT_PUBLIC_LIFE_LIVE` | no | Notes Life: on unless set to false. |
 | `NEXT_PUBLIC_ACADEMY_LIVE` | no | Notes Academy free courses (/academy, teaching, course pages, the Courses tabs, member sites and the digest): on unless set to false, which brings back the opening-soon page. |

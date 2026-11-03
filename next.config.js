@@ -7,6 +7,8 @@ const nextConfig = {
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
       // Course covers made with Nana (lib/cover-render.tsx): the fonts, our mark, and Next's own WebP encoder (WebAssembly).
       "/api/academy/covers": ["./assets/fonts/**", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],
+      // Watermarked Media picture downloads (lib/media-watermark.tsx): Next's own picture decoders and JPEG encoder (WebAssembly).
+      "/api/media/posts/[id]/download": ["./node_modules/next/dist/server/lib/squoosh/**"],
     },
   },
   // pdf.js (the view-only PDF viewer, components/PdfViewer.tsx) has an optional Node "canvas" import it never uses in the browser.

@@ -26,7 +26,16 @@ export function createDirectUpload(sellerUid: string, name: string) {
   });
 }
 
-export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number };
+// Media videos (lib/media-server.ts): public playback, because Media posts are public (their audience is checked by our own API before a
+// post is listed). Stream refuses an upload longer than the plan's longest Media video. `meta.purpose` tells them apart in /admin/stream.
+export function createPublicDirectUpload(creatorUid: string, maxSeconds: number, name: string) {
+  return cf<{ uploadURL: string; uid: string }>("/direct_upload", {
+    method: "POST",
+    body: JSON.stringify({ maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: false, creator: creatorUid, meta: { name, purpose: "media" } }),
+  });
+}
+
+export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number; status?: { state?: string } };
 export async function getVideo(uid: string): Promise<StreamVideo | null> {
   try {
     return await cf<StreamVideo>(`/${encodeURIComponent(uid)}`);

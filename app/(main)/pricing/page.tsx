@@ -15,6 +15,7 @@ import { canHaveTeam } from "@/lib/org";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { MEDIA_LIVE, secondsText } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay, nanaResetText, yearlyFreeText, COMMISSION_ROW_LABEL, commissionCell, mergeCells } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
@@ -271,6 +272,16 @@ const ROWS: Row[] = [
     render: (t, L) =>
       `Pictures and text, up to ${L.momentsPerDay[t.tier]} a day, for 24, 48 or 72 hours · ` +
       (L.momentVideosPerWeek[t.tier] > 0 ? `${L.momentVideosPerWeek[t.tier]} video moments a week (each 90-second part of a longer video counts as one)` : "video moments come with a paid plan"),
+  },
+  {
+    // Media (docs/MEDIA.md): every figure from Admin → Limits, group "Media".
+    label: "Media",
+    href: "/help/media",
+    show: MEDIA_LIVE,
+    render: (t, L) =>
+      `Videos and pictures on your profile's Media tab, kept until you delete them · ` +
+      (L.mediaVideosPerWeek[t.tier] > 0 ? `${L.mediaVideosPerWeek[t.tier]} video${L.mediaVideosPerWeek[t.tier] === 1 ? "" : "s"} a week, up to ${secondsText(L.mediaVideoMaxSeconds[t.tier])} each` : "pictures only (videos come with a paid plan)") +
+      ` · ${L.mediaPicturePostsPerDay[t.tier]} picture posts a day · ${L.mediaStorageGB[t.tier] === 0 ? "no storage limit" : `${L.mediaStorageGB[t.tier]} GB of storage`} · watermarked downloads if you allow them`,
   },
   {
     label: "Email for new messages",
