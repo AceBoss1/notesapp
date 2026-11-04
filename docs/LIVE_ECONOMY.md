@@ -13,13 +13,13 @@ the help and public pages read the live value, never a figure typed into them (`
 |---|---|---|
 | Audio rooms with video (Live mode), poster, video-minutes budget | `lib/rooms*.ts`, `lib/rooms-live*.ts` | Every live: free, paid and pay-per-minute |
 | Cloudflare relay (SFU) for rooms, TURN for calls | `lib/rooms-relay-server.ts`, `lib/calls-server.ts` | Lives at scale; the fallback for Nana minutes (P4) |
-| Live chat on a Durable Object, listener counts, `listenTime` | `workers/live-rooms`, `lib/live-rooms*.ts` | Who is present (sprints, sprinkles, the 20-minute late window) |
+| Live chat on a Durable Object, listener counts, `listenTime` | `workers/live-rooms`, `lib/live-rooms*.ts` | Who is present (sprints, the 20-minute late window) |
 | Recording with consent, replays on Stream | `lib/live-recording*.ts`, `services/room-recorder` | The recording choice on a paid live; the fallback recorder for Nana minutes |
 | Pluggable transcriber, Nana summary | `Transcriber` in `lib/live-recording-server.ts` | Nana minutes: transcripts and summaries |
 | Animated gifts, VIP gifts, sitewide burst, uplift on commission | `lib/gift-catalogue.ts`, `lib/gifts-server.ts` | Gifting everywhere, sprint prizes (P3) |
 | Event tickets with reminders | `lib/tickets*.ts`, `lib/events-server.ts` | Paid-live tickets and their reminders |
 | Bookings, paid sessions, `PAYOUT_HOLD_HOURS` (24 h problem window) | `lib/bookings-server.ts`, `lib/cancellation.ts` | Pay-per-minute sessions |
-| NotesApp Credit, bonus credits (`BONUS_KINDS`) | `lib/wallet*.ts` | Paying for lives and minutes; sprinkles are paid in bonus credit |
+| NotesApp Credit, bonus credits (`BONUS_KINDS`) | `lib/wallet*.ts` | Paying for lives and minutes; prizes are paid in bonus credit |
 | Ledger (held → released), Paystack transfers, payout OTP | `lib/payments.ts`, `lib/payouts.ts`, `lib/payout-otp-server.ts` | Gift withdrawals |
 | Fan points, Top fans, subscription tiers Premium / VIP / VVIP | `lib/fans*.ts` (PR #267, merging) | Audiences for paid lives; gift points feed fan levels |
 
@@ -93,11 +93,12 @@ amountKobo, entries[], status: auto / waiting / approved / paid / failed).
 
 ## Phase 3: the weekend incentive pool and the Top gifters sprint
 
-**Legal first.** The core reward is now a **merit contest**: the Top gifters sprint, won by the most gift points in a set time,
-not by chance. That is lower risk than a random draw. Counsel must still confirm it under the FCCPC's sales-promotion rules
-before launch: entry is tied to paid activity and the prizes have cash value. The optional bonus-credit sprinkle further down
-**is** a chance draw. It could count as a promotion needing FCCPC approval, or as a lottery under the National Lottery Act and,
-since the Supreme Court's November 2024 ruling, the states' gaming laws such as Lagos. So it stays **off** until counsel says yes.
+**Legal first.** Both rewards are **merit contests**, never chance draws (owner, 4 Nov):
+- the **Top gifters sprint** (most gift points in a set time)
+- the **Top activity board** (most activity points over the weekend)
+
+There is no random draw anywhere in P3. That is lower risk than a lottery. But it is still a **sales promotion**: rewards of cash
+value, tied to activity that includes paying. So counsel must confirm both under the FCCPC's promotion rules before launch.
 Until counsel signs off, P3 runs with staff accounts only, behind the staff test pass.
 
 ### The weekly calculation (Thursday 23:59 → Friday 00:00, Lagos time)
@@ -107,8 +108,10 @@ Until counsel signs off, P3 runs with staff accounts only, behind the staff test
    default 1.8).
 4. **The pool:** if it passes, **10% of that week's gift commission** goes into the weekend pool (`poolSharePct`, default 10).
    If it fails, there's no pool that weekend. A pool under `poolMinKobo` (default ₦50,000) rolls into next week instead.
-5. **The split:** the pool goes to sprint prizes. Only if the sprinkle option is switched on (after counsel) does
-   `sprinkleSharePct` of it (default 40%) go to sprinkles; otherwise 100% is for sprints.
+5. **The split:**
+   - **60%** to Top gifters sprint prizes (`sprintSharePct`).
+   - **40%** to the Top activity board (`activitySharePct`).
+   - A sprint budget that can't fill a whole prize ladder rolls into next week's pool.
 
 ### The Top gifters sprint
 - **When:** the weekend runs **Friday 18:00 to Sunday 23:00**. The system starts a sprint at a peak: concurrent viewers across
@@ -138,13 +141,47 @@ Until counsel signs off, P3 runs with staff accounts only, behind the staff test
   - teens can't win
   - staff only while the staff test pass is on
 
-### Optional, off until counsel says yes: the bonus-credit sprinkle (a chance draw)
-At the end of a sprint, `sprinklePeoplePct` (30%) of the eligible people present where a winner is get bonus credit:
-- 70% of them get ₦100–₦500
-- 25% get ₦500–₦2,000
-- 5% get ₦2,000–₦5,000
+### The Top activity board (the 40%)
+Merit, not chance: the most active members of the weekend win bonus credit.
 
-That's about ₦700 each on average (0.7 × ₦300 + 0.25 × ₦1,250 + 0.05 × ₦3,500), capped at ₦5,000 per person per weekend.
+**Activity points**, counted Friday 18:00 to Sunday 23:00. The daily caps are the fan-level caps, so they can't be farmed:
+
+| Action | Points | Daily cap |
+|---|---|---|
+| Share of a post, item, course, Media post or replay | 10 | 5 shares (50 points) |
+| Comment | 3 | 10 comments (30 points) |
+| Reaction | 1 | 20 reactions (20 points) |
+| Premium (non-VIP) gift | 1 per ₦100 | none |
+
+- Most a member can earn without gifting: 100 a day, 300 a weekend. Premium gifts add on top. VIP gifts count for the sprint
+  instead, not here.
+- Only actions on **other people's** content count. Comments must stay up (not deleted or removed after a report) and be at
+  least `activityMinChars` (default 15) characters. An undone reaction doesn't count.
+
+**Winners** (`activityWinners`, default 200), ranked when the weekend closes on Sunday at 23:00 and announced with the board.
+A tie goes to whoever reached the score first. A winner needs at least `activityMinPoints` (default 30).
+
+| Rank | Bonus credit each | Winners | Total |
+|---|---|---|---|
+| #1 | ₦5,000 | 1 | ₦5,000 |
+| #2–10 | ₦3,000 | 9 | ₦27,000 |
+| #11–30 | ₦1,500 | 20 | ₦30,000 |
+| #31–80 | ₦600 | 50 | ₦30,000 |
+| #81–200 | ₦200 | 120 | ₦24,000 |
+| **All** | | **200** | **₦116,000** |
+
+- Every prize is between ₦100 and ₦5,000, and **₦5,000 is the cap per person per weekend**.
+- When the activity budget is smaller than the ladder, ranks are paid from the top down until it runs out. When it's bigger, the
+  rest rolls into next week's pool.
+- Paid as **bonus credit**: usable on boosts, the badge and ads, but it can't be gifted on or withdrawn.
+- **Anti-abuse:**
+  - accounts at least 30 days old with a verified email
+  - one prize per device and per bank account
+  - no points for actions between accounts that share a device or bank account
+  - no points for actions on your own content
+  - teens are excluded
+  - accounts with a gift reversal or chargeback in 90 days are excluded
+  - staff are excluded unless the staff test pass is on
 
 ### Worked example A (qualifies)
 | | Figure |
@@ -154,11 +191,8 @@ That's about ₦700 each on average (0.7 × ₦300 + 0.25 × ₦1,250 + 0.05 × 
 | Infrastructure cost this week | ₦1,200,000 |
 | Test: 3,000,000 ≥ 1.8 × 1,200,000 = 2,160,000 | **passes** (ratio 2.5) |
 | Pool: 10% × ₦3,000,000 | **₦300,000** |
-
-- **Sprinkle off (default until counsel):** ₦300,000 ÷ ₦100,000 = **3 sprints**, for example Fri 9 pm, Sat 9 pm and Sun 8 pm.
-  9 winners in all.
-- **Sprinkle on:** ₦180,000 for sprints, which is **1 sprint**, with ₦80,000 rolling into next week. ₦120,000 for sprinkles is
-  about **170 people** at about ₦700 each.
+| Sprints (60%) | ₦180,000: **1 sprint** at ₦100,000 (Saturday at peak); ₦80,000 rolls into next week |
+| Top activity (40%) | ₦120,000: the full ladder, **200 winners**, ₦116,000; ₦4,000 rolls into next week |
 
 ### Worked example B (doesn't qualify)
 | | Figure |
@@ -167,7 +201,7 @@ That's about ₦700 each on average (0.7 × ₦300 + 0.25 × ₦1,250 + 0.05 × 
 | Gift commission kept | ₦900,000 |
 | Infrastructure cost this week | ₦600,000 |
 | Test: 900,000 ≥ 1.8 × 600,000 = 1,080,000 | **fails** (ratio 1.5) |
-| Pool | ₦0. No sprints this weekend, and nothing is announced. |
+| Pool | ₦0. No sprints and no activity board this weekend, and nothing is announced. |
 
 ---
 
@@ -191,8 +225,11 @@ and which are typed.
 
 ## Phase 4: Nana minutes (the session notetaker)
 
-The owner asked for a standalone Nana minute-taker app that joins after the call connects, with encryption off. **We do it
-inside the NotesApp call instead, and encryption stays on.**
+**Recommended and approved by the owner (4 Nov): Nana minutes, recorded on the host's own device.** The relay and recorder are
+only the fallback, for group calls or when the host's device can't record.
+
+The owner first asked for a standalone Nana minute-taker app that joins after the call connects, with encryption off. We do it
+inside the NotesApp call instead, and encryption stays on.
 
 **Why:**
 - **One app can't record another app's call:** on iOS and Android, an app can't capture another app's call audio; both
@@ -259,8 +296,9 @@ These are new.
 - **Pool:** `poolTestRatio` 1.8, `poolSharePct` 10, `poolMinKobo` ₦50,000.
 - **Weekend timing:** `weekendStart` Fri 18:00, `weekendEnd` Sun 23:00.
 - **Sprints:** `burstFactor` 1.5, `sprintGapHours` 3, `sprintMinutes` 10, `sprintPrizes` (#1 Kente Crown, #2 and #3 Golden Gele), `sprintMinPoints` 50, `sprintMax` 6.
-- **Sprinkles (off until counsel):** `sprinkleOn` false, `sprinkleSharePct` 40, `sprinklePeoplePct` 30, the band shares (70/25/5)
-  and limits (₦100–500 / 500–2,000 / 2,000–5,000), per-person weekend caps.
+- **Split:** `sprintSharePct` 60, `activitySharePct` 40.
+- **Activity board:** `activityWinners` 200, `activityMinPoints` 30, `activityMinChars` 15, the prize ladder (₦5,000 / 3,000 /
+  1,500 / 600 / 200), and a ₦5,000 cap per person per weekend. Point values and daily caps come from fan levels.
 - **Eligibility:** account age 30 days.
 - **Infrastructure:** the monthly cost lines and the dollar rate.
 
@@ -287,4 +325,4 @@ These are new.
 3. Do subscribers get a discount on paid-live tickets, or only access?
 4. Nana minutes: free on Business and Enterprise and paid on other plans, or paid for everyone?
 5. Weekly boards reset on **Monday 00:00** (proposed) or right after the Thursday calculation?
-6. Counsel: who confirms the sprint under the FCCPC promotion rules, and should the bonus-credit sprinkle be pursued at all?
+6. Counsel: who confirms the sprint and the activity board under the FCCPC promotion rules?
