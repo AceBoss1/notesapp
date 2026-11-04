@@ -51,6 +51,17 @@ export async function downloadMediaPicture(postId: string, index: number): Promi
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+// A video's watermarked download copy: the server hands back a signed link (an hour) to the copy's MP4, and the browser saves it.
+export async function downloadMediaVideo(postId: string): Promise<void> {
+  const u = auth.currentUser;
+  const res = await fetch(`/api/media/posts/${encodeURIComponent(postId)}/download?video=1`, { headers: u ? { Authorization: `Bearer ${await u.getIdToken()}` } : {}, cache: "no-store" });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || "Couldn't download it.");
+  const a = document.createElement("a");
+  a.href = String(j.url); a.download = String(j.filename || "notesapp-video.mp4"); a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 // Sends a video straight to Cloudflare Stream (a form post to the one-time address), reporting progress from 0 to 1.
 export function sendToStream(uploadURL: string, file: File, onProgress: (f: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {

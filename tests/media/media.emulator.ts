@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
-  createMediaPost, creatorMedia, deleteMediaPost, downloadPicture, mediaQuota, mediaStudio, refreshVideo, setMediaSettings, startMediaVideo, updateMediaPost,
+  createMediaPost, creatorMedia, deleteMediaPost, downloadPicture, downloadVideo, mediaQuota, mediaStudio, refreshVideo, setMediaSettings, startMediaVideo, sweepProcessingVideos, updateMediaPost,
   type MediaDeps,
 } from "../../lib/media-server";
 import { listForOwner, listPinnedMoments, pinMoment, sweepExpiredMoments, toggleLike } from "../../lib/moments-server";
@@ -15,6 +15,7 @@ import { resetLimitCache } from "../../lib/limits-server";
 import { sitePictureId, sniffPicture } from "../../lib/media-rules";
 import { watermarkPicture } from "../../lib/media-watermark";
 import { eraseAccount } from "../../lib/account-server";
+import { resetWatermarkCache, type VideoDlDeps } from "../../lib/media-video-dl-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -153,10 +154,97 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   assert.equal((await db.doc(`mediaPosts/${dp.id}`).get()).data()!.downloadCount, 1);
   await rejects(downloadPicture(db, fan, p1.id, 0, deps, watermarkPicture), /hasn't allowed downloads/);
   await rejects(downloadPicture(db, fan, dp.id, 5, deps, watermarkPicture), /picture wasn't found/);
-  await updateMediaPost(db, T, vp.id, { allowDownloads: true }, deps);
-  await rejects(downloadPicture(db, fan, vp.id, 0, deps, watermarkPicture), /Downloads of videos are coming soon/);
+  const noDl = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, deps);
+  assert.equal(noDl.videoDownload, "failed", "without Stream's download steps the creator is told"); assert.match(String(noDl.videoDownloadWhy), /aren't switched on yet/);
+  await rejects(downloadPicture(db, fan, vp.id, 0, deps, watermarkPicture), /That's a video/);
+  await rejects(downloadVideo(db, fan, vp.id, deps), /aren't switched on yet/);
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, deps);
   await updateMediaPost(db, T, fp.id, { allowDownloads: true }, deps);
   await rejects(downloadPicture(db, stranger, fp.id, 0, deps, watermarkPicture), /wasn't found/, "a followers-only post isn't downloadable by a stranger");
+
+  // ── Watermarked video downloads: a second Stream copy with a see-through mark, MP4 downloads on the copy only ──
+  const dlOn = new Map<string, { status: "inprogress" | "ready" | "error"; url: string }>(); // MP4 downloads per Stream video
+  const copies = new Map<string, { readyToStream: boolean; state?: string; size?: number }>();
+  const made: { url: string; watermarkUid: string; creatorUid: string }[] = [], marks: { name: string; opacity: number; scale: number; padding: number; position: string; transparent: boolean }[] = [];
+  const dropped: string[] = [], disabled: string[] = [], copyRemoved: string[] = [];
+  let wm = 0, cp = 0;
+  const vdl: VideoDlDeps = {
+    enable: async (uid) => { const d = { status: "inprogress" as const, url: `https://customer-x.cloudflarestream.com/${uid}/downloads/default.mp4` }; dlOn.set(uid, d); return d; },
+    status: async (uid) => dlOn.get(uid) ?? null,
+    disable: async (uid) => { disabled.push(uid); dlOn.delete(uid); },
+    copy: async (o) => { made.push(o); const uid = `copy${++cp}`; copies.set(uid, { readyToStream: false }); return { uid }; },
+    get: async (uid) => copies.get(uid) ?? null,
+    remove: async (uid) => { copyRemoved.push(uid); copies.delete(uid); },
+    watermark: async (o) => {
+      // The mark must be a PNG with a see-through background: its alpha channel has fully transparent pixels.
+      const img = await sq.decodeBuffer(o.png);
+      let clear = 0; for (let k = 3; k < img.data.length; k += 4) if (img.data[k] === 0) clear++;
+      marks.push({ name: o.name, opacity: o.opacity, scale: o.scale, padding: o.padding, position: o.position, transparent: o.png.subarray(1, 4).toString() === "PNG" && clear > img.data.length / 8 });
+      return { uid: `wm${++wm}` };
+    },
+    dropWatermark: async (uid) => { dropped.push(uid); },
+    mark: (u) => import("../../lib/media-watermark").then((m) => m.renderVideoMark(u)),
+    token: async (uid, secs) => `tok-${uid}-${secs}`,
+  };
+  const ddeps: MediaDeps = { ...deps, videoDl: vdl };
+  const used0 = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
+  const on1 = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
+  assert.equal(on1.videoDownload, "preparing");
+  assert.deepEqual(marks, [{ name: "NotesApp @tunde", opacity: 0.4, scale: 0.22, padding: 0.04, position: "lowerRight", transparent: true }], "one see-through profile for @tunde, from the default look");
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 4_900_000, "the copy takes about the video's size again in storage");
+  assert.ok(dlOn.has("sv1"), "an MP4 of the original is made, to copy from");
+  assert.equal((await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.find((p) => p.id === vp.id)!.videoDownload, undefined, "others don't see it until it's ready");
+  await rejects(downloadVideo(db, fan, vp.id, ddeps), /being prepared/);
+  dlOn.set("sv1", { status: "ready", url: "https://customer-x.cloudflarestream.com/sv1/downloads/default.mp4" });
+  await rejects(downloadVideo(db, fan, vp.id, ddeps), /being prepared/, "the copy is being made");
+  assert.deepEqual(made, [{ url: "https://customer-x.cloudflarestream.com/sv1/downloads/default.mp4", watermarkUid: "wm1", creatorUid: "u_tunde", name: `download of media ${vp.id}` }]);
+  copies.set("copy1", { readyToStream: true, size: 5_500_000 });
+  assert.equal(await sweepProcessingVideos(db, ddeps), 1, "the cron moves it along");
+  assert.ok(disabled.includes("sv1") && !dlOn.has("sv1"), "the original's MP4 is removed once the copy has it: only the marked copy is downloadable");
+  assert.equal(dlOn.get("copy1")?.status, "inprogress");
+  dlOn.set("copy1", { status: "ready", url: "https://customer-x.cloudflarestream.com/copy1/downloads/default.mp4" });
+  const vget = await downloadVideo(db, fan, vp.id, ddeps);
+  assert.equal(vget.url, `https://customer-x.cloudflarestream.com/tok-copy1-3600/downloads/default.mp4?filename=${encodeURIComponent(`tunde-notesapp-${vp.id.slice(0, 6)}.mp4`)}`, "a signed, hour-long link to the marked copy, named for @tunde");
+  assert.equal((await db.doc(`mediaPosts/${vp.id}`).get()).data()!.downloadCount, 1);
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 5_500_000, "storage follows the copy's real size");
+  assert.equal((await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.find((p) => p.id === vp.id)!.videoDownload, "ready");
+  assert.equal((await mediaStudio(db, T, "pro", ddeps)).posts.find((p) => p.id === vp.id)!.videoDownload, "ready");
+  // Off: the copy goes and its bytes come back.
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
+  assert.ok(copyRemoved.includes("copy1")); assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
+  await rejects(downloadVideo(db, fan, vp.id, ddeps), /hasn't allowed downloads/);
+  // The look from Admin → Limits: a new profile for copies made from now on; the old one is dropped.
+  await db.doc("serverConfig/mediaWatermark").set({ overrides: { opacityPct: 30, corner: 3 } }); resetWatermarkCache();
+  await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
+  assert.deepEqual([marks[1].opacity, marks[1].position, dropped], [0.3, "upperLeft", ["wm1"]]);
+  await db.doc("serverConfig/mediaWatermark").delete(); resetWatermarkCache();
+  // Stream fails a step: whatever it made is removed, the bytes go back, and the creator sees why.
+  dlOn.set("sv1", { status: "error", url: "" });
+  await sweepProcessingVideos(db, ddeps);
+  const failed = (await mediaStudio(db, T, "pro", ddeps)).posts.find((p) => p.id === vp.id)!;
+  assert.equal(failed.videoDownload, "failed"); assert.match(String(failed.videoDownloadWhy), /off and on to try again/);
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
+  // No room for the copy: refused, with why.
+  await db.doc("mediaUsage/u_tunde").update({ bytes: 20 * 1024 ** 3 - 1000 });
+  const full = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
+  assert.equal(full.videoDownload, "failed"); assert.match(String(full.videoDownloadWhy), /isn't room in your Media storage/);
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
+  await db.doc("mediaUsage/u_tunde").update({ bytes: used0 });
+  // Deleting a post with a ready copy removes both and frees both.
+  const v4 = await startMediaVideo(db, T, "pro", { durationSec: 20, size: 1_000_000 }, ddeps);
+  const vp4 = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v4.uploadId, allowDownloads: true }, ddeps);
+  stream.set(`sv${sv}`, { readyToStream: true, duration: 20, size: 1_000_000 });
+  await refreshVideo(db, vp4.id, ddeps); // ready: the copy starts now
+  dlOn.set(`sv${sv}`, { status: "ready", url: `https://customer-x.cloudflarestream.com/sv${sv}/downloads/default.mp4` });
+  await sweepProcessingVideos(db, ddeps); copies.set(`copy${cp}`, { readyToStream: true, size: 1_000_000 }); await sweepProcessingVideos(db, ddeps);
+  dlOn.set(`copy${cp}`, { status: "ready", url: `https://customer-x.cloudflarestream.com/copy${cp}/downloads/default.mp4` }); await sweepProcessingVideos(db, ddeps);
+  assert.equal((await db.doc(`mediaPosts/${vp4.id}`).get()).data()!.videoDl.state, "ready");
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 2_000_000);
+  await deleteMediaPost(db, "u_tunde", vp4.id, ddeps);
+  assert.ok(copyRemoved.includes(`copy${cp}`)); assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
+  // Teens: never.
+  await rejects(downloadVideo(db, mutual, tp.id, ddeps), /Downloads are off for this member's Media/);
 
   // ── Site pictures: shown by default, each hideable, and a switch for all ──
   await db.doc("sites/u_tunde").set({ uid: "u_tunde", cover: "https://cdn.test/site/cover.webp", blocks: { gallery: { on: true, items: [{ image: "https://cdn.test/site/g1.webp", caption: "Shop" }, { image: "https://cdn.test/site/g2.webp", caption: "" }] }, services: { on: true, items: [{ name: "Ajo", image: "https://cdn.test/site/s1.webp" }] } } });

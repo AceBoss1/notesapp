@@ -8,6 +8,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
 import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
+import { isGiftMotif } from "@/lib/gift-catalogue";
+import { playGift } from "@/lib/gift-play";
 
 type Result = {
   status: string;
@@ -22,7 +24,7 @@ type Result = {
   certificate?: { courseTitle: string; issuedId: string | null };
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
-  gift?: { username: string; noteSlug?: string };
+  gift?: { username: string; noteSlug?: string; animId?: string; animName?: string };
   booking?: { username: string; date: string; slot: string };
   subscription?: { username: string };
 };
@@ -35,6 +37,11 @@ function Confirm() {
   // Bought from a member's own domain? Offer the way back to it.
   const [backHost, setBackHost] = useState<string | null>(null);
   useEffect(() => setBackHost(rememberedReturnHost()), []);
+  // An animated gift that went through plays for the sender too.
+  useEffect(() => {
+    const g = result?.status === "paid" && result.kind === "gift" ? result.gift : undefined;
+    if (g && isGiftMotif(g.animId)) playGift({ giftId: g.animId, name: g.animName || "", priceKobo: result?.amountKobo ?? 0, toName: `@${g.username}`, key: `sent_${reference}` });
+  }, [result, reference]);
 
   useEffect(() => {
     if (!reference) {

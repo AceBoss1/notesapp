@@ -854,6 +854,7 @@ service cloud.firestore {
     match /mediaUploads/{id} { allow read, write: if false; }
     match /mediaUsage/{uid} { allow read, write: if false; }
     match /mediaSettings/{uid} { allow read, write: if false; }
+    match /mediaWatermarks/{uid} { allow read, write: if false; } // a creator's video download watermark profile (lib/media-video-dl-server.ts)
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }
@@ -1238,6 +1239,25 @@ service cloud.firestore {
     }
     match /fanPrefs/{uid} {
       allow read, write: if false;
+    }
+
+    // Daily gift totals per receiver (lib/gifts-server.ts, the "Top gifted today" shelf): server-only. They hold who sent gifts.
+    match /giftDaily/{dayUid} {
+      allow read, write: if false;
+    }
+
+    // The last animated gift a member received, played to signed-in visitors of their page. Server-written; anonymous senders'
+    // names are never stored here.
+    match /giftShows/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // The last grand gift (lib/gifts-server.ts announceGrandGift), announced on every open page with a link to watch it. Public: it holds
+    // only what the banner shows (no anonymous sender's name, never a teen receiver). Server-written.
+    match /giftBursts/{id} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /slotLocks/{lockId} {

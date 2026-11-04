@@ -267,7 +267,7 @@ export default async function JournalDetail({
         {!site && <SocialPublish noteId={note.id} authorUid={note.authorUid} />}
         {authorProfile && linkedUsername && (
           <div className={`mt-4 ${wide ? "lg:hidden" : ""}`}>
-            <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" />
+            <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} toName={authorProfile.displayName} forTitle={note.title} label="🎁 Gift this post" />
           </div>
         )}
       </div>
@@ -343,7 +343,7 @@ export default async function JournalDetail({
           <div className="card p-5">
             <p className="font-ui text-sm font-bold text-ink">Liked this?</p>
             <p className="mt-1 text-xs text-slate">Say thanks with a gift. It goes to {authorProfile.displayName}&apos;s bank account.</p>
-            <div className="mt-3"><GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" /></div>
+            <div className="mt-3"><GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} toName={authorProfile.displayName} forTitle={note.title} label="🎁 Gift this post" /></div>
           </div>
         )}
         {moreNotes.length > 0 && (

@@ -41,6 +41,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftClass, needsVerified, verifiedRuleText } from "./gift-catalogue";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
 // the pricing page. Plain facts only; if something is not live yet, the article says so. Staff can add articles or override one by slug
@@ -342,9 +343,20 @@ You never earn points with yourself. The top ${TOP_FANS} get a badge next to the
 
 **Privacy:** a creator can hide their Top fans list under Rates & payouts (badges still show). Members in teen mode only appear on lists to people who follow them, and a creator in teen mode has no public list.`),
     A("gifts", "Gifts", "Publishing and earning", `
-A reader can send a publisher, or one single post, a gift from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
+A reader can send a publisher, or one single post, a gift, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
-You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions. Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+**Animated gifts:** choose one of ${enabledGifts().length} named gifts. Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for the person you gift, in their notification, and for everyone looking at their page when it arrives (and, once lives open, for everyone in the live). Sound is off unless you switch on **Gift sounds** in the gift sheet. The gifts today:
+${enabledGifts().map((g) => `- **${g.name}** (${MOTIF_BLURB[g.id]}): ${money(g.priceKobo)}${needsVerified(g) ? " ✔" : ""}`).join("\n")}
+
+Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the ✔ badge to send them.${GIFT_SETTINGS.grand.announce ? ` Each gift from ${money(GIFT_SETTINGS.grand.fromKobo)} is also announced to everyone on #NotesApp at that moment, with a link to join the live (or the creator's page) and watch it; a creator in teen mode is never announced, and an anonymous sender stays anonymous.` : ""} Or choose **Other** and type any amount from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}.
+
+**Paying:** from your NotesApp Credit, or by card, bank transfer or USSD through Paystack. You need a verified email to send a gift, and you cannot gift yourself.
+
+**For the publisher:** gifts are paid to your bank account 7 days after they arrive (a short dispute window), minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions, for a gift of a typed amount. **Animated gifts** carry a little more: on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "premium").length} **premium gifts** #NotesApp takes your rate plus ${GIFT_SETTINGS.uplift.premiumPct}% of it, and on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "vip").length} **VIP gifts** (from ${money(GIFT_SETTINGS.grand.fromKobo)}, verified senders) your rate plus ${GIFT_SETTINGS.uplift.vipPct}% of it. For example, with an 8% rate a premium gift is charged ${+(8 * (1 + GIFT_SETTINGS.uplift.premiumPct / 100)).toFixed(2)}% and a VIP gift ${+(8 * (1 + GIFT_SETTINGS.uplift.vipPct / 100)).toFixed(2)}%. Gifts sent in a live or on a post are the same.
+
+**Top gifted today:** a creator who receives ${money(GIFT_SETTINGS.daily.targetKobo)}${GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time), from at least ${GIFT_SETTINGS.daily.minSenders} different people, is pinned in the **Top gifted today** shelf at the top of [Trending](/trending) and [Explore](/explore) for the rest of that day: the ${GIFT_SETTINGS.daily.slots} who received the most, and between two with the same amount, whoever got there first. A gift to yourself never counts. Members in teen mode only appear there for people who follow them.
+
+Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -715,7 +727,7 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 
 **Who can see each post:** **Everyone**, **Followers**, or **Subscribers** (people who subscribe to your journal). You can change it later from **⋯** on the post. You can also choose whether to allow comments, shares and gifts. Comments, reactions and gifts arrive with the Media feed.
 
-**Downloads:** off unless you turn on **Allow watermarked downloads** for a post. When it's on, people who can see the post can download its pictures. Each download carries your @username and the NotesApp mark, stamped on our server, and the original file is never sent. Video downloads are coming later.
+**Downloads:** off unless you turn on **Allow watermarked downloads** for a post. When it's on, people who can see the post can download its pictures. Each download carries your @username and the NotesApp mark, stamped on our server, and the original file is never sent. **Videos** download with a see-through mark (the NotesApp mark, your @username and NotesApp) in a corner of the picture: when you turn downloads on for a video, we make a second, marked copy of it for downloads, which takes a few minutes (your studio shows **Making the watermarked download copy…** until it's ready) and about the video's size again in your Media storage. The video people watch has no mark. Turning downloads off removes the marked copy and gives the room back; if a copy can't be made, your studio says why, and turning downloads off and on tries again.
 
 **How much you can post** (set by plan, in Admin → Limits):
 ${LIMIT_TIERS.map((x) => `- **${LIMIT_TIER_LABEL[x]}:** ${lim("mediaVideosPerWeek", x) > 0 ? `${lim("mediaVideosPerWeek", x)} video${lim("mediaVideosPerWeek", x) === 1 ? "" : "s"} a week, each up to ${secondsText(lim("mediaVideoMaxSeconds", x))}` : "no videos"}; ${lim("mediaPicturePostsPerDay", x)} picture posts a day; ${lim("mediaStorageGB", x) === 0 ? "no storage limit" : `${lim("mediaStorageGB", x)} GB of storage`}`).join("\n")}
