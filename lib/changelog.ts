@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.138.0",
+    version: "v0.137.0",
     bump: "minor",
     date: "2026-11-04",
     changes: [
@@ -20,6 +20,22 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Account settings → Sign-in methods: see how you can sign in (password, passkeys, Google, LinkedIn), link Google or LinkedIn to your account and unlink them again. You always keep at least one way in, and we email you whenever a new one is linked." },
       { kind: "changed", text: "If Google or LinkedIn uses an email that already has a NotesApp account, we no longer join them on our own: sign in the way you usually do, then link it under Sign-in methods. After Google asks, signing in with your password links it straight away." },
       { kind: "changed", text: "Your last passkey can't be removed if it's your only way to sign in." },
+    ],
+  },
+  {
+    version: "v0.136.2",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "QR codes on receipts and certificates now print clearly. Saved as a PDF on some phones, the code came out faint and wouldn't scan, though it looked fine on screen." },
+    ],
+  },
+  {
+    version: "v0.136.1",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "Posting a video to Media said \"We're at capacity right now\" when it was our video service (Cloudflare Stream) refusing the upload. It now says what happened (for example, that video storage is full), tells our team at once, and pictures keep working." },
     ],
   },
   {

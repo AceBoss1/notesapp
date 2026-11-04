@@ -8,13 +8,21 @@ export const streamConfigured = () => !!setting("CLOUDFLARE_STREAM_TOKEN") && !!
 export { STREAM_MAX_BYTES } from "./stream-config";
 export const STREAM_MAX_SECONDS = 4 * 3600;
 
+// Cloudflare Stream refused a request. Kept apart from other errors so its message (e.g. "storage capacity" or a quota) is never
+// mistaken for Firestore running out of its daily quota (lib/api-errors.ts), and so callers can say what really happened.
+export class StreamError extends Error {
+  constructor(readonly status: number, readonly code: number | undefined, detail: string) { super(`Cloudflare Stream: ${detail}`); this.name = "StreamError"; }
+  // Stream's account storage is used up (or Stream isn't subscribed): uploads can't start until the owner adds capacity.
+  get storageFull(): boolean { return /storage|capacity|quota|exceed|limit/i.test(this.message) || this.status === 402 || this.status === 413; }
+}
+
 async function cf<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${setting("CLOUDFLARE_STREAM_TOKEN")}`, "Content-Type": "application/json", ...(init?.headers || {}) },
   });
   const j = await res.json().catch(() => ({}));
-  if (!res.ok || j.success === false) throw new Error(j.errors?.[0]?.message || `Cloudflare Stream request failed (${res.status})`);
+  if (!res.ok || j.success === false) throw new StreamError(res.status, j.errors?.[0]?.code, j.errors?.[0]?.message || `request failed (${res.status})`);
   return j.result as T;
 }
 

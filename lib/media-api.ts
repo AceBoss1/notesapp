@@ -1,10 +1,11 @@
+import { reportError } from "./monitoring";
 import { NextRequest, NextResponse } from "next/server";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
 import { R2_BUCKET, deleteMediaObject, getR2Client, r2PublicUrl } from "./r2";
 import {
   copyWithWatermark, createPublicDirectUpload, createWatermarkProfile, deleteDownloads, deleteVideo, deleteWatermarkProfile, downloadToken, enableDownloads, getDownloads,
-  getVideo, streamConfigured,
+  getVideo, StreamError, streamConfigured,
 } from "./stream";
 import { renderVideoMark } from "./media-watermark";
 import { MediaError, type MediaDeps } from "./media-server";
@@ -80,6 +81,14 @@ export async function mediaViewer(req: NextRequest): Promise<{ uid: string; user
 
 export function mediaFail(err: unknown, fallback: string): NextResponse {
   if (err instanceof MediaError) return NextResponse.json({ error: err.message }, { status: err.status });
+  // Cloudflare Stream refused: say so plainly (pictures still work) and log it for /admin/errors, which alerts the team.
+  if (err instanceof StreamError) {
+    void reportError(err, { source: "server", route: fallback });
+    const msg = err.storageFull
+      ? "Videos can't be uploaded right now: our video storage is full. We've been alerted. You haven't been charged, and pictures still work."
+      : "Our video service didn't accept the upload. Please try again in a few minutes. You haven't been charged.";
+    return NextResponse.json({ error: msg }, { status: 503 });
+  }
   if (err instanceof Error && /Missing auth token|verifyIdToken|ID token/i.test(err.message)) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const f = friendlyMessage(err, fallback);
   return NextResponse.json({ error: f.message }, { status: f.status });

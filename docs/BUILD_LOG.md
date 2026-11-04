@@ -2913,7 +2913,24 @@ hidden. Tests: `test:fans` (ranges, the owner's 8% example, old settings, audien
 (caps, self, top list, badges, hidden list, teens, fan level, vehicles, entrances, comment and reaction points through the real code,
 admin settings), rules, `test:help` live figures.
 
-**Sign in with Google and LinkedIn (v0.138.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
+**Media video uploads: an honest message when Cloudflare Stream refuses (v0.136.1, 4 Nov 2026)** — The owner's upload of a 10-second,
+14 MB video to Media failed with "We're at capacity right now" (HTTP 503 from `/api/media/video`). That text belongs to Firestore's
+daily quota (`lib/api-errors.ts` matched any message containing "quota"), but the request had passed every check of our own and failed
+at Cloudflare Stream's `direct_upload`, whose refusal mentions storage or quota when the account's Stream storage is used up or Stream
+isn't subscribed. `lib/stream.ts` now throws a `StreamError` ("Cloudflare Stream: …", with Stream's status and code), the quota rule
+only matches Firestore's `RESOURCE_EXHAUSTED` or a quota message that isn't Stream's, and the Media routes answer a Stream refusal with
+what happened ("our video storage is full… pictures still work") and record it in /admin/errors, which alerts the team. The fix for the
+owner's case is on Cloudflare: Stream → plan and storage (minutes stored), since each direct upload reserves the plan's longest Media
+video against the account's storage. Test: `test:media`.
+
+## Printed QR codes that scan (v0.136.2, built 4 November 2026)
+
+A receipt saved as PDF on an Android phone showed its QR code as faint pink stripes, though the page on screen was fine. The `qrcode`
+package draws dark modules as 1-unit-wide stroked lines; phone print engines and PDF viewers can draw those thinner than a module, leaving
+white gaps between rows. `lib/certificate-qr.ts` now builds the SVG itself from the QR matrix, one filled rectangle per run of dark modules
+in a row, with `print-color-adjust: exact`. A pixel comparison against the old SVG matched all 1,521 modules of a receipt link. Receipts
+and certificates share this helper, so both are fixed; tickets and Cardtap top-ups use PNG and were never affected.
+**Sign in with Google and LinkedIn (v0.137.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
 accounts made with Google and, if possible, LinkedIn, and for existing members to link both like passkeys. Google: Firebase's
 `GoogleAuthProvider` (a pop-up; a redirect in in-app browsers or when the pop-up is blocked; optional `/__/auth` on our own addresses
 through `next.config.js` and `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE`), then `/api/auth/google` records the link in `authLinks` or, when
