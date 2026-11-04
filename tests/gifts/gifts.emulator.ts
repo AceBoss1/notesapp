@@ -127,7 +127,7 @@ const rejects = (p: Promise<unknown>, status: number, re: RegExp) => assert.reje
   GIFT_SETTINGS.grand.announce = true;
   assert.equal((await db.doc("giftBursts/latest").get()).data()!.reference, r10);
 
-  // ── Gifting everywhere (v0.139.0) ──────────────────────────────────────────────────────────────────────────────────────────────
+  // ── Gifting everywhere (v0.140.0) ──────────────────────────────────────────────────────────────────────────────────────────────
   const week = lagosWeekOf(new Date());
   // Who may gift whom: payouts first, never yourself, never someone who blocked you, a teen only from mutual followers.
   assert.equal((await giftGate(db, "bisi", { username: "ada" })).ok, false);

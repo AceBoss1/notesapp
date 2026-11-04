@@ -198,7 +198,7 @@ assert.deepEqual(G.shelfOrder(rows, "2026-11-02", S).map((r) => r.uid), ["f"], "
 assert.deepEqual(G.shelfOrder(rows, "2026-11-03", { ...S, basis: "net", targetKobo: 38_000 * 100 }).map((r) => r.uid), ["b", "c", "a"], "after commission");
 
 assert.deepEqual(G.giftRange(), { minKobo: 20_000, maxKobo: 100_000_000, count: 14 });
-// ── Gifting everywhere (v0.139.0) ─────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Gifting everywhere (v0.140.0) ─────────────────────────────────────────────────────────────────────────────────────────────────
 const egg = G.findGift("gardenegg")!, kola = G.findGift("kola")!, crown = G.findGift("kente")!;
 // Quantity: N × the catalogue price, 1 to quantityMax (99 by default), premium gifts only, and never over the largest gift.
 assert.deepEqual(G.DEFAULT_ECONOMY, { quantityMax: 99, autoWithdrawMaxKobo: 2_000_000 });

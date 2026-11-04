@@ -26,7 +26,7 @@ import ReceivedGifts from "@/components/gifts/ReceivedGifts";
 // is the Media tab as a page). Media (components/media/CreatorMedia.tsx) is the creator's videos and pictures, with its own count. Notes can be sorted by Most viewed
 // or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses are the
 // ones they teach on Notes Academy (published only), most viewed first.
-// Gifts (after Media, v0.139.0) is the gifts the member received, with count and value; the member also withdraws from there
+// Gifts (after Media, v0.140.0) is the gifts the member received, with count and value; the member also withdraws from there
 // (components/gifts/ReceivedGifts.tsx).
 type Tab = "notes" | "media" | "gifts" | "store" | "courses";
 type Sort = "viewed" | "recent";

@@ -2,7 +2,7 @@
 
 import PersonActions from "@/components/gifts/PersonActions";
 
-// Gift · Block · Report for each person on a live's stage (gifting everywhere, v0.139.0): one small row under the stage, so the room's
+// Gift · Block · Report for each person on a live's stage (gifting everywhere, v0.140.0): one small row under the stage, so the room's
 // own stage code (components/community/AudioRoom.tsx) only has to place it. Each gift carries the live's id, so it counts as sent during
 // the live (the daily shelf links to it, and a grand gift's announcement opens it).
 export default function StageGifts({ roomId, hostUid, stage, me, joined }: { roomId: string; hostUid: string; stage: string[]; me: string; joined: Record<string, { name?: string } | undefined> }) {

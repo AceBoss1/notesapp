@@ -1272,7 +1272,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Gifting everywhere (lib/gifts-server.ts, lib/gift-earnings-server.ts; v0.139.0): the weekly boards, each sender's gift points, each
+    // Gifting everywhere (lib/gifts-server.ts, lib/gift-earnings-server.ts; v0.140.0): the weekly boards, each sender's gift points, each
     // receiver's gifts grouped by gift (with archive) and gift withdrawals. Server-only: they hold who sent whom what. The boards, the
     // received gifts and the points are served by /api/gifts/*, which apply teen mode; a withdrawal goes through the payout ledger.
     match /giftWeekly/{id} {

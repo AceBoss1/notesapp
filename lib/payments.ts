@@ -95,7 +95,7 @@ export type PaymentRecord = {
   // animId/animName: an animated gift from the catalogue (lib/gift-catalogue.ts), its price fixed at checkout. liveId: sent during a live.
   // uplift: the premium or VIP gift's extra share of the commission rate, fixed at checkout (commissionRate already includes it).
   // quantity: N of one animated gift sent as one payment (amountKobo is N × the catalogue price); toKind and context: who it was for
-  // and where it was sent (gifting everywhere, v0.139.0). Older gifts have none of these (one gift, to the creator).
+  // and where it was sent (gifting everywhere, v0.140.0). Older gifts have none of these (one gift, to the creator).
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string; animId?: GiftMotif; animName?: string; liveId?: string; uplift?: number; quantity?: number; toKind?: GiftToKind; context?: GiftContext; mediaId?: string; replayId?: string };
   // A basket (lib/cart.ts): the payment Paystack charges lists its orders; each order is an ordinary "store" payment carrying cartRef.
   // The basket's own record carries no money of its own in reports (its orders do).

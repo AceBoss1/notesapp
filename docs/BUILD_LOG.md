@@ -2938,7 +2938,7 @@ coming-soon page with the owner's launch artwork as its hero, the three models, 
 decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
 message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.
 
-**Gifting everywhere (v0.139.0, 4 Nov 2026)** — Phase 2 of the live economy plan. A ⋯ menu with Gift · Block · Report beside names on
+**Gifting everywhere (v0.140.0, 4 Nov 2026)** — Phase 2 of the live economy plan. A ⋯ menu with Gift · Block · Report beside names on
 journal comments, shop and course reviews, a live's stage, Media posts and replays (`components/gifts/PersonActions.tsx`), with the server
 deciding whether the viewer may gift that person (`giftGate`: payouts, gifts off, blocks, teen mode only from mutual followers). Double-tap
 a small gift for How many? (`giftQuantity`; one payment, ×N on the overlay and the bell). Wallet gifts never touch Bonus Credits. The

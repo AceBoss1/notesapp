@@ -13,7 +13,7 @@ import { giftSoundOn, setGiftSound } from "@/lib/gift-play";
 import { useLivePricing } from "@/lib/useLivePricing";
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
 
-// Gift button for a publisher's profile (no noteId) or a single post (noteId set), and, through liveId, a live. Since v0.139.0 it also
+// Gift button for a publisher's profile (no noteId) or a single post (noteId set), and, through liveId, a live. Since v0.140.0 it also
 // gifts anyone: a speaker on stage, the author of a comment or review, a Media post's creator or a replay's host (toKind, context;
 // components/gifts/PersonActions.tsx opens it from the Gift · Block · Report menu with sheetOnly). Whether this viewer may gift them is
 // asked of the server (GET /api/gifts/can): hidden when gifts are off or it's yourself; shown switched off, with the reason, when the

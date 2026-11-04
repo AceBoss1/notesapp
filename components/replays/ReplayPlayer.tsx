@@ -41,7 +41,7 @@ export default function ReplayPlayer({ id, compact = false }: { id: string; comp
       <div className="relative aspect-video w-full">
         <iframe src={state.player} title={r.title} className="absolute inset-0 h-full w-full border-0" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
       </div>
-      {/* Gift the replay's host, and Gift · Block · Report beside their name (gifting everywhere, v0.139.0). */}
+      {/* Gift the replay's host, and Gift · Block · Report beside their name (gifting everywhere, v0.140.0). */}
       {r.hostUid && (
         <div className="flex flex-wrap items-center gap-2 bg-paper px-3 py-2 text-sm text-ink">
           <span className="font-ui font-semibold">{r.hostName}</span>

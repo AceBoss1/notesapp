@@ -14,7 +14,7 @@ import { isAutoFollowed } from "./journals-directory";
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
 // deletes that copy. The reporter and the reported member never see each other's side. Server-only (see firestore.rules).
 // "person": a member reported from the Gift · Block · Report menu beside their name (a comment, a review, a live's stage, a Media post
-// or a replay; v0.139.0). The evidence is where it was and the words shown there, as they were.
+// or a replay; v0.140.0). The evidence is where it was and the words shown there, as they were.
 export type ReportKind = "moment" | "conversation" | "person";
 
 export type MediaDeps = Pick<MomentDeps, "remove" | "publicUrl">;

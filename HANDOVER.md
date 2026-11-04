@@ -735,10 +735,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
     of its own). The owner asked not to use the aviator sunglasses photo.
 
-116. **Gifting everywhere (v0.139.0, branch `push/gifting-everywhere`; plan `docs/LIVE_ECONOMY.md` phase 2):** deploy the new indexes
+117. **Gifting everywhere (v0.140.0, branch `push/gifting-everywhere`; plan `docs/LIVE_ECONOMY.md` phase 2):** deploy the new indexes
     (`giftWeekly` week+grossKobo, `gifterWeekly` week+toUid+kobo) and the rules (five new server-only collections: `giftWeekly`,
     `gifterWeekly`, `giftPoints`, `giftReceived`, `giftWithdrawals`). Numbered 116: 114 is on main (Anya) and the open sign-in
-    (#280) and stage-seats (#281) branches hold 114/115 and v0.137.0/v0.138.0, so this skips to 116 and v0.139.0. What it does: Gift · Block · Report (`components/gifts/PersonActions.tsx`) beside names on
+    (#280) and stage-seats (#281) branches hold 114/115 and v0.137.0/v0.138.0, so this skips to 116 and v0.140.0. What it does: Gift · Block · Report (`components/gifts/PersonActions.tsx`) beside names on
     journal comments, shop and course reviews, a live's stage (`components/gifts/StageGifts.tsx`, two lines in `AudioRoom.tsx`), Media posts
     and replays; `GET /api/gifts/can` (`giftGate` in `lib/gifts-server.ts`) decides the button and checkout checks it again (payouts, gifts
     off, blocks, teen mode = mutual followers only). Quantity: `giftQuantity` in `lib/gift-catalogue.ts`, premium gifts only, the server

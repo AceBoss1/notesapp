@@ -11,7 +11,7 @@ import { storedSnapshot } from "./stat-cache";
 //   giftDaily/{day}_{uid}  one receiver's gifts on one Lagos day (totals, distinct senders, when the target was reached)
 //   statCache/giftShelf_{day}  the cached "Top gifted today" list (lib/stat-cache.ts)
 // and giftShows/{uid}, the last animated gift a member received, which signed-in visitors of their page read to play it.
-// Gifting everywhere (v0.139.0, docs/LIVE_ECONOMY.md phase 2), also server-only:
+// Gifting everywhere (v0.140.0, docs/LIVE_ECONOMY.md phase 2), also server-only:
 //   giftWeekly/{week}_{uid}                    one receiver's gifts in one Lagos week (Monday 00:00): the weekly "Top gifted" board
 //   gifterWeekly/{week}_{toUid}_{fromUid}       one sender's gifts to one creator in a week: that creator's weekly "Top gifters"
 //   giftPoints/{uid}                           a sender's gift points (1 per ₦100 spent on gifts): all time and this week
