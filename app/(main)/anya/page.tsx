@@ -40,7 +40,7 @@ const MODELS: Model[] = [
       "1080p HD video from the side camera",
       "A teleprompter in the lens",
       "Music playback",
-      "A charging case with a battery display, in black or brown",
+      "Charging case ➕ battery display, in black or brown",
     ],
     tone: "from-crimson to-crimson-bright",
     pictures: [{ name: "Black", swatch: "#1C1A1A", src: "/anya/anya-display-glasses.webp", alt: "Anya Display smart glasses, black frame, with the side camera" }],
@@ -87,7 +87,7 @@ const MODELS: Model[] = [
 // The case that comes with each pair. Display's and Nana's charge the glasses; Audio's is a leather pouch that doesn't charge. Audio's
 // picture has the supplier's glasses taken out.
 const CASES: { model: string; title: string; accent: string; bg: string; fit: string; colours: CaseColour[]; points: string[] }[] = [
-  { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", bg: "bg-[#E4E4E4]", fit: "object-cover",
+  { model: "Display", title: "Charging case ➕ battery display", accent: "#A6093D", bg: "bg-[#E4E4E4]", fit: "object-cover",
     colours: [
       { name: "Black", swatch: "#1C1A1A", src: "/anya/anya-display-case-black.webp", alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front" },
       { name: "Brown", swatch: "#9A5B2E", src: "/anya/anya-display-case-brown.webp", alt: "Anya Display smart glasses above their brown leather charging case, which shows the battery level on a round display on the front" },
