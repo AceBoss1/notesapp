@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.5",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Audio's new look and features: hands-free audio calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with your phone's voice assistant (Siri or Google Assistant)." },
+    ],
+  },
+  {
     version: "v0.137.4",
     bump: "patch",
     date: "2026-11-04",
