@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.138.0",
+    version: "v0.139.0",
     bump: "minor",
     date: "2026-11-04",
     changes: [
@@ -21,6 +21,62 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Turning a speaker's mic off is enforced: the speaker can't turn it back on themselves; in a relay room their sound stops being sent at all, and phone to phone every phone leaves it out." },
       { kind: "added", text: "A pinned message or announcement at the top of the room chat." },
       { kind: "changed", text: "Raise hand is now Ask for a seat (the same request as + on an empty chair). Bringing up someone who hasn't asked sends them an invitation instead of moving them straight up." },
+    ],
+  },
+  {
+    version: "v0.137.6",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Display's case is now titled \"Charging case ➕ battery display\"." },
+    ],
+  },
+  {
+    version: "v0.137.5",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Audio's new look and features: hands-free audio calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with your phone's voice assistant (Siri or Google Assistant)." },
+    ],
+  },
+  {
+    version: "v0.137.4",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Nana's new look and features: touch controls, built-in speakers for calls, music and your voice assistant, Bluetooth pairing and AI real-time translation, in black, pink or clear frames. Each model's card now has its picture, and Nana's has a frame colour picker." },
+    ],
+  },
+  {
+    version: "v0.137.3",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "Anya page: Anya Audio comes with a black leather pouch to carry it in, not a charging case; Anya Display and Anya Nana charge in their cases. The Anya Nana case is shown with its glasses, and Anya Display's charging case comes in two colours, black or brown." },
+    ],
+  },
+  {
+    version: "v0.137.2",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "The Anya page now shows all three glasses, dissolving from one to the next: Anya Display, Anya Nana (blue lenses) and Anya Audio (dark lenses). Anya Nana has AI real-time translation in 139 languages too, with Nana as your companion. Every pair comes with its own charging case: Anya Display's shows the battery level on the front, Anya Nana's is tan leather and Anya Audio's is a black leather pouch." },
+    ],
+  },
+  {
+    version: "v0.137.1",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "The Anya page has a new picture of Anya Display, and lists everything it does: Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app." },
+    ],
+  },
+  {
+    version: "v0.137.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Anya smart glasses from #NotesApp, coming soon: Anya Display (translation, transcripts and a teleprompter in the lens, with a side camera), Anya Nana (Nana AI in your ear) and Anya Audio (music and calls). Pricing and pre-orders aren't announced yet; register your interest at /anya to be among the first to try them." },
     ],
   },
   {

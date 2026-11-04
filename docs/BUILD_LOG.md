@@ -2931,7 +2931,13 @@ white gaps between rows. `lib/certificate-qr.ts` now builds the SVG itself from 
 in a row, with `print-color-adjust: exact`. A pixel comparison against the old SVG matched all 1,521 modules of a receipt link. Receipts
 and certificates share this helper, so both are fixed; tickets and Cardtap top-ups use PNG and were never affected.
 
-**Stage seats and moderators in audio rooms (v0.138.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
+## Anya smart glasses page (v0.137.0, built 4 November 2026)
+
+The owner adopted Anya ("eye" in Igbo) for NotesApp's own Qualcomm-based glasses: Anya Display, Anya Nana and Anya Audio. /anya is a
+coming-soon page with the owner's launch artwork as its hero, the three models, what Display does, a comparison table that lists only
+decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
+message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.
+**Stage seats and moderators in audio rooms (v0.139.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
 changes during the live (Solo, Approve, Open), empty chairs with a + (a request in Approve, the seat itself in Open), invitations the
 invited person accepts, and moderators for the live. After a first pass, the owner widened moderators to permissions the host ticks per
 moderator (presets Basic and Full) covering the whole live, never against the host or a moderator with as much say, every action logged.
