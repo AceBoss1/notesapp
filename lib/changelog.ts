@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.1",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "The Anya page has a new picture of Anya Display, and lists everything it does: Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app." },
+    ],
+  },
+  {
     version: "v0.137.0",
     bump: "minor",
     date: "2026-11-04",
