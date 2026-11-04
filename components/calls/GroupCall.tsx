@@ -10,6 +10,8 @@ import { duration, safetyCode, sdpFingerprint, type CallKind } from "@/lib/calls
 import { micConstraints } from "@/lib/call-audio";
 import { applySink, useCallAudio } from "@/components/calls/useCallAudio";
 import { GROUP_BEAT_MS, GROUP_CALL_MAX, present, type GroupCallDoc, type GroupLink } from "@/lib/group-calls";
+import { codeChanged, hasTurn, restartsPair } from "@/lib/ice-recovery";
+import { candidateSink, watchRecovery } from "@/components/calls/ice-recovery-client";
 
 // Group calls in a group chat (lib/group-calls.ts): everyone connects straight to everyone else. CallManager keeps the list of live calls
 // in my groups (for ringing, and for the Join button in the chat) and opens this screen.
@@ -27,13 +29,14 @@ export type GroupStart = { cid: string; title: string; kind: CallKind; id?: stri
 export const openGroupCall = (s: GroupStart) => window.dispatchEvent(new CustomEvent<GroupStart>(GROUP_CALL_EVENT, { detail: s }));
 
 type Ice = { urls: string | string[]; username?: string; credential?: string }[];
-type Peer = { pc: RTCPeerConnection; stream: MediaStream | null; code: string; linkId: string };
+// reconnecting: the connection to this person dropped and is being restarted (lib/ice-recovery.ts); stopRecovery ends that watch.
+type Peer = { pc: RTCPeerConnection; stream: MediaStream | null; code: string; linkId: string; reconnecting?: boolean; stopRecovery?: () => void };
 
 export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: string; onDone: () => void }) {
   const kind = start.kind;
   const [id, setId] = useState(start.id ?? "");
   const [call, setCall] = useState<GroupCallDoc | null>(null);
-  const [peers, setPeers] = useState<Record<string, { stream: MediaStream | null; code: string }>>({});
+  const [peers, setPeers] = useState<Record<string, { stream: MediaStream | null; code: string; reconnecting?: boolean }>>({});
   const [note, setNote] = useState("");
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
@@ -55,14 +58,14 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
     connsRef.current = conns;
     const unsubs: (() => void)[] = [];
     let beat: ReturnType<typeof setInterval> | undefined, tick: ReturnType<typeof setInterval> | undefined;
-    const show = () => setPeers(Object.fromEntries([...conns].map(([u, p]) => [u, { stream: p.stream, code: p.code }])));
+    const show = () => setPeers(Object.fromEntries([...conns].map(([u, p]) => [u, { stream: p.stream, code: p.code, reconnecting: p.reconnecting }])));
 
-    const drop = (uid: string) => { const p = conns.get(uid); if (!p) return; p.pc.close(); conns.delete(uid); show(); };
+    const drop = (uid: string) => { const p = conns.get(uid); if (!p) return; p.stopRecovery?.(); p.pc.close(); conns.delete(uid); show(); };
     const finish = (message = "") => {
       if (over) return;
       over = true;
       unsubs.forEach((u) => u()); clearInterval(beat); clearInterval(tick);
-      conns.forEach((p) => p.pc.close()); conns.clear();
+      conns.forEach((p) => { p.stopRecovery?.(); p.pc.close(); }); conns.clear();
       local.current?.getTracks().forEach((t) => t.stop());
       setNote(message || "You left the call.");
       setTimeout(onDone, message ? 1800 : 300);
@@ -70,7 +73,9 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
     const leave = (message = "") => { if (callId && !over) api("/api/calls/group", { body: { action: "leave", id: callId } }).catch(() => {}); finish(message); };
     leaveRef.current = () => leave();
 
-    // One connection to one person. `offer` when I'm the newcomer; otherwise the link (with their offer) is answered.
+    // One connection to one person. `offer` when I'm the newcomer; otherwise the link (with their offer) is answered. Once connected, a
+    // drop is recovered (lib/ice-recovery.ts): of the two, the smaller uid restarts ICE through the link, the other answers; the relay is
+    // forced only when direct restarts fail; the connection goes only when nothing works (under 30 seconds).
     const connect = async (uid: string, link?: { id: string; data: GroupLink }) => {
       drop(uid);
       const pc = new RTCPeerConnection({ iceServers: ice });
@@ -78,15 +83,38 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
       conns.set(uid, peer);
       local.current!.getTracks().forEach((t) => pc.addTrack(t, local.current!));
       pc.ontrack = (e) => { peer.stream = e.streams[0]; show(); };
+      const sink = candidateSink(pc);
+      const addRemote = (c: RTCIceCandidateInit) => sink.add(c);
+      const flush = () => sink.flush();
+      // The safety code with this person. A restart keeps the same certificates, so it shouldn't change; if it does, it's shown again.
+      const recode = () => {
+        const a = sdpFingerprint(pc.localDescription?.sdp), b = sdpFingerprint(pc.remoteDescription?.sdp);
+        if (a && b) safetyCode(a, b).then((c) => { if (codeChanged(peer.code, c)) setCodeFor(uid); peer.code = c; show(); }).catch(() => {});
+      };
+      let recovery: ReturnType<typeof watchRecovery> | null = null;
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
-          const a = sdpFingerprint(pc.localDescription?.sdp), b = sdpFingerprint(pc.remoteDescription?.sdp);
-          if (a && b) safetyCode(a, b).then((c) => { peer.code = c; show(); }).catch(() => {});
-        } else if (pc.connectionState === "failed") drop(uid);
+          recode();
+          if (!recovery && peer.linkId) {
+            const linkRef = doc(db, "groupCalls", callId, "links", peer.linkId);
+            recovery = watchRecovery({
+              pc, me, drives: restartsPair(me, uid), canRelay: () => hasTurn(ice),
+              freshIce: async () => { const r = await api<{ iceServers: Ice }>("/api/calls"); ice = r.iceServers; return r.iceServers; },
+              sendOffer: (r) => updateDoc(linkRef, { restart: r }),
+              sendAnswer: (a) => updateDoc(linkRef, { restartAnswer: a }),
+              flush, onReconnecting: (on) => { peer.reconnecting = on; show(); }, onRecovered: recode,
+              onGiveUp: () => drop(uid),
+            });
+            peer.stopRecovery = () => recovery?.stop();
+          }
+        } else if (pc.connectionState === "failed" && !recovery) drop(uid); // never connected: nothing to recover
       };
-      const queued: RTCIceCandidateInit[] = [];
-      const addRemote = async (c: RTCIceCandidateInit) => { if (!pc.remoteDescription) queued.push(c); else await pc.addIceCandidate(c).catch(() => {}); };
-      const flush = async () => { while (queued.length && pc.remoteDescription) await pc.addIceCandidate(queued.shift()!).catch(() => {}); };
+      // Both sides follow the link: the answer (for the newcomer), then any restart and its answer.
+      const onLink = async (l: GroupLink | undefined) => {
+        if (!l) return;
+        if (!link && l.answer && !pc.remoteDescription) { await pc.setRemoteDescription(l.answer as RTCSessionDescriptionInit).catch(() => drop(uid)); await flush(); return; }
+        await recovery?.onSignal(l.restart, l.restartAnswer);
+      };
       const linkCol = collection(db, "groupCalls", callId, "links");
       if (!link) {
         const offer = await pc.createOffer();
@@ -95,10 +123,7 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
         peer.linkId = ref.id;
         pc.onicecandidate = (e) => { if (e.candidate) addDoc(collection(db, "groupCalls", callId, "links", ref.id, "fromCandidates"), e.candidate.toJSON()).catch(() => {}); };
         unsubs.push(onSnapshot(collection(db, "groupCalls", callId, "links", ref.id, "toCandidates"), (s) => s.docChanges().forEach((ch) => { if (ch.type === "added") void addRemote(ch.doc.data() as RTCIceCandidateInit); })));
-        unsubs.push(onSnapshot(doc(db, "groupCalls", callId, "links", ref.id), async (s) => {
-          const l = s.data() as GroupLink | undefined;
-          if (l?.answer && !pc.remoteDescription) { await pc.setRemoteDescription(l.answer as RTCSessionDescriptionInit).catch(() => drop(uid)); await flush(); }
-        }, () => {}));
+        unsubs.push(onSnapshot(doc(db, "groupCalls", callId, "links", ref.id), (s) => { void onLink(s.data() as GroupLink | undefined); }, () => {}));
       } else {
         pc.onicecandidate = (e) => { if (e.candidate) addDoc(collection(db, "groupCalls", callId, "links", link.id, "toCandidates"), e.candidate.toJSON()).catch(() => {}); };
         unsubs.push(onSnapshot(collection(db, "groupCalls", callId, "links", link.id, "fromCandidates"), (s) => s.docChanges().forEach((ch) => { if (ch.type === "added") void addRemote(ch.doc.data() as RTCIceCandidateInit); })));
@@ -107,6 +132,7 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await updateDoc(doc(db, "groupCalls", callId, "links", link.id), { answer: { type: answer.type, sdp: answer.sdp ?? "" } });
+        unsubs.push(onSnapshot(doc(db, "groupCalls", callId, "links", link.id), (s) => { void onLink(s.data() as GroupLink | undefined); }, () => {}));
       }
     };
 
@@ -180,7 +206,7 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
         <Tile name="You" kind={kind} stream={null} videoRef={localVideo} mirror muted={muted} avatar={call?.joined?.[me]?.avatar ?? ""} />
         {people.map((u) => (
           <Tile key={u} name={call?.joined?.[u]?.name ?? "Someone"} avatar={call?.joined?.[u]?.avatar ?? ""} kind={kind} stream={peers[u]?.stream ?? null}
-            sinkId={sound.sinkId} code={peers[u]?.code ?? ""} showCode={codeFor === u} onTap={() => setCodeFor((v) => (v === u ? "" : u))} />
+            sinkId={sound.sinkId} code={peers[u]?.code ?? ""} showCode={codeFor === u} onTap={() => setCodeFor((v) => (v === u ? "" : u))} reconnecting={!!peers[u]?.reconnecting} />
         ))}
       </div>
       {soundOpen && sound.available && <SoundSheet sound={sound} onClose={() => setSoundOpen(false)} />}
@@ -200,9 +226,9 @@ function Round({ label, pressed, onClick, children }: { label: string; pressed: 
 
 // One person in the call: their video (or picture, on a voice call), their name, and the safety code with them on a tap.
 // Their sound always plays through an <audio> element (their video, if any, is muted), so the chosen speaker applies to everyone.
-function Tile({ name, avatar, kind, stream, videoRef, mirror, muted, sinkId = "", code, showCode, onTap }: {
+function Tile({ name, avatar, kind, stream, videoRef, mirror, muted, sinkId = "", code, showCode, onTap, reconnecting }: {
   name: string; avatar: string; kind: CallKind; stream: MediaStream | null; videoRef?: React.RefObject<HTMLVideoElement>; mirror?: boolean; muted?: boolean;
-  sinkId?: string; code?: string; showCode?: boolean; onTap?: () => void;
+  sinkId?: string; code?: string; showCode?: boolean; onTap?: () => void; reconnecting?: boolean;
 }) {
   const media = useRef<HTMLVideoElement>(null);
   const sound = useRef<HTMLAudioElement>(null);
@@ -217,7 +243,7 @@ function Tile({ name, avatar, kind, stream, videoRef, mirror, muted, sinkId = ""
         ? <video ref={videoRef ?? media} autoPlay playsInline muted className="h-full w-full object-cover" style={mirror ? { transform: "scaleX(-1)" } : undefined} />
         : <Avatar src={avatar} alt="" size={72} className="!h-16 !w-16" />}
       {!videoRef && <audio ref={sound} autoPlay className="hidden" />}
-      <span className={`${video ? "absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5" : "mt-2"} font-ui text-xs`}>{name}{muted ? " · muted" : ""}{!videoRef && !stream ? " · connecting…" : ""}</span>
+      <span className={`${video ? "absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5" : "mt-2"} font-ui text-xs`}>{name}{muted ? " · muted" : ""}{reconnecting ? " · reconnecting…" : !videoRef && !stream ? " · connecting…" : ""}</span>
       {code && !showCode && <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 font-ui text-[10px] text-white/70">🔒 code</span>}
       {code && showCode && (
         <span className="absolute inset-x-2 top-2 rounded-xl bg-black/70 px-3 py-2 font-ui text-[11px] text-white/80">

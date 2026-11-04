@@ -1047,8 +1047,20 @@ test("calls: only the two people read it; caller writes the offer, callee answer
   await assertSucceeds(updateDoc(doc(p, "calls/c1"), { answer: { type: "answer", sdp: "v=0" }, status: "accepted", acceptedAt: "2026-10-13T10:00:00Z" }));
   await assertSucceeds(addDoc(collection(p, "calls/c1/calleeCandidates"), { candidate: "c" }));
   await assertFails(getDocs(collection(x, "calls/c1/calleeCandidates")));
+  // A mid-call ICE restart (lib/ice-recovery.ts): the caller sends the new offer, the person called answers it; nobody else.
+  const restart = { n: 1, by: "alice", offer: { type: "offer", sdp: "v=0 restart" } };
+  await assertFails(updateDoc(doc(p, "calls/c1"), { restart: { ...restart, by: "pub" } })); // only the caller restarts
+  await assertFails(updateDoc(doc(x, "calls/c1"), { restart: { ...restart, by: "stranger" } }));
+  await assertFails(updateDoc(doc(a, "calls/c1"), { restart: { ...restart, by: "pub" } })); // only as yourself
+  await assertFails(updateDoc(doc(a, "calls/c1"), { restart, status: "ended" })); // nothing else with it
+  await assertSucceeds(updateDoc(doc(a, "calls/c1"), { restart }));
+  await assertFails(updateDoc(doc(a, "calls/c1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "x" } } })); // the caller doesn't answer
+  await assertFails(updateDoc(doc(x, "calls/c1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "x" } } }));
+  await assertSucceeds(updateDoc(doc(p, "calls/c1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "v=0 restart" } } }));
+  await assertSucceeds(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "after the restart" }));
   await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "calls/c1"), { status: "ended" }));
   await assertFails(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "late" })); // nothing after it ends
+  await assertFails(updateDoc(doc(a, "calls/c1"), { restart: { ...restart, n: 2 } })); // no restarts after it ends either
 });
 
 test("group calls: members read the call; a connection is written by the newcomer and answered by the other; nobody else", async () => {
@@ -1077,8 +1089,20 @@ test("group calls: members read the call; a connection is written by the newcome
   await assertSucceeds(addDoc(collection(a, "groupCalls/g1/links/l1/toCandidates"), { candidate: "c" }));
   await assertSucceeds(getDocs(collection(p, "groupCalls/g1/links/l1/toCandidates")));
   await assertFails(getDocs(collection(b, "groupCalls/g1/links/l1/toCandidates")));
+  // A mid-call ICE restart (lib/ice-recovery.ts): of the pair, the smaller uid ("alice", here the one answered) sends the new offer, the
+  // other answers it; nobody else.
+  const restart = { n: 1, by: "alice", offer: { type: "offer", sdp: "v=0 restart" } };
+  await assertFails(updateDoc(doc(p, "groupCalls/g1/links/l1"), { restart: { ...restart, by: "pub" } })); // the larger uid doesn't restart
+  await assertFails(updateDoc(doc(b, "groupCalls/g1/links/l1"), { restart: { ...restart, by: "bob" } }));
+  await assertFails(updateDoc(doc(a, "groupCalls/g1/links/l1"), { restart: { ...restart, by: "pub" } })); // only as yourself
+  await assertFails(updateDoc(doc(p, "groupCalls/g1/links/l1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "x" } } })); // nothing to answer yet
+  await assertSucceeds(updateDoc(doc(a, "groupCalls/g1/links/l1"), { restart }));
+  await assertFails(updateDoc(doc(a, "groupCalls/g1/links/l1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "x" } } })); // not your own
+  await assertFails(updateDoc(doc(b, "groupCalls/g1/links/l1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "x" } } }));
+  await assertSucceeds(updateDoc(doc(p, "groupCalls/g1/links/l1"), { restartAnswer: { n: 1, answer: { type: "answer", sdp: "v=0 restart" } } }));
   await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "groupCalls/g1"), { status: "ended" }));
   await assertFails(addDoc(collection(p, "groupCalls/g1/links/l1/fromCandidates"), { candidate: "late" })); // nothing after it ends
+  await assertFails(updateDoc(doc(a, "groupCalls/g1/links/l1"), { restart: { ...restart, n: 2 } })); // no restarts after it ends either
 });
 
 test("audio rooms: people in the room read it; a connection is written by its two people only, with a stage or listen kind", async () => {

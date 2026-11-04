@@ -89,7 +89,7 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
     const outcome = settleEnd(c.status, (asked === "declined" || asked === "failed" || asked === "missed" ? asked : "ended") as CallEnd, uid === c.calleeUid);
     const seconds = c.status === "accepted" && c.acceptedAt ? Math.max(0, Math.round((now.getTime() - Date.parse(c.acceptedAt)) / 1000)) : 0;
     // The connection details the two devices swapped (they include network addresses) are only needed while the call is set up.
-    t.update(ref, { status: outcome, endedAt: now.toISOString(), endedBy: uid, seconds, offer: FieldValue.delete(), answer: FieldValue.delete() });
+    t.update(ref, { status: outcome, endedAt: now.toISOString(), endedBy: uid, seconds, offer: FieldValue.delete(), answer: FieldValue.delete(), restart: FieldValue.delete(), restartAnswer: FieldValue.delete() });
     return { c, outcome, seconds };
   });
   if (!res) return { outcome: null };

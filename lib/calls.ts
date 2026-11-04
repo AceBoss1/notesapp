@@ -1,6 +1,8 @@
 // One-to-one audio and video calls in Messages: free, phone to phone (WebRTC), only between two people who follow each other.
 // The server sets a call up and records how it ended; the two browsers exchange the connection details through calls/{id} and connect
 // directly (or through a relay when a network blocks direct connections). Nothing of the call itself passes through or is kept by us.
+import type { IceRestartAnswer, IceRestartOffer } from "./ice-recovery";
+
 export type CallKind = "audio" | "video";
 export type CallStatus = "ringing" | "accepted" | "declined" | "missed" | "ended" | "failed";
 export type CallEnd = "declined" | "missed" | "ended" | "failed";
@@ -14,6 +16,8 @@ export type CallDoc = {
   callerName: string; callerAvatar: string; calleeName: string; calleeAvatar: string;
   createdAt: string; acceptedAt?: string; endedAt?: string; endedBy?: string; seconds?: number;
   offer?: { type: string; sdp: string }; answer?: { type: string; sdp: string };
+  // A mid-call ICE restart (lib/ice-recovery.ts): the caller's new offer and the answer to it, written by the two browsers.
+  restart?: IceRestartOffer; restartAnswer?: IceRestartAnswer;
 };
 
 export type CallLog = { kind: CallKind; outcome: CallEnd; seconds: number };

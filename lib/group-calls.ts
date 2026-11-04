@@ -1,4 +1,5 @@
 import type { CallKind } from "./calls";
+import type { IceRestartAnswer, IceRestartOffer } from "./ice-recovery";
 
 // Free group calls in a group chat, phone to phone (a "mesh"): every person in the call connects straight to every other person, so the
 // call stays encrypted between devices and nothing passes through us. Each phone sends its picture to everyone else, which is why calls
@@ -19,7 +20,8 @@ export type GroupCallDoc = {
   memberUids: string[]; joined: Record<string, GroupCallPerson>; status: "live" | "ended";
   createdAt: string; endedAt?: string; seconds?: number; peak?: number;
 };
-export type GroupLink = { from: string; to: string; at: string; offer?: { type: string; sdp: string }; answer?: { type: string; sdp: string } };
+// restart / restartAnswer: a mid-call ICE restart of this connection (lib/ice-recovery.ts); of the pair, the smaller uid restarts.
+export type GroupLink = { from: string; to: string; at: string; offer?: { type: string; sdp: string }; answer?: { type: string; sdp: string }; restart?: IceRestartOffer; restartAnswer?: IceRestartAnswer };
 
 // Who is really still in the call (heard from recently).
 export function present(c: Pick<GroupCallDoc, "joined">, now = Date.now()): string[] {

@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.136.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Calls reconnect by themselves: when the network changes in the middle of a one-to-one or group call (Wi-Fi to mobile data, a weak signal), the call shows Reconnecting… and finds a new path instead of ending. It tries a new direct connection first and goes through the relay only if that doesn't work; the call stays end-to-end encrypted either way." },
+      { kind: "changed", text: "A call whose connection drops now ends only after about 30 seconds of trying to reconnect, instead of after 10 seconds of waiting." },
+    ],
+  },
+  {
     version: "v0.135.0",
     bump: "minor",
     date: "2026-11-03",

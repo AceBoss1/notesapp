@@ -899,6 +899,8 @@ service cloud.firestore {
     match /dmBlocks/{id} { allow read, write: if false; }
     // One-to-one calls (lib/calls.ts). The server creates and ends them; the two people only hand each other the connection details:
     // the caller writes the offer while it rings, the person called writes the answer when they pick up. Candidates go in a list per side.
+    // Mid-call, a dropped connection is restarted (lib/ice-recovery.ts): only the caller writes the restart offer, only the person called
+    // its answer, and only while the call is accepted.
     match /calls/{callId} {
       allow read: if isSignedIn() && (resource.data.callerUid == request.auth.uid || resource.data.calleeUid == request.auth.uid);
       allow create, delete: if false;
@@ -908,6 +910,13 @@ service cloud.firestore {
         || (request.auth.uid == resource.data.calleeUid && resource.data.status == 'ringing'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'status', 'acceptedAt'])
           && request.resource.data.status == 'accepted' && request.resource.data.acceptedAt is string)
+        || (request.auth.uid == resource.data.callerUid && resource.data.status == 'accepted'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restart'])
+          && request.resource.data.restart is map && request.resource.data.restart.by == request.auth.uid
+          && request.resource.data.restart.n is int && request.resource.data.restart.offer is map)
+        || (request.auth.uid == resource.data.calleeUid && resource.data.status == 'accepted'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restartAnswer'])
+          && request.resource.data.restartAnswer is map && request.resource.data.restartAnswer.n is int && request.resource.data.restartAnswer.answer is map)
       );
       function callOf() { return get(/databases/$(database)/documents/calls/$(callId)).data; }
       function inCall() { return isSignedIn() && (callOf().callerUid == request.auth.uid || callOf().calleeUid == request.auth.uid); }
@@ -1001,8 +1010,21 @@ service cloud.firestore {
         allow create: if inGroupCall() && request.resource.data.from == request.auth.uid
           && request.resource.data.to is string && request.resource.data.to != request.auth.uid && request.resource.data.to in gcall().joined
           && request.resource.data.keys().hasOnly(['from', 'to', 'at', 'offer']) && request.resource.data.offer is map;
-        allow update: if inGroupCall() && resource.data.to == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer']) && request.resource.data.answer is map;
+        // The answer, by the person the offer was for. Mid-call restarts (lib/ice-recovery.ts): the pair's smaller uid writes the restart
+        // offer, the other the answer to it; nobody else touches the link.
+        allow update: if inGroupCall() && (
+          (resource.data.to == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer']) && request.resource.data.answer is map)
+          || (((resource.data.from == request.auth.uid && resource.data.from < resource.data.to) || (resource.data.to == request.auth.uid && resource.data.to < resource.data.from))
+            && 'answer' in resource.data
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restart'])
+            && request.resource.data.restart is map && request.resource.data.restart.by == request.auth.uid
+            && request.resource.data.restart.n is int && request.resource.data.restart.offer is map)
+          || (((resource.data.from == request.auth.uid && resource.data.from > resource.data.to) || (resource.data.to == request.auth.uid && resource.data.to > resource.data.from))
+            && 'restart' in resource.data
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restartAnswer'])
+            && request.resource.data.restartAnswer is map && request.resource.data.restartAnswer.n is int && request.resource.data.restartAnswer.answer is map)
+        );
         allow delete: if false;
         function link() { return get(/databases/$(database)/documents/groupCalls/$(callId)/links/$(linkId)).data; }
         match /fromCandidates/{c} {
