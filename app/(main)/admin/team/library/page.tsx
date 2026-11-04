@@ -7,7 +7,7 @@ import { putFile, useAdminCall } from "@/lib/useAdminCall";
 import { DEPARTMENTS } from "@/lib/admin-access";
 import { DOC_CATEGORIES, FILE_MAX_BYTES, type StaffDoc } from "@/lib/staff-ops";
 
-type Doc = StaffDoc & { acked: boolean; ackCount: number; openCount: number };
+type Doc = StaffDoc & { acked: boolean; ackCount: number; openCount: number; hasBody?: boolean };
 type Data = { docs: Doc[]; canEdit: boolean; people: { uid: string; name: string }[]; names: Record<string, string>; filesReady: boolean };
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm";
 const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50";
@@ -23,6 +23,12 @@ const size = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} 
 export default function LibraryPage() {
   const { user, loading } = useAdminAuth();
   const call = useAdminCall(user, "/api/admin/staff-library");
+  // A text document (the handbook, an SOP, a brief) opened to read, rendered by the server from its Markdown.
+  const [reading, setReading] = useState<{ id: string; title: string; version: number; html: string } | null>(null);
+  async function read(id: string) {
+    try { setReading(await call(undefined, `?read=${encodeURIComponent(id)}`)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't open it"); }
+  }
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -107,13 +113,28 @@ export default function LibraryPage() {
             </form>
           )}
 
+          {reading && (
+            <article className="card mt-6 p-6" aria-label={reading.title}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="eyebrow">Reading · v{reading.version}</p>
+                <button className={ghost} onClick={() => setReading(null)}>Close</button>
+              </div>
+              {/* Rendered on the server from the library's Markdown by remark-html, which strips any HTML in the source. */}
+              <div className="prose prose-sm mt-4 max-w-none overflow-x-auto text-sm [&_table]:w-full [&_td]:border [&_td]:border-rule [&_td]:p-2 [&_th]:border [&_th]:border-rule [&_th]:p-2 [&_th]:text-left" dangerouslySetInnerHTML={{ __html: reading.html }} />
+              <div className="mt-4 flex gap-2">
+                {(() => { const d = data.docs.find((x) => x.id === reading.id); return d?.requiresAck && !d.acked ? <button className={btn} disabled={busy} onClick={() => run({ action: "ack", id: d.id }, "Thank you. Your confirmation is recorded.")}>I have read this</button> : null; })()}
+                <button className={ghost} onClick={() => setReading(null)}>Close</button>
+              </div>
+            </article>
+          )}
+
           <ul className="mt-6 space-y-4">
             {shown.map((d) => (
               <li key={d.id} className="card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-display text-xl text-ink">{d.title} <span className="font-ui text-xs font-normal text-slate">v{d.version}</span></p>
-                    <p className="text-xs text-slate">{catLabel(d.category)} · {d.scope === "all" ? "everyone on staff" : d.scope === "dept" ? DEPARTMENTS.find((x) => x.key === d.dept)?.label : `personal: ${d.receivers.map((u) => data.names[u] ?? "someone").join(", ")}`}</p>
+                    <p className="text-xs text-slate">{catLabel(d.category)} · {d.scope === "all" ? "everyone on staff" : d.scope === "dept" ? (d.depts?.length ? d.depts : [d.dept]).map((k) => DEPARTMENTS.find((x) => x.key === k)?.label).filter(Boolean).join(", ") : `personal: ${d.receivers.map((u) => data.names[u] ?? "someone").join(", ")}`}</p>
                   </div>
                   {d.requiresAck && (d.acked ? <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 font-ui text-[11px] font-semibold text-emerald-800">you confirmed</span> : <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-ui text-[11px] font-semibold text-amber-900">to confirm</span>)}
                 </div>
@@ -124,9 +145,10 @@ export default function LibraryPage() {
                       {data.canEdit && <button className="text-xs text-slate underline" onClick={() => { if (confirm(`Remove ${f.name}?`)) run({ action: "fileRemove", id: d.id, index: i }, "Removed."); }}>remove</button>}
                     </li>
                   ))}
-                  {d.files.length === 0 && <li className="text-xs text-slate">No file attached yet.</li>}
+                  {d.files.length === 0 && !d.hasBody && <li className="text-xs text-slate">No file attached yet.</li>}
                 </ul>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {d.hasBody && <button className={btn} onClick={() => read(d.id)}>Read</button>}
                   {d.requiresAck && !d.acked && <button className={btn} disabled={busy} onClick={() => run({ action: "ack", id: d.id }, "Thank you. Your confirmation is recorded.")}>I have read this</button>}
                   {data.canEdit && (
                     <>

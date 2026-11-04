@@ -94,6 +94,8 @@ const SYN: Record<string, string> = {
   domain: "domain", domains: "domain", website: "domain", api: "api", console: "api", webhook: "api", webhooks: "api",
   report: "report", reporting: "report", block: "report", abuse: "report", suspended: "suspension", suspension: "suspension", appeal: "suspension", appeals: "suspension", safe: "safety", secure: "safety", security: "safety",
   data: "data", privacy: "data", gdpr: "data", contact: "contact", support: "contact", help: "contact", email: "contact",
+  status: "moment", story: "moment", stories: "moment", moments: "moment", dp: "picture", avatar: "picture", photo: "picture", photos: "picture", pic: "picture", pics: "picture",
+  dollar: "currency", dollars: "currency", usd: "currency", forex: "currency", exchange: "currency", currencies: "currency",
 };
 const tokens = (s: string) => s.toLowerCase().replace(/₦/g, " naira ").replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter((w) => w.length > 1);
 const stem = (w: string) => SYN[w] ?? (w.length > 5 && w.endsWith("ing") ? w.slice(0, -3) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);

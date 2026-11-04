@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { StaffOpsError } from "@/lib/staff-ops";
-import { acknowledge, ackStatus, attachDocFile, createDoc, docFileLink, listDocs, removeDocFile, startDocFile, updateDoc, type Me } from "@/lib/staff-ops-server";
+import { acknowledge, ackStatus, attachDocFile, createDoc, docFileLink, listDocs, readDoc, removeDocFile, startDocFile, updateDoc, type Me } from "@/lib/staff-ops-server";
 import { headObject, presignDownload, presignUpload, privateFilesConfigured } from "@/lib/private-files";
 import { rateLimit } from "@/lib/rate-limit";
 import { getUserEmail } from "@/lib/firebase-admin";
+import { seedStaffLibrary } from "@/lib/staff-library-seed";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import html from "remark-html";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -28,6 +32,13 @@ export async function GET(req: NextRequest) {
     const me = await whoAmI(req);
     const db = getAdminDb();
     const q = req.nextUrl.searchParams;
+    // The handbook, SOP manuals and briefs are seeded (or refreshed) on first use after a release that changed them.
+    await seedStaffLibrary(db).catch((e) => console.error("[library] seed failed", e instanceof Error ? e.message : e));
+    if (q.get("read")) {
+      const d = await readDoc(db, me, q.get("read")!);
+      const out = await remark().use(remarkGfm).use(html).process(d.body);
+      return NextResponse.json({ id: d.id, title: d.title, version: d.version, html: String(out) }, { headers: { "Cache-Control": "no-store" } });
+    }
     if (q.get("file")) return NextResponse.json(await docFileLink(db, me, q.get("file")!, Number(q.get("i") ?? 0), (key, name) => presignDownload(key, name)), { headers: { "Cache-Control": "no-store" } });
     if (q.get("acks")) return NextResponse.json(await ackStatus(db, me, q.get("acks")), { headers: { "Cache-Control": "no-store" } });
     return NextResponse.json({ ...(await listDocs(db, me, q.get("archived") === "1")), filesReady: privateFilesConfigured() }, { headers: { "Cache-Control": "no-store" } });

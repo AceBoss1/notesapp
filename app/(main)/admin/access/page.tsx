@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { DEPARTMENTS, Dept } from "@/lib/admin-access";
 
-type Person = { uid: string; email: string; name: string; role: "super" | "admin"; depts: Dept[]; owner: boolean };
+type Person = { uid: string; email: string; name: string; role: "super" | "admin"; depts: Dept[]; owner: boolean; cos: boolean };
 type LogRow = { id: string; at: string; byEmail: string; targetEmail: string; before: string; after: string };
-type Data = { me: { uid: string; owner: boolean }; people: Person[]; log: LogRow[] };
+type Data = { me: { uid: string; owner: boolean; super: boolean }; people: Person[]; log: LogRow[] };
 
 // Who is on the team and what each person can open. Everyone here must already have a NotesApp account.
-// Admins get one or more departments; super admins see everything. Only the owner appoints or removes super admins.
+// Admins get one or more departments; super admins see everything. Only the owner appoints or removes super admins and names the
+// Chief of Staff, who (until there is an HR team) adds admins to any department, moves them and removes them, but not their own access.
 export default function AdminAccessPage() {
   const { user, loading } = useAdminAuth();
   const [data, setData] = useState<Data | null>(null);
@@ -21,6 +22,7 @@ export default function AdminAccessPage() {
   const [depts, setDepts] = useState<Dept[]>([]);
   const [editing, setEditing] = useState<string | null>(null); // email being edited
   const [editDepts, setEditDepts] = useState<Dept[]>([]);
+  const [editCos, setEditCos] = useState(false);
 
   const call = useCallback(async (init?: RequestInit) => {
     const r = await fetch("/api/admin/access", { ...init, headers: { Authorization: `Bearer ${await user!.getIdToken(true)}`, "Content-Type": "application/json" } });
@@ -31,7 +33,7 @@ export default function AdminAccessPage() {
   const load = useCallback(() => call().then(setData).catch((e) => setError(e.message)), [call]);
   useEffect(() => { if (user) load(); }, [user, load]);
 
-  async function change(body: { email: string; role: "admin" | "super" | "none"; depts?: Dept[] }) {
+  async function change(body: { email: string; role: "admin" | "super" | "none"; depts?: Dept[]; cos?: boolean }) {
     setBusy(true); setError(""); setNote("");
     try { const j = await call({ method: "POST", body: JSON.stringify(body) }); setNote(j.summary); setEditing(null); setEmail(""); setDepts([]); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
@@ -39,8 +41,8 @@ export default function AdminAccessPage() {
   }
   const toggle = (list: Dept[], d: Dept) => (list.includes(d) ? list.filter((x) => x !== d) : [...list, d]);
   const owner = !!data?.me.owner;
-  // Super admins can manage admins; only the owner can touch super admins; nobody changes the owner or themselves.
-  const canManage = (p: Person) => !p.owner && p.uid !== data?.me.uid && (p.role === "admin" || owner);
+  // Super admins and the Chief of Staff manage admins; only the owner touches super admins and the Chief of Staff; nobody changes the owner or themselves.
+  const canManage = (p: Person) => !p.owner && p.uid !== data?.me.uid && (owner || (p.role === "admin" && !p.cos));
 
   const DeptBoxes = ({ value, onChange }: { value: Dept[]; onChange: (v: Dept[]) => void }) => (
     <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -58,7 +60,7 @@ export default function AdminAccessPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="font-display text-3xl text-ink">Team access</h1>
-      <p className="mt-2 text-sm text-slate">Give a teammate access to the admin area and pick the departments they work in; they only see those pages. Super admins see everything. They need a NotesApp account first. Changes apply within a minute, and the person is signed out of old sessions when their access shrinks.</p>
+      <p className="mt-2 text-sm text-slate">Give a teammate access to the admin area and pick the departments they work in; they only see those pages. Super admins see everything. Until there is an HR team, the Chief of Staff (named by the owner) can add team members to any department, move them and remove them, but not their own access or a super admin's. They need a NotesApp account first. Changes apply within a minute, and the person is signed out of old sessions when their access shrinks.</p>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {note && <p className="mt-4 text-sm text-green-700" role="status">{note}</p>}
 
@@ -84,13 +86,13 @@ export default function AdminAccessPage() {
               <li key={p.uid} className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-ink">{p.name} <span className="ml-1 rounded-full border border-rule px-2 py-0.5 font-ui text-xs font-normal text-slate">{p.owner ? "Owner" : p.role === "super" ? "Super admin" : "Admin"}</span></p>
+                    <p className="font-semibold text-ink">{p.name} <span className="ml-1 rounded-full border border-rule px-2 py-0.5 font-ui text-xs font-normal text-slate">{p.owner ? "Owner" : p.role === "super" ? "Super admin" : p.cos ? "Chief of Staff" : "Admin"}</span></p>
                     <p className="text-sm text-slate">{p.email}</p>
                     <p className="mt-1 text-sm text-ink">{p.role === "super" ? "Everything" : p.depts.map((d) => DEPARTMENTS.find((x) => x.key === d)?.label).join(", ") || "No departments yet"}</p>
                   </div>
                   {canManage(p) && (
                     <div className="flex gap-2 font-ui text-xs">
-                      {p.role === "admin" && <button type="button" disabled={busy} onClick={() => { setEditing(editing === p.email ? null : p.email); setEditDepts(p.depts); }} className="rounded-full border border-rule px-3 py-1 font-semibold text-ink">Edit departments</button>}
+                      {p.role === "admin" && <button type="button" disabled={busy} onClick={() => { setEditing(editing === p.email ? null : p.email); setEditDepts(p.depts); setEditCos(p.cos); }} className="rounded-full border border-rule px-3 py-1 font-semibold text-ink">Edit departments</button>}
                       <button type="button" disabled={busy} onClick={() => { if (confirm(`Remove ${p.name}'s admin access?`)) change({ email: p.email, role: "none" }); }} className="rounded-full border border-red-300 px-3 py-1 font-semibold text-red-700">Remove</button>
                     </div>
                   )}
@@ -98,7 +100,13 @@ export default function AdminAccessPage() {
                 {editing === p.email && (
                   <div className="mt-3">
                     <DeptBoxes value={editDepts} onChange={setEditDepts} />
-                    <button type="button" disabled={busy || editDepts.length === 0} onClick={() => change({ email: p.email, role: "admin", depts: editDepts })} className="mt-3 rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-semibold text-white disabled:opacity-50">Save</button>
+                    {owner && (
+                      <label className="mt-3 flex items-start gap-2 text-sm">
+                        <input type="checkbox" checked={editCos} onChange={(e) => setEditCos(e.target.checked)} className="mt-1" />
+                        <span><span className="font-semibold text-ink">Chief of Staff</span> <span className="text-slate">Adds team members to any department, moves them and removes them, until there is an HR team. Never their own access, never a super admin.</span></span>
+                      </label>
+                    )}
+                    <button type="button" disabled={busy || editDepts.length === 0} onClick={() => change({ email: p.email, role: "admin", depts: editDepts, ...(owner ? { cos: editCos } : {}) })} className="mt-3 rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-semibold text-white disabled:opacity-50">Save</button>
                   </div>
                 )}
               </li>

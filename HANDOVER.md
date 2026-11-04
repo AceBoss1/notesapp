@@ -595,6 +595,30 @@ on `main` that isn't understood is raised with the owner first.
     comments, reactions, gifts UI, shares to Moments/Journals of a Media post, reports on Media posts, the automatic safety check,
     and **video downloads** (Stream burns a watermark profile into every rendition at upload, so a per-creator watermarked MP4 needs
     a second, watermarked copy: `POST /stream/copy` with `watermark.uid`, then `POST /stream/{uid}/downloads`; see `docs/MEDIA.md`).
+103. **Animated gifts, VIP gifts and daily gift targets (v0.133.0, branch `push/gifts-animated`):** deploy the Firestore rules
+    (`giftDaily` server-only, `giftShows` read by signed-in members, `giftBursts` public read) and the two new `giftDaily` indexes
+    (`day` + `grossKobo` desc, `day` + `netKobo` desc) before the code. Owner decisions of 3 Nov 2026. The catalogue
+    (`lib/gift-catalogue.ts`), the owner's list: six **premium** gifts (Garden Egg ₦200, Kola Nut ₦1,000, Zobo Bottle ₦2,000, Jollof
+    Plate ₦5,000, Talking Drum ₦10,000, Adire Fan ₦20,000) and eight **VIP** gifts for verified senders (Golden Gele ₦25,000, Kente
+    Crown ₦50,000, Baobab of Blessings ₦100,000, Circova Champagne ₦150,000, Argungu Fishing ₦250,000, Durbar Horse ₦500,000, Ijele
+    Masquerade ₦750,000, Kilimanjaro Sunrise ₦1,000,000). The owner wrote "Arugungu"; it is spelt Argungu (the festival) here and
+    can be renamed in Admin. Settings saved with the pricing config (`platformSettings/pricing`, `gifts`) from Admin → Pricing →
+    Gifts and applied live; a config saved before keeps the defaults: `grand` (VIP from ₦25,000, announce on), `uplift` (premium
+    +10%, VIP +20% **of the creator's rate**, e.g. 8% → 8.8% / 9.6%; typed-amount gifts keep the normal rate) and `daily` (target
+    ₦50,000 gross, 6 places, 3 different senders). The uplifted rate is fixed at checkout (`commissionRate`, `gift.uplift`) and a
+    co-author's share gets the same uplift on their own rate. Every gift plays full screen (`components/GiftOverlay.tsx`) with its
+    fixed mix of rays, stars, fireworks, confetti and sound (`MOTIF_EFFECTS`); drawings are inline SVG in `components/GiftArt.tsx`.
+    VIP gifts need the ✔ or gold badge (`senderVerified`), as does anything over `UNVERIFIED_GIFT_CAP_KOBO` (₦20,000). **Sitewide
+    announcement:** after a VIP gift is paid, `announceGrandGift` writes `giftBursts/latest`; `components/GiftBurstBanner.tsx` (main
+    layout, signed in or not) shows it for 15 s, fresh for 2 minutes, once per tab, with **Join to witness** (`/c/{cid}?room={id}`
+    while the live is on; `CommunityView` opens `?room=`) or **See it** (`/u/{username}`). Never for a teen-mode receiver; anonymous
+    stays anonymous. One document read by every open page: each VIP gift costs one read per open page. `playGift()` / the
+    `notesapp:gift-play` event (`lib/gift-play.ts`) is what the live room calls on each gift broadcast (not wired yet: Media M2). In
+    `fulfillPayment`'s transaction the receiver's `giftDaily/{lagosDay}_{uid}` is read first and updated, and `giftShows/{uid}` is
+    set for animated gifts. The shelf (`topGiftedToday`, `/api/gifts/top-today`, `components/TopGiftedShelf.tsx`) is cached a minute
+    in `statCache/giftShelf_{day}`; teens show only to followers. **Open:** no linked-account check yet (same device, bank or phone);
+    teen mode does not stop teens receiving money gifts from strangers (owner to decide); the GiftButton isn't in the live room yet,
+    so `liveId` is only set once Media M2 puts it there. Tests: `test:gifts`, `test:gifts-server`, the rules test, `test:help`.
 
 108. **Watermarked video downloads for Media (v0.134.0, branch `push/media-video-downloads`, cut from `push/media-core` (102); merge
     after #259):** a creator who allows downloads on a video gets a second Cloudflare Stream copy with a see-through mark burned in
@@ -609,6 +633,26 @@ on `main` that isn't understood is raised with the owner first.
     `docs/MEDIA.md` ("Watermarked video downloads").
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
+
+104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
+    names the Chief of Staff from Team access (an admin's row → Edit departments → tick Chief of Staff). Test: `npm run test:access`.
+
+105. **Passkeys (v0.132.0, branch `push/passkeys`):** deploy `firebase deploy --only firestore` (server-only rules for `passkeys` and
+    `passkeyChallenges`, and the TTL on `passkeyChallenges.expireAt`). New dependencies `@simplewebauthn/server` and `@simplewebauthn/browser`.
+    A passkey belongs to one domain family, so members add one again after the move to naapp.tech. Test: `npm run test:passkeys`.
+
+106. **Careers (v0.131.0), with Nana-HR and the staff library in the team hub (no changelog entry for the team hub parts; branch `push/nana-hr`, built on `push/cos-departments` (104)):** deploy
+    `firebase deploy --only firestore` (server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`, `staffMeta`; the TTL on
+    `careerApplications.purgeAt`). New dependency `remark-gfm`. The library and the five vacancies seed themselves on first use. After
+    editing the handbook, SOPs or briefs, export them to `content/staff-library/` and run `node scripts/staff-library-content.mjs`.
+    Interview booking by Nana-HR is not built yet (the hiring manager messages the applicant on NotesApp). Test: `npm run test:hr`.
+
+107. **Help backfill (no version, no changelog entry; branch `push/help-backfill`):** nothing to deploy. New help articles for
+    questions Nana couldn't answer: posting a moment (status/story), verifying your email (Resend link), Nana's suggestions on
+    forms, and currency (naira only, no exchange rates), plus a team hub article on adding a task. Search synonyms for status,
+    story, dp, photo and dollar (`lib/kb.ts`); a short follow-up such as "what about mcp?" is now searched on its own first
+    (`lib/nana-prompt.ts`). The Add item "Nana suggests" box now has **Not now**. When "Couldn't answer" fills up in
+    [Help & Nana](/admin/help), write the missing article or a synonym, then check it with `searchArticles`.
 
 ## 3. How the work is done (please keep these)
 

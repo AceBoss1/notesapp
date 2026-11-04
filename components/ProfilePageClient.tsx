@@ -32,6 +32,7 @@ import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
+import GiftShowWatcher from "@/components/GiftShowWatcher";
 import BadgeToast from "@/components/BadgeToast";
 import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
 import ProfileTabs from "@/components/ProfileTabs";
@@ -318,7 +319,8 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
           {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
           {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
-          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} label="🎁 Gift me" />}
+          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} toName={profile.displayName} label="🎁 Gift me" />}
+          {!synthetic && <GiftShowWatcher uid={realProfile?.uid} toName={profile.displayName} />}
           {hasPremium && (
             <div id="subscribe" className="scroll-mt-28 rounded-full">
               <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />

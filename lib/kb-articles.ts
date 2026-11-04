@@ -40,6 +40,7 @@ import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } fr
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
+import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftClass, needsVerified, verifiedRuleText } from "./gift-catalogue";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
 // the pricing page. Plain facts only; if something is not live yet, the article says so. Staff can add articles or override one by slug
@@ -173,6 +174,14 @@ You can also tell us, if you like, what you do, your role and where you work. It
 Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [${APP_HOST}](${APP_URL}), you sign in or create your account right on the welcome screen.
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("passkeys", "Signing in with a passkey", "Getting started", `
+A passkey lets you sign in with your fingerprint, face, phone screen lock or a security key instead of typing your password. It can't be guessed or phished, and it never leaves your device.
+
+**Add one:** sign in, open [Account settings](/profile/account#passkeys) → **Passkeys**, give it a name if you like (for example "My phone") and tap **Add a passkey**. Your phone or computer asks you to confirm with your fingerprint, face or screen lock. You can keep up to 10 passkeys, for example one on your phone and one on your laptop.
+
+**Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
+
+**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys. Deleting your account removes your passkeys too.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 
@@ -311,9 +320,20 @@ A publisher can offer a paid monthly subscription (${money(LIMITS.subscriptionMi
 
 For the publisher, subscription money is released to their verified bank account after a 7-day window, minus the commission for their plan: ${SESSION_RATES()} (see [commission rates](/help/commission-rates)).`),
     A("gifts", "Gifts", "Publishing and earning", `
-A reader can send a publisher, or one single post, a gift from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
+A reader can send a publisher, or one single post, a gift, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
-You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions. Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+**Animated gifts:** choose one of ${enabledGifts().length} named gifts. Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for the person you gift, in their notification, and for everyone looking at their page when it arrives (and, once lives open, for everyone in the live). Sound is off unless you switch on **Gift sounds** in the gift sheet. The gifts today:
+${enabledGifts().map((g) => `- **${g.name}** (${MOTIF_BLURB[g.id]}): ${money(g.priceKobo)}${needsVerified(g) ? " ✔" : ""}`).join("\n")}
+
+Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the ✔ badge to send them.${GIFT_SETTINGS.grand.announce ? ` Each gift from ${money(GIFT_SETTINGS.grand.fromKobo)} is also announced to everyone on #NotesApp at that moment, with a link to join the live (or the creator's page) and watch it; a creator in teen mode is never announced, and an anonymous sender stays anonymous.` : ""} Or choose **Other** and type any amount from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}.
+
+**Paying:** from your NotesApp Credit, or by card, bank transfer or USSD through Paystack. You need a verified email to send a gift, and you cannot gift yourself.
+
+**For the publisher:** gifts are paid to your bank account 7 days after they arrive (a short dispute window), minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions, for a gift of a typed amount. **Animated gifts** carry a little more: on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "premium").length} **premium gifts** #NotesApp takes your rate plus ${GIFT_SETTINGS.uplift.premiumPct}% of it, and on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "vip").length} **VIP gifts** (from ${money(GIFT_SETTINGS.grand.fromKobo)}, verified senders) your rate plus ${GIFT_SETTINGS.uplift.vipPct}% of it. For example, with an 8% rate a premium gift is charged ${+(8 * (1 + GIFT_SETTINGS.uplift.premiumPct / 100)).toFixed(2)}% and a VIP gift ${+(8 * (1 + GIFT_SETTINGS.uplift.vipPct / 100)).toFixed(2)}%. Gifts sent in a live or on a post are the same.
+
+**Top gifted today:** a creator who receives ${money(GIFT_SETTINGS.daily.targetKobo)}${GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time), from at least ${GIFT_SETTINGS.daily.minSenders} different people, is pinned in the **Top gifted today** shelf at the top of [Trending](/trending) and [Explore](/explore) for the rest of that day: the ${GIFT_SETTINGS.daily.slots} who received the most, and between two with the same amount, whoever got there first. A gift to yourself never counts. Members in teen mode only appear there for people who follow them.
+
+Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -630,6 +650,45 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 **Past pictures:** tap anyone's profile picture to see their pictures, newest first. Swipe left or right on a phone, or use **‹ ›** (or the arrow keys) on a computer; each shows the date it became their picture. Your pictures are kept from your next change on (the picture you're replacing is kept too), and the one you use now is recorded on our side as well. They also show as an album on your [Media](/help/media). To take an old one out of your history, open your pictures and tap **Remove from history**; the one you're using now can't be removed until you change it. If someone also has a moment up, tapping their picture asks which you'd like to see.
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
+`),
+    ...(MOMENTS_LIVE ? [A("post-a-moment", "Posting a moment (status or story)", "Getting started", `
+A moment is what other apps call a status or a story: a picture, a video or a line of text that shows on your profile picture and disappears after 24, 48 or 72 hours.
+
+**To post one:** open [Journals](/journals). At the start of the Moments row, tap the **+** on your own picture (or the **+** on your picture on your profile) and choose **Add a moment**. In **New moment**, pick **Text**, **Picture** or **Video**, add a caption (you can @mention people) and, if you like, a voice-over, choose **Disappears after** 24, 48 or 72 hours, and tap **Share moment**. A video can be up to 90 seconds; a longer one is split into parts, as far as your weekly allowance goes.
+
+**A moment does not change your profile picture.** If you were trying to change your picture, tap the same **+** and choose **Update profile picture** instead, or use [Edit profile](/profile/edit) (see [Changing your profile picture](/help/profile-pictures-and-links)).
+
+**Seeing moments:** tap **View my moments** on the same menu to see yours and who viewed them. Other people's moments are in the Moments row on [Journals](/journals), or tap their picture. Who can see yours, teen mode and sharing a journal or item to Moments are explained in [Messages, group chats and moments](/help/messages-moments-groups).
+`)] : []),
+    A("verify-your-email", "Verify your email: resend the verification link", "Getting started", `
+When you sign up we send a link to your email address. Until you open it, a yellow bar at the top of #NotesApp says **Verify your email to send messages, make calls and pay on #NotesApp**.
+
+**Didn't get it, or the link expired?** Tap **Resend link** on that bar. A new link is sent to the address on your account (the bar tells you which). You can ask again after 60 seconds; if you ask too often you'll be asked to wait a few minutes. Check your spam or promotions folder, and search for an email from #NotesApp.
+
+**After you open the link,** come back and tap **I've verified**. The bar goes away and messages, calls and payments open up. If it says "Not verified yet", open the newest link in your email first (older links stop working once a new one is sent).
+
+**Wrong email address?** Change it on [Account](/profile/account), then resend the link to the new address. Still stuck? [Contact support](/help/contact-and-support).
+
+Verifying your email is not the same as a verification badge (the ✔ next to a name): see [Verified badge](/help/verified-badge) for that.
+`),
+    A("nana-suggestions-on-forms", "Nana's suggestions on forms: add, remove or hide them", "Getting started", `
+When you type a title, Nana suggests things to go with it in a **Nana suggests** box: topics for a journal or course, a category for a shop item (for example **Fashion › Maxi dresses** when you tap **Add item** in your store), and lines for a course. Nothing is added unless you choose it.
+
+- **Use a suggestion:** tap it, or swipe it right.
+- **Remove one you don't want:** swipe it left, or tap its **✕** (on a computer, select it and press Delete or Backspace). **Undo** brings it back. Removed suggestions stay removed for that title on that device.
+- **Hide the whole box:** tap **Not now**. It stays hidden while the title is the same.
+- **Ask again:** the refresh button in the box brings back everything you removed and asks Nana again.
+
+Suggestions marked **NEW** don't exist yet; they're created when you save. You can always ignore the box and choose from the full list below it.
+`),
+    A("currency-and-exchange-rates", "Currency: naira, dollars and exchange rates", "Plans and pricing", `
+Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank.
+
+**Exchange rates:** #NotesApp doesn't publish a dollar-to-naira (or any other) exchange rate, and Nana can't give a live rate. Rates change through the day, so check your bank, your card provider or a trusted rates site.
+
+**Paying with a foreign card:** your bank converts the naira amount to your card's currency at its own rate and may add a fee; your statement shows what you were charged. Refunds are made in naira, so the amount back on a foreign card can differ slightly because of the rate.
+
+See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 `),
     ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
@@ -1244,6 +1303,11 @@ Open [Team hub](/admin/team). Every item has a status (To do, Doing, Blocked, Ne
 When you give someone an item they get a bell. Its owner is reminded of the due date 3 days and 1 day before, on the day, and once if it goes overdue (a bell each time, plus an email for tomorrow, today and overdue). Changing the date or the owner starts the reminders again.
 
 The morning summary (email and bell, switch either off on the hub) lists what is due, blocked or waiting on you. The [weekly review](/admin/team/review) shows the week in numbers and work, with a place for wins, lessons and next week's focus; focus lines can become next week's items. Meetings get their own chat room, decisions and actions, and the team room is the everyday group chat for staff.`),
+    A("hub-new-task", "Adding a task on the team hub", `
+Open [Team hub](/admin/team) and tap **+ New task** at the top. Give it a **Title** (required) and, if you like, **Details** (steps, context and links), a **Due date** (or tap Today, In 1 week or In 2 weeks), **When** (Today, This week, Later), a **Status**, who owns it, its departments and whether it **Repeats**. A **Blocked** task asks what it is blocked on and who can unblock it; a **Needs a decision** task asks what has to be decided. Tap **Add task**.
+
+For a quick one, type the title in **Quick add** on the work board and tap **Add**; open the item afterwards to fill in the rest. The owner gets a bell and the due-date reminders (see [Using the team hub work board](/help/hub-work-board)).
+`),
     A("hub-money-ledger", "Recording money in the ledger", `
 The [Money ledger](/admin/team/finance) holds expenses, payroll and money in that is not platform revenue (grants, sponsorships, direct transfers), with receipts, next to platform revenue. Finance records entries dated today or up to 3 days back, adds receipts to any entry and can void recent ones with a reason. Product can read everything except payroll lines. Only the owner can enter older dates, edit an entry, void old history and import a CSV. Nothing is ever deleted: a voided entry stays with who voided it and why. Salaries are paid from [Payroll](/admin/team/payroll), which writes its own Payroll entries here.`),
     A("hub-expenses-due", "Expenses due: who pays, and by when", `
@@ -1256,8 +1320,12 @@ Each month, **Start the run** for that month: it lists everyone active who had s
 The [Staff library](/admin/team/library) holds SOPs, the employee handbook, policies, templates and other staff material. Each document has a kind, a version and up to 10 files. It can be open to **everyone on staff**, **one department** or **named people** (personal: only they and whoever added it can open it). Documents that ask for it have an **I have read this** button; please press it once you have read them. Super admins, customer care, product and legal maintain the library: add files with **⬆ Upload a file** (or pick them when you create the document), **New version** clears the confirmations and asks everyone again, and **👁 Who has read it** shows who has opened the document and who has confirmed it, and old documents are archived rather than deleted. For something meant for one person, send it in the message hub with them in To.`),
     A("hub-message-hub", "The message hub", `
 The [Message hub](/admin/team/messages) is for messages between staff: **To**, optional **Cc**, a subject, the message and up to 10 files. Messages always stay in the hub; tick **Also send by email** to email everyone as well. Files go only to the people in **To** (and the sender): people in Cc get the message and are told the files went to To, which is how personal material stays personal. Inbox, Copied to me and Sent are separate tabs, with unread dots and Reply. Everyday group conversation stays in the Team room in Messages.`),
+    A("nana-hr", "Nana-HR and hiring", `
+**Nana-HR** is Nana inside the team hub, for staff: open [Nana-HR & hiring](/admin/team/hr) and ask about the Employee Handbook, your department's SOP manual and brief, or your own hours, timesheets, leave and pay. She answers only from those, ends with the document and section she used, and can't change anything: for a leave request or a timesheet fix she tells you where to do it and who decides. If our documents don't cover your question, she says so and points you to your team lead, then the C-suite, then the founder. She never sees or shares anyone else's records.
+
+**Hiring** (super admins and the Chief of Staff): draft a role with its requirements; a super admin opens it on the public [careers page](/careers). Applications arrive on the role; **Summarise against the requirements** asks Nana-HR to mark each requirement met, not met or unclear with the applicant's own words, never a rank or a recommendation. Move an application to Interview, Offer or Not taken forward and the applicant is told. **Draft onboarding documents** fills the library's templates (offer letter, option grant, announcement) from the terms you enter; anything left blank stays as an [open point], Legal reviews, and the CEO (and, for options, the Board) signs. The library holds the handbook, SOPs and briefs where each belongs: open one and tap **Read**.`),
     A("hub-roles", "Staff roles and departments", `
-Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech, Legal & compliance, Engineering. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
+Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech, Engineering, Executive office, Legal & compliance. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. Until there is an HR team, the owner can also name a **Chief of Staff** (an admin): the Chief of Staff adds team members to any department, moves them between departments and removes their access, but can't change their own access, a super admin's, or make anyone a super admin. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
     A("hub-payout-otp", "Payouts that wait for a Paystack OTP", `
 When "Transfers OTP" is on in Paystack, a payout that is released (by **Release** on [Payments & payouts](/admin/payments) or by the scheduled release) doesn't move until someone types the code Paystack emails the business. It shows at the top of Payments & payouts under **Awaiting OTP**, and as "awaiting OTP" in the table, with the amount, the publisher and the reference from Paystack's email (payout_…).
 

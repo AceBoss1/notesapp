@@ -17,6 +17,8 @@ import PushPrompt from "@/components/messages/PushPrompt";
 import PresenceBeat from "@/components/PresenceBeat";
 import CallManager from "@/components/calls/CallManager";
 import PayChooser from "@/components/PayChooser";
+import GiftOverlay from "@/components/GiftOverlay";
+import GiftBurstBanner from "@/components/GiftBurstBanner";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
@@ -68,6 +70,7 @@ const PRODUCT = [
 const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
+  { href: "/careers", label: "Careers" },
   { href: "/contact", label: "Contact" },
   { href: "/pricing", label: "Pricing" },
   { href: "/roadmap", label: "Roadmap" },
@@ -137,6 +140,8 @@ const site = await getSiteSettingsCached();
         <PresenceBeat />
         <CallManager />
         <PayChooser />
+        <GiftOverlay />
+        <GiftBurstBanner />
         <Masthead links={NAV} appLinks={APP_NAV} />
 
         <main><AppFrame>{children}</AppFrame></main>

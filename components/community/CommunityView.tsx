@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -48,6 +48,15 @@ export default function CommunityView({ id }: { id: string }) {
   }, [id, as]);
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u)), []);
   useEffect(() => { if (user !== undefined) load(); }, [user, load]);
+  // ?room=<id>: open that live straight away (the grand-gift announcement links here, components/GiftBurstBanner.tsx). Once per visit.
+  const roomParam = params.get("room");
+  const openedRoom = useRef(false);
+  useEffect(() => {
+    if (!roomParam || openedRoom.current || !user || !v) return;
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(roomParam)) return;
+    openedRoom.current = true;
+    setRoom({ id: roomParam });
+  }, [roomParam, user, v]);
   if (err) return <div className="mx-auto max-w-3xl px-4 py-16"><p className="card p-6 text-sm text-crimson">{err}</p></div>;
   if (!v) return <div className="mx-auto max-w-5xl px-4 py-16 text-sm text-slate">Loading…</div>;
   const c = v.community;

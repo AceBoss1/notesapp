@@ -12,6 +12,7 @@ import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
 import Shelf from "@/components/Shelf";
 import AdSlot from "@/components/AdSlot";
+import TopGiftedShelf from "@/components/TopGiftedShelf";
 import { isTopic } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import MarketCard from "@/components/MarketCard";
@@ -95,6 +96,7 @@ export default function ExplorePageClient() {
     <div className="px-4 py-6 lg:px-0">
       <h1 className="font-display text-4xl text-ink">Explore</h1>
       <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy and courses on #NotesApp.</p>
+      <TopGiftedShelf className="mt-5" />
       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
         className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
       <div className="mt-5 flex gap-2 overflow-x-auto" role="tablist">

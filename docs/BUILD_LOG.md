@@ -2780,6 +2780,89 @@ limits, Stream processing and rejection, audiences, blocks, teen rules, download
 past expiry, deletion), the rules test (all four collections client-proof), all in CI. Not in M1: the `/media` feed, comments,
 reactions, gifts, shares and reports of Media posts, the automatic safety check, lives (phases M2 to M5 in `docs/MEDIA.md`).
 
+**Chief of Staff in Team access (team hub, 3 Nov 2026)** — The owner asked for the Chief of Staff to assign new team members to any
+department and move existing ones, as there is no HR team yet, but never themselves. A `cos: true` custom claim on an admin
+(`lib/admin-access.ts`: `isChiefOfStaff`, `canManageTeam`, the new `"team"` need for /admin/access, "Chief of Staff" in `roleLabel`);
+`changeAccess` in `lib/admin-access-server.ts` lets the Chief of Staff add, move and remove admins but refuses their own access, any super
+admin, appointing one, and naming or changing a Chief of Staff (owner only; a non-owner super admin can't change the Chief of Staff either).
+Team access shows the role and, for the owner, a Chief of Staff tick on an admin's row. Test: `npm run test:access` (emulators).
+
+**Careers (v0.131.0); Nana-HR and the staff library (team hub), 3 Nov 2026** — The owner approved the Nana-HR spec and asked for the careers page
+with five seeded vacancies (CMO, User Acquisition Lead, Growth & partnerships team lead, Customer care team lead, Trust & safety team
+lead), every SOP, brief and the handbook seeded where it belongs, and Nana-HR drafting new hires' documents from the Chief of Staff's
+templates. Built on `push/cos-departments`. Library: `body`, `depts`, `seedKey`/`seedHash` on `staffDocs` (`lib/staff-ops.ts`);
+`content/staff-library/*.md` (exported from the approved docs) and the Engineering Guide become `lib/staff-library-content.ts`
+(`node scripts/staff-library-content.mjs`); `lib/staff-library-seed.ts` seeds or refreshes them once per content version (fixed ids,
+a changed text bumps the version and clears acknowledgements); the library reads a document (`?read=`, remark + remark-gfm + remark-html,
+sanitised) and counts the open. New department `executive` (Executive office). Nana-HR: `lib/nana-hr-server.ts` (rules, the library
+the person may open, their own week, leave and pay basis) passed to `chat()` as `hr` (a cached system block), NanaPanel context "hr",
+`/admin/team/hr`. Careers: `lib/careers.ts` (rules, seed roles), `lib/careers-server.ts` (public roles, apply once per role, the board
+for super admins and the Chief of Staff, open/close by super admins, applicants told at interview, offer and decline, a 6-month TTL
+`purgeAt` from closing, Nana-HR's screening summary without the applicant's name or email, drafts), `lib/hr-drafts.ts` (the offer
+letter, option grant and announcement templates from the owner's documents, personal details removed), `/careers`, `/careers/[id]`,
+`/api/public/careers`, `/api/careers/apply`, `/api/admin/hr`. Server-only rules for `careerRoles`, `careerApplications`, `hrDrafts`,
+`staffMeta`. Tests: `npm run test:hr` (the rules, then the emulator) and a rules test.
+
+**Passkeys (v0.132.0, 3 Nov 2026)** — The owner asked for passkeys or security keys for all users, usable at the team hub too. WebAuthn
+with `@simplewebauthn/server` and `/browser` (v14): `lib/passkeys.ts` (pure: the RP ID is the domain family's root from `lib/host.ts`, so
+a passkey made on www.naapp.tech works across app., life. and prep.naapp.tech; members' own domains get none; allowed origins; names),
+`lib/passkeys-server.ts` (registration and sign-in ceremonies; one-time challenges in `passkeyChallenges` with a 5-minute TTL on
+`expireAt`; credentials in `passkeys/{credentialId}`; sign-in ends in a Firebase custom token, so custom claims such as staff access
+apply as with a password), `/api/passkeys` (list, rename, remove), `/api/passkeys/register` and `/api/passkeys/login` (two steps each),
+`lib/passkeys-client.ts`, `components/PasskeySignIn.tsx` (the sign-in form and Staff login) and `components/PasskeySettings.tsx`
+(Account settings). Both collections server-only in `firestore.rules`; erasing an account removes its passkeys. Tests:
+`npm run test:passkeys` (the rules, then a full ceremony against the emulators with a software P-256 authenticator) and a rules test.
+
+## Help backfill from Nana's unanswered questions (built 3 November 2026)
+
+Nana's "Couldn't answer" list showed questions the help centre either didn't cover or covered under other words. New articles:
+`post-a-moment` (moments are what other apps call a status or story, and a moment never changes your profile picture),
+`verify-your-email` (the yellow bar's Resend link, the 60-second wait, and "I've verified"; not the same as the verified badge),
+`nana-suggestions-on-forms` (swipe or ✕ to remove a suggestion, Not now to hide the box), `currency-and-exchange-rates` (everything
+is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. Search now folds status/story into "moment",
+dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
+before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
+Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.
+**Animated gifts and daily gift targets (v0.133.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
+the same 7-day hold and commission; a catalogue of named animated gifts with big values; and a daily gift target that pins creators
+at the top of Trending and Explore. The catalogue lives in `lib/gift-catalogue.ts` (pure, client-safe): ten drawings fixed in code
+(`GIFT_MOTIFS`), each with a name, a price and on/off that admins edit, in the order they choose, in Admin → Pricing → Gifts. It is
+one more key (`gifts`) of the pricing config, so it uses the existing save, log, `ensurePricing` and `/api/pricing` path; a config
+saved before keeps the defaults, and a drawing left out of an older form is kept, switched off. `describeChanges` now also logs
+booleans (switching a gift off was invisible before). The drawings (`components/GiftArt.tsx`) are inline SVG moved by CSS
+transforms and opacity only, a few kilobytes in all, still when the viewer prefers reduced motion; sound is a short chime made with
+Web Audio, off unless the viewer turns it on. Sending one is an ordinary gift: `giftId` on the gift checkout, priced on the server
+from the catalogue, with the verified-sender rule above `UNVERIFIED_GIFT_CAP_KOBO` (the ✔ worked out as `hasVerifiedBadge` does,
+plus gold, without importing `lib/users.ts`, which loads the browser SDK). The receiver's day (Lagos is UTC+1 all year, so the day
+is the UTC date an hour on) is updated in the payment's own transaction in `giftDaily/{day}_{uid}`: gross, after commission (each
+co-author's share at their own rate), the number of gifts, up to 100 distinct sender ids and when the target was first reached; a
+gift to yourself never counts. There was no linked-account check to reuse (same device, bank or phone), so only distinct accounts
+are counted, and the admin page says so. The shelf orders today's totals that reach the target under the settings in force, most
+first, a tie to whoever reached it first, caches the list a minute in `statCache`, and filters protected members per viewer
+(`keptOffLists` from `lib/young.ts`, shown to followers and themselves only). Everyone signed in on a member's page sees an
+animated gift play as it arrives (`giftShows/{uid}`, `GiftShowWatcher`), the receiver sees it in the bell, and the live room will
+call `playGift()` when the live chat edge lands. The gift sheet was rebuilt to the media mockup (gift grid, message, anonymous,
+NotesApp Credit or card). The help article "Gifts", /gifts and the /pricing gifts row read the figures live; `tests/help/live-figures.test.ts`
+saves a changed catalogue and target and checks the help shows them. Tests: `test:gifts` (catalogue checks, saving with pricing,
+prices and the verified rule, Lagos midnight, target and distinct senders, shelf order), `test:gifts-server` (an animated gift paid
+from the wallet → ledger, daily total, page show, bell → target with three senders → shelf, teen only for followers), the rules
+test (`giftDaily` server-only, `giftShows` signed-in read) run from a temporary copy on port 8241.
+
+**Gifts, second pass: the owner's 14 gifts, VIP gifts and their commission (v0.133.0, 3 Nov 2026)** — The owner replaced the ten-gift
+catalogue with fourteen (six premium, ₦200 to ₦20,000; eight VIP, ₦25,000 to ₦1,000,000, verified senders only) and asked that each
+"plays full screen with a mix of some or all of rays, stars, fireworks, sounds and confetti", that each VIP gift be announced
+sitewide with a link to join the live, and that #NotesApp take an extra 10% (premium) or 20% (VIP) **of the normal commission rate**.
+Four new drawings (Garden Egg, Circova Champagne, Argungu Fishing, Ijele Masquerade), Zobo redrawn as a bottle and Jollof as a plate.
+Effects are a fixed list per drawing (`MOTIF_EFFECTS`) so admins can rename and reprice without breaking a design; the overlay draws
+them in CSS only (rays a conic gradient, stars text glyphs, fireworks 14 dots per burst flying out of a rotated wrapper, confetti
+falling bits) and the sound is made with Web Audio (a two-pitch drum for the Talking Drum, a fanfare for VIP gifts, noise crackles
+for fireworks), still only for viewers who switched gift sounds on. "VIP" is one admin line (`grand.fromKobo`, default ₦25,000) that
+decides the verified-sender rule, the longer play, the announcement and the higher uplift, so they can't drift apart; the ₦20,000
+cap for unverified senders still applies under it. The announcement is one public document (`giftBursts/latest`) that every open
+page listens to: cheaper than a fan-out and enough at the rate VIP gifts arrive; the banner checks the link is a path on our site.
+The uplift is fixed on the payment at checkout, so a later Admin change never re-prices a gift already paid. Tests: `test:gifts`
+(catalogue, effects, VIP line, uplift maths with the owner's 8% example), `test:gifts-server` (the announcement: page link, live
+link while the live is on, page link once it ends, never for a teen, anonymous kept, switched off), rules (`giftBursts`), `test:help`.
 **Watermarked video downloads for Media (v0.134.0, 3 Nov 2026)** — The owner said yes to video downloads, "emphasis on TRANSPARENT
 watermark". Stream can only burn a watermark in when a video is uploaded or copied, and it then shows in playback too, so the video
 people watch stays as it is and downloads come from a second, marked copy: Stream makes an MP4 of the original (the only thing its
