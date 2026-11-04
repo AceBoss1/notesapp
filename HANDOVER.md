@@ -729,6 +729,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     the glasses removed, since those frames have cameras).
     **v0.137.3:** Audio's is a plain leather pouch (no charging); Nana's case photo shows its glasses again (the owner's choice);
     Display's case comes in black or brown (`anya-display-case-{black,brown}.webp`), switched by swatches (`components/anya/AnyaCasePicture.tsx`).
+    **v0.137.4:** Anya Nana is the owner's square-frame model in black, pink or clear (`anya-nana-{black,pink,clear}.webp`), with touch
+    controls, built-in speakers and Bluetooth; its hero uses the black frame. Every model card has its picture (Nana's with frame swatches).
 
 ## 3. How the work is done (please keep these)
 
