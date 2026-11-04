@@ -62,6 +62,8 @@ export type AppNotification = {
   actorUsername?: string;
   actorDisplayName?: string;
   actorAvatar?: string;
+  // An animated gift (lib/gift-catalogue.ts): its drawing shows in the bell and plays when tapped.
+  giftAnim?: string;
   // Where clicking the notification goes. For like/comment/reply/
   // new_post this is a journal entry; for moderation types it's the
   // recipient's own profile.

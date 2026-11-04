@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { describeChanges, nairaText, type PricingConfig } from "@/lib/pricing";
+import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
+import { MOTIF_BLURB, type GiftMotif } from "@/lib/gift-catalogue";
+import { UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
 
 type Log = { id: string; at: string; byEmail: string; reset?: boolean; changes: string[] };
 type Data = { config: PricingConfig; defaults: PricingConfig; customised: boolean; updatedAt: string | null; updatedBy: string | null; log: Log[] };
@@ -13,7 +16,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
 const RATE_EXTRA = new Set(["weeklyRate", "capRate", "cutRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -23,7 +26,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -53,7 +56,7 @@ export default function PricingPage() {
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
-  const set = (path: string[], v: string) => setForm((f: Any) => { const n = structuredClone(f); let o = n; path.slice(0, -1).forEach((k) => (o = o[k])); o[path[path.length - 1]] = v; return n; });
+  const set = (path: string[], v: string | boolean) => setForm((f: Any) => { const n = structuredClone(f); let o = n; path.slice(0, -1).forEach((k) => (o = o[k])); o[path[path.length - 1]] = v; return n; });
   const input = (path: string[], suffix: string, label: string) => (
     <label className="inline-flex items-center gap-1 text-xs text-slate"><span className="sr-only">{label}</span>
       <input aria-label={label} className={field} inputMode="decimal" value={get(form, path) ?? ""} onChange={(e) => set(path, e.target.value)} />{suffix}
@@ -63,6 +66,8 @@ export default function PricingPage() {
     setBusy(true); setError(""); setNote("");
     try { await call(body); setNote(ok); await load(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
+  // Animated gifts: swap a gift with its neighbour (the sheet shows them in this order).
+  const move = (i: number, by: -1 | 1) => setForm((f: Any) => { const n = structuredClone(f); const c = n.gifts.catalogue; const j = i + by; if (j < 0 || j >= c.length) return f; [c[i], c[j]] = [c[j], c[i]]; return n; });
   const yearlyNote = (t: "pro" | "business") => { const m = Number(form[t].monthlyKobo), y = Number(form[t].yearlyKobo); return m > 0 && y > 0 ? `${(y / m).toFixed(1)} months' price a year` : ""; };
 
   return (
@@ -216,6 +221,44 @@ export default function PricingPage() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section className="card mt-6 p-5" id="gifts">
+            <GiftArtStyles />
+            <h2 className="font-display text-2xl text-ink">Gifts</h2>
+            <p className="mt-1 text-xs text-slate">The animated gifts readers send from Gift me, on posts and in lives (the gift sheet shows them in this order), and the daily target that pins a creator in &quot;Top gifted today&quot; at the top of Trending and Explore until midnight in Lagos. Gifts keep the plan&apos;s commission and the 7-day hold. Each gift plays full screen with its own fixed mix of rays, stars, fireworks, confetti and sound. Grand gifts (below) and any over {nairaText(UNVERIFIED_GIFT_CAP_KOBO)} need a verified sender.</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[34rem] text-sm">
+                <thead><tr className="bg-crimson text-left text-[13px] text-white"><th className="px-3 py-2">Gift</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Price, ₦</th><th className="px-3 py-2">On</th><th className="px-3 py-2">Order</th></tr></thead>
+                <tbody>
+                  {form.gifts.catalogue.map((g: Any, i: number) => (
+                    <tr key={g.id} className={i % 2 ? "bg-[#fbf6f2]" : "bg-white"}>
+                      <td className="px-3 py-2"><span className="flex items-center gap-2"><GiftArt id={g.id as GiftMotif} size={40} motion="still" /><span className="text-xs text-slate">{MOTIF_BLURB[g.id as GiftMotif]}</span></span></td>
+                      <td className="px-3 py-2"><input aria-label={`${g.id} name`} className={`${field} !w-44 !text-left`} value={g.name} maxLength={30} onChange={(e) => set(["gifts", "catalogue", String(i), "name"], e.target.value)} /></td>
+                      <td className="px-3 py-2">{input(["gifts", "catalogue", String(i), "priceKobo"], "", `${g.name} price`)}</td>
+                      <td className="px-3 py-2"><input type="checkbox" aria-label={`${g.name} on`} className="h-4 w-4 accent-crimson" checked={g.enabled !== false} onChange={(e) => set(["gifts", "catalogue", String(i), "enabled"], e.target.checked)} /></td>
+                      <td className="whitespace-nowrap px-3 py-2"><button type="button" className={ghost} aria-label={`Move ${g.name} up`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button> <button type="button" className={ghost} aria-label={`Move ${g.name} down`} disabled={i === form.gifts.catalogue.length - 1} onClick={() => move(i, 1)}>↓</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Daily gift target (Lagos day), ₦</span>{input(["gifts", "daily", "targetKobo"], "", "Daily gift target")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Places in Top gifted today</span>{input(["gifts", "daily", "slots"], "", "Top gifted today places")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Different senders needed</span>{input(["gifts", "daily", "minSenders"], "", "Daily gift target different senders")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Count towards the target</span>
+                <select aria-label="Daily gift target counts" className={`${field} !w-44 !text-left`} value={form.gifts.daily.basis} onChange={(e) => set(["gifts", "daily", "basis"], e.target.value)}><option value="gross">what senders paid</option><option value="net">after commission</option></select>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Grand gifts from, ₦ (verified senders only)</span>{input(["gifts", "grand", "fromKobo"], "", "Grand gifts from")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Premium gifts (below that): extra commission, % of the creator&apos;s rate</span>{input(["gifts", "uplift", "premiumPct"], "%", "Premium gifts extra commission")}</div>
+              <div className="flex items-center justify-between gap-3"><span>VIP gifts (from that): extra commission, % of the creator&apos;s rate</span>{input(["gifts", "uplift", "vipPct"], "%", "VIP gifts extra commission")}</div>
+              <label className="flex items-center justify-between gap-3"><span>Announce grand gifts to everyone on #NotesApp</span><input type="checkbox" aria-label="Announce grand gifts" className="h-4 w-4 accent-crimson" checked={form.gifts.grand?.announce !== false} onChange={(e) => set(["gifts", "grand", "announce"], e.target.checked)} /></label>
+            </div>
+            <p className="mt-2 text-xs text-slate">The extra commission is a share of the creator&apos;s own rate: with an 8% rate and 20%, a VIP gift is charged 9.6%. Gifts of a typed amount keep the normal rate. A grand (VIP) gift plays longer, needs a ✔ sender, and (when announcing is on) shows a banner on every open page for 15 seconds with a link to the live or the creator&apos;s page. Creators in teen mode are never announced.</p>
+            <p className="mt-2 text-xs text-slate">Different senders counts distinct accounts; a member can never gift themselves. There is no linked-account check yet (same phone, bank or device), so the senders rule is what stops one person reaching the target alone.</p>
           </section>
 
           <section className="card mt-6 p-5">

@@ -6,7 +6,7 @@ import { isKidUid } from "@/lib/kids";
 import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
-import { weekdayOf } from "@/lib/booking-time";
+import { formatNaira, weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
@@ -42,6 +42,8 @@ import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } fr
 import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
 import { giftCheckout } from "@/lib/giving-server";
+import { GiftError, priceAnimatedGift } from "@/lib/gifts-server";
+import { giftUplift, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -817,10 +819,14 @@ export async function POST(req: NextRequest) {
       if (pub.settings?.gifts?.enabled === false) {
         return NextResponse.json({ error: "This publisher isn't accepting gifts." }, { status: 409 });
       }
-      const amountKobo = Math.round(Number(body.amountNaira) * 100);
-      if (!Number.isFinite(amountKobo) || amountKobo < GIFT_MIN_KOBO || amountKobo > GIFT_MAX_KOBO) {
-        return NextResponse.json({ error: "Gifts must be between ₦200 and ₦500,000." }, { status: 400 });
+      // An animated gift (lib/gift-catalogue.ts): its price comes from the catalogue in force, never from the browser; the big ones
+      // need a verified sender. Otherwise an amount the sender typed, within the usual range.
+      const anim = body.giftId ? await priceAnimatedGift(db, user.uid, body.giftId) : null;
+      const amountKobo = anim ? anim.priceKobo : Math.round(Number(body.amountNaira) * 100);
+      if (!anim && (!Number.isFinite(amountKobo) || amountKobo < GIFT_MIN_KOBO || amountKobo > GIFT_MAX_KOBO)) {
+        return NextResponse.json({ error: `Gifts must be between ${formatNaira(GIFT_MIN_KOBO)} and ${formatNaira(GIFT_MAX_KOBO)}.` }, { status: 400 });
       }
+      const liveId = typeof body.liveId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(body.liveId) ? body.liveId : undefined;
       const message = typeof body.message === "string" ? body.message.trim().slice(0, GIFT_MESSAGE_MAX) : "";
       let noteSlug: string | undefined;
       let noteId: string | undefined;
@@ -835,8 +841,9 @@ export async function POST(req: NextRequest) {
       record = {
         reference, kind: "gift", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
-        commissionRate: pub.commissionRate,
-        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName },
+        // Animated gifts: the normal rate plus the premium or VIP share of it (lib/gift-catalogue.ts), fixed now for this gift.
+        commissionRate: anim ? upliftedRate(pub.commissionRate, giftUplift(anim.priceKobo)) : pub.commissionRate,
+        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName, ...(anim ? { animId: anim.id, animName: anim.name, uplift: giftUplift(anim.priceKobo) } : {}), ...(liveId ? { liveId } : {}) },
         createdAt: new Date().toISOString(),
       };
     } else {
@@ -855,6 +862,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
   } catch (err) {
     if (err instanceof WalletError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof GiftError) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err instanceof DiscountError) return NextResponse.json({ error: err.message, code: "discount" }, { status: err.status });
     console.error("Paystack initialize failed:", err);
     { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }

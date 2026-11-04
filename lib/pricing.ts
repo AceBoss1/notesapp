@@ -5,6 +5,7 @@ import { AD_PACKAGES } from "./ad-packages";
 import { GEMS, GEM_INFO, isReset, type Gem, type GemRates, type ResetEvery } from "./nana-gems";
 import { TRIAL_DAYS, addonTrialDays } from "./trials";
 import { COVER_LIMIT_MAX, DEFAULT_COVER_LIMITS, type CoverLimits } from "./covers";
+import { GiftSettingsError, applyGiftSettings, cleanGiftSettings, currentGiftSettings, type GiftSettings } from "./gift-catalogue";
 
 // Prices and revenue rates that an admin can change from /admin/pricing, in one plain object. The rest of the app still reads TIERS,
 // GOLD_PRICING, BOOST_PACKAGES, AD_PACKAGES and BADGE_PRICE_KOBO; applyPricing() writes the chosen values into those in place, so
@@ -64,6 +65,9 @@ export type PricingConfig = {
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
   ads: { id: string; name: string; impressions: number; priceKobo: number }[];
+  // Animated gifts and daily gift targets (lib/gift-catalogue.ts; owner, 3 Nov 2026): the catalogue (names, prices, on/off, order) and
+  // the "Top gifted today" settings (target, places, gross or after commission, different senders).
+  gifts: GiftSettings;
 };
 
 const tier = (t: string) => TIERS.find((x) => x.tier === t)!;
@@ -89,6 +93,7 @@ export function currentPricing(): PricingConfig {
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
     boosts: BOOST_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
     ads: AD_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
+    gifts: currentGiftSettings(),
   };
 }
 // Enterprise has no fixed price in TIERS (only display text), so its "from" prices are kept here.
@@ -173,6 +178,7 @@ export function applyPricing(c: PricingConfig): void {
   for (const k of ["personal", "corporate"] as const) { GOLD_PRICING[k].monthlyKobo = c.gold[k].monthlyKobo; GOLD_PRICING[k].identityDepositKobo = c.gold[k].depositKobo; }
   for (const b of c.boosts) { const p = BOOST_PACKAGES.find((x) => x.id === b.id); if (p) { p.impressions = b.impressions; p.priceKobo = b.priceKobo; p.maxPerDay = Math.ceil(b.impressions / p.minDays); } }
   for (const a of c.ads) { const p = AD_PACKAGES.find((x) => x.id === a.id); if (p) { p.impressions = a.impressions; p.priceKobo = a.priceKobo; } }
+  if (c.gifts) applyGiftSettings(c.gifts);
 }
 
 // ── Checking what an admin typed ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -274,6 +280,9 @@ export function cleanPricing(input: unknown): PricingConfig {
     if (!Number.isFinite(impressions) || impressions < 100 || impressions > 10_000_000) throw new PricingError(`${name} ${b.name}: impressions should be between 100 and 10,000,000.`);
     return { id: b.id, name: b.name, impressions, priceKobo: kobo(o.priceKobo, `${name} ${b.name} price`, 100 * 100) };
   });
+  // Added later too: a config saved before animated gifts keeps the built-in catalogue and target.
+  let gifts: GiftSettings;
+  try { gifts = cleanGiftSettings(i.gifts, d.gifts); } catch (e) { throw e instanceof GiftSettingsError ? new PricingError(e.message) : e; }
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
@@ -281,6 +290,7 @@ export function cleanPricing(input: unknown): PricingConfig {
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
+    gifts,
   };
 }
 
@@ -288,7 +298,7 @@ export function cleanPricing(input: unknown): PricingConfig {
 export function describeChanges(a: PricingConfig, b: PricingConfig): string[] {
   const out: string[] = [];
   const walk = (x: unknown, y: unknown, path: string) => {
-    if ((typeof x === "number" && typeof y === "number") || (typeof x === "string" && typeof y === "string")) { if (x !== y) out.push(`${path}: ${x} → ${y}`); return; }
+    if ((typeof x === "number" && typeof y === "number") || (typeof x === "string" && typeof y === "string") || (typeof x === "boolean" && typeof y === "boolean")) { if (x !== y) out.push(`${path}: ${x} → ${y}`); return; }
     if (Array.isArray(x) && Array.isArray(y)) { x.forEach((v, n) => walk(v, y[n], `${path}.${rec(v).id ?? n}`)); return; }
     if (x && y && typeof x === "object") Object.keys(x as object).forEach((k) => walk((x as Record<string, unknown>)[k], (y as Record<string, unknown>)[k], path ? `${path}.${k}` : k));
   };
