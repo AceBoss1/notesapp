@@ -2912,3 +2912,18 @@ the latest only) rather than a new channel. Teen mode: teens show on lists only 
 hidden. Tests: `test:fans` (ranges, the owner's 8% example, old settings, audiences, badges, bands, vehicles), `test:fans-server`
 (caps, self, top list, badges, hidden list, teens, fan level, vehicles, entrances, comment and reaction points through the real code,
 admin settings), rules, `test:help` live figures.
+
+**Stage seats and moderators in audio rooms (v0.137.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
+changes during the live (Solo, Approve, Open), empty chairs with a + (a request in Approve, the seat itself in Open), invitations the
+invited person accepts, and moderators for the live. After a first pass, the owner widened moderators to permissions the host ticks per
+moderator (presets Basic and Full) covering the whole live, never against the host or a moderator with as much say, every action logged.
+The pure rules are in `lib/rooms.ts` ("Stage seats": `seatAction`, `MOD_PERMS`, `permsOf`, `mayActOn`, `inviteFor`, `isMicMuted`),
+every check is on the server in `lib/rooms-server.ts` (one `moveStage` transaction for approvals, open seats, accepted invitations and
+bringing down), and rooms on the live-rooms worker get the mode, hands, mic marks, invitations and moderators' permissions from our
+server (`workers/live-rooms/src/room.ts` checks the permissions for chat removals, chat mutes, removals and slow mode, and sends its
+moderators' actions back in the batches for the log). Mic off is enforced on the relay by unpublishing and closing the track at
+Cloudflare (`canPush` refuses it); phone to phone, every phone obeys the room doc. Teen mode turns an Open seat into a request and allows
+invitations only from people the teen follows. UI: `components/community/StageControls.tsx` (the mode switch, the seats, the
+moderators sheet) and `AudioRoom.tsx` (menus per permission, seat requests, the invitation card, the pinned message, the log). Tests:
+`test:rooms`, `tests/community/rooms-stage.emulator.ts` in `test:rooms-server`, worker tests in `test:live-rooms`, `test:live-rooms-server`,
+existing tests updated so a bring-up without a request is an invitation.

@@ -124,6 +124,7 @@ const step = (uid: string, id: string, body: Record<string, unknown>) => R.relay
   await fails(step("l1", room.id, { op: "pull", uids: ["spk"] }), 409, /Nobody on stage/);
 
   // the host brings spk up; spk sends on their existing session (not fresh); l1 then pulls spk on the same session
+  await R.raiseHand(db, "spk", room.id, true); // a request first: bringing up anyone else is an invitation (lib/rooms.ts "Stage seats")
   await R.setSpeaker(db, "host", room.id, "spk", true, new Date(), deps);
   assert.ok((await roomDoc(room.id)).joined.spk, "up on stage: onto the room doc"); assert.equal(await rec(room.id, "nobody"), undefined);
   assert.equal((await db.doc(`communityRooms/${room.id}/people/spk`).get()).exists, false, "and out of people/");
@@ -158,6 +159,7 @@ const step = (uid: string, id: string, body: Record<string, unknown>) => R.relay
   await R.saveRoomSettings(db, {}, "admin");
 
   // a speaker leaving: off stage, unmarked, their microphone cut, their session record gone
+  await R.raiseHand(db, "l2", room.id, true);
   await R.setSpeaker(db, "host", room.id, "l2", true, new Date(), deps);
   await step("l2", room.id, { op: "push", offer, mid: "0", fresh: true });
   assert.ok((await roomDoc(room.id)).published?.l2);

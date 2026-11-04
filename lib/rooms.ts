@@ -70,7 +70,107 @@ export type RoomDoc = {
   // Opened by a #NotesApp team member while the staff test pass was on (lib/staff-pass.ts): no listener cap below the hard ceiling and no
   // video-minutes budget, for as long as the pass stays on.
   staffPass?: boolean;
+  // The stage (v0.137.0, lib/rooms.ts "Stage seats"): how people come up (stageModeOf: rooms from before have none and work as Approve),
+  // the moderators the host named for this live, invitations waiting for an answer, and speakers whose microphone a host or moderator
+  // turned off (they can't turn it back on; on the relay their sound isn't forwarded at all). All server-written.
+  stageMode?: StageMode; mods?: Record<string, RoomModInfo>; invites?: Record<string, RoomInvite>; micMuted?: Record<string, string>;
+  // pinned: the message or announcement at the top of the chat. consentAsk: a moderator reminded a speaker to agree to the recording.
+  pinned?: RoomPin | null; consentAsk?: Record<string, string>;
 };
+// ── Stage seats (owner, 4 Nov 2026) ──
+// The host picks a stage mode and can change it during the live (only the host does):
+// - "solo": nobody asks to come up: no raised hands, no + on the empty seats (the host and moderators can still invite someone).
+// - "approve": a listener asks for a seat (the + on an empty seat, or the raised hand: the same request); the host or a moderator says yes.
+// - "open": a listener taps + on an empty seat and is on stage at once, while there is a seat. Recording consent still comes first in a
+//   recorded room (canPush), a room ban or a community ban keeps them off, and a member in teen mode asks instead (the host or a
+//   moderator lets them up), so a teen is never pulled in front of a crowd by one tap.
+// Moderators for the live: chosen by the host when the room starts or during it (the community's moderators and admins, and anyone in
+// the community they name), each with the permissions the host ticks (MOD_PERMS; the presets Basic and Full). The host holds every
+// permission. A moderator never acts against the host, nor against another moderator whose permissions aren't a strict part of their own
+// (mayActOn), and only the host names moderators or changes their permissions. Every moderator action is logged on the room (modLog).
+// The stage powers: approve requests, invite anyone in the room (who accepts or declines), bring a speaker down, and turn a speaker's
+// microphone off (micMuted).
+export type StageMode = "solo" | "approve" | "open";
+export const STAGE_MODES: { id: StageMode; label: string; hint: string }[] = [
+  { id: "solo", label: "Solo", hint: "Only you on stage. Nobody can ask to come up; you and your moderators can still invite someone." },
+  { id: "approve", label: "Approve", hint: "People ask for a seat; you or a moderator lets them up." },
+  { id: "open", label: "Open", hint: "Anyone tapping + on an empty seat comes straight up, while there is a seat (members in teen mode ask instead)." },
+];
+export const isStageMode = (v: unknown): v is StageMode => v === "solo" || v === "approve" || v === "open";
+export const stageModeOf = (r: Pick<RoomDoc, "stageMode">): StageMode => (isStageMode(r.stageMode) ? r.stageMode : "approve");
+export const ROOM_MODS_MAX = 10;
+export type ModPerm = "approve" | "invite" | "down" | "mic" | "camera" | "chatRemove" | "chatMute" | "ban" | "mode" | "slow" | "pin" | "poster" | "video" | "consent" | "end";
+export const MOD_PERMS: { id: ModPerm; label: string }[] = [
+  { id: "approve", label: "Approve stage requests" },
+  { id: "invite", label: "Invite people on stage" },
+  { id: "down", label: "Bring speakers down" },
+  { id: "mic", label: "Turn speakers' microphones off and on" },
+  { id: "camera", label: "Turn a speaker's camera off" },
+  { id: "chatRemove", label: "Remove chat messages" },
+  { id: "chatMute", label: "Mute someone in the chat" },
+  { id: "ban", label: "Remove someone from this live" },
+  { id: "mode", label: "Change the stage mode (Solo, Approve, Open)" },
+  { id: "slow", label: "Set the chat's slow mode" },
+  { id: "pin", label: "Pin a message or announcement" },
+  { id: "poster", label: "Change the poster" },
+  { id: "video", label: "Let speakers use video, or take the room back to audio" },
+  { id: "consent", label: "Remind speakers to agree to the recording" },
+  { id: "end", label: "End the live" },
+];
+export const ALL_MOD_PERMS: ModPerm[] = MOD_PERMS.map((p) => p.id);
+export const MOD_PRESETS: { id: "basic" | "full"; label: string; perms: ModPerm[] }[] = [
+  { id: "basic", label: "Basic", perms: ["approve", "invite", "down", "mic", "chatRemove"] },
+  { id: "full", label: "Full", perms: ALL_MOD_PERMS.filter((p) => p !== "end") }, // ending the live stays with the host unless ticked
+];
+export const BASIC_PERMS = MOD_PRESETS[0].perms;
+// The community's own moderators (not named for this live) keep the chat powers they had: remove, mute in the chat, remove from the live.
+export const COMMUNITY_MOD_PERMS: ModPerm[] = ["chatRemove", "chatMute", "ban"];
+export const isModPerm = (v: unknown): v is ModPerm => typeof v === "string" && (ALL_MOD_PERMS as string[]).includes(v);
+// What the host sent for one moderator: known permissions, in the list's order; not a list at all: the Basic preset.
+export const cleanPerms = (v: unknown): ModPerm[] => (Array.isArray(v) ? ALL_MOD_PERMS.filter((p) => v.includes(p)) : [...BASIC_PERMS]);
+// Someone's permissions in this room: the host every one; a named moderator theirs; anyone else none.
+export const permsOf = (r: Pick<RoomDoc, "hostUid" | "mods">, uid: string): ModPerm[] =>
+  uid === r.hostUid ? ALL_MOD_PERMS : r.mods?.[uid] ? cleanPerms(r.mods[uid].perms) : [];
+export const roomCan = (r: Pick<RoomDoc, "hostUid" | "mods">, uid: string, perm: ModPerm) => permsOf(r, uid).includes(perm);
+// Whether a set of permissions is a strict part of another (every one of `a` is in `b`, and `b` has more).
+export const strictlyWithin = (a: readonly string[], b: readonly string[]) => a.every((p) => b.includes(p)) && b.length > new Set(a).size;
+// May `actor` act on `target` (move, mute, remove, take a message down)? Never on the host; the host on anyone; a moderator on anyone
+// who isn't a moderator, and on a moderator only when that one's permissions are a strict part of theirs. actorPerms: when the actor's
+// permissions come from somewhere else too (the community's moderators' chat powers).
+export function mayActOn(r: Pick<RoomDoc, "hostUid" | "mods">, actor: string, target: string, actorPerms: readonly string[] = permsOf(r, actor)): boolean {
+  if (!target || target === r.hostUid) return false;
+  if (actor === r.hostUid) return true;
+  if (actor === target) return false;
+  return !isRoomMod(r, target) || strictlyWithin(permsOf(r, target), actorPerms);
+}
+// A moderator action, kept on the room (communityRooms/{id}/modLog, server-written, read by the host).
+export type ModLogEntry = { by: string; byName: string; action: string; target?: string; targetName?: string; at: string };
+// The pinned message or announcement at the top of the chat (server-written).
+export type RoomPin = { text: string; by: string; byName: string; at: string };
+export const ROOM_INVITE_MS = 120_000; // an invitation to the stage is answered within this, or it lapses
+export type RoomModInfo = { name: string; avatar: string; perms: ModPerm[] };
+export type RoomInvite = { at: string; by: string; byName: string; name: string; avatar: string };
+export const isRoomMod = (r: Pick<RoomDoc, "hostUid" | "mods">, uid: string) => !!uid && uid !== r.hostUid && !!r.mods?.[uid];
+// Who runs the stage: the host and the moderators they named (each action also needs its permission: roomCan).
+export const runsStage = (r: Pick<RoomDoc, "hostUid" | "mods">, uid: string) => uid === r.hostUid || isRoomMod(r, uid);
+export const emptySeats = (r: Pick<RoomDoc, "speakers">) => Math.max(0, ROOM_SPEAKERS_MAX - r.speakers.length);
+// What + on an empty seat does for this person: nothing (Solo, or no seat left in Open), send a request, or take the seat now.
+export type SeatAction = "none" | "request" | "take";
+export function seatAction(r: Pick<RoomDoc, "hostUid" | "speakers" | "stageMode">, uid: string, teen = false): SeatAction {
+  if (roomRole(r, uid) !== "listener") return "none";
+  const mode = stageModeOf(r);
+  if (mode === "solo") return "none";
+  if (mode === "open" && !teen) return emptySeats(r) > 0 ? "take" : "none";
+  return "request";
+}
+// Whether people may ask for a seat (raise a hand) in this mode.
+export const requestsOpen = (r: Pick<RoomDoc, "stageMode">) => stageModeOf(r) !== "solo";
+export const inviteFor = (r: Pick<RoomDoc, "invites">, uid: string, now = Date.now()): RoomInvite | null => {
+  const i = r.invites?.[uid];
+  return i && now - Date.parse(i.at) < ROOM_INVITE_MS ? i : null;
+};
+export const isMicMuted = (r: Pick<RoomDoc, "micMuted">, uid: string) => !!r.micMuted?.[uid];
+
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 // edgeIn (v0.127.0): in a room on the live-rooms worker, the worker last reported this listener connected (they don't heartbeat there).
 export type RoomPersonDoc = RoomPerson & { chatAt?: string; edgeIn?: boolean };
@@ -213,16 +313,17 @@ export const chatWait = (lastAt: string | undefined, slow: number, now = Date.no
 // ── Who may do what on the relay (checked by the server before it talks to Cloudflare) ──
 // here: whether the caller is in the room. The stage is in `joined`; a relay listener is in people/ (the server passes what it read).
 // Send (push) a microphone: the host or a speaker, here now, in a relay room that is live.
-// In a recorded room a speaker must have agreed to speak on the record first (lib/live-recording.ts hasConsented).
-export function canPush(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "recording" | "consent">, uid: string, now = Date.now()): boolean {
-  return r.status === "live" && r.mode === "relay" && presentIn(r, now).includes(uid) && roomRole(r, uid) !== "listener" && hasConsented(r, uid);
+// In a recorded room a speaker must have agreed to speak on the record first (lib/live-recording.ts hasConsented). A speaker whose
+// microphone the host or a moderator turned off can't send it until they turn it back on (isMicMuted).
+export function canPush(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "recording" | "consent" | "micMuted">, uid: string, now = Date.now()): boolean {
+  return r.status === "live" && r.mode === "relay" && presentIn(r, now).includes(uid) && roomRole(r, uid) !== "listener" && hasConsented(r, uid) && !isMicMuted(r, uid);
 }
 // Receive (pull) someone's microphone: anyone here now in a live relay room, from someone else who is on stage and sending.
-export function canPull(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "published">, uid: string, from: string, now = Date.now(), listenerHere = false): boolean {
-  return r.status === "live" && r.mode === "relay" && uid !== from && (presentIn(r, now).includes(uid) || listenerHere) && stageOf(r, now).includes(from) && !!r.published?.[from];
+export function canPull(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "published" | "micMuted">, uid: string, from: string, now = Date.now(), listenerHere = false): boolean {
+  return r.status === "live" && r.mode === "relay" && uid !== from && (presentIn(r, now).includes(uid) || listenerHere) && stageOf(r, now).includes(from) && !!r.published?.[from] && !isMicMuted(r, from);
 }
 // What I should be receiving in a relay room now: each other stage member who is sending, keyed by when they went up (so a new
 // microphone is pulled again). Everyone pulls the stage; the stage is at most 1 + ROOM_SPEAKERS_MAX people.
-export function pullsFor(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "published">, me: string, now = Date.now()): { uid: string; key: string }[] {
-  return stageOf(r, now).filter((u) => u !== me && r.published?.[u]).map((u) => ({ uid: u, key: `${u}@${r.published![u]}` }));
+export function pullsFor(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "published" | "micMuted">, me: string, now = Date.now()): { uid: string; key: string }[] {
+  return stageOf(r, now).filter((u) => u !== me && r.published?.[u] && !isMicMuted(r, u)).map((u) => ({ uid: u, key: `${u}@${r.published![u]}` }));
 }

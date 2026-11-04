@@ -54,6 +54,7 @@ const state = (id: string) => L.readLive(db, id);
   assert.equal(r.poster, CHALLENGE_POSTER); assert.equal(r.hostBooks, true); assert.equal(r.hostUsername, "host");
   assert.deepEqual(r.videoOn, {}); assert.equal(r.stageVideo, false);
   for (const u of ["spk", "l1", "l2"]) await R.joinRoom(db, u, id, t(1));
+  await R.raiseHand(db, "spk", id, true, t(2));
   await R.setSpeaker(db, "host", id, "spk", true, t(2), deps);
   // the poster changes: the host's own upload folder only, the profile picture, or none; only the host
   assert.deepEqual(await R.setPoster(db, "host", id, "upload", "https://media.test/posters/host/1-p.webp"), { poster: "https://media.test/posters/host/1-p.webp" });

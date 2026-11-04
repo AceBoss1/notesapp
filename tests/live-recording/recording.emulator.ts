@@ -140,6 +140,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
 
   // ── A speaker agrees before their microphone goes up ──
   for (const u of ["spk", "l1"]) await R.joinRoom(db, u, room.id);
+  await R.raiseHand(db, "spk", room.id, true);
   await R.setSpeaker(db, "host", room.id, "spk", true, new Date(), roomDeps);
   await fails(R.relayStep(db, "spk", room.id, { op: "push", offer, mid: "0", fresh: true }, new Date(), roomDeps), 403);
   await fails(S.consentToRecording(db, "l1", room.id), 409, /not on stage/);
@@ -277,6 +278,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   const room3 = await R.startRoom(db, "host", c.id, "Youth hour", new Date(), roomDeps, undefined, { record: true });
   const rid3 = (await roomDoc(room3.id)).recording!.rid;
   await R.joinRoom(db, "teen", room3.id);
+  await R.raiseHand(db, "teen", room3.id, true);
   await R.setSpeaker(db, "host", room3.id, "teen", true, new Date(), roomDeps);
   await S.consentToRecording(db, "teen", room3.id);
   assert.equal((await recDoc(rid3)).teenOnStage, true);

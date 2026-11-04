@@ -703,6 +703,29 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     same email (`/api/admin/user-emails` returns which accounts share one, Gmail dots and +tags ignored, never the address) or
     that have the same name and the same job title, workplace and field.
 
+113. **Stage seats and moderators in audio rooms (v0.137.0, branch `push/stage-seats`):** nothing to deploy for Firestore (every new
+    write goes through `/api/community/rooms`; `firestore.rules` is unchanged), but **redeploy the live-rooms worker** (the "Deploy live
+    rooms" workflow) so rooms on it learn the new signals (stage mode, hands sent through our server, mic off, invitations, moderators'
+    permissions, removals through our server, the moderators' log). An old worker ignores the new ops (it answers 400): the room doc still
+    carries everything, so the app keeps working, but Solo doesn't stop hands raised over the socket, and moderators named for the live
+    have no chat powers on the socket until it's redeployed. The design is in `lib/rooms.ts` ("Stage seats"): `stageMode` (rooms from
+    before work as Approve), `mods` (uid → name, picture, permissions from `MOD_PERMS`; presets Basic and Full; `mayActOn`: never the
+    host, and over another moderator only when their permissions are a strict part of yours), `invites` (they lapse after
+    `ROOM_INVITE_MS`), `micMuted`, `pinned`, `consentAsk`; the server side in `lib/rooms-server.ts` (`takeSeat`, `inviteToStage`,
+    `answerInvite`, `declineRequest`, `muteSpeaker`, `cameraOff`, `banFromLive`, `pinMessage`, `askConsent`, `setStageMode`,
+    `setRoomMods`, `roomStaff`, `roomModLog`; `setSpeaker` approves a request and invites anyone else). **Mic off is enforced by the
+    server on the relay** (unpublished, the track closed at Cloudflare, `canPush` refuses it, `pullsFor`/`canPull` skip it); **phone to
+    phone** there is no server in the sound's path, so every phone obeys the room doc: the speaker's own track goes off and can't be
+    turned back on, the host's mix leaves them out (listeners only hear the mix) and other speakers' phones mute them. A modified phone
+    could still send to the other speakers (not to listeners); bring them down if that matters. Teen mode: an Open seat from a teen
+    becomes a request, and a teen is invited only by someone they follow (`mayReach`). Removals from the live (`banFromLive`, or on the
+    worker) live in `communityRooms/{id}/edge/state.banned` for every room now, checked by join, the stage and tokens. The community's
+    own moderators (not named for the live) keep their chat powers (remove, mute in the chat, remove from the live). The moderators' log
+    is `communityRooms/{id}/modLog` (server-only; kept after the live ends). **Not tried with real phones or a real worker:** check a
+    relay room with two speakers (mic off and back on, Open seat, invitation) and a phone-to-phone room (mic off: the listeners stop
+    hearing that speaker) before relying on it. Tests: `test:rooms`, `test:rooms-server` (new `tests/community/rooms-stage.emulator.ts`),
+    `test:live-rooms`, `test:live-rooms-server`, `test:recording-server`, `test:community-server`, `test:help`, rules.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
