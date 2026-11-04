@@ -1,5 +1,6 @@
 "use client";
 
+import LiveEntrance from "@/components/fans/LiveEntrance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addDoc, collection, doc, limitToLast, onSnapshot, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -545,6 +546,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       </div>
 
       {Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} />)}
+      <LiveEntrance entrance={room?.entrance} />
 
       {room && recordingPrompt(room, me) === "consent" && (
         <div className="mx-5 mb-3 rounded-2xl bg-white/[0.08] p-4" role="alertdialog" aria-label={RECORDING_NOTICE}>

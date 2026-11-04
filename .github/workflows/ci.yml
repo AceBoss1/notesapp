@@ -72,6 +72,7 @@ jobs:
       - run: npm run test:community
       # audio rooms: rooms, the relay and Live mode (tests/community/rooms*.test.ts)
       - run: npm run test:rooms
+      - run: npm run test:fans
       - run: npm run test:recording
       - run: npm run test:live-rooms
       - run: npm run test:giving
@@ -113,6 +114,7 @@ jobs:
       - run: npm run test:community-server
       # audio rooms against the emulator: the relay and Live mode (video on/off, the budget) with a stand-in Cloudflare
       - run: npm run test:rooms-server
+      - run: npm run test:fans-server
       - run: npm run test:recording-server
       - run: npm run test:live-rooms-server
       - run: npm run test:giving-server
@@ -137,7 +139,9 @@ jobs:
 
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The production build before the smoke test now takes most of the old 45 minutes (3 Nov 2026: a run passed all 22 tests and was
+    # cancelled while shutting down at 45:04), so the job gets an hour.
+    timeout-minutes: 60
     needs: checks
     env:
       NEXT_TELEMETRY_DISABLED: 1

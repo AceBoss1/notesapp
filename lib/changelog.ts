@@ -11,6 +11,26 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.135.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Subscriptions in three tiers: creators can offer Premium (🌄 Starter), VIP (🛡 Army) and VVIP (🏆 VVIP), each at their own monthly price within the #NotesApp range, and choose who can read each post: everyone, Premium and up, VIP and up, or VVIP only. Subscribers from before are Premium. Switching tier starts the new one now and adds on the days left." },
+      { kind: "added", text: "Fan levels: subscribing and gifts (1 point per ₦100), shares, comments and reactions build each fan's points with a creator. The top 99 get a badge next to their name in the creator's space (🥇 🥈 🥉 🏅 🎖 \"{Name}'s Top Fan\"), shown with the subscriber badge on journal comments and on shop and course reviews. Every creator has a Top fans page with your own fan level." },
+      { kind: "added", text: "Live entrances: in a creator's lives, their #1 fan with VVIP arrives and leaves by yacht or private jet, #2 with any subscription by SUV or sports car, and #3 by e-bike or bicycle, with a banner everyone sees. Fans pick which of their two." },
+      { kind: "changed", text: "Commission on subscriptions: Premium keeps the plan's rate; on VIP #NotesApp takes the rate plus 10% of it and on VVIP plus 20% of it (with an 8% rate, 8.8% and 9.6%). The ranges and shares are set in Admin → Limits → Subscriptions and fans." },
+    ],
+  },
+  {
+    version: "v0.134.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Media: videos can now be downloaded too, when their creator allows it. Each video download carries a see-through mark (the NotesApp mark, @username and NotesApp) in a corner; the video people watch stays clean. Turning downloads on makes a second, marked copy of the video for downloads, ready in a few minutes, and it takes about the video's size again in your Media storage (the studio says so next to the switch). Turning them off removes it." },
+      { kind: "added", text: "For the team: Admin → Limits has a Video download watermark section: how see-through the mark is, its size, the space from the edge and its corner. Changes apply to download copies made from then on." },
+    ],
+  },
+  {
     version: "v0.133.0",
     bump: "minor",
     date: "2026-11-03",

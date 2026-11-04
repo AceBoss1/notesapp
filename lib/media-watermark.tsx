@@ -80,3 +80,24 @@ export async function watermarkPicture(input: Buffer, username: string, quality 
   }
   return Buffer.from(await encodeJpeg(img, { quality }));
 }
+
+// The mark for video downloads (lib/media-video-dl.ts): a PNG with a TRANSPARENT background, for a Cloudflare Stream watermark profile.
+// No pill behind it: the crimson "na" square, "@username" and "NotesApp" in white with a soft dark edge so they read on light and dark
+// frames alike. Stream lays it on at the admin's opacity (see-through), size and corner, so the image itself is drawn solid here.
+export const VIDEO_MARK_SIZE = { w: 720, h: 120 };
+export async function renderVideoMark(username: string): Promise<Buffer> {
+  const { w, h } = VIDEO_MARK_SIZE;
+  const font = Math.round(h * 0.42);
+  const edge = "0 0 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.6)";
+  const res = new ImageResponse(
+    (
+      <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "flex-end", background: "transparent", color: "white", paddingRight: h * 0.08 }}>
+        <div style={{ display: "flex", width: h * 0.74, height: h * 0.74, borderRadius: h * 0.2, background: "#7a0328", alignItems: "center", justifyContent: "center", fontSize: font, fontWeight: 700, color: "white" }}>na</div>
+        <div style={{ display: "flex", marginLeft: h * 0.2, fontSize: font, fontWeight: 700, textShadow: edge }}>{`@${username}`}</div>
+        <div style={{ display: "flex", marginLeft: h * 0.2, fontSize: font * 0.9, textShadow: edge }}>NotesApp</div>
+      </div>
+    ),
+    { width: w, height: h },
+  );
+  return Buffer.from(await res.arrayBuffer());
+}

@@ -14,6 +14,8 @@ import PageHero from "@/components/PageHero";
 import { planRate } from "@/lib/pricing";
 import { useLivePricing } from "@/lib/useLivePricing";
 import MyCommission from "@/components/MyCommission";
+import TierSettings, { type TierForm } from "@/components/fans/TierSettings";
+import { SUB_TIERS, tierOffers } from "@/lib/fans";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -34,7 +36,8 @@ export default function PublishingSettingsPage() {
   const [minutes, setMinutes] = useState(45);
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
-  const [subPrice, setSubPrice] = useState("2000");
+  const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000" }, vip: { on: false, price: "7500" }, vvip: { on: false, price: "25000" } });
+  const [fansHidden, setFansHidden] = useState(false);
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
   const [shopListed, setShopListed] = useState(true);
@@ -93,7 +96,11 @@ export default function PublishingSettingsPage() {
             setAvail(s.session.availability);
           }
           setSubOn(!!s.subscription?.enabled);
-          if (s.subscription) setSubPrice(String(s.subscription.priceKobo / 100));
+          if (s.subscription) {
+            const o = tierOffers(s.subscription);
+            setTiers({ premium: { on: o.premium.enabled, price: String((o.premium.priceKobo || 200_000) / 100) }, vip: { on: o.vip.enabled, price: String((o.vip.priceKobo || 750_000) / 100) }, vvip: { on: o.vvip.enabled, price: String((o.vvip.priceKobo || 2_500_000) / 100) } });
+          }
+          setFansHidden(s.fansHidden === true);
           setGiftsOn(s.gifts?.enabled !== false);
         }
         if (pSnap.exists()) setPayout(pSnap.data() as Payout);
@@ -124,7 +131,8 @@ export default function PublishingSettingsPage() {
     try {
       await authedPost("/api/publisher/settings", {
         session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
-        subscription: { enabled: subOn, priceNaira: Number(subPrice) },
+        subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price) }])) },
+        fans: { hidden: fansHidden },
         gifts: { enabled: giftsOn },
         ads: { optIn: adsOn },
         shop: { listed: shopListed },
@@ -306,19 +314,17 @@ export default function PublishingSettingsPage() {
           )}
         </div>
 
-        <div className="card p-6">
+        <div className="card min-w-0 max-w-full overflow-hidden p-6">
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={subOn} onChange={(e) => setSubOn(e.target.checked)} />
-            <span className="eyebrow">Offer monthly journal subscriptions (unlocks your premium entries)</span>
+            <span className="eyebrow">Offer monthly subscriptions: Premium, VIP and VVIP</span>
           </label>
-          {subOn && (
-            <label className="mt-5 block text-xs text-slate">
-              Price per month ({formatNaira(LIMITS.subscriptionMinKobo)} – {formatNaira(LIMITS.subscriptionMaxKobo)})
-              <input type="number" min={LIMITS.subscriptionMinKobo / 100} max={LIMITS.subscriptionMaxKobo / 100} step={100} value={subPrice} onChange={(e) => setSubPrice(e.target.value)} className={input} />
-              <span className="mt-1 block">Changing the price applies to new subscribers; current ones keep their old price.</span>
-            </label>
-          )}
+          {subOn && <TierSettings value={tiers} onChange={setTiers} />}
           {subOn && <MyCommission kind="subscription" className="mt-1 text-xs text-slate" />}
+          <label className="mt-4 flex items-start gap-3 text-sm">
+            <input type="checkbox" className="mt-0.5" checked={fansHidden} onChange={(e) => setFansHidden(e.target.checked)} />
+            <span><b>Hide my Top fans list</b><span className="block text-xs text-slate">Fan badges still show next to your fans&apos; names on your journal, shop, courses and Media.</span></span>
+          </label>
         </div>
 
         <div className="card p-6">

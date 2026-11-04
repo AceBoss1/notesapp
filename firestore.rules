@@ -858,6 +858,7 @@ service cloud.firestore {
     match /mediaUploads/{id} { allow read, write: if false; }
     match /mediaUsage/{uid} { allow read, write: if false; }
     match /mediaSettings/{uid} { allow read, write: if false; }
+    match /mediaWatermarks/{uid} { allow read, write: if false; } // a creator's video download watermark profile (lib/media-video-dl-server.ts)
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }
@@ -1233,6 +1234,15 @@ service cloud.firestore {
             || resource.data.fromUid == request.auth.uid
             || adminHasAny(['finance', 'support']));
       allow write: if false;
+    }
+
+    // Fan levels (lib/fans-server.ts): each fan's points with a creator, and the vehicles they picked for live entrances. Server-only:
+    // the Top fans page and the badges are served by /api/fans/*, which apply teen mode and the creator's choice to hide the list.
+    match /fanScores/{id} {
+      allow read, write: if false;
+    }
+    match /fanPrefs/{uid} {
+      allow read, write: if false;
     }
 
     // Daily gift totals per receiver (lib/gifts-server.ts, the "Top gifted today" shelf): server-only. They hold who sent gifts.

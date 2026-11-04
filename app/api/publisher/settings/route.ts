@@ -4,6 +4,8 @@ import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createPlan } from "@/lib/paystack";
 import { LIMITS, PublisherSettings } from "@/lib/booking-time";
 import { rateLimit } from "@/lib/rate-limit";
+import { SUB_TIERS, TIER_NAME, tierOffers, tierRangeKobo, type TierOffer } from "@/lib/fans";
+import { getFanSettings } from "@/lib/fans-server";
 
 const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -53,19 +55,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ---- subscription ----
+    // ---- subscription: three tiers (lib/fans.ts), each priced within its range from Admin → Limits ----
+    // A form from before tiers sends one price: it is Premium. A new Paystack plan is made for a tier whose price changed; existing
+    // subscribers stay on their old plan (their tier is on their subscription record).
     const subIn = body.subscription || {};
-    const subEnabled = !!subIn.enabled;
-    const subPriceKobo = Math.round(Number(subIn.priceNaira) * 100);
-    let planCode = existing?.subscription?.planCode;
-    if (subEnabled) {
-      if (!(subPriceKobo >= LIMITS.subscriptionMinKobo && subPriceKobo <= LIMITS.subscriptionMaxKobo)) {
-        return NextResponse.json({ error: "Subscription price must be between ₦1,000 and ₦100,000 per month." }, { status: 400 });
+    const fanCfg = await getFanSettings(db);
+    const before = tierOffers(existing?.subscription);
+    const tiersIn: Record<string, { enabled?: unknown; priceNaira?: unknown }> = subIn.tiers && typeof subIn.tiers === "object"
+      ? subIn.tiers
+      : { premium: { enabled: subIn.enabled, priceNaira: subIn.priceNaira }, vip: before.vip.enabled ? { enabled: true, priceNaira: before.vip.priceKobo / 100 } : { enabled: false }, vvip: before.vvip.enabled ? { enabled: true, priceNaira: before.vvip.priceKobo / 100 } : { enabled: false } };
+    const tiers = {} as Record<(typeof SUB_TIERS)[number], TierOffer>;
+    for (const t of SUB_TIERS) {
+      const tin = tiersIn[t] ?? {};
+      const on = !!tin.enabled;
+      const priceKobo = on ? Math.round(Number(tin.priceNaira) * 100) : before[t].priceKobo;
+      const { minKobo, maxKobo } = tierRangeKobo(t, fanCfg);
+      if (on && !(priceKobo >= minKobo && priceKobo <= maxKobo)) {
+        return NextResponse.json({ error: `${TIER_NAME[t]} must be between ₦${(minKobo / 100).toLocaleString("en-NG")} and ₦${(maxKobo / 100).toLocaleString("en-NG")} per month.` }, { status: 400 });
       }
-      if (!planCode || existing?.subscription?.priceKobo !== subPriceKobo) {
-        planCode = (await createPlan({ name: `@${user.username} monthly`, amountKobo: subPriceKobo })).plan_code;
+      let planCode = before[t].planCode;
+      if (on && (!planCode || before[t].priceKobo !== priceKobo)) {
+        planCode = (await createPlan({ name: `@${user.username} ${TIER_NAME[t]} monthly`, amountKobo: priceKobo })).plan_code;
       }
+      tiers[t] = { enabled: on, priceKobo: priceKobo || minKobo, ...(planCode ? { planCode } : {}) };
     }
+    const subEnabled = tiers.premium.enabled || tiers.vip.enabled || tiers.vvip.enabled;
+    const subPriceKobo = tiers.premium.priceKobo;
+    const planCode = tiers.premium.planCode;
 
     const settings: PublisherSettings = {
       uid,
@@ -76,11 +92,14 @@ export async function POST(req: NextRequest) {
         minutes: sessionEnabled ? minutes : existing?.session?.minutes ?? 45,
         availability,
       },
+      // enabled/priceKobo/planCode mirror Premium for older readers; tiers is the source of truth.
       subscription: {
         enabled: subEnabled,
-        priceKobo: subEnabled ? subPriceKobo : existing?.subscription?.priceKobo ?? LIMITS.subscriptionMinKobo,
+        priceKobo: subPriceKobo || LIMITS.subscriptionMinKobo,
         ...(planCode ? { planCode } : {}),
+        tiers,
       },
+      fansHidden: body.fans?.hidden !== undefined ? !!body.fans.hidden : existing?.fansHidden === true,
       gifts: { enabled: body.gifts?.enabled !== undefined ? !!body.gifts.enabled : existing?.gifts?.enabled ?? true },
       ...(existing?.payoutReady ? { payoutReady: true } : {}),
       updatedAt: new Date().toISOString(),

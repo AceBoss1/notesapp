@@ -620,6 +620,18 @@ on `main` that isn't understood is raised with the owner first.
     teen mode does not stop teens receiving money gifts from strangers (owner to decide); the GiftButton isn't in the live room yet,
     so `liveId` is only set once Media M2 puts it there. Tests: `test:gifts`, `test:gifts-server`, the rules test, `test:help`.
 
+108. **Watermarked video downloads for Media (v0.134.0, branch `push/media-video-downloads`, cut from `push/media-core` (102); merge
+    after #259):** a creator who allows downloads on a video gets a second Cloudflare Stream copy with a see-through mark burned in
+    (transparent PNG: "na" mark, @username, NotesApp), and MP4 downloads only on that copy; the video people watch stays clean. One
+    Stream watermark profile per creator (`mediaWatermarks/{uid}`), the look from Admin → Limits → **Video download watermark**
+    (`serverConfig/mediaWatermark`: opacity 40%, width 22%, padding 4%, bottom right by default). The copy counts in Media storage
+    (about double per downloadable video). Owner, after merge: `firebase deploy --only firestore` (the new server-only
+    `mediaWatermarks` rule); nothing new in Vercel (`CLOUDFLARE_STREAM_TOKEN` with Stream:Edit covers watermarks, copies and downloads);
+    if `docs/OWNER_SETUP.md` has landed (#261), add a line to its section 5 (Stream) saying video downloads use the same token. Then try one: post a
+    video, switch downloads on, wait for "Download ready" in the studio, download it signed out, and check the mark is see-through.
+    **Not run against real Stream:** the watermark upload, copy-from-URL, signed MP4 links and `?filename=`. Code and steps in
+    `docs/MEDIA.md` ("Watermarked video downloads").
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner
@@ -653,6 +665,27 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     who made it), and super admins see a strip across the admin area while it's on. Code: `lib/staff-pass.ts`, `lib/staff-pass-server.ts`,
     `app/api/admin/staff-pass`, `components/admin/StaffPassPanel.tsx`, `StaffPassNotice.tsx`. Tests: `npm run test:limits` (pure),
     `npm run test:rooms-server` (`tests/community/staff-pass.emulator.ts`) and the rules test. Before the challenge: turn it on, test, turn it off.
+109. **Fan levels and Premium / VIP / VVIP subscriptions (v0.135.0, branch `push/fan-levels`; 108 is left for the video downloads PR
+    to renumber into):** deploy the Firestore rules (`fanScores` and `fanPrefs` server-only) and the two `fanScores` indexes
+    (`creatorUid` + `points` desc and asc) before the code. Owner decisions of 3 Nov 2026, mockups approved. Pure rules in
+    `lib/fans.ts` (tiers, ranges and shares, `tierOffers` for settings from before tiers, audiences, points, rank badges, next band,
+    entrance vehicles); server in `lib/fans-server.ts` (settings in `serverConfig/fans` with a 30 s cache, Admin → Limits →
+    Subscriptions and fans via `/api/admin/fans`; `addFanPoints` with daily caps per Lagos day; `topFanList` cached a minute;
+    `fanBadges`, `fanBoard`, `setVehicle`, `liveEntrance`). **Tiers:** `publisherSettings.subscription.tiers` (premium/vip/vvip, each
+    with its own Paystack plan); the old `enabled/priceKobo/planCode` mirror Premium. Checkout takes `tier`; the payment's
+    `commissionRate` is `tierRate` (rate + share of it) and the subscription record gets `tier` (Premium when missing). A tier
+    change starts now, carries the days left, records `previousPlanCode` and best-effort disables the old Paystack subscription
+    (`findPaystackSubscription` + `disableSubscription`); renewals keep the tier's share. Posts get `minTier` (`premium` stays true
+    for any tier); `PremiumGate` checks the tier. **Points:** subscriptions and gifts (`afterFanPayment`, renewals), comments
+    (`postComment`), the first like per journal (`notifyLike`), shares to Moments (`shareToMoment`, by the card's creator).
+    **Badges:** `components/fans/FanBadges.tsx` on journal comments and shop/course reviews (one `/api/fans/badges` call per list).
+    **Top fans:** `/u/{username}/fans` (`/api/fans/board`), with the creator's hide switch (`publisherSettings.fansHidden`) and teen
+    rules (teens only for followers; a teen creator has no public list). **Live entrances:** `joinRoom`/`leaveRoom` write the
+    latest `entrance` on the room doc for a top-three fan who qualifies; `components/fans/LiveEntrance.tsx` plays it. **Not done:**
+    Media and profile-picture comments don't exist yet (the badge component is ready for them); course notes, replays and Media
+    posts keep their own audiences (only journal posts take a tier); gifts' fan points use the gift payment on main (the animated
+    gifts branch adds no separate hook); an upgrade charges the full new price (no proration in kobo). Tests: `test:fans`,
+    `test:fans-server`, rules, `test:help` (live figures), `test:pricing`, `test:limits`.
 
 ## 3. How the work is done (please keep these)
 

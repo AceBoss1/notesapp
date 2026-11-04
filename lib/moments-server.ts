@@ -1,3 +1,4 @@
+import { addFanPointsByUsername } from "./fans-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -260,6 +261,8 @@ export async function shareToMoment(
     t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
     t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
   });
+  // Fan points for sharing a creator's work (lib/fans.ts: 10 a share, 5 a day count).
+  if (card.creatorUsername) await addFanPointsByUsername(db, card.creatorUsername, owner.uid, { action: "share" }).catch(() => 0);
   if (text.includes("@")) {
     await notifyMentions(db, { kind: "moment", sourceId: id, text, author: { uid: owner.uid, name: String(ownerDoc?.displayName ?? owner.username), username: owner.username, avatar: String(ownerDoc?.avatar ?? "") }, where: "in a moment", linkHref: `/u/${owner.username}` }, now).catch(() => {});
   }

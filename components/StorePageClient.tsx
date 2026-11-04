@@ -207,7 +207,7 @@ export default function StorePageClient({ params }: { params: { username: string
           </>
         )}
 
-        <ReviewsPanel ownerUid={profile.uid} user={viewer} title="What buyers say about this store" />
+        <ReviewsPanel ownerUid={profile.uid} user={viewer} title="What buyers say about this store" creatorUsername={profile.username} />
 
         <section className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="How buying works">
           {[["You pay here", "Through #NotesApp checkout, with Paystack."], ["Money is held", "The seller is paid only after you confirm delivery."], ["Parcel ID on every order", "Track it any time on the Track a parcel page."], ["Delivered by the seller", "Each item says where it ships from."]].map(([h, t]) => (
