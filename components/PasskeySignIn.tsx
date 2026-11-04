@@ -6,7 +6,8 @@ import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys-client";
 
 // "Sign in with a passkey": the device's fingerprint, face, screen lock or security key instead of a password (lib/passkeys.ts).
 // Shown only where the browser supports passkeys. `onSignedIn` carries on as a password sign-in would.
-export default function PasskeySignIn({ onSignedIn, className = "" }: { onSignedIn: (u: User) => Promise<void> | void; className?: string }) {
+// `divider` = false drops the "or" line (when Google and LinkedIn already sit above it with their own).
+export default function PasskeySignIn({ onSignedIn, className = "", divider = true }: { onSignedIn: (u: User) => Promise<void> | void; className?: string; divider?: boolean }) {
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -20,9 +21,9 @@ export default function PasskeySignIn({ onSignedIn, className = "" }: { onSigned
   }
   return (
     <div className={className}>
-      <div className="flex items-center gap-3 text-xs text-slate" aria-hidden="true"><span className="h-px flex-1 bg-rule" />or<span className="h-px flex-1 bg-rule" /></div>
+      {divider && <div className="mb-4 flex items-center gap-3 text-xs text-slate" aria-hidden="true"><span className="h-px flex-1 bg-rule" />or<span className="h-px flex-1 bg-rule" /></div>}
       <button type="button" onClick={go} disabled={busy}
-        className="mt-4 w-full rounded-full border border-rule bg-card px-6 py-3 font-ui font-semibold text-ink hover:border-crimson disabled:opacity-50">
+        className="w-full rounded-full border border-rule bg-card px-6 py-3 font-ui font-semibold text-ink hover:border-crimson disabled:opacity-50">
         {busy ? "Waiting for your device…" : "Sign in with a passkey"}
       </button>
       <p className="mt-2 text-xs text-slate">Use your fingerprint, face, screen lock or security key. Add a passkey in Account settings after you sign in.</p>

@@ -21,6 +21,7 @@ import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
 import PasskeySettings from "@/components/PasskeySettings";
+import SignInMethods from "@/components/SignInMethods";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 const input = "mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
@@ -137,6 +138,7 @@ export default function AccountPage() {
 
   if (!ready || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
 
+  const hasPassword = user.providerData.some((p) => p.providerId === "password");
   const note = (m: Msg) => m && <p className={`mt-3 text-sm ${m.ok ? "text-green-700" : "text-crimson"}`}>{m.text}</p>;
 
   return (
@@ -159,6 +161,15 @@ export default function AccountPage() {
         {note(usernameMsg)}
       </form>
 
+      {!hasPassword ? (
+        <div className="card mt-6 p-6">
+          <h2 className="font-display text-xl">Email and password</h2>
+          <p className="mt-1 text-sm text-slate">
+            Your email is <span className="font-mono">{user.email || "not set"}</span>. You sign in with Google or LinkedIn, so this account has no
+            password yet. To add one (and to change your email here), <Link href="/forgot-password" className="text-crimson">get a reset link by email</Link>.
+          </p>
+        </div>
+      ) : (<>
       <form onSubmit={changeEmail} className="card mt-6 p-6">
         <h2 className="font-display text-xl">Email</h2>
         <p className="mt-1 text-sm text-slate">
@@ -179,7 +190,9 @@ export default function AccountPage() {
         {note(pwMsg)}
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>
       </form>
+      </>)}
 
+      {user && <SignInMethods user={user} />}
       {user && <PasskeySettings user={user} />}
 
       <section id="appearance" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">

@@ -706,6 +706,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 113. **Printed QR codes (v0.136.2, branch `push/receipt-qr-print`):** nothing to deploy. Receipt and certificate QR
     codes (`lib/certificate-qr.ts`) are now drawn as filled rectangles instead of the 1-unit lines the `qrcode` package draws. A receipt
     saved as PDF on an Android phone came out with a faint pink, unreadable QR while the screen showed it clearly. Same modules as before.
+115. **Sign in with Google and LinkedIn (v0.138.0, branch `push/social-signin`):** owner steps in `docs/OWNER_SETUP.md` section 11:
+    check Firebase's authorised domains (every www./app./life./prep. address of both families and `notesapp.ng`), add the two LinkedIn
+    redirect URLs (`https://www.notesapp.name.ng/api/auth/linkedin/callback`, `https://www.naapp.tech/api/auth/linkedin/callback`),
+    deploy `firebase deploy --only firestore` (server-only `authLinks`, `authStates`, `authTickets`, `authAudit`; TTL on
+    `authStates.expireAt` and `authTickets.expireAt`). Optional: `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE=on` after adding each host's
+    `/__/auth/handler` to the Google OAuth client (redirect sign-in on Safari and in-app browsers), and `LINKEDIN_LOGIN_CLIENT_ID/SECRET`
+    for a separate LinkedIn app (otherwise the publishing app is used). How it fits: `lib/social-auth.ts` (rules), `lib/social-oidc.ts`
+    (LinkedIn's ID token: RS256 against LinkedIn's JWKS, issuer, audience, expiry, nonce), `lib/social-auth-server.ts`,
+    `lib/social-auth-client.ts`, `components/SocialSignIn.tsx`, `components/SignInMethods.tsx`, `/api/auth/{google,methods}`,
+    `/api/auth/linkedin/{start,callback,finish}`. A first Google or LinkedIn sign-in finishes its profile in `SignupFlow`
+    (`completeUser`); `lib/member-client.tsx` sends a signed-in Google/LinkedIn account without a profile to `/signup`. No silent merge:
+    when Firebase attaches Google to an existing account, `/api/auth/google` takes it off again and revokes the session; a LinkedIn
+    email that has an account gets "sign in, then link". **Untested against the real Google and LinkedIn** (the container has no
+    internet; the flows were tested with the Auth emulator's Google and a stand-in LinkedIn): check whether LinkedIn echoes the `nonce`
+    in its ID token (the code accepts a missing nonce but refuses a wrong one) and whether Firebase links a verified Google email to an
+    existing password account by itself or throws `auth/account-exists-with-different-credential` (both are handled). Tests:
+    `npm run test:social-signin`, `test:passkeys`, rules.
 
 114. **Anya smart glasses: the /anya page and the brand guidelines (v0.137.0, branch `push/anya-trademark`):** nothing to deploy.
     The owner adopted the names for NotesApp's own Qualcomm-based glasses: **Anya Display** (screen, side camera, mic, speakers,

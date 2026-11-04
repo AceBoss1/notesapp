@@ -11,6 +11,7 @@ import { challengePromoActive } from "@/lib/challenge-promo";
 import ChallengePanel from "@/components/ChallengePanel";
 import LoginForm from "@/components/LoginForm";
 import SignupFlow from "@/components/SignupFlow";
+import { needsCompletion, socialSignInBusy } from "@/lib/social-auth-client";
 import { COMPANY_INFO } from "@/lib/site";
 import { useDevice } from "@/lib/use-device";
 import { downloadIcon, downloadLabel, isMobile } from "@/lib/visitor-device";
@@ -37,9 +38,13 @@ export default function Splash() {
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
       if (u) {
-        if (hold.current) return;
-        const n = new URLSearchParams(window.location.search).get("next") || "";
-        router.replace(n.startsWith("/") && !n.startsWith("//") ? n : "/journals");
+        // Mid Google or LinkedIn sign-in (the form carries on itself), or the new-account steps are being taken: stay.
+        if (hold.current || socialSignInBusy()) return;
+        needsCompletion(u).then((incomplete) => {
+          if (incomplete) { hold.current = true; setOnboarding(true); setView("signup"); setSignedOut(true); return; }
+          const n = new URLSearchParams(window.location.search).get("next") || "";
+          router.replace(n.startsWith("/") && !n.startsWith("//") ? n : "/journals");
+        });
       } else setSignedOut(true);
     });
   }, [router]);

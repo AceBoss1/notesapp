@@ -7,6 +7,10 @@ import { auth, db } from "@/lib/firebase";
 import { getUserByUid, type UserProfile } from "@/lib/users";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { useIsAppHost } from "@/lib/use-app-host";
+import { socialAccount, socialSignInBusy } from "@/lib/social-auth-client";
+
+// Pages someone can open before finishing a Google or LinkedIn account: the sign-in pages themselves and what the Terms point to.
+const FINISH_FREE = /^\/(signup|login|forgot-password|terms|privacy|cookies|help|contact|legal)(\/|$)/;
 
 // The signed-in member, read once for the whole frame (header, bottom tabs, sidebar) instead of once per piece.
 // `user` is undefined until Firebase has answered, null when signed out.
@@ -20,7 +24,12 @@ export function MemberProvider({ children }: { children: React.ReactNode }) {
   const appHost = useIsAppHost();
   useEffect(() => onAuthStateChanged(auth, async (u) => {
     setUser(u);
-    setProfile(u ? await getUserByUid(u.uid).catch(() => null) : null);
+    const p = u ? await getUserByUid(u.uid).catch(() => undefined) : null;
+    setProfile(p ?? null);
+    // Signed in with Google or LinkedIn but the new-account steps (username, Terms, age) aren't done: finish them first.
+    if (u && p === null && socialAccount(u) && !socialSignInBusy() && !FINISH_FREE.test(window.location.pathname)) {
+      window.location.replace(`/signup?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    }
   }), []);
   useEffect(() => {
     if (!MESSAGES_LIVE || !user) { setUnreadDms(0); return; }
