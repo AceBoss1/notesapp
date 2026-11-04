@@ -698,6 +698,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     gifts branch adds no separate hook); an upgrade charges the full new price (no proration in kobo). Tests: `test:fans`,
     `test:fans-server`, rules, `test:help` (live figures), `test:pricing`, `test:limits`.
 
+112. **Duplicate-account warning on Users (admin only, no version, no changelog entry; branch `push/duplicate-accounts`):** nothing
+    to deploy. A shared display name alone no longer flags an account. The warning shows only for accounts that sign in with the
+    same email (`/api/admin/user-emails` returns which accounts share one, Gmail dots and +tags ignored, never the address) or
+    that have the same name and the same job title, workplace and field.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
