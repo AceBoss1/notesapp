@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AnyaHeroCarousel, { type AnyaSlide } from "@/components/anya/AnyaHeroCarousel";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BRAND_OWNER } from "@/lib/brand-guidelines";
@@ -6,7 +7,7 @@ import { BRAND_OWNER } from "@/lib/brand-guidelines";
 export const metadata: Metadata = {
   title: "Anya smart glasses",
   description:
-    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation, transcripts and a teleprompter in your lens; Anya Nana brings Nana AI to your ear; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
+    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation in 139 languages, transcripts, a teleprompter and 1080p HD video in your lens; Anya Nana brings Nana AI to your ear as a companion, with real-time translation in 139 languages; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
   openGraph: { images: [{ url: "/anya/anya-display-hero.webp", width: 1672, height: 941, alt: "Anya Display smart glasses by NotesApp" }] },
 };
 
@@ -16,6 +17,13 @@ const INTEREST =
   "/contact?topic=anya&message=" +
   encodeURIComponent("I'd like to be among the first to try Anya.\n\nThe model I'm most interested in (Display, Nana or Audio): \nWhere I am (city, country): \nWhat I'd use it for: ") +
   "#feedback";
+
+// The hero pictures, shown one at a time with a dissolve between them (components/anya/AnyaHeroCarousel.tsx).
+const SLIDES: AnyaSlide[] = [
+  { src: "/anya/anya-display-hero.webp", name: "Display", alt: "Anya Display smart glasses by NotesApp, with a side camera: AI voice assistant, AI real-time translation, 139-language translation, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app" },
+  { src: "/anya/anya-nana-hero.webp", name: "Nana", alt: "Anya Nana smart glasses by NotesApp, with blue-tinted lenses: Nana AI companion, AI real-time translation, 139-language translation, hands-free calls, music playback and control from the NotesApp app" },
+  { src: "/anya/anya-audio-hero.webp", name: "Audio", alt: "Anya Audio smart glasses by NotesApp, with dark lenses: music and podcasts, hands-free calls, open-ear speakers and controls on the arm" },
+];
 
 type Model = { name: string; line: string; about: string; points: string[]; tone: string };
 const MODELS: Model[] = [
@@ -31,23 +39,37 @@ const MODELS: Model[] = [
       "1080p HD video from the side camera",
       "A teleprompter in the lens",
       "Music playback",
+      "A charging case with a battery display",
     ],
     tone: "from-crimson to-crimson-bright",
   },
   {
     name: "Nana",
     line: "Your AI companion, hands-free.",
-    about: "Open-ear audio with Nana, the AI assistant from #NotesApp, built in. Ask, listen and get on with your day without taking out your phone.",
-    points: ["Talk to Nana hands-free", "Answers in your ear", "Music and calls", "Microphones and open-ear speakers"],
+    about: "Nana, the AI from #NotesApp, as your companion in your ear. Ask anything, hear the answer, and understand people in 139 languages without taking out your phone.",
+    points: ["Nana AI as your companion", "AI real-time translation in 139 languages", "Hands-free calls", "Music playback", "Control from the NotesApp app", "A tan leather charging case"],
     tone: "from-[#1B2A6B] to-[#2E49B8]",
   },
   {
     name: "Audio",
     line: "Listen. Talk. Connect.",
     about: "Open-ear audio glasses for music, podcasts and calls, with no AI. Simple, light and private.",
-    points: ["Music and podcasts", "Calls with clear microphones", "Open-ear speakers", "No AI, no camera"],
+    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather charging pouch", "No AI, no camera"],
     tone: "from-[#3A0A18] to-crimson",
   },
+];
+
+// The case that comes with each pair. Nana's and Audio's pictures have the supplier's glasses taken out (those frames have cameras).
+const CASES = [
+  { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", src: "/anya/anya-display-case.webp", bg: "bg-[#E4E4E4]", fit: "object-cover",
+    alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front",
+    points: ["Shows the battery level on the front", "Charges your glasses while they're stored", "Black textured leather"] },
+  { model: "Nana", title: "Tan leather charging case", accent: "#2E49B8", src: "/anya/anya-nana-case.webp", bg: "bg-[#EDE9E6]", fit: "object-cover",
+    alt: "Anya Nana's open tan leather charging case",
+    points: ["Charges your glasses while they're stored", "Soft, textured tan leather", "Protects the lenses on the go"] },
+  { model: "Audio", title: "Black leather charging pouch", accent: "#7A0328", src: "/anya/anya-audio-case.webp", bg: "bg-black", fit: "object-contain p-4",
+    alt: "Anya Audio's black leather charging pouch, open, with a snap fastener on the flap and a light on the front",
+    points: ["Charges your glasses while they're stored", "Snap-fastened leather flap", "A light on the front"] },
 ];
 
 // What each model has. true / false only: nothing here that hasn't been decided.
@@ -55,13 +77,14 @@ const COMPARE: [string, boolean, boolean, boolean][] = [
   ["Screen in the lens", true, false, false],
   ["Side camera", true, false, false],
   ["Microphones and open-ear speakers", true, true, true],
-  ["Nana AI", true, true, false],
-  ["AI real-time translation (139 languages)", true, false, false],
+  ["Nana AI (assistant on Display, companion on Nana)", true, true, false],
+  ["AI real-time translation (139 languages)", true, true, false],
   ["AI voice recording and live transcripts", true, false, false],
   ["Smart image recognition", true, false, false],
   ["1080p HD video", true, false, false],
   ["Teleprompter", true, false, false],
   ["Music playback", true, true, true],
+  ["Charging case included", true, true, true],
 ];
 
 const USES = [
@@ -83,7 +106,7 @@ const Tick = ({ on }: { on: boolean }) =>
 export default function AnyaPage() {
   return (
     <div className="bg-paper">
-      {/* Hero: a dark band with the headline, then the launch artwork. */}
+      {/* Hero: a dark band with the headline, then the three models' pictures, dissolving from one to the next. */}
       <section className="relative overflow-hidden bg-[#140409] text-paper" style={{ backgroundImage: "radial-gradient(50rem 26rem at 80% -10%, rgba(166,9,61,0.55), transparent 70%), radial-gradient(40rem 22rem at 0% 110%, rgba(46,73,184,0.35), transparent 70%)" }}>
         <div className="mx-auto max-w-6xl px-4 pb-10 pt-14 sm:px-6 sm:pt-20 lg:px-8">
           <p className="inline-flex items-center gap-2 rounded-full border border-paper/20 bg-paper/5 px-3 py-1 font-mono text-[11px] uppercase tracking-eyebrow text-paper/80">
@@ -93,7 +116,7 @@ export default function AnyaPage() {
             Anya. <span className="text-paper/60">See more.</span> <span className="italic text-[#FF8FB0]">Do more.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-paper/80">
-            <em>Anya</em> means &ldquo;eye&rdquo; in Igbo. Three pairs of smart glasses, designed for Africa: translation and transcripts in your lens, Nana AI in your ear, or simply great sound.
+            <em>Anya</em> means &ldquo;eye&rdquo; in Igbo. Three pairs of smart glasses, designed for Africa: translation and HD video in your lens, Nana AI as your companion in your ear, or simply great sound.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href={INTEREST} className="rounded-full bg-crimson-bright px-6 py-3 font-ui text-sm font-bold text-paper shadow-lg shadow-crimson/40 hover:bg-crimson">Be among the first to try it</a>
@@ -101,15 +124,7 @@ export default function AnyaPage() {
           </div>
           <div className="relative mt-12">
             <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-r from-crimson-bright/40 via-transparent to-[#2E49B8]/40 blur-2xl" aria-hidden />
-            <Image
-              src="/anya/anya-display-hero.webp"
-              alt="Anya Display smart glasses by NotesApp, with a side camera. AI voice assistant, AI real-time translation, 139-language translation, AI voice recording, smart image recognition, 1080p HD video, music playback, and control from the NotesApp app"
-              width={1672}
-              height={941}
-              priority
-              sizes="(min-width: 1152px) 1104px, 100vw"
-              className="relative w-full rounded-3xl border border-paper/10 shadow-2xl"
-            />
+            <AnyaHeroCarousel slides={SLIDES} />
           </div>
         </div>
       </section>
@@ -154,6 +169,31 @@ export default function AnyaPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* In the box: every pair comes with its own case. */}
+      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:px-8">
+        <p className="eyebrow">In the box</p>
+        <h2 className="mt-2 font-display text-4xl text-ink">Every pair comes with its own case</h2>
+        <p className="mt-3 max-w-2xl text-slate">Put your glasses away and they charge; take them out and they&apos;re ready. Each case protects them in your bag and looks good on the table.</p>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {CASES.map((c) => (
+            <article key={c.model} className="flex flex-col overflow-hidden rounded-3xl border border-rule bg-card shadow-sm">
+              <div className={`relative aspect-[4/3.4] ${c.bg}`}>
+                <Image src={c.src} alt={c.alt} fill sizes="(min-width: 768px) 360px, 100vw" className={c.fit} />
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <p className="font-mono text-[11px] uppercase tracking-eyebrow" style={{ color: c.accent }}>Anya {c.model}</p>
+                <h3 className="mt-1 font-display text-2xl text-ink">{c.title}</h3>
+                <ul className="mt-3 space-y-1.5 text-sm text-ink">
+                  {c.points.map((p) => (
+                    <li key={p} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.accent }} aria-hidden />{p}</li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
