@@ -2930,3 +2930,10 @@ package draws dark modules as 1-unit-wide stroked lines; phone print engines and
 white gaps between rows. `lib/certificate-qr.ts` now builds the SVG itself from the QR matrix, one filled rectangle per run of dark modules
 in a row, with `print-color-adjust: exact`. A pixel comparison against the old SVG matched all 1,521 modules of a receipt link. Receipts
 and certificates share this helper, so both are fixed; tickets and Cardtap top-ups use PNG and were never affected.
+
+## Anya smart glasses page (v0.137.0, built 4 November 2026)
+
+The owner adopted Anya ("eye" in Igbo) for NotesApp's own Qualcomm-based glasses: Anya Display, Anya Nana and Anya Audio. /anya is a
+coming-soon page with the owner's launch artwork as its hero, the three models, what Display does, a comparison table that lists only
+decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
+message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.

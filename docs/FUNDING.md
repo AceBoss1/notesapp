@@ -1,5 +1,8 @@
 # Funding applications: .tech domain, pitch.tech, Emergent Ventures and the accelerators
 
+Startup perks, credits and the accelerators that aren't investment applications (cloud credits, PostHog, Stripe Atlas, Antler, the
+Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
+
 > Status: **drafts for the owner to submit (30 October 2026; accelerators §5–§7 added 2 November 2026).** Nothing here has been
 > sent. Fill the `[brackets]` with current numbers before submitting; never send a figure we can't show. Internal: not for the
 > changelog, the roadmap or public pages.

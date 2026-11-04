@@ -707,11 +707,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     codes (`lib/certificate-qr.ts`) are now drawn as filled rectangles instead of the 1-unit lines the `qrcode` package draws. A receipt
     saved as PDF on an Android phone came out with a faint pink, unreadable QR while the screen showed it clearly. Same modules as before.
 
-114. **Anya smart glasses in the brand guidelines (no version, no changelog entry; branch `push/anya-trademark`):** nothing to deploy.
+114. **Anya smart glasses: the /anya page and the brand guidelines (v0.137.0, branch `push/anya-trademark`):** nothing to deploy.
     The owner adopted the names for NotesApp's own Qualcomm-based glasses: **Anya Display** (screen, side camera, mic, speakers,
     translation, transcripts, teleprompter), **Anya Nana** (audio with Nana) and **Anya Audio** (audio without AI); "anya" is Igbo for
     "eye". `lib/brand-guidelines.ts` now lists them with the other product names and trademarks on /brand. Still to do: file Anya in
     class 9 (Nigeria, and the US, UK and EU when the products go there), after a clearance search.
+    The page (`app/(main)/anya/page.tsx`) uses the owner's launch artwork (`public/anya/anya-launch.webp`) as its hero; pricing and
+    pre-orders say "coming soon". Its one action opens the contact form on the new lead topic **anya** (`lib/leads.ts`) with a
+    starter message, so interest lands in Admin → Leads. Footer (Company), sitemap, Nana's pages and the help article
+    `anya-smart-glasses` link to it.
 
 ## 3. How the work is done (please keep these)
 
