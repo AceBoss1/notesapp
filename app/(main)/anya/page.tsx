@@ -7,7 +7,7 @@ import { BRAND_OWNER } from "@/lib/brand-guidelines";
 export const metadata: Metadata = {
   title: "Anya smart glasses",
   description:
-    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation in 139 languages, transcripts, a teleprompter and 1080p HD video in your lens; Anya Nana brings Nana AI to your ear as a companion, with real-time translation in 139 languages; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
+    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation in 139 languages, transcripts, a teleprompter and 1080p HD video in your lens; Anya Nana brings Nana AI to your ear as a companion, with real-time translation in 139 languages, touch controls and built-in speakers, in black, pink or clear frames; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
   openGraph: { images: [{ url: "/anya/anya-display-hero.webp", width: 1672, height: 941, alt: "Anya Display smart glasses by NotesApp" }] },
 };
 
@@ -21,11 +21,12 @@ const INTEREST =
 // The hero pictures, shown one at a time with a dissolve between them (components/anya/AnyaHeroCarousel.tsx).
 const SLIDES: AnyaSlide[] = [
   { src: "/anya/anya-display-hero.webp", name: "Display", alt: "Anya Display smart glasses by NotesApp, with a side camera: AI voice assistant, AI real-time translation, 139-language translation, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app" },
-  { src: "/anya/anya-nana-hero.webp", name: "Nana", alt: "Anya Nana smart glasses by NotesApp, with blue-tinted lenses: Nana AI companion, AI real-time translation, 139-language translation, hands-free calls, music playback and control from the NotesApp app" },
+  { src: "/anya/anya-nana-hero.webp", name: "Nana", alt: "Anya Nana smart glasses by NotesApp, black frame: Nana AI companion, AI real-time translation, 139-language translation, touch controls, built-in speakers and Bluetooth hands-free calls" },
   { src: "/anya/anya-audio-hero.webp", name: "Audio", alt: "Anya Audio smart glasses by NotesApp, with dark lenses: music and podcasts, hands-free calls, open-ear speakers and controls on the arm" },
 ];
 
-type Model = { name: string; line: string; about: string; points: string[]; tone: string };
+// Each model's picture; Nana comes in three frame colours, switched by swatches (components/anya/AnyaCasePicture.tsx).
+type Model = { name: string; line: string; about: string; points: string[]; tone: string; pictures: CaseColour[] };
 const MODELS: Model[] = [
   {
     name: "Display",
@@ -42,13 +43,27 @@ const MODELS: Model[] = [
       "A charging case with a battery display, in black or brown",
     ],
     tone: "from-crimson to-crimson-bright",
+    pictures: [{ name: "Black", swatch: "#1C1A1A", src: "/anya/anya-display-glasses.webp", alt: "Anya Display smart glasses, black frame, with the side camera" }],
   },
   {
     name: "Nana",
     line: "Your AI companion, hands-free.",
-    about: "Nana, the AI from #NotesApp, as your companion in your ear. Ask anything, hear the answer, and understand people in 139 languages without taking out your phone.",
-    points: ["Nana AI as your companion", "AI real-time translation in 139 languages", "Hands-free calls", "Music playback", "Control from the NotesApp app", "A tan leather charging case"],
+    about: "Nana, the AI from #NotesApp, as your companion in your ear. Ask anything, hear the answer, and understand people in 139 languages without taking out your phone. Made for travel, work, cycling and every day.",
+    points: [
+      "Nana AI as your companion",
+      "AI real-time translation in 139 languages",
+      "Touch controls on the arm",
+      "Built-in speakers for calls, music and your voice assistant",
+      "Bluetooth: pairs with your phone for hands-free calls",
+      "Black, pink or clear frames",
+      "A tan leather charging case",
+    ],
     tone: "from-[#1B2A6B] to-[#2E49B8]",
+    pictures: [
+      { name: "Black", swatch: "#1C1A1A", src: "/anya/anya-nana-black.webp", alt: "Anya Nana smart glasses with a black frame" },
+      { name: "Pink", swatch: "#F2C9CF", src: "/anya/anya-nana-pink.webp", alt: "Anya Nana smart glasses with a clear pink frame and white arms" },
+      { name: "Clear", swatch: "linear-gradient(135deg,#ffffff,#dfe3e8)", src: "/anya/anya-nana-clear.webp", alt: "Anya Nana smart glasses with a transparent frame and white arms" },
+    ],
   },
   {
     name: "Audio",
@@ -56,6 +71,7 @@ const MODELS: Model[] = [
     about: "Open-ear audio glasses for music, podcasts and calls, with no AI. Simple, light and private.",
     points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather pouch", "No AI, no camera"],
     tone: "from-[#3A0A18] to-crimson",
+    pictures: [{ name: "Black", swatch: "#111", src: "/anya/anya-audio-glasses.webp", alt: "Anya Audio smart glasses, black frame with dark lenses" }],
   },
 ];
 
@@ -146,6 +162,7 @@ export default function AnyaPage() {
                 <h3 className="mt-1 font-display text-3xl"><span className="font-bold">Anya</span> {m.name}</h3>
                 <p className="mt-1 italic text-paper/85">{m.line}</p>
               </div>
+              <AnyaCasePicture colours={m.pictures} bg="bg-white" fit="object-contain p-5" />
               <div className="flex flex-1 flex-col p-6">
                 <p className="text-slate">{m.about}</p>
                 <ul className="mt-4 space-y-2 text-sm text-ink">

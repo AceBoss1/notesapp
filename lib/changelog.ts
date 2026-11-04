@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.4",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Nana's new look and features: touch controls, built-in speakers for calls, music and your voice assistant, Bluetooth pairing and AI real-time translation, in black, pink or clear frames. Each model's card now has its picture, and Nana's has a frame colour picker." },
+    ],
+  },
+  {
     version: "v0.137.3",
     bump: "patch",
     date: "2026-11-04",
