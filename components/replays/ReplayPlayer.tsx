@@ -6,6 +6,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { capi } from "@/components/community/api";
 import type { ReplayCard } from "@/lib/live-recording-server";
+import GiftButton from "@/components/GiftButton";
+import PersonActions from "@/components/gifts/PersonActions";
 
 // A published replay's player (lib/live-recording.ts): the Cloudflare Stream player with a signed link the server hands only to someone
 // who may watch (everyone, the host's subscribers, or the community's members). Used on the replay's page and inside its journal post.
@@ -39,6 +41,14 @@ export default function ReplayPlayer({ id, compact = false }: { id: string; comp
       <div className="relative aspect-video w-full">
         <iframe src={state.player} title={r.title} className="absolute inset-0 h-full w-full border-0" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen />
       </div>
+      {/* Gift the replay's host, and Gift · Block · Report beside their name (gifting everywhere, v0.139.0). */}
+      {r.hostUid && (
+        <div className="flex flex-wrap items-center gap-2 bg-paper px-3 py-2 text-sm text-ink">
+          <span className="font-ui font-semibold">{r.hostName}</span>
+          <PersonActions uid={r.hostUid} username={r.hostUsername} name={r.hostName} toKind="replayHost" context="replay" replayId={id} where="a replay" text={r.title} compact />
+          <span className="ml-auto"><GiftButton publisherUid={r.hostUid} username={r.hostUsername} toName={r.hostName} toKind="replayHost" context="replay" replayId={id} label="🎁 Gift the host" /></span>
+        </div>
+      )}
     </div>
   );
 }

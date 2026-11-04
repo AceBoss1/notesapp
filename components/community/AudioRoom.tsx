@@ -14,6 +14,7 @@ import { ago, capi, field } from "./api";
 import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type RecordingFigures } from "@/lib/live-recording";
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 import type { LiveHand } from "@/lib/live-rooms";
+import StageGifts from "@/components/gifts/StageGifts";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -516,6 +517,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
               action={role === "host" && u !== me ? { label: "Move to listeners", run: () => act({ action: "speaker", uid: u, on: false }, u) } : undefined} busy={busy === u} />
           ))}
         </ul>
+        {room && <StageGifts roomId={id} hostUid={room.hostUid} stage={stage} me={me} joined={room.joined} />}
         {role === "host" && hands.length > 0 && (
           <div className="mt-8 rounded-2xl bg-white/[0.06] p-4">
             <p className="font-ui text-sm font-bold">✋ Raised hands</p>

@@ -108,7 +108,7 @@ export default function CreatorMedia({ data, isOwn, onChanged }: { data: Data | 
       {filter === "replays" && (replayTiles.length ? grid(replayTiles) : empty("No lives or replays yet. When @" + username + " goes live and publishes a replay, it shows here."))}
 
       {isOwn && <p className="mt-5 text-right"><Link href="/profile/media" className="font-ui text-sm font-semibold text-crimson">Open your Media studio →</Link></p>}
-      {open && <MediaViewer item={open} username={username} onClose={() => { setOpen(null); onChanged?.(); }} />}
+      {open && <MediaViewer item={open} username={username} ownerUid={data.owner.uid} ownerName={data.owner.displayName} onClose={() => { setOpen(null); onChanged?.(); }} />}
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={onChanged} />}
     </div>
   );

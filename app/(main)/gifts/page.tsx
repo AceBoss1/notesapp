@@ -8,12 +8,13 @@ import MyCommission from "@/components/MyCommission";
 import { pct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
-import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftNaira, needsVerified, verifiedRuleText } from "@/lib/gift-catalogue";
+import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftNaira, needsVerified, verifiedRuleText, withdrawRuleText } from "@/lib/gift-catalogue";
+import { TopGiftedThisWeek } from "@/components/gifts/WeeklyGiftBoards";
 
 export const metadata: Metadata = {
   title: "Gifts",
   description:
-    "Say thanks to a publisher, a single post or a live with an animated gift or any amount in Naira. Paid through Paystack or NotesApp Credit, released to the publisher's bank account after a 7-day window. The most gifted creators each day are pinned at the top of Trending and Explore.",
+    "Say thanks to anyone on #NotesApp: a publisher, a post, a speaker in a live, a commenter, a Media post or a replay, with an animated gift (or several at once) or any amount in Naira. Paid through Paystack or your own NotesApp Credit; the receiver withdraws after a 7-day review. Weekly Top gifted and Top gifters boards.",
 };
 
 const EXAMPLE_KOBO = 5_000 * 100;
@@ -68,9 +69,23 @@ export default async function GiftsPage() {
         </p>
       </div>
 
+      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <div className="card p-6">
+          <p className="font-ui text-base font-bold text-ink">Gift anyone, as many as you like</p>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm text-slate">
+            <li>Tap ⋯ beside a name for <b className="text-ink">Gift · Block · Report</b>: a speaker on a live&apos;s stage, someone who commented on a journal, or reviewed a shop item or course, a Media post&apos;s creator, a replay&apos;s host.</li>
+            <li>Tap a small gift twice to send more than one: up to {GIFT_SETTINGS.economy.quantityMax} at once, as one payment, playing once with ×N. VIP gifts ({verifiedRuleText()}) go one at a time.</li>
+            <li>{NO_BONUS_TEXT}</li>
+            <li>Every {giftNaira(GIFT_POINT_KOBO)} you spend on gifts is a gift point, counted all time and each week.</li>
+            <li>A member in teen mode can receive gifts only from people they follow back.</li>
+          </ul>
+        </div>
+        <TopGiftedThisWeek />
+      </div>
+
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {[
-          { t: "Find Gift me", d: "Every publisher profile has a Gift me button, and every post a 🎁 (when the publisher accepts gifts). If Gift me is greyed out, the publisher hasn't set up payouts yet: the ℹ️ beside it explains." },
+          { t: "Find Gift me", d: "Every publisher profile has a Gift me button, every post a 🎁, and every name in comments, reviews, lives, Media and replays a ⋯ with Gift. If it's greyed out, the ℹ️ beside it says why (no payouts set up yet, or teen mode)." },
           { t: "Choose a gift", d: "Pick an animated gift or type your own amount, add a short message, or send anonymously." },
           { t: "Pay in Naira", d: "Card, bank transfer or USSD through Paystack, or your NotesApp Credit wallet. The publisher is notified by app and email." },
         ].map((s, i) => (
@@ -112,9 +127,9 @@ export default async function GiftsPage() {
           <Link href="/help/giving" className="text-crimson underline">Giving to a community</Link>.
         </p>
         <p className="mt-3 text-xs text-slate">
-          Gifts are released to your verified bank account 7 days after they're received (a short dispute window).
-          You'll see them under Earnings in <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>,
-          where you can also switch gifts on or off.
+          Each gift can be withdrawn 7 days after it arrives (a short review). Open Gifts on your profile to see every gift with its
+          count and value, archive the ones you&apos;ve thanked, and withdraw to your verified bank account. {withdrawRuleText()} Switch gifts
+          on or off in <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>.
         </p>
       </div>
 

@@ -7,9 +7,9 @@ import { SUSPENSION_LENGTHS, type SuspensionLength } from "@/lib/suspension-leng
 import { REPORT_REASON_LABEL, REPORT_URGENT_HOURS, URGENT_REASONS, type ReportReason } from "@/lib/moments-rules";
 
 type Report = {
-  id: string; kind: "moment" | "conversation"; reason: ReportReason; note: string; createdAt: string; status: string;
+  id: string; kind: "moment" | "conversation" | "person"; reason: ReportReason; note: string; createdAt: string; status: string;
   reporter: string; target: string; outcome?: string; mediaUrls: string[];
-  evidence?: { text?: string | null; kind?: string; ownerUsername?: string; hasVoiceOver?: boolean; group?: string; reportedMessageId?: string; messages?: { from: string; text: string; createdAt: string }[] };
+  evidence?: { where?: string; href?: string; text?: string | null; kind?: string; ownerUsername?: string; hasVoiceOver?: boolean; group?: string; reportedMessageId?: string; messages?: { from: string; text: string; createdAt: string }[] };
 };
 
 // Reports on moments and conversations. Each open report holds a copy of what was reported (and a moment's files) until you
@@ -74,7 +74,7 @@ export default function AdminReportsPage() {
                 ? <p className="mb-2 inline-block rounded bg-red-700 px-2 py-0.5 text-xs font-bold text-white">OVERDUE · {Math.floor(hrs)}h old, our promise is {REPORT_URGENT_HOURS}h</p>
                 : <p className="mb-2 inline-block rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-ink">URGENT · review within {REPORT_URGENT_HOURS}h ({Math.max(0, Math.ceil(REPORT_URGENT_HOURS - hrs))}h left)</p>;
             })()}
-            <p className="text-sm"><strong className="text-ink">{r.kind === "moment" ? "Moment" : "Conversation"}</strong> reported by @{r.reporter} against @{r.target} · {REPORT_REASON_LABEL[r.reason] ?? r.reason} · {new Date(r.createdAt).toLocaleString("en-NG", { hour12: true })}</p>
+            <p className="text-sm"><strong className="text-ink">{r.kind === "moment" ? "Moment" : r.kind === "person" ? "Member" : "Conversation"}</strong> reported by @{r.reporter} against @{r.target} · {REPORT_REASON_LABEL[r.reason] ?? r.reason} · {new Date(r.createdAt).toLocaleString("en-NG", { hour12: true })}</p>
             {r.note && <p className="mt-2 text-sm text-slate">“{r.note}”</p>}
             {r.status === "open" && r.evidence && (
               <div className="mt-3 rounded border border-rule p-3 text-sm">
@@ -87,6 +87,11 @@ export default function AdminReportsPage() {
                       : /\.m4a$/.test(u) ? <audio key={u} src={u} controls className="mt-2 w-full" />
                       : /* eslint-disable-next-line @next/next/no-img-element */ <img key={u} src={u} alt="" className="mt-2 max-h-64" />
                     )}
+                  </>
+                ) : r.kind === "person" ? (
+                  <>
+                    <p className="text-slate">Reported from {r.evidence.where || "their name"}{r.evidence.href ? <> · <a href={r.evidence.href} className="underline" target="_blank" rel="noreferrer">open</a></> : null}</p>
+                    {r.evidence.text && <p className="mt-1 whitespace-pre-wrap text-ink">{r.evidence.text}</p>}
                   </>
                 ) : (
                   <ul className="space-y-1">{r.evidence.messages?.map((m, i) => <li key={i}><span className="text-slate">{m.from === r.target ? `@${r.target}` : `@${r.reporter}`}:</span> {m.text}</li>)}</ul>

@@ -13,7 +13,9 @@ import { isAutoFollowed } from "./journals-directory";
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
 // deletes that copy. The reporter and the reported member never see each other's side. Server-only (see firestore.rules).
-export type ReportKind = "moment" | "conversation";
+// "person": a member reported from the Gift · Block · Report menu beside their name (a comment, a review, a live's stage, a Media post
+// or a replay; v0.139.0). The evidence is where it was and the words shown there, as they were.
+export type ReportKind = "moment" | "conversation" | "person";
 
 export type MediaDeps = Pick<MomentDeps, "remove" | "publicUrl">;
 
@@ -24,10 +26,10 @@ const trimNote = (note: unknown) => {
 };
 
 export async function createReport(
-  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown; messageId?: unknown }, now = new Date(),
+  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown; messageId?: unknown; where?: unknown; href?: unknown; text?: unknown }, now = new Date(),
 ): Promise<{ id: string }> {
   const kind = input.kind;
-  if (kind !== "moment" && kind !== "conversation") throw new MomentError(400, "Choose what to report.");
+  if (kind !== "moment" && kind !== "conversation" && kind !== "person") throw new MomentError(400, "Choose what to report.");
   if (!isReportReason(input.reason)) throw new MomentError(400, "Choose a reason.");
   const targetId = String(input.targetId ?? "");
   const note = trimNote(input.note);
@@ -44,7 +46,15 @@ export async function createReport(
   let evidence: Record<string, unknown>;
   let evidenceKeys: string[] = [];
 
-  if (kind === "moment") {
+  if (kind === "person") {
+    const p = /^[A-Za-z0-9_-]{1,128}$/.test(targetId) ? (await db.doc(`users/${targetId}`).get()).data() : undefined;
+    if (!p) throw new MomentError(404, "That member wasn't found.");
+    if (targetId === reporterUid) throw new MomentError(400, "That's you.");
+    targetUid = targetId;
+    const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+    const href = clip(input.href, 300);
+    evidence = { username: String(p.username ?? ""), where: clip(input.where, 40), href: href.startsWith("/") && !href.startsWith("//") ? href : "", text: clip(input.text, 1000) };
+  } else if (kind === "moment") {
     const m = (await db.doc(`moments/${targetId}`).get()).data();
     if (!m || isMomentExpired(m.expiresAt, now)) throw new MomentError(404, "That moment isn't available any more.");
     if (m.ownerUid === reporterUid) throw new MomentError(400, "That's your own moment.");

@@ -11,6 +11,8 @@ import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-serve
 import { recordReturn } from "@/lib/inventory-server";
 import { bookOnlineOrder } from "@/lib/books-server";
 import { maskContacts } from "@/lib/pii";
+import { notifyBell } from "@/lib/email";
+import { formatNaira } from "@/lib/booking-time";
 
 // GET → { conflicts, payments }: slot double-bookings to refund and the newest 300 payments, emails and phones masked
 // (lib/pii.ts; the real one is shown with a reason through /api/admin/reveal). Members still read their own payments directly.
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    await verifyAdminRequest(idToken, ["finance"]);
+    const admin = await verifyAdminRequest(idToken, ["finance"]);
     const { action, reference, reason } = await req.json();
     if (typeof reference !== "string") return NextResponse.json({ error: "Missing reference" }, { status: 400 });
 
@@ -49,7 +51,11 @@ export async function POST(req: NextRequest) {
     const payRef = db.doc(`payments/${paymentRef}`);
     const paySnap = await payRef.get();
     const isAdShare = ledgerSnap.data()?.kind === "adshare"; // ad-share entries have no customer payment behind them
-    if (!paySnap.exists && !isAdShare) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+    // A gift withdrawal (lib/gift-earnings-server.ts) gathers many gifts into one payout: it is released (approved) or disputed here,
+    // never refunded (each gift it gathered is marked "withdrawn").
+    const isGiftPayout = ledgerSnap.data()?.kind === "gift_payout";
+    if (isGiftPayout && action === "refund") return NextResponse.json({ error: "A gift withdrawal isn't refunded: release it, or dispute it to hold it." }, { status: 409 });
+    if (!paySnap.exists && !isAdShare && !isGiftPayout) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
     if (isAdShare && action === "refund") {
       return NextResponse.json({ error: "Ad share isn't refunded — withhold or dispute it instead." }, { status: 409 });
     }
@@ -83,7 +89,7 @@ export async function POST(req: NextRequest) {
       const entries = [paymentRef, ...(await db.collection("ledger").where("paymentReference", "==", paymentRef).get()).docs.map((d) => d.id)];
       const entrySnaps = await Promise.all(entries.map((id) => db.doc(`ledger/${id}`).get()));
       const existing = entrySnaps.filter((e) => e.exists);
-      if (existing.some((e) => ["paid_out", "transferring"].includes(e.data()?.status))) {
+      if (existing.some((e) => ["paid_out", "transferring", "withdrawn"].includes(e.data()?.status))) {
         return NextResponse.json({ error: "Already (partly) paid out — a refund would come out of platform funds; handle in Paystack manually." }, { status: 409 });
       }
       if (existing.some((e) => e.data()?.status === "refunded") || paySnap.data()?.status === "refunded") {
@@ -177,6 +183,10 @@ export async function POST(req: NextRequest) {
     if (action === "release") {
       const r = await releaseLedgerEntry(reference, { allowDisputed: true });
       if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+      if (isGiftPayout) {
+        await ledgerRef.update({ approvedBy: admin, approvedAt: new Date().toISOString() }).catch(() => {});
+        if (ledger.needsApproval) await notifyBell({ uid: ledger.publisherUid, type: "gift", linkHref: `/u/${ledger.publisherUsername}?tab=gifts`, message: `Your gift withdrawal of ${formatNaira(ledger.netKobo)} was approved and is on its way to your bank account.` }).catch(() => {});
+      }
       return NextResponse.json({ ok: true, transferStatus: r.transferStatus });
     }
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

@@ -5,6 +5,10 @@ import assert from "node:assert/strict";
 import * as G from "../../lib/gift-catalogue";
 import { DEFAULT_PRICING, applyPricing, cleanPricing, currentPricing, describeChanges, PricingError } from "../../lib/pricing";
 import { UNVERIFIED_GIFT_CAP_KOBO } from "../../lib/giving";
+import { GIFT_MAX_KOBO } from "../../lib/boost-config";
+import { BONUS_KINDS, bonusAllowedFor, splitSpend } from "../../lib/wallet";
+import { nextTallies } from "../../lib/gifts-server";
+import { splitByReview } from "../../lib/gift-earnings-server";
 
 const clone = <T>(x: T): T => structuredClone(x);
 const throwsMsg = (f: () => unknown, re: RegExp) => assert.throws(f, (e: unknown) => e instanceof G.GiftSettingsError && re.test(e.message));
@@ -27,7 +31,7 @@ for (const id of G.GIFT_MOTIFS) {
   assert.ok(fx.length >= 2 && fx.every((f) => (G.GIFT_EFFECTS as readonly string[]).includes(f)), `${id}: a mix of effects`);
 }
 assert.deepEqual([...G.MOTIF_EFFECTS.sunrise].sort(), [...G.GIFT_EFFECTS].sort());
-const SET0 = { catalogue: D, daily: G.DEFAULT_DAILY, grand: G.DEFAULT_GRAND, uplift: G.DEFAULT_UPLIFT };
+const SET0 = { catalogue: D, daily: G.DEFAULT_DAILY, grand: G.DEFAULT_GRAND, uplift: G.DEFAULT_UPLIFT, economy: G.DEFAULT_ECONOMY };
 assert.deepEqual(G.DEFAULT_UPLIFT, { premiumPct: 10, vipPct: 20 });
 assert.deepEqual(G.DEFAULT_GRAND, { fromKobo: 25_000 * 100, announce: true });
 assert.deepEqual(G.cleanGiftSettings(undefined), SET0, "a config saved before gifts keeps the defaults");
@@ -194,4 +198,77 @@ assert.deepEqual(G.shelfOrder(rows, "2026-11-02", S).map((r) => r.uid), ["f"], "
 assert.deepEqual(G.shelfOrder(rows, "2026-11-03", { ...S, basis: "net", targetKobo: 38_000 * 100 }).map((r) => r.uid), ["b", "c", "a"], "after commission");
 
 assert.deepEqual(G.giftRange(), { minKobo: 20_000, maxKobo: 100_000_000, count: 14 });
+// ── Gifting everywhere (v0.139.0) ─────────────────────────────────────────────────────────────────────────────────────────────────
+const egg = G.findGift("gardenegg")!, kola = G.findGift("kola")!, crown = G.findGift("kente")!;
+// Quantity: N × the catalogue price, 1 to quantityMax (99 by default), premium gifts only, and never over the largest gift.
+assert.deepEqual(G.DEFAULT_ECONOMY, { quantityMax: 99, autoWithdrawMaxKobo: 2_000_000 });
+assert.deepEqual(G.giftQuantity(egg, 25, GIFT_MAX_KOBO, false), { ok: true, quantity: 25, totalKobo: 500_000 }, "25 Garden Eggs: ₦5,000");
+assert.deepEqual(G.giftQuantity(egg, undefined, GIFT_MAX_KOBO, false), { ok: true, quantity: 1, totalKobo: 20_000 });
+for (const bad of [0, -1, 1.5, 100, "x"]) assert.equal(G.giftQuantity(egg, bad, GIFT_MAX_KOBO, true).ok, false, `quantity ${bad}`);
+assert.equal(G.giftQuantity(egg, 99, GIFT_MAX_KOBO, false).ok, true, "99 × ₦200 is under the unverified cap");
+let q = G.giftQuantity(crown, 2, GIFT_MAX_KOBO, true);
+assert.ok(!q.ok && /one at a time/.test(q.error), "VIP gifts go one at a time");
+q = G.giftQuantity(kola, 25, GIFT_MAX_KOBO, false);
+assert.ok(!q.ok && q.status === 403 && /verified/.test(q.error), "over the unverified cap needs a verified sender");
+assert.equal(G.giftQuantity(kola, 25, GIFT_MAX_KOBO, true).ok, true);
+q = G.giftQuantity(kola, 60, 50_000 * 100, true);
+assert.ok(!q.ok && /up to ₦50,000/.test(q.error), "never over the largest send");
+assert.equal(G.quantityCap(egg, GIFT_MAX_KOBO, false), 99);
+assert.equal(G.quantityCap(kola, GIFT_MAX_KOBO, false), Math.floor(UNVERIFIED_GIFT_CAP_KOBO / kola.priceKobo));
+assert.equal(G.quantityCap(kola, GIFT_MAX_KOBO, true), 99);
+assert.equal(G.quantityCap(crown, GIFT_MAX_KOBO, true), 1);
+// The quantity cap and the withdrawal line are admin settings (Pricing → Gifts), checked and kept.
+const eco = cleanPricing({ ...clone(DEFAULT_PRICING), gifts: { ...clone(DEFAULT_PRICING.gifts), economy: { quantityMax: 50, autoWithdrawMaxKobo: 3_000_000 } } });
+assert.deepEqual(eco.gifts.economy, { quantityMax: 50, autoWithdrawMaxKobo: 3_000_000 });
+assert.throws(() => cleanPricing({ ...clone(DEFAULT_PRICING), gifts: { ...clone(DEFAULT_PRICING.gifts), economy: { quantityMax: 0, autoWithdrawMaxKobo: 3_000_000 } } }), PricingError);
+assert.throws(() => cleanPricing({ ...clone(DEFAULT_PRICING), gifts: { ...clone(DEFAULT_PRICING.gifts), economy: { quantityMax: 99, autoWithdrawMaxKobo: 50 } } }), PricingError);
+const { economy: _drop, ...older } = clone(DEFAULT_PRICING.gifts);
+assert.deepEqual(cleanPricing({ ...clone(DEFAULT_PRICING), gifts: older }).gifts.economy, G.DEFAULT_ECONOMY, "a config saved before keeps the defaults");
+assert.deepEqual(G.giftQuantity(egg, 60, GIFT_MAX_KOBO, false, eco.gifts).ok, false, "the admin's cap applies");
+// The withdrawal line: under it automatic, from it up approved first; the words read the live figure.
+assert.equal(G.withdrawRoute(1_999_900), "auto");
+assert.equal(G.withdrawRoute(2_000_000), "approval");
+assert.equal(G.withdrawRoute(2_500_000, eco.gifts), "auto");
+assert.match(G.withdrawRuleText(), /Under ₦20,000 is paid automatically; ₦20,000 and over is approved/);
+assert.match(G.withdrawRuleText(eco.gifts), /₦30,000/);
+// Gift points: 1 per ₦100.
+assert.equal(G.giftPointsFor(500_000), 50);
+assert.equal(G.giftPointsFor(1_999_999), 199, "₦19,999.99 is 199 points");
+assert.equal(G.giftPointsFor(-5), 0);
+// Weeks: named by their Monday, Lagos time; midnight going into Monday starts a new one.
+assert.equal(G.lagosWeekOf("2026-11-04T12:00:00Z"), "2026-11-02", "a Wednesday");
+assert.equal(G.lagosWeekOf("2026-11-08T22:59:00Z"), "2026-11-02", "Sunday 23:59 in Lagos");
+assert.equal(G.lagosWeekOf("2026-11-08T23:00:00Z"), "2026-11-09", "Monday 00:00 in Lagos");
+assert.equal(G.weekBefore("2026-11-09"), "2026-11-02");
+assert.equal(G.lagosWeekEnds("2026-11-02").toISOString(), "2026-11-08T23:00:00.000Z");
+// Teens: only mutual followers; never yourself.
+assert.equal(G.teenGiftAllowed({ receiverTeen: true, mutual: false }), false);
+assert.equal(G.teenGiftAllowed({ receiverTeen: true, mutual: true }), true);
+assert.equal(G.teenGiftAllowed({ receiverTeen: false, mutual: false }), true);
+assert.equal(G.teenGiftAllowed({ receiverTeen: false, mutual: true, self: true }), false);
+// No gifting with Bonus Credits: a wallet gift takes only the member's own credit.
+assert.equal(bonusAllowedFor("gift"), false);
+assert.equal(bonusAllowedFor("boost"), true);
+assert.ok(!BONUS_KINDS.includes("gift"));
+const w = { creditKobo: 10_000, bonusLots: [{ id: "b", kobo: 50_000, expiresAt: "2099-01-01T00:00:00Z", source: "topup" as const }] };
+assert.equal(splitSpend(w, 20_000, bonusAllowedFor("gift")), null, "bonus can't make up a gift");
+assert.deepEqual(splitSpend(w, 10_000, bonusAllowedFor("gift")), { bonusKobo: 0, creditKobo: 10_000, lots: [] });
+// The tallies a gift adds: the receiver's week, the sender's place on the creator's Top gifters, points, and the received list.
+const at = "2026-11-04T10:00:00Z";
+const t1 = nextTallies({}, { toUid: "pub", fromUid: "fan", anonymous: false, grossKobo: 500_000, quantity: 25, animId: "gardenegg", name: "Garden Egg", at });
+assert.deepEqual([t1.weekly.week, t1.weekly.grossKobo, t1.weekly.count, t1.weekly.senders], ["2026-11-02", 500_000, 25, ["fan"]]);
+assert.deepEqual([t1.gifter!.kobo, t1.gifter!.count], [500_000, 25]);
+assert.deepEqual([t1.points.total, t1.points.thisWeek, t1.points.lastWeek], [50, 50, 0]);
+assert.deepEqual([t1.received.key, t1.received.count, t1.received.valueKobo, t1.received.archived], ["gardenegg", 25, 500_000, false]);
+const t2 = nextTallies({ ...t1, received: { ...t1.received, archived: true, archivedAt: at } }, { toUid: "pub", fromUid: "fan", anonymous: true, grossKobo: 20_000, quantity: 1, animId: "gardenegg", name: "Garden Egg", at: "2026-11-10T10:00:00Z" });
+assert.equal(t2.gifter, undefined, "anonymous gifts never name the sender on Top gifters");
+assert.deepEqual([t2.weekly.week, t2.weekly.grossKobo], ["2026-11-09", 20_000], "a new week starts fresh");
+assert.deepEqual([t2.points.total, t2.points.thisWeek, t2.points.lastWeek], [52, 2, 50], "last week's points move to lastWeek");
+assert.deepEqual([t2.received.count, t2.received.valueKobo, t2.received.archived], [26, 520_000, true], "an archived gift keeps counting");
+assert.equal(nextTallies({}, { toUid: "pub", fromUid: "fan", anonymous: false, grossKobo: 50_000, quantity: 1, name: "", at }).received.key, "other");
+// What is past the 7-day review, and what is still in it.
+const now = new Date("2026-11-10T00:00:00Z");
+assert.deepEqual(splitByReview([{ netKobo: 100, releaseAfter: "2026-11-09T00:00:00Z" }, { netKobo: 200, releaseAfter: "2026-11-10T00:00:00Z" }, { netKobo: 400, releaseAfter: "2026-11-12T00:00:00Z" }, { netKobo: 800, releaseAfter: "2026-11-11T00:00:00Z" }], now),
+  { readyKobo: 300, readyCount: 2, inReviewKobo: 1_200, nextReleaseAt: "2026-11-11T00:00:00Z" });
+
 console.log("GIFTS OK");
