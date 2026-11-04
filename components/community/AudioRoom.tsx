@@ -599,7 +599,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             <Person key={u} name={u === me ? "You" : room!.joined[u]?.name ?? "Someone"} avatar={room!.joined[u]?.avatar ?? ""} big talking={!!levels[u] && !isMicMuted(room!, u)} micOff={isMicMuted(room!, u)}
               badge={u === room!.hostUid ? "Host" : isRoomMod(room!, u) ? "Moderator" : "Speaker"} actions={speakerActions(u)} busy={busy === u} />
           ))}
-          {Array.from({ length: free }, (_, i) => <Seat key={`seat-${i}`} plus={seat !== "none"} asked={handUp && i === 0} busy={busy === "seat"} onTap={() => void askSeat()} />)}
+          {Array.from({ length: free }, (_, i) => <Seat key={`seat-${i}`} plus={seat !== "none" && !handUp} asked={handUp && i === 0} busy={busy === "seat"} onTap={() => void askSeat()} />)}
         </ul>
         {room && may("approve") && hands.length > 0 && (
           <div className="mt-8 rounded-2xl bg-white/[0.06] p-4">
