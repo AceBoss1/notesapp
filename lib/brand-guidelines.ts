@@ -15,7 +15,7 @@ export const BRAND_GENERAL: { t: string; d: string }[] = [
   { t: "Say how you use us", d: "Members can say “Read my journal on NotesApp”, “Book me on #NotesApp” or “Find my shop on NotesApp”, with a link to their page." },
   { t: "Give the mark room", d: "Keep clear space round the icon equal to the height of the “n”. Smallest sizes: the icon 24 px on screen (8 mm in print), the wordmark 80 px wide (25 mm)." },
   { t: "Keep it secondary", d: "Your own name or brand should lead. Our mark may appear on your material, but not as its biggest or most striking part." },
-  { t: "Our product names too", d: "Notes Academy, Notes Life, Naija Exam Prep, Nana and the #1MillionNairaNotesAppChallenge follow the same rules as NotesApp." },
+  { t: "Our product names too", d: "Notes Academy, Notes Life, Naija Exam Prep, Nana, our Anya smart glasses (Anya Display, Anya Nana and Anya Audio) and the #1MillionNairaNotesAppChallenge follow the same rules as NotesApp." },
 ];
 
 export const BRAND_PROHIBITED = [
@@ -47,7 +47,7 @@ export const BRAND_FAQ: { q: string; a: string }[] = [
 ];
 
 export const BRAND_LEGAL = [
-  `NotesApp, #NotesApp, the “na” mark, Notes Academy, Notes Life, Notes Market, Naija Exam Prep, Nana and the #1MillionNairaNotesAppChallenge are trademarks of ${BRAND_OWNER}. We put work into building and protecting them, including registration and acting against misuse.`,
+  `NotesApp, #NotesApp, the “na” mark, Notes Academy, Notes Life, Notes Market, Naija Exam Prep, Nana, Anya, Anya Display, Anya Nana, Anya Audio and the #1MillionNairaNotesAppChallenge are trademarks of ${BRAND_OWNER}. We put work into building and protecting them, including registration and acting against misuse.`,
   "You may use them only as these guidelines allow or with our written permission. You may not register or claim any right in them, including as part of a trademark, company or business name, username or domain name, and you may not adopt marks that are confusingly similar to or dilute them.",
   "Our Terms of Service and Community Guidelines also apply to any use. We may withdraw permission at any time, and may refuse any use we consider inconsistent with the NotesApp brand.",
   "Other companies' names and logos shown on NotesApp belong to their owners.",

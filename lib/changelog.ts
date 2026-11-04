@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Anya smart glasses from #NotesApp, coming soon: Anya Display (translation, transcripts and a teleprompter in the lens, with a side camera), Anya Nana (Nana AI in your ear) and Anya Audio (music and calls). Pricing and pre-orders aren't announced yet; register your interest at /anya to be among the first to try them." },
+    ],
+  },
+  {
     version: "v0.136.2",
     bump: "patch",
     date: "2026-11-04",

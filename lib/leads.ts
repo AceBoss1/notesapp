@@ -27,6 +27,7 @@ export const LEAD_CATEGORIES = [
   { value: "press", label: "Press" },
   { value: "investment", label: "Investment" },
   { value: "feedback", label: "Feedback: how's #NotesApp so far?" },
+  { value: "anya", label: "Anya smart glasses: be among the first to try" },
   { value: "other", label: "Other" },
 ] as const;
 
