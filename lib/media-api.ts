@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
 import { R2_BUCKET, deleteMediaObject, getR2Client, r2PublicUrl } from "./r2";
-import { createPublicDirectUpload, deleteVideo, getVideo, streamConfigured } from "./stream";
+import {
+  copyWithWatermark, createPublicDirectUpload, createWatermarkProfile, deleteDownloads, deleteVideo, deleteWatermarkProfile, downloadToken, enableDownloads, getDownloads,
+  getVideo, streamConfigured,
+} from "./stream";
+import { renderVideoMark } from "./media-watermark";
 import { MediaError, type MediaDeps } from "./media-server";
 import { MEDIA_LIVE } from "./media-rules";
 import { effectiveTier, type AccountTier } from "./users";
@@ -36,6 +40,17 @@ export function mediaDeps(): MediaDeps {
       },
       remove: deleteVideo,
     },
+    // Watermarked video downloads (lib/media-video-dl-server.ts): only with Stream set up.
+    ...(streamConfigured() ? {
+      videoDl: {
+        enable: enableDownloads, status: getDownloads, disable: deleteDownloads, copy: copyWithWatermark,
+        get: async (uid: string) => {
+          const v = await getVideo(uid);
+          return v ? { readyToStream: v.readyToStream, size: v.size, state: v.status?.state } : null;
+        },
+        remove: deleteVideo, watermark: createWatermarkProfile, dropWatermark: deleteWatermarkProfile, mark: renderVideoMark, token: downloadToken,
+      },
+    } : {}),
   };
 }
 

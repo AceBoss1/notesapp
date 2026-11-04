@@ -620,6 +620,18 @@ on `main` that isn't understood is raised with the owner first.
     teen mode does not stop teens receiving money gifts from strangers (owner to decide); the GiftButton isn't in the live room yet,
     so `liveId` is only set once Media M2 puts it there. Tests: `test:gifts`, `test:gifts-server`, the rules test, `test:help`.
 
+108. **Watermarked video downloads for Media (v0.134.0, branch `push/media-video-downloads`, cut from `push/media-core` (102); merge
+    after #259):** a creator who allows downloads on a video gets a second Cloudflare Stream copy with a see-through mark burned in
+    (transparent PNG: "na" mark, @username, NotesApp), and MP4 downloads only on that copy; the video people watch stays clean. One
+    Stream watermark profile per creator (`mediaWatermarks/{uid}`), the look from Admin → Limits → **Video download watermark**
+    (`serverConfig/mediaWatermark`: opacity 40%, width 22%, padding 4%, bottom right by default). The copy counts in Media storage
+    (about double per downloadable video). Owner, after merge: `firebase deploy --only firestore` (the new server-only
+    `mediaWatermarks` rule); nothing new in Vercel (`CLOUDFLARE_STREAM_TOKEN` with Stream:Edit covers watermarks, copies and downloads);
+    if `docs/OWNER_SETUP.md` has landed (#261), add a line to its section 5 (Stream) saying video downloads use the same token. Then try one: post a
+    video, switch downloads on, wait for "Download ready" in the studio, download it signed out, and check the mark is see-through.
+    **Not run against real Stream:** the watermark upload, copy-from-URL, signed MP4 links and `?filename=`. Code and steps in
+    `docs/MEDIA.md` ("Watermarked video downloads").
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 104. **Chief of Staff in Team access (team hub, no changelog entry; branch `push/cos-departments`):** nothing to deploy (custom claims only). The owner

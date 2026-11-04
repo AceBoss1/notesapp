@@ -6,6 +6,7 @@ import type { AccountTier } from "./users";
 import { setting } from "@/lib/config";
 import { VIDEO_WEEKLY_LIMIT } from "./video-rules";
 import { hearsOnlyFromFollowed, mayReshare, teenAudience, type YoungFlags } from "./young";
+import type { VideoDl, VideoDownloadView } from "./media-video-dl";
 
 // On everywhere unless NEXT_PUBLIC_MEDIA_LIVE is "false" (the tab then disappears and the API answers 404).
 export const MEDIA_LIVE = setting("NEXT_PUBLIC_MEDIA_LIVE") !== "false";
@@ -49,7 +50,9 @@ export type MediaPostDoc = {
   allowComments: boolean; allowShares: boolean; allowGifts: boolean; allowDownloads: boolean;
   pinned: boolean; pinnedAt?: string;
   createdAt: string; updatedAt: string;
-  bytes: number; // counted against the plan's Media storage
+  bytes: number; // counted against the plan's Media storage (a video's watermarked download copy included)
+  // A video with downloads on: its watermarked download copy (lib/media-video-dl.ts). dlPending: the copy is on its way (the cron's query).
+  videoDl?: VideoDl; dlPending?: boolean;
   // Counters. M1 fills viewCount and downloadCount; M2 (feed, comments, reactions, gifts) fills the rest.
   viewCount: number; downloadCount: number; sharesCount: number;
   commentsCount: number; reactions: Record<string, number>; reactionsCount: number; giftsTotal: number; giftsCount: number;
@@ -64,6 +67,8 @@ export type MediaPostView = {
   pinned: boolean; createdAt: string;
   viewCount: number; downloadCount: number; sharesCount: number; commentsCount: number; reactionsCount: number; giftsTotal: number;
   mine: boolean;
+  // A video's download: "ready" for everyone who may download; the creator also sees "preparing" and "failed" (with why).
+  videoDownload?: VideoDownloadView; videoDownloadWhy?: string;
 };
 
 // Cloudflare Stream's own public addresses for a video (Media videos use public playback, not the signed playback courses use).
@@ -100,7 +105,7 @@ export { mayReach as mayCommentOnMedia } from "./young";
 
 export const TEEN_DOWNLOAD_BLOCKED = "Downloads are off for this member's Media.";
 export const DOWNLOADS_OFF = "The creator hasn't allowed downloads of this post.";
-export const VIDEO_DOWNLOADS_SOON = "Downloads of videos are coming soon. Pictures can be downloaded now, with a watermark.";
+
 
 // ── Site pictures (the site kit: cover, top banner, gallery, services) ─────────────────────────────────────────────────────────
 export type SitePictureSource = "cover" | "hero" | "gallery" | "services";

@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.134.0",
+    bump: "minor",
+    date: "2026-11-03",
+    changes: [
+      { kind: "added", text: "Media: videos can now be downloaded too, when their creator allows it. Each video download carries a see-through mark (the NotesApp mark, @username and NotesApp) in a corner; the video people watch stays clean. Turning downloads on makes a second, marked copy of the video for downloads, ready in a few minutes, and it takes about the video's size again in your Media storage (the studio says so next to the switch). Turning them off removes it." },
+      { kind: "added", text: "For the team: Admin → Limits has a Video download watermark section: how see-through the mark is, its size, the space from the edge and its corner. Changes apply to download copies made from then on." },
+    ],
+  },
+  {
     version: "v0.133.0",
     bump: "minor",
     date: "2026-11-03",
