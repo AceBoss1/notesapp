@@ -54,22 +54,23 @@ const MODELS: Model[] = [
     name: "Audio",
     line: "Listen. Talk. Connect.",
     about: "Open-ear audio glasses for music, podcasts and calls, with no AI. Simple, light and private.",
-    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather charging pouch", "No AI, no camera"],
+    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather pouch", "No AI, no camera"],
     tone: "from-[#3A0A18] to-crimson",
   },
 ];
 
-// The case that comes with each pair. Nana's and Audio's pictures have the supplier's glasses taken out (those frames have cameras).
+// The case that comes with each pair. Display's and Nana's charge the glasses; Audio's is a leather pouch that doesn't charge. Audio's
+// picture has the supplier's glasses taken out.
 const CASES = [
   { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", src: "/anya/anya-display-case.webp", bg: "bg-[#E4E4E4]", fit: "object-cover",
     alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front",
     points: ["Shows the battery level on the front", "Charges your glasses while they're stored", "Black textured leather"] },
   { model: "Nana", title: "Tan leather charging case", accent: "#2E49B8", src: "/anya/anya-nana-case.webp", bg: "bg-[#EDE9E6]", fit: "object-cover",
-    alt: "Anya Nana's open tan leather charging case",
+    alt: "Anya Nana smart glasses resting in their open tan leather charging case",
     points: ["Charges your glasses while they're stored", "Soft, textured tan leather", "Protects the lenses on the go"] },
-  { model: "Audio", title: "Black leather charging pouch", accent: "#7A0328", src: "/anya/anya-audio-case.webp", bg: "bg-black", fit: "object-contain p-4",
-    alt: "Anya Audio's black leather charging pouch, open, with a snap fastener on the flap and a light on the front",
-    points: ["Charges your glasses while they're stored", "Snap-fastened leather flap", "A light on the front"] },
+  { model: "Audio", title: "Black leather pouch", accent: "#7A0328", src: "/anya/anya-audio-case.webp", bg: "bg-black", fit: "object-contain p-4",
+    alt: "Anya Audio's black leather pouch, open, with a snap fastener on the flap",
+    points: ["Protects your glasses in your bag", "Snap-fastened leather flap", "Textured black leather"] },
 ];
 
 // What each model has. true / false only: nothing here that hasn't been decided.
@@ -84,7 +85,8 @@ const COMPARE: [string, boolean, boolean, boolean][] = [
   ["1080p HD video", true, false, false],
   ["Teleprompter", true, false, false],
   ["Music playback", true, true, true],
-  ["Charging case included", true, true, true],
+  ["Charging case", true, true, false],
+  ["Leather pouch", false, false, true],
 ];
 
 const USES = [
@@ -176,7 +178,7 @@ export default function AnyaPage() {
       <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:px-8">
         <p className="eyebrow">In the box</p>
         <h2 className="mt-2 font-display text-4xl text-ink">Every pair comes with its own case</h2>
-        <p className="mt-3 max-w-2xl text-slate">Put your glasses away and they charge; take them out and they&apos;re ready. Each case protects them in your bag and looks good on the table.</p>
+        <p className="mt-3 max-w-2xl text-slate">Anya Display and Anya Nana charge in their cases: put them away and they charge, take them out and they&apos;re ready. Anya Audio comes with a leather pouch to carry it in.</p>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {CASES.map((c) => (
             <article key={c.model} className="flex flex-col overflow-hidden rounded-3xl border border-rule bg-card shadow-sm">

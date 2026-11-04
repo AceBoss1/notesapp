@@ -727,6 +727,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Each model's case is in the "In the box" section: Display's battery-display case (`anya-display-case.webp`, the owner's photo),
     Nana's tan leather case and Audio's black leather pouch (`anya-nana-case.webp`, `anya-audio-case.webp`: the supplier's photos with
     the glasses removed, since those frames have cameras).
+    **v0.137.3:** Audio's is a plain leather pouch (no charging); Nana's case photo shows its glasses again (the owner's choice).
 
 ## 3. How the work is done (please keep these)
 

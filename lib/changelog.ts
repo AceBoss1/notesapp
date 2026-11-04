@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.3",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "Anya page: Anya Audio comes with a black leather pouch to carry it in, not a charging case; Anya Display and Anya Nana charge in their cases. The Anya Nana case is shown with its glasses." },
+    ],
+  },
+  {
     version: "v0.137.2",
     bump: "patch",
     date: "2026-11-04",
