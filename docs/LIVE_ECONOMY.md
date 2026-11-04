@@ -323,8 +323,9 @@ These are new.
    same 7-day review and payout rules, and are paid from the weekend pool.
 2. **Teens are blocked from receiving money gifts from strangers.** A member in teen mode can receive gifts only from people they
    follow back (mutual followers); everyone else sees the gift button switched off for them. Teens still can't win cash-value prizes.
-3. **Subscribers get a discount on paid-live tickets.** The publisher sets a discount per tier when creating the live (e.g. Premium
-   10%, VIP 20%, VVIP 30%; 0–100%, admin-capped), on top of whichever price stage applies (early bird, normal, late).
+3. **Subscribers get a discount on paid-live tickets.** The publisher sets the discount per tier once, when setting up their
+   subscription tiers (Rates & payouts → Subscriptions, beside each tier's price; e.g. Premium 10%, VIP 20%, VVIP 30%; 0–100%,
+   admin-capped), not per live. It applies to every paid live on top of whichever price stage applies (early bird, normal, late).
 4. **Nana minutes are paid on every plan** (price per session minute set in Admin; billed to the host from NotesApp Credit).
 5. **Weekly boards reset at midnight going into Monday** (Lagos time).
 6. **Counsel for the FCCPC check is Legal** (the Legal department on the team hub): the sprint and the activity board stay staff-only
