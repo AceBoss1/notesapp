@@ -706,7 +706,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 113. **Printed QR codes (v0.136.2, branch `push/receipt-qr-print`):** nothing to deploy. Receipt and certificate QR
     codes (`lib/certificate-qr.ts`) are now drawn as filled rectangles instead of the 1-unit lines the `qrcode` package draws. A receipt
     saved as PDF on an Android phone came out with a faint pink, unreadable QR while the screen showed it clearly. Same modules as before.
-114. **Sign in with Google and LinkedIn (v0.137.0, branch `push/social-signin`):** owner steps in `docs/OWNER_SETUP.md` section 11:
+115. **Sign in with Google and LinkedIn (v0.138.0, branch `push/social-signin`):** owner steps in `docs/OWNER_SETUP.md` section 11:
     check Firebase's authorised domains (every www./app./life./prep. address of both families and `notesapp.ng`), add the two LinkedIn
     redirect URLs (`https://www.notesapp.name.ng/api/auth/linkedin/callback`, `https://www.naapp.tech/api/auth/linkedin/callback`),
     deploy `firebase deploy --only firestore` (server-only `authLinks`, `authStates`, `authTickets`, `authAudit`; TTL on
@@ -723,6 +723,34 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     in its ID token (the code accepts a missing nonce but refuses a wrong one) and whether Firebase links a verified Google email to an
     existing password account by itself or throws `auth/account-exists-with-different-credential` (both are handled). Tests:
     `npm run test:social-signin`, `test:passkeys`, rules.
+
+114. **Anya smart glasses: the /anya page and the brand guidelines (v0.137.0, branch `push/anya-trademark`):** nothing to deploy.
+    The owner adopted the names for NotesApp's own Qualcomm-based glasses: **Anya Display** (screen, side camera, mic, speakers,
+    translation, transcripts, teleprompter), **Anya Nana** (audio with Nana) and **Anya Audio** (audio without AI); "anya" is Igbo for
+    "eye". `lib/brand-guidelines.ts` now lists them with the other product names and trademarks on /brand. Still to do: file Anya in
+    class 9 (Nigeria, and the US, UK and EU when the products go there), after a clearance search.
+    The page (`app/(main)/anya/page.tsx`) uses the owner's launch artwork (`public/anya/anya-launch.webp`) as its hero; pricing and
+    pre-orders say "coming soon". Its one action opens the contact form on the new lead topic **anya** (`lib/leads.ts`) with a
+    starter message, so interest lands in Admin → Leads. Footer (Company), sitemap, Nana's pages and the help article
+    `anya-smart-glasses` link to it.
+    **v0.137.1:** the hero is now `public/anya/anya-display-hero.webp`, made from the official logo (logo pack) and the supplier's
+    product photo with its app screen removed and arm markings toned down, plus Anya Display's eight functions (AI voice assistant,
+    real-time translation, 139 languages, voice recording, image recognition, 1080p video, music, app control). The Display card,
+    comparison table and help article list the same functions.
+    **v0.137.2:** a hero for each model (`public/anya/anya-{display,nana,audio}-hero.webp`, same layout), shown by
+    `components/anya/AnyaHeroCarousel.tsx`: a dissolve every 5.5 s, paused on hover or focus, model buttons underneath, and no
+    auto-advance with reduced motion. Nana and Audio use the same product photo with the camera removed and tinted lenses (blue,
+    dark). Anya Nana also has AI real-time translation (139 languages), with Nana as a companion.
+    Each model's case is in the "In the box" section: Display's battery-display case (`anya-display-case.webp`, the owner's photo),
+    Nana's tan leather case and Audio's black leather pouch (`anya-nana-case.webp`, `anya-audio-case.webp`: the supplier's photos with
+    the glasses removed, since those frames have cameras).
+    **v0.137.3:** Audio's is a plain leather pouch (no charging); Nana's case photo shows its glasses again (the owner's choice);
+    Display's case comes in black or brown (`anya-display-case-{black,brown}.webp`), switched by swatches (`components/anya/AnyaCasePicture.tsx`).
+    **v0.137.4:** Anya Nana is the owner's square-frame model in black, pink or clear (`anya-nana-{black,pink,clear}.webp`), with touch
+    controls, built-in speakers and Bluetooth; its hero uses the black frame. Every model card has its picture (Nana's with frame swatches).
+    **v0.137.5:** Anya Audio is the owner's square black frame with clear lenses (`anya-audio-glasses.webp`; the hero uses the side view):
+    calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
+    of its own). The owner asked not to use the aviator sunglasses photo.
 
 ## 3. How the work is done (please keep these)
 

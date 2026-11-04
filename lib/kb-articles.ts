@@ -1325,6 +1325,17 @@ You can also ask the team and other members on our Discord community, **na-notes
 Not live yet, with no promised dates: the Enterprise course packages; the Notes Life pixel look and HD look with a city map; meetings bigger than 6 people; our own live streaming; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders (with SMS when WhatsApp doesn't arrive); Send-Na, our email, WhatsApp and SMS service for developers and businesses, priced in Naira; fuller identity checks; and iOS and Android apps (being prepared, with NotesApp Inc, our US company); payments across Africa with Flutterwave (Kenya first, then Ghana) and bank transfers with Paylony. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
+    A("anya-smart-glasses", "Anya smart glasses: Display, Nana and Audio (coming soon)", "Company", `
+Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are three models:
+
+- **Anya Display:** a screen in the lens, a side camera, microphones and open-ear speakers, controlled from the NotesApp app on your phone. It has Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording with live transcripts, smart image recognition, 1080p HD video, music playback, and a teleprompter in the lens for talks, lives and videos. It comes with a leather charging case, in black or brown, that shows the battery level on the front.
+- **Anya Nana:** open-ear audio with Nana AI built in as your companion: hands-free questions and answers, AI real-time translation in 139 languages for travel and work, touch controls on the arm, built-in speakers for calls, music and your voice assistant, and Bluetooth to pair with your phone. It comes in black, pink or clear frames. It comes with a tan leather charging case.
+- **Anya Audio:** open-ear audio for music, podcasts and hands-free calls, with extra-long-range Bluetooth and controls on the arm. It has no AI of its own and no camera; it works with your phone's voice assistant (Siri or Google Assistant). It comes with a black leather pouch to carry it in (the pouch doesn't charge).
+
+Anya Display and Anya Nana charge in their cases while they're stored.
+
+**Price and pre-orders:** not announced yet. To be among the first to try Anya, open [Anya](/anya) and tap **Register your interest**; it opens the contact form on the Anya topic. Registering is free and doesn't commit you to buy. We'll contact you before pre-orders open.
+`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `
 A coming-soon challenge for influencers: reach 100,000 views and 10,000 new followers to unlock live video, then reach 2,000 registered members watching one live for at least 5 minutes to open a ₦1,000,000 giveaway (₦250,000 in Bonus Credits for followers you choose, ₦250,000 in NotesApp Credit for you, and ₦500,000 cash). The first ten influencers to qualify each month are paid, each influencer can win once, and fake accounts and bots are disqualified. It is not live yet; see [the challenge page](/challenge).`),
   ];

@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.137.0",
+    version: "v0.138.0",
     bump: "minor",
     date: "2026-11-04",
     changes: [
@@ -20,6 +20,62 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Account settings → Sign-in methods: see how you can sign in (password, passkeys, Google, LinkedIn), link Google or LinkedIn to your account and unlink them again. You always keep at least one way in, and we email you whenever a new one is linked." },
       { kind: "changed", text: "If Google or LinkedIn uses an email that already has a NotesApp account, we no longer join them on our own: sign in the way you usually do, then link it under Sign-in methods. After Google asks, signing in with your password links it straight away." },
       { kind: "changed", text: "Your last passkey can't be removed if it's your only way to sign in." },
+    ],
+  },
+  {
+    version: "v0.137.6",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Display's case is now titled \"Charging case ➕ battery display\"." },
+    ],
+  },
+  {
+    version: "v0.137.5",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Audio's new look and features: hands-free audio calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with your phone's voice assistant (Siri or Google Assistant)." },
+    ],
+  },
+  {
+    version: "v0.137.4",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Nana's new look and features: touch controls, built-in speakers for calls, music and your voice assistant, Bluetooth pairing and AI real-time translation, in black, pink or clear frames. Each model's card now has its picture, and Nana's has a frame colour picker." },
+    ],
+  },
+  {
+    version: "v0.137.3",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "Anya page: Anya Audio comes with a black leather pouch to carry it in, not a charging case; Anya Display and Anya Nana charge in their cases. The Anya Nana case is shown with its glasses, and Anya Display's charging case comes in two colours, black or brown." },
+    ],
+  },
+  {
+    version: "v0.137.2",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "The Anya page now shows all three glasses, dissolving from one to the next: Anya Display, Anya Nana (blue lenses) and Anya Audio (dark lenses). Anya Nana has AI real-time translation in 139 languages too, with Nana as your companion. Every pair comes with its own charging case: Anya Display's shows the battery level on the front, Anya Nana's is tan leather and Anya Audio's is a black leather pouch." },
+    ],
+  },
+  {
+    version: "v0.137.1",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "The Anya page has a new picture of Anya Display, and lists everything it does: Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app." },
+    ],
+  },
+  {
+    version: "v0.137.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Anya smart glasses from #NotesApp, coming soon: Anya Display (translation, transcripts and a teleprompter in the lens, with a side camera), Anya Nana (Nana AI in your ear) and Anya Audio (music and calls). Pricing and pre-orders aren't announced yet; register your interest at /anya to be among the first to try them." },
     ],
   },
   {

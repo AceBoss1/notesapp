@@ -638,7 +638,7 @@ Chrome can choose the route.
 
 ## 11. Sign in with Google and LinkedIn
 
-**(Item 114, v0.137.0.)** "Continue with Google" and "Continue with LinkedIn" on sign-in and sign-up, and Account settings →
+**(Item 115, v0.138.0.)** "Continue with Google" and "Continue with LinkedIn" on sign-in and sign-up, and Account settings →
 Sign-in methods to link and unlink them. Google is Firebase's own provider (already switched on); LinkedIn is our own OpenID Connect
 flow through the LinkedIn app we already use for publishing.
 

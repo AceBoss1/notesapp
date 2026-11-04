@@ -2930,7 +2930,14 @@ package draws dark modules as 1-unit-wide stroked lines; phone print engines and
 white gaps between rows. `lib/certificate-qr.ts` now builds the SVG itself from the QR matrix, one filled rectangle per run of dark modules
 in a row, with `print-color-adjust: exact`. A pixel comparison against the old SVG matched all 1,521 modules of a receipt link. Receipts
 and certificates share this helper, so both are fixed; tickets and Cardtap top-ups use PNG and were never affected.
-**Sign in with Google and LinkedIn (v0.137.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
+
+## Anya smart glasses page (v0.137.0, built 4 November 2026)
+
+The owner adopted Anya ("eye" in Igbo) for NotesApp's own Qualcomm-based glasses: Anya Display, Anya Nana and Anya Audio. /anya is a
+coming-soon page with the owner's launch artwork as its hero, the three models, what Display does, a comparison table that lists only
+decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
+message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.
+**Sign in with Google and LinkedIn (v0.138.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
 accounts made with Google and, if possible, LinkedIn, and for existing members to link both like passkeys. Google: Firebase's
 `GoogleAuthProvider` (a pop-up; a redirect in in-app browsers or when the pop-up is blocked; optional `/__/auth` on our own addresses
 through `next.config.js` and `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE`), then `/api/auth/google` records the link in `authLinks` or, when
