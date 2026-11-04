@@ -2823,3 +2823,43 @@ is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. S
 dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
 before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
 Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.
+**Animated gifts and daily gift targets (v0.133.0, 3 Nov 2026)** — Owner decisions of 3 Nov 2026: gifts in lives and in Media keep
+the same 7-day hold and commission; a catalogue of named animated gifts with big values; and a daily gift target that pins creators
+at the top of Trending and Explore. The catalogue lives in `lib/gift-catalogue.ts` (pure, client-safe): ten drawings fixed in code
+(`GIFT_MOTIFS`), each with a name, a price and on/off that admins edit, in the order they choose, in Admin → Pricing → Gifts. It is
+one more key (`gifts`) of the pricing config, so it uses the existing save, log, `ensurePricing` and `/api/pricing` path; a config
+saved before keeps the defaults, and a drawing left out of an older form is kept, switched off. `describeChanges` now also logs
+booleans (switching a gift off was invisible before). The drawings (`components/GiftArt.tsx`) are inline SVG moved by CSS
+transforms and opacity only, a few kilobytes in all, still when the viewer prefers reduced motion; sound is a short chime made with
+Web Audio, off unless the viewer turns it on. Sending one is an ordinary gift: `giftId` on the gift checkout, priced on the server
+from the catalogue, with the verified-sender rule above `UNVERIFIED_GIFT_CAP_KOBO` (the ✔ worked out as `hasVerifiedBadge` does,
+plus gold, without importing `lib/users.ts`, which loads the browser SDK). The receiver's day (Lagos is UTC+1 all year, so the day
+is the UTC date an hour on) is updated in the payment's own transaction in `giftDaily/{day}_{uid}`: gross, after commission (each
+co-author's share at their own rate), the number of gifts, up to 100 distinct sender ids and when the target was first reached; a
+gift to yourself never counts. There was no linked-account check to reuse (same device, bank or phone), so only distinct accounts
+are counted, and the admin page says so. The shelf orders today's totals that reach the target under the settings in force, most
+first, a tie to whoever reached it first, caches the list a minute in `statCache`, and filters protected members per viewer
+(`keptOffLists` from `lib/young.ts`, shown to followers and themselves only). Everyone signed in on a member's page sees an
+animated gift play as it arrives (`giftShows/{uid}`, `GiftShowWatcher`), the receiver sees it in the bell, and the live room will
+call `playGift()` when the live chat edge lands. The gift sheet was rebuilt to the media mockup (gift grid, message, anonymous,
+NotesApp Credit or card). The help article "Gifts", /gifts and the /pricing gifts row read the figures live; `tests/help/live-figures.test.ts`
+saves a changed catalogue and target and checks the help shows them. Tests: `test:gifts` (catalogue checks, saving with pricing,
+prices and the verified rule, Lagos midnight, target and distinct senders, shelf order), `test:gifts-server` (an animated gift paid
+from the wallet → ledger, daily total, page show, bell → target with three senders → shelf, teen only for followers), the rules
+test (`giftDaily` server-only, `giftShows` signed-in read) run from a temporary copy on port 8241.
+
+**Gifts, second pass: the owner's 14 gifts, VIP gifts and their commission (v0.133.0, 3 Nov 2026)** — The owner replaced the ten-gift
+catalogue with fourteen (six premium, ₦200 to ₦20,000; eight VIP, ₦25,000 to ₦1,000,000, verified senders only) and asked that each
+"plays full screen with a mix of some or all of rays, stars, fireworks, sounds and confetti", that each VIP gift be announced
+sitewide with a link to join the live, and that #NotesApp take an extra 10% (premium) or 20% (VIP) **of the normal commission rate**.
+Four new drawings (Garden Egg, Circova Champagne, Argungu Fishing, Ijele Masquerade), Zobo redrawn as a bottle and Jollof as a plate.
+Effects are a fixed list per drawing (`MOTIF_EFFECTS`) so admins can rename and reprice without breaking a design; the overlay draws
+them in CSS only (rays a conic gradient, stars text glyphs, fireworks 14 dots per burst flying out of a rotated wrapper, confetti
+falling bits) and the sound is made with Web Audio (a two-pitch drum for the Talking Drum, a fanfare for VIP gifts, noise crackles
+for fireworks), still only for viewers who switched gift sounds on. "VIP" is one admin line (`grand.fromKobo`, default ₦25,000) that
+decides the verified-sender rule, the longer play, the announcement and the higher uplift, so they can't drift apart; the ₦20,000
+cap for unverified senders still applies under it. The announcement is one public document (`giftBursts/latest`) that every open
+page listens to: cheaper than a fan-out and enough at the rate VIP gifts arrive; the banner checks the link is a path on our site.
+The uplift is fixed on the payment at checkout, so a later Admin change never re-prices a gift already paid. Tests: `test:gifts`
+(catalogue, effects, VIP line, uplift maths with the owner's 8% example), `test:gifts-server` (the announcement: page link, live
+link while the live is on, page link once it ends, never for a teen, anonymous kept, switched off), rules (`giftBursts`), `test:help`.
