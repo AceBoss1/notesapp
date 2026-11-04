@@ -731,6 +731,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Display's case comes in black or brown (`anya-display-case-{black,brown}.webp`), switched by swatches (`components/anya/AnyaCasePicture.tsx`).
     **v0.137.4:** Anya Nana is the owner's square-frame model in black, pink or clear (`anya-nana-{black,pink,clear}.webp`), with touch
     controls, built-in speakers and Bluetooth; its hero uses the black frame. Every model card has its picture (Nana's with frame swatches).
+    **v0.137.5:** Anya Audio is the owner's square black frame with clear lenses (`anya-audio-glasses.webp`; the hero uses the side view):
+    calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
+    of its own). The owner asked not to use the aviator sunglasses photo.
 
 ## 3. How the work is done (please keep these)
 

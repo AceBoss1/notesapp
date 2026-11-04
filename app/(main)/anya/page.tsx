@@ -7,7 +7,7 @@ import { BRAND_OWNER } from "@/lib/brand-guidelines";
 export const metadata: Metadata = {
   title: "Anya smart glasses",
   description:
-    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation in 139 languages, transcripts, a teleprompter and 1080p HD video in your lens; Anya Nana brings Nana AI to your ear as a companion, with real-time translation in 139 languages, touch controls and built-in speakers, in black, pink or clear frames; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
+    "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation in 139 languages, transcripts, a teleprompter and 1080p HD video in your lens; Anya Nana brings Nana AI to your ear as a companion, with real-time translation in 139 languages, touch controls and built-in speakers, in black, pink or clear frames; Anya Audio is for music and calls, and works with your phone's voice assistant. Pricing and pre-orders coming soon.",
   openGraph: { images: [{ url: "/anya/anya-display-hero.webp", width: 1672, height: 941, alt: "Anya Display smart glasses by NotesApp" }] },
 };
 
@@ -22,7 +22,7 @@ const INTEREST =
 const SLIDES: AnyaSlide[] = [
   { src: "/anya/anya-display-hero.webp", name: "Display", alt: "Anya Display smart glasses by NotesApp, with a side camera: AI voice assistant, AI real-time translation, 139-language translation, AI voice recording, smart image recognition, 1080p HD video, music playback and control from the NotesApp app" },
   { src: "/anya/anya-nana-hero.webp", name: "Nana", alt: "Anya Nana smart glasses by NotesApp, black frame: Nana AI companion, AI real-time translation, 139-language translation, touch controls, built-in speakers and Bluetooth hands-free calls" },
-  { src: "/anya/anya-audio-hero.webp", name: "Audio", alt: "Anya Audio smart glasses by NotesApp, with dark lenses: music and podcasts, hands-free calls, open-ear speakers and controls on the arm" },
+  { src: "/anya/anya-audio-hero.webp", name: "Audio", alt: "Anya Audio smart glasses by NotesApp, black frame: music and podcasts, hands-free audio calls, open-ear speakers, works with your phone's voice assistant, extra-long-range Bluetooth and controls on the arm" },
 ];
 
 // Each model's picture; Nana comes in three frame colours, switched by swatches (components/anya/AnyaCasePicture.tsx).
@@ -68,10 +68,19 @@ const MODELS: Model[] = [
   {
     name: "Audio",
     line: "Listen. Talk. Connect.",
-    about: "Open-ear audio glasses for music, podcasts and calls, with no AI. Simple, light and private.",
-    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather pouch", "No AI, no camera"],
+    about: "Open-ear audio glasses for music, podcasts and calls, with no AI of their own. Simple, light and private.",
+    points: [
+      "Music and podcasts",
+      "Hands-free audio calls",
+      "Open-ear speakers",
+      "Works with your phone's voice assistant (Siri or Google Assistant)",
+      "Extra-long-range Bluetooth",
+      "Controls on the arm",
+      "A black leather pouch",
+      "No AI, no camera",
+    ],
     tone: "from-[#3A0A18] to-crimson",
-    pictures: [{ name: "Black", swatch: "#111", src: "/anya/anya-audio-glasses.webp", alt: "Anya Audio smart glasses, black frame with dark lenses" }],
+    pictures: [{ name: "Black", swatch: "#111", src: "/anya/anya-audio-glasses.webp", alt: "Anya Audio smart glasses with a black frame and clear lenses" }],
   },
 ];
 
