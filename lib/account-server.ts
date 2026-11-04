@@ -1,6 +1,7 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { deleteReview } from "./reviews-server";
 import { removeDomain } from "./domains";
+import { eraseAuthLinks } from "./social-auth-server";
 
 // Server-only. A member's data rights under the Nigeria Data Protection Act: get a copy of what we
 // hold about them (export) and have their account erased (deletion). Money records are different:
@@ -63,6 +64,8 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     moments: await docs(db, "moments", "ownerUid", uid), // only the ones still live; expired ones are already gone
     messagesSent: await sentMessages(db, uid), // direct messages and group messages you wrote
     socialAccounts: await socialAccountsOf(db, uid), // LinkedIn / X accounts you connected (never the access tokens)
+    signInLinks: await docs(db, "authLinks", "uid", uid), // Google and LinkedIn accounts you sign in with (lib/social-auth-server.ts)
+    signInLog: await docs(db, "authAudit", "uid", uid), // when sign-in methods were linked or unlinked
     nanaChats: await docs(db, "nanaChats", "uid", uid), // your conversations with Nana AI
     aiConnection: await aiConnectionOf(db, uid), // whether you connected your own AI account (never the key)
     apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
@@ -208,6 +211,8 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   const passkeys = await db.collection("passkeys").where("uid", "==", uid).get();
   await deleteAll(db, passkeys.docs.map((d) => d.ref));
   counts.passkeys = passkeys.size;
+  // Google and LinkedIn sign-in links and their log (lib/social-auth-server.ts).
+  counts.authLinks = await eraseAuthLinks(db, uid);
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();

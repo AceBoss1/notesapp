@@ -3,9 +3,19 @@ import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
 import { setting } from "@/lib/config";
 
+// Google sign-in's helper pages live on the auth domain (<project>.firebaseapp.com). With NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE=on,
+// each of our sites serves them itself at /__/auth (next.config.js proxies them), so a redirect sign-in stays on the address the
+// visitor is on: Safari and in-app browsers, which block another site's storage, can then finish it (lib/social-auth-client.ts).
+function authDomain(): string | undefined {
+  const own = setting("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN");
+  if (typeof window === "undefined" || !/^(on|true|yes|1)$/i.test(setting("NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE") ?? "")) return own;
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" ? own : window.location.host;
+}
+
 const firebaseConfig = {
   apiKey: setting("NEXT_PUBLIC_FIREBASE_API_KEY"),
-  authDomain: setting("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+  authDomain: authDomain(),
   projectId: setting("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
   storageBucket: setting("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
   messagingSenderId: setting("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"),

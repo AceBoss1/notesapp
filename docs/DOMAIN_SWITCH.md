@@ -68,7 +68,9 @@ Each of these is registered with a full address. They keep working on the old ad
       (The checkout callback address is worked out per payment, so nothing else to change.)
 - [ ] **Paylony** dashboard: webhook → `https://www.naapp.tech/api/paylony/webhook` (also shown on Admin → Paylony).
 - [ ] **Dojah** dashboard: webhook → `https://www.naapp.tech/api/dojah/webhook`.
-- [ ] **LinkedIn** developer app → Auth → redirect URLs: add `https://www.naapp.tech/api/social/callback/linkedin`.
+- [ ] **LinkedIn** developer app → Auth → redirect URLs: add `https://www.naapp.tech/api/social/callback/linkedin` and (Sign In with
+      LinkedIn) `https://www.naapp.tech/api/auth/linkedin/callback`.
+- [ ] **Google sign-in**: Firebase → Authentication → Settings → Authorised domains lists every `naapp.tech` address (`docs/OWNER_SETUP.md` section 11).
 - [ ] **X** developer app → User authentication settings → callback URI: add `https://www.naapp.tech/api/social/callback/x`;
       website URL → `https://www.naapp.tech`.
 - [ ] **cron-job.org**: change the job to `GET https://www.naapp.tech/api/cron/reminders` (same `Authorization` header).

@@ -1548,6 +1548,31 @@ test("passkeys and their challenges are server-only, even for the passkey's owne
   }
 });
 
+test("Google and LinkedIn sign-in links, states, tickets and their log are server-only, even for the account's owner and staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "authLinks/linkedin_abc"), { uid: "alice", provider: "linkedin", sub: "abc" });
+    await setDoc(doc(db, "authStates/s1"), { provider: "linkedin", mode: "signin", nonce: "n", bind: "b" });
+    await setDoc(doc(db, "authTickets/t1"), { provider: "linkedin", mode: "signin", identity: { sub: "abc" } });
+    await setDoc(doc(db, "authAudit/a1"), { uid: "alice", action: "link", provider: "google" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "authLinks/linkedin_abc")));
+    await assertFails(getDocs(query(collection(db, "authLinks"), where("uid", "==", "alice"))));
+    // Nobody can point someone's LinkedIn or Google at their own account from the browser.
+    await assertFails(setDoc(doc(db, "authLinks/linkedin_evil"), { uid: "bob", provider: "linkedin", sub: "evil" }));
+    await assertFails(updateDoc(doc(db, "authLinks/linkedin_abc"), { uid: "bob" }));
+    await assertFails(deleteDoc(doc(db, "authLinks/linkedin_abc")));
+    await assertFails(getDoc(doc(db, "authStates/s1")));
+    await assertFails(setDoc(doc(db, "authStates/s2"), { provider: "linkedin", mode: "link", uid: "bob" }));
+    await assertFails(getDoc(doc(db, "authTickets/t1")));
+    await assertFails(setDoc(doc(db, "authTickets/t2"), { provider: "linkedin", mode: "signin" }));
+    await assertFails(deleteDoc(doc(db, "authTickets/t1")));
+    await assertFails(getDoc(doc(db, "authAudit/a1")));
+    await assertFails(setDoc(doc(db, "authAudit/a2"), { uid: "alice", action: "unlink" }));
+  }
+});
+
 test("fan levels: points and vehicle picks are server-only; a subscription's tier can't be set from the browser", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();

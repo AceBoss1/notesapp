@@ -41,6 +41,7 @@ Tick each one off. Times are rough, for someone doing it the first time. Costs a
 | 10 | **(after 9)** Room recorder on Google Cloud Run, then Vercel settings | [4](#4-google-cloud-run-room-recorder) | 60 min | Pay while recording (estimate below); can use Google credits |
 | 11 | Optional: replay transcripts with NKENNEAi | [8](#8-optional-replay-transcripts-with-nkenneai) | 5 min | NKENNEAi usage |
 | 12 | Full testing checklist and /status check | [10](#10-testing-checklist) | 60 min | Free |
+| 13 | Sign in with Google and LinkedIn: authorised domains, the LinkedIn redirect URLs, deploy the rules | [11](#11-sign-in-with-google-and-linkedin) | 20 min | Free |
 
 ---
 
@@ -632,6 +633,91 @@ Chrome can choose the route.
 | Video courses | Operational |
 | Digital downloads | Operational |
 | Scheduled jobs | Operational |
+
+---
+
+## 11. Sign in with Google and LinkedIn
+
+**(Item 113, v0.138.0.)** "Continue with Google" and "Continue with LinkedIn" on sign-in and sign-up, and Account settings →
+Sign-in methods to link and unlink them. Google is Firebase's own provider (already switched on); LinkedIn is our own OpenID Connect
+flow through the LinkedIn app we already use for publishing.
+
+### 11.1 Firebase: Google (already on) and the authorised domains
+
+1. **console.firebase.google.com** → project **notesapp-a1402** → **Authentication** → **Sign-in method**.
+2. **Google** shows **Enabled**. Click it and check the **Public-facing name** (people see it on Google's account chooser; use
+   `#NotesApp` or `NotesApp`) and the **Project support email**. Save.
+3. Still in **Authentication** → **Settings** tab → **User account linking**: keep **Link accounts that use the same email**
+   (one account per email). Our code relies on it: it stops Google making a second account for an email that already has one.
+4. **Settings** tab → **Authorised domains**. Google sign-in only works on listed addresses. Make sure every address the app is served
+   on is there (click **Add domain** for any that are missing):
+   - `notesapp.name.ng`, `www.notesapp.name.ng`, `app.notesapp.name.ng`, `life.notesapp.name.ng`, `prep.notesapp.name.ng`, `mcp.notesapp.name.ng`
+   - `naapp.tech`, `www.naapp.tech`, `app.naapp.tech`, `life.naapp.tech`, `prep.naapp.tech`, `mcp.naapp.tech`
+   - `notesapp.ng`, `www.notesapp.ng` (the short app address)
+   - `localhost` (there by default) and the Firebase ones (`notesapp-a1402.firebaseapp.com`, `notesapp-a1402.web.app`): leave them.
+5. Optional, for a nicer Google screen: **console.cloud.google.com** → project **notesapp-a1402** → **APIs & Services** →
+   **OAuth consent screen** (or **Google Auth Platform → Branding**): app name `#NotesApp`, the logo, support email, and under
+   **Authorised domains** `notesapp.name.ng`, `naapp.tech` and `notesapp.ng`, plus the privacy and terms links
+   (`https://www.naapp.tech/privacy`, `https://www.naapp.tech/terms`).
+
+**How to check it worked:** on `https://www.naapp.tech/login` and `https://app.naapp.tech`, tap **Continue with Google**: a Google
+window opens and doesn't say "unauthorised domain".
+
+### 11.2 Optional: Google by redirect on our own addresses (phones and in-app browsers)
+
+Google opens in a pop-up. In in-app browsers (Instagram, Facebook, LinkedIn, X) and where pop-ups are blocked it goes by redirect
+instead, and Safari and in-app browsers can't always finish a redirect through `notesapp-a1402.firebaseapp.com`. This makes the
+redirect go through our own addresses (`/__/auth`, already proxied by the site):
+
+1. **console.cloud.google.com** → **APIs & Services** → **Credentials** → the OAuth client **Web client (auto created by Google
+   Service)** → **Authorised redirect URIs** → **Add URI** for each address below, then **Save**:
+   - `https://www.notesapp.name.ng/__/auth/handler`, `https://app.notesapp.name.ng/__/auth/handler`, `https://life.notesapp.name.ng/__/auth/handler`, `https://prep.notesapp.name.ng/__/auth/handler`
+   - `https://www.naapp.tech/__/auth/handler`, `https://app.naapp.tech/__/auth/handler`, `https://life.naapp.tech/__/auth/handler`, `https://prep.naapp.tech/__/auth/handler`
+   - `https://notesapp.ng/__/auth/handler`, `https://www.notesapp.ng/__/auth/handler`
+   - Keep `https://notesapp-a1402.firebaseapp.com/__/auth/handler`.
+2. Vercel → **Settings** → **Environment Variables** → add `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE` = `on` (not Sensitive), then
+   redeploy (section B).
+
+Skip this and Google still works everywhere a pop-up opens (desktop browsers, Chrome and Safari on phones).
+
+### 11.3 LinkedIn: the redirect URLs
+
+1. **linkedin.com/developers/apps** → the NotesApp app (the one used for Publish to LinkedIn).
+2. **Products** tab: **Sign In with LinkedIn using OpenID Connect** should be listed as added (publishing already uses it). If it
+   isn't, click **Request access** next to it and accept (it is granted straight away).
+3. **Auth** tab → **OAuth 2.0 scopes**: check `openid`, `profile` and `email` are listed (they come with that product).
+4. **Auth** tab → **OAuth 2.0 settings** → **Authorized redirect URLs for your app** → pencil → **Add redirect URL**, one each, then
+   **Update**:
+   - `https://www.notesapp.name.ng/api/auth/linkedin/callback`
+   - `https://www.naapp.tech/api/auth/linkedin/callback`
+   - for local testing only: `http://localhost:3000/api/auth/linkedin/callback`
+   Keep the existing `/api/social/callback/linkedin` ones (publishing). Every page of a domain family (app., life., prep.) comes
+   back through its www. address, so these two cover them. A new domain family later needs its own `https://www.<domain>/api/auth/linkedin/callback`.
+
+### 11.4 Vercel settings
+
+- Nothing new is needed if `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` are already set (publishing): the **Continue with
+  LinkedIn** button appears by itself.
+- Only if you want a separate LinkedIn app for sign-in: add `LINKEDIN_LOGIN_CLIENT_ID` (not Sensitive) and
+  `LINKEDIN_LOGIN_CLIENT_SECRET` (Sensitive) from that app's **Auth** tab, with the same redirect URLs and product as 11.3.
+- Optional: `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE` = `on` (11.2).
+- Redeploy.
+
+### 11.5 Firestore
+
+Run `firebase deploy --only firestore` (section 1.3). It adds the server-only rules for `authLinks`, `authStates`, `authTickets` and
+`authAudit`, and the TTL policies on `authStates.expireAt` and `authTickets.expireAt`.
+
+**How to check it all worked:**
+
+1. In a private window, `https://www.naapp.tech/signup` → **Sign up with Google** with a Google account that has no NotesApp account:
+   you're asked for a username and the Terms, then journals to follow, and land on your new profile.
+2. Sign out; **Continue with Google** again signs you straight in.
+3. With a Google account whose email already has a NotesApp account (made with a password): you're told to sign in with your
+   password first; do it on the same page, and Google is linked (an email arrives).
+4. Account settings → **Sign-in methods** → **Link LinkedIn** → LinkedIn asks you to allow → back on Sign-in methods with LinkedIn
+   linked and an email. Sign out, **Continue with LinkedIn** signs you in.
+5. Try **Unlink** on your only sign-in method: it's refused.
 
 ---
 

@@ -703,6 +703,24 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     same email (`/api/admin/user-emails` returns which accounts share one, Gmail dots and +tags ignored, never the address) or
     that have the same name and the same job title, workplace and field.
 
+113. **Sign in with Google and LinkedIn (v0.138.0, branch `push/social-signin`):** owner steps in `docs/OWNER_SETUP.md` section 11:
+    check Firebase's authorised domains (every www./app./life./prep. address of both families and `notesapp.ng`), add the two LinkedIn
+    redirect URLs (`https://www.notesapp.name.ng/api/auth/linkedin/callback`, `https://www.naapp.tech/api/auth/linkedin/callback`),
+    deploy `firebase deploy --only firestore` (server-only `authLinks`, `authStates`, `authTickets`, `authAudit`; TTL on
+    `authStates.expireAt` and `authTickets.expireAt`). Optional: `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE=on` after adding each host's
+    `/__/auth/handler` to the Google OAuth client (redirect sign-in on Safari and in-app browsers), and `LINKEDIN_LOGIN_CLIENT_ID/SECRET`
+    for a separate LinkedIn app (otherwise the publishing app is used). How it fits: `lib/social-auth.ts` (rules), `lib/social-oidc.ts`
+    (LinkedIn's ID token: RS256 against LinkedIn's JWKS, issuer, audience, expiry, nonce), `lib/social-auth-server.ts`,
+    `lib/social-auth-client.ts`, `components/SocialSignIn.tsx`, `components/SignInMethods.tsx`, `/api/auth/{google,methods}`,
+    `/api/auth/linkedin/{start,callback,finish}`. A first Google or LinkedIn sign-in finishes its profile in `SignupFlow`
+    (`completeUser`); `lib/member-client.tsx` sends a signed-in Google/LinkedIn account without a profile to `/signup`. No silent merge:
+    when Firebase attaches Google to an existing account, `/api/auth/google` takes it off again and revokes the session; a LinkedIn
+    email that has an account gets "sign in, then link". **Untested against the real Google and LinkedIn** (the container has no
+    internet; the flows were tested with the Auth emulator's Google and a stand-in LinkedIn): check whether LinkedIn echoes the `nonce`
+    in its ID token (the code accepts a missing nonce but refuses a wrong one) and whether Firebase links a verified Google email to an
+    existing password account by itself or throws `auth/account-exists-with-different-credential` (both are handled). Tests:
+    `npm run test:social-signin`, `test:passkeys`, rules.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

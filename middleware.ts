@@ -184,5 +184,6 @@ export async function middleware(req: NextRequest) {
 }
 
 // Pictures, fonts, sounds and other files skip the middleware altogether: every branch above lets them through unchanged anyway,
-// and a game or journal page loads dozens of them, each of which used to run the middleware.
-export const config = { matcher: ["/((?!_next/static|_next/image|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp3|mp4|webm|wav|ogg|css|js|map)$).*)"] };
+// and a game or journal page loads dozens of them, each of which used to run the middleware. So do Google sign-in's /__/auth pages
+// (next.config.js proxies them to the Firebase auth domain on every host).
+export const config = { matcher: ["/((?!_next/static|_next/image|__/|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp3|mp4|webm|wav|ogg|css|js|map)$).*)"] };

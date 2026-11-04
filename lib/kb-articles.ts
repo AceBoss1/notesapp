@@ -169,7 +169,9 @@ You see how many times each code was used, how much it took off and what buyers 
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
     A("create-an-account", "Creating an account", "Getting started", `
-Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
+Go to [Sign up](/signup). The quickest way is **Sign up with Google** (or **with LinkedIn**): you still choose your username, accept the Terms and say you are 18 or older, but there is no password to make and your email is already verified. See [Signing in with Google or LinkedIn](/help/google-linkedin-sign-in).
+
+With your email instead: choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
 
 You will be asked to follow a few journals so your feed is not empty. Verify your email using the link we send: you need a verified email before you can pay for sessions, subscriptions or gifts.
 
@@ -178,6 +180,18 @@ You can also tell us, if you like, what you do, your role and where you work. It
 Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [${APP_HOST}](${APP_URL}), you sign in or create your account right on the welcome screen.
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("google-linkedin-sign-in", "Signing in with Google or LinkedIn", "Getting started", `
+You can make a #NotesApp account with Google or LinkedIn and sign in with it afterwards, on the website, the app, Notes Life and Naija Exam Prep.
+
+**New here:** on [Sign up](/signup) or [Sign in](/login), tap **Continue with Google** or **Continue with LinkedIn** and choose your account. The first time, you finish your account just like an email sign-up: choose Personal or Organisation, your display name and @username, tell us what you do if you like, tick that you are 18 or older (on Naija Exam Prep, students under 18 get teen mode) and accept the [Terms](/terms) and [Privacy Policy](/privacy). Then follow a few journals. Google and LinkedIn confirm your email, so there is no verification link to click.
+
+**Already have an account:** link Google or LinkedIn to it first. Sign in the way you usually do, open [Account settings → Sign-in methods](/profile/account#sign-in-methods) and tap **Link Google** or **Link LinkedIn**. From then on, Continue with Google or LinkedIn signs you in to that account. We email you every time a new sign-in method is linked; if it wasn't you, unlink it there and change your password.
+
+**"You already have a #NotesApp account":** if you tap Continue with Google or LinkedIn and that email already has an account, we don't join them on our own, to keep your account safe. Sign in with your password or a passkey, then link it under Sign-in methods. After Google asks, signing in with your password on the same page links Google straight away.
+
+**Unlinking:** under Sign-in methods, tap **Unlink**. You always keep at least one way to sign in, so the last one can't be removed: add a password (use [Reset password](/forgot-password) to set one), a [passkey](/help/passkeys) or the other account first.
+
+**Good to know:** LinkedIn sign-in only reads your name, picture and confirmed email; it never posts. Posting your journals to LinkedIn is a separate switch (Publish to LinkedIn). An account made with Google or LinkedIn has no password until you set one with Reset password. Deleting your account removes its Google and LinkedIn links too.`),
     A("passkeys", "Signing in with a passkey", "Getting started", `
 A passkey lets you sign in with your fingerprint, face, phone screen lock or a security key instead of typing your password. It can't be guessed or phished, and it never leaves your device.
 
@@ -185,7 +199,7 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
-**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys. Deleting your account removes your passkeys too.`),
+**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

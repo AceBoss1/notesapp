@@ -50,6 +50,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
       "Organisations are checked against their CAC registration before they are marked verified, and are labelled unverified until then.",
       "Email must be verified before you can pay. Emails are never shown on public profiles.",
       "Sign in with a passkey (your fingerprint, face, screen lock or a security key) instead of a password, on every account and at the team hub's Staff login. Passkeys can't be guessed or phished, and they never leave your device.",
+      "Sign in with Google or LinkedIn. We never join an existing account to a Google or LinkedIn account on our own: you sign in first and link it yourself, we email you whenever a sign-in method is linked, and the last way into an account can't be removed. LinkedIn's answer is checked against LinkedIn's published keys, and a sign-in started in one browser can only finish there.",
       "Accounts can be suspended with a reason, for a set time or until lifted, and the member can appeal. Reports of nudity or violence reach our team straight away and are reviewed within 24 hours.",
     ],
   },

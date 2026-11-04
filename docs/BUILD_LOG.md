@@ -2912,3 +2912,20 @@ the latest only) rather than a new channel. Teen mode: teens show on lists only 
 hidden. Tests: `test:fans` (ranges, the owner's 8% example, old settings, audiences, badges, bands, vehicles), `test:fans-server`
 (caps, self, top list, badges, hidden list, teens, fan level, vehicles, entrances, comment and reaction points through the real code,
 admin settings), rules, `test:help` live figures.
+
+**Sign in with Google and LinkedIn (v0.138.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
+accounts made with Google and, if possible, LinkedIn, and for existing members to link both like passkeys. Google: Firebase's
+`GoogleAuthProvider` (a pop-up; a redirect in in-app browsers or when the pop-up is blocked; optional `/__/auth` on our own addresses
+through `next.config.js` and `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE`), then `/api/auth/google` records the link in `authLinks` or, when
+Google landed on an account that already existed, takes it off again (no silent merge); `auth/account-exists-with-different-credential`
+keeps Google's credential and links it right after the password sign-in. LinkedIn ("Sign In with LinkedIn using OpenID Connect", the
+publishing app unless `LINKEDIN_LOGIN_CLIENT_ID/SECRET`): `/api/auth/linkedin/start` (state, nonce and a browser-binding cookie, kept in
+`authStates` for 10 minutes) → LinkedIn → `/api/auth/linkedin/callback` on the www. address of the visitor's domain family (state once
+only, code exchanged, ID token checked in `lib/social-oidc.ts` against LinkedIn's JWKS) → back to the page with a one-time ticket in the
+fragment → `/api/auth/linkedin/finish` (same browser, same address) signs in with a custom token (staff claims kept), makes a new account
+(confirmed email only), refuses an email that has an account, or links (fresh ID token). First-time accounts finish in `SignupFlow`
+(`completeUser`: username, Terms and age line, work, journals). Account settings → Sign-in methods (`components/SignInMethods.tsx`,
+`/api/auth/methods`); never the last way in (also for passkeys); every link and unlink in `authAudit`; an email when a method is linked.
+New collections server-only; export and erase cover them. Tests: `npm run test:social-signin` (the rules and OIDC checks with a stand-in
+JWKS, then Firestore and Auth emulators), the rules test, `test:passkeys`.
+
