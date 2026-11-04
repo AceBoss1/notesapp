@@ -481,7 +481,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
-          {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {minutesLeftText(hostLive.minutesLeft)}</p>}
+          {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>

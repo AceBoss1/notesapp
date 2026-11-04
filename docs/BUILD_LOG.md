@@ -2823,3 +2823,12 @@ is in naira; Nana gives no exchange rates), and the staff-only `hub-new-task`. S
 dp/photo/pic/avatar into "picture" and dollar/usd/forex/exchange into "currency". A short follow-up question is searched on its own
 before being joined with the earlier question, so "what about mcp?" after a profile picture question finds the MCP article. The
 Add item category suggestions gained the **Not now** button the topic and course-line boxes already had.
+
+**Staff test pass (3 Nov 2026, staff only, no version)** — The owner asked for staff and team accounts to skip the live limits, with a switch
+for super admins, so live rooms can be tested properly before challenge time. `lib/staff-pass.ts` (pure: on only with an end ahead, 7 days by
+default and 30 at most; the hard listener ceiling; the video budget and longest recording on the pass) and `lib/staff-pass-server.ts`
+(`serverConfig/staffPass` behind a 30-second cache, `hasStaffPass` from `isTeamMember`, changes logged to `staffPassLog`). Wired into
+`lib/rooms-server.ts` (join cap, rooms started on the pass carry `staffPass`, video budget through `liveSettingsFor`/`hostLiveFor`) and
+`lib/live-recording-server.ts` (plan switches for recording and replays, the longest recording). Admin → Limits has the panel for super
+admins, the admin area a strip while it's on, and the host's screen says "Staff test pass: video minutes aren't counted". Safety rules
+are untouched. Tests: `npm run test:limits`, `npm run test:rooms-server` and a rules test.
