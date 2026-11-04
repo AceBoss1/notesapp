@@ -15,7 +15,7 @@ export const CHANGELOG: Release[] = [
     bump: "patch",
     date: "2026-11-04",
     changes: [
-      { kind: "changed", text: "The Anya page now shows all three glasses, dissolving from one to the next: Anya Display, Anya Nana (blue lenses) and Anya Audio (dark lenses). Anya Nana has AI real-time translation in 139 languages too, with Nana as your companion." },
+      { kind: "changed", text: "The Anya page now shows all three glasses, dissolving from one to the next: Anya Display, Anya Nana (blue lenses) and Anya Audio (dark lenses). Anya Nana has AI real-time translation in 139 languages too, with Nana as your companion. Anya Display comes with a leather charging case." },
     ],
   },
   {

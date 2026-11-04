@@ -1,3 +1,4 @@
+import Image from "next/image";
 import AnyaHeroCarousel, { type AnyaSlide } from "@/components/anya/AnyaHeroCarousel";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -38,6 +39,7 @@ const MODELS: Model[] = [
       "1080p HD video from the side camera",
       "A teleprompter in the lens",
       "Music playback",
+      "A leather charging case",
     ],
     tone: "from-crimson to-crimson-bright",
   },
@@ -152,6 +154,27 @@ export default function AnyaPage() {
                 <p className="mt-2 text-sm text-slate">{u.d}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* In the box: Anya Display's charging case. */}
+      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-10 overflow-hidden rounded-3xl border border-rule bg-card md:grid-cols-[1fr,1.1fr]">
+          <div className="p-8 sm:p-12">
+            <p className="eyebrow">Anya Display · In the box</p>
+            <h2 className="mt-2 font-display text-4xl text-ink">A charging case that travels in style</h2>
+            <p className="mt-4 text-slate">
+              Anya Display comes with its own charging case, made from leather with a soft, textured finish. Put your glasses away and they charge; take them out and they&apos;re ready. It protects them in your bag, and it looks good on the table too.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-ink">
+              {["Charges your glasses while they're stored", "Textured leather finish", "Protects the lenses and the side camera"].map((p) => (
+                <li key={p} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-crimson" aria-hidden />{p}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="relative h-full min-h-[26rem] md:min-h-[34rem]">
+            <Image src="/anya/anya-display-case.webp" alt="Anya Display smart glasses resting in their open tan leather charging case, with the lid above" fill sizes="(min-width: 768px) 560px, 100vw" className="object-cover" />
           </div>
         </div>
       </section>
