@@ -716,6 +716,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     pre-orders say "coming soon". Its one action opens the contact form on the new lead topic **anya** (`lib/leads.ts`) with a
     starter message, so interest lands in Admin → Leads. Footer (Company), sitemap, Nana's pages and the help article
     `anya-smart-glasses` link to it.
+    **v0.137.1:** the hero is now `public/anya/anya-display-hero.webp`, made from the official logo (logo pack) and the supplier's
+    product photo with its app screen removed and arm markings toned down, plus Anya Display's eight functions (AI voice assistant,
+    real-time translation, 139 languages, voice recording, image recognition, 1080p video, music, app control). The Display card,
+    comparison table and help article list the same functions.
 
 ## 3. How the work is done (please keep these)
 

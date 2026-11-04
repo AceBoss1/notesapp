@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Anya smart glasses",
   description:
     "Anya by #NotesApp: smart glasses made for Africa. Anya Display puts translation, transcripts and a teleprompter in your lens; Anya Nana brings Nana AI to your ear; Anya Audio is for music and calls. Pricing and pre-orders coming soon.",
-  openGraph: { images: [{ url: "/anya/anya-launch.webp", width: 1672, height: 941, alt: "Anya Display, Anya Nana and Anya Audio smart glasses by NotesApp" }] },
+  openGraph: { images: [{ url: "/anya/anya-display-hero.webp", width: 1672, height: 941, alt: "Anya Display smart glasses by NotesApp" }] },
 };
 
 // Anya ("eye" in Igbo): NotesApp's own smart glasses, three models (HANDOVER 114). Nothing is on sale yet: pricing and pre-orders
@@ -22,8 +22,16 @@ const MODELS: Model[] = [
   {
     name: "Display",
     line: "Your world, in your lens.",
-    about: "A screen in the lens, a side camera, microphones and open-ear speakers. It works with the NotesApp app on your phone.",
-    points: ["Instant translation in the lens", "Live transcripts of what's said around you", "A teleprompter for talks, lives and videos", "Capture and share from the side camera"],
+    about: "A screen in the lens, a side camera, microphones and open-ear speakers, controlled from the NotesApp app on your phone.",
+    points: [
+      "Nana, the AI voice assistant",
+      "AI real-time translation in 139 languages",
+      "AI voice recording and live transcripts",
+      "Smart image recognition",
+      "1080p HD video from the side camera",
+      "A teleprompter in the lens",
+      "Music playback",
+    ],
     tone: "from-crimson to-crimson-bright",
   },
   {
@@ -48,14 +56,17 @@ const COMPARE: [string, boolean, boolean, boolean][] = [
   ["Side camera", true, false, false],
   ["Microphones and open-ear speakers", true, true, true],
   ["Nana AI", true, true, false],
-  ["Instant translation", true, false, false],
-  ["Live transcripts", true, false, false],
+  ["AI real-time translation (139 languages)", true, false, false],
+  ["AI voice recording and live transcripts", true, false, false],
+  ["Smart image recognition", true, false, false],
+  ["1080p HD video", true, false, false],
   ["Teleprompter", true, false, false],
+  ["Music playback", true, true, true],
 ];
 
 const USES = [
-  { t: "Talk across languages", d: "Someone speaks; you read what they said in your language, in the lens. For markets, meetings, travel and family." },
-  { t: "Never miss a word", d: "Live transcripts turn a lecture, a sermon or a meeting into text you can read as it happens." },
+  { t: "Talk across languages", d: "Someone speaks; you read what they said in your language, in the lens, across 139 languages. For markets, meetings, travel and family." },
+  { t: "Never miss a word", d: "AI voice recording and live transcripts turn a lecture, a sermon or a meeting into text you can read as it happens." },
   { t: "Speak without notes", d: "Your script scrolls in the lens while you look at your audience or your camera. Made for creators who go live on #NotesApp." },
   { t: "Ask Nana anything", d: "Questions, reminders and quick answers, spoken in your ear, with your hands free." },
 ];
@@ -91,8 +102,8 @@ export default function AnyaPage() {
           <div className="relative mt-12">
             <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-r from-crimson-bright/40 via-transparent to-[#2E49B8]/40 blur-2xl" aria-hidden />
             <Image
-              src="/anya/anya-launch.webp"
-              alt="Anya Display, Anya Nana and Anya Audio smart glasses by NotesApp, worn by a woman in a city, with smart display, voice control, real-time translation, capture and share, and long battery life"
+              src="/anya/anya-display-hero.webp"
+              alt="Anya Display smart glasses by NotesApp, with a side camera. AI voice assistant, AI real-time translation, 139-language translation, AI voice recording, smart image recognition, 1080p HD video, music playback, and control from the NotesApp app"
               width={1672}
               height={941}
               priority
