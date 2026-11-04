@@ -2922,7 +2922,8 @@ only matches Firestore's `RESOURCE_EXHAUSTED` or a quota message that isn't Stre
 what happened ("our video storage is full… pictures still work") and record it in /admin/errors, which alerts the team. The fix for the
 owner's case is on Cloudflare: Stream → plan and storage (minutes stored), since each direct upload reserves the plan's longest Media
 video against the account's storage. Test: `test:media`.
-## Printed QR codes that scan (built 4 November 2026)
+
+## Printed QR codes that scan (v0.136.2, built 4 November 2026)
 
 A receipt saved as PDF on an Android phone showed its QR code as faint pink stripes, though the page on screen was fine. The `qrcode`
 package draws dark modules as 1-unit-wide stroked lines; phone print engines and PDF viewers can draw those thinner than a module, leaving
