@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.136.1",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "Posting a video to Media said \"We're at capacity right now\" when it was our video service (Cloudflare Stream) refusing the upload. It now says what happened (for example, that video storage is full), tells our team at once, and pictures keep working." },
+    ],
+  },
+  {
     version: "v0.136.0",
     bump: "minor",
     date: "2026-11-04",

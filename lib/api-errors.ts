@@ -7,7 +7,8 @@ import { isUnexpected, reportError } from "./monitoring";
 // Unexpected faults (runtime, SDK and network errors) are also recorded for /admin/errors.
 export function friendlyMessage(err: unknown, fallback = "Something went wrong."): { message: string; status: number } {
   const raw = err instanceof Error ? err.message : String(err || "");
-  if (/RESOURCE_EXHAUSTED|quota/i.test(raw)) {
+  // Only Firestore's own quota errors; a third party saying "quota" (Cloudflare Stream's storage, for one) is not our database at capacity.
+  if (/RESOURCE_EXHAUSTED/.test(raw) || (/quota/i.test(raw) && !/^Cloudflare Stream:/.test(raw))) {
     return { message: "We're at capacity right now — please try again in a little while. You haven't been charged.", status: 503 };
   }
   // Staff access: not signed in as staff, or a role that doesn't include this area.

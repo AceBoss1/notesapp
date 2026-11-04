@@ -2912,3 +2912,13 @@ the latest only) rather than a new channel. Teen mode: teens show on lists only 
 hidden. Tests: `test:fans` (ranges, the owner's 8% example, old settings, audiences, badges, bands, vehicles), `test:fans-server`
 (caps, self, top list, badges, hidden list, teens, fan level, vehicles, entrances, comment and reaction points through the real code,
 admin settings), rules, `test:help` live figures.
+
+**Media video uploads: an honest message when Cloudflare Stream refuses (v0.136.1, 4 Nov 2026)** — The owner's upload of a 10-second,
+14 MB video to Media failed with "We're at capacity right now" (HTTP 503 from `/api/media/video`). That text belongs to Firestore's
+daily quota (`lib/api-errors.ts` matched any message containing "quota"), but the request had passed every check of our own and failed
+at Cloudflare Stream's `direct_upload`, whose refusal mentions storage or quota when the account's Stream storage is used up or Stream
+isn't subscribed. `lib/stream.ts` now throws a `StreamError` ("Cloudflare Stream: …", with Stream's status and code), the quota rule
+only matches Firestore's `RESOURCE_EXHAUSTED` or a quota message that isn't Stream's, and the Media routes answer a Stream refusal with
+what happened ("our video storage is full… pictures still work") and record it in /admin/errors, which alerts the team. The fix for the
+owner's case is on Cloudflare: Stream → plan and storage (minutes stored), since each direct upload reserves the plan's longest Media
+video against the account's storage. Test: `test:media`.
