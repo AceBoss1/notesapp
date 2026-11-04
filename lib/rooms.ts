@@ -70,7 +70,7 @@ export type RoomDoc = {
   // Opened by a #NotesApp team member while the staff test pass was on (lib/staff-pass.ts): no listener cap below the hard ceiling and no
   // video-minutes budget, for as long as the pass stays on.
   staffPass?: boolean;
-  // The stage (v0.137.0, lib/rooms.ts "Stage seats"): how people come up (stageModeOf: rooms from before have none and work as Approve),
+  // The stage (v0.138.0, lib/rooms.ts "Stage seats"): how people come up (stageModeOf: rooms from before have none and work as Approve),
   // the moderators the host named for this live, invitations waiting for an answer, and speakers whose microphone a host or moderator
   // turned off (they can't turn it back on; on the relay their sound isn't forwarded at all). All server-written.
   stageMode?: StageMode; mods?: Record<string, RoomModInfo>; invites?: Record<string, RoomInvite>; micMuted?: Record<string, string>;

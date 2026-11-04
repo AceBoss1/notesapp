@@ -26,7 +26,7 @@ export const LIVE_SIGNAL_RATE: Rate = { burst: 10, perSec: 1 };
 export type LiveChat = { id: string; from: string; name: string; avatar: string; text: string; at: string };
 export type LiveHand = { name: string; avatar: string; at: string };
 // What our server tells a room (created, settings changed): where to send batches, and the slow-mode settings.
-// stageMode (v0.137.0, lib/rooms.ts "Stage seats"): in Solo the room refuses raised hands. mods: the moderators named for this live and
+// stageMode (v0.138.0, lib/rooms.ts "Stage seats"): in Solo the room refuses raised hands. mods: the moderators named for this live and
 // the permissions the host gave each (the room checks them for chat removals, chat mutes, removals from the live and slow mode).
 export type LiveConfig = { roomId: string; callback: string; hostUid: string; slowAbove: number; slowSeconds: number; stageMode?: StageMode; mods?: Record<string, ModPerm[]> };
 
