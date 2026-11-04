@@ -945,7 +945,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1138,7 +1138,7 @@ test("audio rooms on the relay: Cloudflare sessions, the room settings and the r
   await assertFails(deleteDoc(doc(h, "communityRooms/r2/relay/host")));
   await assertFails(updateDoc(doc(s, "communityRooms/r2"), { [`published.spk`]: "t" })); // only the server marks someone as sending
   await assertFails(updateDoc(doc(h, "communityRooms/r2"), { mode: "p2p" }));
-  for (const path of ["serverConfig/rooms", "serverConfig/roomsRelay"]) {
+  for (const path of ["serverConfig/rooms", "serverConfig/roomsRelay", "serverConfig/staffPass"]) {
     await assertFails(getDoc(doc(boss, path)));
     await assertFails(setDoc(doc(boss, path), { overrides: {} }));
   }

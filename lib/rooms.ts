@@ -67,6 +67,9 @@ export type RoomDoc = {
   videoOn?: Record<string, string>; stageVideo?: boolean; poster?: string; videoUsedMs?: number;
   // The host's @username and whether they take paid sessions (publisherSettings session.enabled), so "Book a session" stays in view.
   hostUsername?: string; hostBooks?: boolean;
+  // Opened by a #NotesApp team member while the staff test pass was on (lib/staff-pass.ts): no listener cap below the hard ceiling and no
+  // video-minutes budget, for as long as the pass stays on.
+  staffPass?: boolean;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 // edgeIn (v0.127.0): in a room on the live-rooms worker, the worker last reported this listener connected (they don't heartbeat there).

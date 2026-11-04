@@ -97,6 +97,8 @@ export type RecordingDoc = {
   // Everyone who agreed to speak on the record (the host first). teenOnStage: one of them is in teen mode, which keeps the replay inside
   // the community.
   stage: string[]; teenOnStage?: boolean;
+  // Started in a room on the staff test pass (lib/staff-pass.ts): it may run to the top of the "Longest recording" range while the pass is on.
+  staffPass?: boolean;
 };
 
 export const DAY_MS = 86_400_000;

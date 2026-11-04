@@ -654,6 +654,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (`lib/nana-prompt.ts`). The Add item "Nana suggests" box now has **Not now**. When "Couldn't answer" fills up in
     [Help & Nana](/admin/help), write the missing article or a synonym, then check it with `searchArticles`.
 
+111. **Staff test pass (no version, no changelog entry: staff only; branch `push/staff-live-pass`):** deploy `firebase deploy --only firestore`
+    (the server-only rule for `staffPassLog`; `serverConfig/staffPass` is covered by the existing `serverConfig` rule). A super admin turns it on
+    from **Admin → Limits → Staff test pass** with an end ("on until", 7 days by default, at most 30); it turns itself off then. While on,
+    #NotesApp team accounts (`isTeamMember`: role admin, staff or volunteer, not suspended) skip the listener cap when they join a room, and
+    every room they host skips it too (up to the relay's ceiling, or the top of the phone-to-phone setting) and the video-minutes budget;
+    their recordings may run to the top of the "Longest recording" range; and the plan switches for recording and publishing replays don't
+    stop them. Teen rules, suspensions, recording notices and consent, moderation, the stage size, rate limits and keep days are unchanged.
+    Turning it off puts every limit back at once, even in rooms already open. Every change is in `staffPassLog` (shown on the panel, with
+    who made it), and super admins see a strip across the admin area while it's on. Code: `lib/staff-pass.ts`, `lib/staff-pass-server.ts`,
+    `app/api/admin/staff-pass`, `components/admin/StaffPassPanel.tsx`, `StaffPassNotice.tsx`. Tests: `npm run test:limits` (pure),
+    `npm run test:rooms-server` (`tests/community/staff-pass.emulator.ts`) and the rules test. Before the challenge: turn it on, test, turn it off.
 109. **Fan levels and Premium / VIP / VVIP subscriptions (v0.135.0, branch `push/fan-levels`; 108 is left for the video downloads PR
     to renumber into):** deploy the Firestore rules (`fanScores` and `fanPrefs` server-only) and the two `fanScores` indexes
     (`creatorUid` + `points` desc and asc) before the code. Owner decisions of 3 Nov 2026, mockups approved. Pure rules in

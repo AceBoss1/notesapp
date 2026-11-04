@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { adminAccess } from "@/lib/admin-claims";
-import { Access, allowedSections, pathAllowed } from "@/lib/admin-access";
+import { Access, allowedSections, isSuper, pathAllowed } from "@/lib/admin-access";
+import StaffPassNotice from "@/components/admin/StaffPassNotice";
 
 // Keeps staff out of pages their role doesn't cover. UI only: the API routes and
 // Firestore rules enforce the same thing, so this just spares people a page of errors.
@@ -16,7 +17,8 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
   useEffect(() => onAuthStateChanged(auth, async (u) => setState({ ready: true, access: await adminAccess(u) })), []);
 
   // Signed-out or non-staff visitors are handled by each page's own redirect.
-  if (!state.ready || !state.access || pathAllowed(state.access, pathname)) return <>{children}</>;
+  // Super admins see the staff test pass strip while it's on (lib/staff-pass.ts).
+  if (!state.ready || !state.access || pathAllowed(state.access, pathname)) return <>{isSuper(state.access) && <StaffPassNotice />}{children}</>;
   const first = allowedSections(state.access).find((s) => s.href !== "/admin");
   return (
     <main className="mx-auto max-w-xl px-4 py-16 text-center">

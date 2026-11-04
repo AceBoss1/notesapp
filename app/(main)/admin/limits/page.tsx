@@ -7,6 +7,8 @@ import { AGENT_DEFAULTS, AGENT_SETTINGS, type AgentSettings } from "@/lib/agents
 import { ROOM_DEFAULTS, ROOM_SETTINGS, type RoomSettings } from "@/lib/rooms";
 import { CORNER_LABEL, WATERMARK_CORNERS, WATERMARK_DEFAULTS, WATERMARK_SETTINGS, type WatermarkSettings } from "@/lib/media-video-dl";
 import RecordingSettingsPanel from "@/components/admin/RecordingSettingsPanel";
+import StaffPassPanel from "@/components/admin/StaffPassPanel";
+import { isSuper } from "@/lib/admin-access";
 import FanSettingsPanel from "@/components/admin/FanSettingsPanel";
 
 // Size and count limits by plan (message files, moments, courses), the plan switches for Notes Academy (free courses, paid courses,
@@ -15,7 +17,7 @@ import FanSettingsPanel from "@/components/admin/FanSettingsPanel";
 // relay and phone to phone, slow mode for big rooms' chat, and Live mode: video, its budget and the host's prompts, lib/rooms-live.ts). Saved numbers apply sitewide within about 30 seconds; "Reset" puts the
 // built-in defaults back in the boxes (nothing changes until you save).
 export default function AdminLimitsPage() {
-  const { user, loading } = useAdminAuth();
+  const { user, access, loading } = useAdminAuth();
   const [table, setTable] = useState<LimitTable | null>(null);
   const [agents, setAgents] = useState<AgentSettings | null>(null);
   const [rooms, setRooms] = useState<RoomSettings | null>(null);
@@ -147,6 +149,8 @@ export default function AdminLimitsPage() {
         <button onClick={reset} disabled={!table} className="btn-ghost">Reset to defaults</button>
       </div>
       {user && <RecordingSettingsPanel user={user} />}
+      {/* The staff test pass (lib/staff-pass.ts): super admins only. */}
+      {user && isSuper(access) && <div id="staff-pass"><StaffPassPanel user={user} /></div>}
       {user && <FanSettingsPanel user={user} />}
     </div>
   );

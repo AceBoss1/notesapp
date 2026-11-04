@@ -12,6 +12,8 @@ import { pullsFor, presentIn, type RoomDoc, type RoomRelayRecord } from "./rooms
 import { videoPullsFor } from "./rooms-live";
 import { RelayError, cleanSdp, relayClient, type RelayClient } from "./rooms-relay-server";
 import { readRecorderToken, recorderToken, signBody } from "./recorder-sign";
+import { recordingHoursWithPass } from "./staff-pass";
+import { hasStaffPass, roomOnPass } from "./staff-pass-server";
 import {
   CHUNK_MAX_BYTES, RECORDING_FILES, afterUnpublish, audienceFor, cleanRecordingOverrides, cleanReplayTitle, dueForDeletion, isListed, keepUntilFrom,
   mayWatch, partReady, recordingFigures, recordingSettings, replayJournalDraft, shouldRecord,
@@ -55,11 +57,12 @@ export const transcriptionProvider = () => { const v = (setting("REPLAY_TRANSCRI
 export async function liveRecordingFigures(db: Firestore): Promise<RecordingFigures> {
   return recordingFigures(await getRecordingSettings(db).catch(() => recordingSettings()), recorderConfigured(), !!transcriptionProvider() && !!(setting("NKENNE_API_KEY") || "").trim());
 }
-// The Start a room form: whether this host can switch recording on (and whether it's forced on).
+// The Start a room form: whether this host can switch recording on (and whether it's forced on). A team member on the staff test pass
+// (lib/staff-pass.ts) can, whatever their plan's switch says.
 export async function recordingChoice(db: Firestore, uid: string): Promise<RecordingFigures & { canRecord: boolean }> {
   const f = await liveRecordingFigures(db);
-  const allowed = limitFor("liveRecording", await memberTier(db, uid), await getLimitOverrides(db));
-  return { ...f, canRecord: f.available && (f.forced || allowed > 0) };
+  const allowed = limitFor("liveRecording", await memberTier(db, uid), await getLimitOverrides(db)) > 0 || (await hasStaffPass(db, uid));
+  return { ...f, canRecord: f.available && (f.forced || allowed) };
 }
 
 // ── Stand-ins for tests ──
@@ -163,10 +166,11 @@ const fileType = (kind: RecordingFileKind) => (kind === "stage" ? "video/webm" :
 
 // ── Starting and stopping (called from lib/rooms-server.ts) ──
 // Whether a room being opened now records, and its first state for the room doc. note: why it doesn't, for the host.
-export async function recordingPlan(db: Firestore, hostUid: string, asked: unknown, relay: boolean): Promise<{ state: RoomRecordingState | null; note?: string }> {
+// staffPass: the host is a team member on the staff test pass (lib/staff-pass.ts), so their plan's switch doesn't stop them.
+export async function recordingPlan(db: Firestore, hostUid: string, asked: unknown, relay: boolean, staffPass = false): Promise<{ state: RoomRecordingState | null; note?: string }> {
   if (asked !== true && !recorderConfigured()) return { state: null };
   const s = await getRecordingSettings(db);
-  const planAllows = limitFor("liveRecording", await memberTier(db, hostUid), await getLimitOverrides(db)) > 0;
+  const planAllows = staffPass || limitFor("liveRecording", await memberTier(db, hostUid), await getLimitOverrides(db)) > 0;
   if (shouldRecord({ asked: asked === true, s, recorderReady: recorderConfigured(), relay, planAllows })) {
     return { state: { on: true, rid: `${Date.now()}_${randomBytes(6).toString("hex")}`, status: "starting", ...(s.forceRecord > 0 && asked !== true ? { forced: true } : {}) } };
   }
@@ -184,15 +188,18 @@ export async function startRoomRecording(db: Firestore, roomId: string, now = ne
   const st = room?.recording;
   if (!room || !st?.on) return;
   const s = await getRecordingSettings(db);
+  // A room on the staff test pass (lib/staff-pass.ts) records up to the top of the "Longest recording" range.
+  const pass = await roomOnPass(db, room, now);
+  const hours = recordingHoursWithPass(s.maxHours, pass);
   const rec: RecordingDoc = {
     roomId, cid: room.cid, communityName: room.communityName, title: room.title, hostUid: room.hostUid, hostName: room.hostName,
-    status: "starting", startedAt: now.toISOString(), published: false, files: {}, stage: [room.hostUid], ...(st.forced ? { forced: true } : {}),
+    status: "starting", startedAt: now.toISOString(), published: false, files: {}, stage: [room.hostUid], ...(st.forced ? { forced: true } : {}), ...(pass ? { staffPass: true } : {}),
   };
   await recRef(db, st.rid).set(rec);
-  const token = recorderToken(secret(), { rid: st.rid, roomId }, now.getTime(), s.maxHours * 3600 + 3600);
+  const token = recorderToken(secret(), { rid: st.rid, roomId }, now.getTime(), hours * 3600 + 3600);
   try {
     await deps.recorder().start({
-      rid: st.rid, roomId, maxSeconds: s.maxHours * 3600, chunkSeconds: 10,
+      rid: st.rid, roomId, maxSeconds: hours * 3600, chunkSeconds: 10,
       pageUrl: `${SITE_URL}/rooms/record/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`,
       uploadUrl: `${SITE_URL}/api/rooms/recorder`,
     });
@@ -328,7 +335,8 @@ export async function ingestChunk(db: Firestore, rid: unknown, kindIn: unknown, 
   if (!bytes.byteLength || bytes.byteLength > CHUNK_MAX_BYTES) throw fail(413, "A chunk must be under 4 MB.");
   if (r.status !== "starting" && r.status !== "recording" && r.status !== "finalizing") throw fail(409, "This recording is closed.");
   const s = await getRecordingSettings(db);
-  if (now.getTime() - Date.parse(r.startedAt) > (s.maxHours * 3600 + 300) * 1000) throw fail(413, "The recording has reached its longest length.");
+  const hours = recordingHoursWithPass(s.maxHours, await roomOnPass(db, r, now));
+  if (now.getTime() - Date.parse(r.startedAt) > (hours * 3600 + 300) * 1000) throw fail(413, "The recording has reached its longest length.");
   const store = deps.store();
   const prev = r.files[kind];
   if (prev && seq <= prev.lastSeq) return { ok: true, duplicate: true, parts: prev.parts.length };
@@ -422,7 +430,7 @@ export async function sweepRecordings(db: Firestore, deps: RecordingDeps = realR
   const open = await db.collection("roomRecordings").where("status", "in", ["starting", "recording", "finalizing"]).limit(50).get();
   for (const d of open.docs) {
     const r = d.data() as RecordingDoc;
-    const quiet = now.getTime() - Date.parse(r.endedAt ?? r.startedAt) > (r.endedAt ? 2 * 3600_000 : (s.maxHours + 2) * 3600_000);
+    const quiet = now.getTime() - Date.parse(r.endedAt ?? r.startedAt) > (r.endedAt ? 2 * 3600_000 : (recordingHoursWithPass(s.maxHours, r.staffPass === true) + 2) * 3600_000);
     if (!quiet) continue;
     await finalizeRecording(db, d.id, {}, deps, now).then(() => finished++).catch((e) => console.error("[recording] couldn't finish", d.id, e));
   }
@@ -477,7 +485,8 @@ export async function publishReplay(db: Firestore, uid: string, rid: unknown, in
   if (r.hostUid !== uid) throw fail(404, "That recording wasn't found.");
   if (r.status !== "ready") throw fail(409, r.status === "deleted" ? "This recording was deleted." : "This recording isn't ready yet.");
   if (r.published && r.replayId) return { id: r.replayId, audience: (await readReplay(db, r.replayId)).r.audience };
-  if (limitFor("replayPublish", await memberTier(db, uid), await getLimitOverrides(db)) <= 0) throw fail(403, "Your plan doesn't include publishing replays.");
+  // A team member on the staff test pass (lib/staff-pass.ts) skips the plan switch; teen rules and the audience checks below still apply.
+  if (limitFor("replayPublish", await memberTier(db, uid), await getLimitOverrides(db)) <= 0 && !(await hasStaffPass(db, uid, now))) throw fail(403, "Your plan doesn't include publishing replays.");
   const host = (await db.doc(`users/${uid}`).get()).data() ?? {};
   const { audience, why } = audienceFor(input.audience, { hostTeen: host.teen === true, teenOnStage: r.teenOnStage === true });
   const f = r.files.stage?.done ? r.files.stage : r.files.audio?.done ? r.files.audio : null;

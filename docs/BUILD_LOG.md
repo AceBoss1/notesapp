@@ -2863,6 +2863,15 @@ page listens to: cheaper than a fan-out and enough at the rate VIP gifts arrive;
 The uplift is fixed on the payment at checkout, so a later Admin change never re-prices a gift already paid. Tests: `test:gifts`
 (catalogue, effects, VIP line, uplift maths with the owner's 8% example), `test:gifts-server` (the announcement: page link, live
 link while the live is on, page link once it ends, never for a teen, anonymous kept, switched off), rules (`giftBursts`), `test:help`.
+
+**Staff test pass (3 Nov 2026, staff only, no version)** — The owner asked for staff and team accounts to skip the live limits, with a switch
+for super admins, so live rooms can be tested properly before challenge time. `lib/staff-pass.ts` (pure: on only with an end ahead, 7 days by
+default and 30 at most; the hard listener ceiling; the video budget and longest recording on the pass) and `lib/staff-pass-server.ts`
+(`serverConfig/staffPass` behind a 30-second cache, `hasStaffPass` from `isTeamMember`, changes logged to `staffPassLog`). Wired into
+`lib/rooms-server.ts` (join cap, rooms started on the pass carry `staffPass`, video budget through `liveSettingsFor`/`hostLiveFor`) and
+`lib/live-recording-server.ts` (plan switches for recording and replays, the longest recording). Admin → Limits has the panel for super
+admins, the admin area a strip while it's on, and the host's screen says "Staff test pass: video minutes aren't counted". Safety rules
+are untouched. Tests: `npm run test:limits`, `npm run test:rooms-server` and a rules test.
 **Watermarked video downloads for Media (v0.134.0, 3 Nov 2026)** — The owner said yes to video downloads, "emphasis on TRANSPARENT
 watermark". Stream can only burn a watermark in when a video is uploaded or copied, and it then shows in playback too, so the video
 people watch stays as it is and downloads come from a second, marked copy: Stream makes an MP4 of the original (the only thing its
