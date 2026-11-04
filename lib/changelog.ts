@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.136.2",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "fixed", text: "QR codes on receipts and certificates now print clearly. Saved as a PDF on some phones, the code came out faint and wouldn't scan, though it looked fine on screen." },
+    ],
+  },
+  {
     version: "v0.136.1",
     bump: "patch",
     date: "2026-11-04",

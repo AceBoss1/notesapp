@@ -703,6 +703,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     same email (`/api/admin/user-emails` returns which accounts share one, Gmail dots and +tags ignored, never the address) or
     that have the same name and the same job title, workplace and field.
 
+113. **Printed QR codes (v0.136.2, branch `push/receipt-qr-print`):** nothing to deploy. Receipt and certificate QR
+    codes (`lib/certificate-qr.ts`) are now drawn as filled rectangles instead of the 1-unit lines the `qrcode` package draws. A receipt
+    saved as PDF on an Android phone came out with a faint pink, unreadable QR while the screen showed it clearly. Same modules as before.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
