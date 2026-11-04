@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.137.6",
+    bump: "patch",
+    date: "2026-11-04",
+    changes: [
+      { kind: "changed", text: "Anya page: Anya Display's case is now titled \"Charging case ➕ battery display\"." },
+    ],
+  },
+  {
     version: "v0.137.5",
     bump: "patch",
     date: "2026-11-04",
