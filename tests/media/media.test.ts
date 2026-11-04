@@ -174,6 +174,18 @@ const adult = { teen: false }, teen = { teen: true }, kept = { keepRepliesFollow
 
   // The download route is traced with the codecs, and the studio and tab exist.
   assert.match(readFileSync(join(ROOT, "next.config.js"), "utf8"), /"\/api\/media\/posts\/\[id\]\/download": \["\.\/node_modules\/next\/dist\/server\/lib\/squoosh\/\*\*"\]/);
+  // Cloudflare Stream refusing an upload (its storage used up) is told apart from Firestore's daily quota: the member is not told
+  // "we're at capacity", and the error is a StreamError the Media routes turn into an honest message.
+  {
+    const { StreamError } = await import("../../lib/stream");
+    const { friendlyMessage } = await import("../../lib/api-errors");
+    const full = new StreamError(400, 10011, "Storage capacity exceeded. Your account's storage quota has been used.");
+    assert.ok(full instanceof Error && full.message.startsWith("Cloudflare Stream:") && full.storageFull, "Stream storage full");
+    assert.equal(new StreamError(500, undefined, "Internal error").storageFull, false);
+    const f = friendlyMessage(full, "x");
+    assert.ok(!/at capacity/.test(f.message), "not shown as our capacity");
+    assert.match(friendlyMessage(new Error("8 RESOURCE_EXHAUSTED: Quota exceeded."), "x").message, /at capacity/, "Firestore's quota still is");
+  }
   console.log("ALL OK");
 })().catch((e) => {
   console.error(e);
