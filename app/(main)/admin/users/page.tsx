@@ -31,6 +31,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [error, setError] = useState("");
   const [emails, setEmails] = useState<Record<string, string>>({});
+  const [sharedEmail, setSharedEmail] = useState<Record<string, number>>({});
   const [badgeRequests, setBadgeRequests] = useState<Awaited<ReturnType<typeof getAllBadgeRequests>>>({});
   const [busyUid, setBusyUid] = useState<string | null>(null);
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
@@ -53,7 +54,11 @@ export default function AdminUsersPage() {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` },
             body: JSON.stringify({ uids: list.map((u) => u.uid) }),
           });
-          if (res.ok) setEmails((await res.json()).emails || {});
+          if (res.ok) {
+            const j = await res.json();
+            setEmails(j.emails || {});
+            setSharedEmail(j.sharedEmail || {});
+          }
         } catch {
           /* emails are a convenience; the list still works without them */
         }
@@ -220,7 +225,15 @@ export default function AdminUsersPage() {
       ) : (
         <div className="mt-8 divide-y divide-rule">
           {users.map((u) => {
-            const sameName = users.filter((o) => o.uid !== u.uid && o.displayName.trim().toLowerCase() === u.displayName.trim().toLowerCase());
+            // A shared display name alone is not a duplicate ("David" and "David"). Flag another account only when it signs in with
+            // the same email, or has the same name and the same work (job title and workplace) and field.
+            const norm = (x: string) => x.trim().toLowerCase();
+            const sameWork = (o: typeof u) => !!headline(u) && norm(headline(o)) === norm(headline(u)) && (o.industry ?? "") === (u.industry ?? "");
+            const sameName = users.filter((o) => o.uid !== u.uid && (
+              (sharedEmail[u.uid] !== undefined && sharedEmail[o.uid] === sharedEmail[u.uid]) ||
+              (norm(o.displayName) === norm(u.displayName) && sameWork(o))
+            ));
+            const why = (o: typeof u) => (sharedEmail[u.uid] !== undefined && sharedEmail[o.uid] === sharedEmail[u.uid] ? "same email as" : "same name and work as");
             const isFounder = FOUNDER_USERNAMES.includes(u.username);
             const suspended = u.suspended === true;
             const pendingAppeal = suspended && u.suspension?.appealStatus === "pending";
@@ -250,7 +263,7 @@ export default function AdminUsersPage() {
                       )}
                       {sameName.length > 0 && (
                         <p className="mt-1 text-xs font-semibold text-amber-800">
-                          ⚠ Same name as {sameName.map((o) => `@${o.username}`).join(", ")} — possible duplicate account (uid {u.uid.slice(0, 8)}…). Journals shared with Precheks that name this person resolve to the founder account; suspend or rename the extra one.
+                          ⚠ {sameName.map((o) => `${why(o)} @${o.username}`).join(", ").replace(/^./, (c) => c.toUpperCase())} — possible duplicate account (uid {u.uid.slice(0, 8)}…). Older journals saved with only an author name can show on both profiles; suspend or rename the extra account.
                         </p>
                       )}
                     {badgeRequests[u.uid]?.status === "pending" && (
