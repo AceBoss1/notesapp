@@ -1314,7 +1314,7 @@ ${ADD_ONS_LINE}`),
     A("anya-smart-glasses", "Anya smart glasses: Display, Nana and Audio (coming soon)", "Company", `
 Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are three models:
 
-- **Anya Display:** a screen in the lens, a side camera, microphones and open-ear speakers, controlled from the NotesApp app on your phone. It has Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording with live transcripts, smart image recognition, 1080p HD video, music playback, and a teleprompter in the lens for talks, lives and videos. It comes with a black leather charging case that shows the battery level on the front.
+- **Anya Display:** a screen in the lens, a side camera, microphones and open-ear speakers, controlled from the NotesApp app on your phone. It has Nana as an AI voice assistant, AI real-time translation in 139 languages, AI voice recording with live transcripts, smart image recognition, 1080p HD video, music playback, and a teleprompter in the lens for talks, lives and videos. It comes with a leather charging case, in black or brown, that shows the battery level on the front.
 - **Anya Nana:** open-ear audio with Nana AI built in as your companion: hands-free questions and answers, AI real-time translation in 139 languages, music and calls. It comes with a tan leather charging case.
 - **Anya Audio:** open-ear audio for music, podcasts and calls, with no AI and no camera. It comes with a black leather pouch to carry it in (the pouch doesn't charge).
 

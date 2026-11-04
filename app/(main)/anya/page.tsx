@@ -1,5 +1,5 @@
-import Image from "next/image";
 import AnyaHeroCarousel, { type AnyaSlide } from "@/components/anya/AnyaHeroCarousel";
+import AnyaCasePicture, { type CaseColour } from "@/components/anya/AnyaCasePicture";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BRAND_OWNER } from "@/lib/brand-guidelines";
@@ -39,7 +39,7 @@ const MODELS: Model[] = [
       "1080p HD video from the side camera",
       "A teleprompter in the lens",
       "Music playback",
-      "A charging case with a battery display",
+      "A charging case with a battery display, in black or brown",
     ],
     tone: "from-crimson to-crimson-bright",
   },
@@ -61,15 +61,18 @@ const MODELS: Model[] = [
 
 // The case that comes with each pair. Display's and Nana's charge the glasses; Audio's is a leather pouch that doesn't charge. Audio's
 // picture has the supplier's glasses taken out.
-const CASES = [
-  { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", src: "/anya/anya-display-case.webp", bg: "bg-[#E4E4E4]", fit: "object-cover",
-    alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front",
-    points: ["Shows the battery level on the front", "Charges your glasses while they're stored", "Black textured leather"] },
-  { model: "Nana", title: "Tan leather charging case", accent: "#2E49B8", src: "/anya/anya-nana-case.webp", bg: "bg-[#EDE9E6]", fit: "object-cover",
-    alt: "Anya Nana smart glasses resting in their open tan leather charging case",
+const CASES: { model: string; title: string; accent: string; bg: string; fit: string; colours: CaseColour[]; points: string[] }[] = [
+  { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", bg: "bg-[#E4E4E4]", fit: "object-cover",
+    colours: [
+      { name: "Black", swatch: "#1C1A1A", src: "/anya/anya-display-case-black.webp", alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front" },
+      { name: "Brown", swatch: "#9A5B2E", src: "/anya/anya-display-case-brown.webp", alt: "Anya Display smart glasses above their brown leather charging case, which shows the battery level on a round display on the front" },
+    ],
+    points: ["Shows the battery level on the front", "Charges your glasses while they're stored", "Textured leather, in black or brown"] },
+  { model: "Nana", title: "Tan leather charging case", accent: "#2E49B8", bg: "bg-[#EDE9E6]", fit: "object-cover",
+    colours: [{ name: "Tan", swatch: "#D98A4E", src: "/anya/anya-nana-case.webp", alt: "Anya Nana smart glasses resting in their open tan leather charging case" }],
     points: ["Charges your glasses while they're stored", "Soft, textured tan leather", "Protects the lenses on the go"] },
-  { model: "Audio", title: "Black leather pouch", accent: "#7A0328", src: "/anya/anya-audio-case.webp", bg: "bg-black", fit: "object-contain p-4",
-    alt: "Anya Audio's black leather pouch, open, with a snap fastener on the flap",
+  { model: "Audio", title: "Black leather pouch", accent: "#7A0328", bg: "bg-black", fit: "object-contain p-4",
+    colours: [{ name: "Black", swatch: "#111", src: "/anya/anya-audio-case.webp", alt: "Anya Audio's black leather pouch, open, with a snap fastener on the flap" }],
     points: ["Protects your glasses in your bag", "Snap-fastened leather flap", "Textured black leather"] },
 ];
 
@@ -182,9 +185,7 @@ export default function AnyaPage() {
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {CASES.map((c) => (
             <article key={c.model} className="flex flex-col overflow-hidden rounded-3xl border border-rule bg-card shadow-sm">
-              <div className={`relative aspect-[4/3.4] ${c.bg}`}>
-                <Image src={c.src} alt={c.alt} fill sizes="(min-width: 768px) 360px, 100vw" className={c.fit} />
-              </div>
+              <AnyaCasePicture colours={c.colours} bg={c.bg} fit={c.fit} />
               <div className="flex flex-1 flex-col p-6">
                 <p className="font-mono text-[11px] uppercase tracking-eyebrow" style={{ color: c.accent }}>Anya {c.model}</p>
                 <h3 className="mt-1 font-display text-2xl text-ink">{c.title}</h3>
