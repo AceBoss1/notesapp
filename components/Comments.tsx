@@ -1,5 +1,6 @@
 "use client";
 
+import { FanChips, useFanBadges, type FanBadge } from "@/components/fans/FanBadges";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import AppLink from "@/components/AppLink";
 import { NameBadgeIcons } from "@/components/PersonName";
@@ -37,6 +38,7 @@ function CommentRow({
   isReply,
   suspended,
   linkProfiles,
+  fan,
 }: {
   comment: Comment;
   noteId: string;
@@ -49,6 +51,7 @@ function CommentRow({
   isReply: boolean;
   suspended: boolean;
   linkProfiles: boolean;
+  fan?: FanBadge;
 }) {
   // On a member's own site profiles live on #NotesApp, so the names and avatars there are plain text.
   const ProfileLink = ({ className, children }: { className?: string; children: React.ReactNode }) =>
@@ -98,6 +101,7 @@ function CommentRow({
           <ProfileLink className="font-mono text-xs text-crimson-bright">
             @{comment.authorUsername}
           </ProfileLink>
+          <FanChips badge={fan} />
           {comment.authorUsername === NA_NOTESAPP_PROFILE.username && (
             <span className="rounded-full bg-crimson/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-crimson-bright">
               Official
@@ -157,12 +161,14 @@ export default function Comments({
   title,
   noteAuthor,
   linkProfiles = true,
+  creatorUsername,
 }: {
   noteId: string;
   slug: string;
   title: string;
   noteAuthor: string;
   linkProfiles?: boolean;
+  creatorUsername?: string; // the journal's creator: their fans' and subscribers' badges show on comments (lib/fans.ts)
 }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -172,6 +178,7 @@ export default function Comments({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const commentBox = useRef<HTMLTextAreaElement>(null);
+  const fanBadges = useFanBadges(creatorUsername, comments.map((c) => c.authorUid).filter(Boolean));
   const replyBoxRef = useRef<HTMLInputElement>(null);
   const [postingReply, setPostingReply] = useState(false);
   // Admin-only: post/reply as @na-notesapp instead of as themselves.
@@ -416,6 +423,7 @@ export default function Comments({
                 isReply={false}
                 linkProfiles={linkProfiles}
                 suspended={suspendedUids.has(c.authorUid)}
+                fan={fanBadges[c.authorUid]}
               />
               {replies.length > 0 && (
                 <div className="ml-11 pl-3 border-l-2 border-rule divide-y divide-rule">
@@ -433,6 +441,7 @@ export default function Comments({
                       isReply={true}
                       linkProfiles={linkProfiles}
                       suspended={suspendedUids.has(r.authorUid)}
+                      fan={fanBadges[r.authorUid]}
                     />
                   ))}
                 </div>

@@ -331,7 +331,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
             </div>
           )}
 
-          {tab === "reviews" && !preview && <ReviewsPanel courseId={course.id} user={user} title="What learners say" minShown={RATING_SHOWN_FROM} />}
+          {tab === "reviews" && !preview && <ReviewsPanel courseId={course.id} user={user} title="What learners say" minShown={RATING_SHOWN_FROM} creatorUsername={course.ownerUsername} />}
           {tab === "reviews" && preview && <p className="mt-6 text-sm text-slate">Reviews appear here once the course is published.</p>}
         </div>
       </div>

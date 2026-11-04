@@ -72,6 +72,7 @@ jobs:
       - run: npm run test:community
       # audio rooms: rooms, the relay and Live mode (tests/community/rooms*.test.ts)
       - run: npm run test:rooms
+      - run: npm run test:fans
       - run: npm run test:recording
       - run: npm run test:live-rooms
       - run: npm run test:giving
@@ -113,6 +114,7 @@ jobs:
       - run: npm run test:community-server
       # audio rooms against the emulator: the relay and Live mode (video on/off, the budget) with a stand-in Cloudflare
       - run: npm run test:rooms-server
+      - run: npm run test:fans-server
       - run: npm run test:recording-server
       - run: npm run test:live-rooms-server
       - run: npm run test:giving-server

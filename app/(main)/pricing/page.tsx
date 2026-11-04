@@ -19,6 +19,9 @@ import { MEDIA_LIVE, secondsText } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay, nanaResetText, yearlyFreeText, COMMISSION_ROW_LABEL, commissionCell, mergeCells } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
+import { getFanSettings } from "@/lib/fans-server";
+import { FAN_LIVE, tierRangeKobo, type SubTier } from "@/lib/fans";
+const tierText = (t: SubTier) => { const r = tierRangeKobo(t); return `${formatNaira(r.minKobo)} – ${formatNaira(r.maxKobo)}`; };
 import { ROOT_DOMAIN } from "@/lib/host";
 import { UNVERIFIED_GIFT_CAP_KOBO, bandsText } from "@/lib/giving";
 import { GIFT_SETTINGS, enabledGifts, giftRange } from "@/lib/gift-catalogue";
@@ -96,8 +99,8 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.sessionMinKobo)} – ${formatNaira(LIMITS.sessionMaxKobo)}` : "Book & pay only"),
   },
   {
-    label: "Monthly journal subscriptions",
-    render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.subscriptionMinKobo)} – ${formatNaira(LIMITS.subscriptionMaxKobo)}/month` : "Subscribe & unlock only"),
+    label: "Monthly subscriptions: Premium, VIP and VVIP",
+    render: (t) => (t.canPublish ? `You set each tier's price: Premium ${tierText("premium")}, VIP ${tierText("vip")}, VVIP ${tierText("vvip")} a month · Top fans, badges and live entrances` : "Subscribe & unlock only"),
   },
   {
     label: "Gifts from readers",
@@ -297,6 +300,7 @@ const ROWS: Row[] = [
 
 export default async function PricingPage() {
   await loadLivePricing();
+  await getFanSettings(getAdminDb()).catch(() => null); // the tier ranges and shares (Admin → Limits → Subscriptions and fans)
   // The admin-set limits; the built-in defaults if they can't be read.
   const L = await (async () => getLimitTable(getAdminDb()))().catch(() => limitTable());
   return (
@@ -316,11 +320,10 @@ export default async function PricingPage() {
       )}
       <p className="small">
         Publishers set their own prices — sessions from {formatNaira(LIMITS.sessionMinKobo)} to{" "}
-        {formatNaira(LIMITS.sessionMaxKobo)}, monthly journal subscriptions from {formatNaira(LIMITS.subscriptionMinKobo)} to{" "}
-        {formatNaira(LIMITS.subscriptionMaxKobo)}. The commission below comes out of each paid session,
+        {formatNaira(LIMITS.sessionMaxKobo)}, monthly subscriptions in three tiers (Premium {tierText("premium")}, VIP {tierText("vip")}, VVIP {tierText("vvip")}). The commission below comes out of each paid session,
         journal subscription and gift to you; you're paid to your verified bank account
         after the session (subscriptions and gifts after a 7-day dispute window). Community giving and event
-        tickets have no commission, only a flat charge ({GIVING_CHARGES}).
+        tickets have no commission, only a flat charge ({GIVING_CHARGES}). On VIP subscriptions #NotesApp takes the rate below plus {FAN_LIVE.vipUpliftPct}% of it, and on VVIP plus {FAN_LIVE.vvipUpliftPct}% of it.
         Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan: each plan has a free Nana allowance that refreshes {nanaResetText().replace(/, .*/, "")}, bigger on higher plans, with Pearl on every plan, Emerald on Business and Enterprise and Ruby on Enterprise. Nana credit, bought on the Nana page by card or from your wallet, is used after the allowance and never expires, and questions asked before are answered free. You can also connect your own AI account (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
       </PageHero>

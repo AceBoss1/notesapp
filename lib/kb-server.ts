@@ -1,3 +1,4 @@
+import { getFanSettings } from "./fans-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { KbError, cleanArticle, type KbArticle } from "./kb";
 import { builtInArticles, type KbLive } from "./kb-articles";
@@ -27,7 +28,7 @@ export async function staffArticles(db: Firestore): Promise<(StaffDoc & { id: st
 // the Nana and connected-agent settings (Admin → Limits). Each read is cached for half a minute or less, so this is cheap. A failed read
 // keeps what is in force (or the defaults) rather than blanking the help.
 export async function loadKbLive(db: Firestore): Promise<KbLive> {
-  const [limits, agents, , rooms, recording] = await Promise.all([
+  const [limits, agents, , rooms, recording, fans] = await Promise.all([
     getLimitOverrides(db).catch(() => undefined),
     getAgentSettings(db).catch(() => undefined),
     ensurePricing(db).catch(() => undefined),
@@ -35,8 +36,10 @@ export async function loadKbLive(db: Firestore): Promise<KbLive> {
     liveRoomFigures(db).catch(() => undefined),
     // Live recording (Admin → Limits → Live recording): keep days, the longest recording, whether the recorder is set up.
     liveRecordingFigures(db).catch(() => undefined),
+    // Subscription tiers and fans (Admin → Limits → Subscriptions and fans): the tier ranges and the VIP/VVIP commission shares.
+    getFanSettings(db).catch(() => undefined),
   ]);
-  return { limits, agents, rooms, recording };
+  return { limits, agents, rooms, recording, fans };
 }
 
 // Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles

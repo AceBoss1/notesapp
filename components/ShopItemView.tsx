@@ -349,7 +349,7 @@ export default function ShopItemPage() {
         </div>
       )}
 
-      {!customHost && <ReviewsPanel itemId={itemId} user={user} sellerUid={item.ownerUid} title="Reviews of this item" />}
+      {!customHost && <ReviewsPanel itemId={itemId} user={user} sellerUid={item.ownerUid} title="Reviews of this item" creatorUsername={seller?.username} />}
 
       {more.length > 0 && (
         <div className="mt-12">

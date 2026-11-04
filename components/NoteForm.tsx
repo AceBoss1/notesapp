@@ -1,5 +1,6 @@
 "use client";
 
+import { AUDIENCE_LABEL, SUB_TIERS, noteAudience, type Audience } from "@/lib/fans";
 import CoAuthorsPanel from "@/components/CoAuthorsPanel";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { formatNaira } from "@/lib/booking-time";
@@ -97,7 +98,9 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const [status, setStatus] = useState<"draft" | "published">(
     initial?.status || "draft"
   );
-  const [premium, setPremium] = useState(initial?.premium || false);
+  // Who can read it (lib/fans.ts): everyone, or subscribers from a tier up. premium stays true for any subscriber tier, for older readers.
+  const [audience, setAudience] = useState<Audience>(noteAudience(initial ?? {}));
+  const premium = audience !== "everyone";
   const [offerSwahili, setOfferSwahili] = useState(initial?.offerSwahili || false);
   const [video, setVideo] = useState<VideoValue | null>(videoFromNote(initial));
   const [videoBusy, setVideoBusy] = useState(false);
@@ -176,6 +179,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
           resolveAuthorUsername(author.name) ? { authorUsername: resolveAuthorUsername(author.name)! } : {}),
       status: forceDraft ? ("draft" as const) : status,
       premium,
+      ...(premium ? { minTier: audience } : initial?.minTier ? { minTier: deleteField() } : {}),
       offerSwahili: offerSwahili && !premium,
       // Saving with a video attaches it; removing one clears the stored fields (updateDoc only touches what it's given).
       ...(video
@@ -359,24 +363,14 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         </label>
       )}
 
-      <label className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          checked={premium}
-          disabled={!!video}
-          onChange={(e) => setPremium(e.target.checked)}
-          className="h-4 w-4 accent-crimson"
-        />
-        <span>
-          <span className="font-ui text-sm font-semibold text-ink">
-            Premium — subscribers only
-          </span>
-          <span className="block text-xs text-slate">
-            Non-subscribers see a teaser and a "Subscribe to unlock"
-            prompt instead of the full entry. #NotesApp-only field —
-            Precheks' own note pages ignore it and show the entry in
-            full either way.{video ? " Remove the video first to make this post premium." : ""}
-          </span>
+      <label className="block">
+        <span className="font-ui text-sm font-semibold text-ink">Who can read it</span>
+        <select value={audience} disabled={!!video} onChange={(e) => setAudience(e.target.value as Audience)} className="mt-1 block w-full max-w-xs rounded-xl border border-rule bg-card px-3 py-2 text-sm">
+          {(["everyone", ...SUB_TIERS] as Audience[]).map((a) => <option key={a} value={a}>{AUDIENCE_LABEL[a]}</option>)}
+        </select>
+        <span className="mt-1 block text-xs text-slate">
+          Subscribers below the tier you pick see a teaser and a &quot;Subscribe to unlock&quot; prompt instead of the full entry.
+          #NotesApp-only field: Precheks&apos; own note pages ignore it and show the entry in full either way.{video ? " Remove the video first to make this post for subscribers." : ""}
         </span>
       </label>
 

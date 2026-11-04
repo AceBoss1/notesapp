@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { NA_NOTESAPP_PROFILE, resolveAuthorUsername } from "./journals-directory";
 import { notifyMentions } from "./mentions-server";
+import { addFanPoints } from "./fans-server";
 
 // Server-only. Comments on journals and the bells that come with them (comment, reply, like), written by the server so nobody can
 // post as someone else or send a fake notification: who wrote it is read from their account, never from what the browser sends.
@@ -78,6 +79,8 @@ export async function postComment(db: Firestore, uid: string, input: { noteId?: 
   if (authorUid && authorUid !== uid && authorUid !== parentUid) jobs.push(bell(db, { recipientUid: authorUid, type: "comment", message: `${shown.displayName} commented on "${title}"`, actor: shown, linkHref: href }));
   if (parentUid && parentUid !== uid) jobs.push(bell(db, { recipientUid: parentUid, type: "reply", message: `${shown.displayName} replied to your comment on "${title}"`, actor: shown, linkHref: href }));
   if (content.includes("@")) jobs.push(notifyMentions(db, { kind: "comment", sourceId: `${noteId}_${ref.id}`, text: content, author: { uid, name: shown.displayName, username: shown.username, avatar: shown.avatar }, where: `in a comment on “${title}”`, linkHref: href, skipUids: [authorUid, parentUid, note.writerUid].filter((x): x is string => typeof x === "string" && !!x) }));
+  // Fan points with the journal's creator (lib/fans.ts: 3 a comment, 10 a day count).
+  if (authorUid) jobs.push(addFanPoints(db, authorUid, uid, { action: "comment" }));
   await Promise.all(jobs.map((j) => j.catch((e) => console.error("[comments] bell failed", e))));
   return { id: ref.id };
 }
@@ -91,6 +94,9 @@ export async function notifyLike(db: Firestore, uid: string, noteId: string): Pr
   const authorUid = await noteAuthorUid(db, note);
   if (!authorUid || authorUid === uid) return false;
   const me = await whoIs(db, uid);
+  // A reaction is worth a fan point once per journal (the like's own bell id makes it once only, so the points follow it).
+  const first = !(await db.doc(`notifications/like_${noteId}_${uid}`).get()).exists;
+  if (first) await addFanPoints(db, authorUid, uid, { action: "reaction" }).catch(() => 0);
   await bell(db, { id: `like_${noteId}_${uid}`, recipientUid: authorUid, type: "like", message: `${me.displayName} liked "${String(note.title ?? "")}"`, actor: me, linkHref: `/journals/${String(note.slug ?? noteId)}` });
   return true;
 }

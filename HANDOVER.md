@@ -654,6 +654,28 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (`lib/nana-prompt.ts`). The Add item "Nana suggests" box now has **Not now**. When "Couldn't answer" fills up in
     [Help & Nana](/admin/help), write the missing article or a synonym, then check it with `searchArticles`.
 
+109. **Fan levels and Premium / VIP / VVIP subscriptions (v0.135.0, branch `push/fan-levels`; 108 is left for the video downloads PR
+    to renumber into):** deploy the Firestore rules (`fanScores` and `fanPrefs` server-only) and the two `fanScores` indexes
+    (`creatorUid` + `points` desc and asc) before the code. Owner decisions of 3 Nov 2026, mockups approved. Pure rules in
+    `lib/fans.ts` (tiers, ranges and shares, `tierOffers` for settings from before tiers, audiences, points, rank badges, next band,
+    entrance vehicles); server in `lib/fans-server.ts` (settings in `serverConfig/fans` with a 30 s cache, Admin → Limits →
+    Subscriptions and fans via `/api/admin/fans`; `addFanPoints` with daily caps per Lagos day; `topFanList` cached a minute;
+    `fanBadges`, `fanBoard`, `setVehicle`, `liveEntrance`). **Tiers:** `publisherSettings.subscription.tiers` (premium/vip/vvip, each
+    with its own Paystack plan); the old `enabled/priceKobo/planCode` mirror Premium. Checkout takes `tier`; the payment's
+    `commissionRate` is `tierRate` (rate + share of it) and the subscription record gets `tier` (Premium when missing). A tier
+    change starts now, carries the days left, records `previousPlanCode` and best-effort disables the old Paystack subscription
+    (`findPaystackSubscription` + `disableSubscription`); renewals keep the tier's share. Posts get `minTier` (`premium` stays true
+    for any tier); `PremiumGate` checks the tier. **Points:** subscriptions and gifts (`afterFanPayment`, renewals), comments
+    (`postComment`), the first like per journal (`notifyLike`), shares to Moments (`shareToMoment`, by the card's creator).
+    **Badges:** `components/fans/FanBadges.tsx` on journal comments and shop/course reviews (one `/api/fans/badges` call per list).
+    **Top fans:** `/u/{username}/fans` (`/api/fans/board`), with the creator's hide switch (`publisherSettings.fansHidden`) and teen
+    rules (teens only for followers; a teen creator has no public list). **Live entrances:** `joinRoom`/`leaveRoom` write the
+    latest `entrance` on the room doc for a top-three fan who qualifies; `components/fans/LiveEntrance.tsx` plays it. **Not done:**
+    Media and profile-picture comments don't exist yet (the badge component is ready for them); course notes, replays and Media
+    posts keep their own audiences (only journal posts take a tier); gifts' fan points use the gift payment on main (the animated
+    gifts branch adds no separate hook); an upgrade charges the full new price (no proration in kobo). Tests: `test:fans`,
+    `test:fans-server`, rules, `test:help` (live figures), `test:pricing`, `test:limits`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

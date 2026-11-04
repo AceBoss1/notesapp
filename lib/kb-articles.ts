@@ -37,6 +37,7 @@ import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
+import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, type SubTier } from "./fans";
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
@@ -58,7 +59,8 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one), and Live
 // mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
 // Live recording: the keep days, the longest recording and whether the recorder is set up (lib/live-recording.ts).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures };
+// Subscription tiers and fans: the tier price ranges and the VIP/VVIP commission shares (Admin → Limits → Subscriptions and fans, lib/fans.ts).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -71,6 +73,8 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const room = live.rooms ?? DEFAULT_ROOM_FIGURES;
   const roomListeners = n(room.listeners);
   const rec = live.recording ?? DEFAULT_RECORDING_FIGURES;
+  const fan = live.fans ?? FAN_DEFAULTS;
+  const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
   const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
   const rlive = room.live ?? DEFAULT_ROOM_FIGURES.live; // Live mode (lib/rooms-live.ts)
@@ -315,10 +319,29 @@ Publishers set a session price (${money(LIMITS.sessionMinKobo)} to ${money(LIMIT
 **What #NotesApp takes:** ${SESSION_RATES()} of each paid session; the same rate as subscriptions and gifts (see [commission rates](/help/commission-rates)). Your own rate shows under Rates & payouts and on My bookings.
 
 To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).`),
-    A("subscriptions", "Journal subscriptions", "Publishing and earning", `
-A publisher can offer a paid monthly subscription (${money(LIMITS.subscriptionMinKobo)} to ${money(LIMITS.subscriptionMaxKobo)} a month) that unlocks their premium entries. Readers subscribe from the publisher's profile, pay by Paystack, and renew automatically; cancel any time.
+    A("subscriptions", "Subscriptions: Premium, VIP and VVIP", "Publishing and earning", `
+A publisher can offer paid monthly subscriptions in up to three tiers, each at a price they set: **Premium** (${tierRange("premium")} a month), **VIP** (${tierRange("vip")}) and **VVIP** (${tierRange("vvip")}). Each tier includes the ones below it. Set them under [Rates & payouts](/profile/publishing): tick the tiers you offer and type each price. Subscribers from before tiers are Premium at the price they pay.
 
-For the publisher, subscription money is released to their verified bank account after a 7-day window, minus the commission for their plan: ${SESSION_RATES()} (see [commission rates](/help/commission-rates)).`),
+**What it unlocks:** when you publish, choose **Who can read it**: Everyone, Premium and up, VIP and up, or VVIP only. Readers below that tier see a teaser and a prompt to subscribe or switch tier.
+
+**Badges:** subscribers carry a badge next to their name in your space (your journal's comments, your shop's and courses' reviews): 🌄 **Starter** (Premium), 🛡 **Army** (VIP) and 🏆 **VVIP**. Subscribing also builds their [fan level](/help/fan-levels) with you.
+
+**For readers:** subscribe from the creator's profile (or a locked entry), pick a tier, and pay by Paystack or NotesApp Credit; it renews every month, and you can cancel any time. Switching tier starts the new one now at its price, the days left on your old tier are added on, and the old tier stops renewing.
+
+**For the publisher:** subscription money is released to your verified bank account after a 7-day window, minus your plan's commission: ${SESSION_RATES()} on Premium (see [commission rates](/help/commission-rates)). On **VIP**, #NotesApp takes your rate plus ${fan.vipUpliftPct}% of it, and on **VVIP** your rate plus ${fan.vvipUpliftPct}% of it: with an 8% rate, ${+(8 * (1 + fan.vipUpliftPct / 100)).toFixed(2)}% and ${+(8 * (1 + fan.vvipUpliftPct / 100)).toFixed(2)}%. The rate is fixed on each payment.`),
+    A("fan-levels", "Fan levels, Top fans and live entrances", "Publishing and earning", `
+Every creator has a **Top fans** list (open it with **🏆 Top fans** on their profile). Your place on it comes from points you build with that creator, all-time:
+
+- **Subscribing** (any tier) and **gifts**: 1 point for every ₦${(KOBO_PER_POINT / 100).toLocaleString("en-NG")} you pay them
+${Object.values(FAN_ACTIONS).map((a) => `- **${a.label}**: ${a.points} point${a.points === 1 ? "" : "s"} (up to ${a.perDay} a day count)`).join("\n")}
+
+You never earn points with yourself. The top ${TOP_FANS} get a badge next to their name wherever the creator posts (comments on their journal, reviews on their shop and courses): 🥇 #1, 🥈 #2, 🥉 #3, 🏅 #4 to 10 and 🎖 #11 to ${TOP_FANS}, each reading "{Name}'s Top Fan". Subscribers also carry their [tier's badge](/help/subscriptions).
+
+**Your fan level:** on a creator's Top fans page you see your place, your points and how many more you need for the next band.
+
+**Live entrances:** in the creator's lives (audio rooms), their top three arrive and leave in style, with a banner everyone sees: **#1 with a VVIP subscription** by **yacht or private jet**, **#2 with any subscription** by **SUV or sports car**, and **#3 with any subscription** by **e-bike or bicycle**. Pick which of your two on the Top fans page.
+
+**Privacy:** a creator can hide their Top fans list under Rates & payouts (badges still show). Members in teen mode only appear on lists to people who follow them, and a creator in teen mode has no public list.`),
     A("gifts", "Gifts", "Publishing and earning", `
 A reader can send a publisher, or one single post, a gift, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
