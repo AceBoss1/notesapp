@@ -2863,3 +2863,13 @@ page listens to: cheaper than a fan-out and enough at the rate VIP gifts arrive;
 The uplift is fixed on the payment at checkout, so a later Admin change never re-prices a gift already paid. Tests: `test:gifts`
 (catalogue, effects, VIP line, uplift maths with the owner's 8% example), `test:gifts-server` (the announcement: page link, live
 link while the live is on, page link once it ends, never for a teen, anonymous kept, switched off), rules (`giftBursts`), `test:help`.
+
+**Calls reconnect after a network change (v0.136.0)** — The owner asked for calls to use WebRTC first and switch to the relay when the
+network has trouble. Before, a mid-call "disconnected" waited 10 seconds and ended the call, with no ICE restart. Now `lib/ice-recovery.ts`
+(pure: the restart schedule, who restarts, the restart offer and answer, candidates matched to their description by ICE username fragment)
+and `components/calls/ice-recovery-client.ts` (the browser side, one per connection) restart ICE through the existing Firestore signalling
+(`restart` / `restartAnswer` on `calls/{id}` and on each group call link, rules for only the two people, and for groups only the smaller
+uid restarts): two direct restarts, then one through the TURN relay when it's configured, and the call ends under 30 seconds after the drop
+if nothing works. "Reconnecting…" shows in the call (and on a group call tile). The safety code is recomputed after a reconnect. Help article
+and roadmap updated. Tests: `npm run test:calls` and a rules test; not yet tried on real phones and networks.
+

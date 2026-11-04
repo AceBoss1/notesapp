@@ -117,7 +117,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     title: "Group calls in group chats",
     tag: "Social",
     body: "Live now: free calls in a group chat, up to 6 people talking or 4 on video. Everyone in the group is rung with Join, and anyone can tap Join call while it's going; the call goes phone to phone and is end-to-end encrypted, so nobody else, us included, can listen in.",
-    detail: "Tap someone's picture in the call to see your safety code with them; if the codes match on both phones, nobody else can listen in. One-to-one calls show the same code, and on a computer you can share your screen. Bigger group meetings, with video for many people, need a different kind of server and come later.",
+    detail: "Tap someone's picture in the call to see your safety code with them; if the codes match on both phones, nobody else can listen in. One-to-one calls show the same code, and on a computer you can share your screen. When the network changes mid-call, a call reconnects by itself: a new direct path first, the relay only if that fails. Bigger group meetings, with video for many people, need a different kind of server and come later.",
   },
   {
     title: "Community and Events",

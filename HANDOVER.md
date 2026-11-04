@@ -642,6 +642,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (`lib/nana-prompt.ts`). The Add item "Nana suggests" box now has **Not now**. When "Couldn't answer" fills up in
     [Help & Nana](/admin/help), write the missing article or a synonym, then check it with `searchArticles`.
 
+110. **Calls reconnect after a network change (v0.136.0, branch `push/calls-ice-recovery`):** deploy `firebase deploy --only firestore`
+    (the new `restart` / `restartAnswer` writes on `calls/{id}` and `groupCalls/{id}/links/{linkId}`; until it's deployed a restart is refused
+    and a dropped call ends after about 30 seconds, as before but later). Once a call has connected, a drop is recovered by an ICE restart
+    (`lib/ice-recovery.ts`, the state machine; `components/calls/ice-recovery-client.ts`, the browser side): the caller restarts in a 1:1
+    call, the smaller uid of each pair in a group call; the other side answers. "disconnected" waits 2 seconds, "failed" restarts at once;
+    two direct restarts of 8 seconds each, then one restart forced through the TURN relay (`iceTransportPolicy: "relay"`, only when TURN is
+    configured; it stays forced for the rest of that call); the call ends 28 seconds after the drop (the answering side waits 32). Fresh
+    relay credentials come from `GET /api/calls` before every restart. The safety code is recomputed after each reconnect and shown again
+    if it ever changes. Candidates sent for a restart's offer wait until that offer arrives (`candidateFits`). **Not yet tried on real
+    phones or real network changes:** test a call switching Wi-Fi to mobile data, on iPhone Safari and Android Chrome, and a group call of
+    three, before relying on it. Tests: `npm run test:calls` (`tests/calls/ice-recovery.test.ts`) and the rules test.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

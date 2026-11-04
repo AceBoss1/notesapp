@@ -12,6 +12,8 @@ import { CALLS_LIVE } from "@/lib/moments-rules";
 import { CALL_RING_MS, CALL_STALE_MS, duration, safetyCode, sdpFingerprint, type CallDoc, type CallKind } from "@/lib/calls";
 import { micConstraints } from "@/lib/call-audio";
 import { applySink, useCallAudio } from "@/components/calls/useCallAudio";
+import { candidateSink, watchRecovery } from "@/components/calls/ice-recovery-client";
+import { codeChanged, hasTurn } from "@/lib/ice-recovery";
 
 // Free one-to-one calls in Messages. Mounted once in the main layout: it rings for incoming calls anywhere on the site, and opens the call screen
 // when you start a call from a conversation (placeCall). The two browsers connect directly (WebRTC); calls/{id} only carries the handshake.
@@ -141,6 +143,9 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [cams, setCams] = useState(0); // how many cameras this device has (the switch shows when there's more than one)
   const [code, setCode] = useState(""); // the safety code both people can compare (lib/calls.ts)
+  // The connection dropped mid-call and is being restarted (lib/ice-recovery.ts); hint: a short line in place of the timer.
+  const [reconnecting, setReconnecting] = useState(false);
+  const [hint, setHint] = useState("");
   // Screen sharing, on computers only (phone browsers can't capture the screen): your screen replaces your camera in the call, and a
   // message on the call's own data channel tells the other side, so they see the whole screen instead of a cropped one.
   const [canShare, setCanShare] = useState(false);
@@ -161,15 +166,19 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
     let over = false;
     let tick: ReturnType<typeof setInterval> | undefined;
     let ringTimer: ReturnType<typeof setTimeout> | undefined;
-    let dropTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubs: (() => void)[] = [];
-    const queued: RTCIceCandidateInit[] = [];
+    let iceList: Ice = [];
+    let sink: ReturnType<typeof candidateSink> | null = null;
+    let recovery: ReturnType<typeof watchRecovery> | null = null;
+    let everConnected = false;
+    let lastCode = "";
 
     const stop = (message = "") => {
       if (over) return;
       over = true;
       unsubs.forEach((u) => u());
-      clearInterval(tick); clearTimeout(ringTimer); clearTimeout(dropTimer);
+      clearInterval(tick); clearTimeout(ringTimer);
+      recovery?.stop();
       pc?.close();
       local.current?.getTracks().forEach((t) => t.stop());
       screen.current?.stop();
@@ -184,16 +193,25 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
     };
     endRef.current = (r) => end(r);
 
-    const addRemote = async (c: RTCIceCandidateInit) => {
-      if (!pc) return;
-      if (!pc.remoteDescription) { queued.push(c); return; }
-      await pc.addIceCandidate(c).catch(() => {});
+    // Candidates wait for the description they belong to (the first one, or a restart's: lib/ice-recovery.ts).
+    const addRemote = async (c: RTCIceCandidateInit) => { await sink?.add(c); };
+    const flush = async () => { await sink?.flush(); };
+    // The safety code, from both fingerprints. A restart keeps the same certificates, so it shouldn't change; if it does, both are asked
+    // to compare again.
+    const recode = () => {
+      const mineFp = sdpFingerprint(pc?.localDescription?.sdp), theirFp = sdpFingerprint(pc?.remoteDescription?.sdp);
+      if (!mineFp || !theirFp) return;
+      safetyCode(mineFp, theirFp).then((c) => {
+        if (codeChanged(lastCode, c)) { setHint("The safety code changed: compare it again."); setTimeout(() => setHint(""), 8000); }
+        lastCode = c; setCode(c);
+      }).catch(() => {});
     };
-    const flush = async () => { while (queued.length && pc?.remoteDescription) await pc.addIceCandidate(queued.shift()!).catch(() => {}); };
 
     const wire = (ice: Ice, mine: "callerCandidates" | "calleeCandidates", theirs: "callerCandidates" | "calleeCandidates") => {
+      iceList = ice;
       pc = new RTCPeerConnection({ iceServers: ice });
       pcRef.current = pc;
+      sink = candidateSink(pc);
       local.current!.getTracks().forEach((t) => pc!.addTrack(t, local.current!));
       pc.ontrack = (e) => {
         const s = e.streams[0];
@@ -210,14 +228,23 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       pc.onconnectionstatechange = () => {
         const st = pc?.connectionState;
         if (st === "connected") {
-          clearTimeout(dropTimer);
-          const mineFp = sdpFingerprint(pc?.localDescription?.sdp), theirFp = sdpFingerprint(pc?.remoteDescription?.sdp);
-          if (mineFp && theirFp) safetyCode(mineFp, theirFp).then(setCode).catch(() => {});
+          recode();
           setPhase((p) => { if (p !== "live") { const t0 = Date.now(); clearInterval(tick); tick = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 1000); } return "live"; });
-        } else if (st === "disconnected") {
-          clearTimeout(dropTimer);
-          dropTimer = setTimeout(() => end("ended", "The call dropped."), 10_000);
-        } else if (st === "failed") end("failed", "The call couldn't connect.");
+          // Once connected, a drop is recovered (lib/ice-recovery.ts): the caller restarts ICE, the person called answers; the relay
+          // is forced only when direct restarts fail, and the call ends only when nothing works (under 30 seconds).
+          if (!everConnected && pc) {
+            everConnected = true;
+            recovery = watchRecovery({
+              pc, me: auth.currentUser?.uid ?? active.role, drives: active.role === "caller",
+              canRelay: () => hasTurn(iceList),
+              freshIce: async () => { const r = await api<{ iceServers: Ice }>("/api/calls"); iceList = r.iceServers; return r.iceServers; },
+              sendOffer: (r) => updateDoc(doc(db, "calls", id), { restart: r }),
+              sendAnswer: (a) => updateDoc(doc(db, "calls", id), { restartAnswer: a }),
+              flush, onReconnecting: setReconnecting, onRecovered: recode,
+              onGiveUp: () => end("ended", "The call dropped."),
+            });
+          }
+        } else if (st === "failed" && !everConnected) end("failed", "The call couldn't connect.");
       };
       unsubs.push(onSnapshot(collection(db, "calls", id, theirs), (snap) => snap.docChanges().forEach((ch) => { if (ch.type === "added") void addRemote(ch.doc.data() as RTCIceCandidateInit); })));
       unsubs.push(onSnapshot(doc(db, "calls", id), async (snap) => {
@@ -230,7 +257,7 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
           setPhase("connecting");
           await pc.setRemoteDescription(c.answer as RTCSessionDescriptionInit).catch(() => end("failed", "The call couldn't connect."));
           await flush();
-        }
+        } else if (c.status === "accepted") await recovery?.onSignal(c.restart, c.restartAnswer);
       }));
     };
 
@@ -325,7 +352,8 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       setSharing(true); tell(true);
     } catch { /* they closed the picker */ }
   }, [sharing, stopShare, tell]);
-  const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…" : phase === "live" ? duration(secs) : note || "Call ended";
+  const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…"
+    : phase === "live" ? (reconnecting ? "Reconnecting…" : hint || duration(secs)) : note || "Call ended";
 
   return (
     <CallStage kind={kind} name={name} avatar={avatar} status={status} live={phase === "live"} over={phase === "over"}
