@@ -724,7 +724,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `components/anya/AnyaHeroCarousel.tsx`: a dissolve every 5.5 s, paused on hover or focus, model buttons underneath, and no
     auto-advance with reduced motion. Nana and Audio use the same product photo with the camera removed and tinted lenses (blue,
     dark). Anya Nana also has AI real-time translation (139 languages), with Nana as a companion.
-    Anya Nana comes with a tan leather charging case (`public/anya/anya-nana-case.webp`, the supplier's photo without its heading).
+    Each model's case is in the "In the box" section: Display's battery-display case (`anya-display-case.webp`, the owner's photo),
+    Nana's tan leather case and Audio's black leather pouch (`anya-nana-case.webp`, `anya-audio-case.webp`: the supplier's photos with
+    the glasses removed, since those frames have cameras).
 
 ## 3. How the work is done (please keep these)
 

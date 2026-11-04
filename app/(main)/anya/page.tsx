@@ -39,6 +39,7 @@ const MODELS: Model[] = [
       "1080p HD video from the side camera",
       "A teleprompter in the lens",
       "Music playback",
+      "A charging case with a battery display",
     ],
     tone: "from-crimson to-crimson-bright",
   },
@@ -46,16 +47,29 @@ const MODELS: Model[] = [
     name: "Nana",
     line: "Your AI companion, hands-free.",
     about: "Nana, the AI from #NotesApp, as your companion in your ear. Ask anything, hear the answer, and understand people in 139 languages without taking out your phone.",
-    points: ["Nana AI as your companion", "AI real-time translation in 139 languages", "Hands-free calls", "Music playback", "Control from the NotesApp app", "A leather charging case"],
+    points: ["Nana AI as your companion", "AI real-time translation in 139 languages", "Hands-free calls", "Music playback", "Control from the NotesApp app", "A tan leather charging case"],
     tone: "from-[#1B2A6B] to-[#2E49B8]",
   },
   {
     name: "Audio",
     line: "Listen. Talk. Connect.",
     about: "Open-ear audio glasses for music, podcasts and calls, with no AI. Simple, light and private.",
-    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "No AI, no camera"],
+    points: ["Music and podcasts", "Hands-free calls", "Open-ear speakers", "Controls on the arm", "A black leather charging pouch", "No AI, no camera"],
     tone: "from-[#3A0A18] to-crimson",
   },
+];
+
+// The case that comes with each pair. Nana's and Audio's pictures have the supplier's glasses taken out (those frames have cameras).
+const CASES = [
+  { model: "Display", title: "Charging case with a battery display", accent: "#A6093D", src: "/anya/anya-display-case.webp", bg: "bg-[#E4E4E4]", fit: "object-cover",
+    alt: "Anya Display smart glasses above their black leather charging case, which shows the battery level on a round display on the front",
+    points: ["Shows the battery level on the front", "Charges your glasses while they're stored", "Black textured leather"] },
+  { model: "Nana", title: "Tan leather charging case", accent: "#2E49B8", src: "/anya/anya-nana-case.webp", bg: "bg-[#EDE9E6]", fit: "object-cover",
+    alt: "Anya Nana's open tan leather charging case",
+    points: ["Charges your glasses while they're stored", "Soft, textured tan leather", "Protects the lenses on the go"] },
+  { model: "Audio", title: "Black leather charging pouch", accent: "#7A0328", src: "/anya/anya-audio-case.webp", bg: "bg-black", fit: "object-contain p-4",
+    alt: "Anya Audio's black leather charging pouch, open, with a snap fastener on the flap and a light on the front",
+    points: ["Charges your glasses while they're stored", "Snap-fastened leather flap", "A light on the front"] },
 ];
 
 // What each model has. true / false only: nothing here that hasn't been decided.
@@ -70,6 +84,7 @@ const COMPARE: [string, boolean, boolean, boolean][] = [
   ["1080p HD video", true, false, false],
   ["Teleprompter", true, false, false],
   ["Music playback", true, true, true],
+  ["Charging case included", true, true, true],
 ];
 
 const USES = [
@@ -157,24 +172,28 @@ export default function AnyaPage() {
         </div>
       </section>
 
-      {/* In the box: Anya Nana's charging case. */}
+      {/* In the box: every pair comes with its own case. */}
       <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-10 overflow-hidden rounded-3xl border border-rule bg-card md:grid-cols-[1fr,1.1fr]">
-          <div className="p-8 sm:p-12">
-            <p className="eyebrow !text-[#2E49B8]">Anya Nana · In the box</p>
-            <h2 className="mt-2 font-display text-4xl text-ink">A charging case that travels in style</h2>
-            <p className="mt-4 text-slate">
-              Anya Nana comes with its own charging case, made from leather with a soft, textured finish. Put your glasses away and they charge; take them out and they&apos;re ready. It protects them in your bag, and it looks good on the table too.
-            </p>
-            <ul className="mt-5 space-y-2 text-sm text-ink">
-              {["Charges your glasses while they're stored", "Textured leather finish", "Protects the lenses on the go"].map((p) => (
-                <li key={p} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-crimson" aria-hidden />{p}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="relative h-full min-h-[26rem] md:min-h-[34rem]">
-            <Image src="/anya/anya-nana-case.webp" alt="Anya Nana smart glasses resting in their open tan leather charging case, with the lid above" fill sizes="(min-width: 768px) 560px, 100vw" className="object-cover" />
-          </div>
+        <p className="eyebrow">In the box</p>
+        <h2 className="mt-2 font-display text-4xl text-ink">Every pair comes with its own case</h2>
+        <p className="mt-3 max-w-2xl text-slate">Put your glasses away and they charge; take them out and they&apos;re ready. Each case protects them in your bag and looks good on the table.</p>
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
+          {CASES.map((c) => (
+            <article key={c.model} className="flex flex-col overflow-hidden rounded-3xl border border-rule bg-card shadow-sm">
+              <div className={`relative aspect-[4/3.4] ${c.bg}`}>
+                <Image src={c.src} alt={c.alt} fill sizes="(min-width: 768px) 360px, 100vw" className={c.fit} />
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <p className="font-mono text-[11px] uppercase tracking-eyebrow" style={{ color: c.accent }}>Anya {c.model}</p>
+                <h3 className="mt-1 font-display text-2xl text-ink">{c.title}</h3>
+                <ul className="mt-3 space-y-1.5 text-sm text-ink">
+                  {c.points.map((p) => (
+                    <li key={p} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c.accent }} aria-hidden />{p}</li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
