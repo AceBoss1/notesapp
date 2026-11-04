@@ -15,6 +15,9 @@ import type { LiveHand } from "./live-rooms";
 import { CHALLENGE_POSTER, POSTER_FOLDER, canPullVideo, canVideo, type HostLive, type PosterSource } from "./rooms-live";
 import { closeLive, enforceVideoBudget, hostLive, markVideoOff, markVideoOn, noteListenerSample, stopVideo, videoBudgetLeft } from "./rooms-live-server";
 import { r2PublicUrl } from "./r2";
+import { liveSettingsWithPass, staffListenerCap } from "./staff-pass";
+import { hasStaffPass, roomOnPass } from "./staff-pass-server";
+import { liveEntrance } from "./fans-server";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -52,6 +55,20 @@ async function noteRelay(db: Firestore, why: string | null, now = new Date()) {
 }
 export type RoomDeps = { relay: () => RelayClient; recording?: RecordingDeps };
 const defaultDeps: RoomDeps = { relay: () => relayClient() };
+
+// The staff test pass (lib/staff-pass.ts): a room opened under it has no video-minutes budget while the pass stays on. Everything else in
+// the settings (Live mode's switch, the video quality, the prompts' timings) is unchanged.
+async function liveSettingsFor(db: Firestore, r: Pick<RoomDoc, "staffPass">, now: Date, s?: RoomSettings): Promise<{ s: RoomSettings; pass: boolean }> {
+  const base = s ?? (await getRoomSettings(db));
+  const pass = await roomOnPass(db, r, now);
+  return { s: liveSettingsWithPass(base, pass), pass };
+}
+// The host's minutes and prompt, marked when the room is on the pass (their screen says so instead of counting down).
+async function hostLiveFor(db: Firestore, roomId: string, r: Pick<RoomDoc, "staffPass">, relay: () => RelayClient, now: Date, s?: RoomSettings): Promise<HostLive> {
+  const live = await liveSettingsFor(db, r, now, s);
+  const h = await hostLive(db, roomId, live.s, relay, now);
+  return live.pass ? { ...h, staffPass: true } : h;
+}
 
 
 async function person(db: Firestore, uid: string) {
@@ -135,6 +152,8 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const at = now.toISOString();
   const settings = await getRoomSettings(db);
+  // A #NotesApp team member on the staff test pass (lib/staff-pass.ts): the room skips the listener cap and the video budget while it's on.
+  const staffPass = await hasStaffPass(db, uid, now);
   let mode = chooseRoomMode(settings, relayConfigured()), note: string | undefined;
   if (mode === "relay") {
     try { await deps.relay().newSession(); await noteRelay(db, null, now); }
@@ -143,16 +162,16 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
       console.warn("[rooms] relay unavailable at room start:", why);
       await noteRelay(db, why, now);
       mode = "p2p";
-      note = `The relay isn't answering right now, so this room runs phone to phone: up to ${listenerCap("p2p", settings).toLocaleString("en-GB")} listeners.`;
+      note = `The relay isn't answering right now, so this room runs phone to phone: up to ${(staffPass ? staffListenerCap("p2p") : listenerCap("p2p", settings)).toLocaleString("en-GB")} listeners.`;
     }
   }
-  const rec = await recordingPlan(db, uid, opts.record, mode === "relay");
+  const rec = await recordingPlan(db, uid, opts.record, mode === "relay", staffPass);
   if (rec.note) note = note ? `${note} ${rec.note}` : rec.note;
   const r: RoomDoc = {
     ...(rec.state ? { recording: rec.state, consent: { [uid]: at } } : {}),
     cid: c.id, communityName: c.name, title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
     ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {}, videoOn: {}, stageVideo: false, ...(liveRoomsOn() ? { edge: true } : {}) } : {}), ...(note ? { note } : {}),
-    ...(posterUrl ? { poster: posterUrl } : {}), ...host,
+    ...(posterUrl ? { poster: posterUrl } : {}), ...host, ...(staffPass ? { staffPass: true } : {}),
   };
   await db.doc(`communityRooms/${id}`).set(r);
   // The live-rooms worker: the room's settings and where to send its chat's record (the room still works through Firestore if this fails).
@@ -162,15 +181,18 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
 }
 
 // Joining: the listener cap is the room's mode's setting, read now (lib/rooms.ts listenerCap); someone already in (a reload) always gets back in.
+// The staff test pass (lib/staff-pass.ts): a team member on it, or anyone joining a room opened under it, meets only the hard ceiling.
 export async function joinRoom(db: Firestore, uid: string, id: unknown, now = new Date()): Promise<{ ok: true; mode: RoomMode; cap: number }> {
   const { ref, r } = await roomOf(db, id);
   if (!(await roleIn(db, r.cid, uid))) throw new CommunityError(403, "Rooms are for the community's members.");
   const me = await person(db, uid);
   const settings = await getRoomSettings(db);
+  const passCap = (await roomOnPass(db, r, now)) || (await hasStaffPass(db, uid, now));
+  const capFor = (m: RoomMode) => (passCap ? staffListenerCap(m) : listenerCap(m, settings));
   if (r.mode === "relay") {
     // On the relay a listener's presence is their own people doc, so joining never writes the room doc (except to refresh the count).
     if (r.status !== "live" || !presentIn(r, now.getTime()).includes(r.hostUid)) throw new CommunityError(410, "The room has ended.");
-    const cap = listenerCap("relay", settings);
+    const cap = capFor("relay");
     const at = now.toISOString();
     if (r.joined[uid]) { await ref.update({ [`joined.${uid}.seen`]: at }); return { ok: true, mode: "relay", cap }; } // the stage, reloading
     const pref = peopleOf(ref).doc(uid);
@@ -181,20 +203,31 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     // those who joined in the last minute, still connecting: whichever is higher).
     const edgeN = r.edge ? edgeCount(await readEdgeState(db, ref.id), now.getTime()) : null;
     if (!listenerPresent(before, r, now.getTime()) && Math.max(await activeListeners(ref, now), edgeN ?? 0) >= cap) throw new CommunityError(409, roomFullText(cap));
+    const arriving = !listenerPresent(before, r, now.getTime());
     await pref.set({ ...me, at: before?.at ?? at, seen: at, ...(before?.chatAt ? { chatAt: before.chatAt } : {}), ...(before?.edgeIn ? { edgeIn: true } : {}) } satisfies RoomPersonDoc);
     await recount(db, ref.id, now).catch(() => null);
+    if (arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
     return { ok: true, mode: "relay", cap };
   }
-  return db.runTransaction(async (t) => {
+  const res = await db.runTransaction(async (t) => {
     const cur = (await t.get(ref)).data() as RoomDoc;
     if (cur.status !== "live" || !presentIn(cur, now.getTime()).includes(cur.hostUid)) throw new CommunityError(410, "The room has ended.");
     const mode: RoomMode = "p2p";
-    const cap = listenerCap(mode, settings);
+    const cap = capFor(mode);
     if (!cur.joined[uid] && roomIsFull(cur, cap, now.getTime())) throw new CommunityError(409, roomFullText(cap));
     const at = now.toISOString();
     t.update(ref, { [`joined.${uid}`]: { ...me, at, seen: at }, peak: Math.max(cur.peak ?? 1, presentIn(cur, now.getTime()).length + 1) });
-    return { ok: true as const, mode, cap };
+    return { ok: true as const, mode, cap, arriving: !cur.joined[uid] };
   });
+  if (res.arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
+  return { ok: true, mode: res.mode, cap: res.cap };
+}
+
+// A top-three fan of the host arriving or leaving (lib/fans.ts live entrances): the room doc's `entrance` field, which everyone in the room
+// already reads, plays the vehicle and the banner on every screen. Only the latest is kept. Never blocks joining or leaving.
+async function announceEntrance(db: Firestore, ref: FirebaseFirestore.DocumentReference, hostUid: string, uid: string, way: "in" | "out", now: Date) {
+  const e = await liveEntrance(db, hostUid, uid, way, now).catch(() => null);
+  if (e) await ref.update({ entrance: e }).catch(() => {});
 }
 
 export async function beatRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ live: boolean; host?: HostLive; hands?: Record<string, LiveHand> }> {
@@ -216,9 +249,9 @@ export async function beatRoom(db: Firestore, uid: string, id: unknown, now = ne
   // On the live-rooms worker the host also gets the raised hands it reported (so they still show if the host's socket is down).
   if (r.mode === "relay" && uid === r.hostUid) {
     const hands = r.edge ? (await readEdgeState(db, ref.id)).hands : undefined;
-    return { live: true, host: await hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now), ...(hands && Object.keys(hands).length ? { hands } : {}) };
+    return { live: true, host: await hostLiveFor(db, ref.id, r, deps.relay, now), ...(hands && Object.keys(hands).length ? { hands } : {}) };
   }
-  if (r.mode === "relay" && r.videoOn?.[uid]) await enforceVideoBudget(db, ref.id, await getRoomSettings(db), deps.relay, now).catch(() => null);
+  if (r.mode === "relay" && r.videoOn?.[uid]) await enforceVideoBudget(db, ref.id, (await liveSettingsFor(db, r, now)).s, deps.relay, now).catch(() => null);
   return { live: true };
 }
 
@@ -238,6 +271,7 @@ export async function leaveRoom(db: Firestore, uid: string, id: unknown, now = n
     await peopleOf(ref).doc(uid).delete().catch(() => {});
     await recount(db, ref.id, now).catch(() => null);
   }
+  await announceEntrance(db, ref, r.hostUid, uid, "out", now);
   return { ended: false };
 }
 
@@ -490,19 +524,20 @@ export async function relayStep(db: Firestore, uid: string, id: unknown, body: R
         const mid = String(body.mid ?? "").slice(0, 32);
         if (!offer || !mid) throw new CommunityError(400, "The camera's offer is missing.");
         // The budget is checked before Cloudflare hears of it, and again (atomically) when the camera is marked up below.
-        await videoBudgetLeft(db, ref.id, uid, settings, now);
+        const budget = (await liveSettingsFor(db, r, now, settings)).s; // no budget on the staff test pass
+        await videoBudgetLeft(db, ref.id, uid, budget, now);
         const sessionId = await session();
         const trackName = `${uid.slice(0, 40)}-cam-${now.getTime().toString(36)}`;
         const res = await relay.push(sessionId, offer, [{ mid, trackName }]);
         await mineRef.set({ video: { trackName, mid } }, { merge: true });
-        try { await markVideoOn(db, ref.id, uid, settings, now); }
+        try { await markVideoOn(db, ref.id, uid, budget, now); }
         catch (e) { await stopVideo(db, ref.id, uid, deps.relay, now).catch(() => {}); throw e; }
         await noteRelay(db, null, now);
-        return { answer: res.answer, ...(uid === r.hostUid ? { host: await hostLive(db, ref.id, settings, deps.relay, now) } : {}) };
+        return { answer: res.answer, ...(uid === r.hostUid ? { host: await hostLiveFor(db, ref.id, r, deps.relay, now, settings) } : {}) };
       }
       case "unvideo": {
         await stopVideo(db, ref.id, uid, deps.relay, now);
-        return { ok: true, ...(uid === r.hostUid ? { host: await hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now) } : {}) };
+        return { ok: true, ...(uid === r.hostUid ? { host: await hostLiveFor(db, ref.id, r, deps.relay, now) } : {}) };
       }
       case "answer": {
         const answer = cleanSdp(body.answer, "answer");
@@ -595,7 +630,7 @@ export async function roomLiveStatus(db: Firestore, uid: string, id: unknown, no
   const { ref, r } = await roomOf(db, id);
   if (r.mode !== "relay") throw new CommunityError(409, "Video needs a room on the relay.");
   if (uid !== r.hostUid) throw new CommunityError(403, "Only the host sees the video minutes.");
-  return hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now);
+  return hostLiveFor(db, ref.id, r, deps.relay, now);
 }
 // The sender's limits for a relay room's cameras (sent on join), from the settings.
 export async function liveVideoConfig(db: Firestore): Promise<{ on: boolean; kbps: number; fps: number; height: number }> {

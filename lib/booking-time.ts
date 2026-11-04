@@ -40,11 +40,15 @@ export type PublisherSettings = {
     minutes: number;
     availability: Availability;
   };
+  // enabled/priceKobo/planCode: Premium, kept for older readers. tiers: Premium, VIP and VVIP (lib/fans.ts tierOffers).
   subscription: {
     enabled: boolean;
     priceKobo: number;
     planCode?: string;
+    tiers?: Partial<Record<"premium" | "vip" | "vvip", { enabled: boolean; priceKobo: number; planCode?: string }>>;
   };
+  // The creator hid their Top fans list (badges still show; lib/fans-server.ts).
+  fansHidden?: boolean;
   // Gifts are on by default once a payout account exists; publishers can switch them off.
   gifts?: { enabled: boolean };
   // Set by the payout-account route once a verified bank account exists,

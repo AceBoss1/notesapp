@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
-import { downloadPicture } from "@/lib/media-server";
+import { downloadPicture, downloadVideo } from "@/lib/media-server";
 import { mediaDeps, mediaFail, mediaViewer } from "@/lib/media-api";
 import { watermarkPicture } from "@/lib/media-watermark";
 
@@ -10,11 +10,17 @@ export const runtime = "nodejs";
 
 // GET ?i=<picture number from 0> → that picture as a JPEG stamped with @username and the NotesApp mark, when the creator allowed
 // downloads and the viewer can see the post. Never the original file, and never a teen's.
+// GET ?video=1 → { url, filename }: an hour-long signed link to the video's watermarked download copy (lib/media-video-dl.ts), same rules;
+// 409 while the copy is still being made.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const viewer = await mediaViewer(req);
     const limited = await rateLimit(req, "media-download", viewer?.uid ?? clientIp(req), 30, 600);
     if (limited) return limited;
+    if (req.nextUrl.searchParams.get("video") === "1") {
+      const v = await downloadVideo(getAdminDb(), viewer, params.id, mediaDeps());
+      return NextResponse.json(v, { headers: { "Cache-Control": "private, no-store" } });
+    }
     const i = Number(req.nextUrl.searchParams.get("i") ?? 0);
     const out = await downloadPicture(getAdminDb(), viewer, params.id, i, mediaDeps(), watermarkPicture);
     return new NextResponse(new Uint8Array(out.bytes), {

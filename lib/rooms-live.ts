@@ -139,4 +139,5 @@ export function promptFresh(st: LiveState, k: LivePromptKind, s: Pick<RoomSettin
 }
 
 // What the host sees: minutes left and the prompt (kept on screen until the next one or until they act).
-export type HostLive = { budgetMinutes: number; minutesLeft: number; videoOn: boolean; prompt: LivePrompt | null; graceUntil: string | null };
+// staffPass: the room is on the staff test pass (lib/staff-pass.ts), so its video minutes aren't counted against a budget.
+export type HostLive = { budgetMinutes: number; minutesLeft: number; videoOn: boolean; prompt: LivePrompt | null; graceUntil: string | null; staffPass?: true };

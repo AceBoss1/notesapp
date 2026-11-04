@@ -3,14 +3,16 @@ import { verifyCheckoutPayment } from "./paylony";
 import { readVerify } from "./cardtap-topup";
 import { emitWebhook } from "./webhooks";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
-import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
+import { slotLockId, verifyTransaction, pricePaidKobo, disableSubscription } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { ensurePricing } from "./pricing-server";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { notifyBell, sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
-import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
+import { periodEndFrom, cancelBadgeIfCovered, findPaystackSubscription } from "./tier-billing";
+import { tierOf, tierRate, type SubTier } from "./fans";
+import { addFanPoints, getFanSettings } from "./fans-server";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
@@ -47,7 +49,7 @@ export type PaymentRecord = {
   publisherUsername: string;
   commissionRate: number; // NotesApp's cut, 0–1, fixed at checkout time
   booking?: { username: string; date: string; slot: string; minutes: number };
-  subscription?: { username: string; planCode: string };
+  subscription?: { username: string; planCode: string; tier?: SubTier }; // tier: lib/fans.ts (Premium when missing)
   boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
   // referralFirst: a referred friend's first plan (lib/referrals.ts firstPeriodOffer): the card check or the year less a month now,
   // and the plan's subscription started on Paystack for the end of that first period.
@@ -287,6 +289,8 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     const codeRead = await readCodeForRedemption(t, db, current.discount);
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
     const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
+    // A subscription replaces the subscriber's record with this creator (a tier change carries the days left over).
+    const subPrev = current.kind === "subscription" && current.subscription ? (await t.get(db.doc(`subscriptions/${current.uid}_${current.subscription.username}`))).data() : undefined;
 
     if (current.kind === "booking" && current.booking) {
       const { username, date, slot, minutes } = current.booking;
@@ -594,14 +598,18 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     } else if (current.kind === "subscription" && current.subscription) {
       const { username, planCode } = current.subscription;
       const subRef = db.doc(`subscriptions/${current.uid}_${username}`);
+      // Changing tier: the new tier starts now and the days left on the old one are added on (subPrev is read before any write).
+      const left = subPrev && subPrev.currentPeriodEnd ? Math.max(0, Date.parse(String(subPrev.currentPeriodEnd)) - Date.now()) : 0;
       t.set(subRef, {
         subscriberUid: current.uid,
         subscriberEmail: current.email,
         username,
         planCode,
+        tier: tierOf(current.subscription),
         status: "active",
-        subscribedAt: now,
-        currentPeriodEnd: new Date(Date.now() + PERIOD_DAYS * 86_400_000).toISOString(),
+        subscribedAt: subPrev?.subscribedAt ?? now,
+        currentPeriodEnd: new Date(Date.now() + left + PERIOD_DAYS * 86_400_000).toISOString(),
+        ...(subPrev?.planCode && subPrev.planCode !== planCode ? { previousPlanCode: String(subPrev.planCode) } : {}),
       });
       const hold = new Date(Date.now() + SUBSCRIPTION_HOLD_DAYS * 86_400_000);
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, hold, now));
@@ -613,6 +621,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
 
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
+    await afterFanPayment(db, result.payment).catch((e) => console.error("fan points failed", e));
     await emitSaleWebhooks(result.payment);
     if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));
     if (result.payment.affiliate) await alertIfJump(db, result.payment.affiliate.uid).catch(() => false);
@@ -682,8 +691,9 @@ export async function fulfillRenewal(data: {
     status: "paid",
     publisherUid,
     publisherUsername: sub.username,
-    commissionRate: commissionRateFor((user?.accountTier as AccountTier) || "basic", user?.customRates),
-    subscription: { username: sub.username, planCode },
+    // The tier's share of the rate (lib/fans.ts), as on the first payment.
+    commissionRate: tierRate(commissionRateFor((user?.accountTier as AccountTier) || "basic", user?.customRates), tierOf(sub), await getFanSettings(db)),
+    subscription: { username: sub.username, planCode, tier: tierOf(sub) },
     createdAt: now.toISOString(),
     paidAt: now.toISOString(),
   };
@@ -698,6 +708,21 @@ export async function fulfillRenewal(data: {
     ledgerFor(payment, pricePaidKobo(tx), new Date(now.getTime() + SUBSCRIPTION_HOLD_DAYS * 86_400_000), now.toISOString())
   );
   await batch.commit();
+  await addFanPoints(db, publisherUid, sub.subscriberUid, { kobo: pricePaidKobo(tx) }).catch((e) => console.error("fan points failed", e));
+}
+
+// After a payment: fan points for subscriptions and gifts (1 per ₦100 to the creator), and a tier change stops the old tier's
+// Paystack subscription so the fan isn't charged twice (best effort: a renewal of the old plan still finds the record by planCode).
+async function afterFanPayment(db: FirebaseFirestore.Firestore, p: PaymentRecord) {
+  if ((p.kind === "subscription" || p.kind === "gift") && p.publisherUid) await addFanPoints(db, p.publisherUid, p.uid, { kobo: p.amountKobo });
+  if (p.kind === "subscription" && p.subscription) {
+    const s = (await db.doc(`subscriptions/${p.uid}_${p.subscription.username}`).get()).data();
+    const old = s?.previousPlanCode ? String(s.previousPlanCode) : "";
+    if (old && old !== p.subscription.planCode) {
+      const hit = await findPaystackSubscription(p.email, old).catch(() => null);
+      if (hit) await disableSubscription(hit.code, hit.token).catch((e) => console.error("old tier not stopped", e));
+    }
+  }
 }
 
 export async function markSubscriptionCancelled(planCode: string, email: string): Promise<void> {

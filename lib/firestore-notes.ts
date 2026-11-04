@@ -66,6 +66,7 @@ export type Note = {
   // the entry behind a subscription to its author's journal.
   offerSwahili?: boolean; // the author offers it in Kiswahili (NKENNEAi): readers get 🌍 Kiswahili and 🔊 Sikiliza
   premium?: boolean;
+  minTier?: "premium" | "vip" | "vvip"; // the lowest subscriber tier that can read it (lib/fans.ts); Premium when only premium is set
   // One optional video per post, uploaded through /api/video and verified there; firestore.rules only let a post
   // point at a video the same member uploaded. Not available on premium posts.
   videoId?: string;

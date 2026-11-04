@@ -59,12 +59,17 @@ export type RoomDoc = {
   // Relay rooms opened while the live-rooms worker is on (v0.127.0, lib/live-rooms.ts): the chat, the live count, raised hands and stage
   // signals go over a WebSocket to the room's Durable Object; edgeAt is when the worker last reported the count (it then sets listening).
   edge?: boolean; edgeAt?: string;
+  // A top-three fan of the host arriving or leaving (lib/fans-server.ts liveEntrance): the latest one, played on every screen.
+  entrance?: import("./fans").Entrance;
   // Live mode (lib/rooms-live.ts), relay rooms: whose camera is up now (uid → when it went up; a new time means "pull it again"),
   // whether the host lets speakers turn video on, and the poster everyone sees while video is off (a picture URL, never video).
   // Server-written, like the rest of the room. videoUsedMs: the video minutes this live used, written when it ends (for replays, 2c).
   videoOn?: Record<string, string>; stageVideo?: boolean; poster?: string; videoUsedMs?: number;
   // The host's @username and whether they take paid sessions (publisherSettings session.enabled), so "Book a session" stays in view.
   hostUsername?: string; hostBooks?: boolean;
+  // Opened by a #NotesApp team member while the staff test pass was on (lib/staff-pass.ts): no listener cap below the hard ceiling and no
+  // video-minutes budget, for as long as the pass stays on.
+  staffPass?: boolean;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 // edgeIn (v0.127.0): in a room on the live-rooms worker, the worker last reported this listener connected (they don't heartbeat there).

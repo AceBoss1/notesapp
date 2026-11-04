@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import LinkedText from "@/components/LinkedText";
-import { compact, mediaDuration, VIDEO_DOWNLOADS_SOON, type MediaPostView } from "@/lib/media-rules";
-import { downloadMediaPicture, mediaApi } from "@/lib/media-client";
+import { compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
+import { VIDEO_DL_PREPARING } from "@/lib/media-video-dl";
+import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-client";
 import { Icon, Pattern } from "./MediaTile";
 
 // One item on a creator's Media, full screen: a post (pictures you swipe through with ‹ ›, or a video on Cloudflare Stream's player), a
@@ -33,7 +34,10 @@ export default function MediaViewer({ item, username, onClose }: { item: ViewerI
   const download = async () => {
     if (!post) return;
     setBusy(true); setNote(null);
-    try { await downloadMediaPicture(post.id, i); setNote("Saved, with @" + username + " and the NotesApp mark on it."); }
+    try {
+      if (post.kind === "video") { await downloadMediaVideo(post.id); setNote("Downloading, with a see-through @" + username + " and NotesApp mark on it."); }
+      else { await downloadMediaPicture(post.id, i); setNote("Saved, with @" + username + " and the NotesApp mark on it."); }
+    }
     catch (e) { setNote(e instanceof Error ? e.message : "Couldn't download it."); }
     finally { setBusy(false); }
   };
@@ -74,9 +78,11 @@ export default function MediaViewer({ item, username, onClose }: { item: ViewerI
                 <span>♫ {post.sound}</span>
                 <span>{new Date(post.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</span>
               </p>
-              {post.allowDownloads && (post.kind === "pictures" ? (
+              {/* Pictures: stamped as they're downloaded. A video: only once its watermarked copy is ready (the creator also sees it being made). */}
+              {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? (
                 <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download (watermarked)"}</button>
-              ) : <p className="text-xs text-white/60">{VIDEO_DOWNLOADS_SOON}</p>)}
+              ) : post.mine && post.videoDownload === "preparing" ? <p className="text-xs text-white/60">{VIDEO_DL_PREPARING}</p>
+                : post.mine && post.videoDownload === "failed" ? <p className="text-xs text-amber-300">{post.videoDownloadWhy || "The download copy couldn't be made."}</p> : null)}
             </>
           ) : item.type === "pictures" ? (
             <p className="text-sm text-white/80">{item.title}{item.note ? <span className="text-white/60"> · {item.note}</span> : null}</p>

@@ -762,7 +762,7 @@ test("Media is API-only: posts, uploads, usage and settings are never read or wr
     await setDoc(doc(d, "mediaSettings/pub"), { uid: "pub", hideAllSite: false, hiddenSite: [] });
   });
   for (const ctx of [as("pub"), as("alice"), anon()]) {
-    for (const path of ["mediaPosts/p1", "mediaPosts/p1/views/alice", "mediaUploads/u1", "mediaUsage/pub", "mediaSettings/pub"]) await assertFails(getDoc(doc(ctx, path)));
+    for (const path of ["mediaPosts/p1", "mediaPosts/p1/views/alice", "mediaUploads/u1", "mediaUsage/pub", "mediaSettings/pub", "mediaWatermarks/pub"]) await assertFails(getDoc(doc(ctx, path)));
     await assertFails(getDocs(query(collection(ctx, "mediaPosts"), where("ownerUid", "==", "pub"))));
   }
   await assertFails(setDoc(doc(as("pub"), "mediaPosts/p2"), { ownerUid: "pub", kind: "pictures", audience: "everyone", status: "ready" }));
@@ -945,7 +945,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1162,7 +1162,7 @@ test("audio rooms on the relay: Cloudflare sessions, the room settings and the r
   await assertFails(deleteDoc(doc(h, "communityRooms/r2/relay/host")));
   await assertFails(updateDoc(doc(s, "communityRooms/r2"), { [`published.spk`]: "t" })); // only the server marks someone as sending
   await assertFails(updateDoc(doc(h, "communityRooms/r2"), { mode: "p2p" }));
-  for (const path of ["serverConfig/rooms", "serverConfig/roomsRelay"]) {
+  for (const path of ["serverConfig/rooms", "serverConfig/roomsRelay", "serverConfig/staffPass"]) {
     await assertFails(getDoc(doc(boss, path)));
     await assertFails(setDoc(doc(boss, path), { overrides: {} }));
   }
@@ -1546,4 +1546,21 @@ test("passkeys and their challenges are server-only, even for the passkey's owne
     await assertFails(getDoc(doc(db, "passkeyChallenges/c1")));
     await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
   }
+});
+
+test("fan levels: points and vehicle picks are server-only; a subscription's tier can't be set from the browser", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "fanScores/pub_alice"), { creatorUid: "pub", fanUid: "alice", points: 250, day: "2026-11-03", dayCounts: {} });
+    await setDoc(doc(d, "fanPrefs/alice"), { vehicles: { 1: "jet" } });
+  });
+  for (const who of ["alice", "pub"]) {
+    await assertFails(getDoc(doc(as(who), "fanScores/pub_alice")));
+    await assertFails(setDoc(doc(as(who), "fanScores/pub_alice"), { points: 999999 }));
+    await assertFails(getDoc(doc(as(who), "fanPrefs/alice")));
+    await assertFails(setDoc(doc(as(who), "fanPrefs/alice"), { vehicles: { 1: "yacht" } }));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "fanScores"), where("creatorUid", "==", "pub"))));
+  await assertFails(setDoc(doc(as("alice"), "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active", tier: "vvip" }));
+  await assertFails(getDoc(doc(anon(), "fanScores/pub_alice")));
 });
