@@ -12,11 +12,11 @@ the help and public pages read the live value, never a figure typed into them (`
 | Piece | Where | Used for |
 |---|---|---|
 | Audio rooms with video (Live mode), poster, video-minutes budget | `lib/rooms*.ts`, `lib/rooms-live*.ts` | Every live: free, paid and pay-per-minute |
-| Cloudflare relay (SFU) for rooms, TURN for calls | `lib/rooms-relay-server.ts`, `lib/calls-server.ts` | Lives at scale; the session notetaker (P4) |
-| Live chat on a Durable Object, listener counts, `listenTime` | `workers/live-rooms`, `lib/live-rooms*.ts` | Who is present (drops, sprinkles, the 20-minute late window) |
-| Recording with consent, replays on Stream | `lib/live-recording*.ts`, `services/room-recorder` | The recording choice on a paid live; the notetaker's audio |
-| Pluggable transcriber, Nana summary | `Transcriber` in `lib/live-recording-server.ts` | Notetaker transcripts and summaries |
-| Animated gifts, VIP gifts, sitewide burst, uplift on commission | `lib/gift-catalogue.ts`, `lib/gifts-server.ts` | Gifting everywhere, the drops (P3) |
+| Cloudflare relay (SFU) for rooms, TURN for calls | `lib/rooms-relay-server.ts`, `lib/calls-server.ts` | Lives at scale; the fallback for Nana minutes (P4) |
+| Live chat on a Durable Object, listener counts, `listenTime` | `workers/live-rooms`, `lib/live-rooms*.ts` | Who is present (sprints, sprinkles, the 20-minute late window) |
+| Recording with consent, replays on Stream | `lib/live-recording*.ts`, `services/room-recorder` | The recording choice on a paid live; the fallback recorder for Nana minutes |
+| Pluggable transcriber, Nana summary | `Transcriber` in `lib/live-recording-server.ts` | Nana minutes: transcripts and summaries |
+| Animated gifts, VIP gifts, sitewide burst, uplift on commission | `lib/gift-catalogue.ts`, `lib/gifts-server.ts` | Gifting everywhere, sprint prizes (P3) |
 | Event tickets with reminders | `lib/tickets*.ts`, `lib/events-server.ts` | Paid-live tickets and their reminders |
 | Bookings, paid sessions, `PAYOUT_HOLD_HOURS` (24 h problem window) | `lib/bookings-server.ts`, `lib/cancellation.ts` | Pay-per-minute sessions |
 | NotesApp Credit, bonus credits (`BONUS_KINDS`) | `lib/wallet*.ts` | Paying for lives and minutes; sprinkles are paid in bonus credit |
@@ -91,49 +91,60 @@ amountKobo, entries[], status: auto / waiting / approved / paid / failed).
 
 ---
 
-## Phase 3: the weekend incentive pool
+## Phase 3: the weekend incentive pool and the Top gifters sprint
 
-**Legal first.** Random prizes of cash value given to people because they took part in paid activity may count as a **sales
-promotion** (FCCPC approval needed before it runs) or a **lottery** (the National Lottery Act, and since the Supreme Court's
-November 2024 ruling, the states' gaming laws such as Lagos). Counsel must review the mechanics and the terms **before P3
-goes live**. Until then P3 can be built and run with staff accounts only, behind the staff test pass.
+**Legal first.** The core reward is now a **merit contest**: the Top gifters sprint, won by the most gift points in a set time,
+not by chance. That is lower risk than a random draw. Counsel must still confirm it under the FCCPC's sales-promotion rules
+before launch: entry is tied to paid activity and the prizes have cash value. The optional bonus-credit sprinkle further down
+**is** a chance draw. It could count as a promotion needing FCCPC approval, or as a lottery under the National Lottery Act and,
+since the Supreme Court's November 2024 ruling, the states' gaming laws such as Lagos. So it stays **off** until counsel says yes.
+Until counsel signs off, P3 runs with staff accounts only, behind the staff test pass.
 
 ### The weekly calculation (Thursday 23:59 → Friday 00:00, Lagos time)
-1. **Gift commission this week** = what NotesApp kept from gifts Friday 00:00 to Thursday 23:59 (the uplifted rates included).
-2. **Infrastructure cost this week** (see §3 below for where each figure comes from): API, servers, relay, Firestore, Vercel,
-   Cloudflare.
+1. **Gift commission this week:** what NotesApp kept from gifts, Friday 00:00 to Thursday 23:59, uplifted rates included.
+2. **Infrastructure cost this week:** API, servers, relay, Firestore, Vercel, Cloudflare. §3 below says where each figure comes from.
 3. **The test** (owner: "80% above our infrastructure"): gift commission ≥ **1.8 ×** infrastructure cost (`poolTestRatio`,
    default 1.8).
-4. If it passes, **10% of that week's gift commission** goes into the weekend pool (`poolSharePct`, default 10). If it fails,
-   there is no pool that weekend. A pool under `poolMinKobo` (default ₦50,000) rolls into next week instead of running.
-5. The pool is split: **60% VIP-gift drops**, **40% bonus-credit sprinkles** (`dropSharePct` 60).
+4. **The pool:** if it passes, **10% of that week's gift commission** goes into the weekend pool (`poolSharePct`, default 10).
+   If it fails, there's no pool that weekend. A pool under `poolMinKobo` (default ₦50,000) rolls into next week instead.
+5. **The split:** the pool goes to sprint prizes. Only if the sprinkle option is switched on (after counsel) does
+   `sprinkleSharePct` of it (default 40%) go to sprinkles; otherwise 100% is for sprints.
 
-### Where drops and sprinkles happen
-- The weekend runs **Friday 18:00 to Sunday 23:00** (53 hours; `weekendStart`, `weekendEnd`).
-- **Burst windows:** every 5 minutes the system compares lives, replays, journals and Media pages against the hour's normal. A
-  window is a burst when concurrent viewers are at least `burstFactor` (default 1.5) × the weekend's running average. Drops only
-  fire inside bursts, at least `dropGapHours` (default 3) apart.
-- **Never** on paid lives or pay-per-minute sessions (owner).
-- **VIP-gift drop:** the system picks, at random, one of the biggest gifters in the burst (the top `dropCandidates`, default 10,
-  by gift points in the last hour). It "gifts" them a random VIP gift that fits the drop budget. The gift plays full screen
-  where they are, and the sitewide banner says "Incentive drop: @name just received a Kente Crown from #NotesApp", with a link.
-  Two minutes earlier, the place shows "An incentive drop is about to happen here".
-  - The value is paid to the winner as **bonus credit** (it can't be gifted on or withdrawn), so the drop never becomes
-    withdrawable cash. Owner to confirm (open questions).
-- **Sprinkles:** at the same moment, a share of the people present (`sprinkleSharePct`, default 30%, verified and eligible) get
-  bonus credit between ₦100 and ₦5,000:
-  - 70% of winners get ₦100–₦500.
-  - 25% get ₦500–₦2,000.
-  - 5% get ₦2,000–₦5,000.
-  - Expected value per winner: 0.7 × ₦300 + 0.25 × ₦1,250 + 0.05 × ₦3,500 ≈ **₦700**.
-- **Caps per person per weekend:** one VIP drop, and ₦5,000 of sprinkles in total.
-- **Eligibility and anti-abuse:**
+### The Top gifters sprint
+- **When:** the weekend runs **Friday 18:00 to Sunday 23:00**. The system starts a sprint at a peak: concurrent viewers across
+  lives, replays, journals and Media at least `burstFactor` (1.5) × the weekend's running average, with sprints at least
+  `sprintGapHours` (3) apart.
+- **Where it doesn't count:** never on paid lives or pay-per-minute sessions (owner). Gifts there don't count towards a sprint.
+- **The announcement:** a sitewide banner on every open page: "Top gifters sprint: the top 3 gifters by points in the next
+  10 minutes win VIP gifts", with a countdown to zero (`sprintMinutes`, default 10).
+- **Points:** gift points earned during the sprint (1 point per ₦100), from gifts to other people anywhere on #NotesApp except
+  paid lives and pay-per-minute. A tie goes to whoever reached the score first.
+- **The leaderboard:** for the top 100 by points so far, a sheet shows:
+  - their position, the timer, their points
+  - **how many points they need to reach #3, #2 and #1**
+
+  Everyone else sees the top 10 and "Gift to join".
+- **Winners:** when the timer hits zero, the top 3 win the prize ladder (`sprintPrizes`, default #1 Kente Crown ₦50,000, #2 and
+  #3 Golden Gele ₦25,000; ₦100,000 a sprint). A winner needs at least `sprintMinPoints` (default 50 points, ₦5,000 of gifts);
+  an unwon prize rolls over. The VIP gift plays full screen for them, and a sitewide banner names the three winners.
+- **How the prize is paid:** credited as **bonus credit** of the gift's value (can't be gifted on or withdrawn), unless the owner
+  chooses otherwise.
+- **Number of sprints:** floor(sprint budget ÷ ₦100,000), at most `sprintMax` (default 6) a weekend.
+- **Caps and anti-abuse:**
+  - one sprint win per person per weekend
   - accounts at least 30 days old with a verified email
-  - one prize per device and per bank account
-  - no prizes when sender and receiver share a device or bank (self-gifting farms)
-  - accounts with a gifting reversal or chargeback in 90 days are excluded
-  - teens are excluded from cash-value drops
-  - staff are excluded unless the staff test pass is on (then only staff)
+  - gifts between accounts sharing a device or bank account don't count
+  - accounts with a gift reversal or chargeback in 90 days can't win
+  - teens can't win
+  - staff only while the staff test pass is on
+
+### Optional, off until counsel says yes: the bonus-credit sprinkle (a chance draw)
+At the end of a sprint, `sprinklePeoplePct` (30%) of the eligible people present where a winner is get bonus credit:
+- 70% of them get ₦100–₦500
+- 25% get ₦500–₦2,000
+- 5% get ₦2,000–₦5,000
+
+That's about ₦700 each on average (0.7 × ₦300 + 0.25 × ₦1,250 + 0.05 × ₦3,500), capped at ₦5,000 per person per weekend.
 
 ### Worked example A (qualifies)
 | | Figure |
@@ -143,13 +154,11 @@ goes live**. Until then P3 can be built and run with staff accounts only, behind
 | Infrastructure cost this week | ₦1,200,000 |
 | Test: 3,000,000 ≥ 1.8 × 1,200,000 = 2,160,000 | **passes** (ratio 2.5) |
 | Pool: 10% × ₦3,000,000 | **₦300,000** |
-| Drops (60%) | ₦180,000 |
-| Sprinkles (40%) | ₦120,000 |
 
-- **Drops:** 5 bursts across the weekend, about ₦36,000 each.
-  - The draws (₦150,000 in all): Fri 9 pm Golden Gele ₦25,000; Sat 1 pm Golden Gele ₦25,000; Sat 9 pm Kente Crown ₦50,000; Sun 5 pm Golden Gele ₦25,000; Sun 9 pm Golden Gele ₦25,000.
-  - The ₦30,000 left rolls into next week's pool.
-- **Sprinkles:** ₦120,000 ÷ about ₦700 each ≈ **170 winners**, about 34 per burst, from roughly 110 eligible people present at each.
+- **Sprinkle off (default until counsel):** ₦300,000 ÷ ₦100,000 = **3 sprints**, for example Fri 9 pm, Sat 9 pm and Sun 8 pm.
+  9 winners in all.
+- **Sprinkle on:** ₦180,000 for sprints, which is **1 sprint**, with ₦80,000 rolling into next week. ₦120,000 for sprinkles is
+  about **170 people** at about ₦700 each.
 
 ### Worked example B (doesn't qualify)
 | | Figure |
@@ -158,7 +167,7 @@ goes live**. Until then P3 can be built and run with staff accounts only, behind
 | Gift commission kept | ₦900,000 |
 | Infrastructure cost this week | ₦600,000 |
 | Test: 900,000 ≥ 1.8 × 600,000 = 1,080,000 | **fails** (ratio 1.5) |
-| Pool | ₦0. No drops this weekend; nothing is announced. |
+| Pool | ₦0. No sprints this weekend, and nothing is announced. |
 
 ---
 
@@ -180,38 +189,53 @@ and which are typed.
 
 ---
 
-## Phase 4: the session notetaker
+## Phase 4: Nana minutes (the session notetaker)
 
-Booked sessions run on the NotesApp call (phone to phone; paid sessions and pay-per-minute alike).
+The owner asked for a standalone Nana minute-taker app that joins after the call connects, with encryption off. **We do it
+inside the NotesApp call instead, and encryption stays on.**
 
-| Option | How | Verdict |
-|---|---|---|
-| A. Recorder joins | The session runs through the relay (SFU) instead of phone to phone; our Cloud Run recorder joins as a silent, receive-only participant and records audio only. The transcriber turns it into text, and Nana writes a summary and action points. | **Recommended** |
-| B. Host's browser records | MediaRecorder on the host's device | Unreliable (phone sleeps, tab closes), and only the host's side is reliable |
-| C. Outside notetaker bot | Otter, Fireflies and similar | Data leaves our control; no fit with our consent rules |
+**Why:**
+- **One app can't record another app's call:** on iOS and Android, an app can't capture another app's call audio; both
+  platforms block it.
+- **Encryption doesn't need to come off:** the host's own NotesApp already has both audio streams, their microphone and the
+  other person's incoming audio.
 
-**Recommendation: A.**
-- The notetaker is offered when booking ("Add notetaker", price `notetakerKobo`, default free on Business+).
-- Both people must agree, before the call and again on screen.
-- Audio is deleted once the transcript is made (`notetakerKeepDays`, default 0).
-- Transcript and summary go to both people, in their messages, and to the publisher's Business books client record if they use it.
-- Cost:
-  - Relay: about ₦0.10 a minute for two people on voice.
-  - Recorder: Cloud Run minutes.
-  - Transcription: NKENNEAi, which today only takes files up to 25 MB, so long sessions are split into parts.
+**How it works:**
+- **Recording on the host's device:** the host's NotesApp records the two streams mixed together (Web Audio mix →
+  MediaRecorder). The call stays phone to phone and encrypted in transit (DTLS-SRTP).
+- **Consent:** when the host taps **Nana minutes**, both people hear a short tone and see "This call is being recorded for
+  notes". The other person can tap Leave; staying counts as agreeing, and a "● Recording for notes" badge shows throughout.
+  The host can stop it at any time.
+- **Afterwards:** the audio is uploaded to our private storage and transcribed by the pluggable transcriber. Nana writes the
+  minutes: a summary, decisions, action points with owners, and any follow-up date. The minutes go to **both people**, in their
+  messages and by email, and to the host's Business books client record if they use it.
+- **Deletion:** the audio is deleted once the transcript is made (`minutesKeepDays`, default 0).
+- **Fallback:** for group calls, or when the host's device can't record (an older iPhone browser, or the app is in the
+  background), the relay and our Cloud Run recorder join as a silent, receive-only participant with the same consent banner.
+- **Price:** free on Business and Enterprise; `minutesKobo` per session on other plans.
+- **Limits:**
+  - NKENNEAi takes files of up to 25 MB, so long sessions are split into parts.
+  - Recording on the device stops if the phone locks the browser. The app warns the host to keep the screen on, and the upload
+    sends what was recorded.
 
 ---
 
-## Phase 5: Notes Life TGIF (Fridays only)
+## Phase 5: Notes Life TGIF, "Thank God It's Friday" (Fridays only)
 
-Funded in **Notesville Naira** (game money), never real money, so it isn't a cash promotion.
-Budget: `tgifPoolNn` per Friday, set in Admin.
+A Friday celebration in Notesville, paid **only in Notesville Naira** (game money), never real money, so it isn't a cash
+promotion. Budget: `tgifPoolNn` per Friday, set in Admin.
 
-- **TGIF banner** from Friday 06:00 to 23:59: the city wears Friday colours and plays highlife on the street.
-- **Happy hour:** two random hours on Friday, when the chef and street jobs pay double Notesville Naira.
-- **Friday drops:** at random moments, a drop lands in a busy spot (the market, the Emerald, the hotel pool). The first `tgifDropClaims` players (default 20) to walk there claim it. Each claim is N$50–N$2,000, skewed small like the sprinkles.
+- **The look:** from Friday 16:00 (after work) to 23:59, Notesville turns into a Friday-evening party.
+  - The banner reads **"Thank God It's Friday"**.
+  - Street lights and string lights come on early, and highlife and Afrobeats play on the street.
+  - After-work hangout spots light up: the Emerald lounge, the hotel pool, suya by Wuse Market, the rooftop.
+  - Morning to 16:00 shows a "TGIF tonight" teaser.
+- **Happy hour:** two hours on Friday evening (`tgifHappyHours`, default 17:00–19:00) when the chef, street and errand jobs pay
+  double Notesville Naira.
+- **Friday drops:** at random moments a party drop lands at a hangout spot. The first `tgifDropClaims` players (default 20) to
+  walk there claim it, each getting N$50–N$2,000, skewed small.
 - **Friday streak:** playing three Fridays in a row unlocks a TGIF outfit or rug. Cosmetic only.
-- Caps per player per Friday, and the same anti-abuse as P3: one account per device, so no farming with second accounts.
+- **Caps and anti-abuse:** caps per player per Friday, and one account per device, so no farming with second accounts.
 
 ---
 
@@ -232,18 +256,18 @@ Budget: `tgifPoolNn` per Friday, set in Admin.
 These are new.
 
 **Live economy page**
-- **Pool:** `poolTestRatio` 1.8, `poolSharePct` 10, `poolMinKobo` ₦50,000, `dropSharePct` 60.
+- **Pool:** `poolTestRatio` 1.8, `poolSharePct` 10, `poolMinKobo` ₦50,000.
 - **Weekend timing:** `weekendStart` Fri 18:00, `weekendEnd` Sun 23:00.
-- **Bursts and drops:** `burstFactor` 1.5, `dropGapHours` 3, `dropCandidates` 10.
-- **Sprinkles:** `sprinkleSharePct` 30, the band shares (70/25/5) and limits (₦100–500 / 500–2,000 / 2,000–5,000), per-person
-  weekend caps.
+- **Sprints:** `burstFactor` 1.5, `sprintGapHours` 3, `sprintMinutes` 10, `sprintPrizes` (#1 Kente Crown, #2 and #3 Golden Gele), `sprintMinPoints` 50, `sprintMax` 6.
+- **Sprinkles (off until counsel):** `sprinkleOn` false, `sprinkleSharePct` 40, `sprinklePeoplePct` 30, the band shares (70/25/5)
+  and limits (₦100–500 / 500–2,000 / 2,000–5,000), per-person weekend caps.
 - **Eligibility:** account age 30 days.
 - **Infrastructure:** the monthly cost lines and the dollar rate.
 
 **Pricing**
 - `liveTicketUpliftPct` 10
 - `ppmUpliftPct` 20
-- `notetakerKobo`
+- `minutesKobo`
 - `videoBoostStepKobo` ₦50,000, `videoBoostMinutes` 15
 
 **Limits**
@@ -251,17 +275,16 @@ These are new.
 - `ppmMinMinutes` 10
 - `quantityMaxPerSend` 99
 - `autoWithdrawMaxKobo` ₦20,000
-- `notetakerKeepDays` 0
+- `minutesKeepDays` 0
 - `tgifPoolNn`, `tgifDropClaims` 20
 
 ---
 
 ## Open questions for the owner
-1. VIP-gift drops: pay the winner the gift's value as **bonus credit** (not withdrawable, safest), or as a real gift they can
+1. Sprint prizes: pay the winner the gift's value as **bonus credit** (not withdrawable, safest), or as a real gift they can
    withdraw?
 2. Teens and money gifts from strangers: block them (recommended) or allow?
 3. Do subscribers get a discount on paid-live tickets, or only access?
-4. Notetaker: free on Business and Enterprise and paid on other plans, or paid for everyone?
+4. Nana minutes: free on Business and Enterprise and paid on other plans, or paid for everyone?
 5. Weekly boards reset on **Monday 00:00** (proposed) or right after the Thursday calculation?
-6. Counsel: who reviews P3 before it switches on, and do we apply to the FCCPC for promotion approval or run it as a
-   loyalty programme?
+6. Counsel: who confirms the sprint under the FCCPC promotion rules, and should the bonus-credit sprinkle be pursued at all?
