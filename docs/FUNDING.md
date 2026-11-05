@@ -16,6 +16,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 5 | **Alliance** accelerator, cohort ALL19 (USD 400k on a SAFE at a USD 4M post-money valuation, about **10%**): §5 | [alliance.xyz/apply](https://alliance.xyz/apply) | **18 November 2026** (Regular Admission; Early Admission closed 23 Sep); programme starts 11 January 2027 in New York | 10% of the company + a 1:1 token side letter | after NotesApp Inc exists; decide the stablecoin question first |
 | 6 | **Village Global Velocity** (pre-seed, up to USD 1M, rolling): §6 | [villageglobal.com/velocity](https://www.villageglobal.com/velocity) | none (rolling) | equity; terms set per company, not published | same week as Alliance: the answers are shared |
 | 7 | **Capital Wings** (Bahrain): §7 | capital-wings.com | — | unknown ("fee arrangements" discussed later) | **not applying**: share no data, pay no fees |
+| 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -483,7 +484,92 @@ is possible.
 
 ---
 
-## 9. After submitting
+## 9. Global Startup Awards (Edition 12, Africa)
+
+Added 5 November 2026. The owner marked three categories on the Africa page: **Social & Live Commerce** (Retail Tech & eCommerce),
+**Streaming & Content Platforms** and **Creator Economy Tools** (Media, Entertainment & Creator Economy).
+
+**What we know** (from the site, read through search on 5 November 2026; the site itself was blocked from here, so confirm on the
+portal before submitting):
+- Edition 12 is open: 9 regional competitions, 12 or 13 categories, judged by investors only; startups only. The Global Grand Finale
+  is in Copenhagen, around April 2027. Africa is one regional competition and includes Nigeria; winners can go on to a continental
+  round. GSA Africa calls itself the continent's largest startup competition.
+- **How to apply:** a short form (10 questions), a **pitch deck** and a **one-pager**. We don't pick the category: we give our country
+  and industry and their team places us. Categories differ by region and edition.
+- **Cost:** none found; the 2024 Africa round was free. **Deadline:** not found for Edition 12 (2024's was 5 May). Check the portal.
+- Sources: [FAQ](https://www.globalstartupawards.com/faq), [Edition 12 portal](https://www.globalstartupawards.com/competition-portal-edition-12),
+  [Grand Finale](https://www.globalstartupawards.com/events/global-grand-finale-edition-12),
+  [Africa continental finale](https://www.globalstartupawards.com/news-portal/gsa-africa-continental-finale-edition-11).
+
+**Fit: good.** It is free, judged by investors (visibility before a round), and open to pre-seed companies in Nigeria. It takes no
+equity. The risk is only time: the deck and one-pager are needed anyway (team hub `fund-deck-video`).
+
+**Which category to aim for.** Since they place us, the industry line decides it. Lead with **Creator Economy Tools**, and name the
+other two in the description so a reviewer can move us:
+- Creator Economy Tools: the core of NotesApp (publish, book, teach, sell, get paid, Business books, fan levels and subscriptions).
+- Streaming & Content Platforms: journals, Media (videos and pictures), live audio rooms and lives with replays.
+- Social & Live Commerce: the shop inside lives and communities, gifts, live entrances, coupons and share-to-moments.
+
+Industry line for the form: *Creator economy: one platform for Africa's creators, teachers and professionals to publish, stream live,
+sell and get paid in their own currency (creator tools, streaming, social and live commerce).*
+
+### Draft answers (the usual 10 questions; fit them to the live form)
+
+**Startup name, website, country, founded:** NotesApp (#NotesApp), [naapp.tech](https://www.naapp.tech), Nigeria (Lagos/remote
+across Nigeria). NotesApp Technologies Ltd, RC 9825642, registered 2 September 2026. NotesApp Inc (Delaware) `[incorporated on /
+being incorporated]`.
+
+**One line:** NotesApp is one home for Africa's creators, teachers and professionals to share what they know, stream it live, teach it,
+sell it and get paid for it, in their own currency.
+
+**Problem:** African creators, coaches, teachers and small businesses earn by stitching together Instagram, WhatsApp, Linktree,
+Calendly, Selar or Bumpa, a course site and bank transfers. Each tool takes a cut or a subscription priced in dollars, none of them
+talks to the others, and sales and trust are lost in the gaps between a post, a booking, a payment and a delivery.
+
+**Solution:** One NotesApp account gives a member a public journal, live audio and video with gifts and replays, a booking calendar,
+paid courses (Notes Academy), a shop with delivery, communities, subscriptions in three tiers (Premium, VIP, VVIP) with fan levels,
+encrypted calls and messages, Business books for walk-in sales, and payouts in naira (Paystack and Paylony, with M-Pesa in Kenya next).
+Nana, our AI assistant, helps members write, translates between English, Pidgin, Igbo, Hausa and Yoruba (and Kiswahili in audio),
+and answers customers.
+
+**Why now and why us:** Africa's creators are paid in local currency and sell through chat; global creator tools assume card payments
+in dollars. We built for naira first: transfers, wallets, payouts, delivery and local languages. `[Founder story in the owner's words.]`
+
+**Traction:** live with members in Nigeria and Kenya: members `[ ]`, publishers `[ ]`, paid transactions in the last 90 days `[ ]`,
+MRR `[ ]` (from /admin on the day). Naija Exam Prep: 2,150+ WAEC and NECO practice questions in 18 subjects. Special Recognition
+at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translation and speech work.
+
+**Business model:** plan subscriptions (Free, Pro, Business, Enterprise); a commission on what members sell, book and teach; verification
+badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
+
+**Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with co-founders in the USA (2),
+the UK, South Africa and China `[names and roles]`, and staff across Nigeria.
+
+**Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
+to say]`.
+
+**What winning would do for us:** investor introductions before our pre-seed round, and visibility with Africa's creators and
+businesses as we move to naapp.tech and launch our own Anya smart glasses.
+
+### The one-pager (one A4 side)
+
+1. Header: the full NotesApp logo, "Africa's knowledge, shared, valued and rewarded", naapp.tech.
+2. The problem (3 lines) and the solution (4 lines) from above.
+3. What a member gets, as 6 short items: publish, live and replays, book, teach, sell and deliver, get paid in naira.
+4. Traction box: the four numbers from /admin, Exam Prep's 2,150+ questions, the NKENNEAi award.
+5. Business model in one line; the team with photos; "Raising pre-seed", contact email on naapp.tech.
+
+When the numbers are in, it can be made as a PDF from this text in the brand colours, like the Engineering Guide PDF.
+
+### What to prepare
+- [ ] Pitch deck (team hub `fund-deck-video`), 10 to 12 slides.
+- [ ] The one-pager above, as a PDF.
+- [ ] Today's numbers from /admin, the same as every other application (§1).
+- [ ] Confirm the Edition 12 deadline and that it's free on the portal; then submit and log it in §10.
+
+---
+
+## 10. After submitting
 
 - Log each one here with the date and what was sent.
 - Use the same numbers everywhere; keep the filled-in version off the public repo if it holds private figures.

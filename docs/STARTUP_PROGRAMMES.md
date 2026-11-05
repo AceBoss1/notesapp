@@ -83,6 +83,7 @@ The Pitch by Deel is the one to act on now: we qualify, and the 2027 waitlist is
 | Programme | What it is | What they ask for | When | Fit | Checked |
 | --- | --- | --- | --- | --- | --- |
 | [The Pitch by Deel](https://www.deel.com/the-pitch-by-deel/) | $50,000 for up to 100 regional winners, $1M for up to 10 global champions, both invested on SAFEs; a perks marketplace for applicants | A registered company, a working product, full-time founders, usually pre-seed to Series A, any country. Being a Deel customer doesn't appear to be required | 2026 season over; 2027 waitlist and pre-apply open, dates not published | Apply now | Search only |
+| [Global Startup Awards (Edition 12, Africa)](https://www.globalstartupawards.com/faq) | Investor-judged startup competition, free to enter in 2024 and no equity taken; regional winners go on to a continental round and the Global Grand Finale in Copenhagen (around April 2027). We aim for Creator Economy Tools, with Streaming & Content Platforms and Social & Live Commerce named too | Startups only; a 10-question form, a pitch deck and a one-pager. They place you in a category from your country and industry. Draft answers and the one-pager are in docs/FUNDING.md §9 | Edition 12 open now; Edition 12 deadline and fee not found (2024's Africa deadline was 5 May) | Apply now | Search only |
 | [Google for Startups Accelerator: Africa](https://startup.google.com/programs/accelerator/africa/) | 12 weeks, equity-free, AI-first | Africa-based, mostly Seed to Series A | Cohort 10 closed 18 Mar 2026; next call likely around Feb 2027 | Watch for the next call | Search only |
 | [Google Play Apps Accelerator](https://developer.android.com/blog/posts/grow-your-app-with-the-google-play-apps-accelerator-apply-now) | 12 weeks for early-stage app companies in 60+ countries | Whether Nigeria is eligible is unconfirmed | 2026 intake closed 7 Jan 2026; next late 2026 or early 2027 | Watch for the next call | Search only |
 | [Y Combinator](https://www.ycombinator.com/apply) | Accelerator with investment; current terms on its site | Accepts bootstrapped and non-US founders; the Delaware company can come after | Winter 2027 deadline passed 2 Nov 2026; Spring 2027 expected around Feb 2027 | Watch for the next call | Search only |
@@ -122,7 +123,7 @@ Apply this week to the seven that need no investor and no US company, then form 
 - [ ] PostHog for Startups ($50,000)
 - [ ] ElevenLabs Startup Grants, for the adult product
 - [ ] Notion for Startups (3 months)
-- [ ] The Pitch by Deel 2027, pre-apply
+- [ ] The Pitch by Deel 2027, pre-apply; and the Global Startup Awards (Edition 12, Africa) once the deck and one-pager are ready
 - [ ] Optional: Sentry, Microsoft for Startups self-serve, NVIDIA Inception
 
 **After NotesApp Inc exists**
@@ -159,3 +160,4 @@ From search results (to confirm):
 - [Paystack Small Business Programme (TechCabal)](https://techcabal.com/2026/06/23/paystack-launches-small-business-program/), [Termii for Startups](https://termii.com/for-startups), [Apple Small Business Program](https://developer.apple.com/app-store/small-business-program/), [Apple Developer Program fee waiver](https://developer.apple.com/help/account/membership/fee-waivers/)
 - [Google for Startups Accelerator: Africa, cohort 10 (Nairametrics)](https://nairametrics.com/2026/02/05/google-opens-applications-for-startup-accelerator-africa-cohort-10/), [Google Play Apps Accelerator](https://developer.android.com/blog/posts/grow-your-app-with-the-google-play-apps-accelerator-apply-now), [Meta Llama Impact Accelerator](https://vc4a.com/meta/llama-impact-accelerator/)
 - Antler and African programmes: [antler.co](https://www.antler.co), [startup.gov.ng](https://startup.gov.ng), TechCabal, Techeconomy, Nairametrics, Opportunity Desk, Brandspur and VC4A coverage from 2025 to 2026
+- Global Startup Awards (added 5 November 2026, from search results): [FAQ](https://www.globalstartupawards.com/faq), [Edition 12 portal](https://www.globalstartupawards.com/competition-portal-edition-12), [Global Grand Finale](https://www.globalstartupawards.com/events/global-grand-finale-edition-12), [Africa continental finale](https://www.globalstartupawards.com/news-portal/gsa-africa-continental-finale-edition-11)
