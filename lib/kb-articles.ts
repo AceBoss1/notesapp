@@ -401,7 +401,7 @@ A boost puts a published post, or an item in your store, in front of more reader
 Packages:
 ${BOOST_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, delivered over at least ${p.minDays} days, running up to ${p.windowDays} days.`).join("\n")}
 
-Boosts have no commission, and anything not delivered by the end is refunded pro rata. You can also cancel a running boost under Boost performance: impressions already delivered are spent, you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why. See [Boost](/boost).`),
+Boosts have no commission, and anything not delivered by the end is refunded pro rata, by itself, within about 15 minutes of the boost ending, the way you paid (card or wallet); you get a bell saying how much. You can also cancel a running boost under Boost performance: impressions already delivered are spent, you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why. See [Boost](/boost).`),
     A("co-authoring", "Co-authoring a post", "Publishing and earning", `
 Pro, Business and Enterprise publishers can write a post with other members. The lead invites up to ${MAX_CO_AUTHORS} co-authors by username on a draft, and for each one chooses **what they can do** and **their share** of what the post earns (the lead keeps at least ${MIN_LEAD_PERCENT}%).
 
@@ -435,7 +435,7 @@ Co-tutors who joined before access levels existed keep what they had: they can v
     A("ads-and-ad-share", "Ads and ad share", "Publishing and earning", `
 **Advertising on #NotesApp:** anyone can buy a banner campaign, paid online and priced by validated impressions:
 ${AD_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, up to ${p.windowDays} days.`).join("\n")}
-Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata. Start at [Advertise](/advertise).
+Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata, by themselves, soon after the campaign ends; you get an email saying how much. Start at [Advertise](/advertise).
 
 **Sizes and spots:** one picture works everywhere: **1200 × 628 px** (1.91 : 1; at least 600 × 314, up to 2400 × 1256 for sharp screens), JPG, PNG or WebP, best under 500 KB and at most 1 MB, with the logo and words inside the middle 960 × 502. The campaign form crops other shapes for you before you pay. The headline is up to 60 characters and the text up to 120. Adverts can show on the home page, the journal feed, Trending, publishers' profiles and posts (when they show adverts), Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest (each email sent counts as an impression) and, if you choose, on a billboard in Notes Life, which needs its own 1600 × 900 picture. Never in Messages, checkout, lessons, paid course pages, certificates or the editors. When a spot has several adverts, each stays about 30 seconds. All of it, with templates to download: [Advert sizes and spots](/advertise/specifications).
 

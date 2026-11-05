@@ -751,7 +751,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **v0.137.5:** Anya Audio is the owner's square black frame with clear lenses (`anya-audio-glasses.webp`; the hero uses the side view):
     calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
     of its own). The owner asked not to use the aviator sunglasses photo.
-116. **Stage seats and moderators in audio rooms (v0.139.0, branch `push/stage-seats`):** nothing to deploy for Firestore (every new
+117. **Stage seats and moderators in audio rooms (v0.139.0, branch `push/stage-seats`):** nothing to deploy for Firestore (every new
     write goes through `/api/community/rooms`; `firestore.rules` is unchanged), but **redeploy the live-rooms worker** (the "Deploy live
     rooms" workflow) so rooms on it learn the new signals (stage mode, hands sent through our server, mic off, invitations, moderators'
     permissions, removals through our server, the moderators' log). An old worker ignores the new ops (it answers 400): the room doc still
@@ -775,6 +775,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     relay room with two speakers (mic off and back on, Open seat, invitation) and a phone-to-phone room (mic off: the listeners stop
     hearing that speaker) before relying on it. Tests: `test:rooms`, `test:rooms-server` (new `tests/community/rooms-stage.emulator.ts`),
     `test:live-rooms`, `test:live-rooms-server`, `test:recording-server`, `test:community-server`, `test:help`, rules.
+
+116. **Ended boosts and adverts refund themselves (v0.138.1, branch `push/promo-settle`):** nothing to deploy. The owner found adverts
+    showing "Completed" with 258 of 5,000 impressions delivered and nothing refunded. The help, Terms and boost and advertise pages
+    promise a pro-rata refund of whatever isn't delivered, but it only happened when an admin pressed "Refund undelivered". Now
+    `lib/promo-settle-server.ts` settles every ended boost (window over, or completed) and advert (completed, or live past its end):
+    refund of the undelivered share the way they paid (`refundPayment`), a negative `adRevenue` entry for adverts, a bell or email
+    when money goes back, `settledAt` so it happens once. It runs in the 15-minute cron (`settlePromotions`) and behind the two admin
+    buttons. A failed refund is retried up to 5 times, then left for an admin (`settleError`). The first run after deploy refunds
+    every ended promotion that was never settled. Test: `npm run test:settle`.
 
 ## 3. How the work is done (please keep these)
 
