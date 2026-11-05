@@ -923,7 +923,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 123. **Community Strategist vacancy (v0.143.1, branch `push/community-strategist`):** nothing to deploy. A seeded role in Customer
     care (`support`), reporting to the Customer care team lead, salary, 20 hours a week, remote in Nigeria (`lib/careers.ts`).
     `seedRoles` now opens a vacancy added to the seed later on a site that was seeded before, once (the marker's `roles` list), and
-    never brings back a seeded role someone deleted. Test: `test:hr`.
+    never brings back a seeded role someone deleted. **Deleting a vacancy** (the owner, the same day; team hub, no changelog entry):
+    Nana-HR & hiring → a role → **Delete**. A super admin deletes any role, the Chief of Staff only a draft (`deleteRole`). Its
+    applications go with it and applicants still in the running get a bell; hired applicants and those kept for future roles stay
+    (the latter until 6 months on). Test: `test:hr`.
 
 ## 3. How the work is done (please keep these)
 

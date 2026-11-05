@@ -139,6 +139,36 @@ export async function setRoleStatus(db: Firestore, me: Staff, id: unknown, to: u
   }
 }
 
+// Deleting a vacancy (the owner, 5 Nov 2026). A super admin can delete any role; the Chief of Staff only a draft, since only a super
+// admin puts a role on /careers or takes it off. Its applications go with it, and anyone still in the running is told the role was
+// withdrawn; kept are a hired applicant's (the person's record) and those who asked to be considered for future roles (deleted 6 months
+// from now, as when a role closes). A deleted seeded role isn't seeded again (seedRoles' marker lists it).
+export async function deleteRole(db: Firestore, me: Staff, id: unknown, now = new Date()): Promise<{ removed: number; kept: number }> {
+  need(canManageTeam(me.access));
+  const ref = db.doc(`${ROLES}/${String(id ?? "")}`);
+  const cur = (await ref.get()).data();
+  if (!cur) throw new CareersError("That role isn't there any more.", 404);
+  if (!isSuper(me.access) && cur.status !== "draft") throw new CareersError("Only a super admin can delete a role that has been on /careers.", 403);
+  const purgeAt = new Date(now.getTime() + KEEP_DAYS * 86_400_000);
+  const apps = await db.collection(APPS).where("roleId", "==", String(id)).get();
+  let removed = 0, kept = 0;
+  for (const a of apps.docs) {
+    const d = a.data();
+    if (d.status === "hired" || d.futureRoles) {
+      await a.ref.update({ roleDeleted: true, ...(d.status === "hired" ? {} : { purgeAt }), updatedAt: now.toISOString() });
+      kept++;
+      continue;
+    }
+    if (["new", "reviewing", "interview", "offer"].includes(String(d.status))) {
+      await notifyBell({ uid: String(d.uid), type: "team", linkHref: "/careers", message: `We've withdrawn the ${String(d.roleTitle || cur.title)} role at #NotesApp, so your application has closed. Thank you for applying; see /careers for other roles.` }).catch(() => {});
+    }
+    await a.ref.delete();
+    removed++;
+  }
+  await ref.delete();
+  return { removed, kept };
+}
+
 const TELL: Partial<Record<keyof typeof APP_STATUS_LABEL, (role: string) => string>> = {
   interview: (r) => `Good news: we'd like to talk to you about ${r} at #NotesApp. We'll message you on NotesApp to agree a time.`,
   offer: (r) => `We'd like to offer you ${r} at #NotesApp. We'll be in touch with the details.`,

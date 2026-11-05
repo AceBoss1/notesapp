@@ -24,7 +24,7 @@ const staff = (uid: string, access: Access): Staff => ({ uid, email: `${uid}@x.t
 const refused = async (p: Promise<unknown>, status: number) => { await assert.rejects(p, (e: unknown) => e instanceof CareersError && e.status === status); };
 
 (async () => {
-  for (const uid of ["u_sup", "u_cos", "u_fin", "u_eng", "u_ada"]) await auth.createUser({ uid, email: `${uid}@x.test`, displayName: uid }).catch(() => {});
+  for (const uid of ["u_sup", "u_cos", "u_fin", "u_eng", "u_ada", "u_c1", "u_c2", "u_c3", "u_c4"]) await auth.createUser({ uid, email: `${uid}@x.test`, displayName: uid }).catch(() => {});
 
   // ── The library, seeded where each document belongs ──
   const n = await seedStaffLibrary(db);
@@ -106,6 +106,39 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
   const d = await makeDrafts(db, staff("u_cos", cosA), { name: "Ada Obi", title: "Customer care team lead", arrangement: "salary" });
   assert.deepEqual(d.drafts.map((x) => x.kind), ["offer", "announcement"]);
   await refused(makeDrafts(db, staff("u_fin", finA), { name: "X", title: "Y" }), 403);
+
+  // ── Deleting a vacancy ──
+  {
+    const { deleteRole, seedRoles } = await import("../../lib/careers-server");
+    const note2 = "I have run community programmes for a church of 2,000 people and a creators' group, and I love helping people gather.";
+    for (const u of ["u_c1", "u_c2", "u_c3", "u_c4"]) await db.doc(`users/${u}`).set({ displayName: u });
+    await apply(db, { uid: "u_c1", email: "c1@x.test" }, "seed-community-strategist", { coverNote: note2, consent: true });
+    await apply(db, { uid: "u_c2", email: "c2@x.test" }, "seed-community-strategist", { coverNote: note2, consent: true, futureRoles: true });
+    await apply(db, { uid: "u_c3", email: "c3@x.test" }, "seed-community-strategist", { coverNote: note2, consent: true });
+    await apply(db, { uid: "u_c4", email: "c4@x.test" }, "seed-community-strategist", { coverNote: note2, consent: true });
+    await setApplicationStatus(db, staff("u_cos", cosA), "seed-community-strategist_u_c3", "hired", "");
+    await setApplicationStatus(db, staff("u_cos", cosA), "seed-community-strategist_u_c4", "declined", "");
+    // the Chief of Staff can delete a draft, not a role that has been on /careers
+    await assert.rejects(deleteRole(db, staff("u_cos", cosA), "seed-community-strategist"), (e: unknown) => e instanceof CareersError && e.status === 403);
+    const draft = await saveRole(db, staff("u_cos", cosA), undefined, { title: "Draft role", dept: "support", requirements: ["x"] });
+    assert.deepEqual(await deleteRole(db, staff("u_cos", cosA), draft.id), { removed: 0, kept: 0 });
+    assert.equal((await db.doc(`careerRoles/${draft.id}`).get()).exists, false);
+    await assert.rejects(deleteRole(db, staff("u_fin", finA), "seed-care-lead"), (e: unknown) => e instanceof CareersError && e.status === 403);
+    // a super admin deletes an open role: its applications go, the ones still in the running are told, the hired and the "keep me" stay
+    const before = (await db.collection("notifications").where("recipientUid", "==", "u_c1").get()).size;
+    assert.deepEqual(await deleteRole(db, staff("u_sup", sup), "seed-community-strategist"), { removed: 2, kept: 2 });
+    assert.equal((await db.doc("careerRoles/seed-community-strategist").get()).exists, false);
+    assert.equal((await db.doc("careerApplications/seed-community-strategist_u_c1").get()).exists, false);
+    assert.equal((await db.doc("careerApplications/seed-community-strategist_u_c4").get()).exists, false);
+    const kept2 = (await db.doc("careerApplications/seed-community-strategist_u_c2").get()).data()!;
+    assert.equal(kept2.roleDeleted, true); assert.ok(kept2.purgeAt, "kept for future roles, then deleted 6 months on");
+    assert.equal((await db.doc("careerApplications/seed-community-strategist_u_c3").get()).data()!.purgeAt, undefined, "a hire's record stays");
+    const bells = (await db.collection("notifications").where("recipientUid", "==", "u_c1").get()).docs.map((d) => String(d.data().message));
+    assert.equal(bells.length, before + 1); assert.ok(bells.some((m) => m.includes("withdrawn the Community Strategist role")));
+    assert.equal((await db.collection("notifications").where("recipientUid", "==", "u_c4").get()).docs.filter((d) => String(d.data().message).includes("withdrawn")).length, 0, "an applicant already told no isn't told again");
+    await assert.rejects(deleteRole(db, staff("u_sup", sup), "seed-community-strategist"), (e: unknown) => e instanceof CareersError && e.status === 404);
+    assert.equal(await seedRoles(db), 0, "a deleted seeded role isn't seeded again");
+  }
 
   console.log("ALL OK");
   process.exit(0);
