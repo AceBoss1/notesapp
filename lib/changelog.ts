@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.141.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "Continue with Google on an email that already has a #NotesApp account (not yet linked to Google): the app no longer shows you as signed in to that account for a moment while we check. The check now happens before the app hears about the sign-in, so you go straight to \"You already have a #NotesApp account\" and nothing is loaded or saved as that account. Sign in the usual way, then link Google in Account settings → Sign-in methods." },
+    ],
+  },
+  {
     version: "v0.140.0",
     bump: "minor",
     date: "2026-11-04",

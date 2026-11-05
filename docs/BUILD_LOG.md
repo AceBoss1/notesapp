@@ -2985,3 +2985,15 @@ profile's new Gifts tab lists received gifts by gift with count and value, archi
 as one `gift_payout` ledger entry through the existing payout path, automatically under the Admin line (₦20,000 to start) and after
 approval in Admin → Payments from it up (`lib/gift-earnings-server.ts`). Weekly Top gifted and Top gifters (Lagos Monday 00:00) and gift
 points (1 per ₦100) are written with each gift (`giftWeekly`, `gifterWeekly`, `giftPoints`, `giftReceived`).
+
+**Google sign-in checked before the app sees it (v0.141.1, 5 Nov 2026)** — The owner's HAR of a real sign-in on www.naapp.tech showed
+Firebase signing a Google account straight into the existing account with the same email, and every `onAuthStateChanged` listener
+acting as that account for about two seconds (pages prefetched signed in, two Firestore writes) before `/api/auth/google` answered
+"link-required" and the client signed out. `lib/google-gate.ts` now runs that check inside Firebase's `beforeAuthStateChanged`: while a
+Google sign-in pop-up is in flight (armed in `continueWithGoogle`) or the page load is the return from a Google sign-in redirect (the
+`na_google_redirect` flag now says "signin" or "link", read once at page load), the server's answer is awaited before Firebase sets the
+user; "link-required" or a failed check throws, so the user is never set and no listener runs. Linking Google never goes through it (the
+server's sign-in check would take Google off an account being linked on purpose), nor does the same account refreshing. If the gate
+didn't run, `afterGoogle` still checks the old way. Test: `tests/social-signin/google-gate.emulator.ts` (browser SDK against the Auth
+emulator, in `test:social-signin`). The same HAR confirmed LinkedIn end to end on the live site (real ID token and nonce accepted) and
+the `/__/auth` on-site handler.
