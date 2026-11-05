@@ -34,7 +34,20 @@ export async function seedRoles(db: Firestore, now = new Date()): Promise<number
       }
       await marker.set({ marketingSplit: now.toISOString() }, { merge: true });
     }
-    return 0;
+    // A vacancy added to the seed later (the Community Strategist, 5 Nov 2026) opens once on a site seeded before; one listed in the
+    // marker was seeded already, so a role someone deleted never comes back.
+    const seeded = new Set<string>(Array.isArray(m.data()?.roles) ? m.data()!.roles : []);
+    let added = 0;
+    for (const r of SEED_ROLES.filter((r) => !seeded.has(r.seedKey))) {
+      const ref = db.doc(`${ROLES}/seed-${r.seedKey}`);
+      if (!(await ref.get()).exists) {
+        await ref.set({ ...r, status: "open", openedAt: now.toISOString(), createdAt: now.toISOString(), updatedAt: now.toISOString(), createdByUid: "seed" });
+        added++;
+      }
+      seeded.add(r.seedKey);
+    }
+    if (added || seeded.size !== (m.data()?.roles?.length ?? 0)) await marker.set({ roles: Array.from(seeded) }, { merge: true });
+    return added;
   }
   let n = 0;
   for (const r of SEED_ROLES) {

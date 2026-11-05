@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.143.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "A new opening at /careers: Community Strategist, helping churches, mosques, NGOs, schools, creators and businesses build thriving, safe communities on #NotesApp. Remote across Nigeria." },
+    ],
+  },
+  {
     version: "v0.143.0",
     bump: "minor",
     date: "2026-11-05",

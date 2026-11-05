@@ -58,7 +58,19 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
 
   // ── Careers ──
   const open = await openRoles(db);
-  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-care-lead", "seed-cmo", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
+  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-care-lead", "seed-cmo", "seed-community-strategist", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
+  {
+    // A site seeded before the Community Strategist was added gets it once; a seeded role someone deleted never comes back.
+    const { seedRoles } = await import("../../lib/careers-server");
+    await db.doc("careerRoles/seed-community-strategist").delete();
+    await db.doc("careerRoles/seed-safety-lead").delete();
+    await db.doc("staffMeta/careersSeed").set({ roles: ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead"], marketingSplit: "x" });
+    assert.equal(await seedRoles(db), 1);
+    assert.equal((await db.doc("careerRoles/seed-community-strategist").get()).data()?.status, "open");
+    assert.equal((await db.doc("careerRoles/seed-safety-lead").get()).exists, false, "a deleted seeded role stays deleted");
+    assert.equal(await seedRoles(db), 0, "once only");
+    await db.doc("careerRoles/seed-safety-lead").set((await db.doc("careerRoles/seed-care-lead").get()).data()!); // put it back for the rest
+  }
   await db.doc("users/u_ada").set({ displayName: "Ada Obi" });
   const note = "I led customer care for a Lagos fintech for four years and trained a team of six.";
   await apply(db, { uid: "u_ada", email: "u_ada@x.test" }, "seed-care-lead", { coverNote: note, consent: true });
