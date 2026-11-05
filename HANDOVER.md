@@ -756,7 +756,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     rooms" workflow) so rooms on it learn the new signals (stage mode, hands sent through our server, mic off, invitations, moderators'
     permissions, removals through our server, the moderators' log). An old worker ignores the new ops (it answers 400): the room doc still
     carries everything, so the app keeps working, but Solo doesn't stop hands raised over the socket, and moderators named for the live
-    have no chat powers on the socket until it's redeployed. The design is in `lib/rooms.ts` ("Stage seats"): `stageMode` (rooms from
+    have no chat powers on the socket until it's redeployed. Owner's rule (5 Nov 2026): the community's own moderators keep their chat
+    powers (`COMMUNITY_MOD_PERMS`) only in lives hosted as community lives (every audio room today); in a member's own live inside the
+    community, when those come, only the moderators that host names and the community owner may moderate. The design is in `lib/rooms.ts` ("Stage seats"): `stageMode` (rooms from
     before work as Approve), `mods` (uid → name, picture, permissions from `MOD_PERMS`; presets Basic and Full; `mayActOn`: never the
     host, and over another moderator only when their permissions are a strict part of yours), `invites` (they lapse after
     `ROOM_INVITE_MS`), `micMuted`, `pinned`, `consentAsk`; the server side in `lib/rooms-server.ts` (`takeSeat`, `inviteToStage`,

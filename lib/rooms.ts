@@ -124,6 +124,8 @@ export const MOD_PRESETS: { id: "basic" | "full"; label: string; perms: ModPerm[
 ];
 export const BASIC_PERMS = MOD_PRESETS[0].perms;
 // The community's own moderators (not named for this live) keep the chat powers they had: remove, mute in the chat, remove from the live.
+// Owner, 5 Nov 2026: only in a live hosted as a community live (every audio room today). In a member's own live inside the community
+// (when those come), the community's moderators get nothing unless the host names them; only the community owner can moderate there.
 export const COMMUNITY_MOD_PERMS: ModPerm[] = ["chatRemove", "chatMute", "ban"];
 export const isModPerm = (v: unknown): v is ModPerm => typeof v === "string" && (ALL_MOD_PERMS as string[]).includes(v);
 // What the host sent for one moderator: known permissions, in the list's order; not a list at all: the Basic preset.
