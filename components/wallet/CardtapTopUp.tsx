@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import QRCode from "qrcode";
 import { nairaOf } from "@/lib/wallet";
-import { CARDTAP_APP_URL, CARDTAP_WAIT_MINUTES, cardtapQuote } from "@/lib/cardtap-topup";
+import { CARDTAP_APP_URL, CARDTAP_WAIT_MINUTES, cardtapQuote, ngMobile } from "@/lib/cardtap-topup";
 
 // The wallet page's "Top up with CardTap" (lib/cardtap-topup-server.ts). Shows Paylony's fee before you start (or that we're paying
 // it, during the launch offer), then the code for the CardTap app, as text to copy and as a QR to scan, and waits for the tap.
 type Started = { reference: string; initiationRef: string; instruction: string; payKobo: number; feeKobo: number; waived: boolean; bonusKobo: number; topupKobo: number };
 
 export default function CardtapTopUp({ user, naira, ok, onPaid }: { user: User; naira: number; ok: boolean; onPaid: () => void }) {
-  const [offer, setOffer] = useState<{ ready: boolean; feeWaived: boolean } | null>(null);
+  const [offer, setOffer] = useState<{ ready: boolean; feeWaived: boolean; phone?: string | null } | null>(null);
+  // CardTap needs the payer's phone (Paylony refuses an empty one). Profiles have none, so it is asked here and kept server-only.
+  const [phone, setPhone] = useState("");
+  const [editPhone, setEditPhone] = useState(false);
   const [started, setStarted] = useState<Started | null>(null);
   const [state, setState] = useState<"idle" | "starting" | "waiting" | "paid" | "failed" | "expired">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -61,9 +64,11 @@ export default function CardtapTopUp({ user, naira, ok, onPaid }: { user: User; 
 
   async function start() {
     if (!ok) return setError("Top up a whole amount from ₦1,000 to ₦500,000.");
+    const asking = editPhone || !offer?.phone;
+    if (asking && !ngMobile(phone)) return setError("Enter your phone number, like 0803 123 4567: CardTap needs it.");
     setState("starting"); setError(null); setCopied(false);
     try {
-      const r = await fetch("/api/wallet/cardtap", { method: "POST", headers: { "Content-Type": "application/json", ...(await auth()) }, body: JSON.stringify({ amountNaira: naira }) });
+      const r = await fetch("/api/wallet/cardtap", { method: "POST", headers: { "Content-Type": "application/json", ...(await auth()) }, body: JSON.stringify({ amountNaira: naira, ...(editPhone || !offer?.phone ? { phone } : {}) }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Couldn't start CardTap.");
       setStarted(j); since.current = Date.now(); setState("waiting");
@@ -113,6 +118,15 @@ export default function CardtapTopUp({ user, naira, ok, onPaid }: { user: User; 
   return (
     <div className="mt-4 border-t border-rule pt-4">
       {back && <p className="mb-3 rounded-xl bg-[#eff4ff] px-3 py-2 text-sm text-ink" aria-live="polite">{back}</p>}
+      {offer.phone && !editPhone ? (
+        <p className="mb-3 text-xs text-slate">Phone for CardTap: <span className="font-semibold text-ink">{offer.phone}</span> · <button type="button" onClick={() => setEditPhone(true)} className="font-semibold text-crimson underline">Change</button></p>
+      ) : (
+        <label className="mb-3 block text-xs font-semibold text-ink">
+          Your phone number (CardTap needs it)
+          <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0803 123 4567" className="mt-1 w-full rounded-xl border border-rule bg-white px-3 py-2 text-sm font-normal text-ink" />
+          <span className="mt-1 block font-normal text-slate">Only for paying with CardTap: never on your profile.</span>
+        </label>
+      )}
       <button type="button" onClick={start} disabled={state === "starting" || !ok} className="w-full rounded-full bg-[#1d4ed8] py-3 font-ui text-sm font-bold text-white hover:bg-[#1e40af] disabled:opacity-50">
         {state === "starting" ? "Getting your CardTap code…" : `Tap to pay ${ok ? nairaOf(q.payKobo) : ""} with CardTap`}
       </button>

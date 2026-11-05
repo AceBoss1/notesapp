@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.143.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "Topping up with CardTap: CardTap needs your phone number to start the payment, and profiles have no phone field, so every CardTap top-up was refused (\"Incomplete request\"). The top-up now asks for your phone number the first time, keeps it privately for the next one (never on your profile) and lets you change it." },
+    ],
+  },
+  {
     version: "v0.143.0",
     bump: "minor",
     date: "2026-11-05",

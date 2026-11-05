@@ -63,3 +63,18 @@ export function cardtapHealth(last: CardtapLast | null): { state: "operational" 
   const why = last.meaning || (last.httpStatus ? `Paylony answered ${last.httpStatus}` : "Paylony didn't answer");
   return { state: "down", note: `the latest top-up couldn't start: ${why}` };
 }
+
+// Paylony's CardTap start needs the payer's phone number (an empty one is refused with code 07, "Incomplete request": owner's status
+// page, 5 Nov 2026). Profiles have no phone (they are public), so the top-up form asks for it. A Nigerian mobile number in any usual
+// spelling (0803…, 803…, +234 803…, 234-803-…) becomes the 11-digit local form Paylony's own examples use; anything else is null.
+export function ngMobile(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  let d = v.replace(/[\s().-]/g, "");
+  if (d.startsWith("+")) d = d.slice(1);
+  if (!/^\d+$/.test(d)) return null;
+  if (d.startsWith("234")) d = `0${d.slice(3)}`;
+  else if (d.length === 10 && /^[789]/.test(d)) d = `0${d}`;
+  return /^0[789][01]\d{8}$/.test(d) ? d : null;
+}
+// Shown back to the member in the form (their own number), with the middle hidden on screen until they edit it.
+export const maskNgMobile = (p: string) => `${p.slice(0, 4)}•••${p.slice(-4)}`;
