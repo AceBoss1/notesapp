@@ -44,6 +44,7 @@ cfg.gifts.grand = { fromKobo: 40_000 * 100, announce: true }; // Golden Gele (�
 cfg.gifts.uplift = { premiumPct: 15, vipPct: 25 };
 cfg.gifts.economy = { quantityMax: 40, autoWithdrawMaxKobo: 35_000 * 100 }; // gifting everywhere: the "How many?" cap and the withdrawal line
 cfg.liveTicketUpliftPct = 12; // paid lives (Admin → Pricing → Gifts)
+cfg.ppmUpliftPct = 27; // pay-per-minute sessions (Admin → Pricing → Gifts)
 const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 }, replayPublish: { standard: 0, basic: 0 }, mediaVideosPerWeek: { pro: 9 }, mediaVideoMaxSeconds: { pro: 240 }, mediaPicturePostsPerDay: { business: 33 }, mediaStorageGB: { enterprise: 0 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
@@ -53,7 +54,7 @@ const saved: Record<string, unknown> = {
   "serverConfig/recording": { overrides: { keepDays: 21, maxHours: 3 } },
   "serverConfig/fans": { overrides: { vipMin: 6_000, vvipMax: 450_000, vipUpliftPct: 15 } },
   // Audio rooms' Live mode (Admin → Limits → Audio rooms → Live): the help quotes these, never the defaults.
-  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3, lateWindowMin: 25, liveDiscountMaxPct: 40, paidNoShowMin: 45 } },
+  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3, lateWindowMin: 25, liveDiscountMaxPct: 40, paidNoShowMin: 45, ppmMinMinutes: 15, ppmMaxMinutes: 120, ppmGraceSec: 45, ppmTopUpWaitSec: 90, ppmNoShowMin: 30 } },
 };
 // Just enough of Firestore for the loaders: doc(path).get() and an empty kbArticles collection.
 const db = {
@@ -136,6 +137,14 @@ const db = {
   assert.ok(body(defaults, "paid-lives").includes("run 20 minutes") && body(defaults, "paid-lives").includes("plus 10% of it"), "the paid-lives defaults were different");
   assert.ok(body(live, "subscriptions").includes("from 0% up to 40%"), "the tier discount cap in the subscriptions help");
   assert.ok(body(live, "commission-rates").includes("plus 12% of it"), "the paid-live share in the commission help");
+  // Pay-per-minute sessions (Admin → Pricing: ppmUpliftPct; Admin → Limits → Pay-per-minute sessions: the minutes, grace, wait, no-show).
+  const ppm = body(live, "pay-per-minute");
+  for (const x of ["at least 15, up to 120 when booking", "within the first 45 seconds", "ends 90 seconds later", "30 minutes after its time", "plus 27% of it"]) assert.ok(ppm.includes(x), `pay-per-minute help: ${x}`);
+  for (const x of ["at least 10,", "up to 240", "first 60 seconds", "60 seconds later", "60 minutes after its time", "plus 20% of it"]) assert.ok(!ppm.includes(x), `pay-per-minute help has no default: ${x}`);
+  const ppmDefaults = body(defaults, "pay-per-minute");
+  for (const x of ["at least 10, up to 240", "first 60 seconds", "60 seconds later", "plus 20% of it"]) assert.ok(ppmDefaults.includes(x), `the pay-per-minute defaults were different: ${x}`);
+  assert.ok(body(live, "commission-rates").includes("[pay-per-minute session](/help/pay-per-minute), #NotesApp takes your rate above plus 27% of it"), "the pay-per-minute share in the commission help");
+  assert.ok(body(live, "payouts").includes("**Pay-per-minute sessions:**"), "pay-per-minute in the payouts help");
   // Fixed in code (not an admin setting) but quoted from the constant: the referral share.
   assert.ok(body(live, "referrals").includes(`${Math.round(PLAN_SHARE * 100)}% of what your friend pays`));
   // The defaults really were different (so the checks above prove something).

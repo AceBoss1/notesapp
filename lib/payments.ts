@@ -41,7 +41,7 @@ import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProduct
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -140,7 +140,11 @@ export type PaymentRecord = {
   // A ticket to a member's paid live (lib/live-tickets.ts): the band and list price, the subscriber discount (their tier's, capped), and
   // the commission share fixed now (commissionRate is the host's rate plus upliftPct % of it). publisherUid is the host.
   liveTicket?: LiveTicketInfo;
+  // A pay-per-minute session's charge (lib/ppm-server.ts): written when the call ends, paid from the credit held at booking
+  // (payWith "wallet", walletDebit = the charge), so a refund goes back to the wallet like any wallet payment. publisherUid is the host.
+  ppm?: PpmPaymentInfo;
 };
+export type PpmPaymentInfo = { sessionId: string; kind: "voice" | "video"; perMinuteKobo: number; billedMinutes: number; heldKobo: number; baseRate: number; upliftPct: number };
 export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: string; band: "early" | "normal" | "late"; listKobo: number; discountPct: number; tier?: SubTier; holderName: string; baseRate: number; upliftPct: number };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
@@ -155,7 +159,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm";
   // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
   // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
   withdrawalOf?: number;

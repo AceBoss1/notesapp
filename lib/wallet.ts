@@ -34,7 +34,8 @@ export type WalletKind = (typeof WALLET_KINDS)[number];
 export const BONUS_KINDS: readonly string[] = ["boost", "ad", "badge"];
 // Never paid with Bonus Credits, whatever BONUS_KINDS holds (owner, 4 Nov 2026): gifts are earnings for the receiver, so they come only
 // from a member's own credit or a card.
-export const NEVER_BONUS_KINDS: readonly string[] = ["gift"];
+// Pay-per-minute sessions (v0.142.0) are held from credit only, never Bonus Credits (docs/LIVE_ECONOMY.md 1b).
+export const NEVER_BONUS_KINDS: readonly string[] = ["gift", "ppm"];
 export const bonusAllowedFor = (kind: string) => BONUS_KINDS.includes(kind) && !NEVER_BONUS_KINDS.includes(kind);
 export const isWalletKind = (k: unknown): k is WalletKind => typeof k === "string" && (WALLET_KINDS as readonly string[]).includes(k);
 
@@ -84,11 +85,23 @@ export function refundSplit(debit: { creditKobo: number; bonusKobo: number }, al
   return { creditKobo: amt - bonusKobo, bonusKobo };
 }
 
-export type WalletTxType = "topup" | "spend" | "refund" | "bonus_expired" | "topup_refund" | "bonus";
+// hold: credit set aside for something not charged yet (a pay-per-minute session's minutes); release: what of a hold came back.
+export type WalletTxType = "topup" | "spend" | "refund" | "bonus_expired" | "topup_refund" | "bonus" | "hold" | "release";
 export type WalletTx = {
   uid: string; type: WalletTxType; creditKobo: number; bonusKobo: number; // signed: + into the wallet, − out of it
   label: string; reference?: string; kind?: string; held?: boolean; at: string;
 };
+
+// ── Holds (pay-per-minute sessions, lib/ppm.ts) ──
+// Credit (never Bonus Credits) leaves the spendable balance when it's held and sits in walletHolds/{id} until it's settled: then the part
+// used is charged and the rest goes back. A hold can grow (the viewer adds minutes), never shrink until it's settled.
+export type WalletHold = { uid: string; kobo: number; status: "held" | "settled"; kind: string; label: string; createdAt: string; chargedKobo?: number; releasedKobo?: number; settledAt?: string };
+// Settling: what's charged (never more than the hold, never below 0) and what goes back.
+export function settleSplit(holdKobo: number, chargeKobo: number): { chargedKobo: number; releasedKobo: number } {
+  const hold = Math.max(0, Math.round(holdKobo));
+  const charged = Math.min(hold, Math.max(0, Math.round(Number.isFinite(chargeKobo) ? chargeKobo : 0)));
+  return { chargedKobo: charged, releasedKobo: hold - charged };
+}
 
 export const nairaOf = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: kobo % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 

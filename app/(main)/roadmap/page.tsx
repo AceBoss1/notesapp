@@ -7,7 +7,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { MEDIA_LIVE } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
-import { certificateMin, liveTicketUpliftPct } from "@/lib/pricing";
+import { certificateMin, liveTicketUpliftPct, ppmUpliftPct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
@@ -129,9 +129,16 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Paid lives",
     tag: "Live · Lives",
-    body: "Live now: schedule a live of your own with tickets. Set a date and time, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, then no more tickets. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers, who get the discount you set for their tier. Choose the recording when you schedule it: off, for safety only, or recorded with a replay. Only ticket holders get in, and they're reminded a day, an hour and at the start. Next: pay-per-minute sessions.",
+    body: "Live now: schedule a live of your own with tickets. Set a date and time, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, then no more tickets. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers, who get the discount you set for their tier. Choose the recording when you schedule it: off, for safety only, or recorded with a replay. Only ticket holders get in, and they're reminded a day, an hour and at the start.",
     get detail() { return `#NotesApp takes your normal rate plus ${liveTicketUpliftPct()}% of it on each ticket, fixed when the ticket is bought. You're paid after the live ends and the problem window has passed, like a session. If you cancel or never start, every ticket is refunded to NotesApp Credit automatically. Only the moderators you name moderate a paid live. Members in teen mode can't sell tickets.`; },
     link: { href: "/lives", label: "See paid lives →" },
+  },
+  {
+    title: "Pay-per-minute sessions",
+    tag: "Live · Sessions",
+    body: "Live now: publishers set a price per minute for voice calls and for video calls, and who can book: everyone, or their own Premium, VIP or VVIP subscribers. You book one of their times and hold some minutes from your NotesApp Credit. The call is metered by #NotesApp, not by either phone: after a short free grace you pay per started minute, unused minutes come back when the call ends, and when your minutes run out you're asked to add more.",
+    get detail() { return `#NotesApp takes the publisher's normal rate plus ${ppmUpliftPct()}% of it, fixed when the session is booked, on what the call used. Publishers are paid after the call ends and the problem window has passed, like a session. Calls go phone to phone, through a relay only when a network needs one. Bonus Credits can't be used. Members in teen mode can't sell or book pay-per-minute sessions.`; },
+    link: { href: "/help/pay-per-minute", label: "How pay-per-minute works →" },
   },
   {
     title: "Online status and followers lists",

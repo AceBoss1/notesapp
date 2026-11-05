@@ -26,7 +26,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -262,8 +262,9 @@ export default function PricingPage() {
             <p className="mt-2 text-xs text-slate">The extra commission is a share of the creator&apos;s own rate: with an 8% rate and 20%, a VIP gift is charged 9.6%. Gifts of a typed amount keep the normal rate. A grand (VIP) gift plays longer, needs a ✔ sender, and (when announcing is on) shows a banner on every open page for 15 seconds with a link to the live or the creator&apos;s page. Creators in teen mode are never announced.</p>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               <div className="flex items-center justify-between gap-3"><span>Paid-live tickets: extra commission, % of the host&apos;s rate</span>{input(["liveTicketUpliftPct"], "%", "Paid-live tickets extra commission")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Pay-per-minute sessions: extra commission, % of the publisher&apos;s rate</span>{input(["ppmUpliftPct"], "%", "Pay-per-minute sessions extra commission")}</div>
             </div>
-            <p className="mt-2 text-xs text-slate">On each ticket to a member&apos;s paid live #NotesApp takes the host&apos;s own rate plus this share of it, fixed on the payment at checkout (like premium gifts). The late window, the subscriber discount cap and the no-show cancellation are under Limits → Audio rooms → Paid lives.</p>
+            <p className="mt-2 text-xs text-slate">On each ticket to a member&apos;s paid live #NotesApp takes the host&apos;s own rate plus this share of it, fixed on the payment at checkout (like premium gifts). The late window, the subscriber discount cap and the no-show cancellation are under Limits → Audio rooms → Paid lives. On a pay-per-minute session the publisher&apos;s rate plus its share is fixed when the session is booked and taken from what the call used; the minutes, the grace and the wait for more minutes are under Limits → Pay-per-minute sessions.</p>
             <p className="mt-2 text-xs text-slate">Different senders counts distinct accounts; a member can never gift themselves. There is no linked-account check yet (same phone, bank or device), so the senders rule is what stops one person reaching the target alone.</p>
           </section>
 

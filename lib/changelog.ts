@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.142.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "Pay-per-minute sessions: publishers can offer voice and video calls by the minute (Rates & payouts → Offer pay-per-minute sessions). Set a price per minute for voice, for video or both, and who can book: everyone, or your own Premium, VIP or VVIP subscribers. People book your weekly times, the same ones as paid sessions." },
+      { kind: "added", text: "Book · per minute on a publisher's profile: choose voice or video, a day and time, and the minutes to hold. The minutes' price is held from your NotesApp Credit, not charged; you pay only for what the call uses and the rest comes back when it ends. Bonus Credits can't be used." },
+      { kind: "added", text: "The meter during a pay-per-minute call: the time, the minutes billed, what you've used of your hold and what's left. #NotesApp meters the call itself from both phones, not either phone's count. A call that ends within the free grace costs nothing; after it, every started minute is charged. When your held minutes run out you're asked to add more, and the call ends shortly after if you don't (that wait is never charged)." },
+      { kind: "added", text: "Your pay-per-minute sessions in one place (Pay-per-minute sessions): start the call from the session's page from 10 minutes before the time, cancel before it starts for everything back, see what each call came to, and report a problem within the problem window. The wallet shows the credit held for sessions." },
+      { kind: "added", text: "Publishers are paid what the call used after it ends and the problem window passes, like a paid session. #NotesApp takes your normal rate plus a share of it, set in Admin, fixed when the session is booked. Members in teen mode can't sell or book pay-per-minute sessions." },
+      { kind: "added", text: "Admin: the pay-per-minute share under Pricing; the fewest and most minutes held at booking, the free grace, the wait for more minutes and the no-show minutes under Limits → Audio rooms → Pay-per-minute sessions." },
+    ],
+  },
+  {
     version: "v0.141.1",
     bump: "patch",
     date: "2026-11-05",

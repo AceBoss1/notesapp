@@ -224,10 +224,12 @@ export const roomIsFull = (r: Pick<RoomDoc, "hostUid" | "speakers" | "joined">, 
 export type RoomSettingKey = "relayOn" | "relayListeners" | "p2pListeners" | "chatSlowAbove" | "chatSlowSeconds"
   | "videoOn" | "videoBudgetMinutes" | "videoGraceSeconds" | "videoNearlyLeftMinutes" | "videoBurstMinutes" | "videoTryMinutes"
   | "dropPercent" | "dropWindowMinutes" | "videoKbps" | "videoFps" | "videoHeight"
-  | "lateWindowMin" | "liveDiscountMaxPct" | "paidNoShowMin";
+  | "lateWindowMin" | "liveDiscountMaxPct" | "paidNoShowMin"
+  | "ppmMinMinutes" | "ppmMaxMinutes" | "ppmGraceSec" | "ppmTopUpWaitSec" | "ppmNoShowMin";
 // group "live": Live mode (lib/rooms-live.ts), shown under its own heading in Admin → Limits → Audio rooms. group "paid": paid lives
-// (lib/live-tickets.ts), under theirs.
-export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" | "paid" };
+// (lib/live-tickets.ts), under theirs. group "ppm": pay-per-minute sessions (lib/ppm.ts), under their own heading in Admin → Limits (they
+// are one-to-one calls, not rooms, but share this saved config so the help and the forms read them the same way).
+export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" | "paid" | "ppm" };
 export const ROOM_LISTENERS_MAX_RELAY = 500;
 // What the listener setting may be raised to. Rooms are planned for 10,000 listeners (owner, 2 Nov 2026): nothing writes once per
 // listener or sends everyone the full list (people/ and the count, above); the default stays at 500 until the owner raises it.
@@ -257,6 +259,12 @@ export const ROOM_SETTINGS: RoomSettingDef[] = [
   { key: "lateWindowMin", label: "Paid lives: late tickets are sold until the live has run this long (then no more tickets)", unit: "minutes", min: 0, max: 180, def: 20, group: "paid" },
   { key: "liveDiscountMaxPct", label: "Paid lives: the largest discount a host can give each subscription tier on tickets", unit: "%", min: 0, max: 100, def: 50, group: "paid" },
   { key: "paidNoShowMin", label: "Paid lives: a live the host hasn't opened this long after its start time is cancelled and everyone refunded to NotesApp Credit", unit: "minutes", min: 10, max: 720, def: 60, group: "paid" },
+  // Pay-per-minute sessions (docs/LIVE_ECONOMY.md 1b, lib/ppm.ts). The grace and the wait are fixed on a session when it's booked; the others apply at once.
+  { key: "ppmMinMinutes", label: "Pay-per-minute: the fewest minutes a viewer holds when booking", unit: "minutes", min: 1, max: 120, def: 10, group: "ppm" },
+  { key: "ppmMaxMinutes", label: "Pay-per-minute: the most minutes held at booking (more can be added during the call)", unit: "minutes", min: 10, max: 600, def: 240, group: "ppm" },
+  { key: "ppmGraceSec", label: "Pay-per-minute: a call that ends within this grace costs nothing; after it, every started minute is charged", unit: "seconds", min: 0, max: 300, def: 60, group: "ppm" },
+  { key: "ppmTopUpWaitSec", label: "Pay-per-minute: when the held minutes run out, the call ends this long later unless the viewer adds minutes", unit: "seconds", min: 15, max: 600, def: 60, group: "ppm" },
+  { key: "ppmNoShowMin", label: "Pay-per-minute: a session whose call hasn't started this long after its time ends, and the hold goes back", unit: "minutes", min: 10, max: 720, def: 60, group: "ppm" },
 ];
 export type RoomSettings = Record<RoomSettingKey, number>;
 export type RoomOverrides = Partial<RoomSettings>;
@@ -305,6 +313,10 @@ export const DEFAULT_ROOM_FIGURES = roomFigures();
 export type PaidLiveFigures = { lateWindowMin: number; discountMaxPct: number; noShowMin: number };
 export const paidLiveFigures = (s: RoomSettings = ROOM_DEFAULTS): PaidLiveFigures => ({ lateWindowMin: s.lateWindowMin, discountMaxPct: s.liveDiscountMaxPct, noShowMin: s.paidNoShowMin });
 export const DEFAULT_PAID_FIGURES = paidLiveFigures();
+// Pay-per-minute sessions' figures (lib/ppm.ts), for the help, the public pages and the forms.
+export type PpmFigures = { minMinutes: number; maxMinutes: number; graceSec: number; topUpWaitSec: number; noShowMin: number };
+export const ppmFigures = (s: RoomSettings = ROOM_DEFAULTS): PpmFigures => ({ minMinutes: s.ppmMinMinutes, maxMinutes: s.ppmMaxMinutes, graceSec: s.ppmGraceSec, topUpWaitSec: s.ppmTopUpWaitSec, noShowMin: s.ppmNoShowMin });
+export const DEFAULT_PPM_FIGURES = ppmFigures();
 
 // ── Presence and the count in relay rooms ──
 export const isFresh = (p: Pick<RoomPerson, "seen"> | undefined, now = Date.now()) => !!p && now - Date.parse(p.seen) < ROOM_GONE_MS;
