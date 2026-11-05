@@ -5,6 +5,7 @@ import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { api } from "@/lib/moments-client";
+import { sendToStream, videoInfo } from "@/lib/media-client";
 import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoClips, momentVideoParts, type MomentHours, type ComposedMomentKind as MomentKind } from "@/lib/moments-rules";
 import { VIDEO_ACCEPT } from "@/lib/video-rules";
 import VoiceOverRecorder, { uploadVoiceOver, type VoiceOver } from "./VoiceOverRecorder";
@@ -61,11 +62,11 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         body.imageKey = (await uploadToR2WithKey(file, "moment")).key;
       } else if (kind === "video") {
         if (!file) throw new Error("Choose a video.");
-        const durationSec = duration ?? (await readDuration(file));
-        const start = await api<{ id: string; uploadUrl: string; partsAllowed: number; partsNeeded: number }>("/api/video", { body: { action: "start", purpose: "moment", size: file.size, contentType: file.type, durationSec } });
-        const put = await fetch(start.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-        if (!put.ok) throw new Error("The upload didn't go through. Try again.");
-        await api("/api/video", { body: { action: "finish", purpose: "moment", id: start.id } });
+        const info = await videoInfo(file).catch(() => null);
+        const durationSec = duration ?? info?.durationSec ?? (await readDuration(file));
+        // Straight to Cloudflare Stream, which burns in the NotesApp mark (your @username) as the video arrives; only that copy is kept.
+        const start = await api<{ id: string; uploadURL: string; partsAllowed: number; partsNeeded: number }>("/api/video", { body: { action: "start", purpose: "moment", size: file.size, contentType: file.type, durationSec, width: info?.width, height: info?.height } });
+        await sendToStream(start.uploadURL, file, () => {});
         if (!auth.currentUser) throw new Error("Sign in first.");
         // One moment per part, in order (each waits for the one before, so they appear in the right order). A voice-over goes on the first.
         const clips = momentVideoClips(durationSec, start.partsAllowed);
@@ -138,7 +139,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         {kind !== "text" && (
           <div className="mt-4">
             <input type="file" accept={kind === "image" ? "image/jpeg,image/png,image/webp,image/gif,image/avif" : VIDEO_ACCEPT} onChange={(e) => pickFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
-            {kind === "video" && <p className="mt-1 text-xs text-slate">Up to {MOMENT_VIDEO_MAX_SECONDS} seconds.</p>}
+            <p className="mt-1 text-xs text-slate">{kind === "video" ? `Up to ${MOMENT_VIDEO_MAX_SECONDS} seconds. ` : ""}It carries the NotesApp mark and your @username.</p>
           </div>
         )}
         {kind === "video" && duration !== null && (

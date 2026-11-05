@@ -5,14 +5,14 @@ import { getLimitTable, saveLimitOverrides } from "@/lib/limits-server";
 import { getAgentSettings, saveAgentSettings } from "@/lib/agents/config-server";
 import { getRoomSettings, saveRoomSettings } from "@/lib/rooms-server";
 import { relayConfigured } from "@/lib/rooms-relay-server";
-import { getWatermarkSettings, saveWatermarkSettings } from "@/lib/media-video-dl-server";
+import { getWatermarkSettings, saveWatermarkSettings } from "@/lib/media-mark-server";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
 // Admin: GET → the limit for every plan, the Nana and connected-agent settings, and the audio room settings (with relayKeys: whether
 // CLOUDFLARE_REALTIME_APP_ID and _TOKEN are set); POST { limits: { <key>: { <plan>: number } }, agents?: { <key>: number },
-// rooms?: { <key>: number }, watermark?: { <key>: number } } (the video download watermark's look) → saves them (whole numbers within each range; the defaults apply to anything left out). Applies sitewide
+// rooms?: { <key>: number }, watermark?: { <key>: number } } (the permanent NotesApp mark's look, lib/media-mark.ts) → saves them (whole numbers within each range; the defaults apply to anything left out). Applies sitewide
 // within about 30 seconds.
 export async function GET(req: NextRequest) {
   try {

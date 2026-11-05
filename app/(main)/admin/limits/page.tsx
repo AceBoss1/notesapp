@@ -5,7 +5,8 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import { LIMITS, LIMIT_TIERS, LIMIT_TIER_LABEL, type LimitTable } from "@/lib/limits";
 import { AGENT_DEFAULTS, AGENT_SETTINGS, type AgentSettings } from "@/lib/agents/config";
 import { ROOM_DEFAULTS, ROOM_SETTINGS, type RoomSettings } from "@/lib/rooms";
-import { CORNER_LABEL, WATERMARK_CORNERS, WATERMARK_DEFAULTS, WATERMARK_SETTINGS, type WatermarkSettings } from "@/lib/media-video-dl";
+import { CORNER_LABEL, WATERMARK_CORNERS, WATERMARK_DEFAULTS, WATERMARK_SETTINGS, type WatermarkSettings } from "@/lib/media-mark";
+import MarkBackfillPanel from "@/components/admin/MarkBackfillPanel";
 import RecordingSettingsPanel from "@/components/admin/RecordingSettingsPanel";
 import StaffPassPanel from "@/components/admin/StaffPassPanel";
 import { isSuper } from "@/lib/admin-access";
@@ -127,8 +128,8 @@ export default function AdminLimitsPage() {
       )}
       {watermark && (
         <section className="mt-10">
-          <h2 className="font-display text-2xl text-ink">Video download watermark</h2>
-          <p className="mt-1 text-sm text-slate">The see-through mark (the NotesApp &ldquo;na&rdquo; mark, @username and NotesApp) burned into the copy of a Media video that people download, when its creator allows downloads. The video people watch has no mark. A change applies to download copies made from now on; copies already made keep their mark.</p>
+          <h2 className="font-display text-2xl text-ink">Media watermark</h2>
+          <p className="mt-1 text-sm text-slate">The permanent NotesApp mark on every Media picture and video, published live replay, shop item photo, service picture and journal picture: a faint full logo across the middle and &ldquo;na @username&rdquo; in a corner, both sized from each picture or video. It is drawn into the file when it is uploaded and only the marked copy is kept, so <strong>a change here applies to new uploads only</strong>; what&rsquo;s already marked keeps its mark (the re-marking job below uses the settings in force when it runs).</p>
           <table className="mt-4 w-full border-collapse text-sm"><tbody>
             {WATERMARK_SETTINGS.map((a) => (
               <tr key={a.key} className="border-b border-rule">
@@ -148,6 +149,7 @@ export default function AdminLimitsPage() {
         <button onClick={save} disabled={busy || !table} className="btn-primary disabled:opacity-50">Save limits</button>
         <button onClick={reset} disabled={!table} className="btn-ghost">Reset to defaults</button>
       </div>
+      {user && <MarkBackfillPanel user={user} />}
       {user && <RecordingSettingsPanel user={user} />}
       {/* The staff test pass (lib/staff-pass.ts): super admins only. */}
       {user && isSuper(access) && <div id="staff-pass"><StaffPassPanel user={user} /></div>}

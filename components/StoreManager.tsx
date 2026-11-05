@@ -5,7 +5,7 @@ import { ensureSubtopics } from "@/lib/subtopics-client";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/lib/users";
 import { auth } from "@/lib/firebase";
-import { uploadToR2 } from "@/lib/upload";
+import { uploadMarked } from "@/lib/upload";
 import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } from "@/lib/orders";
 import Link from "next/link";
 import { addStoreItem, updateStoreItem, deleteStoreItem, setFeaturedItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, SUBTITLE_MAX, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
@@ -129,7 +129,8 @@ export default function StoreManager({
     setError("");
     try {
       const urls: string[] = [];
-      for (const f of files) urls.push(await uploadToR2(f, "journal"));
+      // Each photo gets the permanent NotesApp mark and your @username on our server; only the marked copy is kept.
+      for (const f of files) urls.push(await uploadMarked(f, "shop"));
       setImages((cur) => [...cur, ...urls].slice(0, MAX_IMAGES));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");

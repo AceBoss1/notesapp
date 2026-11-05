@@ -1,11 +1,12 @@
-// Media phase M1 against the Firestore emulator: uploads and plan limits, audiences, teen rules, watermarked picture downloads, site
+// Media phase M1 against the Firestore emulator: uploads and plan limits, the permanent NotesApp mark (pictures marked before they show,
+// the clean upload deleted; videos uploaded with the creator's Stream watermark profile), downloads of the marked files, audiences, teen rules, site
 // pictures and their Hide switches, the profile picture album, and pinned Moments staying past their time. The bucket and Cloudflare
 // Stream are stand-ins. Run: npm run test:media-server → "ALL OK".
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import {
   createMediaPost, creatorMedia, deleteMediaPost, downloadPicture, downloadVideo, mediaQuota, mediaStudio, refreshVideo, setMediaSettings, startMediaVideo, sweepProcessingVideos, updateMediaPost,
   type MediaDeps,
@@ -13,9 +14,9 @@ import {
 import { listForOwner, listPinnedMoments, pinMoment, sweepExpiredMoments, toggleLike } from "../../lib/moments-server";
 import { resetLimitCache } from "../../lib/limits-server";
 import { sitePictureId, sniffPicture } from "../../lib/media-rules";
-import { watermarkPicture } from "../../lib/media-watermark";
+import { markPicture } from "../../lib/media-watermark";
 import { eraseAccount } from "../../lib/account-server";
-import { resetWatermarkCache, type VideoDlDeps } from "../../lib/media-video-dl-server";
+import { resetWatermarkCache } from "../../lib/media-mark-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -23,23 +24,41 @@ const rejects = (p: Promise<unknown>, re: RegExp, why?: string) => assert.reject
 
 // ── Stand-ins for the bucket and Cloudflare Stream ──
 const objects = new Map<string, Buffer>();
-const removed: string[] = [], streamRemoved: string[] = [];
-const stream = new Map<string, { readyToStream: boolean; duration?: number; size?: number; state?: string }>();
-let sv = 0;
+const removed: string[] = [], streamRemoved: string[] = [], written: string[] = [];
+const stream = new Map<string, { readyToStream: boolean; duration?: number; size?: number; state?: string; width?: number; height?: number }>();
+const dlOn = new Map<string, { status: "inprogress" | "ready" | "error"; url: string }>(); // MP4 downloads per Stream video
+const created: { creator: string; watermarkUid: string }[] = [], profiles: { name: string; opacity: number; scale: number; padding: number; position: string; png: Buffer }[] = [];
+const dropped: string[] = [], disabled: string[] = [];
+let sv = 0, wm = 0, failWrites = 0;
+// The mark stand-in: a picture comes back 8 bytes longer, ending with the @username it was marked for; anything else isn't a picture.
+const MARK_TAIL = (u: string) => Buffer.from(`|na@${u}`);
 const deps: MediaDeps = {
   publicUrl: (k) => `https://cdn.test/${k}`,
   head: async (k) => (objects.has(k) ? { size: objects.get(k)!.length } : null),
   readStart: async (k) => objects.get(k)!.subarray(0, 32),
-  read: async (k) => objects.get(k)!,
+  read: async (k) => { if (!objects.has(k)) throw new Error("NoSuchKey"); return objects.get(k)!; },
+  write: async (k, b) => { if (failWrites > 0) { failWrites--; throw new Error("R2 is down"); } objects.set(k, b); written.push(k); },
   remove: async (k) => { objects.delete(k); removed.push(k); },
+  markPicture: async (b, u) => { if (!sniffPicture(b)) throw new Error("not a picture"); return { bytes: Buffer.concat([b, MARK_TAIL(u)]), type: "image/webp", ext: "webp" }; },
   mediaBase: "https://cdn.test",
   stream: {
     configured: true,
-    create: async () => ({ uploadURL: "https://upload.test/one-time", uid: `sv${++sv}` }),
+    create: async (creator, _max, _name, watermarkUid) => { created.push({ creator, watermarkUid }); return { uploadURL: "https://upload.test/one-time", uid: `sv${++sv}` }; },
     get: async (uid) => stream.get(uid) ?? null,
     remove: async (uid) => { streamRemoved.push(uid); stream.delete(uid); },
+    downloads: {
+      enable: async (uid) => { const d = { status: "inprogress" as const, url: `https://customer-x.cloudflarestream.com/${uid}/downloads/default.mp4` }; dlOn.set(uid, d); return d; },
+      status: async (uid) => dlOn.get(uid) ?? null,
+      disable: async (uid) => { disabled.push(uid); dlOn.delete(uid); },
+    },
+    copy: async () => { throw new Error("no copies in this test (tests/media/marks.emulator.ts has the re-marking)"); },
+    token: async (uid, secs) => `tok-${uid}-${secs}`,
+    watermark: async (o) => { profiles.push(o); return { uid: `wm${++wm}` }; },
+    dropWatermark: async (uid) => { dropped.push(uid); },
+    markPng: (u, shape, st) => import("../../lib/media-watermark").then((m) => m.renderVideoMark(u, shape, st)),
   },
 };
+const marked = (k: string) => k.replace(/\.webp$/, "-na.webp");
 const momentDeps = { publicUrl: (k: string) => `https://cdn.test/${k}`, remove: async () => {} };
 const WEBP_STUB = Buffer.concat([Buffer.from("RIFF\0\0\0\0WEBPVP8 "), Buffer.alloc(100)]);
 const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); return key; };
@@ -62,6 +81,13 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   // ── Pictures: our own folder, real pictures, up to 10 ──
   const p1 = await createMediaPost(db, T, "pro", { kind: "pictures", caption: "Payday is not a holiday #MoneyNotes", pictureKeys: [put("media/u_tunde/1-a.webp"), put("media/u_tunde/1-b.webp")] }, deps);
   assert.equal(p1.status, "ready"); assert.equal(p1.pictures.length, 2); assert.equal(p1.audience, "everyone");
+  // The permanent mark: each picture marked with @tunde under a new key, the clean upload deleted, only the marked one shown.
+  assert.deepEqual(p1.pictures, ["https://cdn.test/media/u_tunde/1-a-na.webp", "https://cdn.test/media/u_tunde/1-b-na.webp"], "only the marked copies are shown");
+  assert.ok(!objects.has("media/u_tunde/1-a.webp") && !objects.has("media/u_tunde/1-b.webp") && removed.includes("media/u_tunde/1-a.webp"), "the clean uploads are deleted");
+  assert.ok(objects.get("media/u_tunde/1-a-na.webp")!.subarray(-9).equals(MARK_TAIL("tunde")), "marked for @tunde");
+  const p1doc = (await db.doc(`mediaPosts/${p1.id}`).get()).data()!;
+  assert.equal(p1doc.marked, true); assert.deepEqual(p1doc.pictures.map((x: { marked: boolean; cleanKey?: string }) => [x.marked, x.cleanKey]), [[true, undefined], [true, undefined]]);
+  assert.equal(p1doc.bytes, (WEBP_STUB.length + 9) * 2, "the post counts the marked files");
   assert.equal(p1.allowDownloads, false, "downloads are off unless turned on");
   assert.equal(p1.commentsCount, 0, "M2's counters are there from the start");
   const stored = (await db.doc(`mediaPosts/${p1.id}`).get()).data()!;
@@ -78,7 +104,7 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   await rejects(createMediaPost(db, T, "pro", { kind: "pictures", pictureKeys: [put("media/u_tunde/3.webp")] }, deps), /posted 2 picture posts today/);
   await db.doc("serverConfig/limits").delete(); resetLimitCache();
   const usedBefore = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
-  assert.equal(usedBefore, WEBP_STUB.length * 3, "storage counts each picture's bytes");
+  assert.equal(usedBefore, (WEBP_STUB.length + 9) * 3, "storage counts each marked picture's bytes, once");
   await db.doc("mediaUsage/u_tunde").update({ bytes: 20 * 1024 ** 3 - 10 });
   await rejects(createMediaPost(db, T, "pro", { kind: "pictures", pictureKeys: [put("media/u_tunde/4.webp")] }, deps), /storage is full/);
   await db.doc("mediaUsage/u_tunde").update({ bytes: usedBefore });
@@ -87,11 +113,22 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   await rejects(startMediaVideo(db, { uid: "u_free", username: "freeone" }, "standard", { durationSec: 20, size: 1000 }, deps), /come with a paid plan/);
   await rejects(startMediaVideo(db, T, "pro", { durationSec: 200, size: 1000 }, deps), /up to 180 seconds/);
   await rejects(startMediaVideo(db, T, "pro", { durationSec: 20, size: 300 * 1024 * 1024 }, deps), /up to 200 MB/);
-  const v1 = await startMediaVideo(db, T, "pro", { durationSec: 58, size: 5_000_000, name: "payday.mp4" }, deps);
+  const v1 = await startMediaVideo(db, T, "pro", { durationSec: 58, size: 5_000_000, name: "payday.mp4", width: 1080, height: 1920 }, deps);
   assert.equal(v1.maxSeconds, 180); assert.equal(v1.uploadURL, "https://upload.test/one-time");
+  // The video goes to Stream with @tunde's watermark profile for a 9:16 frame: one full-frame transparent PNG, laid on at scale 1.
+  assert.deepEqual(created[0], { creator: "u_tunde", watermarkUid: "wm1" });
+  assert.deepEqual(profiles.map((x) => [x.name, x.opacity, x.scale, x.padding, x.position]), [["NotesApp @tunde 9x16", 1, 1, 0, "center"]]);
+  assert.equal(profiles[0].png.subarray(1, 4).toString(), "PNG");
+  assert.equal((await db.doc(`mediaUploads/${v1.uploadId}`).get()).data()!.marked, true);
+  const vAgain = await startMediaVideo(db, T, "pro", { durationSec: 5, size: 1000, width: 720, height: 1280 }, deps);
+  assert.equal(created[1].watermarkUid, "wm1", "the same profile is used again for the same shape");
+  await db.doc(`mediaUploads/${vAgain.uploadId}`).delete(); await db.doc("mediaUsage/u_tunde").update({ videos: 1, bytes: FieldValue.increment(-1000) });
+  await startMediaVideo(db, T, "pro", { durationSec: 5, size: 1000, width: 1920, height: 1080 }, deps).then(async (x) => { await db.doc(`mediaUploads/${x.uploadId}`).delete(); await db.doc("mediaUsage/u_tunde").update({ videos: 1, bytes: FieldValue.increment(-1000) }); });
+  assert.deepEqual([created[2].watermarkUid, profiles[1].name], ["wm2", "NotesApp @tunde 16x9"], "a landscape video: a 16:9 profile");
   assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 1);
   const vp = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v1.uploadId, caption: "Ajo tracker", audience: "everyone" }, deps);
   assert.equal(vp.status, "processing");
+  assert.equal((await db.doc(`mediaPosts/${vp.id}`).get()).data()!.marked, true, "a video posted from now on is marked");
   await rejects(createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v1.uploadId }, deps), /already posted/, "an upload is posted once");
   await rejects(createMediaPost(db, fan, "standard", { kind: "video", videoUploadId: v1.uploadId }, deps), /wasn't found/, "only by its uploader");
   assert.ok(!(await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.some((p) => p.id === vp.id), "processing: the owner's only");
@@ -102,14 +139,16 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   const v2 = await startMediaVideo(db, T, "pro", { durationSec: 60, size: 1000 }, deps);
   const vp2 = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v2.uploadId }, deps);
   assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 2);
-  stream.set("sv2", { readyToStream: true, duration: 400 }); // longer than it said
+  const uidOf = async (id: string) => String((await db.doc(`mediaPosts/${id}`).get()).data()!.video.streamUid);
+  const sv2 = await uidOf(vp2.id);
+  stream.set(sv2, { readyToStream: true, duration: 400 }); // longer than it said
   const rej = (await refreshVideo(db, vp2.id, deps))!;
   assert.equal(rej.status, "rejected"); assert.match(String(rej.rejectedReason), /longer than your plan's 180 seconds/);
-  assert.ok(streamRemoved.includes("sv2"), "the file is removed from Stream");
+  assert.ok(streamRemoved.includes(sv2), "the file is removed from Stream");
   assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 1, "the slot is given back");
   const v3 = await startMediaVideo(db, T, "pro", { durationSec: 30, size: 1000 }, deps);
   const vp3 = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v3.uploadId }, deps);
-  stream.set("sv3", { readyToStream: false, state: "error" });
+  stream.set(await uidOf(vp3.id), { readyToStream: false, state: "error" });
   assert.equal((await refreshVideo(db, vp3.id, deps))!.status, "rejected", "Stream couldn't process it");
   assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 1);
 
@@ -136,115 +175,91 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   const tpe = await updateMediaPost(db, teen, tp.id, { allowDownloads: true }, deps);
   assert.equal(tpe.allowDownloads, false, "and can't be turned on later");
   await db.doc(`mediaPosts/${tp.id}`).update({ allowDownloads: true }); // even if it were on somehow
-  await rejects(downloadPicture(db, mutual, tp.id, 0, deps, watermarkPicture), /Downloads are off for this member's Media/);
+  await rejects(downloadPicture(db, mutual, tp.id, 0, deps), /Downloads are off for this member's Media/);
   await rejects(createMediaPost(db, stranger, "standard", { kind: "pictures", caption: "Nice one @tobi", pictureKeys: [put("media/u_stranger/a.webp")] }, deps), /@tobi only hears from people they follow/);
   await createMediaPost(db, mutual, "standard", { kind: "pictures", caption: "Well done @tobi", pictureKeys: [put("media/u_mutual/a.webp")] }, deps);
 
-  // ── Watermarked downloads of pictures ──
+  // ── A picture post is only shown once marked: a write that fails leaves it hidden ("processing"), and the cron finishes it ──
+  failWrites = 1;
+  const slow = await createMediaPost(db, T, "pro", { kind: "pictures", pictureKeys: [put("media/u_tunde/slow.webp")] }, deps);
+  assert.equal(slow.status, "processing"); assert.deepEqual(slow.pictures, [], "the clean picture is never shown, not even to its creator");
+  assert.ok(!(await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.some((p) => p.id === slow.id), "hidden from others");
+  assert.ok(objects.has("media/u_tunde/slow.webp"), "the clean file waits for its mark");
+  await sweepProcessingVideos(db, deps);
+  const slowNow = (await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.find((p) => p.id === slow.id)!;
+  assert.deepEqual(slowNow.pictures, ["https://cdn.test/media/u_tunde/slow-na.webp"], "marked by the cron, then shown");
+  assert.ok(!objects.has("media/u_tunde/slow.webp"), "and the clean file deleted");
+  // A file the mark can't read (it passed the first bytes' check but isn't a picture): the post is rejected, its files and bytes go.
+  const used1 = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
+  const bad = await createMediaPost(db, T, "pro", { kind: "pictures", pictureKeys: [put("media/u_tunde/bad.webp", Buffer.concat([Buffer.from("RIFF\0\0\0\0WEBPVP8 "), Buffer.alloc(40)]))] }, { ...deps, markPicture: async () => { throw new Error("decode"); } });
+  assert.equal(bad.status, "rejected"); assert.match(String(bad.rejectedReason), /couldn't be read as a picture/);
+  assert.ok(!objects.has("media/u_tunde/bad.webp")); assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used1);
+
+  // ── Downloads: the stored, marked file (no stamping on the way out, no second copy) ──
   const req = eval("require") as NodeRequire;
   const sq = req("next/dist/server/lib/squoosh/impl") as { decodeBuffer: (b: Buffer) => Promise<{ data: Uint8Array; width: number; height: number }>; encodeWebp: (i: unknown, o: { quality: number }) => Promise<Uint8Array> };
   const im = await sq.decodeBuffer(readFileSync(join(__dirname, "..", "..", "public/images/journal/defi.jpg")));
   const realWebp = Buffer.from(await sq.encodeWebp({ data: im.data, width: im.width, height: im.height }, { quality: 80 }));
-  const dp = await createMediaPost(db, T, "pro", { kind: "pictures", allowDownloads: true, pictureKeys: [put("media/u_tunde/real.webp", realWebp)] }, deps);
-  const stamped: string[] = [];
-  const got = await downloadPicture(db, null, dp.id, 0, deps, async (b, u) => { stamped.push(u); return watermarkPicture(b, u); });
-  assert.deepEqual(stamped, ["tunde"], "stamped with the creator's @username");
-  assert.equal(sniffPicture(got.bytes), "jpeg"); assert.notDeepEqual(got.bytes, realWebp, "never the original file");
-  assert.match(got.filename, /^tunde-notesapp-.+-1\.jpg$/);
+  const realDeps: MediaDeps = { ...deps, markPicture: (b, u, st) => markPicture(b, u, st) };
+  const dp = await createMediaPost(db, T, "pro", { kind: "pictures", allowDownloads: true, pictureKeys: [put("media/u_tunde/real.webp", realWebp)] }, realDeps);
+  assert.equal(dp.status, "ready");
+  const storedPic = objects.get("media/u_tunde/real-na.webp")!;
+  assert.ok(storedPic && sniffPicture(storedPic) === "webp" && !storedPic.equals(realWebp), "really marked, still WebP");
+  assert.ok(!objects.has("media/u_tunde/real.webp"), "the clean original is gone");
+  const got = await downloadPicture(db, null, dp.id, 0, deps);
+  assert.ok(got.bytes.equals(storedPic), "the download is the stored, marked file"); assert.equal(got.type, "image/webp");
+  assert.match(got.filename, /^tunde-notesapp-.+-1\.webp$/);
   assert.equal((await db.doc(`mediaPosts/${dp.id}`).get()).data()!.downloadCount, 1);
-  await rejects(downloadPicture(db, fan, p1.id, 0, deps, watermarkPicture), /hasn't allowed downloads/);
-  await rejects(downloadPicture(db, fan, dp.id, 5, deps, watermarkPicture), /picture wasn't found/);
-  const noDl = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, deps);
-  assert.equal(noDl.videoDownload, "failed", "without Stream's download steps the creator is told"); assert.match(String(noDl.videoDownloadWhy), /aren't switched on yet/);
-  await rejects(downloadPicture(db, fan, vp.id, 0, deps, watermarkPicture), /That's a video/);
-  await rejects(downloadVideo(db, fan, vp.id, deps), /aren't switched on yet/);
-  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, deps);
+  await rejects(downloadPicture(db, fan, p1.id, 0, deps), /hasn't allowed downloads/);
+  await rejects(downloadPicture(db, fan, dp.id, 5, deps), /picture wasn't found/);
+  // A picture posted before the mark (not re-marked yet) is marked on the way out: never the clean file.
+  await db.doc(`mediaPosts/${dp.id}`).update({ pictures: [{ key: "media/u_tunde/old.webp", bytes: realWebp.length }], marked: FieldValue.delete() }); put("media/u_tunde/old.webp", realWebp);
+  const old = await downloadPicture(db, null, dp.id, 0, realDeps);
+  assert.ok(!old.bytes.equals(realWebp) && sniffPicture(old.bytes) === "webp", "old pictures are marked as they're downloaded");
+  await db.doc(`mediaPosts/${dp.id}`).update({ pictures: [{ key: "media/u_tunde/real-na.webp", bytes: storedPic.length, marked: true }], marked: true }); objects.delete("media/u_tunde/old.webp");
+  await db.doc(`mediaPosts/${vp.id}`).update({ allowDownloads: true }); await rejects(downloadPicture(db, fan, vp.id, 0, deps), /That's a video/); await db.doc(`mediaPosts/${vp.id}`).update({ allowDownloads: false });
   await updateMediaPost(db, T, fp.id, { allowDownloads: true }, deps);
-  await rejects(downloadPicture(db, stranger, fp.id, 0, deps, watermarkPicture), /wasn't found/, "a followers-only post isn't downloadable by a stranger");
+  await rejects(downloadPicture(db, stranger, fp.id, 0, deps), /wasn't found/, "a followers-only post isn't downloadable by a stranger");
 
-  // ── Watermarked video downloads: a second Stream copy with a see-through mark, MP4 downloads on the copy only ──
-  const dlOn = new Map<string, { status: "inprogress" | "ready" | "error"; url: string }>(); // MP4 downloads per Stream video
-  const copies = new Map<string, { readyToStream: boolean; state?: string; size?: number }>();
-  const made: { url: string; watermarkUid: string; creatorUid: string }[] = [], marks: { name: string; opacity: number; scale: number; padding: number; position: string; transparent: boolean }[] = [];
-  const dropped: string[] = [], disabled: string[] = [], copyRemoved: string[] = [];
-  let wm = 0, cp = 0;
-  const vdl: VideoDlDeps = {
-    enable: async (uid) => { const d = { status: "inprogress" as const, url: `https://customer-x.cloudflarestream.com/${uid}/downloads/default.mp4` }; dlOn.set(uid, d); return d; },
-    status: async (uid) => dlOn.get(uid) ?? null,
-    disable: async (uid) => { disabled.push(uid); dlOn.delete(uid); },
-    copy: async (o) => { made.push(o); const uid = `copy${++cp}`; copies.set(uid, { readyToStream: false }); return { uid }; },
-    get: async (uid) => copies.get(uid) ?? null,
-    remove: async (uid) => { copyRemoved.push(uid); copies.delete(uid); },
-    watermark: async (o) => {
-      // The mark must be a PNG with a see-through background: its alpha channel has fully transparent pixels.
-      const img = await sq.decodeBuffer(o.png);
-      let clear = 0; for (let k = 3; k < img.data.length; k += 4) if (img.data[k] === 0) clear++;
-      marks.push({ name: o.name, opacity: o.opacity, scale: o.scale, padding: o.padding, position: o.position, transparent: o.png.subarray(1, 4).toString() === "PNG" && clear > img.data.length / 8 });
-      return { uid: `wm${++wm}` };
-    },
-    dropWatermark: async (uid) => { dropped.push(uid); },
-    mark: (u) => import("../../lib/media-watermark").then((m) => m.renderVideoMark(u)),
-    token: async (uid, secs) => `tok-${uid}-${secs}`,
-  };
-  const ddeps: MediaDeps = { ...deps, videoDl: vdl };
+  // ── Video downloads: Stream's MP4 of the (marked) video itself, nothing more in storage ──
   const used0 = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
-  const on1 = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
-  assert.equal(on1.videoDownload, "preparing");
-  assert.deepEqual(marks, [{ name: "NotesApp @tunde", opacity: 0.4, scale: 0.22, padding: 0.04, position: "lowerRight", transparent: true }], "one see-through profile for @tunde, from the default look");
-  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 4_900_000, "the copy takes about the video's size again in storage");
-  assert.ok(dlOn.has("sv1"), "an MP4 of the original is made, to copy from");
+  const on1 = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, deps);
+  assert.equal(on1.videoDownload, "preparing"); assert.ok(dlOn.has("sv1"), "MP4 downloads switched on for the post's own video");
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0, "no second copy, no more storage");
   assert.equal((await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.find((p) => p.id === vp.id)!.videoDownload, undefined, "others don't see it until it's ready");
-  await rejects(downloadVideo(db, fan, vp.id, ddeps), /being prepared/);
+  await rejects(downloadVideo(db, fan, vp.id, deps), /being made/);
   dlOn.set("sv1", { status: "ready", url: "https://customer-x.cloudflarestream.com/sv1/downloads/default.mp4" });
-  await rejects(downloadVideo(db, fan, vp.id, ddeps), /being prepared/, "the copy is being made");
-  assert.deepEqual(made, [{ url: "https://customer-x.cloudflarestream.com/sv1/downloads/default.mp4", watermarkUid: "wm1", creatorUid: "u_tunde", name: `download of media ${vp.id}` }]);
-  copies.set("copy1", { readyToStream: true, size: 5_500_000 });
-  assert.equal(await sweepProcessingVideos(db, ddeps), 1, "the cron moves it along");
-  assert.ok(disabled.includes("sv1") && !dlOn.has("sv1"), "the original's MP4 is removed once the copy has it: only the marked copy is downloadable");
-  assert.equal(dlOn.get("copy1")?.status, "inprogress");
-  dlOn.set("copy1", { status: "ready", url: "https://customer-x.cloudflarestream.com/copy1/downloads/default.mp4" });
-  const vget = await downloadVideo(db, fan, vp.id, ddeps);
-  assert.equal(vget.url, `https://customer-x.cloudflarestream.com/tok-copy1-3600/downloads/default.mp4?filename=${encodeURIComponent(`tunde-notesapp-${vp.id.slice(0, 6)}.mp4`)}`, "a signed, hour-long link to the marked copy, named for @tunde");
+  assert.ok((await sweepProcessingVideos(db, deps)) >= 1, "the cron moves it along");
+  const vget = await downloadVideo(db, fan, vp.id, deps);
+  assert.equal(vget.url, `https://customer-x.cloudflarestream.com/sv1/downloads/default.mp4?filename=${encodeURIComponent(`tunde-notesapp-${vp.id.slice(0, 6)}.mp4`)}`, "the marked video's MP4, named for @tunde");
   assert.equal((await db.doc(`mediaPosts/${vp.id}`).get()).data()!.downloadCount, 1);
-  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 5_500_000, "storage follows the copy's real size");
   assert.equal((await creatorMedia(db, fan, "tunde", deps, momentDeps)).posts.find((p) => p.id === vp.id)!.videoDownload, "ready");
-  assert.equal((await mediaStudio(db, T, "pro", ddeps)).posts.find((p) => p.id === vp.id)!.videoDownload, "ready");
-  // Off: the copy goes and its bytes come back.
-  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
-  assert.ok(copyRemoved.includes("copy1")); assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
-  await rejects(downloadVideo(db, fan, vp.id, ddeps), /hasn't allowed downloads/);
-  // The look from Admin → Limits: a new profile for copies made from now on; the old one is dropped.
-  await db.doc("serverConfig/mediaWatermark").set({ overrides: { opacityPct: 30, corner: 3 } }); resetWatermarkCache();
-  await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
-  assert.deepEqual([marks[1].opacity, marks[1].position, dropped], [0.3, "upperLeft", ["wm1"]]);
-  await db.doc("serverConfig/mediaWatermark").delete(); resetWatermarkCache();
-  // Stream fails a step: whatever it made is removed, the bytes go back, and the creator sees why.
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, deps);
+  assert.ok(disabled.includes("sv1") && !dlOn.has("sv1"), "off: the MP4 is removed");
+  await rejects(downloadVideo(db, fan, vp.id, deps), /hasn't allowed downloads/);
+  // Stream fails to make the MP4: the creator sees why.
+  await updateMediaPost(db, T, vp.id, { allowDownloads: true }, deps);
   dlOn.set("sv1", { status: "error", url: "" });
-  await sweepProcessingVideos(db, ddeps);
-  const failed = (await mediaStudio(db, T, "pro", ddeps)).posts.find((p) => p.id === vp.id)!;
+  await sweepProcessingVideos(db, deps);
+  const failed = (await mediaStudio(db, T, "pro", deps)).posts.find((p) => p.id === vp.id)!;
   assert.equal(failed.videoDownload, "failed"); assert.match(String(failed.videoDownloadWhy), /off and on to try again/);
-  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
-  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
-  // No room for the copy: refused, with why.
-  await db.doc("mediaUsage/u_tunde").update({ bytes: 20 * 1024 ** 3 - 1000 });
-  const full = await updateMediaPost(db, T, vp.id, { allowDownloads: true }, ddeps);
-  assert.equal(full.videoDownload, "failed"); assert.match(String(full.videoDownloadWhy), /isn't room in your Media storage/);
-  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, ddeps);
-  await db.doc("mediaUsage/u_tunde").update({ bytes: used0 });
-  // Deleting a post with a ready copy removes both and frees both.
-  const v4 = await startMediaVideo(db, T, "pro", { durationSec: 20, size: 1_000_000 }, ddeps);
-  const vp4 = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v4.uploadId, allowDownloads: true }, ddeps);
-  stream.set(`sv${sv}`, { readyToStream: true, duration: 20, size: 1_000_000 });
-  await refreshVideo(db, vp4.id, ddeps); // ready: the copy starts now
-  dlOn.set(`sv${sv}`, { status: "ready", url: `https://customer-x.cloudflarestream.com/sv${sv}/downloads/default.mp4` });
-  await sweepProcessingVideos(db, ddeps); copies.set(`copy${cp}`, { readyToStream: true, size: 1_000_000 }); await sweepProcessingVideos(db, ddeps);
-  dlOn.set(`copy${cp}`, { status: "ready", url: `https://customer-x.cloudflarestream.com/copy${cp}/downloads/default.mp4` }); await sweepProcessingVideos(db, ddeps);
-  assert.equal((await db.doc(`mediaPosts/${vp4.id}`).get()).data()!.videoDl.state, "ready");
-  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0 + 2_000_000);
-  await deleteMediaPost(db, "u_tunde", vp4.id, ddeps);
-  assert.ok(copyRemoved.includes(`copy${cp}`)); assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, used0);
+  await updateMediaPost(db, T, vp.id, { allowDownloads: false }, deps);
+  // A video posted before the mark isn't downloadable until it's re-marked.
+  await db.doc(`mediaPosts/${vp.id}`).update({ marked: false, "video.marked": false, allowDownloads: true });
+  await rejects(downloadVideo(db, fan, vp.id, deps), /being given the NotesApp mark/);
+  await db.doc(`mediaPosts/${vp.id}`).update({ marked: true, "video.marked": true, allowDownloads: false });
+  // The look from Admin → Limits applies to new uploads: a new profile; the replaced one is deleted from Stream 3 days later.
+  await db.doc("serverConfig/mediaWatermark").set({ overrides: { centreOpacityPct: 20, corner: 3 } }); resetWatermarkCache();
+  const v5 = await startMediaVideo(db, T, "pro", { durationSec: 5, size: 1000, width: 1080, height: 1920 }, deps);
+  assert.equal(created[created.length - 1].watermarkUid, `wm${wm}`); assert.notEqual(`wm${wm}`, "wm1"); assert.deepEqual(dropped, [], "kept a while for uploads already given it");
+  await db.doc(`mediaUploads/${v5.uploadId}`).delete(); await db.doc("mediaUsage/u_tunde").update({ videos: 1, bytes: FieldValue.increment(-1000) });
+  const later3 = new Date(Date.now() + 4 * 86_400_000);
+  const v6 = await startMediaVideo(db, T, "pro", { durationSec: 5, size: 1000, width: 1920, height: 1080 }, deps, later3);
+  assert.ok((dropped as string[]).includes("wm1"), "then deleted");
+  await db.doc(`mediaUploads/${v6.uploadId}`).delete(); await db.doc("mediaUsage/u_tunde").update({ videos: 1, bytes: FieldValue.increment(-1000) });
+  await db.doc("serverConfig/mediaWatermark").delete(); resetWatermarkCache();
   // Teens: never.
-  await rejects(downloadVideo(db, mutual, tp.id, ddeps), /Downloads are off for this member's Media/);
+  await rejects(downloadVideo(db, mutual, tp.id, deps), /Downloads are off for this member's Media/);
 
   // ── Site pictures: shown by default, each hideable, and a switch for all ──
   await db.doc("sites/u_tunde").set({ uid: "u_tunde", cover: "https://cdn.test/site/cover.webp", blocks: { gallery: { on: true, items: [{ image: "https://cdn.test/site/g1.webp", caption: "Shop" }, { image: "https://cdn.test/site/g2.webp", caption: "" }] }, services: { on: true, items: [{ name: "Ajo", image: "https://cdn.test/site/s1.webp" }] } } });
@@ -336,15 +351,15 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   assert.equal(cm.counts.videos, 1);
   const bytesBefore = (await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes;
   await deleteMediaPost(db, "u_tunde", p1.id, deps);
-  assert.ok(removed.includes("media/u_tunde/1-a.webp") && removed.includes("media/u_tunde/1-b.webp"), "its files go");
-  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, bytesBefore - WEBP_STUB.length * 2, "and their bytes are freed");
+  assert.ok(removed.includes("media/u_tunde/1-a-na.webp") && removed.includes("media/u_tunde/1-b-na.webp"), "its files go");
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).storage.usedBytes, bytesBefore - (WEBP_STUB.length + 9) * 2, "and their bytes are freed");
   await rejects(deleteMediaPost(db, "u_fan", dp.id, deps), /wasn't found/);
 
   // ── Deleting an account takes its Media with it ──
   const gone: string[] = [];
   await eraseAccount(db, "u_mutual", async () => {}, async (k) => { gone.push(k); });
   assert.equal((await db.collection("mediaPosts").where("ownerUid", "==", "u_mutual").get()).size, 0);
-  assert.ok(gone.includes("media/u_mutual/a.webp"));
+  assert.ok(gone.includes("media/u_mutual/a-na.webp"));
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => {

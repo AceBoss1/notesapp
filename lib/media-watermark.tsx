@@ -1,17 +1,21 @@
 import React from "react";
+import { readFile } from "fs/promises";
+import path from "path";
 import { ImageResponse } from "next/og";
+import { FormatNotKept, MARK_CRIMSON, MARK_WORD, WATERMARK_DEFAULTS, markGeometry, shapeSize, type MarkGeometry, type MarkShape, type WatermarkSettings } from "./media-mark";
 void React; // the tests run this file outside Next.js, where JSX needs React in scope
 
-// Watermarked downloads of Media pictures (owner, 3 Nov 2026). Server only. The picture is decoded, a badge with the NotesApp mark and
-// "@username" is drawn in its bottom-right corner, and it is saved as a JPEG: the downloaded file always says where it came from and
-// whose it is. Nothing to install: the badge is drawn by next/og (what certificates and course covers use) and the picture is decoded and
-// encoded by the WebAssembly codecs Next.js ships for its image optimiser (as lib/cover-render.tsx does; next.config.js traces them).
+// Draws the permanent NotesApp mark (lib/media-mark.ts has the look and the geometry). Server only. The marks are drawn by next/og (what
+// certificates and course covers use) in Inter from assets/fonts, and pictures are decoded and encoded by the WebAssembly codecs Next.js
+// ships for its image optimiser (as lib/cover-render.tsx does; next.config.js traces them and the fonts).
 
 export type Rgba = { data: Uint8ClampedArray | Uint8Array; width: number; height: number };
 
 type Codecs = {
   decodeBuffer: (b: Buffer | Uint8Array) => Promise<Rgba>;
   encodeJpeg: (img: Rgba, o: { quality: number }) => Promise<Uint8Array | Buffer>;
+  encodeWebp: (img: Rgba, o: { quality: number }) => Promise<Uint8Array | Buffer>;
+  encodePng: (img: Rgba) => Promise<Uint8Array | Buffer>;
 };
 let codecs: Codecs | null = null;
 function loadCodecs(): Codecs {
@@ -20,30 +24,58 @@ function loadCodecs(): Codecs {
   codecs ??= req("next/dist/server/lib/squoosh/impl") as Codecs;
   return codecs;
 }
+type Font = { name: string; data: Buffer; weight: 700 | 800; style: "normal" };
+let fonts: Promise<Font[]> | null = null;
+const loadFonts = () => (fonts ??= Promise.all([700, 800].map(async (w) => ({ name: "Inter", data: await readFile(path.join(process.cwd(), `assets/fonts/Inter-${w}.ttf`)), weight: w as 700 | 800, style: "normal" as const })))
+  .catch((e) => { fonts = null; throw e; }));
 
-// The badge's size for a picture: about 5.5% of the shorter side tall, never smaller than 26 px or wider than 70% of the picture.
-export function badgeBox(width: number, height: number, username: string): { w: number; h: number; margin: number; font: number } {
-  const h = Math.max(26, Math.round(Math.min(width, height) * 0.055));
-  const font = Math.round(h * 0.42);
-  const text = `@${username}`.length + "NotesApp".length;
-  const w = Math.min(Math.round(width * 0.7), Math.round(h * 1.25 + text * font * 0.58 + h * 0.6));
-  return { w: Math.max(h * 2, w), h, margin: Math.max(8, Math.round(h * 0.35)), font };
-}
-
-// The badge itself, as PNG pixels: a dark rounded pill, the crimson "na" mark, "@username" and "NotesApp".
-export async function renderBadge(username: string, w: number, h: number, font: number): Promise<Buffer> {
-  const res = new ImageResponse(
-    (
-      <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", background: "rgba(18,6,10,0.62)", borderRadius: h / 2, paddingLeft: h * 0.14, paddingRight: h * 0.4, color: "white" }}>
-        <div style={{ display: "flex", width: h * 0.72, height: h * 0.72, borderRadius: h * 0.2, background: "#7a0328", alignItems: "center", justifyContent: "center", fontSize: font, fontWeight: 700, color: "white" }}>na</div>
-        <div style={{ display: "flex", marginLeft: h * 0.22, fontSize: font, fontWeight: 700 }}>{`@${username}`}</div>
-        <div style={{ display: "flex", marginLeft: h * 0.22, fontSize: font * 0.92, opacity: 0.85 }}>NotesApp</div>
-      </div>
-    ),
-    { width: w, height: h },
+// The faint full logo, filling its box (lib/media-mark.ts markGeometry().centre).
+function Centre({ g }: { g: MarkGeometry }) {
+  const c = g.centre;
+  return (
+    <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", opacity: c.opacity, fontFamily: "Inter" }}>
+      <div style={{ display: "flex", width: c.square, height: c.square, borderRadius: c.square * 0.18, background: MARK_CRIMSON, color: "white", alignItems: "center", justifyContent: "center", fontSize: Math.round(c.square * (8.5 / 15)), fontWeight: 800 }}>na</div>
+      <div style={{ display: "flex", marginLeft: c.gap, fontSize: c.font, fontWeight: 800, color: "white", lineHeight: 1, textShadow: `0 0 ${Math.max(1, Math.round(c.font * 0.07))}px rgba(0,0,0,0.6)` }}>{MARK_WORD}</div>
+    </div>
   );
-  return Buffer.from(await res.arrayBuffer());
 }
+// "na @username" in the corner, filling its box from the corner's side.
+function Corner({ g }: { g: MarkGeometry }) {
+  const k = g.corner;
+  const edge = `0 ${Math.max(1, Math.round(k.font * 0.06))}px ${Math.max(2, Math.round(k.font * 0.16))}px rgba(0,0,0,0.85), 0 0 ${Math.max(1, Math.round(k.font * 0.05))}px rgba(0,0,0,0.9)`;
+  const right = k.corner === "lowerRight" || k.corner === "upperRight";
+  return (
+    <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: right ? "flex-end" : "flex-start", opacity: k.opacity, fontFamily: "Inter" }}>
+      <div style={{ display: "flex", width: k.square, height: k.square, borderRadius: k.square * 0.18, background: MARK_CRIMSON, color: "white", alignItems: "center", justifyContent: "center", fontSize: k.font, fontWeight: 800, boxShadow: `0 ${Math.max(1, Math.round(k.font * 0.05))}px ${Math.max(2, Math.round(k.font * 0.14))}px rgba(0,0,0,0.6)` }}>na</div>
+      <div style={{ display: "flex", marginLeft: k.gap, fontSize: k.font, fontWeight: 700, color: "white", lineHeight: 1, textShadow: edge }}>{k.text}</div>
+    </div>
+  );
+}
+// The corner's box is drawn wider than the estimate (on the corner's side nothing moves), so a username with wide letters still fits.
+const cornerBox = (g: MarkGeometry) => {
+  const k = g.corner, right = k.corner === "lowerRight" || k.corner === "upperRight";
+  const w = Math.min(g.width, Math.round(k.w * 1.3) + 4), h = k.h + 8;
+  return { x: right ? Math.max(0, k.x + k.w - w) : k.x, y: Math.max(0, k.y - 4), w, h };
+};
+const png = async (node: React.ReactElement, width: number, height: number) =>
+  Buffer.from(await new ImageResponse(node, { width: Math.max(1, width), height: Math.max(1, height), fonts: await loadFonts() }).arrayBuffer());
+
+// The marks for a frame of width × height, as one PNG with a transparent background (a video's watermark profile).
+export async function renderMarks(width: number, height: number, username: string, s: WatermarkSettings = WATERMARK_DEFAULTS): Promise<Buffer> {
+  const g = markGeometry(width, height, username, s), cb = cornerBox(g);
+  return png(
+    <div style={{ display: "flex", position: "relative", width: "100%", height: "100%", background: "transparent" }}>
+      <div style={{ display: "flex", position: "absolute", left: 0, top: g.centre.y, width: g.width, height: g.centre.h }}><Centre g={g} /></div>
+      <div style={{ display: "flex", position: "absolute", left: cb.x, top: cb.y, width: cb.w, height: cb.h }}><Corner g={g} /></div>
+    </div>, g.width, g.height);
+}
+
+// The PNG for a creator's Cloudflare Stream watermark profile of one frame shape (lib/media-mark.ts MARK_SHAPES): the whole frame,
+// transparent, with both marks in place. Stream lays it on at scale 1.0 in the centre.
+export const renderVideoMark = (username: string, shape: MarkShape, s: WatermarkSettings = WATERMARK_DEFAULTS) => {
+  const { w, h } = shapeSize(shape);
+  return renderMarks(w, h, username, s);
+};
 
 // Lays `over` onto `base` at (x, y), mixing by `over`'s alpha. Pure, in place; parts outside `base` are skipped.
 export function blendOver(base: Rgba, over: Rgba, x: number, y: number): void {
@@ -57,47 +89,37 @@ export function blendOver(base: Rgba, over: Rgba, x: number, y: number): void {
       const a = over.data[o + 3] / 255;
       if (a === 0) continue;
       for (let c = 0; c < 3; c++) base.data[b + c] = Math.round(over.data[o + c] * a + base.data[b + c] * (1 - a));
-      base.data[b + 3] = 255;
+      base.data[b + 3] = Math.max(base.data[b + 3], Math.round(255 * a + base.data[b + 3] * (1 - a)));
     }
   }
 }
 
-// The whole job: any picture we accept (WebP, JPEG, PNG, GIF's first frame, AVIF) in, a watermarked JPEG out.
-export async function watermarkPicture(input: Buffer, username: string, quality = 88): Promise<Buffer> {
-  const { decodeBuffer, encodeJpeg } = loadCodecs();
+export type MarkedPicture = { bytes: Buffer; type: "image/webp" | "image/jpeg" | "image/png"; ext: "webp" | "jpg" | "png"; width: number; height: number };
+const kindOf = (b: Buffer) => b.subarray(0, 4).toString("latin1") === "RIFF" && b.subarray(8, 12).toString("latin1") === "WEBP" ? "webp"
+  : b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? "jpeg" : b[0] === 0x89 && b.subarray(1, 4).toString("latin1") === "PNG" ? "png" : "other";
+// The whole job for a picture: any picture we accept (WebP, JPEG, PNG, GIF's first frame, AVIF) in, the marked picture out. A WebP stays
+// WebP (what the studio uploads); anything else becomes a JPEG (what was see-through becomes white, as most galleries would show it).
+// keepFormat (the re-marking job writing over the same address): WebP, JPEG and PNG come out in their own format; a GIF or AVIF throws
+// FormatNotKept (we can't write those), checked before any drawing.
+export async function markPicture(input: Buffer, username: string, s: WatermarkSettings = WATERMARK_DEFAULTS, o: { keepFormat?: boolean; quality?: number } = {}): Promise<MarkedPicture> {
+  const quality = o.quality ?? 86;
+  const kind = kindOf(input);
+  if (o.keepFormat && kind === "other") throw new FormatNotKept();
+  const { decodeBuffer, encodeJpeg, encodeWebp, encodePng } = loadCodecs();
   // The codec's image hands out a fresh copy of its pixels on every `.data`, so each is read once into a plain image.
   const plain = (x: Rgba): Rgba => ({ data: x.data, width: x.width, height: x.height });
   const img = plain(await decodeBuffer(input));
-  const box = badgeBox(img.width, img.height, username);
-  const badge = plain(await decodeBuffer(await renderBadge(username, box.w, box.h, box.font)));
-  blendOver(img, badge, img.width - box.w - box.margin, img.height - box.h - box.margin);
-  // JPEG has no transparency: what was see-through becomes white, as most galleries would show it.
+  // Each mark is drawn in its own box and laid on where it goes (much quicker than a whole transparent frame on a big photo).
+  const g = markGeometry(img.width, img.height, username, s), cb = cornerBox(g);
+  blendOver(img, plain(await decodeBuffer(await png(<Centre g={g} />, g.width, g.centre.h))), 0, g.centre.y);
+  blendOver(img, plain(await decodeBuffer(await png(<Corner g={g} />, cb.w, cb.h))), cb.x, cb.y);
+  if (o.keepFormat && kind === "png") return { bytes: Buffer.from(await encodePng(img)), type: "image/png", ext: "png", width: img.width, height: img.height };
+  if (kind === "webp") return { bytes: Buffer.from(await encodeWebp(img, { quality })), type: "image/webp", ext: "webp", width: img.width, height: img.height };
   for (let k = 3; k < img.data.length; k += 4) {
     const a = img.data[k];
     if (a === 255) continue;
     for (let c = 1; c <= 3; c++) img.data[k - c] = Math.round(img.data[k - c] * (a / 255) + 255 * (1 - a / 255));
     img.data[k] = 255;
   }
-  return Buffer.from(await encodeJpeg(img, { quality }));
-}
-
-// The mark for video downloads (lib/media-video-dl.ts): a PNG with a TRANSPARENT background, for a Cloudflare Stream watermark profile.
-// No pill behind it: the crimson "na" square, "@username" and "NotesApp" in white with a soft dark edge so they read on light and dark
-// frames alike. Stream lays it on at the admin's opacity (see-through), size and corner, so the image itself is drawn solid here.
-export const VIDEO_MARK_SIZE = { w: 720, h: 120 };
-export async function renderVideoMark(username: string): Promise<Buffer> {
-  const { w, h } = VIDEO_MARK_SIZE;
-  const font = Math.round(h * 0.42);
-  const edge = "0 0 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.6)";
-  const res = new ImageResponse(
-    (
-      <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "flex-end", background: "transparent", color: "white", paddingRight: h * 0.08 }}>
-        <div style={{ display: "flex", width: h * 0.74, height: h * 0.74, borderRadius: h * 0.2, background: "#7a0328", alignItems: "center", justifyContent: "center", fontSize: font, fontWeight: 700, color: "white" }}>na</div>
-        <div style={{ display: "flex", marginLeft: h * 0.2, fontSize: font, fontWeight: 700, textShadow: edge }}>{`@${username}`}</div>
-        <div style={{ display: "flex", marginLeft: h * 0.2, fontSize: font * 0.9, textShadow: edge }}>NotesApp</div>
-      </div>
-    ),
-    { width: w, height: h },
-  );
-  return Buffer.from(await res.arrayBuffer());
+  return { bytes: Buffer.from(await encodeJpeg(img, { quality })), type: "image/jpeg", ext: "jpg", width: img.width, height: img.height };
 }

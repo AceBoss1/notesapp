@@ -6,7 +6,7 @@ import { mediaCaller, mediaDeps, mediaFail } from "@/lib/media-api";
 
 export const dynamic = "force-dynamic";
 
-// POST { durationSec, size, name } → { uploadId, uploadURL, maxSeconds }: the browser then sends the file straight to Cloudflare Stream
+// POST { durationSec, size, name, width?, height? } → { uploadId, uploadURL, maxSeconds } (width and height pick the NotesApp mark's shape): the browser then sends the file straight to Cloudflare Stream
 // (a form post to uploadURL) and posts it with { kind: "video", videoUploadId }.
 export async function POST(req: NextRequest) {
   try {

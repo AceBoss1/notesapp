@@ -3,6 +3,8 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { listReports, reportCounts, resolveReport, suspendFromReport } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
+import { streamUidOf } from "@/lib/moments-server";
+import { playbackToken, playerUrl } from "@/lib/stream";
 import { MomentError } from "@/lib/moments-server";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,12 @@ export async function GET(req: NextRequest) {
     const uids = Array.from(new Set(rows.flatMap((r) => [r.reporterUid, r.targetUid])));
     const users = uids.length ? await db.getAll(...uids.map((u) => db.doc(`users/${u}`))) : [];
     const names = Object.fromEntries(users.map((u) => [u.id, u.data()?.username ?? u.id]));
-    return NextResponse.json({ reports: rows.map((r) => ({ ...r, reporter: names[r.reporterUid], target: names[r.targetUid], mediaUrls: (r.evidenceKeys ?? []).map((k) => momentDeps.publicUrl(k)) })) });
+    // A moment's video on Stream ("stream:<uid>") is shown through a signed player link (an hour); the rest from the bucket.
+    const urlOf = async (k: string) => {
+      const uid = streamUidOf(k);
+      return uid ? playerUrl(await playbackToken(uid, 3600).catch(() => uid)) : momentDeps.publicUrl(k);
+    };
+    return NextResponse.json({ reports: await Promise.all(rows.map(async (r) => ({ ...r, reporter: names[r.reporterUid], target: names[r.targetUid], mediaUrls: await Promise.all((r.evidenceKeys ?? []).map(urlOf)) }))) });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load reports");
     return NextResponse.json({ error: f.message }, { status: f.status });

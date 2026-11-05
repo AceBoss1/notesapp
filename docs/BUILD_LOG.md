@@ -3055,3 +3055,29 @@ predated the move: it had only www./bare/app. of notesapp.name.ng and notesapp.n
 notesapp.name.ng and naapp.tech, plus notesapp.ng, www.notesapp.ng and localhost:3000. `tests/host/host.test.ts` (in `test:host`)
 fails when a domain in `KNOWN_ROOTS` / `APP_SHORT_DOMAINS` or one of those subdomains is missing. Owner step: paste the file into both
 buckets' CORS policy (docs/DOMAIN_SWITCH.md step 2, docs/OWNER_SETUP.md). Nothing in the code changed.
+**The permanent NotesApp mark (v0.143.0, 5 Nov 2026)** — The owner chose a permanent mark over watermarked downloads: every Media picture
+and video and every published video replay carries it, and the same day added shop item photos, site service pictures and journal
+pictures. The approved look ("Both", then the Anya photos) is a faint full logo across the middle and na @username in a corner, sized
+from each picture; `markGeometry` in `lib/media-mark.ts` turns the mockup's CSS into numbers (centre 15% + 8.8% of the width, 16%;
+corner letters 3.6% of the width, 3% in, 88%) and is tested on square, 9:16, 4:1, 16:9 and 1:3 frames. Pictures are drawn with next/og
+in Inter (each mark in its own small box, blended onto the decoded picture: about 0.7 s for a 1600-px photo, against 5 s for a
+full-frame layer) and kept WebP. The marked file is the only copy: Media posts stay "processing" until every picture is marked and its
+clean upload deleted; shop, service and journal pictures go to the uploader's own folder and are marked by `/api/upload/mark` before the
+editor sees an address, so shared folders (journals/) are never touched at upload. Stream lays one image per video, so the profile is a
+full-frame transparent PNG with both marks, one per frame shape (seven, picked from the video's size), at scale 1 in the centre; replays
+use the recorder's 16:10. Downloads keep the per-post permission but serve the marked file (videos: the MP4 of the post's own video), so
+the v0.134 second copy and its double storage went. The re-marking job runs a batch per cron tick, keeps every step on the item it
+touches (a picture's `cleanKey`, a video's `remark`), records old → new keys in `markedFiles` so shared pictures are marked once, keeps
+an original that the owner's site or profile still uses, and recounts Media storage at the end. After review, the job writes a picture
+back over its own key in its own format instead of a new key (share cards, journal drafts, emails and link previews on other sites copy
+addresses, so a new key plus a delete would have broken them); only a picture still used unmarked, or a GIF/AVIF, gets a new key. Tests: `test:media`, `test:media-server`,
+`test:marks-server` (new), `test:recording-server`, rules.
+
+**Moments carry the mark (v0.143.0, 5 Nov 2026)** — The owner added moments and chose "Move to Stream, burn in" for their videos. A
+moment's picture is marked as the moment is created; a moment's video now goes from the browser to Stream with the creator's per-shape
+watermark profile and signed playback (a moment is only for its audience, so the player link comes from an audience-checked action). The
+Stream video is kept in the moment's existing `videoKey` as "stream:<uid>", which meant expiry, the shared file of a long video's parts,
+reshares, reports and account deletion needed no new logic: the remover knows the prefix. The moment viewer plays a Stream video in the
+iframe player and moves between parts from its timeupdate messages. The re-marking job marks moment pictures in place, lets unpinned moment
+videos expire, and copies pinned ones to Stream. Tests: `test:moments-server` (new), `test:marks-server`, `test:messages`.
+

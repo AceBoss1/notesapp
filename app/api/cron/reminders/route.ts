@@ -9,9 +9,10 @@ import { expireTiers } from "@/lib/tier-billing";
 import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
 import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
-import { sweepExpiredMoments, sweepStaleAudio } from "@/lib/moments-server";
+import { sweepExpiredMoments, sweepMomentCopies, sweepStaleAudio } from "@/lib/moments-server";
 import { sweepProcessingVideos } from "@/lib/media-server";
 import { mediaDeps } from "@/lib/media-api";
+import { runBackfill } from "@/lib/media-mark-backfill";
 import { sweepMessageUploads } from "@/lib/messages-server";
 import { sweepMessageRequests } from "@/lib/message-edits";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
@@ -43,6 +44,8 @@ import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server"
 // Vercel Hobby only allows daily crons, too coarse for 1-hour reminders).
 // Reads request headers/query, so it must never be prerendered at build time.
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 300; // many jobs, and a batch of the one-off NotesApp mark re-marking (about 20 seconds) while it runs
 
 export async function GET(req: NextRequest) {
   const secret = setting("CRON_SECRET");
@@ -101,8 +104,10 @@ async function run() {
   // (lib/promo-settle-server.ts). Each is settled once.
   await job("settlePromotions", () => settleEndedPromotions(db));
   // Moments past their 24, 48 or 72 hours are deleted with their files (reads already refuse them).
-  await job("mediaVideos", async () => sweepProcessingVideos(db, mediaDeps())); // Media videos Stream has finished (or rejected)
-  await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
+  await job("mediaVideos", async () => sweepProcessingVideos(db, mediaDeps())); // Media videos Stream has finished (or rejected), pictures still being marked
+  // The one-off re-marking of what was posted before the NotesApp mark (Admin → Limits): a batch per tick while an admin has it running.
+  await job("markBackfill", async () => { const r = await runBackfill(db, mediaDeps(), { budgetMs: 20_000 }); return r.status === "running" ? 1 : 0; });
+  await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)) + (await sweepMomentCopies(db, momentDeps)));
   // One email a day to the team about open reports (nothing when there are none).
   await job("sweepMessageRequests", () => sweepMessageRequests(db));
   // Live recordings: past their keep days (Admin → Limits → Live recording) and not published, deleted; a recording the recorder never

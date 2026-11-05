@@ -9,8 +9,8 @@ import {
   type MediaAudience, type MediaPostView,
 } from "@/lib/media-rules";
 import { LIMIT_TIER_LABEL } from "@/lib/limits";
-import { VIDEO_DL_NOTE } from "@/lib/media-video-dl";
-import { loadStudio, mediaApi, sendToStream, videoLength } from "@/lib/media-client";
+import { DOWNLOADS_NOTE, MARK_NOTE } from "@/lib/media-mark";
+import { loadStudio, mediaApi, sendToStream, videoInfo } from "@/lib/media-client";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { Icon, Pattern } from "./MediaTile";
 
@@ -124,8 +124,8 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
       const common = { caption, audience, ...sw };
       if (isVideo) {
         const f = files[0];
-        const durationSec = await videoLength(f);
-        const up = await mediaApi<{ uploadId: string; uploadURL: string }>("/api/media/video", { body: { durationSec, size: f.size, name: f.name }, signedIn: true });
+        const { durationSec, width, height } = await videoInfo(f);
+        const up = await mediaApi<{ uploadId: string; uploadURL: string }>("/api/media/video", { body: { durationSec, width, height, size: f.size, name: f.name }, signedIn: true });
         setProgress(0);
         await sendToStream(up.uploadURL, f, setProgress);
         await mediaApi("/api/media/posts", { body: { kind: "video", videoUploadId: up.uploadId, ...common }, signedIn: true });
@@ -136,10 +136,11 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
           keys.push((await uploadToR2WithKey(files[k], "media")).key);
         }
         setProgress(1);
-        await mediaApi("/api/media/posts", { body: { kind: "pictures", pictureKeys: keys, ...common }, signedIn: true });
+        const r = await mediaApi<{ post: MediaPostView }>("/api/media/posts", { body: { kind: "pictures", pictureKeys: keys, ...common }, signedIn: true });
+        if (r.post.status === "processing") { setFiles([]); setPreviews([]); setCaption(""); setProgress(null); setNote({ ok: true, text: "Posted. We're still adding the NotesApp mark; your pictures show on your Media in a few minutes." }); onPosted(); return; }
       }
       setFiles([]); setPreviews([]); setCaption(""); setProgress(null);
-      setNote({ ok: true, text: isVideo ? "Posted. Your video shows on your Media once it has finished processing, usually within a minute." : "Posted to your Media." });
+      setNote({ ok: true, text: isVideo ? "Posted. Your video shows on your Media once Cloudflare has finished it with the NotesApp mark, usually within a minute." : "Posted to your Media, with the NotesApp mark." });
       onPosted();
     } catch (e) {
       setProgress(null);
@@ -152,6 +153,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
     <section className={card} aria-label="New post">
       <h2 className="flex items-center gap-2 font-ui text-base font-extrabold text-ink">⤒ New post</h2>
       <p className="mt-1 text-[13px] text-slate">{q.videos.limit > 0 ? `A video (up to ${secondsText(q.maxVideoSeconds)})` : "Pictures"} or up to {MEDIA_PICTURES_MAX} pictures. Stays on your Media until you delete it.</p>
+      <p className="mt-2 flex gap-2 rounded-2xl bg-field px-3.5 py-2.5 text-[12.5px] text-ink"><span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-crimson font-ui text-[9px] font-extrabold text-white">na</span><span>{MARK_NOTE}</span></p>
 
       <input ref={input} type="file" multiple accept={`image/jpeg,image/png,image/webp,image/gif,image/avif${s.streamReady && q.videos.limit > 0 ? ",video/mp4,video/webm,video/quicktime" : ""}`} className="hidden" onChange={(e) => { choose(e.target.files); e.target.value = ""; }} />
       <button type="button" onClick={() => input.current?.click()} className="mt-4 flex w-full items-center gap-3.5 rounded-[18px] border-2 border-dashed border-[#D9C6BD] bg-paper p-3.5 text-left">
@@ -189,7 +191,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         <Row title="Comments" sub="Turn off any time. Comments arrive with the Media feed."><Switch label="Comments" on={sw.allowComments} onChange={(v) => setSw({ ...sw, allowComments: v })} /></Row>
         <Row title="Allow shares" sub="Moments, journals, chats and other apps"><Switch label="Allow shares" disabled={s.teen} on={sw.allowShares && !s.teen} onChange={(v) => setSw({ ...sw, allowShares: v })} /></Row>
         <Row title="Gifts" sub="Paid to you after a 7-day hold"><Switch label="Gifts" disabled={s.teen} on={sw.allowGifts && !s.teen} onChange={(v) => setSw({ ...sw, allowGifts: v })} /></Row>
-        <Row title="Allow watermarked downloads" sub={isVideo ? VIDEO_DL_NOTE : "Off unless you turn it on. Each download carries @you and the NotesApp mark."}><Switch label="Allow watermarked downloads" disabled={s.teen} on={sw.allowDownloads && !s.teen} onChange={(v) => setSw({ ...sw, allowDownloads: v })} /></Row>
+        <Row title="Allow downloads" sub={`Off unless you turn it on. ${DOWNLOADS_NOTE}`}><Switch label="Allow downloads" disabled={s.teen} on={sw.allowDownloads && !s.teen} onChange={(v) => setSw({ ...sw, allowDownloads: v })} /></Row>
         <Row title="Pin to the top of my Media" sub={`Up to ${MEDIA_PINNED_MAX} pinned · ${pinnedNow} now`}><Switch label="Pin to the top of my Media" disabled={!sw.pinned && pinnedNow >= MEDIA_PINNED_MAX} on={sw.pinned} onChange={(v) => setSw({ ...sw, pinned: v })} /></Row>
       </div>
 
@@ -252,10 +254,10 @@ function YourPosts({ s, onChanged }: { s: Studio; onChanged: () => void }) {
             </div>
           </div>
           {p.status === "rejected" && p.rejectedReason && <p className="mt-2 text-xs text-red-700">{p.rejectedReason}</p>}
-          {/* A video's watermarked download copy (lib/media-video-dl.ts): being made, ready, or why it couldn't be. */}
+          {/* A video's download (Stream's MP4 of the marked video): being made, ready, or why it couldn't be. */}
           {p.kind === "video" && p.allowDownloads && p.status === "ready" && (
             <p className={`mt-2 text-xs ${p.videoDownload === "failed" ? "text-red-700" : "text-slate"}`}>
-              {p.videoDownload === "ready" ? "⤓ Download ready, with your see-through mark." : p.videoDownload === "failed" ? (p.videoDownloadWhy || "The download copy couldn't be made.") : "⤓ Making the watermarked download copy… usually a few minutes."}
+              {p.videoDownload === "ready" ? "⤓ Download ready." : p.videoDownload === "failed" ? (p.videoDownloadWhy || "The download file couldn't be made.") : "⤓ Making the download file… usually a few minutes."}
             </p>
           )}
           {openId === p.id && (
@@ -267,14 +269,14 @@ function YourPosts({ s, onChanged }: { s: Studio; onChanged: () => void }) {
               </Row>
               <Row title="Pinned"><Switch label="Pinned" on={p.pinned} onChange={(v) => patch(p, { pinned: v })} /></Row>
               <Row title="Comments"><Switch label="Comments" on={p.allowComments} onChange={(v) => patch(p, { allowComments: v })} /></Row>
-              <Row title="Allow watermarked downloads" sub={p.kind === "video" ? VIDEO_DL_NOTE : undefined}><Switch label="Allow watermarked downloads" disabled={s.teen} on={p.allowDownloads} onChange={(v) => patch(p, { allowDownloads: v })} /></Row>
+              <Row title="Allow downloads" sub={DOWNLOADS_NOTE}><Switch label="Allow downloads" disabled={s.teen} on={p.allowDownloads} onChange={(v) => patch(p, { allowDownloads: v })} /></Row>
               <Row title="Delete this post"><button type="button" onClick={() => remove(p)} className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-700">Delete</button></Row>
             </div>
           )}
         </div>
       ))}
       {err && <p className="mt-2 text-sm text-red-700" role="status">{err}</p>}
-      {s.posts.some((p) => p.status === "processing") && <p className="mt-3 text-xs text-slate">&quot;Processing&quot; means Cloudflare is still preparing the video; it usually takes under a minute.</p>}
+      {s.posts.some((p) => p.status === "processing") && <p className="mt-3 text-xs text-slate">&quot;Processing&quot; means the NotesApp mark is still being added (and, for a video, Cloudflare is still preparing it); it usually takes under a minute.</p>}
     </section>
   );
 }

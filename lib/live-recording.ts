@@ -149,7 +149,13 @@ export type ReplayDoc = {
   noteId?: string; // the journal post made with Share to Journal
   liveEventId?: string; // a paid live's replay: "community" means its ticket holders
   transcript?: { status: "off" | "queued" | "ready" | "failed" | "too-long"; text?: string; why?: string };
+  // The NotesApp mark is burned into the video (published from v0.143.0, or re-marked by lib/media-mark-backfill.ts). remark: the
+  // re-marking job's steps while it makes the marked copy (remarkPending: the job's query).
+  marked?: boolean; remark?: RemarkState; remarkPending?: boolean;
 };
+// A video's re-marking (Media videos and replays posted before the mark): Stream makes an MP4 of the old video (source), copies it with the
+// creator's watermark profile (copying), then the post points at the copy and the old video is deleted.
+export type RemarkState = { step: "source" | "copying" | "failed"; startedAt: string; profileUid?: string; newUid?: string; tries: number; why?: string };
 export const REPLAY_TITLE_MAX = 120;
 export const cleanReplayTitle = (v: unknown) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, REPLAY_TITLE_MAX);
 // Who may watch: public, anyone; subscribers, the host and their subscribers; community, the host and the community's members (a paid

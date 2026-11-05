@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import LinkedText from "@/components/LinkedText";
 import { compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
-import { VIDEO_DL_PREPARING } from "@/lib/media-video-dl";
+import { VIDEO_DL_PREPARING } from "@/lib/media-mark";
 import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-client";
 import { Icon, Pattern } from "./MediaTile";
 import GiftButton from "@/components/GiftButton";
@@ -84,11 +84,11 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
                 <span>♫ {post.sound}</span>
                 <span>{new Date(post.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</span>
               </p>
-              {/* Pictures: stamped as they're downloaded. A video: only once its watermarked copy is ready (the creator also sees it being made). */}
+              {/* Every picture and video carries the NotesApp mark, so a download is the same file. A video: once Stream has made its MP4. */}
               {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? (
-                <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download (watermarked)"}</button>
+                <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download"}</button>
               ) : post.mine && post.videoDownload === "preparing" ? <p className="text-xs text-white/60">{VIDEO_DL_PREPARING}</p>
-                : post.mine && post.videoDownload === "failed" ? <p className="text-xs text-amber-300">{post.videoDownloadWhy || "The download copy couldn't be made."}</p> : null)}
+                : post.mine && post.videoDownload === "failed" ? <p className="text-xs text-amber-300">{post.videoDownloadWhy || "The download file couldn't be made."}</p> : null)}
             </>
           ) : item.type === "pictures" ? (
             <p className="text-sm text-white/80">{item.title}{item.note ? <span className="text-white/60"> · {item.note}</span> : null}</p>

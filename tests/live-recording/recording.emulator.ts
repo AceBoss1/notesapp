@@ -56,9 +56,11 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
     async abort(_k, id) { uploads.delete(id); },
     async signedGet(key, seconds) { return `https://r2.test/${key}?exp=${seconds}`; },
   };
-  const streamVideos = new Map<string, { url: string; ready: boolean }>(); let streamN = 0;
+  const streamVideos = new Map<string, { url: string; ready: boolean; watermark?: string }>(); let streamN = 0;
+  const marks: { db: unknown; host: { uid: string; username: string } }[] = [];
   const stream: S.StreamClient = {
-    async copy(url) { const uid = `vid${++streamN}`; streamVideos.set(uid, { url, ready: true }); return uid; },
+    async copy(url, _creator, _name, watermark) { const uid = `vid${++streamN}`; streamVideos.set(uid, { url, ready: true, ...(watermark ? { watermark } : {}) }); return uid; },
+    async mark(db, host) { marks.push({ db, host }); return `wm-${host.username}`; },
     async get(uid) { const v = streamVideos.get(uid); return v ? { ready: v.ready, duration: 1800 } : null; },
     async remove(uid) { streamVideos.delete(uid); },
     async player(uid) { return `https://player.test/${uid}`; },
@@ -212,7 +214,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   const rid2 = (await roomDoc(room2.id)).recording!.rid;
   await S.ingestChunk(db, rid2, "stage", 1, bytes(2048), deps);
   await R.closeRoom(db, "host", room2.id, new Date(), { recording: deps });
-  await S.finalizeRecording(db, rid2, {}, deps);
+  await S.finalizeRecording(db, rid2, { hadVideo: true }, deps);
   const key2 = (await recDoc(rid2)).files.stage!.key;
   assert.ok(objects.has(key2));
 
@@ -223,6 +225,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   let rp = (await db.doc(`replays/${pub.id}`).get()).data() as ReplayDoc;
   assert.equal(rp.status, "processing"); assert.equal(rp.listed, true); assert.equal(rp.kind, "audio"); assert.equal(rp.transcript?.status, "queued");
   assert.match(streamVideos.get(rp.streamUid)!.url, /stage\.webm\?exp=21600$/, "Stream copies from a short-lived private link");
+  assert.equal(streamVideos.get(rp.streamUid)!.watermark, undefined, "an audio replay has no picture to mark"); assert.equal(rp.marked, undefined);
   assert.equal((await recDoc(rid)).published, true);
   assert.equal((await S.publishReplay(db, "host", rid, {}, deps)).id, pub.id, "publishing twice gives the same replay");
   const seen = await S.replayForViewer(db, undefined, pub.id, deps);
@@ -242,6 +245,12 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
 
   // A subscribers' replay: only subscribers (and the host) get the player.
   const sub = await S.publishReplay(db, "host", rid2, { audience: "subscribers" }, deps);
+  // A video replay: copied to Stream with the host's NotesApp mark profile burned in, so no unmarked replay is ever on Stream.
+  const subDoc = (await db.doc(`replays/${sub.id}`).get()).data() as ReplayDoc;
+  assert.equal(subDoc.kind, "video"); assert.equal(subDoc.marked, true);
+  assert.equal(streamVideos.get(subDoc.streamUid)!.watermark, "wm-host", "copied with @host's watermark profile");
+  assert.deepEqual(marks.map((m) => m.host), [{ uid: "host", username: "host" }]);
+  assert.equal(streamVideos.size, 2, "one Stream video per replay: no unmarked copy");
   assert.equal((await S.replayForViewer(db, "l1", sub.id, deps)).canWatch, false);
   assert.equal((await S.replayForViewer(db, "l1", sub.id, deps)).player, undefined);
   await db.doc("subscriptions/l1_host").set({ subscriberUid: "l1", username: "host", status: "active", currentPeriodEnd: new Date(Date.now() + DAY_MS).toISOString() });

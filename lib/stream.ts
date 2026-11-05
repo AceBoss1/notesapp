@@ -1,7 +1,7 @@
 import { setting } from "@/lib/config";
 // Server-only. Cloudflare Stream, used for the video lessons of view-only items and courses. Every video is uploaded with
 // requireSignedURLs, so it can only be played with a short-lived token that /api/store/view/lesson hands to a buyer, and
-// MP4 downloads are never enabled for them (only for the watermarked download copies of Media videos, below). Set CLOUDFLARE_STREAM_TOKEN (an API token with Stream:Edit); the account id is the same
+// MP4 downloads are never enabled for them (only for Media videos whose creator allows downloads, below). Set CLOUDFLARE_STREAM_TOKEN (an API token with Stream:Edit); the account id is the same
 // Cloudflare account as R2 (R2_ACCOUNT_ID) unless CLOUDFLARE_ACCOUNT_ID is set.
 const accountId = () => setting("CLOUDFLARE_ACCOUNT_ID") || setting("R2_ACCOUNT_ID") || "";
 export const streamConfigured = () => !!setting("CLOUDFLARE_STREAM_TOKEN") && !!accountId();
@@ -36,14 +36,31 @@ export function createDirectUpload(sellerUid: string, name: string) {
 
 // Media videos (lib/media-server.ts): public playback, because Media posts are public (their audience is checked by our own API before a
 // post is listed). Stream refuses an upload longer than the plan's longest Media video. `meta.purpose` tells them apart in /admin/stream.
-export function createPublicDirectUpload(creatorUid: string, maxSeconds: number, name: string) {
+// `watermarkUid`: the creator's watermark profile (lib/media-mark-server.ts), burned into the video as it arrives, so the only copy Stream
+// keeps is the marked one (owner, 5 Nov 2026).
+export function createPublicDirectUpload(creatorUid: string, maxSeconds: number, name: string, watermarkUid?: string) {
   return cf<{ uploadURL: string; uid: string }>("/direct_upload", {
     method: "POST",
-    body: JSON.stringify({ maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: false, creator: creatorUid, meta: { name, purpose: "media" } }),
+    body: JSON.stringify({
+      maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: false, creator: creatorUid, meta: { name, purpose: "media" },
+      ...(watermarkUid ? { watermark: { uid: watermarkUid } } : {}),
+    }),
   });
 }
 
-// ── Watermarked downloads of Media videos (lib/media-video-dl-server.ts) ──
+// A moment's video (lib/moments-server.ts): signed playback, because a moment is only for its audience (followers, or a teen's mutual
+// followers), checked by our API before it hands out a token; the creator's watermark profile is burned in as it arrives.
+export function createSignedDirectUpload(creatorUid: string, maxSeconds: number, name: string, watermarkUid: string) {
+  return cf<{ uploadURL: string; uid: string }>("/direct_upload", {
+    method: "POST",
+    body: JSON.stringify({
+      maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: true, creator: creatorUid,
+      meta: { name, purpose: "moment" }, watermark: { uid: watermarkUid },
+    }),
+  });
+}
+
+// ── The NotesApp mark and downloads of Media videos (lib/media-mark.ts) ──
 // MP4 downloads of one video: switched on, read, switched off. Stream answers { default: { status, url, percentComplete } }.
 export type StreamDownload = { status: "inprogress" | "ready" | "error"; url: string };
 const dlOf = (r: { default?: { status?: string; url?: string } } | null | undefined): StreamDownload | null =>
@@ -59,11 +76,12 @@ export async function getDownloads(uid: string): Promise<StreamDownload | null> 
 export async function deleteDownloads(uid: string): Promise<void> {
   await cf(`/${encodeURIComponent(uid)}/downloads`, { method: "DELETE" }).catch(() => {});
 }
-// A copy of a video from a link, with a watermark profile burned in. Signed links stay on: the copy is only ever downloaded, with a token.
-export function copyWithWatermark(o: { url: string; watermarkUid: string; creatorUid: string; name: string }) {
+// A copy of a video from a link, with a watermark profile burned in (the re-marking of videos posted before the mark, lib/media-mark-backfill.ts).
+// `signed`: the copy plays only with a token, as the video it replaces did (replays); Media videos play publicly.
+export function copyWithWatermark(o: { url: string; watermarkUid: string; creatorUid: string; name: string; signed: boolean; purpose: string }) {
   return cf<{ uid: string }>("/copy", {
     method: "POST",
-    body: JSON.stringify({ url: o.url, watermark: { uid: o.watermarkUid }, creator: o.creatorUid, requireSignedURLs: true, meta: { name: o.name, purpose: "media-download" } }),
+    body: JSON.stringify({ url: o.url, watermark: { uid: o.watermarkUid }, creator: o.creatorUid, requireSignedURLs: o.signed, meta: { name: o.name, purpose: o.purpose } }),
   });
 }
 // A watermark profile from a PNG (transparent background), with how see-through it is, its size, padding and corner.
@@ -94,15 +112,15 @@ export async function downloadToken(uid: string, seconds = 3600): Promise<string
   return r.token;
 }
 // A video made from a file Cloudflare fetches itself (a replay copied from the private bucket through a short-lived signed link), with
-// the same signed-playback rule as every other video here.
-export function copyFromUrl(url: string, creator: string, name: string) {
+// the same signed-playback rule as every other video here. `watermarkUid`: the host's watermark profile (a video replay carries the mark).
+export function copyFromUrl(url: string, creator: string, name: string, watermarkUid?: string) {
   return cf<{ uid: string }>("/copy", {
     method: "POST",
-    body: JSON.stringify({ url, requireSignedURLs: true, creator, meta: { name } }),
+    body: JSON.stringify({ url, requireSignedURLs: true, creator, meta: { name }, ...(watermarkUid ? { watermark: { uid: watermarkUid } } : {}) }),
   });
 }
 
-export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number; status?: { state?: string } };
+export type StreamVideo = { uid: string; readyToStream: boolean; duration?: number; size?: number; status?: { state?: string }; input?: { width?: number; height?: number }; requireSignedURLs?: boolean };
 export async function getVideo(uid: string): Promise<StreamVideo | null> {
   try {
     return await cf<StreamVideo>(`/${encodeURIComponent(uid)}`);

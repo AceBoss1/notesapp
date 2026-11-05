@@ -1,20 +1,21 @@
 import { reportError } from "./monitoring";
 import { NextRequest, NextResponse } from "next/server";
-import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
-import { R2_BUCKET, deleteMediaObject, getR2Client, r2PublicUrl } from "./r2";
+import { R2_BUCKET, getR2Client, r2PublicUrl } from "./r2";
 import {
   copyWithWatermark, createPublicDirectUpload, createWatermarkProfile, deleteDownloads, deleteVideo, deleteWatermarkProfile, downloadToken, enableDownloads, getDownloads,
   getVideo, StreamError, streamConfigured,
 } from "./stream";
-import { renderVideoMark } from "./media-watermark";
+import { markPicture, renderVideoMark } from "./media-watermark";
 import { MediaError, type MediaDeps } from "./media-server";
 import { MEDIA_LIVE } from "./media-rules";
 import { effectiveTier, type AccountTier } from "./users";
 import { friendlyMessage } from "./api-errors";
 import { setting } from "@/lib/config";
 
-// Shared by the /api/media routes: the real bucket and Cloudflare Stream, who is calling, and our errors as responses.
+// Shared by the /api/media routes (and the other marked uploads, the re-marking job and replays): the real bucket and Cloudflare Stream,
+// who is calling, and our errors as responses.
 async function bodyBytes(key: string, range?: string): Promise<Buffer> {
   const r = await getR2Client().send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key, ...(range ? { Range: range } : {}) }));
   return Buffer.from(await r.Body!.transformToByteArray());
@@ -30,31 +31,29 @@ export function mediaDeps(): MediaDeps {
     },
     readStart: (key) => bodyBytes(key, "bytes=0-31"),
     read: (key) => bodyBytes(key),
-    remove: deleteMediaObject,
+    // A marked picture: cached for a year (its key is new, and never changes).
+    write: async (key, bytes, type, cacheControl = "public, max-age=31536000, immutable") => { await getR2Client().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, Body: bytes, ContentType: type, CacheControl: cacheControl })); },
+    // Unlike the account-deletion helper, a failed delete is reported: the marking steps keep the clean key until it is really gone.
+    remove: async (key) => { await getR2Client().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key })); },
+    markPicture: (bytes, username, s, o) => markPicture(bytes, username, s, o),
     mediaBase: setting("NEXT_PUBLIC_R2_PUBLIC_URL") ?? "",
     stream: {
       configured: streamConfigured(),
       create: createPublicDirectUpload,
       get: async (uid) => {
         const v = await getVideo(uid);
-        return v ? { readyToStream: v.readyToStream, duration: v.duration, size: v.size, state: v.status?.state } : null;
+        return v ? { readyToStream: v.readyToStream, duration: v.duration, size: v.size, state: v.status?.state, width: v.input?.width, height: v.input?.height } : null;
       },
       remove: deleteVideo,
+      downloads: { enable: enableDownloads, status: getDownloads, disable: deleteDownloads },
+      copy: copyWithWatermark,
+      token: downloadToken,
+      watermark: createWatermarkProfile,
+      dropWatermark: deleteWatermarkProfile,
+      markPng: renderVideoMark,
     },
-    // Watermarked video downloads (lib/media-video-dl-server.ts): only with Stream set up.
-    ...(streamConfigured() ? {
-      videoDl: {
-        enable: enableDownloads, status: getDownloads, disable: deleteDownloads, copy: copyWithWatermark,
-        get: async (uid: string) => {
-          const v = await getVideo(uid);
-          return v ? { readyToStream: v.readyToStream, size: v.size, state: v.status?.state } : null;
-        },
-        remove: deleteVideo, watermark: createWatermarkProfile, dropWatermark: deleteWatermarkProfile, mark: renderVideoMark, token: downloadToken,
-      },
-    } : {}),
   };
 }
-
 export type MediaCaller = { uid: string; username: string; tier: AccountTier };
 
 // A signed-in, non-suspended member; posting also needs a verified email (docs/MEDIA.md, "Who can post").

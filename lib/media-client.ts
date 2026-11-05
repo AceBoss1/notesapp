@@ -39,7 +39,7 @@ export function useCreatorMedia(username: string | undefined, on = true): { data
 
 export const loadStudio = () => mediaApi<Studio>("/api/media/studio", { signedIn: true });
 
-// A watermarked picture, saved to the device (the server stamps it; the original is never sent).
+// A picture, saved to the device: the stored file, which carries the NotesApp mark (lib/media-mark.ts).
 export async function downloadMediaPicture(postId: string, index: number): Promise<void> {
   const u = auth.currentUser;
   const res = await fetch(`/api/media/posts/${encodeURIComponent(postId)}/download?i=${index}`, { headers: u ? { Authorization: `Bearer ${await u.getIdToken()}` } : {} });
@@ -51,7 +51,7 @@ export async function downloadMediaPicture(postId: string, index: number): Promi
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-// A video's watermarked download copy: the server hands back a signed link (an hour) to the copy's MP4, and the browser saves it.
+// A video: the server hands back the link to Stream's MP4 of the (marked) video, and the browser saves it.
 export async function downloadMediaVideo(postId: string): Promise<void> {
   const u = auth.currentUser;
   const res = await fetch(`/api/media/posts/${encodeURIComponent(postId)}/download?video=1`, { headers: u ? { Authorization: `Bearer ${await u.getIdToken()}` } : {}, cache: "no-store" });
@@ -76,12 +76,16 @@ export function sendToStream(uploadURL: string, file: File, onProgress: (f: numb
   });
 }
 
-// A video file's length in seconds, read by the browser before uploading (the server and Stream check it again).
+// A video file's length in seconds and its frame size, read by the browser before uploading (the server and Stream check the length again;
+// the frame size picks the shape of the NotesApp mark Stream lays on it).
 export function videoLength(file: File): Promise<number> {
+  return videoInfo(file).then((v) => v.durationSec);
+}
+export function videoInfo(file: File): Promise<{ durationSec: number; width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const v = document.createElement("video");
     v.preload = "metadata";
-    v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); Number.isFinite(d) ? resolve(d) : reject(new Error("We couldn't read the video's length.")); };
+    v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); Number.isFinite(d) ? resolve({ durationSec: d, width: v.videoWidth, height: v.videoHeight }) : reject(new Error("We couldn't read the video's length.")); };
     v.onerror = () => reject(new Error("That video can't be read. Try an MP4."));
     v.src = URL.createObjectURL(file);
   });

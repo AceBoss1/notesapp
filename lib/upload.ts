@@ -1,5 +1,5 @@
 import { auth } from "./firebase";
-import { ALLOWED_TYPES, WEBP_QUALITY, fitWithin, looksLikeImage, maxUploadBytes, webpName, webpPlan, type UploadPurpose } from "./upload-rules";
+import { ALLOWED_TYPES, WEBP_QUALITY, bigPictureUpload, fitWithin, looksLikeImage, maxUploadBytes, webpName, webpPlan, type MarkPurpose, type UploadPurpose } from "./upload-rules";
 
 // Replaces lib/cloudinary.ts. Two-step flow: ask app/api/upload for a
 // presigned URL (server verifies the caller is an admin), then PUT
@@ -22,8 +22,8 @@ export async function uploadToR2WithKey(original: File, purpose: UploadPurpose =
     throw new Error("That file isn't a valid image.");
   }
   const file = kind === "image" ? await asWebp(original, purpose) : original;
-  if (file.size > maxUploadBytes(kind, purpose !== "journal")) {
-    throw new Error(`File is too large (max ${Math.round(maxUploadBytes(kind, purpose !== "journal") / 1048576)} MB).`);
+  if (file.size > maxUploadBytes(kind, !bigPictureUpload(purpose))) {
+    throw new Error(`File is too large (max ${Math.round(maxUploadBytes(kind, !bigPictureUpload(purpose)) / 1048576)} MB).`);
   }
   const idToken = await user.getIdToken();
 
@@ -54,6 +54,23 @@ export async function uploadToR2WithKey(original: File, purpose: UploadPurpose =
   }
 
   return { publicUrl: publicUrl as string, key: key as string };
+}
+
+// A shop photo, a service picture or a journal picture: uploaded to the member's own folder, then given the permanent NotesApp mark on
+// our server, which deletes the clean upload. Returns the marked picture's address (the only copy kept). `noteId`: the journal it is for,
+// so a co-author's picture carries the journal's primary author.
+export async function uploadMarked(file: File, purpose: MarkPurpose, noteId?: string): Promise<string> {
+  const { key } = await uploadToR2WithKey(file, purpose);
+  const user = auth.currentUser;
+  if (!user) throw new Error("You must be signed in to upload a file.");
+  const res = await fetch("/api/upload/mark", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+    body: JSON.stringify({ key, purpose, ...(noteId ? { noteId } : {}) }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || "Couldn't add the NotesApp mark to the picture. Try again.");
+  return String(j.url);
 }
 
 // A JPEG or PNG as WebP (lib/upload-rules.ts says which and how big), turned the right way up. Anything that goes wrong keeps the

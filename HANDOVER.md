@@ -845,6 +845,68 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     with real phones:** book on staging, call between two phones, let the hold run out, add minutes, end, and check the wallet lines and
     the ledger entry. A call left ringing (app closed) or with nobody beating is closed when either side calls again. Tests: `test:ppm`,
     `test:ppm-server`, `test:help`, rules.
+121. **The permanent NotesApp mark (v0.143.0, branch `push/permanent-watermark`; owner decisions 5 Nov 2026, approved mockups "Both" and
+    the Anya photos):** deploy **`firebase deploy --only firestore`** (rules: `markedFiles` server-only; `mediaWatermarks` now holds a
+    profile per frame shape). No new environment variable. **Owner steps:** once deployed, open **Admin → Limits → Re-mark existing
+    pictures and videos** and press **Start re-marking** once; the cron carries it on a batch a tick (or press **Run a batch now**) and
+    the table shows progress for each kind (Media pictures, Media videos, replays, shop items, services, journals). **When it shows
+    Done:** Cloudflare dashboard → the media domain's zone (notesapp.name.ng) → **Caching → Purge Cache → Custom purge** of the media
+    hostname (the `NEXT_PUBLIC_R2_PUBLIC_URL` host), or **Purge everything**, so the edge stops serving clean copies of pictures that were
+    marked in place (they are rewritten with `Cache-Control: public, max-age=3600`; uploads never set a Cache-Control, so the edge may
+    hold them for its default time). Check the Cloudflare
+    Stream dashboard afterwards: every old Media video and video replay is copied once (Stream minutes, and twice the storage for a few
+    minutes per video until the old one is deleted). Check the look in **Admin → Limits → Media watermark** (centre logo 16% and 60% of
+    the width, corner na @username 88% with letters 3.6% of the width, 3% in, bottom right; new uploads only). **What is marked:** Media
+    pictures (marked on our server after the browser's PUT, `markPicturePost`: written as `…-na.webp|jpg`, the post points at it, the
+    clean key deleted, then the post shows; hidden as "processing" until then, the cron finishes a post cut short, a day later it is
+    rejected and its bytes given back), Media videos (Stream `direct_upload` with `watermark.uid`: the creator's profile for the video's
+    shape, from the width and height the browser reads; one full-frame transparent PNG with both marks, laid on at scale 1, centre,
+    padding 0, opacity 1; seven shapes 9:16 … 21:9, `lib/media-mark.ts` MARK_SHAPES), video replays (`publishReplay` copies with the
+    host's 16:10 profile; audio replays have no picture), shop item photos, site service pictures and journal pictures (new upload
+    purposes `shop`/`service`/`note` put them in `shop|services|notes/{uid}/`, and `/api/upload/mark` marks them and deletes the clean
+    file before the editor ever sees an address; journals carry the primary author, `authorUid`'s username). Not marked: profile
+    pictures, site cover/banner/gallery, course videos and covers, community, chat, Notes Life, digital product files, outside links.
+    **Downloads:** the per-post switch stays (it is the permission; teens never), renamed **Allow downloads**; pictures download as the
+    stored file, videos as Stream's MP4 of the marked video itself (`download` on the post, `dlRendering` for the cron). The v0.134
+    second "download copy" pipeline is gone (`lib/media-video-dl*.ts` deleted) and storage counts each file once. **The re-marking job**
+    (`lib/media-mark-backfill.ts`, state `serverConfig/markBackfill`, one run at a time by a lease): phases Media posts → replays → shop
+    items → sites → journals → storage recount; videos: MP4 of the old video → `POST /stream/copy` with the profile (signed for replays,
+    a token in the MP4 link) → swap the uid → delete the old video and any v0.134 copy (nothing stores a Stream thumbnail or player
+    address: Media posters are built from the post's uid when shown, replay share cards use the host's picture, journals made from
+    replays link to /replays/{id}); pictures (coordinator's review): **written back over the same key, in the same format** (WebP, JPEG,
+    PNG; same Content-Type, `max-age=3600`), so items keep their address and every copy of it (share cards, Moments, chat cards, journal
+    drafts, emails, LinkedIn/WhatsApp previews) shows the marked picture; nothing is swapped or deleted. `markedFiles/{sha1(key)}`
+    (`inPlace: true`, and the clean file's hash while writing, so a run cut off mid-write can tell whether it landed) makes a re-run count
+    it "already". Only a picture still used unmarked (the owner's site cover/banner/gallery or profile picture) or a GIF/AVIF (can't be
+    written back) gets a new `-na` key on the item, with the original kept. Media posts' `bytes` and the storage counter follow the
+    marked size. Every step is stored on the item, so a run cut off anywhere carries on, and a second run only counts
+    "already". **Decisions where unspecified (owner to confirm):** a replay's private recording in the bucket is kept under its own keep
+    rules (it is never served to viewers and transcription reads it); the clean upload exists in the bucket for the seconds between the
+    browser's PUT and the mark; a co-author's journal picture uploaded before the journal is first saved carries the uploader; journals
+    under an admin-picked name with no account are left as they are. **Not tried against real Stream:** `watermark` on `direct_upload`
+    and `/copy`, and whether scale 1.0 fills the frame exactly for every shape (it should: Stream's docs say 1.0 "fills the entire
+    video"); try one upload of each shape on staging before running the job. Tests: `test:media` (geometry for square, 9:16, 4:1, 16:9,
+    1:3 and a long name; no NotesApp word in the corner; real renders of the Anya photos), `test:media-server`, `test:marks-server`
+    (new: shop/service/journal marks, the job resumable, idempotent and surviving a failed delete, storage recount),
+    `test:recording-server` (a video replay copied with the host's profile), rules.
+    **Moments (owner, 5 Nov, added after review):** a moment's picture is marked when the moment is created (`createMoment` →
+    `momentDeps.markImage`: new `-na` key, clean upload deleted; this also covers a chat photo posted as a moment). A moment's **video now
+    uploads to Cloudflare Stream** (`startMomentVideo`: signed direct upload with the creator's per-shape profile; the composer sends the
+    width and height). It is stored in the moment as `videoKey: "stream:<uid>"`, so expiry, deleting, the parts of a long video (all parts
+    share the one Stream video and play their own `clipStart`–`clipEnd`), reshares, reports (evidence keeps it; Admin → Reports shows its
+    signed player) and account deletion all work unchanged: `momentDeps.remove` deletes a `stream:` key from Stream. Playback: signed,
+    because a moment is only for its audience; the viewer asks `POST /api/moments/{id} { action: "play" }`, which runs the same audience
+    check (followers or public setting, blocks, teen mutuals) and returns an iframe player link with a 6-hour token; the viewer drives
+    Stream's player from its timeupdate/ended messages (start at the part's start, move on at its end). A chat video posted as a moment is
+    copied to Stream with the mark (`/copy` from its public bucket address) and the bucket copy deleted by the cron once Stream has it
+    (`sweepMomentCopies`). Expired and deleted moments delete their Stream video; a pinned part keeps it. Without Stream set up, video
+    moments are switched off (pictures and text still work). **Existing moments (the re-marking job):** pictures are marked in place;
+    a video that isn't pinned is left to expire (gone within 72 hours, no Stream minutes spent); a **pinned** moment's video is copied to
+    Stream with the mark, its parts and reshares then point at it, and its bucket file is deleted. **Stream minutes:** each video moment
+    is stored on Stream only for its 24–72 hours (pinned ones until unpinned), and every view is delivered minutes; small next to Media.
+    **Not tried with real Stream:** the iframe player's `startTime` and its timeupdate messages for moving between parts (the same
+    messages the course player already reads), autoplay with sound inside the moment viewer, and a 9:16 profile on a chat video whose
+    size we don't know. Tests: `test:moments-server` (new), `test:marks-server` (moments in the job), `test:messages` (chat → moment).
 
 ## 3. How the work is done (please keep these)
 

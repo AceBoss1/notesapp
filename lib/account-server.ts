@@ -189,7 +189,12 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     const d = m.data();
     const reshares = await db.collection("moments").where("resharedFrom.rootMomentId", "==", m.id).get();
     for (const r of reshares.docs) await db.recursiveDelete(r.ref);
-    if (d.ownsMedia && !d.reported) for (const k of [d.imageKey, d.videoKey, d.audioKey]) if (k) await deleteMedia(String(k)).catch(() => {});
+    if (d.ownsMedia && !d.reported) for (const k of [d.imageKey, d.videoKey, d.audioKey]) {
+      if (!k) continue;
+      // A moment's video on Cloudflare Stream (v0.143.0) is "stream:<uid>".
+      if (String(k).startsWith("stream:")) { const { deleteVideo, streamConfigured } = await import("./stream"); if (streamConfigured()) await deleteVideo(String(k).slice(7)).catch(() => {}); }
+      else await deleteMedia(String(k)).catch(() => {});
+    }
     await db.recursiveDelete(m.ref);
     momentCount++;
   }
@@ -198,12 +203,19 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   const media = await db.collection("mediaPosts").where("ownerUid", "==", uid).get();
   for (const m of media.docs) {
     const d = m.data();
-    for (const p of (d.pictures as { key: string }[] | undefined) ?? []) await deleteMedia(String(p.key)).catch(() => {});
+    for (const p of (d.pictures as { key: string; cleanKey?: string }[] | undefined) ?? []) { await deleteMedia(String(p.key)).catch(() => {}); if (p.cleanKey) await deleteMedia(String(p.cleanKey)).catch(() => {}); }
     if (d.video?.streamUid) {
       const { deleteVideo, streamConfigured } = await import("./stream");
       if (streamConfigured()) await deleteVideo(String(d.video.streamUid)).catch(() => {});
     }
     await db.recursiveDelete(m.ref);
+  }
+  // Their NotesApp mark profiles on Stream (lib/media-mark-server.ts), then the record of them.
+  if ((await db.doc(`mediaWatermarks/${uid}`).get()).exists) {
+    const { streamConfigured, deleteWatermarkProfile } = await import("./stream");
+    const { dropMarkProfiles } = await import("./media-mark-server");
+    if (streamConfigured()) await dropMarkProfiles(db, uid, { dropWatermark: deleteWatermarkProfile }).catch(() => {});
+    await db.doc(`mediaWatermarks/${uid}`).delete().catch(() => {});
   }
   await deleteAll(db, ["mediaUsage", "mediaSettings"].map((c) => db.doc(`${c}/${uid}`)));
   counts.media = media.size;

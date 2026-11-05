@@ -14,7 +14,7 @@ import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken, getNoteById } from "@/lib/firestore-notes";
 import { deleteField } from "firebase/firestore";
 import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
-import { uploadToR2 } from "@/lib/upload";
+import { uploadMarked } from "@/lib/upload";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
@@ -125,7 +125,8 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
     setUploading(true);
     setError("");
     try {
-      const url = await uploadToR2(file);
+      // The cover gets the permanent NotesApp mark and the journal author's @username; only the marked copy is kept.
+      const url = await uploadMarked(file, "note", noteId);
       setFeaturedImage(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -335,7 +336,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       <div className="block">
         <span className="flex flex-wrap items-center justify-between gap-2"><span className="eyebrow">Content</span><NanaAssist surface="draft" align="right" getText={() => content} onApply={setContent} /></span>
         <div className="mt-2">
-          <RichTextEditor value={content} onChange={setContent} draftKey={noteId || "new"} />
+          <RichTextEditor value={content} onChange={setContent} draftKey={noteId || "new"} mark={{ noteId }} />
         </div>
       </div>
 

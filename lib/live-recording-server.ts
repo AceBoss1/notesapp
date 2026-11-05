@@ -78,7 +78,8 @@ export type RecordingStore = {
   signedGet(key: string, seconds: number, type: string): Promise<string>;
 };
 export type RecorderClient = { start(body: Record<string, unknown>): Promise<void>; stop(rid: string): Promise<void> };
-export type StreamClient = { copy(url: string, creator: string, name: string): Promise<string>; get(uid: string): Promise<{ ready: boolean; duration?: number } | null>; remove(uid: string): Promise<void>; player(uid: string): Promise<string> };
+// mark: the host's Stream watermark profile for a replay's frame (lib/media-mark-server.ts), so a video replay carries the NotesApp mark.
+export type StreamClient = { copy(url: string, creator: string, name: string, watermarkUid?: string): Promise<string>; mark(db: Firestore, host: { uid: string; username: string }): Promise<string>; get(uid: string): Promise<{ ready: boolean; duration?: number } | null>; remove(uid: string): Promise<void>; player(uid: string): Promise<string> };
 export type Transcriber = (audio: Uint8Array, type: string) => Promise<string>;
 export type Summariser = (db: Firestore, uid: string, title: string, transcript: string) => Promise<string | null>;
 export type RecordingDeps = { store: () => RecordingStore; recorder: () => RecorderClient; stream: () => StreamClient; relay: () => RelayClient; transcriber: () => Transcriber | null; summarise: Summariser };
@@ -124,7 +125,9 @@ function httpRecorder(): RecorderClient {
 }
 function cloudflareStream(): StreamClient {
   return {
-    async copy(url, creator, name) { const s = await import("./stream"); if (!s.streamConfigured()) throw fail(503, "Replays need Cloudflare Stream (CLOUDFLARE_STREAM_TOKEN), which isn't set up yet."); return (await s.copyFromUrl(url, creator, name)).uid; },
+    async copy(url, creator, name, watermarkUid) { const s = await import("./stream"); if (!s.streamConfigured()) throw fail(503, "Replays need Cloudflare Stream (CLOUDFLARE_STREAM_TOKEN), which isn't set up yet."); return (await s.copyFromUrl(url, creator, name, watermarkUid)).uid; },
+    // The recorder films the room page at 1280 × 800 (services/room-recorder), so a replay's frame is 16:10.
+    async mark(db, host) { const [{ markProfile }, { mediaDeps }] = await Promise.all([import("./media-mark-server"), import("./media-api")]); return markProfile(db, host, "16x10", mediaDeps().stream); },
     async get(uid) { const s = await import("./stream"); const v = await s.getVideo(uid); return v ? { ready: v.readyToStream, duration: v.duration } : null; },
     async remove(uid) { const s = await import("./stream"); await s.deleteVideo(uid); },
     async player(uid) { const s = await import("./stream"); return s.playerUrl(await s.playbackToken(uid, 6 * 3600)); },
@@ -497,12 +500,17 @@ export async function publishReplay(db: Firestore, uid: string, rid: unknown, in
   const f = r.files.stage?.done ? r.files.stage : r.files.audio?.done ? r.files.audio : null;
   if (!f) throw fail(409, "This recording has nothing to play.");
   const title = cleanReplayTitle(input.title) || r.title;
-  const streamUid = await deps.stream().copy(await deps.store().signedGet(f.key, 6 * 3600, f.type), uid, title);
+  // A video replay is copied to Stream with the host's NotesApp mark burned in (owner, 5 Nov 2026), so no unmarked replay is ever on
+  // Stream. An audio replay has no picture to mark. The recording in the private bucket isn't served to viewers; it keeps its own keep rules.
+  const video = f === r.files.stage && r.hadVideo === true;
+  const hostUsername = String(host.username ?? "");
+  const watermarkUid = video && hostUsername ? await deps.stream().mark(db, { uid, username: hostUsername }) : undefined;
+  const streamUid = await deps.stream().copy(await deps.store().signedGet(f.key, 6 * 3600, f.type), uid, title, watermarkUid);
   const id = `${now.getTime().toString(36)}${randomBytes(5).toString("hex")}`;
   const doc: ReplayDoc = {
     rid: ref.id, roomId: r.roomId, cid: r.cid, communityName: r.communityName, hostUid: uid, hostUsername: String(host.username ?? ""), hostName: String(host.displayName ?? r.hostName), hostAvatar: String(host.avatar ?? ""),
     title, audience, listed: isListed(audience) && host.teen !== true && host.keepHidden !== true, kind: r.hadVideo ? "video" : "audio",
-    status: "processing", streamUid, createdAt: r.startedAt, publishedAt: now.toISOString(), views: 0,
+    status: "processing", streamUid, ...(watermarkUid ? { marked: true } : {}), createdAt: r.startedAt, publishedAt: now.toISOString(), views: 0,
     transcript: deps.transcriber() && r.files.audio?.done ? { status: "queued" } : { status: "off" },
     ...(r.liveEventId ? { liveEventId: r.liveEventId } : {}),
   };

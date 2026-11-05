@@ -19,7 +19,18 @@ const db = getFirestore();
   await msg("d1", { from: "ra", deleted: { at: "2026-10-20T09:05:00Z" }, attachments: [file("gone.jpg", "image/jpeg", "image")] });
 
   const copies: [string, string, string][] = [];
-  const deps: ReuseDeps = { copy: async (a, b, t) => { copies.push([a, b, t]); }, publicUrl: (k) => `https://media.test/${k}`, moments: { publicUrl: (k) => `https://media.test/${k}`, remove: async () => {} } };
+  // The moment's side: pictures get the NotesApp mark under a new key; videos are copied to Stream with the owner's watermark profile.
+  const marked: string[] = [], streamCopies: { url: string; watermarkUid: string; signed: boolean }[] = [];
+  const momentDeps = {
+    publicUrl: (k: string) => `https://media.test/${k}`, remove: async () => {},
+    markImage: async (k: string, u: string) => { marked.push(`${k}|${u}`); return k.replace(/\.(\w+)$/, "-na.webp"); },
+    stream: {
+      configured: true, create: async () => ({ uploadURL: "https://upload.test", uid: "x" }), get: async () => ({ readyToStream: false, state: "queued" }), token: async () => "t",
+      copy: async (o: { url: string; watermarkUid: string; signed: boolean }) => { streamCopies.push({ url: o.url, watermarkUid: o.watermarkUid, signed: o.signed }); return { uid: "mv1" }; },
+      watermark: async () => ({ uid: "wm-ra" }), dropWatermark: async () => {}, markPng: async () => Buffer.from("png"),
+    },
+  };
+  const deps: ReuseDeps = { copy: async (a, b, t) => { copies.push([a, b, t]); }, publicUrl: (k) => `https://media.test/${k}`, moments: momentDeps };
   const me = { uid: "ra", username: "ra" };
   const now = new Date("2026-10-20T10:00:00Z");
 
@@ -38,7 +49,8 @@ const db = getFirestore();
   // your own photo → a moment, from the copy in your moments folder
   const pm = await reuseOwnMedia(db, me, { cid: "ra_rb", mid: "p1", i: 0, to: "moment" }, deps, now) as { moment: { id: string } };
   const pd = (await db.doc(`moments/${pm.moment.id}`).get()).data()!;
-  assert.equal(pd.kind, "image"); assert.equal(pd.ownerUid, "ra"); assert.equal(pd.imageKey, `moments/ra/${now.getTime()}-me.jpg`);
+  assert.equal(pd.kind, "image"); assert.equal(pd.ownerUid, "ra"); assert.equal(pd.imageKey, `moments/ra/${now.getTime()}-me-na.webp`, "the moment keeps only the marked copy");
+  assert.deepEqual(marked, [`moments/ra/${now.getTime()}-me.jpg|ra`], "marked with @ra");
 
   // a video needs its length (the viewer reads it); a long one plays its first 90 seconds; MOV isn't a moment format
   await assert.rejects(reuseOwnMedia(db, me, { cid: "ra_rb", mid: "v1", i: 0, to: "moment" }, deps, now), /how long/);
@@ -46,9 +58,12 @@ const db = getFirestore();
   await assert.rejects(reuseOwnMedia(db, me, { cid: "ra_rb", mid: "v1", i: 0, to: "avatar" }, deps, now), /JPEG, PNG or WebP/);
   const vm = await reuseOwnMedia(db, me, { cid: "ra_rb", mid: "v1", i: 0, to: "moment", durationSec: 120.4 }, deps, now) as { moment: { id: string } };
   const vd = (await db.doc(`moments/${vm.moment.id}`).get()).data()!;
-  assert.equal(vd.kind, "video"); assert.equal(vd.videoKey, `moments/ra/${now.getTime()}-clip.mp4`); assert.equal(vd.clipStart, 0); assert.equal(vd.clipEnd, 90);
+  // The video goes to Stream with @ra's mark (signed playback); the moment plays the Stream video, and the bucket's copy is removed later.
+  assert.equal(vd.kind, "video"); assert.equal(vd.videoKey, "stream:mv1"); assert.equal(vd.clipStart, 0); assert.equal(vd.clipEnd, 90);
+  assert.deepEqual(streamCopies, [{ url: `https://media.test/moments/ra/${now.getTime()}-clip.mp4`, watermarkUid: "wm-ra", signed: true }]);
   const up = (await db.doc(`videoUploads/${vd.splitGroup}`).get()).data()!;
   assert.equal(up.purpose, "moment"); assert.equal(up.verified, true); assert.deepEqual(up.fromChat, { cid: "ra_rb", mid: "v1", i: 0 });
+  assert.deepEqual([up.streamUid, up.bucketKey], ["mv1", `moments/ra/${now.getTime()}-clip.mp4`]);
 
   console.log("REUSE OK");
   process.exit(0);

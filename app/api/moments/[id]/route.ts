@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { MomentError, deleteMoment, listViewers, pinMoment, recordView, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
+import { MomentError, deleteMoment, listViewers, momentPlayer, pinMoment, recordView, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
 import { authed, fail, momentDeps } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
 
-// POST { action: "like" | "view" | "reshare" | "reply" | "pin" | "unpin", text? }
+// POST { action: "like" | "view" | "reshare" | "reply" | "pin" | "unpin" | "play", text? }; "play" → { player }: a signed Stream player link
+// for a moment's video, for someone in its audience
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "");
-    const me = await authed(req, "moments", action !== "view");
+    const me = await authed(req, "moments", action !== "view" && action !== "play");
     const limited = await rateLimit(req, "moment-act", me.uid, 120, 600);
     if (limited) return limited;
     const db = getAdminDb();
     if (action === "like") return NextResponse.json(await toggleLike(db, me.uid, params.id));
+    if (action === "play") return NextResponse.json(await momentPlayer(db, me.uid, params.id, momentDeps), { headers: { "Cache-Control": "private, no-store" } });
     if (action === "view") { await recordView(db, me.uid, params.id); return NextResponse.json({ ok: true }); }
     if (action === "reshare") return NextResponse.json({ moment: await reshare(db, me, params.id, momentDeps) });
     if (action === "pin" || action === "unpin") return NextResponse.json(await pinMoment(db, me.uid, params.id, action === "pin", momentDeps));
