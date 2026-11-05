@@ -1,7 +1,8 @@
 # Owner set-up guide (things to do outside the code)
 
-**For:** the founder. **Updated:** 3 November 2026. **Covers:** HANDOVER items 91 to 101 and the earlier owner steps still waiting
-(item 93's agent layer, teen mode, Business books, the TURN keys for calls).
+**For:** the founder. **Updated:** 5 November 2026. **Covers:** HANDOVER items 91 to 117 (live audio and video, recording and
+replays, Media and watermarked video downloads, sign in with Google and LinkedIn, stage seats and moderators, gifting) and the
+earlier owner steps still waiting (item 93's agent layer, teen mode, Business books, the TURN keys for calls).
 
 This guide lists every step that has to be done by hand in a dashboard or a console, in the order to do them. Nothing here changes the
 code. Every secret in this guide is a placeholder like `YOUR_…`: never paste a real key into a document, a chat or a screenshot.
@@ -22,6 +23,82 @@ All the code for these steps is now on `main`:
 
 ---
 
+## Start here: live video and sign-in, step by step
+
+Work down this list once, in this order. Each line says where to click and links to the detailed steps. **Nothing is switched on
+until its settings are in Vercel and you have redeployed** (see B below), so you can stop between blocks and come back.
+
+**What you need open:** dash.cloudflare.com (the NotesApp account), vercel.com (the NotesApp project), console.firebase.google.com and
+console.cloud.google.com (project `notesapp-a1402`), github.com/AceBoss1/notesapp, linkedin.com/developers/apps, and a password
+manager to keep every secret in.
+
+### Block 1: sign in with Google and LinkedIn (about 20 minutes)
+
+1. [ ] **Firebase → Authentication → Settings → Authorised domains**: add every address in [11.1](#111-firebase-google-already-on-and-the-authorised-domains) step 4 that is missing.
+2. [ ] **Firebase → Authentication → Sign-in method → Google**: Enabled, with the public-facing name and support email set ([11.1](#111-firebase-google-already-on-and-the-authorised-domains) step 2).
+3. [ ] **Firebase → Authentication → Settings → User account linking**: "Link accounts that use the same email" ([11.1](#111-firebase-google-already-on-and-the-authorised-domains) step 3).
+4. [ ] **LinkedIn developer app → Products**: "Sign In with LinkedIn using OpenID Connect" added; **Auth** tab: scopes `openid`, `profile`, `email` and the two redirect URLs ([11.3](#113-linkedin-the-redirect-urls)).
+5. [ ] **Vercel**: `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` are there (they are if Publish to LinkedIn works). Optional: `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE` = `on` after doing [11.2](#112-optional-google-by-redirect-on-our-own-addresses-phones-and-in-app-browsers).
+6. [ ] **Firestore rules**: `firebase deploy --only firestore` ([1.3](#13-deploy-the-rules-and-indexes)).
+7. [ ] **Redeploy** Vercel (B), then do the five checks at the end of [11.5](#115-firestore).
+
+### Block 2: storage and video (about 20 minutes)
+
+8. [ ] **Cloudflare Stream** has storage to spare and its token is in Vercel: [5](#5-cloudflare-stream). This is what failed in the
+   "We're at capacity" video upload: Stream refused the upload because the account's stored minutes were used up.
+9. [ ] **The private R2 bucket** for recordings, paid downloads and message files is set: [5.6](#56-the-private-r2-bucket-recordings-paid-downloads-message-files).
+
+### Block 3: live audio and video (about 1 hour 30 minutes)
+
+10. [ ] **Cloudflare → Realtime → Serverless SFU**: create the app; App ID and App Token into Vercel ([2.1](#21-serverless-sfu-app-audio-rooms)).
+11. [ ] **Cloudflare → Realtime → TURN Server**: create a key; both values into Vercel ([2.2](#22-turn-key-calls)). Redeploy, then check /status ([2.3](#23-how-to-check-it-worked)).
+12. [ ] **Cloudflare → Workers & Pages**: Workers Paid, a workers.dev subdomain, the Account ID ([3.1](#31-workers-paid-plan), [3.2](#32-pick-a-workersdev-subdomain-first-time-only)).
+13. [ ] **Cloudflare API token** from the "Edit Cloudflare Workers" template ([3.3](#33-api-token-for-github)), and a new `LIVE_ROOMS_SECRET` ([3.4](#34-make-the-shared-secret-live_rooms_secret)).
+14. [ ] **GitHub → Settings → Secrets and variables → Actions**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `LIVE_ROOMS_SECRET` ([3.5](#35-github-repository-secrets)).
+15. [ ] **GitHub → Actions → Deploy live rooms → Run workflow** on `main`; copy the worker's address ([3.6](#36-run-the-deploy-live-rooms-workflow)), open its `/health` ([3.8](#38-check-the-worker)).
+16. [ ] **Vercel**: `LIVE_ROOMS_SECRET` and `NEXT_PUBLIC_LIVE_ROOMS_URL` (`wss://…`); redeploy; /status → Live room chat ([3.9](#39-vercel-settings), [3.10](#310-how-to-check-it-worked)).
+17. [ ] **Test** an audio room, live video and calls on three phones ([10](#10-testing-checklist)).
+
+### Block 4: recording and replays (after counsel, about 1 hour)
+
+18. [ ] **Counsel** reviews the recording wording and privacy paragraph ([9](#9-legal-and-counsel-review)).
+19. [ ] **Google Cloud Run** recorder: services, secret, deploy, then `RECORDER_URL` and `RECORDER_SECRET` in Vercel ([4](#4-google-cloud-run-room-recorder)).
+20. [ ] **Test** recording and replay ([10](#10-testing-checklist)), and optionally transcripts ([8](#8-optional-replay-transcripts-with-nkenneai)).
+
+### Every time a branch with rules is merged
+
+- Run `firebase deploy --only firestore` again ([1.3](#13-deploy-the-rules-and-indexes)). Gifting everywhere (item 117) needs it.
+- The live-rooms worker redeploys **by itself** when a merge changes it (stage seats, item 116, does), once the GitHub secrets from
+  step 14 exist. Check the run is green under **Actions → Deploy live rooms**.
+
+### Every setting in this guide, in one table
+
+| Where | Name | Secret | From | Section |
+|---|---|---|---|---|
+| Vercel | `CLOUDFLARE_REALTIME_APP_ID` | no | Cloudflare → Realtime → Serverless SFU | 2.1 |
+| Vercel | `CLOUDFLARE_REALTIME_APP_TOKEN` | **yes** | same app (shown once) | 2.1 |
+| Vercel | `CLOUDFLARE_TURN_KEY_ID` | no | Cloudflare → Realtime → TURN Server | 2.2 |
+| Vercel | `CLOUDFLARE_TURN_API_TOKEN` | **yes** | same TURN key (shown once) | 2.2 |
+| Vercel | `LIVE_ROOMS_SECRET` | **yes** | you make it (3.4) | 3.9 |
+| Vercel | `NEXT_PUBLIC_LIVE_ROOMS_URL` | no | the worker's address, `wss://…workers.dev` | 3.9 |
+| Vercel | `CLOUDFLARE_STREAM_TOKEN` | **yes** | Cloudflare API token with Stream: Edit | 5 |
+| Vercel | `CLOUDFLARE_ACCOUNT_ID` | no | Cloudflare account id (only if Stream isn't on the R2 account) | 5 |
+| Vercel | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `NEXT_PUBLIC_R2_PUBLIC_URL` | key id and secret: **yes** | Cloudflare → R2 (already set: uploads work) | 5.6 |
+| Vercel | `R2_PRIVATE_BUCKET` | no | the private bucket's name | 5.6 |
+| Vercel | `RECORDER_URL` | no | `gcloud run services describe …` | 4.5 |
+| Vercel | `RECORDER_SECRET` | **yes** | Secret Manager (4.3) | 4.5 |
+| Vercel | `REPLAY_TRANSCRIBE` | no | `nkenne-english` or `nkenne-swahili` (optional) | 8 |
+| Vercel | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | secret: **yes** | LinkedIn app → Auth (already set for publishing) | 11.4 |
+| Vercel | `LINKEDIN_LOGIN_CLIENT_ID`, `LINKEDIN_LOGIN_CLIENT_SECRET` | secret: **yes** | optional separate LinkedIn app | 11.4 |
+| Vercel | `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE` | no | `on` (optional) | 11.2 |
+| GitHub | `CLOUDFLARE_API_TOKEN` | yes | Cloudflare → API Tokens → Edit Cloudflare Workers | 3.5 |
+| GitHub | `CLOUDFLARE_ACCOUNT_ID` | no | Workers & Pages → Overview | 3.5 |
+| GitHub | `LIVE_ROOMS_SECRET` | yes | the same value as in Vercel | 3.5 |
+| Secret Manager | `recorder-secret` | yes | 4.3 | 4.3 |
+| Cloud Run | `APP_ORIGIN`, `MAX_RECORDINGS` | no | the deploy command | 4.4 |
+
+---
+
 ## Order to do things
 
 Tick each one off. Times are rough, for someone doing it the first time. Costs are from our own docs; anything marked
@@ -34,7 +111,7 @@ Tick each one off. Times are rough, for someone doing it the first time. Costs a
 | 3 | Add the cron-job.org job for Nana's agent jobs | [6](#6-cron-joborg-scheduled-jobs) | 10 min | Free |
 | 4 | Add `mcp.` addresses to Firebase authorised domains (and to Vercel if missing) | [7](#7-firebase-authentication-authorised-domains) | 10 min | Free |
 | 5 | Cloudflare Realtime: Serverless SFU app and TURN key into Vercel, redeploy | [2](#2-cloudflare-realtime-audio-room-relay-and-call-relay) | 20 min | First 1,000 GB a month free, then pay per GB |
-| 6 | Check Cloudflare Stream is set (courses, replays, Media) | [5](#5-cloudflare-stream) | 5 min | Per minute stored and watched |
+| 6 | Cloudflare Stream: token, storage plan with room to spare, private R2 bucket (courses, replays, Media videos, downloads) | [5](#5-cloudflare-stream) | 15 min | Per minute stored and watched |
 | 7 | Run the first test: audio room on the relay, and calls on two phones | [10](#10-testing-checklist) | 30 min | Free |
 | 8 | Live rooms worker: Workers Paid, API token, GitHub secrets, run the workflow, Vercel settings | [3](#3-cloudflare-workers-live-rooms-chat-for-big-rooms) | 45 min | $5 a month, plus use |
 | 9 | Counsel review of the recording wording and privacy paragraph | [9](#9-legal-and-counsel-review) | Counsel's time | Counsel's fee |
@@ -344,7 +421,8 @@ Note the address starts with **`wss://`**, not `https://`. Then **redeploy** (se
 1. **/status** → **Live room chat**: Operational, "(worker ready)". This proves the site reaches the worker and both secrets match.
 2. Start a test relay room. The host sees **"Slow mode (automatic: off)"** under the chat, and the help shows the "Chat in big rooms"
    paragraph.
-3. Later changes to the worker deploy by themselves when they are merged into `main`.
+3. Later changes to the worker deploy by themselves when they are merged into `main` (stage seats and moderators, item 116, is one).
+   After such a merge, **Actions → Deploy live rooms** shows a new run: check it is green. If it isn't, run it by hand (3.6).
 
 ---
 
@@ -467,16 +545,61 @@ table under **Audio rooms and live**: who can record and who can publish replays
 
 ## 5. Cloudflare Stream
 
-Stream already plays course videos. Replays (item 100) and the Media area use it too.
+Stream plays course videos, live replays (item 100) and Media videos (item 102), and makes the watermarked copies for video downloads
+(item 104). It is paid by **minutes stored** and **minutes watched**: when the stored minutes you have paid for are used up, Stream
+refuses new uploads. That is what members saw as "We're at capacity" before v0.136.1; they now see "our video storage is full", and
+the error is in **Admin → Errors**.
 
-1. In Vercel → Settings → Environment Variables, check that **`CLOUDFLARE_STREAM_TOKEN`** exists (Sensitive).
-2. Check the account id: Stream uses **`CLOUDFLARE_ACCOUNT_ID`** if it is set, otherwise **`R2_ACCOUNT_ID`**. One of them must be the
-   Cloudflare account that has Stream.
-3. If the token is missing: dash.cloudflare.com → profile icon → **My Profile** → **API Tokens** → **Create Token** → **Create
-   Custom Token** → permission **Account** → **Stream** → **Edit**, account = the NotesApp account → create → put it in Vercel as
-   `CLOUDFLARE_STREAM_TOKEN` (Sensitive) → redeploy.
+### 5.1 The token
 
-**How to check it worked:** /status → **Video courses**: Operational.
+1. Vercel → **Settings** → **Environment Variables**: check **`CLOUDFLARE_STREAM_TOKEN`** exists (Sensitive).
+2. If it is missing: dash.cloudflare.com → profile icon → **My Profile** → **API Tokens** → **Create Token** → **Create Custom
+   Token** → name `notesapp-stream` → **Permissions**: **Account** → **Stream** → **Edit** → **Account Resources**: Include → the
+   NotesApp account → **Continue to summary** → **Create Token**. Copy it (shown once) into your password manager, put it in Vercel
+   as `CLOUDFLARE_STREAM_TOKEN` (Sensitive), and redeploy.
+
+### 5.2 The account id
+
+Stream uses **`CLOUDFLARE_ACCOUNT_ID`** if it is set, otherwise **`R2_ACCOUNT_ID`**. One of them must be the Cloudflare account that
+has Stream (the Account ID on the right of dash.cloudflare.com → **Workers & Pages** → **Overview**, or on the R2 page).
+
+### 5.3 The plan: stored minutes
+
+1. dash.cloudflare.com → **Stream** (left menu; under **Media** in newer menus).
+2. If it offers **Purchase Stream** or **Get started**, Stream isn't subscribed yet: buy it. If it is, the page shows **minutes
+   stored** against the minutes you have.
+3. To add room: **Manage Account** → **Billing** → **Subscriptions** → **Stream** → **Change** (or the **Upgrade** / **Add minutes**
+   button on the Stream page), and pick a larger block of stored minutes.
+4. Leave room for growth: every Media video and course lesson counts its full length, each **published** replay counts, and every video
+   with downloads switched on counts **twice** (the watermarked copy is a second video).
+5. Cloudflare's price is per 1,000 minutes stored and per 1,000 minutes delivered (estimate, verify on Cloudflare's Stream pricing
+   page before budgeting).
+
+### 5.4 Settings in Admin
+
+- **Admin → Stream** → **Test connection**: says "Connected. N video(s), M minutes stored." Compare M with your plan.
+- **Admin → Limits → Media**: videos a week, longest video, storage per member. These protect the Stream plan.
+- **Admin → Limits → Video download watermark**: how see-through (never solid), how big and which corner. The mark is transparent,
+  with @username and NotesApp.
+
+### 5.5 How to check it worked
+
+1. /status → **Video courses**: Operational.
+2. Admin → Stream → **Test connection**: "Connected".
+3. Post a short video in the **Media studio** (`/profile/media`): it reaches "Ready". Switch **Allow watermarked downloads** on: after a few minutes the download
+   button gives an MP4 with the transparent mark in the corner.
+
+### 5.6 The private R2 bucket (recordings, paid downloads, message files)
+
+1. Vercel → **Environment Variables**: check `R2_PRIVATE_BUCKET` is set (a bucket name). If it is, skip to step 5.
+2. dash.cloudflare.com → **R2 Object Storage** → **Create bucket** → name `notesapp-private` → location **Automatic** → **Create**.
+   Do **not** connect a public domain or switch on public access: this bucket is private.
+3. **R2** → **Manage R2 API Tokens** (or **API** → **Manage API tokens**): open the token whose key id is `R2_ACCESS_KEY_ID` in
+   Vercel. It must have **Object Read & Write** on **both** buckets (the public media one and the private one). If it is limited to
+   the media bucket, add the private bucket, or make a new token with both and replace `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`
+   in Vercel (both Sensitive).
+4. Vercel: add `R2_PRIVATE_BUCKET` = `notesapp-private` (not Sensitive).
+5. Redeploy. /status → **Digital downloads**: Operational.
 
 ---
 
@@ -840,4 +963,9 @@ The messages below are quoted from the code, so you will see these exact words o
 - The exact button names in the Cloudflare, Google Cloud and cron-job.org dashboards can change; the steps follow the names in our
   docs at the time of writing.
 - Not yet run for real: the relay with real phones (Safari especially), video through the relay, the worker on Cloudflare, the
-  recorder on Cloud Run, Stream's copy of a recording, and NKENNEAi with WebM files. The tests in section 10 are the first real run.
+  recorder on Cloud Run, Stream's copy of a recording, Stream's watermarked download copy, and NKENNEAi with WebM files. The tests in
+  section 10 are the first real run.
+- Sign in with Google and LinkedIn end to end: it needs a real person signing in with a real account on the live site after section
+  11. LinkedIn's published OpenID settings and signing key were checked against the code on 5 November 2026 and match.
+- Stream's plan names and buttons (5.3) change from time to time; if they don't match, look for Stream under **Billing →
+  Subscriptions**.
