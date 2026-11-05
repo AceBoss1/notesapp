@@ -17,6 +17,13 @@ Readers and buyers, creators and sellers, professionals with bookings, churches 
 
 Most questions should be answered before anyone writes to us. Keep the help articles right, link them in every reply, and send Product the questions Nana couldn't answer, so the next member doesn't have to ask.
 
+## Communities: the Community Strategist
+
+Communities are where churches, mosques, NGOs, schools, creators and businesses gather their people on NotesApp (/c/name), hold lives and services, and collect giving. The **Community Strategist** sits in Customer care and helps them succeed: onboarding new communities and their admins, setting up healthy rules, roles and moderators, planning events, lives, audio rooms and series with hosts, and turning what communities ask for into requests for Product. They work with Trust & safety on community rules and safe giving, with Marketing on community campaigns and the challenge, and with Sales & partnerships when an organisation joins.
+
+- **First 90 days:** an onboarding checklist for new communities; a monthly call with the 20 most active community admins; the giving safety playbook, with Trust & safety.
+- **Measures:** communities active each week (a post, a live or a room); new communities holding a first event within 30 days; admins' satisfaction, each quarter.
+
 ## Safety principles
 
 - **Children first:** any risk to a young member is acted on within the hour, and their protections are never switched off.

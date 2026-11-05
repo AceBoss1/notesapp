@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 //   "report_send_now" → sends last month's reports that are still due, now (owner and super admins; each member still gets one)
 const token = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 async function staff(req: NextRequest) {
-  return verifyAdminRequest(token(req), ["finance", "growth"]).then(() => true).catch(() => false);
+  return verifyAdminRequest(token(req), ["finance", "growth", "marketing"]).then(() => true).catch(() => false);
 }
 export async function GET(req: NextRequest) {
   if (!(await staff(req))) return NextResponse.json({ error: "Finance and Growth only." }, { status: 403 });

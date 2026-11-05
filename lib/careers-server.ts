@@ -23,7 +23,19 @@ const toApp = (id: string, d: FirebaseFirestore.DocumentData) => { const { purge
 // The seeded vacancies, written once (fixed ids, so it never duplicates). Called by the public page and the team hub.
 export async function seedRoles(db: Firestore, now = new Date()): Promise<number> {
   const marker = db.doc("staffMeta/careersSeed");
-  if ((await marker.get()).exists) return 0;
+  const m = await marker.get();
+  if (m.exists) {
+    // Marketing split from Sales & partnerships: the seeded CMO and UA lead vacancies move to Marketing, once, unless someone
+    // already changed their department.
+    if (!m.data()?.marketingSplit) {
+      for (const key of ["cmo", "ua-lead"]) {
+        const ref = db.doc(`${ROLES}/seed-${key}`);
+        if ((await ref.get()).data()?.dept === "growth") await ref.update({ dept: "marketing", updatedAt: now.toISOString() });
+      }
+      await marker.set({ marketingSplit: now.toISOString() }, { merge: true });
+    }
+    return 0;
+  }
   let n = 0;
   for (const r of SEED_ROLES) {
     const ref = db.doc(`${ROLES}/seed-${r.seedKey}`);

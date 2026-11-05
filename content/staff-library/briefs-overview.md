@@ -14,7 +14,8 @@ Every department has a brief: why it exists, what it owns, what it believes, and
 | Engineering | The Engineering Guide | Engineering |
 | Growth & partnerships: marketing | The Marketing Brief | Marketing and UA |
 | Growth & partnerships: sales | Sales and partnerships tab | Sales and partnerships |
-| Customer care and Trust & safety | Customer care and safety tab | Customer care and safety |
+| Customer care (with the Community Strategist) and Trust & safety | Customer care and safety tab | Customer care and safety |
+| Editorial | Editorial tab | Editorial |
 | Finance | Finance tab | Finance and payouts |
 
 **What every brief shares:** the vision (Africa's knowledge, shared, valued and rewarded), the mission, our values, the north star (naira earned by members each month), and our own tools first. Each brief is owned by its department's lead, reviewed every quarter, and lives in the team hub library once approved.

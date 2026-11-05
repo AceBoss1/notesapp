@@ -33,10 +33,12 @@ export const SEED_DOCS: SeedDoc[] = [
   { key: "brief-engineering", title: "The NotesApp Engineering Guide", category: "brief", description: "The founder's guide: principles, the Na- names, the stages and their triggers, recovery, Nana and the platform at scale.", scope: "dept", depts: ["engineering"], requiresAck: true },
   { key: "sop-product", title: "SOP: Product & tech", category: "sop", description: "From idea to approved spec, prices, limits and settings, launch, feedback.", scope: "dept", depts: ["product"], requiresAck: true },
   { key: "brief-product", title: "Product & tech brief", category: "brief", description: "The product family, principles, how decisions are made, priorities and measures.", scope: "dept", depts: ["product"], requiresAck: true },
-  { key: "sop-marketing", title: "SOP: Marketing and user acquisition", category: "sop", description: "Launching a release, campaigns, creators, onboarding communities, Black Fridays, reporting.", scope: "dept", depts: ["growth"], requiresAck: true },
-  { key: "brief-marketing", title: "#NotesApp Marketing Brief", category: "brief", description: "Brand, the product family, audiences, positioning, the challenge, communities, acquisition, pricing, measurement, funding goals.", scope: "dept", depts: ["growth"], requiresAck: true },
+  { key: "sop-marketing", title: "SOP: Marketing and user acquisition", category: "sop", description: "Launching a release, campaigns, creators, onboarding communities, Black Fridays, reporting.", scope: "dept", depts: ["marketing"], requiresAck: true },
+  { key: "brief-marketing", title: "#NotesApp Marketing Brief", category: "brief", description: "Brand, the product family, audiences, positioning, the challenge, communities, acquisition, pricing, measurement, funding goals.", scope: "dept", depts: ["marketing"], requiresAck: true },
   { key: "sop-sales", title: "SOP: Sales and partnerships", category: "sop", description: "From lead to live, Enterprise and API partners.", scope: "dept", depts: ["growth"], requiresAck: true },
   { key: "brief-sales", title: "Sales and partnerships brief", category: "brief", description: "Who we sell to and what we offer each, principles, priorities and measures.", scope: "dept", depts: ["growth"], requiresAck: true },
+  { key: "brief-editorial", title: "Editorial brief", category: "brief", description: "What Editorial owns (our own journals, the Academy, Naija Exam Prep, topics), principles, priorities and measures.", scope: "dept", depts: ["content"], requiresAck: true },
+  { key: "sop-editorial", title: "SOP: Editorial", category: "sop", description: "Publishing on our own journals, Exam Prep questions, Academy courses, members' posts and topics.", scope: "dept", depts: ["content"], requiresAck: true },
   { key: "sop-customer-care", title: "SOP: Customer care and trust & safety", category: "sop", description: "Answering members, refunds, reports and appeals, young members, data requests.", scope: "dept", depts: ["support", "moderation"], requiresAck: true },
   { key: "brief-customer-care", title: "Customer care and trust & safety brief", category: "brief", description: "Who we serve, how we sound, the help centre and Nana, safety principles, priorities and measures.", scope: "dept", depts: ["support", "moderation"], requiresAck: true },
   { key: "sop-finance", title: "SOP: Finance and payouts", category: "sop", description: "Member payouts, refunds, referral withdrawals, payroll, spending and expenses.", scope: "dept", depts: ["finance"], requiresAck: true },
@@ -53,7 +55,9 @@ const MARKER = "staffMeta/librarySeed";
 // Seeds or refreshes every seeded document whose text changed. Returns how many were written. `force` skips the version marker.
 export async function seedStaffLibrary(db: Firestore, now = new Date(), force = false): Promise<number> {
   const marker = db.doc(MARKER);
-  const version = `${STAFF_LIBRARY_VERSION}-${hash(Object.values(TEMPLATES).join("\n"))}`;
+  // The departments are part of the version too, so moving a document to another department (Marketing split from Sales &
+  // partnerships) reaches libraries that were already seeded.
+  const version = `${STAFF_LIBRARY_VERSION}-${hash(Object.values(TEMPLATES).join("\n"))}-${hash(JSON.stringify(SEED_DOCS.map((s) => [s.key, s.depts])))}`;
   if (!force && (await marker.get()).data()?.version === version) return 0;
   let written = 0;
   for (const s of SEED_DOCS) {
@@ -65,6 +69,10 @@ export async function seedStaffLibrary(db: Firestore, now = new Date(), force = 
     const shared = { title: s.title, category: s.category, description: s.description, scope: s.scope, ...(s.depts.length ? { dept: s.depts[0], depts: s.depts } : {}), receivers: [], requiresAck: s.requiresAck, body, seedKey: s.key, seedHash: h, updatedAt: now.toISOString() };
     if (!cur) {
       await ref.set({ ...shared, version: 1, files: [], ackedBy: {}, archived: false, createdAt: now.toISOString(), createdByUid: "seed", createdByName: "#NotesApp" });
+      written++;
+    } else if (cur.seedHash === h && JSON.stringify(cur.depts ?? []) !== JSON.stringify(s.depts)) {
+      // Same text, new department: move it without asking anyone to read it again.
+      await ref.set({ dept: s.depts[0] ?? null, depts: s.depts }, { merge: true });
       written++;
     } else if (cur.seedHash !== h) {
       // A new version: everyone who must read it is asked again.

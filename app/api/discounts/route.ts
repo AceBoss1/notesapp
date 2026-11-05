@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 async function ownerFor(req: NextRequest, wanted: unknown): Promise<{ owner: string; actor: string }> {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (wanted === NOTESAPP_OWNER) {
-    const uid = await verifyAdminRequest(token, ["growth", "finance"]).catch(() => null);
+    const uid = await verifyAdminRequest(token, ["marketing", "growth", "finance"]).catch(() => null);
     if (!uid) throw new DiscountError(403, "#NotesApp's codes are for Growth and Finance staff.");
     return { owner: NOTESAPP_OWNER, actor: uid };
   }

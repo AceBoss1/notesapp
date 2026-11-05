@@ -74,7 +74,7 @@ const SHARED_REQS = [
 ];
 export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "updatedAt" | "createdByUid"> & { seedKey: string })[] = [
   {
-    seedKey: "cmo", title: "Chief Marketing Officer (CMO)", dept: "growth", reportsTo: "The CEO", ...LEADER,
+    seedKey: "cmo", title: "Chief Marketing Officer (CMO)", dept: "marketing", reportsTo: "The CEO", ...LEADER,
     summary: "Own #NotesApp's marketing: the brand, the north star (naira earned by members each month), the #1MillionNaira challenge, communities and every door of the product.",
     about: "You'll lead marketing across NotesApp, Notes Academy, Naija Exam Prep, Notes Life and our communities, with the Marketing Brief as your starting point and the team hub as your desk. You set the targets, the budget and the plan, build the team, and report the numbers every week.",
     responsibilities: [
@@ -93,7 +93,7 @@ export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "upda
     ],
   },
   {
-    seedKey: "ua-lead", title: "User Acquisition Lead", dept: "growth", reportsTo: "The CMO", ...LEADER,
+    seedKey: "ua-lead", title: "User Acquisition Lead", dept: "marketing", reportsTo: "The CMO", ...LEADER,
     summary: "Own the funnel from first visit to first payment: channels, campaign codes, referral links and the weekly numbers.",
     about: "You'll grow sign-ups and, more importantly, activated members for each NotesApp door, using the growth engines we've already built (referral links, affiliates, discount codes, free trials, sites, share cards) before paid media.",
     responsibilities: [

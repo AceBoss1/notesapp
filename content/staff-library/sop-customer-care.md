@@ -1,6 +1,6 @@
 # SOP: Customer care, trust & safety
 
-**Purpose:** help every member quickly and kindly, and keep NotesApp safe, above all for young members. **Owners:** the Customer care team lead and the Trust & safety team lead.
+**Purpose:** help every member quickly and kindly, and keep NotesApp safe, above all for young members. **Owners:** the Customer care team lead and the Trust & safety team lead; the Community Strategist owns communities.
 
 ## Routines
 
@@ -45,6 +45,18 @@ Pass every refund to Finance as a team hub task; Finance confirms before you tel
 ### Data requests
 
 A member asking to see, correct, export or delete their data: confirm the account, then pass it to Legal & compliance as a task the same day.
+
+### Communities (the Community Strategist)
+
+The Community Strategist works in Customer care and helps churches, mosques, NGOs, schools, creators and businesses run healthy communities on NotesApp (/c/name).
+
+1. **A new community:** within 2 working days, welcome its admins, share the onboarding checklist (rules, roles, moderators, a first event), and add it to the team hub work board.
+2. **Giving and tithes:** before a community's first giving appeal is promoted, check its organisation verification with Trust & safety. Scams and look-alike appeals go straight to Trust & safety.
+3. **Weekly:** review the most active and the quiet communities; offer help to the quiet ones, and plan lives, audio rooms and series with active hosts.
+4. **Requests and problems:** what admins ask for goes to Product as a team hub task in their own words. A conflict between members goes to Trust & safety; the Strategist never settles it alone.
+5. **Monthly:** a short report to the Customer care team lead: active communities, first events held, and the top requests.
+
+Measures: communities active each week (a post, a live or a room); new communities holding a first event within 30 days; admins' satisfaction, each quarter.
 
 ## Measures
 

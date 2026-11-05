@@ -536,11 +536,11 @@ service cloud.firestore {
     // Ad impression/click aggregates — written by /api/ads/track only. Admins read
     // all; a publisher reads their own daily totals (the base for ad-share).
     match /adStats/{id} {
-      allow read: if adminHasAny(['growth', 'finance']);
+      allow read: if adminHasAny(['marketing', 'growth', 'finance']);
       allow write: if false;
     }
     match /adPublisherStats/{id} {
-      allow read: if adminHasAny(['growth', 'finance']) || (isSignedIn() && resource.data.publisherUid == request.auth.uid);
+      allow read: if adminHasAny(['marketing', 'growth', 'finance']) || (isSignedIn() && resource.data.publisherUid == request.auth.uid);
       allow write: if false;
     }
 
@@ -557,7 +557,7 @@ service cloud.firestore {
 
     // Advertiser campaigns — the advertiser and admins read; server-written.
     match /adCampaigns/{id} {
-      allow read: if adminHasAny(['growth', 'finance']) || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow read: if adminHasAny(['marketing', 'growth', 'finance']) || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow write: if false;
     }
 
@@ -573,7 +573,7 @@ service cloud.firestore {
 
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
-      allow read, write: if adminHas('growth');
+      allow read, write: if adminHasAny(['marketing', 'growth']);
     }
 
     // Paid gold-badge subscription records — owner + admins read; server writes.
@@ -1269,7 +1269,7 @@ service cloud.firestore {
     // Boost campaigns: the buyer (and admins) can read their stats; only the server writes.
     match /boosts/{boostId} {
       allow read: if isSignedIn()
-        && (resource.data.publisherUid == request.auth.uid || adminHasAny(['growth', 'finance']));
+        && (resource.data.publisherUid == request.auth.uid || adminHasAny(['marketing', 'growth', 'finance']));
       allow write: if false;
       match /seen/{seenId} {
         allow read, write: if false;

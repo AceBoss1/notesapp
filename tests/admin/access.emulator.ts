@@ -46,6 +46,19 @@ const claimsOf = async (uid: string) => accessFromClaims((await auth.getUser(uid
   assert.deepEqual(await claimsOf("u_new"), { role: "admin", depts: ["moderation", "legal"] });
   await changeAccess(db, cos, { email: "admin@x.test", role: "admin", depts: ["growth"] }, new Date(), notify);
   assert.deepEqual(await claimsOf("u_admin"), { role: "admin", depts: ["growth"] });
+  // Marketing & user acquisition is its own department (split from Sales & partnerships, the "growth" key): the marketing pages, not
+  // the sales ones.
+  {
+    const { pathAllowed, DEPT_LABEL } = await import("../../lib/admin-access");
+    const mk = accessFromClaims({ admin: true, adminRole: "admin", depts: ["marketing"] });
+    assert.deepEqual(mk, { role: "admin", depts: ["marketing"] });
+    for (const p of ["/admin/discounts", "/admin/referrals", "/admin/ads", "/admin/traction", "/admin/team"]) assert.equal(pathAllowed(mk, p), true, p);
+    for (const p of ["/admin/enterprise", "/admin/leads", "/admin/organisations", "/admin/payments"]) assert.equal(pathAllowed(mk, p), false, p);
+    assert.equal(DEPT_LABEL.growth, "Sales & partnerships"); assert.equal(DEPT_LABEL.marketing, "Marketing & user acquisition");
+    await changeAccess(db, cos, { email: "admin@x.test", role: "admin", depts: ["marketing", "growth"] }, new Date(), notify);
+    assert.deepEqual(await claimsOf("u_admin"), { role: "admin", depts: ["marketing", "growth"] }, "the Chief of Staff can assign Marketing");
+    await changeAccess(db, cos, { email: "admin@x.test", role: "admin", depts: ["growth"] }, new Date(), notify);
+  }
   // ...and removes an admin's access.
   await changeAccess(db, cos, { email: "new@x.test", role: "none" }, new Date(), notify);
   assert.equal(await claimsOf("u_new"), null);
