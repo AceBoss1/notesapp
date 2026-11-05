@@ -1,6 +1,6 @@
 # Owner set-up guide (things to do outside the code)
 
-**For:** the founder. **Updated:** 5 November 2026. **Covers:** HANDOVER items 91 to 117 (live audio and video, recording and
+**For:** the founder. **Updated:** 5 November 2026. **Covers:** HANDOVER items 91 to 118 (live audio and video, recording and
 replays, Media and watermarked video downloads, sign in with Google and LinkedIn, stage seats and moderators, gifting) and the
 earlier owner steps still waiting (item 93's agent layer, teen mode, Business books, the TURN keys for calls).
 
@@ -67,8 +67,8 @@ manager to keep every secret in.
 
 ### Every time a branch with rules is merged
 
-- Run `firebase deploy --only firestore` again ([1.3](#13-deploy-the-rules-and-indexes)). Gifting everywhere (item 117) needs it.
-- The live-rooms worker redeploys **by itself** when a merge changes it (stage seats, item 116, does), once the GitHub secrets from
+- Run `firebase deploy --only firestore` again ([1.3](#13-deploy-the-rules-and-indexes)). Gifting everywhere (item 118) needs it.
+- The live-rooms worker redeploys **by itself** when a merge changes it (stage seats, item 117, does), once the GitHub secrets from
   step 14 exist. Check the run is green under **Actions → Deploy live rooms**.
 
 ### Every setting in this guide, in one table
@@ -421,7 +421,7 @@ Note the address starts with **`wss://`**, not `https://`. Then **redeploy** (se
 1. **/status** → **Live room chat**: Operational, "(worker ready)". This proves the site reaches the worker and both secrets match.
 2. Start a test relay room. The host sees **"Slow mode (automatic: off)"** under the chat, and the help shows the "Chat in big rooms"
    paragraph.
-3. Later changes to the worker deploy by themselves when they are merged into `main` (stage seats and moderators, item 116, is one).
+3. Later changes to the worker deploy by themselves when they are merged into `main` (stage seats and moderators, item 117, is one).
    After such a merge, **Actions → Deploy live rooms** shows a new run: check it is green. If it isn't, run it by hand (3.6).
 
 ---
