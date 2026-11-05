@@ -920,12 +920,12 @@ test("staff roles: each department reaches its own collections and not the other
   });
   const reads = { // path → the departments allowed to read it (a super admin always can)
     "notes/draft1": ["content", "moderation"], "suspensions/alice": ["support", "moderation"],
-    "storeOrders/o1": ["finance", "support"], "adRevenue/r1": ["finance"], "adCampaigns/a1": ["growth", "finance"],
-    "adCreatives/c1": ["growth"], "orgMembers/o_p": ["support", "growth"], "badgeRequests/alice": ["support", "moderation"],
+    "storeOrders/o1": ["finance", "support"], "adRevenue/r1": ["finance"], "adCampaigns/a1": ["marketing", "growth", "finance"],
+    "adCreatives/c1": ["marketing", "growth"], "orgMembers/o_p": ["support", "growth"], "badgeRequests/alice": ["support", "moderation"],
     "ledger/ref1": ["finance"], "payoutAccounts/pub": ["finance"], "bookings/ref1": ["support", "finance"], "gifts/g1": ["finance", "support"],
-    "boosts/b1": ["growth", "finance"], "tierSubscriptions/pub": ["finance", "support"],
+    "boosts/b1": ["marketing", "growth", "finance"], "tierSubscriptions/pub": ["finance", "support"],
   };
-  const all = ["support", "moderation", "finance", "growth", "content", "product"];
+  const all = ["support", "moderation", "finance", "growth", "marketing", "content", "product"];
   for (const [path, allowed] of Object.entries(reads)) {
     for (const dept of all) {
       const run = allowed.includes(dept) ? assertSucceeds : assertFails;
@@ -946,6 +946,7 @@ test("staff roles: each department reaches its own collections and not the other
   await assertSucceeds(setDoc(doc(staff("product"), "settings/site"), { email: "y" }));
   await assertFails(setDoc(doc(staff("support"), "settings/site"), { email: "y" }));
   await assertSucceeds(setDoc(doc(staff("growth"), "adCreatives/c2"), { title: "y" }));
+  await assertSucceeds(setDoc(doc(staff("marketing"), "adCreatives/c4"), { title: "house ad" })); // Marketing runs house ads too
   await assertFails(setDoc(doc(staff("finance"), "adCreatives/c3"), { title: "y" }));
   // Members' contact details reach staff only through admin APIs, masked (lib/pii.ts): no department, not even a super admin,
   // reads leads, payments or merch orders from the browser.

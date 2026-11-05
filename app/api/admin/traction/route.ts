@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Admin-only platform numbers for decks and applications (counts only — no personal data leaves).
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth", "finance"]);
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["marketing", "growth", "finance"]);
     // Counted at most once an hour (lib/stat-cache.ts); ?fresh=1 is the page's "Refresh now".
     const t = await storedTraction(getAdminDb(), req.nextUrl.searchParams.get("fresh") === "1");
     return NextResponse.json({ traction: t, summary: `${summaryText(t)}\n\n${complianceSummary()}`, csv: tractionCsv(t) }, { headers: { "Cache-Control": "no-store" } });

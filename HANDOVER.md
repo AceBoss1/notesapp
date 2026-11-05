@@ -908,6 +908,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     messages the course player already reads), autoplay with sound inside the moment viewer, and a 9:16 profile on a chat video whose
     size we don't know. Tests: `test:moments-server` (new), `test:marks-server` (moments in the job), `test:messages` (chat → moment).
 
+117. **Marketing & user acquisition, its own department (team hub, no changelog entry; branch `push/marketing-dept`):** deploy
+    `firebase deploy --only firestore` (rules: Marketing reads adStats, adPublisherStats, adCampaigns and boosts, and runs adCreatives).
+    The department briefs have Marketing (the Marketing Brief, the Marketing and UA SOP) and Sales & partnerships (its own brief and
+    SOP) as two departments; the code had one, "Growth & partnerships". Now `growth` keeps its key (staff already given it keep their
+    access) and is labelled **Sales & partnerships** (advertisers and campaigns, Enterprise, organisations, leads), and **marketing**
+    is new: discount codes, referrals, ads and traction. Team access, the team hub's departments, the staff library and Nana-HR all
+    read the list, so it appears everywhere. The Marketing Brief and SOP move to Marketing (the library re-seeds when a document's
+    department changes, without asking for a new read), and the seeded CMO and UA lead vacancies move to Marketing once. Tests:
+    `test:access`, `test:hr`, rules 91/91.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

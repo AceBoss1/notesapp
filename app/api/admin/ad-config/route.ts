@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Admin → Ads: the advert and boost numbers (how many boosts show at once, how long boosts and adverts stay, the digest's
 // sponsored slots, which spots are on). Growth admins. GET → the current numbers; PUT { …AdConfig } → saved and returned.
 async function admin(req: NextRequest) {
-  return verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth"]);
+  return verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["marketing", "growth"]);
 }
 
 export async function GET(req: NextRequest) {
