@@ -6,7 +6,10 @@ import { iceServers } from "@/lib/calls-server";
 import { CommunityError } from "@/lib/community-server";
 import { consentToRecording, recordingChoice } from "@/lib/live-recording-server";
 import { mintLiveToken } from "@/lib/live-rooms-server";
-import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRoomFigures, liveRooms, liveVideoConfig, raiseHand, relayStep, removeChat, roomLiveStatus, roomPeople, sendRoomChat, setPoster, setSpeaker, setStageVideo, startRoom } from "@/lib/rooms-server";
+import {
+  answerInvite, askConsent, banFromLive, beatRoom, cameraOff, closeRoom, declineRequest, inviteToStage, joinRoom, leaveRoom, liveRoomFigures, liveRooms, liveVideoConfig, muteSpeaker,
+  pinMessage, raiseHand, relayStep, removeChat, roomLiveStatus, roomModLog, roomPeople, roomStaff, sendRoomChat, setPoster, setRoomMods, setSpeaker, setStageMode, setStageVideo, startRoom, takeSeat,
+} from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
@@ -26,14 +29,22 @@ const fail = (err: unknown, fallback: string) => (err instanceof CommunityError 
 //      { source, url? }. { action: "poster", id, source: "upload" | "profile" | "challenge" | "none", url? } (host) ·
 //      { action: "stagevideo", id, on } (host: speakers may use video) · { action: "live", id } → the host's minutes and prompt.
 //      Cameras go up and down through "relay" (ops video / unvideo; pull with video: true).
+//      The stage (lib/rooms.ts "Stage seats"): start also takes stageMode ("solo" | "approve" | "open") and mods ([uid or @username,
+//      or { who, perms }]); GET also returns staff (the community's moderators and admins, for the form).
+//      { action: "seat", id } (a listener's + on an empty seat) · { action: "invite", id, uid } · { action: "invited", id, yes } (the
+//      invited person answers) · { action: "decline", id, uid } (a request) · { action: "mic", id, uid, on } (a speaker's microphone off
+//      or on) · { action: "stagemode", id, mode } · { action: "mods", id, mods } (host) · { action: "camoff", id, uid } ·
+//      { action: "ban", id, uid } (out of this live) · { action: "pin", id, text } · { action: "consentask", id, uid } ·
+//      { action: "modlog", id } → { log } (host). Each needs its permission (lib/rooms.ts MOD_PERMS), checked in lib/rooms-server.ts.
 //      { action: "livetoken", id } → { url, token, exp } (relay rooms on the live-rooms worker: a 10-minute token for the room's
 //        WebSocket, for someone already in the room; lib/live-rooms-server.ts)
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages", false);
     const db = getAdminDb();
-    const [rooms, figures, recording] = await Promise.all([liveRooms(db, me.uid, String(req.nextUrl.searchParams.get("cid") ?? "")), liveRoomFigures(db), recordingChoice(db, me.uid).catch(() => null)]);
-    return NextResponse.json({ rooms, figures, recording }, { headers: { "Cache-Control": "no-store" } });
+    const cid = String(req.nextUrl.searchParams.get("cid") ?? "");
+    const [rooms, figures, recording, staff] = await Promise.all([liveRooms(db, me.uid, cid), liveRoomFigures(db), recordingChoice(db, me.uid).catch(() => null), roomStaff(db, me.uid, cid).catch(() => [])]);
+    return NextResponse.json({ rooms, figures, recording, staff }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return fail(err, "Couldn't load the rooms");
   }
@@ -48,7 +59,7 @@ export async function POST(req: NextRequest) {
         const limited = await rateLimit(req, "room-start", me.uid, 20, 3600);
         if (limited) return limited;
         const poster = body.poster && typeof body.poster === "object" ? body.poster : undefined;
-        return NextResponse.json({ ...(await startRoom(db, me.uid, body.cid, body.title, undefined, undefined, poster, { record: body.record === true })), iceServers: await iceServers(), video: await liveVideoConfig(db) });
+        return NextResponse.json({ ...(await startRoom(db, me.uid, body.cid, body.title, undefined, undefined, poster, { record: body.record === true, stageMode: body.stageMode, mods: body.mods })), iceServers: await iceServers(), video: await liveVideoConfig(db) });
       }
       case "join": return NextResponse.json({ ...(await joinRoom(db, me.uid, body.id)), iceServers: await iceServers(), video: await liveVideoConfig(db) });
       case "consent": return NextResponse.json(await consentToRecording(db, me.uid, body.id));
@@ -77,6 +88,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(await mintLiveToken(db, me.uid, body.id), { headers: { "Cache-Control": "no-store" } });
       }
       case "unchat": await removeChat(db, me.uid, body.id, body.messageId); return NextResponse.json({ ok: true });
+      case "seat": return NextResponse.json(await takeSeat(db, me.uid, body.id));
+      case "invite": {
+        const limited = await rateLimit(req, "room-invite", me.uid, 30, 600);
+        if (limited) return limited;
+        return NextResponse.json(await inviteToStage(db, me.uid, body.id, body.uid));
+      }
+      case "invited": return NextResponse.json(await answerInvite(db, me.uid, body.id, body.yes));
+      case "decline": return NextResponse.json(await declineRequest(db, me.uid, body.id, body.uid));
+      case "mic": return NextResponse.json(await muteSpeaker(db, me.uid, body.id, body.uid, body.on));
+      case "stagemode": return NextResponse.json(await setStageMode(db, me.uid, body.id, body.mode));
+      case "mods": return NextResponse.json(await setRoomMods(db, me.uid, body.id, body.mods));
+      case "camoff": return NextResponse.json(await cameraOff(db, me.uid, body.id, body.uid));
+      case "ban": return NextResponse.json(await banFromLive(db, me.uid, body.id, body.uid));
+      case "pin": return NextResponse.json(await pinMessage(db, me.uid, body.id, body.text));
+      case "consentask": return NextResponse.json(await askConsent(db, me.uid, body.id, body.uid));
+      case "modlog": return NextResponse.json(await roomModLog(db, me.uid, body.id), { headers: { "Cache-Control": "no-store" } });
       default: throw new CommunityError(400, "Unknown action.");
     }
   } catch (err) {

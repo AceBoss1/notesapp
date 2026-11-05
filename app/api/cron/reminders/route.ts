@@ -1,3 +1,5 @@
+import { sweepPaidLives } from "@/lib/live-tickets-server";
+import { sweepPpm } from "@/lib/ppm-server";
 import { remindExpiringCoupons } from "@/lib/discounts-server";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
@@ -134,6 +136,12 @@ async function run() {
   await job("announcements", () => continueAnnouncements(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
   await job("eventReminders", () => sendEventReminders(db));
+  // Paid lives (lib/live-tickets-server.ts): reminders to ticket holders a day and an hour before; a live the host never opened is
+  // cancelled after Admin's no-show minutes and everyone refunded to NotesApp Credit.
+  await job("paidLives", () => sweepPaidLives(db));
+  // Pay-per-minute sessions (lib/ppm-server.ts): a call whose phones went quiet, or whose held minutes ran out and weren't topped up,
+  // is ended and charged on the server's meter; a session whose call never started is ended and the hold given back.
+  await job("ppmSessions", () => sweepPpm(db));
   await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
   // The 1st of each month from 08:00 Lagos, in batches: last month's referrals report to members who had activity (lib/referral-report-server.ts).
   await job("referralReports", () => monthlyReferralReports(db));

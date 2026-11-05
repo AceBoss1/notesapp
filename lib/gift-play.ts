@@ -4,7 +4,8 @@ import type { GiftMotif } from "./gift-catalogue";
 // playGift: the receiver's page (components/GiftShowWatcher.tsx), the bell, the gift sheet after a wallet payment, and, when the live
 // chat lands, the live room on each gift broadcast to everyone watching. One gift plays at a time; the rest queue.
 export const GIFT_PLAY_EVENT = "notesapp:gift-play";
-export type GiftPlay = { giftId: GiftMotif; name: string; priceKobo: number; senderName?: string; toName?: string; key?: string };
+// priceKobo is what was paid in all; quantity (a send of N of one small gift) plays once with a ×N counter.
+export type GiftPlay = { giftId: GiftMotif; name: string; priceKobo: number; senderName?: string; toName?: string; key?: string; quantity?: number };
 
 export function playGift(g: GiftPlay): void {
   if (typeof window === "undefined") return;

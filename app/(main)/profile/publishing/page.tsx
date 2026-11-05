@@ -16,6 +16,8 @@ import { useLivePricing } from "@/lib/useLivePricing";
 import MyCommission from "@/components/MyCommission";
 import TierSettings, { type TierForm } from "@/components/fans/TierSettings";
 import { SUB_TIERS, tierOffers } from "@/lib/fans";
+import PpmOfferSettings, { PPM_FORM, type PpmForm } from "@/components/ppm/PpmOfferSettings";
+import type { PpmOfferDoc } from "@/lib/ppm";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -36,8 +38,11 @@ export default function PublishingSettingsPage() {
   const [minutes, setMinutes] = useState(45);
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
-  const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000" }, vip: { on: false, price: "7500" }, vvip: { on: false, price: "25000" } });
+  const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000", discount: "0" }, vip: { on: false, price: "7500", discount: "0" }, vvip: { on: false, price: "25000", discount: "0" } });
   const [fansHidden, setFansHidden] = useState(false);
+  // Pay-per-minute sessions (lib/ppm.ts): the offer, and Admin's figures for the hints.
+  const [ppm, setPpm] = useState<PpmForm>(PPM_FORM);
+  const [ppmFig, setPpmFig] = useState({ upliftPct: 20, graceSec: 60, minMinutes: 10 });
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
   const [shopListed, setShopListed] = useState(true);
@@ -78,6 +83,11 @@ export default function PublishingSettingsPage() {
             setAdViews({ impressions: rows.reduce((n, x) => n + (Number(x.impressions) || 0), 0), clicks: rows.reduce((n, x) => n + (Number(x.clicks) || 0), 0) });
           })
           .catch(() => {});
+        u.getIdToken().then((t) => fetch("/api/ppm?offer=mine", { headers: { Authorization: `Bearer ${t}` } })).then((r) => r.json())
+          .then((j: { offer: PpmOfferDoc | null; figures?: { upliftPct: number; graceSec: number; minMinutes: number } }) => {
+            if (j.figures) setPpmFig({ upliftPct: j.figures.upliftPct, graceSec: j.figures.graceSec, minMinutes: j.figures.minMinutes });
+            if (j.offer) setPpm({ on: j.offer.enabled, voice: j.offer.voiceKobo ? String(j.offer.voiceKobo / 100) : "", video: j.offer.videoKobo ? String(j.offer.videoKobo / 100) : "", audience: j.offer.audience });
+          }).catch(() => {});
         getDoc(doc(db, "tierSubscriptions", u.uid)).then((p) => setPlan(p.exists() ? p.data() : null)).catch(() => {});
         getDocs(query(collection(db, "boosts"), where("publisherUid", "==", u.uid)))
           .then((b) => setBoosts(b.docs.map((d) => d.data()).sort((a, c) => String(c.createdAt).localeCompare(String(a.createdAt)))))
@@ -98,7 +108,7 @@ export default function PublishingSettingsPage() {
           setSubOn(!!s.subscription?.enabled);
           if (s.subscription) {
             const o = tierOffers(s.subscription);
-            setTiers({ premium: { on: o.premium.enabled, price: String((o.premium.priceKobo || 200_000) / 100) }, vip: { on: o.vip.enabled, price: String((o.vip.priceKobo || 750_000) / 100) }, vvip: { on: o.vvip.enabled, price: String((o.vvip.priceKobo || 2_500_000) / 100) } });
+            setTiers({ premium: { on: o.premium.enabled, price: String((o.premium.priceKobo || 200_000) / 100), discount: String(o.premium.liveDiscountPct ?? 0) }, vip: { on: o.vip.enabled, price: String((o.vip.priceKobo || 750_000) / 100), discount: String(o.vip.liveDiscountPct ?? 0) }, vvip: { on: o.vvip.enabled, price: String((o.vvip.priceKobo || 2_500_000) / 100), discount: String(o.vvip.liveDiscountPct ?? 0) } });
           }
           setFansHidden(s.fansHidden === true);
           setGiftsOn(s.gifts?.enabled !== false);
@@ -131,8 +141,9 @@ export default function PublishingSettingsPage() {
     try {
       await authedPost("/api/publisher/settings", {
         session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
-        subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price) }])) },
+        subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price), liveDiscountPct: Number(tiers[t].discount) || 0 }])) },
         fans: { hidden: fansHidden },
+        ppm: { enabled: ppm.on, voiceNaira: ppm.voice, videoNaira: ppm.video, audience: ppm.audience },
         gifts: { enabled: giftsOn },
         ads: { optIn: adsOn },
         shop: { listed: shopListed },
@@ -285,8 +296,12 @@ export default function PublishingSettingsPage() {
                 </label>
               </div>
               <MyCommission kind="session" />
+            </div>
+          )}
+          {(sessionOn || ppm.on) && (
+            <div className="mt-5 grid gap-5">
               <div>
-                <p className="text-xs text-slate">Weekly availability (Lagos time, tap to toggle start times)</p>
+                <p className="text-xs text-slate">Weekly availability (Lagos time, tap to toggle start times){ppm.on ? ": for paid sessions and pay-per-minute sessions" : ""}</p>
                 {WEEKDAYS.map((name, d) => (
                   <details key={name} className="mt-2 border border-rule px-3 py-2">
                     <summary className="cursor-pointer text-sm text-ink">
@@ -313,6 +328,8 @@ export default function PublishingSettingsPage() {
             </div>
           )}
         </div>
+
+        <PpmOfferSettings value={ppm} onChange={setPpm} upliftPct={ppmFig.upliftPct} graceSec={ppmFig.graceSec} minMinutes={ppmFig.minMinutes} />
 
         <div className="card min-w-0 max-w-full overflow-hidden p-6">
           <label className="flex items-center gap-3">

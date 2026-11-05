@@ -22,6 +22,7 @@ export async function releaseLedgerEntry(
   if (!ledger) return { ok: false, status: 404, error: "No payout entry for this payment" };
   const releasable = ledger.status === "held" || (opts.allowDisputed === true && ledger.status === "disputed");
   if (!releasable) return { ok: false, status: 409, error: `Payout is ${ledger.status}.` };
+  if (ledger.awaitingLive) return { ok: false, status: 409, error: "Waiting for the paid live to happen." };
   if (new Date(ledger.releaseAfter).getTime() > Date.now()) {
     return { ok: false, status: 409, error: `Not releasable until ${ledger.releaseAfter}.` };
   }
@@ -103,7 +104,13 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
     .filter((l) => {
       // Event tickets wait like sessions (the event's end plus the problem-report window); gifts to a community wait their day
       // (releaseAfter, lib/giving.ts) and then go out on the same run.
-      const due = l.kind === "booking" || l.kind === "ticket" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" ? now : -Infinity;
+      // Paid-live tickets: once the live has ended (awaitingLive cleared), its end plus the same window. Pay-per-minute sessions: the
+      // entry is written when the call ends (releaseAfter = the end), then the same window.
+      if (l.awaitingLive) return false;
+      // A gift withdrawal (lib/gift-earnings-server.ts) under the withdrawal line goes on the next run if sending it straight away failed;
+      // one from the line up (needsApproval) waits for a person to release it in Admin → Payments.
+      const due = l.kind === "booking" || l.kind === "ticket" || l.kind === "live_ticket" || l.kind === "ppm" ? dueBefore
+        : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" || (l.kind === "gift_payout" && !l.needsApproval) ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -118,8 +125,11 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         // Waiting for the OTP Paystack emailed the business: the publisher hears once it is actually sent (lib/payout-otp-server.ts).
         if (r.transferStatus === "otp") continue;
         const to = await getUserEmail(l.publisherUid);
-        const what = l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
+        const what = l.kind === "gift_payout" ? { subject: "Your gift earnings are on their way", for: "from gifts you received", short: "gift earnings", link: `/u/${l.publisherUsername}?tab=gifts` }
+          : l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
           : l.kind === "ticket" ? { subject: "Your ticket sales payout is on its way", for: "for event tickets", short: "ticket sales", link: "/events" }
+          : l.kind === "live_ticket" ? { subject: "Your paid live payout is on its way", for: "for a ticket to your paid live", short: "paid live ticket", link: "/lives" }
+          : l.kind === "ppm" ? { subject: "Your pay-per-minute session payout is on its way", for: "for a pay-per-minute session", short: "pay-per-minute session", link: "/ppm" }
           : l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
           : l.kind === "course" ? { subject: "Your course sale payout is on its way", for: "for a course sale", short: "sale", link: "/profile/publishing" }
           : l.kind === "digital" ? { subject: "Your download sale payout is on its way", for: "for a download sale", short: "sale", link: "/profile/publishing" }
@@ -135,7 +145,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         }).catch(() => {});
       } else if (r.error === "Publisher has no payout account.") {
         await ref.update({ failureReason: r.error, autoAttempts: AUTO_MAX_ATTEMPTS });
-        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your ${l.kind === "affiliate" ? "referral" : l.kind === "giving" ? "community gifts" : l.kind === "ticket" ? "ticket sales" : "session"} earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
+        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your ${l.kind === "affiliate" ? "referral" : l.kind === "giving" ? "community gifts" : l.kind === "ticket" ? "ticket sales" : l.kind === "live_ticket" ? "paid live" : l.kind === "ppm" ? "pay-per-minute session" : "session"} earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
       }
     } catch (err) {
       const attempts = (l.autoAttempts ?? 0) + 1;

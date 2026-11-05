@@ -14,7 +14,8 @@ Settings for each environment are in `docs/ENVIRONMENT.md`; staging is in `docs/
    (no emulator; needs port 80).
 3. cron-job.org: `GET https://www.<root>/api/cron/reminders` (today `www.notesapp.name.ng`) every 15 min with `Authorization: Bearer $CRON_SECRET`, and
    `GET /api/status` every 5 min (so incidents are detected without visitors).
-4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2).
+4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2). Paste it again whenever the
+   file changes (a new domain or subdomain); `npm run test:host` checks it lists every address in `lib/host.ts`.
 
 ## Where to look when something's wrong
 `/status` (live checks: database, auth, uploads, media, **digital downloads**, **developer API**, **custom domains**, payments, email,

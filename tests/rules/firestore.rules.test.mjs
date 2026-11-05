@@ -172,6 +172,32 @@ test("grand gifts: the sitewide announcement is public to read and server-writte
   await assertFails(setDoc(doc(as("pub"), "giftBursts/other"), { giftId: "sunrise" }));
 });
 
+test("gifting everywhere: weekly boards, gift points, received gifts and withdrawals are server-only", async () => {
+  const docs = {
+    "giftWeekly/2026-11-02_pub": { week: "2026-11-02", uid: "pub", grossKobo: 500_000, count: 25, senders: ["alice"], lastAt: "x" },
+    "gifterWeekly/2026-11-02_pub_alice": { week: "2026-11-02", toUid: "pub", fromUid: "alice", kobo: 500_000, count: 25, lastAt: "x" },
+    "giftPoints/alice": { uid: "alice", total: 50, week: "2026-11-02", thisWeek: 50, lastWeek: 0, updatedAt: "x" },
+    "giftReceived/pub_gardenegg": { uid: "pub", key: "gardenegg", animId: "gardenegg", name: "Garden Egg", count: 25, valueKobo: 500_000, archived: false, lastAt: "x" },
+    "giftWithdrawals/gw_pub_1": { id: "gw_pub_1", uid: "pub", amountKobo: 450_000, count: 1, entries: ["r1"], route: "auto", createdAt: "x" },
+  };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    for (const [path, data] of Object.entries(docs)) await setDoc(doc(d, path), data);
+  });
+  for (const path of Object.keys(docs)) {
+    for (const who of ["pub", "alice", "mallory"]) {
+      await assertFails(getDoc(doc(as(who), path)));
+      await assertFails(setDoc(doc(as(who), path), { archived: true, total: 999_999 }));
+      await assertFails(deleteDoc(doc(as(who), path)));
+    }
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "giftReceived"), where("uid", "==", "pub"))));
+  await assertFails(getDocs(query(collection(as("alice"), "giftWeekly"), where("week", "==", "2026-11-02"))));
+  // A member can't mark their own gift ledger entry withdrawn or make a payout entry for themselves.
+  await assertFails(setDoc(doc(as("pub"), "ledger/gw_pub_2"), { kind: "gift_payout", publisherUid: "pub", netKobo: 999_999, status: "held" }));
+});
+
 test("plan records: owner reads their own, others cannot; users can't self-upgrade their tier", async () => {
   await assertSucceeds(getDoc(doc(as("pub"), "tierSubscriptions/pub")));
   await assertFails(getDoc(doc(as("alice"), "tierSubscriptions/pub")));
@@ -1588,4 +1614,67 @@ test("fan levels: points and vehicle picks are server-only; a subscription's tie
   await assertFails(getDocs(query(collection(as("pub"), "fanScores"), where("creatorUid", "==", "pub"))));
   await assertFails(setDoc(doc(as("alice"), "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active", tier: "vvip" }));
   await assertFails(getDoc(doc(anon(), "fanScores/pub_alice")));
+});
+
+test("paid lives: lives and reminders are server-only; a ticket is read only by its holder and the host, and nobody writes one", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "liveEvents/L1"), { hostUid: "pub", title: "Q&A", status: "scheduled", sold: 1, prices: { earlyKobo: 200000, normalKobo: 300000, lateKobo: 400000 } });
+    await setDoc(doc(d, "liveTickets/L1_alice"), { eventId: "L1", uid: "alice", hostUid: "pub", status: "valid", paidKobo: 200000, code: "ABCDE23456" });
+    await setDoc(doc(d, "liveEventReminders/L1_day"), { at: "x" });
+  });
+  // The holder and the host read the ticket; anyone else (or signed out) can't.
+  await assertSucceeds(getDoc(doc(as("alice"), "liveTickets/L1_alice")));
+  await assertSucceeds(getDoc(doc(as("pub"), "liveTickets/L1_alice")));
+  await assertFails(getDoc(doc(as("mallory"), "liveTickets/L1_alice")));
+  await assertFails(getDoc(doc(anon(), "liveTickets/L1_alice")));
+  for (const who of ["alice", "pub", "mallory"]) {
+    const db = as(who);
+    // Nobody makes, changes or refunds a ticket from a browser (the door is checked by the server).
+    await assertFails(setDoc(doc(db, `liveTickets/L1_${who}`), { eventId: "L1", uid: who, hostUid: "pub", status: "valid", paidKobo: 0 }));
+    await assertFails(updateDoc(doc(db, "liveTickets/L1_alice"), { status: "valid", checkedInAt: "now" }));
+    await assertFails(deleteDoc(doc(db, "liveTickets/L1_alice")));
+    // The live itself (prices, status, sold count) and the reminders are the server's.
+    await assertFails(getDoc(doc(db, "liveEvents/L1")));
+    await assertFails(updateDoc(doc(db, "liveEvents/L1"), { status: "live" }));
+    await assertFails(setDoc(doc(db, "liveEvents/L2"), { hostUid: who, title: "Mine", status: "scheduled" }));
+    await assertFails(getDoc(doc(db, "liveEventReminders/L1_day")));
+    await assertFails(setDoc(doc(db, "liveEventReminders/L1_hour"), { at: "x" }));
+  }
+  await assertFails(getDocs(query(collection(as("mallory"), "liveTickets"), where("eventId", "==", "L1"))));
+});
+
+test("pay-per-minute: offers are server-only; a session and its hold are read only by their people, and nobody writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "ppmOffers/pub"), { uid: "pub", username: "pub", enabled: true, voiceKobo: 15000, videoKobo: 30000, audience: "premium" });
+    await setDoc(doc(d, "ppmSessions/S1"), { viewerUid: "alice", hostUid: "pub", kind: "voice", perMinuteKobo: 15000, holdMinutes: 30, holdKobo: 450000, status: "live", startedAt: "x", beats: { viewer: "x", host: "x" } });
+    await setDoc(doc(d, "walletHolds/S1"), { uid: "alice", kobo: 450000, status: "held", kind: "ppm", label: "x", createdAt: "x" });
+    await setDoc(doc(d, "calls/pc1"), { callerUid: "alice", calleeUid: "pub", kind: "audio", status: "accepted", cid: "alice_pub", createdAt: "x", ppm: "S1" });
+  });
+  // The viewer and the publisher read the session; anyone else (or signed out) can't. The hold is the viewer's alone.
+  await assertSucceeds(getDoc(doc(as("alice"), "ppmSessions/S1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "ppmSessions/S1")));
+  await assertFails(getDoc(doc(as("mallory"), "ppmSessions/S1")));
+  await assertFails(getDoc(doc(anon(), "ppmSessions/S1")));
+  await assertSucceeds(getDoc(doc(as("alice"), "walletHolds/S1")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "walletHolds"), where("uid", "==", "alice"))));
+  await assertFails(getDoc(doc(as("pub"), "walletHolds/S1")));
+  await assertFails(getDocs(query(collection(as("mallory"), "ppmSessions"), where("hostUid", "==", "pub"))));
+  for (const who of ["alice", "pub", "mallory"]) {
+    const db = as(who);
+    // The offer (prices, who may book) is read and written only by the server.
+    await assertFails(getDoc(doc(db, "ppmOffers/pub")));
+    await assertFails(setDoc(doc(db, `ppmOffers/${who}`), { uid: who, enabled: true, voiceKobo: 1, videoKobo: 1, audience: "everyone" }));
+    // Nobody moves the meter, the hold or the bill from a browser: the server's clock and both phones' beats are the meter.
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { startedAt: "later" }));
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { beats: { viewer: "x", host: "x" } }));
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { status: "ended", billedMinutes: 0 }));
+    await assertFails(setDoc(doc(db, "ppmSessions/S2"), { viewerUid: who, hostUid: "pub", status: "live" }));
+    await assertFails(deleteDoc(doc(db, "ppmSessions/S1")));
+    await assertFails(updateDoc(doc(db, "walletHolds/S1"), { kobo: 0 }));
+    await assertFails(setDoc(doc(db, `walletHolds/H_${who}`), { uid: who, kobo: 1, status: "held" }));
+    // A session's call can't be pointed at another session, or started, from a browser.
+    await assertFails(updateDoc(doc(db, "calls/pc1"), { ppm: "S9" }));
+  }
 });

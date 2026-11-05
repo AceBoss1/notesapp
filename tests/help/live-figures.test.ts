@@ -42,6 +42,9 @@ cfg.gifts.catalogue[3].name = "Party Jollof"; cfg.gifts.catalogue[3].priceKobo =
 cfg.gifts.daily = { targetKobo: 65_000 * 100, slots: 4, basis: "net", minSenders: 5 };
 cfg.gifts.grand = { fromKobo: 40_000 * 100, announce: true }; // Golden Gele (₦25,000) is then over the ₦20,000 cap: still ✔; Kente (₦50,000) the first VIP
 cfg.gifts.uplift = { premiumPct: 15, vipPct: 25 };
+cfg.gifts.economy = { quantityMax: 40, autoWithdrawMaxKobo: 35_000 * 100 }; // gifting everywhere: the "How many?" cap and the withdrawal line
+cfg.liveTicketUpliftPct = 12; // paid lives (Admin → Pricing → Gifts)
+cfg.ppmUpliftPct = 27; // pay-per-minute sessions (Admin → Pricing → Gifts)
 const limits = { messageVoiceNoteSeconds: { standard: 240, basic: 240, pro: 240, business: 240, enterprise: 240 }, coursesPerMember: { basic: 12 }, nanaOperator: { pro: 1 }, replayPublish: { standard: 0, basic: 0 }, mediaVideosPerWeek: { pro: 9 }, mediaVideoMaxSeconds: { pro: 240 }, mediaPicturePostsPerDay: { business: 33 }, mediaStorageGB: { enterprise: 0 } };
 const agents = { actionsPerDay: 150, discountCapNaira: 3_000, linkCodeMinutes: 7, weeklySummaryWeekday: 3, draftHours: 72 };
 const saved: Record<string, unknown> = {
@@ -51,7 +54,7 @@ const saved: Record<string, unknown> = {
   "serverConfig/recording": { overrides: { keepDays: 21, maxHours: 3 } },
   "serverConfig/fans": { overrides: { vipMin: 6_000, vvipMax: 450_000, vipUpliftPct: 15 } },
   // Audio rooms' Live mode (Admin → Limits → Audio rooms → Live): the help quotes these, never the defaults.
-  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3 } },
+  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3, lateWindowMin: 25, liveDiscountMaxPct: 40, paidNoShowMin: 45, ppmMinMinutes: 15, ppmMaxMinutes: 120, ppmGraceSec: 45, ppmTopUpWaitSec: 90, ppmNoShowMin: 30 } },
 };
 // Just enough of Firestore for the loaders: doc(path).get() and an empty kbArticles collection.
 const db = {
@@ -87,6 +90,11 @@ const db = {
   // The extra commission on premium and VIP gifts follows Admin too.
   assert.ok(gifts.includes("your rate plus 15% of it") && gifts.includes("your rate plus 25% of it") && gifts.includes("a premium gift is charged 9.2%"), "gift commission share is live");
   assert.ok(body(defaults, "gifts").includes("your rate plus 10% of it") && body(defaults, "gifts").includes("a VIP gift 9.6%"), "the default shares");
+  // Gifting everywhere: the quantity cap and the withdrawal line follow Admin → Pricing → Gifts, in the gifts and payouts articles.
+  for (const x of ["send 1 to 40 of it", "Under ₦35,000 is paid automatically; ₦35,000 and over is approved"]) assert.ok(gifts.includes(x), `gifts shows ${x}`);
+  assert.ok(body(live, "payouts").includes("Under ₦35,000 is paid automatically"), "payouts shows the live withdrawal line");
+  for (const x of ["send 1 to 99", "₦20,000 is paid automatically"]) assert.ok(!gifts.includes(x), `gifts no longer shows ${x}`);
+  assert.ok(body(defaults, "gifts").includes("send 1 to 99 of it") && body(defaults, "gifts").includes("Under ₦20,000 is paid automatically"), "the default cap and line");
   // Prices.
   assert.ok(body(live, "verified-badge").includes("₦1,234") && !body(live, "verified-badge").includes("₦999"), "badge price");
   const plans = body(live, "plans-and-prices");
@@ -122,6 +130,21 @@ const db = {
   const rooms = body(live, "community-audio-rooms");
   for (const x of ["22 video minutes", "40 seconds later", "fall by 15% or more within 4 minutes", "Try 3 minutes of video?", "for 6 minutes in a row"]) assert.ok(rooms.includes(x), `audio rooms help: ${x}`);
   for (const x of ["15 video minutes", "30 seconds later", "Try 2 minutes"]) assert.ok(!rooms.includes(x), `audio rooms help has no default: ${x}`);
+  // Paid lives (Admin → Pricing: liveTicketUpliftPct; Admin → Limits → Audio rooms → Paid lives: the late window, discount cap, no-show).
+  const paidLives = body(live, "paid-lives");
+  for (const x of ["until the live has run 25 minutes", "from 0% up to 40%", "within 45 minutes of its time", "plus 12% of it"]) assert.ok(paidLives.includes(x), `paid lives help: ${x}`);
+  for (const x of ["run 20 minutes", "up to 50%", "within 60 minutes", "plus 10% of it"]) assert.ok(!paidLives.includes(x), `paid lives help has no default: ${x}`);
+  assert.ok(body(defaults, "paid-lives").includes("run 20 minutes") && body(defaults, "paid-lives").includes("plus 10% of it"), "the paid-lives defaults were different");
+  assert.ok(body(live, "subscriptions").includes("from 0% up to 40%"), "the tier discount cap in the subscriptions help");
+  assert.ok(body(live, "commission-rates").includes("plus 12% of it"), "the paid-live share in the commission help");
+  // Pay-per-minute sessions (Admin → Pricing: ppmUpliftPct; Admin → Limits → Pay-per-minute sessions: the minutes, grace, wait, no-show).
+  const ppm = body(live, "pay-per-minute");
+  for (const x of ["at least 15, up to 120 when booking", "within the first 45 seconds", "ends 90 seconds later", "30 minutes after its time", "plus 27% of it"]) assert.ok(ppm.includes(x), `pay-per-minute help: ${x}`);
+  for (const x of ["at least 10,", "up to 240", "first 60 seconds", "60 seconds later", "60 minutes after its time", "plus 20% of it"]) assert.ok(!ppm.includes(x), `pay-per-minute help has no default: ${x}`);
+  const ppmDefaults = body(defaults, "pay-per-minute");
+  for (const x of ["at least 10, up to 240", "first 60 seconds", "60 seconds later", "plus 20% of it"]) assert.ok(ppmDefaults.includes(x), `the pay-per-minute defaults were different: ${x}`);
+  assert.ok(body(live, "commission-rates").includes("[pay-per-minute session](/help/pay-per-minute), #NotesApp takes your rate above plus 27% of it"), "the pay-per-minute share in the commission help");
+  assert.ok(body(live, "payouts").includes("**Pay-per-minute sessions:**"), "pay-per-minute in the payouts help");
   // Fixed in code (not an admin setting) but quoted from the constant: the referral share.
   assert.ok(body(live, "referrals").includes(`${Math.round(PLAN_SHARE * 100)}% of what your friend pays`));
   // The defaults really were different (so the checks above prove something).
@@ -179,7 +202,7 @@ const db = {
   const percent = (r: number) => `${+(r * 100).toFixed(1)}%`;
   const d = DEFAULT_PRICING;
   const pctDefaults = new Set([d.basic, d.pro, d.business].flatMap((r) => [r.session, r.physical, r.digital, r.adShare]).concat([d.enterprise.adShare, d.enterprise.floorSession, d.enterprise.floorPhysical, d.enterprise.floorDigital, d.logistics.cutRate, d.certificateLate.weeklyRate, d.certificateLate.capRate]).filter((r) => r > 0).map(percent));
-  const koboDefaults = [d.pro.monthlyKobo, d.pro.yearlyKobo, d.business.monthlyKobo, d.business.yearlyKobo, d.enterprise.fromMonthlyKobo, d.enterprise.fromYearlyKobo, d.coursePackages.enterpriseCoursesMonthlyKobo, d.coursePackages.academyApiFromMonthlyKobo, d.coursePackages.certificateMinKobo, d.logistics.addonMonthlyKobo, d.logistics.cutMinKobo, d.inventory.addonMonthlyKobo, d.badgeKobo, d.gold.personal.monthlyKobo, d.gold.personal.depositKobo, d.gold.corporate.monthlyKobo, d.gold.corporate.depositKobo, ...Object.values(d.nana.budgets), ...d.nana.topUps.flatMap((t) => [t.priceKobo, t.creditKobo]), ...d.boosts.map((b) => b.priceKobo), ...d.ads.map((a) => a.priceKobo), ...d.gifts.catalogue.map((g) => g.priceKobo), d.gifts.daily.targetKobo];
+  const koboDefaults = [d.pro.monthlyKobo, d.pro.yearlyKobo, d.business.monthlyKobo, d.business.yearlyKobo, d.enterprise.fromMonthlyKobo, d.enterprise.fromYearlyKobo, d.coursePackages.enterpriseCoursesMonthlyKobo, d.coursePackages.academyApiFromMonthlyKobo, d.coursePackages.certificateMinKobo, d.logistics.addonMonthlyKobo, d.logistics.cutMinKobo, d.inventory.addonMonthlyKobo, d.badgeKobo, d.gold.personal.monthlyKobo, d.gold.personal.depositKobo, d.gold.corporate.monthlyKobo, d.gold.corporate.depositKobo, ...Object.values(d.nana.budgets), ...d.nana.topUps.flatMap((t) => [t.priceKobo, t.creditKobo]), ...d.boosts.map((b) => b.priceKobo), ...d.ads.map((a) => a.priceKobo), ...d.gifts.catalogue.map((g) => g.priceKobo), d.gifts.daily.targetKobo, d.gifts.economy.autoWithdrawMaxKobo];
   const nairaDefaults = new Set(koboDefaults.map(naira));
   const found: string[] = [];
   let scanned = 0;

@@ -4,8 +4,8 @@ import { CommunityError, activeRole, memberOf } from "./community-server";
 import { LIVE_TOKEN_TTL_S, signLiveToken, verifyBody } from "./live-token";
 import { cleanLiveText, isLiveChatId, type LiveBatch, type LiveSession } from "./live-rooms";
 import { edgeState, liveConfigFor, liveRoomsOn, liveRoomsSecret, liveRoomsUrl, tellLiveRoom, type EdgeState } from "./live-rooms-edge";
-import { EDGE_DOC_COUNT_MS, chatSlowFor, listenerPresent, presentIn, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomPersonDoc } from "./rooms";
-import { getRoomSettings } from "./rooms-server";
+import { EDGE_DOC_COUNT_MS, chatSlowFor, isMemberLive, isRoomMod, listenerPresent, presentIn, roomRole, stageModeOf, stageOf, type RoomChat, type RoomDoc, type RoomPersonDoc } from "./rooms";
+import { NOT_IN_TEXT, getRoomSettings, mayEnterRoom, modPermsMap } from "./rooms-server";
 import { noteListenerSample } from "./rooms-live-server";
 
 // The live-rooms worker, our server's half (lib/live-rooms.ts explains the design). Firestore stays the source of truth for who may be
@@ -36,17 +36,20 @@ export async function mintLiveToken(db: Firestore, uid: string, id: unknown, now
     if (listenerPresent(p, r, now.getTime())) who = p!;
   }
   if (!who) throw new CommunityError(409, "Join the room first.");
-  const [state, member] = await Promise.all([edgeState(db, roomId).get().then((d) => (d.data() ?? {}) as EdgeState), memberOf(db, r.cid, uid)]);
+  // A member's own paid live (lib/live-tickets.ts): ticket holders, the host and the moderators the host named; the community's moderators
+  // have no chat powers there (isMemberLive). A community live: its active members.
+  const memberLive = isMemberLive(r);
+  const [state, member] = await Promise.all([edgeState(db, roomId).get().then((d) => (d.data() ?? {}) as EdgeState), memberLive ? Promise.resolve(null) : memberOf(db, r.cid, uid)]);
   if (state.banned?.[uid]) throw new CommunityError(403, "You've been removed from this room.");
-  const role = activeRole(member);
-  if (!role) throw new CommunityError(403, "Rooms are for the community's members.");
+  const role = memberLive ? null : activeRole(member);
+  if (memberLive ? !(await mayEnterRoom(db, r, uid)) : !role) throw new CommunityError(403, NOT_IN_TEXT(r));
   if (!state.configAt || now.getTime() - Date.parse(state.configAt) >= CONFIG_EVERY_MS) {
-    if (await tellLiveRoom(roomId, { op: "config", config: liveConfigFor(roomId, r.hostUid, await getRoomSettings(db)) }, now.getTime())) {
+    if (await tellLiveRoom(roomId, { op: "config", config: { ...liveConfigFor(roomId, r.hostUid, await getRoomSettings(db), stageModeOf(r)), mods: modPermsMap(r.mods) } }, now.getTime())) {
       await edgeState(db, roomId).set({ configAt: now.toISOString() }, { merge: true });
     }
   }
   const exp = Math.floor(now.getTime() / 1000) + LIVE_TOKEN_TTL_S;
-  const token = await signLiveToken(liveRoomsSecret(), { r: roomId, u: uid, role: roomRole(r, uid), n: String(who.name ?? ""), a: String(who.avatar ?? ""), mod: can(role, "remove_post"), exp });
+  const token = await signLiveToken(liveRoomsSecret(), { r: roomId, u: uid, role: roomRole(r, uid), n: String(who.name ?? ""), a: String(who.avatar ?? ""), mod: !memberLive && can(role, "remove_post") && !isRoomMod(r, uid), exp });
   return { url: liveRoomsUrl(), token, exp };
 }
 
@@ -106,6 +109,12 @@ export async function ingestLive(db: Firestore, raw: string, sig: string | null,
     w.b().update(ref, { peak });
   }
   if (b.final) st.finalPeak = peak;
+  // Moderators' socket actions, into the room's log (communityRooms/{id}/modLog, as lib/rooms-server.ts logMod writes).
+  for (const a of (Array.isArray(b.modLog) ? b.modLog : []).slice(0, 200)) {
+    const by = str(a?.by, 128), action = str(a?.action, 60);
+    if (!by || !action || by === r.hostUid) continue;
+    w.b().set(ref.collection("modLog").doc(), { by, byName: str(a.byName, 80), action, ...(str(a.target, 128) ? { target: str(a.target, 128) } : {}), at: new Date(Number.isFinite(a.at) ? a.at : now.getTime()).toISOString() });
+  }
   if (Object.keys(st).length) w.b().set(edgeState(db, roomId), st, { merge: true });
   const sessions = await applySessions(db, ref, w, Array.isArray(b.sessions) ? b.sessions.slice(0, 1000) : [], live);
   await w.commit();

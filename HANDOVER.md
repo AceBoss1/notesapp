@@ -751,6 +751,30 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **v0.137.5:** Anya Audio is the owner's square black frame with clear lenses (`anya-audio-glasses.webp`; the hero uses the side view):
     calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
     of its own). The owner asked not to use the aviator sunglasses photo.
+117. **Stage seats and moderators in audio rooms (v0.139.0, branch `push/stage-seats`):** nothing to deploy for Firestore (every new
+    write goes through `/api/community/rooms`; `firestore.rules` is unchanged), but **redeploy the live-rooms worker** (the "Deploy live
+    rooms" workflow) so rooms on it learn the new signals (stage mode, hands sent through our server, mic off, invitations, moderators'
+    permissions, removals through our server, the moderators' log). An old worker ignores the new ops (it answers 400): the room doc still
+    carries everything, so the app keeps working, but Solo doesn't stop hands raised over the socket, and moderators named for the live
+    have no chat powers on the socket until it's redeployed. Owner's rule (5 Nov 2026): the community's own moderators keep their chat
+    powers (`COMMUNITY_MOD_PERMS`) only in lives hosted as community lives (every audio room today); in a member's own live inside the
+    community, when those come, only the moderators that host names and the community owner may moderate. The design is in `lib/rooms.ts` ("Stage seats"): `stageMode` (rooms from
+    before work as Approve), `mods` (uid → name, picture, permissions from `MOD_PERMS`; presets Basic and Full; `mayActOn`: never the
+    host, and over another moderator only when their permissions are a strict part of yours), `invites` (they lapse after
+    `ROOM_INVITE_MS`), `micMuted`, `pinned`, `consentAsk`; the server side in `lib/rooms-server.ts` (`takeSeat`, `inviteToStage`,
+    `answerInvite`, `declineRequest`, `muteSpeaker`, `cameraOff`, `banFromLive`, `pinMessage`, `askConsent`, `setStageMode`,
+    `setRoomMods`, `roomStaff`, `roomModLog`; `setSpeaker` approves a request and invites anyone else). **Mic off is enforced by the
+    server on the relay** (unpublished, the track closed at Cloudflare, `canPush` refuses it, `pullsFor`/`canPull` skip it); **phone to
+    phone** there is no server in the sound's path, so every phone obeys the room doc: the speaker's own track goes off and can't be
+    turned back on, the host's mix leaves them out (listeners only hear the mix) and other speakers' phones mute them. A modified phone
+    could still send to the other speakers (not to listeners); bring them down if that matters. Teen mode: an Open seat from a teen
+    becomes a request, and a teen is invited only by someone they follow (`mayReach`). Removals from the live (`banFromLive`, or on the
+    worker) live in `communityRooms/{id}/edge/state.banned` for every room now, checked by join, the stage and tokens. The community's
+    own moderators (not named for the live) keep their chat powers (remove, mute in the chat, remove from the live). The moderators' log
+    is `communityRooms/{id}/modLog` (server-only; kept after the live ends). **Not tried with real phones or a real worker:** check a
+    relay room with two speakers (mic off and back on, Open seat, invitation) and a phone-to-phone room (mic off: the listeners stop
+    hearing that speaker) before relying on it. Tests: `test:rooms`, `test:rooms-server` (new `tests/community/rooms-stage.emulator.ts`),
+    `test:live-rooms`, `test:live-rooms-server`, `test:recording-server`, `test:community-server`, `test:help`, rules.
 
 116. **Ended boosts and adverts refund themselves (v0.138.1, branch `push/promo-settle`):** nothing to deploy. The owner found adverts
     showing "Completed" with 258 of 5,000 impressions delivered and nothing refunded. The help, Terms and boost and advertise pages
@@ -760,6 +784,67 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     when money goes back, `settledAt` so it happens once. It runs in the 15-minute cron (`settlePromotions`) and behind the two admin
     buttons. A failed refund is retried up to 5 times, then left for an admin (`settleError`). The first run after deploy refunds
     every ended promotion that was never settled. Test: `npm run test:settle`.
+
+118. **Gifting everywhere (v0.140.0, branch `push/gifting-everywhere`; plan `docs/LIVE_ECONOMY.md` phase 2):** deploy the new indexes
+    (`giftWeekly` week+grossKobo, `gifterWeekly` week+toUid+kobo) and the rules (five new server-only collections: `giftWeekly`,
+    `gifterWeekly`, `giftPoints`, `giftReceived`, `giftWithdrawals`). Numbered 116: 114 is on main (Anya) and the open sign-in
+    (#280) and stage-seats (#281) branches hold 114/115 and v0.137.0/v0.138.0, so this skips to 116 and v0.140.0. What it does: Gift · Block · Report (`components/gifts/PersonActions.tsx`) beside names on
+    journal comments, shop and course reviews, a live's stage (`components/gifts/StageGifts.tsx`, two lines in `AudioRoom.tsx`), Media posts
+    and replays; `GET /api/gifts/can` (`giftGate` in `lib/gifts-server.ts`) decides the button and checkout checks it again (payouts, gifts
+    off, blocks, teen mode = mutual followers only). Quantity: `giftQuantity` in `lib/gift-catalogue.ts`, premium gifts only, the server
+    multiplies the price; `gifts/{ref}.quantity`, `giftShows` and the bell carry ×N. Wallet gifts never use Bonus Credits
+    (`bonusAllowedFor`, `NEVER_BONUS_KINDS` in `lib/wallet.ts`). Received gifts, archive and withdraw: `lib/gift-earnings-server.ts`,
+    `/api/gifts/received`, the profile's Gifts tab. Withdraw gathers every gift ledger entry past its 7-day review into ONE `gift_payout`
+    ledger entry sent by `releaseLedgerEntry` (Paystack/Paylony and the payout OTP as before); the gathered entries become `withdrawn` with
+    `withdrawalId` (never refunded or paid alone; the refund button refuses them). Under `gifts.economy.autoWithdrawMaxKobo` (Admin → Pricing
+    → Gifts, default ₦20,000) it is sent at once and retried by `autoReleasePayouts`; from the line up it has `needsApproval` and waits
+    for Release in Admin → Payments. Weekly boards and gift points are written in `fulfillPayment`'s transaction (`writeGiftTallies`).
+    **Untested against real Paystack transfers** (tests use a stand-in transfer). **Owner to confirm:** the two settings live in Admin →
+    Pricing → Gifts (the plan said Limits; Pricing is where the other gift numbers are and the gift sheet reads them live); anonymous gifts
+    are left off Top gifters; individual gift entries are no longer released one by one, only through Withdraw (release by hand still works).
+119. **Paid lives, phase 1a of the live economy (v0.141.0, branch `push/live-paid`):** deploy **`firebase deploy --only firestore`**
+    (new rules for `liveEvents`, `liveTickets` and `liveEventReminders`, and a new index on `liveEvents` hostUid + status). Nothing else
+    to deploy: no new environment variable, the live-rooms worker is unchanged (the server tells it `mod: false` for a paid live's
+    tokens). Then, in Admin: check **Pricing → Gifts → Paid-live tickets: extra commission** (`liveTicketUpliftPct`, default 10% of the
+    host's rate) and **Limits → Audio rooms → Paid lives** (`lateWindowMin` 20, `liveDiscountMaxPct` 50, `paidNoShowMin` 60); the help,
+    the roadmap and the forms read these live. **The owner's open choice:** the spec says "0–100%, admin-capped" for the tier discount
+    without a number; the cap ships at **50%** (change it in Limits). **How a member's live is hosted:** the same `communityRooms/{id}`
+    doc and machinery (relay, worker, recording, Live mode), with `cid: ""` and `paid: { eventId, record }`; `mayEnter` in
+    `lib/rooms-server.ts` lets in only ticket holders, the host and the moderators the host names (by @username, anyone on #NotesApp),
+    and `isMemberLive` gives community moderators nothing there (owner, 5 Nov). The lobby (`/lives/<id>`) is the door (`enterPaidLive`
+    marks the ticket checked); joining checks the ticket again, so the room can't be entered around it. Tickets are payment kind
+    `live_ticket` (card or NotesApp Credit, never Bonus Credits, like event tickets), commission = the host's session rate plus the
+    uplift, fixed on the payment; the ledger entry carries `awaitingLive` until the room ends (`markLiveEnded`), then pays out
+    `PAYOUT_HOLD_HOURS` after the end. Host cancels, or doesn't open within `paidNoShowMin` → every ticket back to NotesApp Credit
+    (card payments too: `refundCardToCredit`), in the cron (`paidLives` job). The host can reopen a dropped live within 30 minutes.
+    "Safety only" recordings can't be published as replays; a paid live's "community" replay audience means its ticket holders.
+    **Not tried with real payments or a real relay:** buy a ticket by card on staging, open the live, enter from a second phone, end it,
+    and check the ledger entry gets its `releaseAfter`. Tests: `test:live-tickets`, `test:live-tickets-server`, `test:help`, rules.
+120. **Pay-per-minute sessions, phase 1b of the live economy (v0.142.0, branch `push/live-ppm`, built on `push/live-paid`):** deploy
+    **`firebase deploy --only firestore`** (rules for `ppmOffers`, `ppmSessions` and `walletHolds`, and two indexes on `ppmSessions`:
+    viewerUid / hostUid + startsAt). No new environment variable; calls use the TURN set-up that exists. Then, in Admin: check **Pricing →
+    Gifts → Pay-per-minute sessions: extra commission** (`ppmUpliftPct`, default 20% of the publisher's rate) and **Limits → Audio rooms →
+    Pay-per-minute sessions** (`ppmMinMinutes` 10, `ppmMaxMinutes` 240, `ppmGraceSec` 60, `ppmTopUpWaitSec` 60, `ppmNoShowMin` 60); the help,
+    the roadmap and the forms read them live. **How it works:** the publisher's offer (`ppmOffers/{uid}`: voice/video ₦ a minute, who may
+    book: everyone or their Premium/VIP/VVIP subscribers from that tier up) is saved with Rates & payouts and uses their session times and
+    `slotLocks`. Booking (`bookPpm`) locks the slot and **holds** minutes × price from NotesApp Credit in one transaction: credit moves out
+    of `creditKobo` into `walletHolds/{sessionId}` (a "hold" statement line; Bonus Credits never), nothing is charged. The call is a normal
+    one-to-one call doc with `ppm: <sessionId>` (no follow rule; phone to phone first, relay only when needed). **The meter is the
+    server's:** each phone POSTs `beat` every 15 s while connected; the server stores its own clock time per side (`beats`), sets
+    `startedAt` when it has heard both within 45 s, asks for a top-up (`topUpAskedAt`) when the held minutes are used, and ends the session
+    itself when the wait passes or a phone has been silent 45 s (at the last moment both were there); the cron's `ppmSessions` job does
+    the same for calls nobody is beating for, and expires sessions whose call never started. Billing: 0 within the grace, else
+    ceil(elapsed / 60) counted from the start (12:41 → 13 min), never above the hold. At the end `settleHold` keeps the charge and puts the
+    rest back ("release" line); the charge is a `payments/PPM_<id>` of kind `ppm` (payWith wallet, so Admin refunds go back to the wallet)
+    and a held `ledger/PPM_<id>` (releaseAfter = the end, auto-released `PAYOUT_HOLD_HOURS` later; the viewer can report a problem in that
+    window, which marks it disputed). **Owner to confirm (decisions where the spec was silent):** the 60 s wait after the hold runs out is
+    not charged; a top-up during that wait bills the minutes talked as usual; either side may cancel before the call starts with
+    everything back (the fixed-session cancellation policy doesn't apply, since nothing is charged); a dropped call ends the session (ICE
+    recovery gets its 30 s first) and the viewer books again; prices ₦50–₦50,000 a minute; the call opens 10 minutes before the time;
+    booking from tomorrow, like paid sessions. **Not done:** Nana minutes (the mockup's "Nana minutes on" line is phase 4). **Not tried
+    with real phones:** book on staging, call between two phones, let the hold run out, add minutes, end, and check the wallet lines and
+    the ledger entry. A call left ringing (app closed) or with nobody beating is closed when either side calls again. Tests: `test:ppm`,
+    `test:ppm-server`, `test:help`, rules.
 
 ## 3. How the work is done (please keep these)
 

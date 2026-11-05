@@ -82,14 +82,16 @@ export default function GiftOverlay() {
   useEffect(() => {
     if (!now) return;
     const fx = MOTIF_EFFECTS[now.giftId] ?? [];
-    if (fx.includes("sound") && giftSoundOn()) sound(now.giftId, isGrand(now.priceKobo), fx.includes("fireworks"));
-    const t = setTimeout(next, playMs(now.priceKobo));
+    const unit = Math.round(now.priceKobo / Math.max(1, now.quantity ?? 1)); // a send of N plays as one gift of that kind
+    if (fx.includes("sound") && giftSoundOn()) sound(now.giftId, isGrand(unit), fx.includes("fireworks"));
+    const t = setTimeout(next, playMs(unit));
     return () => clearTimeout(t);
   }, [now]);
 
   if (!now) return null;
-  const grand = isGrand(now.priceKobo);
-  const ms = playMs(now.priceKobo);
+  const unit = Math.round(now.priceKobo / Math.max(1, now.quantity ?? 1));
+  const grand = isGrand(unit);
+  const ms = playMs(unit);
   return (
     <div className={`gift-ov pointer-events-none fixed inset-0 z-[70] flex items-center justify-center ${grand ? "gift-ov-grand" : ""}`} style={{ ["--gift-ms" as string]: `${ms}ms` }} role="status" aria-live="polite" data-gift={now.giftId}>
       <GiftArtStyles />
@@ -97,7 +99,7 @@ export default function GiftOverlay() {
       <Effects fx={MOTIF_EFFECTS[now.giftId] ?? []} big={grand} />
       <div className="gift-ov-card relative flex flex-col items-center rounded-3xl bg-paper/95 px-8 py-6 text-center shadow-2xl ring-1 ring-rule">
         <GiftArt id={now.giftId} size={grand ? 240 : 170} motion="once" title={now.name} />
-        <p className="mt-2 font-display text-2xl text-ink">{now.name}</p>
+        <p className="mt-2 font-display text-2xl text-ink">{now.name}{(now.quantity ?? 1) > 1 && <span className="ml-2 inline-block rounded-full bg-crimson px-2.5 py-0.5 font-ui text-lg font-bold text-paper" data-gift-qty={now.quantity}>×{now.quantity}</span>}</p>
         <p className="mt-1 font-ui text-sm text-slate">
           {now.senderName ? <><strong className="text-ink">{now.senderName}</strong> sent </> : "Someone sent "}
           {giftNaira(now.priceKobo)}{now.toName ? ` to ${now.toName}` : ""}

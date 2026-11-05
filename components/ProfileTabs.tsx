@@ -20,12 +20,15 @@ import { useAcademy } from "@/lib/courses-client";
 import CreatorMedia from "@/components/media/CreatorMedia";
 import { useCreatorMedia } from "@/lib/media-client";
 import { MEDIA_LIVE } from "@/lib/media-rules";
+import ReceivedGifts from "@/components/gifts/ReceivedGifts";
 
 // A profile's Notes · Media · Store · Courses (/u/<username>; ?tab=media, ?tab=store or ?tab=courses opens one, and /u/<username>/media
 // is the Media tab as a page). Media (components/media/CreatorMedia.tsx) is the creator's videos and pictures, with its own count. Notes can be sorted by Most viewed
 // or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses are the
 // ones they teach on Notes Academy (published only), most viewed first.
-type Tab = "notes" | "media" | "store" | "courses";
+// Gifts (after Media, v0.140.0) is the gifts the member received, with count and value; the member also withdraws from there
+// (components/gifts/ReceivedGifts.tsx).
+type Tab = "notes" | "media" | "gifts" | "store" | "courses";
 type Sort = "viewed" | "recent";
 
 export default function ProfileTabs({ username, owner, notes, storeItems, isOfficial, suspended, storeFirst, initialTab, synthetic }: {
@@ -40,6 +43,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
   // Media: the official channels have none, and nothing shows while an account is suspended.
   const mediaOn = MEDIA_LIVE && !synthetic && !isOfficial && !suspended;
   const media = useCreatorMedia(username, mediaOn);
+  const giftsOn = !synthetic && !isOfficial && !suspended;
   const [sort, setSort] = useState<Sort>("recent");
   const [topic, setTopic] = useState<string | null>(null);
   const weekly = useWeeklyViews("note");
@@ -47,8 +51,8 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
   useEffect(() => { if (storeFirst && !initialTab) setTab("store"); }, [storeFirst, initialTab]);
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "store" || t === "courses" || t === "notes" || (t === "media" && mediaOn)) setTab(t);
-  }, [mediaOn]);
+    if (t === "store" || t === "courses" || t === "notes" || (t === "media" && mediaOn) || (t === "gifts" && giftsOn)) setTab(t);
+  }, [mediaOn, giftsOn]);
 
   const noteCount = isOfficial ? NOTESAPP_POSTS.length : notes.length;
   const topics = useMemo(() => {
@@ -76,6 +80,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
         <div className="flex gap-6 overflow-x-auto" role="tablist">
           {tabBtn("notes", "Notes", noteCount)}
           {mediaOn && tabBtn("media", "Media", media.data?.counts.all ?? (media.data === undefined ? undefined : 0))}
+          {giftsOn && tabBtn("gifts", "Gifts")}
           {tabBtn("store", "Store", storeItems.length)}
           {tabBtn("courses", "Courses", courses?.length ?? 0)}
         </div>
@@ -105,6 +110,8 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
       )}
 
       {tab === "media" && mediaOn && <CreatorMedia data={media.data} isOwn={!!user && media.data?.owner.uid === user.uid} onChanged={media.reload} />}
+
+      {tab === "gifts" && giftsOn && <ReceivedGifts username={username} user={user} />}
 
       {tab === "store" && (
         <div className="mt-5">

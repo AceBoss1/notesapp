@@ -44,10 +44,11 @@ import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
 import { giftCheckout } from "@/lib/giving-server";
 import { TIER_NAME, isSubTier, openTiers, tierOffers, tierRate, type SubTier } from "@/lib/fans";
 import { getFanSettings } from "@/lib/fans-server";
-import { GiftError, priceAnimatedGift } from "@/lib/gifts-server";
-import { giftUplift, upliftedRate } from "@/lib/gift-catalogue";
+import { GiftError, giftGate, priceAnimatedGift, senderVerified } from "@/lib/gifts-server";
+import { giftQuantity, giftUplift, isGiftContext, isGiftToKind, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
 import { ticketCheckout } from "@/lib/tickets-server";
+import { LiveEventError, liveTicketCheckout } from "@/lib/live-tickets-server";
 import { EventError } from "@/lib/events-server";
 import { ReferralError, affiliateFor, offerIdFor, offerPercent, referralByCode, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
 
@@ -214,6 +215,23 @@ export async function POST(req: NextRequest) {
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- a ticket to a member's paid live (lib/live-tickets.ts): by card or from NotesApp Credit (never Bonus Credits); the band, the
+    // subscriber discount and the commission (the host's rate plus liveTicketUpliftPct % of it) are fixed now ----
+    if (kind === "live_ticket") {
+      let lt: Awaited<ReturnType<typeof liveTicketCheckout>>;
+      try { lt = await liveTicketCheckout(db, user.uid, body); }
+      catch (e) { if (e instanceof LiveEventError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: lt.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, eventId: lt.info.eventId } });
+      const record: PaymentRecord = {
+        reference, kind: "live_ticket", uid: user.uid, email: user.email, amountKobo: lt.amountKobo, status: "pending",
+        publisherUid: lt.hostUid, publisherUsername: lt.hostUsername, commissionRate: lt.commissionRate, liveTicket: lt.info, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
     // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----
@@ -829,7 +847,26 @@ export async function POST(req: NextRequest) {
       // An animated gift (lib/gift-catalogue.ts): its price comes from the catalogue in force, never from the browser; the big ones
       // need a verified sender. Otherwise an amount the sender typed, within the usual range.
       const anim = body.giftId ? await priceAnimatedGift(db, user.uid, body.giftId) : null;
-      const amountKobo = anim ? anim.priceKobo : Math.round(Number(body.amountNaira) * 100);
+      // Gifting everywhere: never to someone who blocked the sender, and a member in teen mode only from mutual followers.
+      const gate = await giftGate(db, user.uid, { uid: pub.uid });
+      if (!gate.ok) return NextResponse.json({ error: gate.message }, { status: gate.reason === "no-payout" || gate.reason === "off" ? 409 : 403 });
+      // Quantity: N of one small gift as one payment, priced N × the catalogue price on the server (lib/gift-catalogue.ts giftQuantity).
+      let quantity = 1;
+      if (anim && body.quantity !== undefined && Number(body.quantity) !== 1) {
+        const q = giftQuantity(anim, body.quantity, GIFT_MAX_KOBO, senderVerified((await db.doc(`users/${user.uid}`).get()).data()));
+        if (!q.ok) return NextResponse.json({ error: q.error }, { status: q.status });
+        quantity = q.quantity;
+      }
+      const amountKobo = anim ? anim.priceKobo * quantity : Math.round(Number(body.amountNaira) * 100);
+      // A gift on a Media post or a replay must be to that post's creator or that replay's host, and a Media post must allow gifts.
+      const mediaId = typeof body.mediaId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(body.mediaId) ? body.mediaId : undefined;
+      const replayId = typeof body.replayId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(body.replayId) ? body.replayId : undefined;
+      if (mediaId) {
+        const m = (await db.doc(`mediaPosts/${mediaId}`).get()).data();
+        if (!m || m.ownerUid !== pub.uid) return NextResponse.json({ error: "That Media post wasn't found." }, { status: 404 });
+        if (m.allowGifts === false) return NextResponse.json({ error: "Gifts are switched off on this post." }, { status: 409 });
+      }
+      if (replayId && (await db.doc(`replays/${replayId}`).get()).data()?.hostUid !== pub.uid) return NextResponse.json({ error: "That replay wasn't found." }, { status: 404 });
       if (!anim && (!Number.isFinite(amountKobo) || amountKobo < GIFT_MIN_KOBO || amountKobo > GIFT_MAX_KOBO)) {
         return NextResponse.json({ error: `Gifts must be between ${formatNaira(GIFT_MIN_KOBO)} and ${formatNaira(GIFT_MAX_KOBO)}.` }, { status: 400 });
       }
@@ -850,7 +887,12 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
         // Animated gifts: the normal rate plus the premium or VIP share of it (lib/gift-catalogue.ts), fixed now for this gift.
         commissionRate: anim ? upliftedRate(pub.commissionRate, giftUplift(anim.priceKobo)) : pub.commissionRate,
-        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName, ...(anim ? { animId: anim.id, animName: anim.name, uplift: giftUplift(anim.priceKobo) } : {}), ...(liveId ? { liveId } : {}) },
+        gift: {
+          username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName, ...(anim ? { animId: anim.id, animName: anim.name, uplift: giftUplift(anim.priceKobo) } : {}), ...(liveId ? { liveId } : {}),
+          ...(quantity > 1 ? { quantity } : {}),
+          ...(isGiftToKind(body.toKind) ? { toKind: body.toKind } : {}), ...(isGiftContext(body.context) ? { context: body.context } : {}),
+          ...(mediaId ? { mediaId } : {}), ...(replayId ? { replayId } : {}),
+        },
         createdAt: new Date().toISOString(),
       };
     } else {

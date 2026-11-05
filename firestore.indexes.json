@@ -1,6 +1,48 @@
 {
   "indexes": [
     {
+      "collectionGroup": "ppmSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "hostUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startsAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ppmSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "viewerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startsAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "liveEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "hostUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "ledger",
       "queryScope": "COLLECTION",
       "fields": [
@@ -521,6 +563,38 @@
         {
           "fieldPath": "points",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "giftWeekly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "week",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "grossKobo",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "gifterWeekly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "week",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "toUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "kobo",
+          "order": "DESCENDING"
         }
       ]
     }

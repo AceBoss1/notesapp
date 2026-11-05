@@ -9,7 +9,7 @@ import PageHero from "@/components/PageHero";
 import CardtapTopUp from "@/components/wallet/CardtapTopUp";
 import { BONUS_DAYS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, TOPUP_PRESETS_NAIRA, WALLET_LIVE, bonusFor, nairaOf, type BonusLot, type WalletTx } from "@/lib/wallet";
 
-type Summary = { creditKobo: number; bonusKobo: number; bonusLots: BonusLot[]; activity: (WalletTx & { id: string })[] };
+type Summary = { creditKobo: number; bonusKobo: number; bonusLots: BonusLot[]; heldKobo?: number; activity: (WalletTx & { id: string })[] };
 const FILTERS = [["all", "All"], ["topup", "Top-ups"], ["spend", "Spent"], ["bonus", "Bonus"], ["held", "Held"], ["refund", "Refunds"]] as const;
 type Filter = (typeof FILTERS)[number][0];
 
@@ -105,6 +105,7 @@ export default function WalletPage() {
                 <span><span className="block text-[11px] font-semibold uppercase tracking-wider opacity-80">🎁 Bonus Credits</span><b className="text-xl">{data ? nairaOf(data.bonusKobo) : "…"}</b></span>
                 <span className="text-right text-[11px] opacity-90">Spent first on boosts,<br />badges and adverts</span>
               </div>
+              {!!data?.heldKobo && <p className="mt-3 rounded-2xl bg-white/10 px-4 py-2 text-xs">🔒 {nairaOf(data.heldKobo)} held for <Link href="/ppm" className="underline">pay-per-minute sessions</Link>: you pay only the minutes you use, the rest comes back.</p>}
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm font-bold">
                 <a href="#top-up" className="rounded-full bg-white py-2.5 text-center text-crimson">+ Top up</a>
                 <a href="#activity" className="rounded-full border border-white/50 py-2.5 text-center">Activity</a>
@@ -114,11 +115,11 @@ export default function WalletPage() {
             <div className="card p-5">
               <h2 className="font-ui text-sm font-bold text-ink">Where you can use it</h2>
               <ul className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                {[["🚀", "Boosts", "bonus ok"], ["✔", "Verification badge", "bonus ok"], ["📣", "Advert banners", "bonus ok"], ["🎁", "Gifts to creators", "credit only"], ["🛍", "Shop items", "held until delivered"], ["📅", "Paid sessions", "held until it happens"]].map(([i, t, n]) => (
+                {[["🚀", "Boosts", "bonus ok"], ["✔", "Verification badge", "bonus ok"], ["📣", "Advert banners", "bonus ok"], ["🎁", "Gifts to creators", "credit only"], ["🛍", "Shop items", "held until delivered"], ["📅", "Paid sessions", "held until it happens"], ["⏱", "Per-minute sessions", "held, pay what you use"]].map(([i, t, n]) => (
                   <li key={t} className="rounded-2xl border border-rule bg-card p-3"><span className="text-lg">{i}</span><b className="block leading-tight text-ink">{t}</b><span className="text-[11px] text-slate">{n}</span></li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] text-slate">Coming: paid calls and Notesville Naira in Notes Life.</p>
+              <p className="mt-3 text-[11px] text-slate">Coming: Notesville Naira in Notes Life.</p>
               <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-900">NotesApp Credit can&apos;t be cashed out or sent to other members. Sellers and publishers are still paid to their bank accounts. See the <Link href="/help/notesapp-credit-wallet" className="underline">help article</Link>.</p>
             </div>
           </div>
@@ -140,7 +141,7 @@ export default function WalletPage() {
                           {when(a.at)}
                           {a.bonusKobo !== 0 && a.creditKobo !== 0 && <> · {nairaOf(Math.abs(a.creditKobo))} credit + 🎁 {nairaOf(Math.abs(a.bonusKobo))} bonus</>}
                           {a.bonusKobo !== 0 && a.creditKobo === 0 && a.type !== "bonus_expired" && <> · 🎁 Bonus Credits</>}
-                          {a.held && <> · 🔒 Held until {a.kind === "booking" ? "the session happens" : "delivered"}</>}
+                          {a.held && <> · 🔒 {a.type === "hold" ? "Held until the call ends" : <>Held until {a.kind === "booking" ? "the session happens" : "delivered"}</>}</>}
                         </span>
                       </span>
                       <b className={`shrink-0 text-sm ${a.creditKobo + a.bonusKobo > 0 ? "text-green-700" : "text-ink"}`}>{signed(a.creditKobo + a.bonusKobo)}</b>

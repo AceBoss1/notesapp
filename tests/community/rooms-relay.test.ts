@@ -24,6 +24,9 @@ assert.deepEqual(ROOM_DEFAULTS, {
   relayOn: 1, relayListeners: ROOM_LISTENERS_MAX_RELAY, p2pListeners: ROOM_LISTENERS_MAX_P2P, chatSlowAbove: 200, chatSlowSeconds: 10,
   // Live mode (tests/community/rooms-live.test.ts)
   videoOn: 1, videoBudgetMinutes: 15, videoGraceSeconds: 30, videoNearlyLeftMinutes: 2, videoBurstMinutes: 3, videoTryMinutes: 2, dropPercent: 10, dropWindowMinutes: 2, videoKbps: 600, videoFps: 24, videoHeight: 480,
+  // Paid lives (tests/live-tickets/live-tickets.test.ts)
+  lateWindowMin: 20, liveDiscountMaxPct: 50, paidNoShowMin: 60,
+  ppmMinMinutes: 10, ppmMaxMinutes: 240, ppmGraceSec: 60, ppmTopUpWaitSec: 60, ppmNoShowMin: 60,
 });
 assert.equal(ROOM_LISTENERS_MAX_P2P, 20); assert.equal(ROOM_LISTENERS_MAX_RELAY, 500);
 for (const s of ROOM_SETTINGS) assert.ok(s.def >= s.min && s.def <= s.max, `${s.key} default in range`);

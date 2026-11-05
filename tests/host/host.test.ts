@@ -2,7 +2,8 @@
 // "by notesapp was hard coded on prep.naapp.tech"). Run: npm run test:host → "HOST OK". Runs with the primary address unset
 // (notesapp.name.ng) and with NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech (the script runs both).
 import assert from "node:assert/strict";
-import { MAIN_HOST, ROOT_DOMAIN, familyHost, isPrepHost, mainSiteUrl, ourRoot, roleOf } from "../../lib/host";
+import { readFileSync } from "node:fs";
+import { APP_SHORT_DOMAINS, KNOWN_ROOTS, MAIN_HOST, ROOT_DOMAIN, familyHost, isPrepHost, mainSiteUrl, ourRoot, roleOf } from "../../lib/host";
 
 const primary = `https://${MAIN_HOST}`;
 assert.equal(MAIN_HOST, `www.${ROOT_DOMAIN}`);
@@ -33,5 +34,16 @@ assert.equal(isPrepHost("www.naapp.tech"), false);
 assert.equal(familyHost("prep.naapp.tech", "main"), "www.naapp.tech");
 assert.equal(familyHost("www.notesapp.name.ng", "prep"), "prep.notesapp.name.ng");
 assert.equal(familyHost("localhost:3290", "main"), "localhost:3290", "one host locally (middleware); mainSiteUrl differs on purpose");
+
+// The R2 buckets' CORS policy (scripts/r2-cors.json, pasted into both buckets in Cloudflare): the browser PUTs uploads straight to R2,
+// so every address we serve must be allowed. Owner, 5 Nov 2026: avatar uploads on www.naapp.tech were blocked because the list
+// predated the domain move. A new domain in lib/host.ts fails here until it's added to the file (and the file is pasted again).
+{
+  const cors = JSON.parse(readFileSync(new URL("../../scripts/r2-cors.json", import.meta.url), "utf8")) as { AllowedOrigins: string[]; AllowedMethods: string[] }[];
+  const allowed = new Set(cors.flatMap((r) => r.AllowedOrigins));
+  for (const root of KNOWN_ROOTS) for (const sub of ["", "www.", "app.", "life.", "prep.", "mcp."]) assert.ok(allowed.has(`https://${sub}${root}`), `scripts/r2-cors.json is missing https://${sub}${root}`);
+  for (const root of APP_SHORT_DOMAINS) for (const sub of ["", "www."]) assert.ok(allowed.has(`https://${sub}${root}`), `scripts/r2-cors.json is missing https://${sub}${root}`);
+  assert.ok(cors.every((r) => r.AllowedMethods.includes("PUT")), "uploads are PUTs");
+}
 
 console.log(`HOST OK (primary ${ROOT_DOMAIN})`);

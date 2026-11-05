@@ -740,6 +740,22 @@ service cloud.firestore {
     match /eventTickets/{id} { allow read, write: if false; }
     match /tickets/{code} { allow read, write: if false; }
     match /eventReminders/{id} { allow read, write: if false; }
+    // Paid lives (lib/live-tickets-server.ts, v0.141.0): the lives, the tickets (one per person, liveTickets/{eventId}_{uid}) and their
+    // reminders are written only by the server (the payment code, the host's actions through /api/lives, the cron). The lobby and the
+    // lists are read through /api/lives; a ticket holder (and the live's host) may also read that ticket directly.
+    match /liveEvents/{id} { allow read, write: if false; }
+    match /liveTickets/{id} {
+      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || resource.data.hostUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /liveEventReminders/{id} { allow read, write: if false; }
+    // Pay-per-minute sessions (lib/ppm-server.ts, v0.142.0). The publisher's offer is read through /api/ppm (server only). A session is
+    // written only by the server (booking, the meter from both phones' beats, the end); its two people may read it, like a booking.
+    match /ppmOffers/{uid} { allow read, write: if false; }
+    match /ppmSessions/{id} {
+      allow read: if isSignedIn() && (resource.data.viewerUid == request.auth.uid || resource.data.hostUid == request.auth.uid);
+      allow write: if false;
+    }
     // Inventory (lib/inventory-server.ts): SKUs, cost prices, low-stock levels and the stock history are private to the store and written
     // only by the server; the page reads them through /api/inventory.
     match /inventory/{itemId} { allow read, write: if false; }
@@ -1132,6 +1148,11 @@ service cloud.firestore {
       allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
+    // Credit held for something not charged yet (pay-per-minute sessions, lib/wallet-server.ts placeHold): the member reads their own.
+    match /walletHolds/{id} {
+      allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
     // Notes Life. The player (money, what they own, job, deals) and their Notesville Naira statement are written only by the server
     // (lib/life/server.ts) and read only by the player. The save (needs, place, outfit) is the player's own: small, one string.
     match /lifePlayers/{uid} {
@@ -1274,6 +1295,25 @@ service cloud.firestore {
 
     // Daily gift totals per receiver (lib/gifts-server.ts, the "Top gifted today" shelf): server-only. They hold who sent gifts.
     match /giftDaily/{dayUid} {
+      allow read, write: if false;
+    }
+
+    // Gifting everywhere (lib/gifts-server.ts, lib/gift-earnings-server.ts; v0.140.0): the weekly boards, each sender's gift points, each
+    // receiver's gifts grouped by gift (with archive) and gift withdrawals. Server-only: they hold who sent whom what. The boards, the
+    // received gifts and the points are served by /api/gifts/*, which apply teen mode; a withdrawal goes through the payout ledger.
+    match /giftWeekly/{id} {
+      allow read, write: if false;
+    }
+    match /gifterWeekly/{id} {
+      allow read, write: if false;
+    }
+    match /giftPoints/{uid} {
+      allow read, write: if false;
+    }
+    match /giftReceived/{id} {
+      allow read, write: if false;
+    }
+    match /giftWithdrawals/{id} {
       allow read, write: if false;
     }
 

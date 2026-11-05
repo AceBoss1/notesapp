@@ -32,7 +32,11 @@ export type GrandGiftSettings = { fromKobo: number; announce: boolean };
 // (verified senders). #NotesApp takes the creator's normal rate plus a share OF that rate: premiumPct (10) or vipPct (20). With an 8%
 // rate, a premium gift is charged 8.8% and a VIP gift 9.6%. Gifts of a typed amount ("Other") keep the normal rate.
 export type GiftUplift = { premiumPct: number; vipPct: number };
-export type GiftSettings = { catalogue: AnimatedGift[]; daily: DailyTargetSettings; grand: GrandGiftSettings; uplift: GiftUplift };
+// Gifting everywhere (owner, 4 Nov 2026; docs/LIVE_ECONOMY.md phase 2): how many of one small gift a sender may send at once
+// (double-tap a premium gift), and the withdrawal line: below autoWithdrawMaxKobo a withdrawal of gift earnings is paid automatically;
+// from it up, a person approves it in Admin → Payments first.
+export type GiftEconomy = { quantityMax: number; autoWithdrawMaxKobo: number };
+export type GiftSettings = { catalogue: AnimatedGift[]; daily: DailyTargetSettings; grand: GrandGiftSettings; uplift: GiftUplift; economy: GiftEconomy };
 
 // One line under each gift's name, what it stands for. Fixed with the drawing.
 export const MOTIF_BLURB: Record<GiftMotif, string> = {
@@ -93,16 +97,21 @@ export const DEFAULT_CATALOGUE: AnimatedGift[] = [
 export const DEFAULT_DAILY: DailyTargetSettings = { targetKobo: 50_000 * 100, slots: 6, basis: "gross", minSenders: 3 };
 export const DEFAULT_GRAND: GrandGiftSettings = { fromKobo: 25_000 * 100, announce: true };
 export const DEFAULT_UPLIFT: GiftUplift = { premiumPct: 10, vipPct: 20 };
+export const DEFAULT_ECONOMY: GiftEconomy = { quantityMax: 99, autoWithdrawMaxKobo: 20_000 * 100 };
+export const QUANTITY_MAX_LIMIT = 999;
+export const AUTO_WITHDRAW_MIN_KOBO = 1_000 * 100;
+export const AUTO_WITHDRAW_MAX_KOBO = 10_000_000 * 100;
 export const UPLIFT_MAX_PCT = 100;
 
 // The live settings: applyGiftSettings writes into this object (lib/pricing.ts applyPricing), so readers always see what's in force.
-export const GIFT_SETTINGS: GiftSettings = { catalogue: DEFAULT_CATALOGUE.map((g) => ({ ...g })), daily: { ...DEFAULT_DAILY }, grand: { ...DEFAULT_GRAND }, uplift: { ...DEFAULT_UPLIFT } };
-export const currentGiftSettings = (): GiftSettings => ({ catalogue: GIFT_SETTINGS.catalogue.map((g) => ({ ...g })), daily: { ...GIFT_SETTINGS.daily }, grand: { ...GIFT_SETTINGS.grand }, uplift: { ...GIFT_SETTINGS.uplift } });
+export const GIFT_SETTINGS: GiftSettings = { catalogue: DEFAULT_CATALOGUE.map((g) => ({ ...g })), daily: { ...DEFAULT_DAILY }, grand: { ...DEFAULT_GRAND }, uplift: { ...DEFAULT_UPLIFT }, economy: { ...DEFAULT_ECONOMY } };
+export const currentGiftSettings = (): GiftSettings => ({ catalogue: GIFT_SETTINGS.catalogue.map((g) => ({ ...g })), daily: { ...GIFT_SETTINGS.daily }, grand: { ...GIFT_SETTINGS.grand }, uplift: { ...GIFT_SETTINGS.uplift }, economy: { ...GIFT_SETTINGS.economy } });
 export function applyGiftSettings(s: GiftSettings): void {
   GIFT_SETTINGS.catalogue = s.catalogue.map((g) => ({ ...g }));
   Object.assign(GIFT_SETTINGS.daily, s.daily);
   Object.assign(GIFT_SETTINGS.grand, s.grand ?? DEFAULT_GRAND);
   Object.assign(GIFT_SETTINGS.uplift, s.uplift ?? DEFAULT_UPLIFT);
+  Object.assign(GIFT_SETTINGS.economy, s.economy ?? DEFAULT_ECONOMY);
 }
 
 // Bounds an admin can set. The smallest animated gift is the smallest gift; the largest is a typo guard well above the ₦1,000,000 one.
@@ -129,8 +138,8 @@ const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 
 // Checks what an admin saved. A config saved before gifts existed (undefined) keeps the defaults. The catalogue's order is the order
 // given; a drawing left out is added at the end, switched off, so nothing is lost by an older form.
-export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue: DEFAULT_CATALOGUE, daily: DEFAULT_DAILY, grand: DEFAULT_GRAND, uplift: DEFAULT_UPLIFT }): GiftSettings {
-  if (input === undefined) return { catalogue: d.catalogue.map((g) => ({ ...g })), daily: { ...d.daily }, grand: { ...(d.grand ?? DEFAULT_GRAND) }, uplift: { ...(d.uplift ?? DEFAULT_UPLIFT) } };
+export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue: DEFAULT_CATALOGUE, daily: DEFAULT_DAILY, grand: DEFAULT_GRAND, uplift: DEFAULT_UPLIFT, economy: DEFAULT_ECONOMY }): GiftSettings {
+  if (input === undefined) return { catalogue: d.catalogue.map((g) => ({ ...g })), daily: { ...d.daily }, grand: { ...(d.grand ?? DEFAULT_GRAND) }, uplift: { ...(d.uplift ?? DEFAULT_UPLIFT) }, economy: { ...(d.economy ?? DEFAULT_ECONOMY) } };
   const i = rec(input);
   const list = Array.isArray(i.catalogue) ? i.catalogue : [];
   const seen = new Set<string>();
@@ -176,8 +185,14 @@ export function cleanGiftSettings(input: unknown, d: GiftSettings = { catalogue:
     if (!Number.isFinite(n) || n < 0 || n > UPLIFT_MAX_PCT || Math.round(n * 10) !== n * 10) throw new GiftSettingsError(`${what}: a percent of the creator's rate from 0 to ${UPLIFT_MAX_PCT} (one decimal at most).`);
     return n;
   };
+  const ee = i.economy === undefined ? (d.economy ?? DEFAULT_ECONOMY) : rec(i.economy);
+  const autoWithdrawMaxKobo = Math.round(Number(ee.autoWithdrawMaxKobo));
+  if (!Number.isFinite(autoWithdrawMaxKobo) || autoWithdrawMaxKobo < AUTO_WITHDRAW_MIN_KOBO || autoWithdrawMaxKobo > AUTO_WITHDRAW_MAX_KOBO || autoWithdrawMaxKobo % 100 !== 0) {
+    throw new GiftSettingsError(`Gift withdrawals paid automatically below: whole naira from ${naira(AUTO_WITHDRAW_MIN_KOBO)} to ${naira(AUTO_WITHDRAW_MAX_KOBO)}.`);
+  }
   return {
     catalogue,
+    economy: { quantityMax: whole(ee.quantityMax, "Most of one gift in a single send", 1, QUANTITY_MAX_LIMIT), autoWithdrawMaxKobo },
     grand: { fromKobo, announce: gg.announce !== false },
     uplift: { premiumPct: pctOf(uu.premiumPct, "Premium gifts, extra commission"), vipPct: pctOf(uu.vipPct, "VIP gifts, extra commission") },
     daily: { targetKobo, slots: whole(dd.slots, "Top gifted today, places", 1, SLOTS_MAX), basis, minSenders: whole(dd.minSenders, "Daily gift target, different senders", 1, MIN_SENDERS_MAX) },
@@ -265,3 +280,60 @@ export const giftRange = (s: GiftSettings = GIFT_SETTINGS) => {
   return on.length ? { minKobo: Math.min(...on), maxKobo: Math.max(...on), count: on.length } : { minKobo: 0, maxKobo: 0, count: 0 };
 };
 export const giftNaira = naira;
+
+// ── Gifting everywhere (owner, 4 Nov 2026; docs/LIVE_ECONOMY.md phase 2) ─────────────────────────────────────────────────────────
+// Who a gift is for and where it was sent, kept on gifts/{ref} for the receiver's list and the analytics.
+export const GIFT_CONTEXTS = ["profile", "post", "live", "comment", "review", "media", "replay"] as const;
+export type GiftContext = (typeof GIFT_CONTEXTS)[number];
+export const isGiftContext = (v: unknown): v is GiftContext => typeof v === "string" && (GIFT_CONTEXTS as readonly string[]).includes(v);
+export const GIFT_TO_KINDS = ["creator", "host", "speaker", "commenter", "replayHost"] as const;
+export type GiftToKind = (typeof GIFT_TO_KINDS)[number];
+export const isGiftToKind = (v: unknown): v is GiftToKind => typeof v === "string" && (GIFT_TO_KINDS as readonly string[]).includes(v);
+
+// Quantity: tapping a small (premium) gift twice opens "How many?". N of one gift go as one payment at N times the catalogue price,
+// up to quantityMax, and never over the largest gift anyone can send (GIFT_MAX_KOBO, passed in so this file stays free of the boost
+// config). VIP gifts go one at a time. A total over the cap for unverified senders needs a verified sender, the same as a single gift.
+export function giftQuantity(g: Pick<AnimatedGift, "name" | "priceKobo">, qty: unknown, maxTotalKobo: number, senderIsVerified: boolean, s: GiftSettings = GIFT_SETTINGS):
+  { ok: true; quantity: number; totalKobo: number } | { ok: false; status: number; error: string } {
+  const n = qty === undefined || qty === null || qty === "" ? 1 : Number(qty);
+  if (!Number.isInteger(n) || n < 1 || n > s.economy.quantityMax) return { ok: false, status: 400, error: `Send 1 to ${s.economy.quantityMax} at a time.` };
+  if (n > 1 && isGrand(g.priceKobo, s)) return { ok: false, status: 400, error: `${g.name} is a VIP gift: send one at a time.` };
+  const totalKobo = g.priceKobo * n;
+  if (totalKobo > maxTotalKobo) return { ok: false, status: 400, error: `That's ${naira(totalKobo)}: one send can be up to ${naira(maxTotalKobo)}. Send fewer.` };
+  if (n > 1 && totalKobo > UNVERIFIED_GIFT_CAP_KOBO && !senderIsVerified) {
+    return { ok: false, status: 403, error: `Sends over ${naira(UNVERIFIED_GIFT_CAP_KOBO)} are for verified senders (the ✔ badge). Send fewer, or get verified first.` };
+  }
+  return { ok: true, quantity: n, totalKobo };
+}
+// The most of a gift this sender can pick in the "How many?" box.
+export const quantityCap = (g: Pick<AnimatedGift, "priceKobo">, maxTotalKobo: number, senderIsVerified: boolean, s: GiftSettings = GIFT_SETTINGS) =>
+  isGrand(g.priceKobo, s) ? 1 : Math.max(1, Math.min(s.economy.quantityMax, Math.floor((senderIsVerified ? maxTotalKobo : Math.max(g.priceKobo, Math.min(maxTotalKobo, UNVERIFIED_GIFT_CAP_KOBO))) / g.priceKobo)));
+
+// Gift points: a running count per sender, 1 point per ₦100 spent on gifts (all time and this Lagos week). The same rate as fan points.
+export const GIFT_POINT_KOBO = 100 * 100;
+export const giftPointsFor = (kobo: number) => (Number.isFinite(kobo) && kobo > 0 ? Math.floor(kobo / GIFT_POINT_KOBO) : 0);
+
+// Weekly boards reset at midnight going into Monday, Lagos time (owner decision 5, 4 Nov 2026). A week is named by its Monday.
+export function lagosWeekOf(d: Date | string | number): string {
+  const day = lagosDayOf(d);
+  const t = Date.parse(`${day}T00:00:00Z`);
+  const dow = new Date(t).getUTCDay(); // 0 Sunday … 6 Saturday
+  return new Date(t - ((dow + 6) % 7) * 86_400_000).toISOString().slice(0, 10);
+}
+export const weekBefore = (week: string) => new Date(Date.parse(`${week}T00:00:00Z`) - 7 * 86_400_000).toISOString().slice(0, 10);
+// When a Lagos week ends (the next Monday 00:00 in Lagos).
+export const lagosWeekEnds = (week: string) => new Date(Date.parse(`${week}T00:00:00Z`) + 7 * 86_400_000 - LAGOS_OFFSET_MS);
+
+// Teens (owner decision 2, 4 Nov 2026): a member in teen mode receives gifts only from mutual followers (they follow each other).
+export const teenGiftAllowed = (o: { receiverTeen: boolean; mutual: boolean; self?: boolean }) => !o.self && (!o.receiverTeen || o.mutual);
+export const TEEN_GIFT_OFF = (name: string) => `${name} is in teen mode: only people ${name} follows back can send them gifts.`;
+
+// Received gifts, grouped by gift: an animated gift by its drawing, a typed amount as "Other". The key is the group's id.
+export const receivedKey = (animId: unknown) => (isGiftMotif(animId) ? animId : "other");
+
+// A withdrawal of gift earnings: below the line it is paid automatically, from the line up a person approves it first.
+export const withdrawRoute = (kobo: number, s: GiftSettings = GIFT_SETTINGS): "auto" | "approval" => (kobo < s.economy.autoWithdrawMaxKobo ? "auto" : "approval");
+// The rule in words, for the sheet, the help and the received gifts page (never a typed-in figure).
+export const withdrawRuleText = (s: GiftSettings = GIFT_SETTINGS) => `Under ${naira(s.economy.autoWithdrawMaxKobo)} is paid automatically; ${naira(s.economy.autoWithdrawMaxKobo)} and over is approved by our team first, usually within a day.`;
+// Gifts are paid from NotesApp Credit or by card, never with Bonus Credits (owner, 4 Nov 2026). Shown on the sheet.
+export const NO_BONUS_TEXT = "Paid from your own NotesApp Credit or by card, never with Bonus Credits.";

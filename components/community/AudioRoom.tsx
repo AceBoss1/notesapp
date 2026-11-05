@@ -7,13 +7,19 @@ import { db } from "@/lib/firebase";
 import Avatar from "@/components/Avatar";
 import { MicIcon } from "@/components/calls/CallViews";
 import { duration } from "@/lib/calls";
-import { DEFAULT_ROOM_FIGURES, ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, linksFor, listenerCount, listenersOf, pullsFor, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomFigures, type RoomLink, type RoomLinkKind, type RoomMode } from "@/lib/rooms";
+import {
+  DEFAULT_ROOM_FIGURES, ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, linksFor, listenerCount, listenersOf, pullsFor, roomRole, stageOf,
+  COMMUNITY_MOD_PERMS, emptySeats, inviteFor, isMicMuted, isRoomMod, mayActOn, permsOf, seatAction, stageModeOf,
+  type ModLogEntry, type ModPerm, type RoomChat, type RoomDoc, type RoomFigures, type RoomLink, type RoomLinkKind, type RoomMode, type StageMode,
+} from "@/lib/rooms";
+import { ModSheet, ModeSwitch, Seat, StageModeChoice, type ModPick, type StaffRow } from "./StageControls";
 import { AUDIO_ONLY_KEY, CHALLENGE_POSTER, anyVideo, canVideo, chooseAudioOnly, minutesLeftText, videoConstraints, videoEncoding, videoPullsFor, type HostLive, type NetInfo, type PosterSource } from "@/lib/rooms-live";
 import { uploadToR2 } from "@/lib/upload";
 import { ago, capi, field } from "./api";
 import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type RecordingFigures } from "@/lib/live-recording";
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 import type { LiveHand } from "@/lib/live-rooms";
+import StageGifts from "@/components/gifts/StageGifts";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -48,7 +54,12 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
     // Recording (lib/live-recording.ts): off by default; hidden with a note while the recorder isn't set up; ticked and fixed when forced.
   const [rec, setRec] = useState<RecChoice | null>(null);
   const [record, setRecord] = useState(false);
-    const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures; recording?: RecChoice | null }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); setRec(d.recording ?? null); }).catch(() => setRooms([])), [cid]);
+  // The stage (lib/rooms.ts "Stage seats"): the mode the room opens in, and the moderators named for it with their permissions.
+  const [stageMode, setStageMode] = useState<StageMode>("approve");
+  const [mods, setMods] = useState<ModPick[]>([]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [modsOpen, setModsOpen] = useState(false);
+    const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures; recording?: RecChoice | null; staff?: StaffRow[] }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); setRec(d.recording ?? null); setStaff(d.staff ?? []); }).catch(() => setRooms([])), [cid]);
   useEffect(() => { load(); const t = setInterval(load, 20_000); return () => clearInterval(t); }, [load]);
   if (rooms === null || (!rooms.length && !canHost)) return null;
   return (
@@ -60,7 +71,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
       {open && (
         <form className="flex flex-wrap items-center gap-2 border-b border-rule p-4" onSubmit={async (e) => {
           e.preventDefault(); setErr("");
-          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title, record: !!rec?.forced || (record && !!rec?.canRecord), ...(poster.source !== "none" ? { poster: { source: poster.source, url: poster.url } } : {}) }); setOpen(false); setTitle(""); setPoster({ source: "none" }); onOpen(r.id, title); }
+          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title, record: !!rec?.forced || (record && !!rec?.canRecord), stageMode, mods: mods.map((m) => ({ who: m.who, perms: m.perms })), ...(poster.source !== "none" ? { poster: { source: poster.source, url: poster.url } } : {}) }); setOpen(false); setTitle(""); setPoster({ source: "none" }); setMods([]); onOpen(r.id, title); }
           catch (x) { setErr(x instanceof Error ? x.message : "Couldn't start the room."); }
         }}>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="What's it about? e.g. Sunday Q&A" aria-label="Room name" className={`${field} min-w-0 flex-1`} />
@@ -68,11 +79,18 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
           <button type="button" className="text-xs text-slate underline" onClick={() => setOpen(false)}>Cancel</button>
           {err && <p className="w-full text-sm text-crimson" role="alert">{err}</p>}
           <div className="w-full"><PosterChoice value={poster} onChange={setPoster} onError={setErr} light /></div>
+          <StageModeChoice value={stageMode} onChange={setStageMode} />
+          <div className="flex w-full flex-wrap items-center gap-2 text-xs text-slate">
+            <span>Moderators:</span>
+            {mods.map((m) => <span key={m.who} className="rounded-full border border-rule px-2.5 py-0.5 text-ink">{m.name}</span>)}
+            <button type="button" onClick={() => setModsOpen(true)} className="rounded-full border border-rule px-3 py-1 font-ui font-semibold text-ink">{mods.length ? "Change" : "+ Add moderator"}</button>
+          </div>
+          {modsOpen && <ModSheet light staff={staff} value={mods} onClose={() => setModsOpen(false)} saveLabel="Done" onSave={(l) => { setMods(l); setModsOpen(false); }} />}
           {rec?.canRecord && figures.relay
             ? <label className="flex w-full items-start gap-2 text-xs text-ink"><input type="checkbox" checked={rec.forced || record} disabled={rec.forced} onChange={(e) => setRecord(e.target.checked)} className="mt-0.5 h-4 w-4 accent-crimson" />
                 <span><b>Record this live</b>{rec.forced ? " (every live is recorded for safety for now)" : ""}. Everyone who joins is told, speakers agree before their mic goes on, and you agree too. Kept {rec.keepDays} days, then deleted unless you publish the replay. <a href={RECORDING_HELP} className="underline" target="_blank" rel="noreferrer">More</a></span></label>
             : <p className="w-full text-xs text-slate">{rec && !rec.available ? "Recording isn't available yet." : rec && !figures.relay ? "Recording needs the relay, which isn't on yet." : ""}</p>}
-          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. {rec?.forced || record ? "This live will be recorded." : "Nothing is recorded."}{figures.relay && figures.live?.video ? ` You can turn video on during the room (${figures.live.budgetMinutes} video minutes a live); the poster shows while it's off.` : ""}</p>
+          <p className="w-full text-xs text-slate">You host: up to {ROOM_SPEAKERS_MAX} members on stage with you; everyone else listens{stageMode === "solo" ? "" : stageMode === "open" ? " and can take an empty seat" : " and can ask for a seat"}. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. {rec?.forced || record ? "This live will be recorded." : "Nothing is recorded."}{figures.relay && figures.live?.video ? ` You can turn video on during the room (${figures.live.budgetMinutes} video minutes a live); the poster shows while it's off.` : ""}</p>
         </form>
       )}
       {rooms.length ? (
@@ -105,6 +123,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [busy, setBusy] = useState("");
   const leaveRef = useRef<(m?: string) => void>(() => {});
   const micRef = useRef<MediaStream | null>(null); // for the mute button
+  const userMutedRef = useRef(false); // my own mute button
+  const silencedRef = useRef(false); // turned off by the host or a moderator
   const [chatOpen, setChatOpen] = useState(false); // the chat sheet on phones (always beside the room on a computer)
   const [unread, setUnread] = useState(0);
   const [mode, setMode] = useState<RoomMode>("p2p");
@@ -169,7 +189,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     };
     const mix = (uid: string, s: MediaStream | null) => {
       mixIn.get(uid)?.disconnect(); mixIn.delete(uid);
-      if (s && latest && roomRole(latest, me) === "host") { const src = audio().createMediaStreamSource(s); src.connect(mixOut!); mixIn.set(uid, src); }
+      if (s && latest && roomRole(latest, me) === "host" && !isMicMuted(latest, uid)) { const src = audio().createMediaStreamSource(s); src.connect(mixOut!); mixIn.set(uid, src); }
     };
     const drop = (uid: string) => { const c = conns.get(uid); if (!c) return; c.pc.close(); conns.delete(uid); mix(uid, null); meters.delete(uid); show(); };
     const finish = (message = "") => {
@@ -191,7 +211,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     const ensureMic = async () => {
       if (mic) return mic;
       mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      micRef.current = mic; setMuted(false);
+      micRef.current = mic; setMuted(false); userMutedRef.current = false;
+      if (silencedRef.current) mic.getAudioTracks().forEach((t) => { t.enabled = false; });
       meter(me, mic);
       return mic;
     };
@@ -351,7 +372,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     liveRef.current = { startVideo, stopVideo, resync: () => { if (latest && relayMode) void videoSync(latest); } };
     const relayReconcile = async (r: RoomDoc) => {
       // A recorded room: a speaker's microphone waits for their one-tap agreement (the server refuses it until then too).
-      const onStage = roomRole(r, me) !== "listener" && recordingPrompt(r, me) !== "consent";
+      // A speaker whose microphone the host or a moderator turned off doesn't send it (the server refuses it and unpublishes it too).
+      const onStage = roomRole(r, me) !== "listener" && recordingPrompt(r, me) !== "consent" && !isMicMuted(r, me);
       if (onStage && !micOn) {
         micOn = true;
         try { await ensureMic(); await startPush(); }
@@ -371,6 +393,17 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       const onStage = roomRole(r, me) !== "listener";
       if (onStage && !micOn) { micOn = true; await ensureMic().catch(() => { setNote("Allow the microphone to speak."); }); if (roomRole(r, me) === "host") { audio(); if (mic) { const src = audio().createMediaStreamSource(mic); src.connect(mixOut!); mixIn.set(me, src); } } }
       if (!onStage && micOn) { micOn = false; stopMic(); }
+      // Turned off by the host or a moderator (lib/rooms.ts micMuted): phone to phone there's no server in the sound's path, so every
+      // phone keeps it: mine stops sending, the host's mix leaves that speaker out (listeners hear only the mix), and the other
+      // speakers' phones don't play them (RemoteAudio below).
+      silencedRef.current = isMicMuted(r, me);
+      mic?.getAudioTracks().forEach((t) => { t.enabled = !silencedRef.current && !userMutedRef.current; });
+      if (roomRole(r, me) === "host") for (const [u, c] of conns) {
+        if (c.kind !== "stage" || !c.stream) continue;
+        const want = !isMicMuted(r, u);
+        if (want && !mixIn.has(u)) mix(u, c.stream);
+        if (!want && mixIn.has(u)) mix(u, null);
+      }
       for (const [u, c] of conns) {
         const w = want.find((x) => x.peer === u);
         if (!w || w.kind !== c.kind || (r.joined[u]?.at ?? "") !== c.peerAt) drop(u);
@@ -426,7 +459,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const act = async (body: Record<string, unknown>, tag = "") => { setBusy(tag); try { await capi("/api/community/rooms", { id, ...body }); } catch (e) { setNote(e instanceof Error ? e.message : "Couldn't do that."); setTimeout(() => setNote(""), 2500); } finally { setBusy(""); } };
+  const act = async <T = unknown,>(body: Record<string, unknown>, tag = ""): Promise<T | null> => { setBusy(tag); try { return await capi<T>("/api/community/rooms", { id, ...body }); } catch (e) { setNote(e instanceof Error ? e.message : "Couldn't do that."); setTimeout(() => setNote(""), 3500); return null; } finally { setBusy(""); } };
   const role = room ? roomRole(room, me) : "listener";
   const stage = room ? stageOf(room) : [];
   const relayRoom = room?.mode === "relay";
@@ -448,9 +481,48 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const hands = liveHands ? Object.entries(liveHands).filter(([u]) => !stage.includes(u)).map(([u, h]) => [u, h.at] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]))
     : room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
   const handUp = live.hands ? !!live.hands[me] : !!room?.hands?.[me];
-  const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
+  const silenced = !!room && isMicMuted(room, me);
+  const toggleMute = () => { if (silenced) return; const m = !muted; userMutedRef.current = m; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
   // Live mode.
   const flash = (m: string) => { setNote(m); setTimeout(() => setNote(""), 3000); };
+  // The stage (lib/rooms.ts "Stage seats"): my permissions (the host all, a moderator what the host ticked), the mode, the seats.
+  const perms: ModPerm[] = room ? permsOf(room, me) : [];
+  const may = (p: ModPerm) => perms.includes(p);
+  const smode: StageMode = room ? stageModeOf(room) : "approve";
+  const free = room ? emptySeats(room) : 0;
+  const seat = room ? seatAction(room, me) : "none";
+  const myInvite = room ? inviteFor(room, me) : null;
+  const over = (u: string) => !!room && mayActOn(room, me, u);
+  const [modsOpen, setModsOpen] = useState(false);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [log, setLog] = useState<ModLogEntry[] | null>(null);
+  const askSeat = async () => {
+    if (seat === "take") { const r = await act<{ requested?: boolean }>({ action: "seat" }, "seat"); if (r?.requested) flash("Your request went to the host: in teen mode, the host or a moderator lets you up."); }
+    else if (seat === "request" && !handUp) { if (!live.raise(true)) await act({ action: "hand", up: true }); }
+  };
+  const unconsented = (u: string) => !!room?.recording?.on && !!room.speakers.includes(u) && !room.consent?.[u];
+  // A host's or moderator's menu on a speaker: only the controls they hold, never on the host or a moderator with as much say.
+  const speakerActions = (u: string) => {
+    if (!room || u === me || !over(u)) return [];
+    const out: { label: string; run: () => void }[] = [];
+    if (may("mic")) out.push(isMicMuted(room, u) ? { label: "Turn mic back on", run: () => void act({ action: "mic", uid: u, on: false }, u) } : { label: "Turn mic off", run: () => void act({ action: "mic", uid: u, on: true }, u) });
+    if (may("camera") && room.videoOn?.[u]) out.push({ label: "Camera off", run: () => void act({ action: "camoff", uid: u }, u) });
+    if (may("consent") && unconsented(u)) out.push({ label: "Remind to agree", run: () => void act({ action: "consentask", uid: u }, u) });
+    if (may("down") || (may("consent") && unconsented(u))) out.push({ label: "Bring down", run: () => void act({ action: "speaker", uid: u, on: false }, u) });
+    if (may("ban")) out.push({ label: "Remove from live", run: () => { if (confirm(`Remove ${room.joined[u]?.name ?? "them"} from this live?`)) void act({ action: "ban", uid: u }, u); } });
+    return out;
+  };
+  const listenerActions = (u: string, name: string) => {
+    if (!room || u === me || !over(u)) return [];
+    const out: { label: string; run: () => void }[] = [];
+    if (may("invite")) out.push({ label: "Invite on stage", run: () => void act<{ invited?: boolean }>({ action: "invite", uid: u }, u).then((r) => { if (r?.invited) flash(`Invitation sent to ${name}.`); }) });
+    if (may("ban")) out.push({ label: "Remove from live", run: () => { if (confirm(`Remove ${name} from this live?`)) void act({ action: "ban", uid: u }, u); } });
+    return out;
+  };
+  const openMods = async () => {
+    setModsOpen(true);
+    if (room) capi<{ staff?: StaffRow[] }>(`/api/community/rooms?cid=${room.cid}`).then((d) => setStaff(d.staff ?? [])).catch(() => {});
+  };
   const mayVideo = !!room && relayRoom && videoCfg.on && canVideo(room, me, { videoOn: 1 });
   const videoUp = !!room && anyVideo(room);
   const toggleVideo = async () => {
@@ -476,10 +548,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-start justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)_+_1rem)]">
         <div className="min-w-0">
-          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName ?? "Audio room"} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
+          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName || (room?.paid ? "Paid live" : "Audio room")} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
           <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
-          {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
+          {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}{room.paid?.record === "safety" ? " for safety review only (no replay)" : ""}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
@@ -500,57 +572,89 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         {room && (relayRoom || room.poster) && (
           <LiveScreen videos={videos} myCam={myCam} poster={room.poster ?? ""} audioOnly={audioOnly} videoUp={videoUp} nameOf={(u) => (u === me ? "You" : room.joined[u]?.name ?? "")} />
         )}
-        {role === "host" && (
+        {room && (role === "host" || may("poster") || may("video")) && (
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs">
-            <button type="button" onClick={() => setPosterOpen((v) => !v)} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🖼 Poster</button>
-            {relayRoom && videoCfg.on && (
+            {role === "host" && <button type="button" onClick={() => void openMods()} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🛡 Moderators{room.mods && Object.keys(room.mods).length ? ` · ${Object.keys(room.mods).length}` : ""}</button>}
+            {role === "host" && room.mods && Object.keys(room.mods).length > 0 && <button type="button" onClick={() => act<{ log: ModLogEntry[] }>({ action: "modlog" }).then((r) => setLog(r?.log ?? []))} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">📋 Moderators&apos; log</button>}
+            {may("poster") && <button type="button" onClick={() => setPosterOpen((v) => !v)} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🖼 Poster</button>}
+            {may("video") && relayRoom && videoCfg.on && (
               <label className="flex items-center gap-2 text-white/70"><input type="checkbox" checked={room?.stageVideo === true} onChange={(e) => act({ action: "stagevideo", on: e.target.checked })} className="h-4 w-4" />Speakers can turn video on</label>
             )}
             {posterOpen && <div className="w-full"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
           </div>
         )}
+        {log && (
+          <div className="mb-4 rounded-2xl bg-white/[0.06] p-4">
+            <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold">Moderators&apos; log</p><button type="button" onClick={() => setLog(null)} className="text-xs text-white/60 underline">Hide</button></div>
+            <ul className="mt-2 space-y-1 text-xs text-white/75">
+              {log.map((e, i) => <li key={i}><span className="text-white/45">{ago(e.at)}</span> · <b>{e.byName}</b>: {e.action}{e.targetName ? ` (${e.targetName})` : ""}</li>)}
+              {!log.length && <li className="text-white/50">Nothing yet.</li>}
+            </ul>
+          </div>
+        )}
+        {room && may("mode") ? <ModeSwitch value={smode} busy={busy === "mode"} onChange={(m) => void act({ action: "stagemode", mode: m }, "mode")} />
+          : room && <p className="mb-3 text-xs text-white/50">{smode === "solo" ? "The host is keeping the stage for now." : smode === "open" ? "Open stage: tap + on an empty seat to come up." : "Tap + on an empty seat to ask to come up."}</p>}
         <p className="font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">On stage</p>
         <ul className="mt-3 grid grid-cols-3 gap-4 sm:grid-cols-5">
           {stage.map((u) => (
-            <Person key={u} name={u === me ? "You" : room!.joined[u]?.name ?? "Someone"} avatar={room!.joined[u]?.avatar ?? ""} big talking={!!levels[u]} badge={u === room!.hostUid ? "Host" : "Speaker"}
-              action={role === "host" && u !== me ? { label: "Move to listeners", run: () => act({ action: "speaker", uid: u, on: false }, u) } : undefined} busy={busy === u} />
+            <Person key={u} name={u === me ? "You" : room!.joined[u]?.name ?? "Someone"} avatar={room!.joined[u]?.avatar ?? ""} big talking={!!levels[u] && !isMicMuted(room!, u)} micOff={isMicMuted(room!, u)}
+              badge={u === room!.hostUid ? "Host" : isRoomMod(room!, u) ? "Moderator" : "Speaker"} actions={speakerActions(u)} busy={busy === u} />
           ))}
+          {Array.from({ length: free }, (_, i) => <Seat key={`seat-${i}`} plus={seat !== "none" && !handUp} asked={handUp && i === 0} busy={busy === "seat"} onTap={() => void askSeat()} />)}
         </ul>
-        {role === "host" && hands.length > 0 && (
+        {room && <StageGifts roomId={id} hostUid={room.hostUid} stage={stage} me={me} joined={room.joined} />}
+        {room && may("approve") && hands.length > 0 && (
           <div className="mt-8 rounded-2xl bg-white/[0.06] p-4">
-            <p className="font-ui text-sm font-bold">✋ Raised hands</p>
+            <p className="font-ui text-sm font-bold">✋ Seat requests · {hands.length}</p>
             <ul className="mt-3 space-y-2">
               {hands.map(([u]) => (
                 <li key={u} className="flex items-center gap-3">
                   <Avatar src={who(u)?.avatar ?? ""} alt="" size={36} className="!h-9 !w-9 rounded-full" />
                   <span className="min-w-0 flex-1 truncate text-sm">{who(u)?.name}</span>
-                  <button type="button" disabled={busy === u || room!.speakers.length >= ROOM_SPEAKERS_MAX} onClick={() => act({ action: "speaker", uid: u, on: true }, u)} className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink disabled:opacity-40">Bring up</button>
+                  <button type="button" disabled={busy === u || room.speakers.length >= ROOM_SPEAKERS_MAX} onClick={() => act({ action: "speaker", uid: u, on: true }, u)} className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink disabled:opacity-40">Approve</button>
+                  <button type="button" disabled={busy === u} onClick={() => act({ action: "decline", uid: u }, u)} className="rounded-full bg-white/10 px-3 py-1.5 font-ui text-xs hover:bg-white/20">Decline</button>
                 </li>
               ))}
             </ul>
-            {room!.speakers.length >= ROOM_SPEAKERS_MAX && <p className="mt-2 text-xs text-white/55">The stage is full ({ROOM_SPEAKERS_MAX} speakers besides you). Move someone to listeners first.</p>}
+            {room.speakers.length >= ROOM_SPEAKERS_MAX && <p className="mt-2 text-xs text-white/55">Every seat is taken ({ROOM_SPEAKERS_MAX} besides the host). Bring someone down first.</p>}
           </div>
         )}
         <p className="mt-8 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Listening · {listening.toLocaleString("en-GB")}{cap ? ` of ${cap.toLocaleString("en-GB")}` : ""}{full ? " · the room is full" : ""}</p>
         {relayRoom && (
           peopleOpen
-            ? <RoomPeople id={id} me={me} canInvite={role === "host"} busy={busy} invite={(u) => act({ action: "speaker", uid: u, on: true }, u)} onClose={() => setPeopleOpen(false)} />
+            ? <RoomPeople id={id} me={me} busy={busy} actionsFor={listenerActions} onClose={() => setPeopleOpen(false)} />
             : <button type="button" onClick={() => setPeopleOpen(true)} className="mt-3 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">People here</button>
         )}
         <ul className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-8">
           {listeners.map((u) => (
             <Person key={u} name={u === me ? "You" : room!.joined[u]?.name ?? "Someone"} avatar={room!.joined[u]?.avatar ?? ""} hand={!!room!.hands?.[u]}
-              action={role === "host" ? { label: "Invite to speak", run: () => act({ action: "speaker", uid: u, on: true }, u) } : undefined} busy={busy === u} />
+              actions={listenerActions(u, room!.joined[u]?.name ?? "them")} busy={busy === u} />
           ))}
         </ul>
       </div>
 
-      {Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} />)}
+      {Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} muted={!!room && isMicMuted(room, u)} />)}
+      {modsOpen && room && (
+        <ModSheet staff={staff} busy={busy === "mods"} onClose={() => setModsOpen(false)}
+          value={Object.entries(room.mods ?? {}).map(([u, m]) => ({ who: u, name: m.name, avatar: m.avatar, perms: m.perms ?? [] }))}
+          onSave={(l) => void act({ action: "mods", mods: l.map((m) => ({ who: m.who, perms: m.perms })) }, "mods").then((r) => { if (r) setModsOpen(false); })} />
+      )}
+      {room && myInvite && role === "listener" && (
+        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.1] p-4" role="alertdialog" aria-label="Invitation to the stage">
+          <p className="font-ui text-sm font-bold">🎙 {myInvite.byName} invited you on stage</p>
+          <p className="mt-1 text-xs text-white/70">{isRecorded(room) ? "This live is recorded: you'll be asked to agree before your mic goes on." : "Your mic goes on when you come up; you can mute it any time."}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" disabled={busy === "invited"} onClick={() => act({ action: "invited", yes: true }, "invited")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">Come up</button>
+            <button type="button" onClick={() => act({ action: "invited", yes: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Not now</button>
+          </div>
+        </div>
+      )}
       <LiveEntrance entrance={room?.entrance} />
 
       {room && recordingPrompt(room, me) === "consent" && (
         <div className="mx-5 mb-3 rounded-2xl bg-white/[0.08] p-4" role="alertdialog" aria-label={RECORDING_NOTICE}>
           <p className="font-ui text-sm font-bold">{RECORDING_NOTICE}</p>
+          {room.consentAsk?.[me] && <p className="mt-1 text-xs font-semibold text-[#FFB4A2]">A moderator is waiting for your answer.</p>}
           <p className="mt-1 text-xs text-white/70">You&apos;re on stage. If you speak, your voice is in the recording, which the host may publish as a replay. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">More</a></p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" disabled={busy === "consent"} onClick={() => act({ action: "consent" }, "consent")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">I agree, turn my mic on</button>
@@ -561,10 +665,13 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 
       <footer className="flex items-center justify-center gap-4 border-t border-white/10 px-5 pb-[calc(env(safe-area-inset-bottom)_+_1rem)] pt-4">
         {role === "listener" ? (
-          <button type="button" onClick={() => { if (!live.raise(!handUp)) void act({ action: "hand", up: !handUp }); }} className={`rounded-full px-5 py-3 font-ui text-sm font-bold ${handUp ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{handUp ? "✋ Hand raised · lower it" : "✋ Raise hand to speak"}</button>
+          handUp ? <button type="button" onClick={() => { if (!live.raise(false)) void act({ action: "hand", up: false }); }} className="rounded-full bg-white px-5 py-3 font-ui text-sm font-bold text-ink">✋ Seat requested · cancel</button>
+            : seat === "take" ? <button type="button" disabled={busy === "seat"} onClick={() => void askSeat()} className="rounded-full bg-white/10 px-5 py-3 font-ui text-sm font-bold hover:bg-white/20">＋ Take a seat</button>
+            : seat === "request" ? <button type="button" onClick={() => void askSeat()} className="rounded-full bg-white/10 px-5 py-3 font-ui text-sm font-bold hover:bg-white/20">✋ Ask for a seat</button>
+            : <p className="px-2 text-xs text-white/50">{smode === "solo" ? "Listening: the host is keeping the stage for now." : "Every seat on stage is taken."}</p>
         ) : (
           <>
-            <MuteButton muted={muted} onToggle={toggleMute} />
+            <MuteButton muted={muted || silenced} locked={silenced} onToggle={toggleMute} />
             {mayVideo && <button type="button" disabled={camBusy} onClick={() => void toggleVideo()} aria-pressed={!!myCam} className={`rounded-full px-4 py-3 font-ui text-sm font-semibold ${myCam ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"} disabled:opacity-40`}>{myCam ? "🎥 Video off" : "🎥 Video"}</button>}
             {role === "speaker" && <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-3 font-ui text-sm hover:bg-white/20">Back to listening</button>}
           </>
@@ -573,12 +680,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
           💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
         </button>
-        {role === "host" && <button type="button" onClick={() => confirm("End the room for everyone?") && act({ action: "end" })} className="rounded-full bg-[#E5383B] px-5 py-3 font-ui text-sm font-bold hover:bg-[#D12F32]">End room</button>}
+        {may("end") && <button type="button" onClick={() => confirm("End the room for everyone?") && act({ action: "end" })} className="rounded-full bg-[#E5383B] px-5 py-3 font-ui text-sm font-bold hover:bg-[#D12F32]">End room</button>}
       </footer>
       </div>
       {room && (
         <aside className={`${chatOpen ? "fixed inset-x-0 bottom-0 z-10 flex h-[75vh] rounded-t-3xl shadow-2xl" : "hidden"} flex-col border-white/10 bg-[#211816] lg:static lg:flex lg:h-auto lg:w-96 lg:rounded-none lg:border-l lg:shadow-none`} aria-label="Room chat">
-          <RoomChatPanel id={id} me={me} room={room} relay={relayRoom} live={live} canRemove={role === "host" || !!live.you?.mod} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
+          <RoomChatPanel id={id} me={me} room={room} relay={relayRoom} live={live} perms={[...perms, ...(live.you?.mod ? COMMUNITY_MOD_PERMS : [])]} act={act} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
         </aside>
       )}
     </div>
@@ -587,7 +694,13 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 
 // The room's chat (lib/rooms.ts): everyone in the room types here while it's on; host and speakers are marked. The newest stays in view.
 // On the live-rooms worker (live.on) the messages come over the room's WebSocket instead of a live read of the chat collection.
-function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+// perms: what I hold here (lib/rooms.ts MOD_PERMS, with the community moderators' chat powers): remove messages, mute in the chat,
+// remove from the live, slow mode, pin. Each control shows only to those who hold it, and never against someone with as much say.
+function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; perms: ModPerm[]; act: (body: Record<string, unknown>, tag?: string) => Promise<unknown>; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+  const canRemove = perms.includes("chatRemove"), canMute = perms.includes("chatMute"), canBan = perms.includes("ban"), canPin = perms.includes("pin"), canSlow = perms.includes("slow");
+  const over = (u: string) => mayActOn(room, me, u, perms);
+  const [pinText, setPinText] = useState("");
+  const [pinOpen, setPinOpen] = useState(false);
   const [fsMsgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
   const msgs = live.on ? live.msgs : fsMsgs;
   const [text, setText] = useState("");
@@ -629,6 +742,19 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
         <p className="font-ui text-sm font-bold">Room chat</p>
         <button type="button" onClick={onClose} className="rounded-full px-2 text-xl text-white/60 hover:text-white lg:hidden" aria-label="Close the chat">×</button>
       </div>
+      {room.pinned && (
+        <div className="flex items-start gap-2 border-b border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm">
+          <span aria-hidden>📌</span>
+          <p className="min-w-0 flex-1 whitespace-pre-line break-words"><span className="text-white/90">{room.pinned.text}</span><span className="block text-[11px] text-white/45">Pinned by {room.pinned.by === me ? "you" : room.pinned.byName}</span></p>
+          {canPin && <button type="button" onClick={() => void act({ action: "pin", text: "" })} className="text-[11px] text-white/50 hover:text-white">Unpin</button>}
+        </div>
+      )}
+      {canPin && (pinOpen
+        ? <form className="flex gap-2 border-b border-white/10 px-4 py-2" onSubmit={(e) => { e.preventDefault(); if (pinText.trim()) void act({ action: "pin", text: pinText.trim() }).then(() => { setPinText(""); setPinOpen(false); }); }}>
+            <input value={pinText} onChange={(e) => setPinText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="An announcement for everyone" aria-label="Pin an announcement" className="min-w-0 flex-1 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-none" />
+            <button className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink" disabled={!pinText.trim()}>Pin</button>
+          </form>
+        : <button type="button" onClick={() => setPinOpen(true)} className="border-b border-white/10 px-4 py-1.5 text-left text-[11px] text-white/50 hover:text-white">📌 Pin an announcement</button>)}
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {!msgs.length && <p className="pt-6 text-center text-sm text-white/45">Say hello, ask a question, or send an amen. Everyone in the room sees it while the room is on.</p>}
         {msgs.map((m) => (
@@ -638,13 +764,14 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
               <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
               <p className="whitespace-pre-line break-words text-sm text-white/85">{m.text}</p>
             </div>
-            {canRemove && m.from !== me && (
+            {(canPin || (m.from !== me && over(m.from) && (canRemove || canMute || canBan))) && (
               <span className="flex flex-col items-end gap-0.5 self-start opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>
-                {live.status === "live" && m.from !== room.hostUid && (live.mutedList.includes(m.from)
+                {canPin && <button type="button" onClick={() => void act({ action: "pin", text: m.text })} className="text-[11px] text-white/40 hover:text-white">Pin</button>}
+                {m.from !== me && over(m.from) && canRemove && <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>}
+                {m.from !== me && over(m.from) && canMute && live.status === "live" && (live.mutedList.includes(m.from)
                   ? <button type="button" onClick={() => live.mute(m.from, false)} className="text-[11px] text-white/40 hover:text-white">Unmute</button>
                   : <button type="button" onClick={() => live.mute(m.from, true)} className="text-[11px] text-white/40 hover:text-white">Mute</button>)}
-                {live.status === "live" && m.from !== room.hostUid && <button type="button" onClick={() => confirm(`Remove ${m.name} from this room?`) && live.ban(m.from)} className="text-[11px] text-white/40 hover:text-white">Remove from room</button>}
+                {m.from !== me && over(m.from) && canBan && <button type="button" onClick={() => { if (confirm(`Remove ${m.name} from this live?`)) void act({ action: "ban", uid: m.from }); }} className="text-[11px] text-white/40 hover:text-white">Remove from live</button>}
               </span>
             )}
           </div>
@@ -656,13 +783,13 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
         <button className="rounded-full bg-white px-4 py-2.5 font-ui text-sm font-bold text-ink disabled:opacity-40" disabled={!text.trim()}>Send</button>
       </form>
       {relay && (live.status === "live" ? live.slow : room.chatSlow ?? 0) > 0 && room.hostUid !== me && !room.speakers.includes(me) && <p className="px-4 pb-2 text-xs text-white/45">Slow mode: one message every {live.status === "live" ? live.slow : room.chatSlow} seconds each.</p>}
-      {live.status === "live" && room.hostUid === me && (
+      {live.status === "live" && canSlow && (
         <p className="flex items-center gap-2 px-4 pb-2 text-xs text-white/55">Slow mode{live.hostSlow === null ? ` (automatic${live.slow ? ": on" : ": off"})` : live.hostSlow ? ": on" : ": off"}
           <button type="button" onClick={() => live.setSlow(live.hostSlow === true ? false : live.hostSlow === false ? null : true)} className="rounded-full bg-white/10 px-2 py-0.5 font-semibold hover:bg-white/20">{live.hostSlow === true ? "Turn off" : live.hostSlow === false ? "Automatic" : "Turn on"}</button>
         </p>
       )}
       {live.you?.muted && <p className="px-4 pb-2 text-xs text-white/45">The host has muted you in this chat.</p>}
-      {canRemove && live.status === "live" && live.mutedList.length > 0 && (
+      {canMute && live.status === "live" && live.mutedList.length > 0 && (
         <p className="flex flex-wrap items-center gap-1.5 px-4 pb-2 text-xs text-white/55">Muted in the chat:
           {live.mutedList.map((u) => <button key={u} type="button" onClick={() => live.mute(u, false)} className="rounded-full bg-white/10 px-2 py-0.5 hover:bg-white/20" aria-label={`Unmute ${msgs.find((x) => x.from === u)?.name ?? "them"}`}>{msgs.find((x) => x.from === u)?.name ?? "Someone"} · Unmute</button>)}
         </p>
@@ -675,7 +802,7 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
 
 // Relay rooms: who is listening, a page at a time from the server (a big room's listeners aren't on the room doc). The host can invite
 // anyone here to speak.
-function RoomPeople({ id, me, canInvite, busy, invite, onClose }: { id: string; me: string; canInvite: boolean; busy: string; invite: (uid: string) => void; onClose: () => void }) {
+function RoomPeople({ id, me, busy, actionsFor, onClose }: { id: string; me: string; busy: string; actionsFor: (uid: string, name: string) => { label: string; run: () => void }[]; onClose: () => void }) {
   const [people, setPeople] = useState<{ uid: string; name: string; avatar: string; hand: boolean }[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -693,7 +820,7 @@ function RoomPeople({ id, me, canInvite, busy, invite, onClose }: { id: string; 
       <ul className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-8">
         {people.map((p) => (
           <Person key={p.uid} name={p.uid === me ? "You" : p.name} avatar={p.avatar} hand={p.hand}
-            action={canInvite && p.uid !== me ? { label: "Invite to speak", run: () => invite(p.uid) } : undefined} busy={busy === p.uid} />
+            actions={actionsFor(p.uid, p.name)} busy={busy === p.uid} />
         ))}
       </ul>
       {next && <button type="button" disabled={loading} onClick={() => load(next)} className="mt-3 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20 disabled:opacity-40">More</button>}
@@ -703,28 +830,40 @@ function RoomPeople({ id, me, canInvite, busy, invite, onClose }: { id: string; 
 }
 
 // Mute switches the microphone's track off (on stage only); listeners have no microphone at all.
-function MuteButton({ muted, onToggle }: { muted: boolean; onToggle: () => void }) {
-  return <button type="button" onClick={onToggle} aria-pressed={muted} aria-label={muted ? "Unmute" : "Mute"} className={`flex h-14 w-14 items-center justify-center rounded-full text-xl ${muted ? "bg-white text-ink" : "bg-white/[0.12] hover:bg-white/20"}`}><MicIcon off={muted} /></button>;
+// locked: the host or a moderator turned it off; it stays off until they turn it back on.
+function MuteButton({ muted, locked, onToggle }: { muted: boolean; locked?: boolean; onToggle: () => void }) {
+  return (
+    <span className="flex flex-col items-center">
+      <button type="button" onClick={onToggle} disabled={locked} aria-pressed={muted} aria-label={locked ? "Your mic was turned off by the host" : muted ? "Unmute" : "Mute"} className={`flex h-14 w-14 items-center justify-center rounded-full text-xl ${muted ? "bg-white text-ink" : "bg-white/[0.12] hover:bg-white/20"} disabled:opacity-70`}><MicIcon off={muted} /></button>
+      {locked && <span className="mt-1 text-[10px] text-white/55">Turned off by the host</span>}
+    </span>
+  );
 }
 
-function RemoteAudio({ stream }: { stream: MediaStream }) {
+// muted: a speaker the host or a moderator turned off (phone to phone, every phone leaves their sound out).
+function RemoteAudio({ stream, muted }: { stream: MediaStream; muted?: boolean }) {
   const ref = useRef<HTMLAudioElement>(null);
   useEffect(() => { if (ref.current && ref.current.srcObject !== stream) ref.current.srcObject = stream; }, [stream]);
-  return <audio ref={ref} autoPlay className="hidden" />;
+  return <audio ref={ref} autoPlay muted={muted} className="hidden" />;
 }
 
-function Person({ name, avatar, big, talking, badge, hand, action, busy }: { name: string; avatar: string; big?: boolean; talking?: boolean; badge?: string; hand?: boolean; action?: { label: string; run: () => void }; busy?: boolean }) {
-  const [menu, setMenu] = useState(false);
+export function Person({ name, avatar, big, talking, badge, hand, micOff, actions = [], busy, startOpen }: { name: string; avatar: string; big?: boolean; talking?: boolean; badge?: string; hand?: boolean; micOff?: boolean; actions?: { label: string; run: () => void }[]; busy?: boolean; startOpen?: boolean }) {
+  const [menu, setMenu] = useState(!!startOpen);
   return (
     <li className="relative flex flex-col items-center text-center">
-      <button type="button" disabled={!action} onClick={() => setMenu((v) => !v)} className={`relative rounded-full transition ${talking ? "ring-4 ring-[#4ADE80] ring-offset-2 ring-offset-ink" : "ring-2 ring-white/10"}`}>
+      <button type="button" disabled={!actions.length} aria-haspopup={actions.length ? "menu" : undefined} aria-expanded={actions.length ? menu : undefined} onClick={() => setMenu((v) => !v)} className={`relative rounded-full transition ${talking ? "ring-4 ring-[#4ADE80] ring-offset-2 ring-offset-ink" : "ring-2 ring-white/10"}`}>
         <Avatar src={avatar} alt="" size={big ? 72 : 48} className={`${big ? "!h-16 !w-16 sm:!h-20 sm:!w-20" : "!h-12 !w-12"} rounded-full`} />
         {hand && <span className="absolute -right-1 -top-1 text-lg" aria-label="Hand raised">✋</span>}
+        {micOff && <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#E5383B] text-white ring-2 ring-ink" aria-label="Mic turned off"><MicIcon off /></span>}
       </button>
       <span className={`mt-1.5 line-clamp-1 font-ui ${big ? "text-sm" : "text-[11px]"} text-white/90`}>{name}</span>
       {badge && <span className="font-ui text-[10px] uppercase tracking-wide text-white/45">{badge}</span>}
-      {menu && action && (
-        <button type="button" disabled={busy} onClick={() => { setMenu(false); action.run(); }} className="absolute top-full z-10 mt-1 whitespace-nowrap rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink shadow-lg">{action.label}</button>
+      {menu && actions.length > 0 && (
+        <div role="menu" className="absolute top-full z-20 mt-1 flex min-w-[10rem] flex-col overflow-hidden rounded-2xl bg-white py-1 text-left shadow-xl">
+          {actions.map((a) => (
+            <button key={a.label} role="menuitem" type="button" disabled={busy} onClick={() => { setMenu(false); a.run(); }} className={`whitespace-nowrap px-4 py-2 text-left font-ui text-xs font-semibold hover:bg-black/5 ${/Remove/.test(a.label) ? "text-[#C1121F]" : "text-ink"}`}>{a.label}</button>
+          ))}
+        </div>
       )}
     </li>
   );
@@ -762,7 +901,7 @@ function VideoTile({ stream, mine, label }: { stream: MediaStream; mine: boolean
 }
 
 // The poster: upload a picture (made WebP and kept in our storage, like any upload), the profile picture, the challenge art, or none.
-function PosterChoice({ value, onChange, onError, light }: { value: { source: PosterSource; url?: string; preview?: string }; onChange: (p: { source: PosterSource; url?: string; preview?: string }) => void; onError: (m: string) => void; light?: boolean }) {
+export function PosterChoice({ value, onChange, onError, light }: { value: { source: PosterSource; url?: string; preview?: string }; onChange: (p: { source: PosterSource; url?: string; preview?: string }) => void; onError: (m: string) => void; light?: boolean }) {
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const chip = (on: boolean) => `rounded-full px-3 py-1 font-ui text-xs font-semibold ${light ? (on ? "bg-crimson text-paper" : "border border-rule text-ink") : on ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`;

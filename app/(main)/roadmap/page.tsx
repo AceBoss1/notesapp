@@ -7,7 +7,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { MEDIA_LIVE } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
-import { certificateMin } from "@/lib/pricing";
+import { certificateMin, liveTicketUpliftPct, ppmUpliftPct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
@@ -125,6 +125,20 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     body: "Live: a community for churches, NGOs, schools, clubs and associations, run by the organisation's own admins, like a Facebook group with a channel. Public and members-only Spaces, a General announcement channel where admins post and members react and comment, and private Circles on Business. Events for every account: RSVP (Going or Interested), reminders a day and an hour before, repeating events, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet. Giving to a community, and paid event tickets with QR check-in at the door.",
     detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Giving and paid event tickets with QR check-in are live, both with no commission, only a charge like a bank transfer. Later, in this order: bigger Circles, then our own live streaming as a paid add-on. No date yet.",
     link: { href: "/community", label: "See Community →" },
+  },
+  {
+    title: "Paid lives",
+    tag: "Live · Lives",
+    body: "Live now: schedule a live of your own with tickets. Set a date and time, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, then no more tickets. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers, who get the discount you set for their tier. Choose the recording when you schedule it: off, for safety only, or recorded with a replay. Only ticket holders get in, and they're reminded a day, an hour and at the start.",
+    get detail() { return `#NotesApp takes your normal rate plus ${liveTicketUpliftPct()}% of it on each ticket, fixed when the ticket is bought. You're paid after the live ends and the problem window has passed, like a session. If you cancel or never start, every ticket is refunded to NotesApp Credit automatically. Only the moderators you name moderate a paid live. Members in teen mode can't sell tickets.`; },
+    link: { href: "/lives", label: "See paid lives →" },
+  },
+  {
+    title: "Pay-per-minute sessions",
+    tag: "Live · Sessions",
+    body: "Live now: publishers set a price per minute for voice calls and for video calls, and who can book: everyone, or their own Premium, VIP or VVIP subscribers. You book one of their times and hold some minutes from your NotesApp Credit. The call is metered by #NotesApp, not by either phone: after a short free grace you pay per started minute, unused minutes come back when the call ends, and when your minutes run out you're asked to add more.",
+    get detail() { return `#NotesApp takes the publisher's normal rate plus ${ppmUpliftPct()}% of it, fixed when the session is booked, on what the call used. Publishers are paid after the call ends and the problem window has passed, like a session. Calls go phone to phone, through a relay only when a network needs one. Bonus Credits can't be used. Members in teen mode can't sell or book pay-per-minute sessions.`; },
+    link: { href: "/help/pay-per-minute", label: "How pay-per-minute works →" },
   },
   {
     title: "Online status and followers lists",
@@ -252,7 +266,7 @@ export default async function RoadmapPage() {
               <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market and Notes Academy), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
               <li>Paid monthly journal subscriptions that unlock premium entries</li>
-              <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post, with animated gifts and a daily &quot;Top gifted today&quot; shelf on Trending and Explore — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
+              <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post and to anyone beside their name (a speaker in a live, a commenter, a reviewer, a Media post, a replay), several at once, with animated gifts, a daily &quot;Top gifted today&quot; shelf on Trending and Explore, weekly Top gifted and Top gifters boards, gift points, and received gifts you archive and withdraw from your profile — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
               <li>Your own store with physical goods and instant digital downloads and (Pro and above) view-only files and video courses, sold through #NotesApp checkout with parcel tracking — see <Link href="/store-selling" className="text-crimson underline">Store selling</Link></li>
               <li><Link href="/logistics" className="text-crimson underline">Shipments for logistics businesses</Link>, with a Track page on their own site, and the <Link href="/logistics/network" className="text-crimson underline">logistics network</Link>: stores choose a delivery partner and buyers pay its price at checkout (Business and Enterprise, or the logistics add-on on Free Basic and Pro)</li>
               <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: Clubhouse-style <Link href="/community/audio-rooms" className="text-crimson underline">audio rooms</Link> (a host and up to 4 on stage, members listening, raising hands and typing in the room chat; bigger rooms through our Cloudflare relay, with live video from the stage, a poster and Audio only, and a live chat, count and raised hands built to keep up with thousands of listeners, where the host decides on slow mode), a group-style feed (Write something, Like, Comment, Share), public and members-only <Link href="/community/spaces" className="text-crimson underline">Spaces</Link>, a <Link href="/community/general" className="text-crimson underline">General</Link> announcement channel, private <Link href="/community/circles" className="text-crimson underline">Circles</Link> on Business, admin tools (approvals, join questions, roles, remove and ban, pins, slow mode, insights, View as) and what non-members see, chosen by the admins; and <Link href="/events" className="text-crimson underline">Events</Link> for every account with Going and Interested, reminders, repeats and Join live links (free up to 200 members); <strong className="text-ink">giving</strong> to a community (offerings, tithes and named funds, with charges like a bank transfer and no commission, receipts under <Link href="/giving" className="text-crimson underline">My giving</Link>, paid to the organisation&apos;s bank account) and <strong className="text-ink">paid event tickets</strong> with a QR code each and check-in at the door (<Link href="/tickets" className="text-crimson underline">My tickets</Link>)</li>
@@ -309,7 +323,7 @@ export default async function RoadmapPage() {
               <li>Google ads on the web and AdMob in the apps</li>
               <li>Nana suggests replies</li>
               <li>Bigger audio and video meetings (more than 6 people), meeting chat (under team discussion)</li>
-              <li>Media, next: the full-screen Media feed (For you, Following, Live now), comments, reactions and gifts on Media posts, sharing and reporting them, then going live in Media with replays and the #1MillionNairaNotesAppChallenge</li>
+              <li>Media, next: the full-screen Media feed (For you, Following, Live now), comments and reactions on Media posts, sharing and reporting them, then going live in Media with replays and the #1MillionNairaNotesAppChallenge</li>
               {!MEDIA_LIVE && <li>Media: your own videos and pictures on your profile</li>}
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}

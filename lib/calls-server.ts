@@ -78,6 +78,20 @@ export async function startCall(db: Firestore, callerUid: string, toUid: unknown
   return { id, cid };
 }
 
+// A pay-per-minute session's call (lib/ppm-server.ts startPpmCall checks the session first): the same call, between the session's two
+// people, without the follow rule. Phone to phone first; the relay (TURN) only when a network needs it, as for every call.
+export async function openPpmCall(db: Firestore, callerUid: string, calleeUid: string, kind: CallKind, ppmId: string, now = new Date(), deps: CallDeps = defaultDeps(db)): Promise<{ id: string; cid: string }> {
+  const [me, them] = await Promise.all([person(db, callerUid), person(db, calleeUid)]);
+  if (!me || me.suspended) throw new MessageError(403, "Your account can't make calls right now.");
+  if (!them || them.suspended) throw new MessageError(404, "That member wasn't found.");
+  const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
+  const cid = conversationId(callerUid, calleeUid);
+  const doc: CallDoc = { callerUid, calleeUid, kind, status: "ringing", cid, callerName: me.name, callerAvatar: me.avatar, calleeName: them.name, calleeAvatar: them.avatar, createdAt: now.toISOString(), ppm: ppmId };
+  await db.doc(`calls/${id}`).set(doc);
+  await deps.push(calleeUid, { title: kind === "video" ? "Per-minute video session" : "Per-minute voice session", body: `${me.name} is calling for your session`, url: `/messages/${cid}?answer=${id}`, kind: "call", callId: id, token: ringToken(id), ttl: 45, urgency: "high" }).catch(() => 0);
+  return { id, cid };
+}
+
 // Ends a call once (later calls are ignored) and writes a line into the conversation: "Voice call · 3:12", "Missed video call"…
 export async function endCall(db: Firestore, uid: string, id: unknown, asked: unknown, now = new Date(), deps: CallDeps = defaultDeps(db)): Promise<{ outcome: CallEnd | null }> {
   const ref = db.doc(`calls/${String(id ?? "")}`);
@@ -94,6 +108,8 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
   });
   if (!res) return { outcome: null };
   const { c, outcome, seconds } = res;
+  // A pay-per-minute session's call: the session settles on the server's meter (charge what was used, the rest back).
+  if (c.ppm) await (await import("./ppm-server")).ppmCallEnded(db, c.ppm, ref.id, now).catch((e) => console.error("ppm call end", c.ppm, e));
   if (res.c.status === "ringing") await deps.push(c.calleeUid, { title: "", body: "", url: "", kind: "call_end", callId: ref.id, ttl: 60, urgency: "high" }).catch(() => 0); // stops the ringing on their devices
   await clearCandidates(db, ref.id).catch(() => {});
   // The call line in the conversation (created if these two have never written to each other).

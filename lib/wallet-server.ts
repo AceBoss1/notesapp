@@ -1,7 +1,7 @@
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import {
-  BONUS_DAYS, BONUS_KINDS, EMPTY_WALLET, applySpend, bonusBalance, liveLots, nairaOf, refundSplit, splitSpend,
-  type BonusLot, type Wallet, type WalletTx,
+  BONUS_DAYS, EMPTY_WALLET, bonusAllowedFor, applySpend, bonusBalance, liveLots, nairaOf, refundSplit, settleSplit, splitSpend,
+  type BonusLot, type Wallet, type WalletHold, type WalletTx,
 } from "./wallet";
 import type { PaymentRecord } from "./payments";
 
@@ -26,7 +26,7 @@ function expiredLine(t: Transaction, db: Firestore, uid: string, w: Wallet, now:
   if (gone > 0) t.set(db.doc(`walletTx/exp_${uid}_${now.getTime()}`), { uid, type: "bonus_expired", creditKobo: 0, bonusKobo: -gone, label: "Bonus Credits ended", at: now.toISOString() } satisfies WalletTx);
 }
 
-export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"]; giving?: PaymentRecord["giving"] }): string {
+export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"]; giving?: PaymentRecord["giving"]; liveTicket?: PaymentRecord["liveTicket"]; ppm?: PaymentRecord["ppm"] }): string {
   switch (p.kind) {
     case "boost": return p.boost?.itemId ? "Boost for a store item" : "Boost for a post";
     case "ad": return "Advert campaign";
@@ -39,11 +39,13 @@ export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername"
     case "certificate": return "Notes Academy certificate";
     case "course": return `${p.course?.courseTitle ?? "Course"} · Notes Academy`;
     case "giving": return `Gift to ${p.giving?.communityName ?? "a community"}${p.giving ? ` · ${p.giving.fund}` : ""}`;
+    case "live_ticket": return `Ticket: ${p.liveTicket?.eventTitle ?? "paid live"} · @${p.publisherUsername}`;
+    case "ppm": return `Per-minute ${p.ppm?.kind === "video" ? "video" : "voice"} session with @${p.publisherUsername}${p.ppm ? ` · ${p.ppm.billedMinutes} min` : ""}`;
     case "booking": return `Session with @${p.booking?.username ?? p.publisherUsername}${p.booking ? ` · ${p.booking.date} ${p.booking.slot}` : ""}`;
     default: return "Payment";
   }
 }
-const HELD_KINDS = ["store", "booking", "digital", "course"];
+const HELD_KINDS = ["store", "booking", "digital", "course", "live_ticket", "ppm"];
 
 // Pays a checkout from the wallet: takes the money and writes the payment record in one step, so either both happen or neither.
 // The caller then runs fulfillPayment(reference), which skips Paystack for wallet payments.
@@ -54,7 +56,7 @@ export async function payFromWallet(db: Firestore, record: PaymentRecord, now = 
     const [ws, ps] = await Promise.all([t.get(ref), t.get(payRef)]);
     if (ps.exists) throw new WalletError(409, "This payment has already started.");
     const w = walletOf(ws.data());
-    const bonusOk = BONUS_KINDS.includes(record.kind);
+    const bonusOk = bonusAllowedFor(record.kind);
     const split = splitSpend(w, record.amountKobo, bonusOk, now);
     if (!split) {
       const bonus = bonusBalance(w, now);
@@ -122,6 +124,67 @@ export async function refundToWallet(db: Firestore, reference: string, amountKob
   });
 }
 
+// A card payment given back as NotesApp Credit instead of to the card (a paid live the host cancelled or never started: owner, 3 Nov
+// 2026, "everyone is refunded to their NotesApp Credit automatically"). The whole amount, once (creditRefundedKobo); returns what went back.
+export async function refundCardToCredit(db: Firestore, reference: string, label?: string, now = new Date()): Promise<number> {
+  const payRef = db.doc(`payments/${reference}`);
+  return db.runTransaction(async (t) => {
+    const p = (await t.get(payRef)).data() as (PaymentRecord & { creditRefundedKobo?: number }) | undefined;
+    if (!p || p.payWith === "wallet") throw new WalletError(404, "That isn't a card payment.");
+    if (p.creditRefundedKobo) return 0;
+    const ref = walletDoc(db, p.uid);
+    const w = walletOf((await t.get(ref)).data());
+    expiredLine(t, db, p.uid, w, now);
+    t.set(ref, { creditKobo: w.creditKobo + p.amountKobo, bonusLots: liveLots(w, now), updatedAt: now.toISOString() });
+    t.update(payRef, { creditRefundedKobo: p.amountKobo });
+    t.set(db.doc(`walletTx/${reference}_credit_${now.getTime()}`), {
+      uid: p.uid, type: "refund", creditKobo: p.amountKobo, bonusKobo: 0, label: label ?? `Refund: ${paymentLabel(p)}`, reference, kind: p.kind, at: now.toISOString(),
+    } satisfies WalletTx);
+    return p.amountKobo;
+  });
+}
+
+// ── Holds (lib/wallet.ts WalletHold; pay-per-minute sessions, lib/ppm-server.ts) ──
+// Both run inside the caller's transaction, after all its reads: pass the wallet and the hold as read there. Credit only, never Bonus
+// Credits. The statement shows a "hold" line when credit is set aside and a "release" line for what comes back.
+export const holdDoc = (db: Firestore, id: string) => db.doc(`walletHolds/${id}`);
+// Sets credit aside (or adds to a hold that's still open). Throws WalletError 402 when the credit doesn't cover it.
+export function placeHold(t: Transaction, db: Firestore, a: { uid: string; wallet: FirebaseFirestore.DocumentData | undefined; holdId: string; hold: WalletHold | undefined; kobo: number; kind: string; label: string; reference?: string; now: Date }): WalletHold {
+  if (!Number.isInteger(a.kobo) || a.kobo <= 0) throw new WalletError(400, "Nothing to hold.");
+  if (a.hold && (a.hold.status !== "held" || a.hold.uid !== a.uid)) throw new WalletError(409, "That hold is already settled.");
+  const w = walletOf(a.wallet);
+  if (w.creditKobo < a.kobo) {
+    const bonus = bonusBalance(w, a.now);
+    throw new WalletError(402, `Not enough NotesApp Credit: this holds ${nairaOf(a.kobo)} and you have ${nairaOf(w.creditKobo)}${bonus ? ` (Bonus Credits can't be used for this)` : ""}. Top up your wallet first.`);
+  }
+  expiredLine(t, db, a.uid, w, a.now);
+  t.set(walletDoc(db, a.uid), { creditKobo: w.creditKobo - a.kobo, bonusLots: liveLots(w, a.now), updatedAt: a.now.toISOString() });
+  const next: WalletHold = a.hold
+    ? { ...a.hold, kobo: a.hold.kobo + a.kobo }
+    : { uid: a.uid, kobo: a.kobo, status: "held", kind: a.kind, label: a.label, createdAt: a.now.toISOString() };
+  t.set(holdDoc(db, a.holdId), next);
+  t.set(db.doc(`walletTx/${a.holdId}_hold_${a.now.getTime()}`), {
+    uid: a.uid, type: "hold", creditKobo: -a.kobo, bonusKobo: 0, label: a.hold ? `More held: ${a.label}` : `Held: ${a.label}`, reference: a.reference ?? a.holdId, kind: a.kind, held: true, at: a.now.toISOString(),
+  } satisfies WalletTx);
+  return next;
+}
+// Settles an open hold: chargeKobo (capped at the hold) is kept, the rest goes back to credit. Returns what was charged and released, or
+// null when the hold was already settled (safe to run twice).
+export function settleHold(t: Transaction, db: Firestore, a: { wallet: FirebaseFirestore.DocumentData | undefined; holdId: string; hold: WalletHold | undefined; chargeKobo: number; label: string; reference?: string; now: Date }): { chargedKobo: number; releasedKobo: number } | null {
+  if (!a.hold || a.hold.status !== "held") return null;
+  const split = settleSplit(a.hold.kobo, a.chargeKobo);
+  const w = walletOf(a.wallet);
+  if (split.releasedKobo > 0) {
+    expiredLine(t, db, a.hold.uid, w, a.now);
+    t.set(walletDoc(db, a.hold.uid), { creditKobo: w.creditKobo + split.releasedKobo, bonusLots: liveLots(w, a.now), updatedAt: a.now.toISOString() });
+  }
+  t.set(holdDoc(db, a.holdId), { ...a.hold, status: "settled", chargedKobo: split.chargedKobo, releasedKobo: split.releasedKobo, settledAt: a.now.toISOString() });
+  t.set(db.doc(`walletTx/${a.holdId}_release`), {
+    uid: a.hold.uid, type: "release", creditKobo: split.releasedKobo, bonusKobo: 0, label: a.label, reference: a.reference ?? a.holdId, kind: a.hold.kind, at: a.now.toISOString(),
+  } satisfies WalletTx);
+  return split;
+}
+
 // Adds Bonus Credits to a wallet inside the caller's transaction (Notes Life invites). Pass the wallet as read in that transaction.
 export function grantBonus(t: Transaction, db: Firestore, uid: string, walletData: FirebaseFirestore.DocumentData | undefined, kobo: number, label: string, id: string, now = new Date()) {
   const w = walletOf(walletData);
@@ -178,16 +241,22 @@ export async function restoreTopup(db: Firestore, reference: string, back: { kob
 
 // For the wallet page: the balance (with expired bonus left out) and the latest statement lines.
 export async function walletSummary(db: Firestore, uid: string, limit = 50, now = new Date()) {
-  const [ws, txs] = await Promise.all([walletDoc(db, uid).get(), limit > 0 ? db.collection("walletTx").where("uid", "==", uid).orderBy("at", "desc").limit(limit).get() : Promise.resolve(null)]);
+  const [ws, txs, holds] = await Promise.all([
+    walletDoc(db, uid).get(),
+    limit > 0 ? db.collection("walletTx").where("uid", "==", uid).orderBy("at", "desc").limit(limit).get() : Promise.resolve(null),
+    db.collection("walletHolds").where("uid", "==", uid).where("status", "==", "held").limit(50).get(),
+  ]);
   const w = walletOf(ws.data());
   const lots = liveLots(w, now).sort((a, b) => a.expiresAt.localeCompare(b.expiresAt));
   const activity = (txs?.docs ?? []).map((d) => ({ id: d.id, ...(d.data() as WalletTx) }));
   // "Held" is shown only while the seller's money is still waiting (the ledger entry of that payment), not forever.
-  const heldRefs = activity.filter((a) => a.held && a.reference).map((a) => a.reference!);
+  const heldRefs = activity.filter((a) => a.held && a.reference && a.type !== "hold").map((a) => a.reference!);
   const ledger = heldRefs.length ? await db.getAll(...heldRefs.map((r) => db.doc(`ledger/${r}`))) : [];
   const stillHeld = new Set(ledger.filter((l) => ["held", "disputed"].includes(String(l.data()?.status))).map((l) => l.id));
   return {
     creditKobo: w.creditKobo, bonusKobo: lots.reduce((n, l) => n + l.kobo, 0), bonusLots: lots,
-    activity: activity.map((a) => ({ ...a, held: !!a.reference && stillHeld.has(a.reference) })),
+    // Credit set aside for pay-per-minute sessions that haven't ended (not spendable until they do; unused minutes come back).
+    heldKobo: holds.docs.reduce((n, d) => n + (Number(d.data().kobo) || 0), 0),
+    activity: activity.map((a) => ({ ...a, held: a.type === "hold" ? holds.docs.some((d) => a.reference === d.id) : !!a.reference && stillHeld.has(a.reference) })),
   };
 }

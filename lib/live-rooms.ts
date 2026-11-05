@@ -6,7 +6,7 @@
 // a message. On the edge, one Durable Object per room holds everyone's WebSocket and broadcasts the chat, the live count, raised hands
 // and stage/video signals; Firestore stays the source of truth for who may be in the room and who is on stage, and keeps the chat's
 // record (the worker sends it to our server in batches, LIVE_BATCH_MAX messages or LIVE_BATCH_MS, whichever comes first).
-import { ROOM_CHAT_MAX, ROOM_COUNT_EVERY_MS, chatWait } from "./rooms";
+import { ROOM_CHAT_MAX, ROOM_COUNT_EVERY_MS, chatWait, type ModPerm, type StageMode } from "./rooms";
 import type { LiveRole } from "./live-token";
 
 export const LIVE_FRAME_MAX = 2048; // bytes in one frame from a browser; bigger frames are dropped
@@ -26,7 +26,9 @@ export const LIVE_SIGNAL_RATE: Rate = { burst: 10, perSec: 1 };
 export type LiveChat = { id: string; from: string; name: string; avatar: string; text: string; at: string };
 export type LiveHand = { name: string; avatar: string; at: string };
 // What our server tells a room (created, settings changed): where to send batches, and the slow-mode settings.
-export type LiveConfig = { roomId: string; callback: string; hostUid: string; slowAbove: number; slowSeconds: number };
+// stageMode (v0.139.0, lib/rooms.ts "Stage seats"): in Solo the room refuses raised hands. mods: the moderators named for this live and
+// the permissions the host gave each (the room checks them for chat removals, chat mutes, removals from the live and slow mode).
+export type LiveConfig = { roomId: string; callback: string; hostUid: string; slowAbove: number; slowSeconds: number; stageMode?: StageMode; mods?: Record<string, ModPerm[]> };
 
 // Browser → room.
 export type LiveClientMsg =
@@ -39,7 +41,7 @@ export type LiveClientMsg =
   | { t: "ping" };
 // Room → browser.
 export type LiveServerMsg =
-  | { t: "hello"; you: { uid: string; role: LiveRole; mod: boolean; muted: boolean }; mutedList?: string[]; count: number; hands: Record<string, LiveHand>; video: Record<string, boolean>; recent: LiveChat[]; slow: number; hostSlow: boolean | null }
+  | { t: "hello"; you: { uid: string; role: LiveRole; mod: boolean; muted: boolean }; mutedList?: string[]; count: number; hands: Record<string, LiveHand>; video: Record<string, boolean>; recent: LiveChat[]; slow: number; hostSlow: boolean | null; stageMode?: StageMode; mics?: string[] }
   | { t: "chat"; m: LiveChat }
   | { t: "del"; id: string }
   | { t: "count"; n: number }
@@ -48,6 +50,11 @@ export type LiveServerMsg =
   | { t: "stage"; uid: string; role: LiveRole }
   | { t: "slow"; slow: number; hostSlow: boolean | null }
   | { t: "muted"; uid: string; on: boolean }
+  // The stage (lib/rooms.ts "Stage seats"), all decided by our server: the mode, a speaker's microphone turned off or on (mic, not to be
+  // confused with "muted", which is the chat), and an invitation, sent only to the invited person's sockets.
+  | { t: "stagemode"; mode: StageMode }
+  | { t: "mic"; uid: string; on: boolean }
+  | { t: "invite"; on: boolean; by?: string }
   | { t: "err"; msg: string; nonce?: string; wait?: number }
   | { t: "ended" }
   | { t: "pong" };
@@ -59,6 +66,14 @@ export type LiveServerOp =
   | { op: "chat"; m: LiveChat }
   | { op: "unchat"; id: string }
   | { op: "video"; uid: string; on: boolean } // a camera went up or down (lib/rooms-live-server.ts markVideoOn/markVideoOff: our server decides)
+  // The stage (lib/rooms-server.ts): the mode changed, a hand raised or lowered through our server (a request on the Firestore path, a
+  // teen's tap on an open seat, a request declined), a speaker's microphone off or on, an invitation sent or withdrawn.
+  | { op: "stagemode"; mode: StageMode }
+  | { op: "hand"; uid: string; up: boolean; name?: string; avatar?: string; at?: string }
+  | { op: "mic"; uid: string; on: boolean }
+  | { op: "invite"; uid: string; on: boolean; by?: string }
+  | { op: "mods"; mods: Record<string, ModPerm[]> } // the host changed the moderators or their permissions
+  | { op: "ban"; uid: string } // removed from the live through our server (lib/rooms-server.ts banFromLive)
   | { op: "end" }
   | { op: "ping" }; // /status: proves the address answers and both sides hold the same secret (no state is touched)
 // Room → our server (signed), POST to config.callback.
@@ -68,7 +83,10 @@ export type LiveSession = { u: string; e: "in" | "out"; at: number; role: LiveRo
 export type LiveBatch = {
   roomId: string; chat: LiveChat[]; removed: string[]; banned: string[]; count?: number; peak?: number; final?: boolean;
   sessions?: LiveSession[]; hands?: Record<string, LiveHand | null>;
+  // Moderators' actions taken on the socket (a message removed, a chat mute, a removal, slow mode), for the room's log (lib/rooms.ts).
+  modLog?: LiveModAction[];
 };
+export type LiveModAction = { by: string; byName: string; action: string; target?: string; at: number };
 export const LIVE_SESSIONS_MAX = 2_000; // events kept while our server can't be reached (the oldest go first)
 export const LIVE_SESSIONS_BATCH = 500; // events per batch
 

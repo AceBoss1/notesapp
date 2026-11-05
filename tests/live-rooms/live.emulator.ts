@@ -155,6 +155,19 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   assert.equal((await verifyLiveToken(SECRET, (await S.mintLiveToken(db, "l1", id)).token))!.role, "speaker");
   await R.setSpeaker(db, "host", id, "l1", false, new Date(), deps);
   assert.deepEqual(lastOp(), { op: "role", uid: "l1", role: "listener" });
+  // the stage (lib/rooms.ts "Stage seats"): the mode, invitations, microphones and the moderators reach the room from our server
+  await R.setStageMode(db, "host", id, "open");
+  assert.deepEqual(lastOp(), { op: "stagemode", mode: "open" });
+  await R.inviteToStage(db, "host", id, "l1");
+  const inv = lastOp(); assert.ok(inv?.op === "invite" && inv.uid === "l1" && inv.on === true);
+  await R.answerInvite(db, "l1", id, false);
+  assert.deepEqual(lastOp(), { op: "invite", uid: "l1", on: false });
+  await R.setRoomMods(db, "host", id, [{ who: "mod", perms: ["chatRemove", "ban"] }]);
+  assert.deepEqual(lastOp(), { op: "mods", mods: { mod: ["chatRemove", "ban"] } });
+  assert.equal((await verifyLiveToken(SECRET, (await S.mintLiveToken(db, "mod", id).catch(() => ({ token: "" }))).token))?.mod ?? false, false, "named for the live: the live's permissions, not the community's");
+  await batch({ roomId: id, modLog: [{ by: "mod", byName: "MOD", action: "mute in the chat", target: "l1", at: Date.now() }, { by: "host", byName: "HOST", action: "slow mode: on", at: Date.now() }] });
+  assert.deepEqual((await db.collection(`communityRooms/${id}/modLog`).get()).docs.map((d) => d.data().action), ["mute in the chat"], "the host's own actions aren't logged");
+  await R.setStageMode(db, "host", id, "approve");
   await R.sendRoomChat(db, "mod", id, "Through the server");
   const sent = lastOp();
   assert.ok(sent?.op === "chat" && sent.m.text === "Through the server" && sent.m.from === "mod");
@@ -198,6 +211,7 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   await lr.webSocketMessage(l3, JSON.stringify({ t: "hand", up: true }));
   assert.equal(hs.last("hand")!.uid, "l3");
   // the host brings l3 up through our server: the object hears it from us
+  await R.raiseHand(db, "l3", id, true); // kept by our server too (the socket's hand reaches it with the next batch)
   await R.setSpeaker(db, "host", id, "l3", true, new Date(), deps);
   assert.deepEqual(ls.last("stage"), { t: "stage", uid: "l3", role: "speaker" });
   assert.deepEqual(hs.last("hand"), { t: "hand", uid: "l3", up: false });

@@ -124,6 +124,7 @@ const user = (uid: string, tier = "basic", extra = {}) => db.doc(`users/${uid}`)
   assert.deepEqual(await R.liveRooms(db, "outsider", "grace-chapel"), [], "only members see the rooms");
   await R.raiseHand(db, "m1", room.id, true);
   await fails(R.setSpeaker(db, "m2", room.id, "m1", true), 403, /host/);
+  for (const u of ["m2", "m3", "m4", "m5"]) await R.raiseHand(db, u, room.id, true); // requests: bringing up anyone else invites them
   for (const u of ["m1", "m2", "m3", "m4"]) await R.setSpeaker(db, "bisi", room.id, u, true);
   let rd = (await db.doc(`communityRooms/${room.id}`).get()).data()!;
   assert.deepEqual(rd.speakers, ["m1", "m2", "m3", "m4"]); assert.equal(rd.hands.m1, undefined, "brought up: the hand goes down");

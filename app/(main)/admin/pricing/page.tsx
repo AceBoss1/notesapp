@@ -16,7 +16,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "autoWithdrawMaxKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
 const RATE_EXTRA = new Set(["weeklyRate", "capRate", "cutRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -26,7 +26,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -255,9 +255,16 @@ export default function PricingPage() {
               <div className="flex items-center justify-between gap-3"><span>Grand gifts from, ₦ (verified senders only)</span>{input(["gifts", "grand", "fromKobo"], "", "Grand gifts from")}</div>
               <div className="flex items-center justify-between gap-3"><span>Premium gifts (below that): extra commission, % of the creator&apos;s rate</span>{input(["gifts", "uplift", "premiumPct"], "%", "Premium gifts extra commission")}</div>
               <div className="flex items-center justify-between gap-3"><span>VIP gifts (from that): extra commission, % of the creator&apos;s rate</span>{input(["gifts", "uplift", "vipPct"], "%", "VIP gifts extra commission")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Most of one small gift in a single send (double-tap, ×N)</span>{input(["gifts", "economy", "quantityMax"], "", "Most of one gift in a single send")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Gift withdrawals paid automatically below, ₦ (from it up: approved in Payments)</span>{input(["gifts", "economy", "autoWithdrawMaxKobo"], "", "Gift withdrawals paid automatically below")}</div>
               <label className="flex items-center justify-between gap-3"><span>Announce grand gifts to everyone on #NotesApp</span><input type="checkbox" aria-label="Announce grand gifts" className="h-4 w-4 accent-crimson" checked={form.gifts.grand?.announce !== false} onChange={(e) => set(["gifts", "grand", "announce"], e.target.checked)} /></label>
             </div>
             <p className="mt-2 text-xs text-slate">The extra commission is a share of the creator&apos;s own rate: with an 8% rate and 20%, a VIP gift is charged 9.6%. Gifts of a typed amount keep the normal rate. A grand (VIP) gift plays longer, needs a ✔ sender, and (when announcing is on) shows a banner on every open page for 15 seconds with a link to the live or the creator&apos;s page. Creators in teen mode are never announced.</p>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Paid-live tickets: extra commission, % of the host&apos;s rate</span>{input(["liveTicketUpliftPct"], "%", "Paid-live tickets extra commission")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Pay-per-minute sessions: extra commission, % of the publisher&apos;s rate</span>{input(["ppmUpliftPct"], "%", "Pay-per-minute sessions extra commission")}</div>
+            </div>
+            <p className="mt-2 text-xs text-slate">On each ticket to a member&apos;s paid live #NotesApp takes the host&apos;s own rate plus this share of it, fixed on the payment at checkout (like premium gifts). The late window, the subscriber discount cap and the no-show cancellation are under Limits → Audio rooms → Paid lives. On a pay-per-minute session the publisher&apos;s rate plus its share is fixed when the session is booked and taken from what the call used; the minutes, the grace and the wait for more minutes are under Limits → Pay-per-minute sessions.</p>
             <p className="mt-2 text-xs text-slate">Different senders counts distinct accounts; a member can never gift themselves. There is no linked-account check yet (same phone, bank or device), so the senders rule is what stops one person reaching the target alone.</p>
           </section>
 

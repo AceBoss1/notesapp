@@ -1,5 +1,6 @@
 "use client";
 
+import PersonActions from "@/components/gifts/PersonActions";
 import { FanChips, useFanBadges } from "@/components/fans/FanBadges";
 import LinkedText from "@/components/LinkedText";
 import { useCallback, useEffect, useState } from "react";
@@ -130,6 +131,8 @@ export default function ReviewsPanel({ itemId, ownerUid, courseId, user, sellerU
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-ui text-sm font-bold text-ink">
                       <span className="flex min-w-0 items-center">{r.username ? <Link href={`/u/${r.username}`} className="truncate hover:underline">{r.name}</Link> : r.name}<NameBadgeIcons username={r.username} size={13} /></span>
                       <FanChips badge={fanBadges[r.uid]} />
+                      {/* Gift · Block · Report the reviewer (components/gifts/PersonActions.tsx). */}
+                      {r.uid && <PersonActions uid={r.uid} username={r.username} name={r.name} toKind="commenter" context="review" where={course ? "a course review" : "a shop review"} text={r.text} compact />}
                       {r.verified !== false && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-emerald-700">
                           {course ? <AcademyIcon className="h-3.5 w-3.5" /> : <span aria-hidden>🛍</span>}{badge}

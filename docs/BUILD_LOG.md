@@ -2962,3 +2962,96 @@ The owner's Promotion tab showed a ₦12,500 advert (Starter: 5,000 impressions 
 (Admin → Ads, Admin → Payments). `lib/promo-settle-server.ts` now settles them: claimed in a transaction, refunded the way the member
 paid, recorded with `settledAt`/`settledBy`/`refundedKobo`, the member told when money goes back. The cron runs it every 15 minutes,
 25 of each kind per run; the admin buttons call the same functions. For the screenshot's advert that is ₦11,855 back.
+**Stage seats and moderators in audio rooms (v0.139.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
+changes during the live (Solo, Approve, Open), empty chairs with a + (a request in Approve, the seat itself in Open), invitations the
+invited person accepts, and moderators for the live. After a first pass, the owner widened moderators to permissions the host ticks per
+moderator (presets Basic and Full) covering the whole live, never against the host or a moderator with as much say, every action logged.
+The pure rules are in `lib/rooms.ts` ("Stage seats": `seatAction`, `MOD_PERMS`, `permsOf`, `mayActOn`, `inviteFor`, `isMicMuted`),
+every check is on the server in `lib/rooms-server.ts` (one `moveStage` transaction for approvals, open seats, accepted invitations and
+bringing down), and rooms on the live-rooms worker get the mode, hands, mic marks, invitations and moderators' permissions from our
+server (`workers/live-rooms/src/room.ts` checks the permissions for chat removals, chat mutes, removals and slow mode, and sends its
+moderators' actions back in the batches for the log). Mic off is enforced on the relay by unpublishing and closing the track at
+Cloudflare (`canPush` refuses it); phone to phone, every phone obeys the room doc. Teen mode turns an Open seat into a request and allows
+invitations only from people the teen follows. UI: `components/community/StageControls.tsx` (the mode switch, the seats, the
+moderators sheet) and `AudioRoom.tsx` (menus per permission, seat requests, the invitation card, the pinned message, the log). Tests:
+`test:rooms`, `tests/community/rooms-stage.emulator.ts` in `test:rooms-server`, worker tests in `test:live-rooms`, `test:live-rooms-server`,
+existing tests updated so a bring-up without a request is an invitation.
+
+**Gifting everywhere (v0.140.0, 4 Nov 2026)** — Phase 2 of the live economy plan. A ⋯ menu with Gift · Block · Report beside names on
+journal comments, shop and course reviews, a live's stage, Media posts and replays (`components/gifts/PersonActions.tsx`), with the server
+deciding whether the viewer may gift that person (`giftGate`: payouts, gifts off, blocks, teen mode only from mutual followers). Double-tap
+a small gift for How many? (`giftQuantity`; one payment, ×N on the overlay and the bell). Wallet gifts never touch Bonus Credits. The
+profile's new Gifts tab lists received gifts by gift with count and value, archive, and Withdraw: every gift past its 7-day review goes out
+as one `gift_payout` ledger entry through the existing payout path, automatically under the Admin line (₦20,000 to start) and after
+approval in Admin → Payments from it up (`lib/gift-earnings-server.ts`). Weekly Top gifted and Top gifters (Lagos Monday 00:00) and gift
+points (1 per ₦100) are written with each gift (`giftWeekly`, `gifterWeekly`, `giftPoints`, `giftReceived`).
+## Paid lives: tickets, the recording choice and subscriber discounts (v0.141.0, built 5 November 2026)
+
+Phase 1a of the live economy plan (`docs/LIVE_ECONOMY.md` on the plan branch; owner's decisions of 3 and 4 November). A publisher
+schedules a live with three prices (early bird until a time they pick, normal until the start, late until the live has run
+`lateWindowMin`), who may buy (everyone, Premium and up, VIP and up), a poster and the recording choice (off, safety only, replay).
+Subscribers get the discount the host set for their tier once, beside its price (Rates & payouts → Subscriptions), capped in Admin and
+applied on top of the band. The pure rules are `lib/live-tickets.ts`; the server is `lib/live-tickets-server.ts` (scheduling, the
+lobby, checkout, the door, cancelling, reminders and no-show refunds), with `lib/live-door-server.ts` holding what the rooms need
+(the ticket check, and moving the ticket money's hold when the room ends or reopens).
+
+**Hosting a member's own live.** Every audio room was a community room. Rather than a second room collection, a paid live is the same
+`communityRooms/{id}` doc with no community (`cid: ""`) and `paid: { eventId, record }`, so the relay, the live-rooms worker, Live mode,
+the stage seats and the recorder all work unchanged. The community checks in `lib/rooms-server.ts` became one `mayEnter` (community
+members for a community live; the host, the moderators the host names and ticket holders for a paid live), and `isMemberLive` takes
+community moderators' chat powers away there (owner, 5 November). Moderators for a paid live are found by @username across #NotesApp.
+
+**Money.** Payment kind `live_ticket`, by card or NotesApp Credit (credit only, like event tickets never take Bonus Credits). The
+commission is the host's session rate plus `liveTicketUpliftPct` % of it (Admin → Pricing), fixed on the payment like premium gifts
+(`upliftedRate`). The ledger entry waits (`awaitingLive`) until the room ends, then `PAYOUT_HOLD_HOURS` like a session. Refunds always
+go to NotesApp Credit, card payments included (`refundCardToCredit`); a payment that lands after a cancel is refunded the same way.
+Tests: `tests/live-tickets/live-tickets.test.ts` (bands, late window, discount stacking, uplift, form checks) and
+`live-tickets.emulator.ts` (checkout → ticket → door → end → payout; cancel and no-show refunds; moderators), the rules test, `test:help`.
+
+
+**Google sign-in checked before the app sees it (v0.141.1, 5 Nov 2026)** — The owner's HAR of a real sign-in on www.naapp.tech showed
+Firebase signing a Google account straight into the existing account with the same email, and every `onAuthStateChanged` listener
+acting as that account for about two seconds (pages prefetched signed in, two Firestore writes) before `/api/auth/google` answered
+"link-required" and the client signed out. `lib/google-gate.ts` now runs that check inside Firebase's `beforeAuthStateChanged`: while a
+Google sign-in pop-up is in flight (armed in `continueWithGoogle`) or the page load is the return from a Google sign-in redirect (the
+`na_google_redirect` flag now says "signin" or "link", read once at page load), the server's answer is awaited before Firebase sets the
+user; "link-required" or a failed check throws, so the user is never set and no listener runs. Linking Google never goes through it (the
+server's sign-in check would take Google off an account being linked on purpose), nor does the same account refreshing. If the gate
+didn't run, `afterGoogle` still checks the old way. Test: `tests/social-signin/google-gate.emulator.ts` (browser SDK against the Auth
+emulator, in `test:social-signin`). The same HAR confirmed LinkedIn end to end on the live site (real ID token and nonce accepted) and
+the `/__/auth` on-site handler.
+## Pay-per-minute sessions: holds, the server's meter and paid calls (v0.142.0, built 5 November 2026)
+
+Phase 1b of the live economy plan (`docs/LIVE_ECONOMY.md`; owner's decisions of 3 and 4 November), built on paid lives (1a). A publisher
+sets a price per minute for voice and for video and who may book (everyone, or their own Premium, VIP or VVIP subscribers from that tier
+up) under Rates & payouts; a viewer books one of the publisher's session times and chooses the minutes to hold (at least `ppmMinMinutes`).
+The pure rules are `lib/ppm.ts` (the offer, the gate, the commission, the meter); the server is `lib/ppm-server.ts`; the screens are
+`components/ppm/` (Book · per minute on the profile, the settings card, the meter, `/ppm` and `/ppm/<id>`), with the meter shown over the
+call screen (`components/calls/CallManager.tsx`).
+
+**A hold in the wallet.** There was none: a wallet payment took the money at once. `placeHold` / `settleHold` (`lib/wallet-server.ts`)
+move credit (never Bonus Credits) out of the spendable balance into `walletHolds/{id}` inside the caller's transaction, can add to an open
+hold, and settle it once: the charge is kept (capped at the hold, `settleSplit` in `lib/wallet.ts`) and the rest goes back, with "hold"
+and "release" lines on the statement. The wallet page shows what's held.
+
+**The meter is the server's.** The call is the existing one-to-one call (`calls/{id}` with `ppm`), so it goes phone to phone first and
+through the relay only when needed, with PR #269's ICE recovery. Each phone posts a beat every 15 seconds while connected; the server
+writes its own time for each side, starts the meter when it has heard both, and decides everything else from those times: the top-up
+prompt when the held minutes are used, the end after the wait (`ppmTopUpWaitSec`, never charged), and a dropped phone (silent 45 s: the
+end is the last moment both were there). The cron sweeps sessions nobody is beating for, and expires sessions whose call never started.
+Billing is nothing within the grace (`ppmGraceSec`), then every started minute from the start (12:41 is 13 minutes, as in the mockup).
+
+**Money.** The commission is the publisher's rate plus `ppmUpliftPct` % of it (Admin → Pricing, default 20), fixed on the session at
+booking, like paid-live tickets (`upliftedRate`). At the end the charge becomes payment kind `ppm` (from the held credit, so a refund goes
+back to the wallet) and a held ledger entry released `PAYOUT_HOLD_HOURS` after the call, like a session; the viewer can report a problem in
+that window. Teens can neither sell nor book. Tests: `tests/ppm/ppm.test.ts` (grace, per started minute, the hold running out, the wait,
+unused minutes back, uplift, the offer, the gate) and `ppm.emulator.ts` (book → hold → call → beats → top-up prompt → add → end → charge
+and release → ledger → payout; the hold running out, a dropped phone, the grace, a missed call, cancelling, the sweep, teens, the tier
+gate, a report and a refund), the rules test, `test:help`.
+
+**R2 CORS for every address of both domains (v0.142.1, 5 Nov 2026)** — The owner's console on www.naapp.tech: avatar uploads (a
+presigned PUT straight to `notesapp-media` on R2) "blocked by CORS policy: No 'Access-Control-Allow-Origin' header". `scripts/r2-cors.json`
+predated the move: it had only www./bare/app. of notesapp.name.ng and notesapp.ng. It now lists bare, www., app., life., prep. and mcp. of
+notesapp.name.ng and naapp.tech, plus notesapp.ng, www.notesapp.ng and localhost:3000. `tests/host/host.test.ts` (in `test:host`)
+fails when a domain in `KNOWN_ROOTS` / `APP_SHORT_DOMAINS` or one of those subdomains is missing. Owner step: paste the file into both
+buckets' CORS policy (docs/DOMAIN_SWITCH.md step 2, docs/OWNER_SETUP.md). Nothing in the code changed.

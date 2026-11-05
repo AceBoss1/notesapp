@@ -68,7 +68,7 @@ manager to keep every secret in.
 
 ### Every time a branch with rules is merged
 
-- Run `firebase deploy --only firestore` again ([1.3](#13-deploy-the-rules-and-indexes)). Gifting everywhere (item 118) needs it.
+- Run `firebase deploy --only firestore` again ([1.3](#13-deploy-the-rules-and-indexes)). Gifting everywhere (item 118), paid lives (item 119) and pay-per-minute (item 120) need it.
 - The live-rooms worker redeploys **by itself** when a merge changes it (stage seats, item 117, does), once the GitHub secrets from
   step 14 exist. Check the run is green under **Actions → Deploy live rooms**.
 

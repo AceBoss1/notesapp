@@ -35,13 +35,17 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
-import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
+import { DEFAULT_PAID_FIGURES, DEFAULT_PPM_FIGURES, type PaidLiveFigures, type PpmFigures } from "./rooms";
+import { PPM_ADD_STEP, PPM_EARLY_MS, PPM_RATE_MAX_KOBO, PPM_RATE_MIN_KOBO } from "./ppm";
+import { BAND_NAME } from "./live-tickets";
+import { PAYOUT_HOLD_HOURS } from "./cancellation";
+import { DEFAULT_ROOM_FIGURES, MOD_PERMS, ROOM_CHAT_MAX, ROOM_INVITE_MS, ROOM_MODS_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
 import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, type SubTier } from "./fans";
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
-import { GIFT_SETTINGS, MOTIF_BLURB, enabledGifts, giftClass, needsVerified, verifiedRuleText } from "./gift-catalogue";
+import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
 // the pricing page. Plain facts only; if something is not live yet, the article says so. Staff can add articles or override one by slug
@@ -60,7 +64,11 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
 // Live recording: the keep days, the longest recording and whether the recorder is set up (lib/live-recording.ts).
 // Subscription tiers and fans: the tier price ranges and the VIP/VVIP commission shares (Admin → Limits → Subscriptions and fans, lib/fans.ts).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings };
+// Paid lives: the late window, the subscriber discount cap and the no-show minutes (Admin → Limits → Audio rooms → Paid lives); the
+// ticket commission share is a price (currentPricing().liveTicketUpliftPct).
+// Pay-per-minute sessions: the minimum and maximum minutes held, the grace, the wait for more minutes and the no-show minutes (Admin →
+// Limits → Pay-per-minute sessions); the commission share is a price (currentPricing().ppmUpliftPct).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -74,6 +82,11 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const roomListeners = n(room.listeners);
   const rec = live.recording ?? DEFAULT_RECORDING_FIGURES;
   const fan = live.fans ?? FAN_DEFAULTS;
+  const paid = live.paid ?? DEFAULT_PAID_FIGURES;
+  const liveUplift = currentPricing().liveTicketUpliftPct;
+  const ppm = live.ppm ?? DEFAULT_PPM_FIGURES;
+  const ppmUplift = currentPricing().ppmUpliftPct;
+  const secs = (x: number) => `${x} second${x === 1 ? "" : "s"}`;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
   const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
@@ -277,18 +290,19 @@ Paid plans renew automatically through Paystack, monthly or yearly. Cancel any t
 
 **Bonus Credits** come with larger top-ups:
 ${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
-They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners (and paid calls, when those arrive). Bonus amounts can change and are always shown before you pay.
+They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners. Bonus amounts can change and are always shown before you pay.
 
 **Paying from your wallet:** when you pay for a boost, the maroon ✔ badge, an ad campaign, a gift, a shop item, a download or a paid session, and you have something in your wallet, you're asked **Wallet** or **Card, bank transfer or USSD**. The same prices and rules apply as paying by card:
 - Shop items are **held** until you confirm delivery, and sessions until they have happened; then the seller is paid.
 - A badge paid from the wallet lasts one month and doesn't renew by itself; add it again when it ends.
-- Gifts, shop items, downloads and sessions use your credit only, not Bonus Credits.
+- Gifts, shop items, downloads, sessions and tickets to [paid lives](/help/paid-lives) use your credit only, not Bonus Credits.
+- **Pay-per-minute sessions** [hold](/help/pay-per-minute) the minutes you choose from your credit (never Bonus Credits) when you book. Held credit can't be spent elsewhere until the call ends; then you pay only the minutes used and the rest comes straight back. The Wallet page shows what's held.
 
-**Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
+**Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. A ticket to a paid live the host cancels or never starts comes back to your wallet as credit even if you paid by card. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
 
 **What you can't do:** NotesApp Credit can't be withdrawn, cashed out, sent or sold to another member. Sellers and publishers are always paid to their bank accounts, never into a wallet. Plans (Pro, Business), journal subscriptions, the gold badge and merch are paid by card for now.
 
-**Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds). Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
+**Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds), and the credit held for pay-per-minute sessions. Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
       : []),
     A("commission-rates", "What #NotesApp takes (commission) on each plan", "Plans and pricing", `
 On **paid sessions, journal subscriptions and gifts to you** (one rate for all three), #NotesApp takes a commission that falls as you move up:
@@ -302,6 +316,10 @@ On store sales, the commission is on the item price only (your delivery fee is y
 Your own rate is shown where you set your prices and see your earnings, under [Rates & payouts](/profile/publishing), and on [My bookings](/bookings). A sale keeps the rate in force when it was paid.
 
 **Not the same as gifts to you:** **giving** to a community (its funds) has no commission, just a flat charge like a bank transfer (${bandsText(money)}), plus the card charge at cost by card; see [Giving to a community](/help/giving). **Paid event tickets** have no commission on any plan either: each ticket has the same small charge, plus the card charge at cost; see [Paid event tickets](/help/event-tickets).
+
+**Paid lives:** on each ticket to your [paid live](/help/paid-lives), #NotesApp takes your rate above plus ${liveUplift}% of it, fixed when the ticket is bought, worked out on what the buyer paid after any subscriber discount.
+
+**Pay-per-minute sessions:** on each [pay-per-minute session](/help/pay-per-minute), #NotesApp takes your rate above plus ${ppmUplift}% of it, fixed when the session is booked, worked out on the minutes the call used.
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -332,7 +350,9 @@ Publishers set a session price (${money(LIMITS.sessionMinKobo)} to ${money(LIMIT
 
 **What #NotesApp takes:** ${SESSION_RATES()} of each paid session; the same rate as subscriptions and gifts (see [commission rates](/help/commission-rates)). Your own rate shows under Rates & payouts and on My bookings.
 
-To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).`),
+To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).
+
+**Paid by the minute instead:** publishers can also offer [pay-per-minute sessions](/help/pay-per-minute): voice or video calls at a price per minute, booked in the same weekly times, where the caller holds minutes from their NotesApp Credit and pays only what the call uses.`),
     A("subscriptions", "Subscriptions: Premium, VIP and VVIP", "Publishing and earning", `
 A publisher can offer paid monthly subscriptions in up to three tiers, each at a price they set: **Premium** (${tierRange("premium")} a month), **VIP** (${tierRange("vip")}) and **VVIP** (${tierRange("vvip")}). Each tier includes the ones below it. Set them under [Rates & payouts](/profile/publishing): tick the tiers you offer and type each price. Subscribers from before tiers are Premium at the price they pay.
 
@@ -341,6 +361,8 @@ A publisher can offer paid monthly subscriptions in up to three tiers, each at a
 **Badges:** subscribers carry a badge next to their name in your space (your journal's comments, your shop's and courses' reviews): 🌄 **Starter** (Premium), 🛡 **Army** (VIP) and 🏆 **VVIP**. Subscribing also builds their [fan level](/help/fan-levels) with you.
 
 **For readers:** subscribe from the creator's profile (or a locked entry), pick a tier, and pay by Paystack or NotesApp Credit; it renews every month, and you can cancel any time. Switching tier starts the new one now at its price, the days left on your old tier are added on, and the old tier stops renewing.
+
+**Paid-live discount:** beside each tier's price you can give that tier's subscribers a discount on tickets to your [paid lives](/help/paid-lives), from 0% up to ${paid.discountMaxPct}%. It applies to every paid live you run, on top of whichever price applies (early bird, normal or late).
 
 **For the publisher:** subscription money is released to your verified bank account after a 7-day window, minus your plan's commission: ${SESSION_RATES()} on Premium (see [commission rates](/help/commission-rates)). On **VIP**, #NotesApp takes your rate plus ${fan.vipUpliftPct}% of it, and on **VVIP** your rate plus ${fan.vvipUpliftPct}% of it: with an 8% rate, ${+(8 * (1 + fan.vipUpliftPct / 100)).toFixed(2)}% and ${+(8 * (1 + fan.vvipUpliftPct / 100)).toFixed(2)}%. The rate is fixed on each payment.`),
     A("fan-levels", "Fan levels, Top fans and live entrances", "Publishing and earning", `
@@ -359,18 +381,72 @@ You never earn points with yourself. The top ${TOP_FANS} get a badge next to the
     A("gifts", "Gifts", "Publishing and earning", `
 A reader can send a publisher, or one single post, a gift, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
+**Gift anyone:** tap **⋯** beside a name for **Gift · Block · Report**: a speaker or host on a live's stage, someone who commented on a journal, someone who reviewed a shop item or a course, the creator of a Media post (when they allow gifts on it) and the host of a replay. The person must have added a payout account; otherwise Gift is switched off and says why. **Block** stops them messaging you and seeing your moments, and you can't gift each other; **Report** sends them to our team with where it happened.
+
+**Several at once:** tap a small (premium) gift twice and **How many?** opens: send 1 to ${GIFT_SETTINGS.economy.quantityMax} of it as one payment, at that many times its price. It plays once, with **×N**. VIP gifts go one at a time, one send can't go over ${money(GIFT_MAX_KOBO)}, and a send over ${money(UNVERIFIED_GIFT_CAP_KOBO)} needs the ✔ badge.
+
+**Teen mode:** a member in teen mode can receive gifts only from people they follow back (you follow each other). For everyone else the gift action is switched off for them.
+
 **Animated gifts:** choose one of ${enabledGifts().length} named gifts. Each plays full screen with its own mix of rays, stars, fireworks, confetti and sound, for the person you gift, in their notification, and for everyone looking at their page when it arrives (and, once lives open, for everyone in the live). Sound is off unless you switch on **Gift sounds** in the gift sheet. The gifts today:
 ${enabledGifts().map((g) => `- **${g.name}** (${MOTIF_BLURB[g.id]}): ${money(g.priceKobo)}${needsVerified(g) ? " ✔" : ""}`).join("\n")}
 
 Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the ✔ badge to send them.${GIFT_SETTINGS.grand.announce ? ` Each gift from ${money(GIFT_SETTINGS.grand.fromKobo)} is also announced to everyone on #NotesApp at that moment, with a link to join the live (or the creator's page) and watch it; a creator in teen mode is never announced, and an anonymous sender stays anonymous.` : ""} Or choose **Other** and type any amount from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}.
 
-**Paying:** from your NotesApp Credit, or by card, bank transfer or USSD through Paystack. You need a verified email to send a gift, and you cannot gift yourself.
+**Paying:** from your NotesApp Credit, or by card, bank transfer or USSD through Paystack. ${NO_BONUS_TEXT} You need a verified email to send a gift, and you cannot gift yourself.
 
-**For the publisher:** gifts are paid to your bank account 7 days after they arrive (a short dispute window), minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions, for a gift of a typed amount. **Animated gifts** carry a little more: on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "premium").length} **premium gifts** #NotesApp takes your rate plus ${GIFT_SETTINGS.uplift.premiumPct}% of it, and on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "vip").length} **VIP gifts** (from ${money(GIFT_SETTINGS.grand.fromKobo)}, verified senders) your rate plus ${GIFT_SETTINGS.uplift.vipPct}% of it. For example, with an 8% rate a premium gift is charged ${+(8 * (1 + GIFT_SETTINGS.uplift.premiumPct / 100)).toFixed(2)}% and a VIP gift ${+(8 * (1 + GIFT_SETTINGS.uplift.vipPct / 100)).toFixed(2)}%. Gifts sent in a live or on a post are the same.
+**Gift points:** every ${money(GIFT_POINT_KOBO)} you spend on gifts is 1 gift point, a running count shown on your profile's **Gifts** tab (all time and this week). The same gifts also raise your fan level with that creator.
+
+**Received gifts, archive and withdraw:** your profile's **Gifts** tab (after Media) lists every gift you received with its count and value. **Archive** takes a gift out of the list; it keeps its count and value under **Archived**, and what it earned can still be withdrawn. Each gift can be withdrawn 7 days after it arrives (a short review): **Withdraw** sends everything past its review to your bank account in one payout. ${withdrawRuleText()}
+
+**For the publisher:** what you withdraw is the gifts minus your plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions, for a gift of a typed amount. **Animated gifts** carry a little more: on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "premium").length} **premium gifts** #NotesApp takes your rate plus ${GIFT_SETTINGS.uplift.premiumPct}% of it, and on the ${enabledGifts().filter((g) => giftClass(g.priceKobo) === "vip").length} **VIP gifts** (from ${money(GIFT_SETTINGS.grand.fromKobo)}, verified senders) your rate plus ${GIFT_SETTINGS.uplift.vipPct}% of it. For example, with an 8% rate a premium gift is charged ${+(8 * (1 + GIFT_SETTINGS.uplift.premiumPct / 100)).toFixed(2)}% and a VIP gift ${+(8 * (1 + GIFT_SETTINGS.uplift.vipPct / 100)).toFixed(2)}%. Gifts sent in a live or on a post are the same.
 
 **Top gifted today:** a creator who receives ${money(GIFT_SETTINGS.daily.targetKobo)}${GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time), from at least ${GIFT_SETTINGS.daily.minSenders} different people, is pinned in the **Top gifted today** shelf at the top of [Trending](/trending) and [Explore](/explore) for the rest of that day: the ${GIFT_SETTINGS.daily.slots} who received the most, and between two with the same amount, whoever got there first. A gift to yourself never counts. Members in teen mode only appear there for people who follow them.
 
+**Weekly boards:** **Top gifted** (who received the most this week, on [Gifts](/gifts)) and each creator's **Top gifters** (who sent them the most, on their Gifts tab) start again at midnight going into Monday, Lagos time; **Last week** keeps the result. Anonymous gifts count for the receiver but never name the sender on Top gifters.
+
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
+A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
+
+**Scheduling one:** on [Paid lives](/lives) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
+- **${BAND_NAME.early}:** until a date and time you pick.
+- **${BAND_NAME.normal}:** from then until the start.
+- **${BAND_NAME.late}:** from the start until the live has run ${paid.lateWindowMin} minute${paid.lateWindowMin === 1 ? "" : "s"}. After that, no more tickets.
+You need a publishing account and your bank account under Rates & payouts. Members in teen mode can't sell tickets.
+
+**Who can buy:** **Everyone**, **Premium and up** or **VIP and up** (subscribers of your own [subscription tiers](/help/subscriptions)). Subscribers still pay; this is who may buy.
+
+**Subscriber discount:** set once, beside each tier's price under Rates & payouts → Subscriptions (from 0% up to ${paid.discountMaxPct}%). It comes off every ticket to your paid lives for subscribers of that tier, on top of whichever price applies.
+
+**Recording:** **Off**, **Safety only** (kept for review, never a replay) or **Record and offer a replay**. Everyone is told as they join, and speakers agree before their mic goes on. More in [Recording a live, and replays](/help/live-recording-and-replays).
+
+**Buying a ticket:** open the live's page, check the price (yours, after any subscriber discount) and pay from your NotesApp Credit or by card, bank transfer or USSD. Bonus Credits can't be used for tickets. One ticket a person; you get reminders a day before, an hour before, and when it starts.
+
+**The door:** only ticket holders get in. When the host opens the live, **Enter the live** checks your ticket and takes you in; your ticket then shows **✓ Checked**. The host and the moderators the host names come in without a ticket. Only those moderators can moderate a paid live; a community's moderators have no powers there.
+
+**Going live:** the host can open the room from 15 minutes before the start. If the host's connection drops or they end it by mistake, they can reopen it within 30 minutes and the same tickets still work.
+
+**Refunds:** if the host cancels, or doesn't open the live within ${paid.noShowMin} minute${paid.noShowMin === 1 ? "" : "s"} of its time, every ticket is refunded **to NotesApp Credit** automatically (even if you paid by card), and you're told.
+
+**For the host:** #NotesApp takes your [normal rate](/help/commission-rates) plus ${liveUplift}% of it on each ticket, fixed when the ticket is bought and worked out on what the buyer paid. The rest is paid to your bank account after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems, like a paid session.`),
+    A("pay-per-minute", "Pay-per-minute sessions: voice and video calls by the minute", "Publishing and earning", `
+A **pay-per-minute session** is a one-to-one voice or video call with a publisher, paid by the minute from your NotesApp Credit. You hold some minutes when you book, the call is metered by #NotesApp, and you pay only for what you use. Your sessions are on [Pay-per-minute sessions](/ppm).
+
+**For publishers:** under [Rates & payouts](/profile/publishing), tick **Offer pay-per-minute sessions** and set a price per minute for **voice**, for **video**, or both (${money(PPM_RATE_MIN_KOBO)} to ${money(PPM_RATE_MAX_KOBO)} a minute), and who can book: **Everyone**, or your own **Premium, VIP and VVIP**, **VIP and VVIP**, or **VVIP** subscribers ([subscription tiers](/help/subscriptions); they still pay per minute). People book your weekly times, the same ones as [paid sessions](/help/paid-sessions). You need a publishing account and a bank account for payouts.
+
+**Booking:** on the publisher's profile, under **Book · per minute**, choose voice or video, a day and a time, and how many minutes to hold (at least ${ppm.minMinutes}, up to ${ppm.maxMinutes} when booking). That many minutes at their price are **held** from your NotesApp Credit: set aside, not charged. Bonus Credits can't be used, so you need enough credit; [top up](/profile/wallet) first if not.
+
+**The call:** either of you can start it from the session's page, from ${PPM_EARLY_MS / 60_000} minutes before the time. It's the same call as in Messages: phone to phone, end-to-end encrypted, through a relay only when a network needs one. A meter shows the time, the minutes billed and what's left of your hold. The meter is #NotesApp's: it starts when both phones are connected and counts on our clock, not on either phone.
+
+**What you pay:** if the call ends within the first ${secs(ppm.graceSec)}, nothing. After that, every **started minute** is charged, counted from the start: a call of 12:41 is 13 minutes. Unused minutes go back to your NotesApp Credit as soon as the call ends.
+
+**Running out:** when your held minutes are used up you're asked to add minutes (**+ Add ${PPM_ADD_STEP} minutes** holds ${PPM_ADD_STEP} more). If you don't, the call ends ${secs(ppm.topUpWaitSec)} later, and that wait isn't charged: you never pay more than you held. If a phone loses the connection for good, the call ends at the last moment you were both on it.
+
+**Cancelling:** until the call starts, either of you can cancel and everything held comes back. A session whose call hasn't started ${ppm.noShowMin} minute${ppm.noShowMin === 1 ? "" : "s"} after its time ends by itself, and the hold comes back.
+
+**For the publisher:** #NotesApp takes your [normal rate](/help/commission-rates) plus ${ppmUplift}% of it, fixed when the session is booked, on what the call used. The rest is paid to your bank account after the call ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems, like a paid session. Within that window the caller can report a problem from the session's page, which pauses the payout while we review it.
+
+**Teens:** members in teen mode can't sell or book pay-per-minute sessions.`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -386,11 +462,14 @@ Gifts to a community's funds are [giving](/help/giving) instead: no commission, 
     A("payouts", "Getting paid: payouts and when money is released", "Publishing and earning", `
 Add a bank account under Rates & payouts. We verify the account name first and store only the account name, bank and last four digits. Then:
 - **Sessions:** paid 24 hours after the session ends.
-- **Subscriptions and gifts:** released after 7 days.
+- **Subscriptions:** released after 7 days.
+- **Gifts:** ready 7 days after each gift; withdraw them from the **Gifts** tab on your profile. ${withdrawRuleText()}
 - **Physical store orders:** released when the buyer confirms delivery, or 7 days after you mark it delivered if they say nothing.
 - **Digital downloads:** after a 7-day dispute window.
 - **Ad share:** monthly, after review (see [Ads and ad share](/help/ads-and-ad-share)).
 - **Event tickets:** after the event ends and a 24-hour window for problems (see [Paid event tickets](/help/event-tickets)).
+- **Paid-live tickets:** after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems (see [Paid lives](/help/paid-lives)).
+- **Pay-per-minute sessions:** what the call used, after the call ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems (see [Pay-per-minute sessions](/help/pay-per-minute)).
 - **Gifts to a community:** held for a day, then paid on the next payout run (see [Giving to a community](/help/giving)).
 - **Referral and affiliate earnings:** after 7 days (14 for delivered shop items), as cash or as NotesApp Credit (see [Referrals and affiliates](/help/referrals)).
 
@@ -470,7 +549,7 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
       : []),
     ...(CALLS_LIVE
       ? [A("voice-and-video-calls", "Voice and video calls", "Publishing and earning", `
-**Free voice and video calls** in [Messages](/messages), with anyone you follow who follows you back. No minute limit, on every plan.
+**Free voice and video calls** in [Messages](/messages), with anyone you follow who follows you back. No minute limit, on every plan. Paid calls with a publisher are [pay-per-minute sessions](/help/pay-per-minute): the same call, with the session's meter on screen.
 
 **Make a call:** open the conversation and tap the **phone** (voice) or **camera** (video) at the top. It rings on the other person's phone or computer wherever they are on #NotesApp, for up to 45 seconds. During a call you can mute, turn your camera off and on, and end the call. In a video call, drag your own small picture to any corner, tap it to swap it with the other person's, and tap **🔄** to switch between your front and back camera.
 
@@ -741,7 +820,7 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 
 **Posting:** open your [Media studio](/profile/media) (Profile → Media), choose a video or pictures, and add a caption. Pictures are made WebP before they're sent, like everywhere on #NotesApp. Videos go to Cloudflare Stream, which plays them at the right quality for your connection, and they show on your Media within about a minute. You need a verified email to post.
 
-**Who can see each post:** **Everyone**, **Followers**, or **Subscribers** (people who subscribe to your journal). You can change it later from **⋯** on the post. You can also choose whether to allow comments, shares and gifts. Comments, reactions and gifts arrive with the Media feed.
+**Who can see each post:** **Everyone**, **Followers**, or **Subscribers** (people who subscribe to your journal). You can change it later from **⋯** on the post. You can also choose whether to allow comments, shares and gifts. With gifts on, anyone signed in can send you a gift from the post itself (see [Gifts](/help/gifts)); comments and reactions arrive with the Media feed.
 
 **Downloads:** off unless you turn on **Allow watermarked downloads** for a post. When it's on, people who can see the post can download its pictures. Each download carries your @username and the NotesApp mark, stamped on our server, and the original file is never sent. **Videos** download with a see-through mark (the NotesApp mark, your @username and NotesApp) in a corner of the picture: when you turn downloads on for a video, we make a second, marked copy of it for downloads, which takes a few minutes (your studio shows **Making the watermarked download copy…** until it's ready) and about the video's size again in your Media storage. The video people watch has no mark. Turning downloads off removes the marked copy and gives the room back; if a copy can't be made, your studio says why, and turning downloads off and on tries again.
 
@@ -1012,17 +1091,30 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Who hosts:** the owner, admins and moderators. On the community's Home, tap **+ Start a room**, give it a name (Sunday Q&A, Midweek Bible study) and **Go live**. Members see it at the top of Home with **Join**. Audio rooms come with every community, free.
 
-**On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. A listener taps **✋ Raise hand to speak**; the host sees the hand and taps **Bring up**. The host can also tap anyone and **Invite to speak**, or **Move to listeners**. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
+**On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. The stage shows the empty chairs too, each with a **+** in the middle when you can come up. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
+
+**Stage mode:** the host picks one when starting the room and can switch at any time during the live (**Solo**, **Approve** or **Open** above the stage):
+- **Solo:** only the host on stage. Nobody can ask to come up: no raised hands, no + on the chairs. The host and moderators can still invite someone.
+- **Approve:** tap **+** on an empty chair (or **✋ Ask for a seat**) to send a request. The host or a moderator taps **Approve** (or **Decline**) under **Seat requests**. Tap **Seat requested · cancel** to take it back.
+- **Open:** tap **+** on an empty chair and you're on stage straight away, while there's a seat. In a recorded live you still agree to the recording before your mic goes on. Members in teen mode always send a request instead, and someone removed from the live can't come up.
+
+**Invitations:** the host or a moderator can tap anyone listening and **Invite on stage**. The invited person sees who invited them and taps **Come up** or **Not now**; an invitation lapses after ${Math.round(ROOM_INVITE_MS / 60_000)} minutes. Members in teen mode can only be invited by people they follow; they can always ask for a seat themselves.
+
+**Moderators for the live:** when starting a room, or with **🛡 Moderators** during it, the host can name up to ${ROOM_MODS_MAX} moderators: the community's moderators and admins, or anyone in the community by @username. For each one the host ticks what they may do, or taps **Basic** (approve requests, invite, bring speakers down, turn mics off and on, remove chat messages) or **Full** (everything except ending the live). What can be ticked: ${MOD_PERMS.map((x) => x.label.toLowerCase()).join("; ")}. Starting or stopping the recording stays with the host. Moderators see only the controls they hold. A moderator can never act on the host, or on another moderator who holds as much as they do, and only the host names moderators or changes what they hold. Every moderator action is kept in the live's log, which the host opens with **📋 Moderators' log**.
+
+**On a speaker:** the host or a moderator taps a speaker for their menu: **Turn mic off** (the speaker can't turn it back on until the host or a moderator does; in a relay room their sound isn't sent on at all, and phone to phone every phone leaves it out), **Camera off**, **Remind to agree** (in a recorded live), **Bring down** and **Remove from live**.
+
+**Pinned message:** the host, or a moderator allowed to pin, can **📌 Pin an announcement** or **Pin** a chat message; it stays at the top of the chat until it's unpinned.
 
 **Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
 
-**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host or a moderator can **Remove** a message.
+**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host, a moderator named for the live with that permission, or one of the community's moderators can **Remove** a message. The community's own moderators have these chat powers only in lives hosted as community lives; in a member's own live, such as a [paid live](/help/paid-lives), only the moderators that host names can moderate.
 
 **Ending:** **End room** ends it for everyone; the host leaving ends it too. The chat is deleted when the room ends. Nothing is recorded unless the host switched recording on before going live: then everyone sees **${RECORDING_NOTICE}**, and speakers agree before their mic goes on. See [Recording and replays](/help/live-recording-and-replays).
 
 **How the sound travels:** ${room.relay
   ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and isn't kept there; only a room the host chose to record is recorded, by our own recorder. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).${room.liveChat
-    ? `\n\n**Chat in big rooms:** the chat, the listener count and raised hands travel live over one connection to our chat service, run on Cloudflare, so a room of thousands keeps up and everyone sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. **Slow mode is the host's tool:** at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on past ${n(room.chatSlowAbove)} listeners). The host or a moderator can also **Mute** someone in the chat (and **Unmute** them later) or **Remove from room** for the rest of the room; a message they take down disappears from every screen at once. The chat is still deleted when the room ends.`
+    ? `\n\n**Chat in big rooms:** the chat, the listener count and raised hands travel live over one connection to our chat service, run on Cloudflare, so a room of thousands keeps up and everyone sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. **Slow mode is the host's tool** (and a moderator's, if the host allows it): at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on past ${n(room.chatSlowAbove)} listeners). The host or a moderator can also **Mute** someone in the chat (and **Unmute** them later) or **Remove from room** for the rest of the room; a message they take down disappears from every screen at once. The chat is still deleted when the room ends.`
     : ""}`
   : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
 
@@ -1047,6 +1139,8 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Kept ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, then deleted.** A recording is kept for ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} after the live ends so it can be checked if someone reports something (our Trust & safety team can play any recording; the host can play their own), then deleted for good, unless the host publishes it as a replay. Nobody else can download it.
 
 **Replays:** in **[Media](/profile/media)** the host sees each recording with the days left, and can **Publish** it (hosts on ${planList("replayPublish")} can), **Play** it or **Delete** it. A replay can be for **everyone** (it shows on Explore and Trending), for the host's **journal subscribers** (paid, like a premium post), or for **members of the community** only. If the host or anyone who spoke is in teen mode, the replay stays inside the community. A replay isn't a journal post: tap **Share to Journal** to make a draft post with the replay${rec.transcripts ? ", its transcript" : ""} and a summary Nana drafts${rec.transcripts ? "" : " once transcripts are on"}, which you edit and publish like any post, with **Book a session** under it. Replays can also be shared to Moments, a chat or other apps.
+
+**Paid lives:** the host chooses the recording when they schedule a [paid live](/help/paid-lives): **Off**, **Safety only** (recorded and kept for review as above, never offered as a replay) or **Record and offer a replay**. Everyone is told as they join, and speakers agree before their mic goes on, as in any recorded room. A paid live's replay can be for everyone, for subscribers, or for **its ticket holders only**.
 
 **Unpublishing** removes the replay and its journal post. If that's within the first ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, the recording is kept another ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} and then deleted unless you publish it again; after that, it's deleted straight away.
 

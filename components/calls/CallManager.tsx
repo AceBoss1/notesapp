@@ -14,14 +14,17 @@ import { micConstraints } from "@/lib/call-audio";
 import { applySink, useCallAudio } from "@/components/calls/useCallAudio";
 import { candidateSink, watchRecovery } from "@/components/calls/ice-recovery-client";
 import { codeChanged, hasTurn } from "@/lib/ice-recovery";
+import PpmMeter, { type MeterState } from "@/components/ppm/PpmMeter";
+import { PPM_ADD_STEP, PPM_BEAT_MS } from "@/lib/ppm";
 
 // Free one-to-one calls in Messages. Mounted once in the main layout: it rings for incoming calls anywhere on the site, and opens the call screen
 // when you start a call from a conversation (placeCall). The two browsers connect directly (WebRTC); calls/{id} only carries the handshake.
 export const CALL_EVENT = "na-call-start";
-type Start = { toUid: string; kind: CallKind; name: string; avatar: string };
+// ppm: a pay-per-minute session's id (lib/ppm.ts): the server makes the call for the session and meters it.
+type Start = { toUid: string; kind: CallKind; name: string; avatar: string; ppm?: string };
 export const placeCall = (s: Start) => window.dispatchEvent(new CustomEvent<Start>(CALL_EVENT, { detail: s }));
 
-type Active = { role: "caller"; start: Start } | { role: "callee"; id: string; kind: CallKind; name: string; avatar: string };
+type Active = { role: "caller"; start: Start } | { role: "callee"; id: string; kind: CallKind; name: string; avatar: string; ppm?: string };
 type Ice = { urls: string | string[]; username?: string; credential?: string }[];
 
 export default function CallManager() {
@@ -74,7 +77,7 @@ export default function CallManager() {
     setGroupOn({ cid: c.cid, title: c.title, kind: c.kind, id: c.id });
   }, [groupCalls]);
 
-  const accept = useCallback((c: CallDoc & { id: string }) => { setActive({ role: "callee", id: c.id, kind: c.kind, name: c.callerName, avatar: c.callerAvatar }); setRinging(null); }, []);
+  const accept = useCallback((c: CallDoc & { id: string }) => { setActive({ role: "callee", id: c.id, kind: c.kind, name: c.callerName, avatar: c.callerAvatar, ...(c.ppm ? { ppm: c.ppm } : {}) }); setRinging(null); }, []);
   // Opened from the ringing notification's Answer (…?answer=<call id>): answer straight away.
   useEffect(() => {
     if (!ringing || activeRef.current) return;
@@ -154,6 +157,12 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const screen = useRef<MediaStreamTrack | null>(null);
   const ctl = useRef<RTCDataChannel | null>(null);
   const endRef = useRef<(reason: "ended" | "missed" | "failed") => void>(() => {});
+  // A pay-per-minute session (lib/ppm.ts): while the call is connected this phone tells the server every PPM_BEAT_MS; the server's answer
+  // is the meter shown over the call (and it ends the call itself when the held minutes run out and none are added).
+  const ppm = active.role === "caller" ? active.start.ppm : active.ppm;
+  const [meter, setMeter] = useState<MeterState | null>(null);
+  const [meterErr, setMeterErr] = useState("");
+  const [adding, setAdding] = useState(false);
   useRingtone(phase === "ringing" && active.role === "caller");
   // Where the sound plays (earpiece on voice calls, speaker on video) and which microphone: lib/call-audio.ts.
   const [micOn, setMicOn] = useState(false);
@@ -276,7 +285,9 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       if (over) return;
       try {
         if (active.role === "caller") {
-          const r = await api<{ id: string; iceServers: Ice }>("/api/calls", { body: { action: "start", toUid: active.start.toUid, kind } });
+          const r = active.start.ppm
+            ? await api<{ id: string; iceServers: Ice }>("/api/ppm", { body: { action: "call", id: active.start.ppm } })
+            : await api<{ id: string; iceServers: Ice }>("/api/calls", { body: { action: "start", toUid: active.start.toUid, kind } });
           id = r.id;
           if (over) { end("missed"); return; }
           wire(r.iceServers, "callerCandidates", "calleeCandidates");
@@ -352,14 +363,38 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       setSharing(true); tell(true);
     } catch { /* they closed the picker */ }
   }, [sharing, stopShare, tell]);
+  useEffect(() => {
+    if (!ppm || phase !== "live") return;
+    let on = true;
+    const beat = () => api<MeterState>("/api/ppm", { body: { action: "beat", id: ppm } }).then((m) => { if (on) setMeter(m); }).catch(() => {});
+    void beat();
+    const t = setInterval(beat, PPM_BEAT_MS);
+    return () => { on = false; clearInterval(t); };
+  }, [ppm, phase]);
+  // The held minutes ran out and the wait is over: the server has ended (or is ending) the session; this phone hangs up too.
+  useEffect(() => {
+    if (!meter?.askTopUp || !meter.meter.endsAt) return;
+    const t = setTimeout(() => endRef.current("ended"), Math.max(0, Date.parse(meter.meter.endsAt) - Date.now()) + 1500);
+    return () => clearTimeout(t);
+  }, [meter]);
+  const addMinutes = useCallback(async () => {
+    if (!ppm) return;
+    setAdding(true); setMeterErr("");
+    try { setMeter(await api<MeterState>("/api/ppm", { body: { action: "add", id: ppm, minutes: PPM_ADD_STEP } })); }
+    catch (e) { setMeterErr(e instanceof Error ? e.message : "Couldn't add minutes."); }
+    finally { setAdding(false); }
+  }, [ppm]);
   const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…"
-    : phase === "live" ? (reconnecting ? "Reconnecting…" : hint || duration(secs)) : note || "Call ended";
+    // A pay-per-minute call shows the server's meter below, not this phone's own count.
+    : phase === "live" ? (reconnecting ? "Reconnecting…" : hint || (ppm ? "Connected" : duration(secs))) : note || "Call ended";
 
   return (
     <CallStage kind={kind} name={name} avatar={avatar} status={status} live={phase === "live"} over={phase === "over"}
       muted={muted} camOff={camOff} canFlip={cams !== 1 && !sharing} facing={facing}
       safetyCode={phase === "live" ? code : ""} canShare={canShare && phase === "live"} sharing={sharing} theirShare={theirShare} onShare={share}
       onMute={toggleMute} onFlip={flipCam} onCam={toggleCam} onEnd={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")}
-      remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} sound={sound} />
+      remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} sound={sound}
+      paidNote={ppm ? "Pay-per-minute session" : undefined}
+      extra={ppm && meter && phase === "live" ? <PpmMeter overlay state={meter} onAdd={addMinutes} busy={adding} error={meterErr} /> : undefined} />
   );
 }

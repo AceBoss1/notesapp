@@ -11,6 +11,76 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.142.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "Picture, avatar and file uploads on our naapp.tech addresses (and on life. and prep. of both domains): our storage now accepts uploads from every address #NotesApp is served on." },
+    ],
+  },
+  {
+    version: "v0.142.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "Pay-per-minute sessions: publishers can offer voice and video calls by the minute (Rates & payouts → Offer pay-per-minute sessions). Set a price per minute for voice, for video or both, and who can book: everyone, or your own Premium, VIP or VVIP subscribers. People book your weekly times, the same ones as paid sessions." },
+      { kind: "added", text: "Book · per minute on a publisher's profile: choose voice or video, a day and time, and the minutes to hold. The minutes' price is held from your NotesApp Credit, not charged; you pay only for what the call uses and the rest comes back when it ends. Bonus Credits can't be used." },
+      { kind: "added", text: "The meter during a pay-per-minute call: the time, the minutes billed, what you've used of your hold and what's left. #NotesApp meters the call itself from both phones, not either phone's count. A call that ends within the free grace costs nothing; after it, every started minute is charged. When your held minutes run out you're asked to add more, and the call ends shortly after if you don't (that wait is never charged)." },
+      { kind: "added", text: "Your pay-per-minute sessions in one place (Pay-per-minute sessions): start the call from the session's page from 10 minutes before the time, cancel before it starts for everything back, see what each call came to, and report a problem within the problem window. The wallet shows the credit held for sessions." },
+      { kind: "added", text: "Publishers are paid what the call used after it ends and the problem window passes, like a paid session. #NotesApp takes your normal rate plus a share of it, set in Admin, fixed when the session is booked. Members in teen mode can't sell or book pay-per-minute sessions." },
+      { kind: "added", text: "Admin: the pay-per-minute share under Pricing; the fewest and most minutes held at booking, the free grace, the wait for more minutes and the no-show minutes under Limits → Audio rooms → Pay-per-minute sessions." },
+    ],
+  },
+  {
+    version: "v0.141.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "Continue with Google on an email that already has a #NotesApp account (not yet linked to Google): the app no longer shows you as signed in to that account for a moment while we check. The check now happens before the app hears about the sign-in, so you go straight to \"You already have a #NotesApp account\" and nothing is loaded or saved as that account. Sign in the usual way, then link Google in Account settings → Sign-in methods." },
+    ],
+  },
+  {
+    version: "v0.141.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "Paid lives: schedule a live of your own with tickets (Lives → Schedule a paid live). Set the date and time, a title, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, after which no more tickets are sold. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers." },
+      { kind: "added", text: "Choose the recording when you schedule a paid live: off, for safety only (kept for review, never a replay), or recorded with a replay you can offer to everyone, your subscribers or the live's ticket holders. Everyone is told as they join, and speakers agree before their mic goes on." },
+      { kind: "added", text: "The paid live's lobby: your ticket (band, price and reference), the recording notice, and Enter the live, which checks your ticket at the door. Only ticket holders, the host and the moderators the host names get in, and only those moderators can moderate. Ticket holders are reminded a day before, an hour before and when it starts." },
+      { kind: "added", text: "Subscriber discounts on paid-live tickets: set a discount for each tier once, beside its price under Rates & payouts → Subscriptions. It applies to every paid live on top of the early bird, normal or late price." },
+      { kind: "added", text: "Tickets can be paid from NotesApp Credit or by card. If the host cancels or never opens the live, every ticket is refunded to NotesApp Credit automatically. Hosts are paid after the live ends and the problem window passes; #NotesApp takes the host's normal rate plus a share of it, set in Admin, fixed when the ticket is bought." },
+      { kind: "added", text: "Admin: the paid-live ticket share under Pricing; the late window, the largest tier discount and the no-show cancellation under Limits → Audio rooms → Paid lives." },
+    ],
+  },
+  {
+    version: "v0.140.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Gift anyone: tap ⋯ beside a name for Gift · Block · Report. It works for a speaker or host on a live's stage, someone who commented on a journal, someone who reviewed a shop item or a course, the creator of a Media post (when they allow gifts on it) and the host of a replay. The person needs a payout account; otherwise Gift is switched off and says why." },
+      { kind: "added", text: "Several gifts at once: tap a small gift twice and How many? opens. Send up to the most set in Admin (99 to start) as one payment, priced on our side at that many times the gift. It plays once, with ×N. VIP gifts still go one at a time." },
+      { kind: "added", text: "Received gifts on your profile, after Media: every gift you received with its count and value. Archive takes one out of the list but keeps its count and value under Archived. Withdraw sends everything past its 7-day review to your bank account in one payout: under the line set in Admin it goes automatically, and from the line up our team approves it first, through the same payouts and payout OTP as everything else." },
+      { kind: "added", text: "Weekly boards: Top gifted (who received the most, on the Gifts page) and each creator's Top gifters (on their Gifts tab) start again at midnight going into Monday, Lagos time, and last week's result stays one tap away. Anonymous gifts never name the sender on Top gifters." },
+      { kind: "added", text: "Gift points: every ₦100 you spend on gifts is a gift point, counted all time and each week, on your Gifts tab." },
+      { kind: "changed", text: "Gifts are paid only from your own NotesApp Credit or by card, never with Bonus Credits, and the gift sheet says so." },
+      { kind: "changed", text: "Teen mode: a member in teen mode can receive gifts only from people they follow back. For everyone else the gift action is switched off for them, and our side refuses it too." },
+      { kind: "added", text: "For the team: Admin → Pricing → Gifts has the most of one gift in a single send and the line under which gift withdrawals are paid automatically. Admin → Payments shows gift withdrawals (gift_payout) waiting for approval; Release approves one. Members reported from the new menu show in Admin → Reports as Member reports." },
+    ],
+  },
+  {
+    version: "v0.139.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Audio rooms: the stage shows its empty chairs, each with a + in the middle. The host picks a stage mode when starting and can switch it any time during the live: Solo (only the host on stage, nobody can ask), Approve (tap + to ask for a seat; the host or a moderator approves or declines) or Open (tap + and you're on stage at once while there's a seat; a recorded live still asks you to agree first, members in teen mode send a request instead, and anyone removed from the live can't come up)." },
+      { kind: "added", text: "Invitations to the stage: the host or a moderator taps anyone listening and Invite on stage; they see who invited them and tap Come up or Not now. Members in teen mode can only be invited by people they follow." },
+      { kind: "added", text: "Moderators for a live: the host names them when starting the room or during it (the community's moderators and admins, or anyone in the community by @username) and ticks what each may do, or picks Basic or Full: approve requests, invite, bring speakers down, turn a speaker's mic off and on, turn a camera off, remove chat messages, mute in the chat, remove someone from the live, change the stage mode, slow mode, pin, the poster, speakers' video, recording reminders, and ending the live (off unless ticked). A moderator never acts on the host or on a moderator who holds as much, sees only the controls they hold, and every action goes in a log the host can open." },
+      { kind: "added", text: "Turning a speaker's mic off is enforced: the speaker can't turn it back on themselves; in a relay room their sound stops being sent at all, and phone to phone every phone leaves it out." },
+      { kind: "added", text: "A pinned message or announcement at the top of the room chat." },
+      { kind: "changed", text: "Raise hand is now Ask for a seat (the same request as + on an empty chair). Bringing up someone who hasn't asked sends them an invitation instead of moving them straight up." },
+    ],
+  },
+  {
     version: "v0.138.1",
     bump: "patch",
     date: "2026-11-05",

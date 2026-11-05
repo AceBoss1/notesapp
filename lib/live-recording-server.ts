@@ -14,6 +14,7 @@ import { RelayError, cleanSdp, relayClient, type RelayClient } from "./rooms-rel
 import { readRecorderToken, recorderToken, signBody } from "./recorder-sign";
 import { recordingHoursWithPass } from "./staff-pass";
 import { hasStaffPass, roomOnPass } from "./staff-pass-server";
+import { holdsLiveTicket } from "./live-door-server";
 import {
   CHUNK_MAX_BYTES, RECORDING_FILES, afterUnpublish, audienceFor, cleanRecordingOverrides, cleanReplayTitle, dueForDeletion, isListed, keepUntilFrom,
   mayWatch, partReady, recordingFigures, recordingSettings, replayJournalDraft, shouldRecord,
@@ -194,6 +195,7 @@ export async function startRoomRecording(db: Firestore, roomId: string, now = ne
   const rec: RecordingDoc = {
     roomId, cid: room.cid, communityName: room.communityName, title: room.title, hostUid: room.hostUid, hostName: room.hostName,
     status: "starting", startedAt: now.toISOString(), published: false, files: {}, stage: [room.hostUid], ...(st.forced ? { forced: true } : {}), ...(pass ? { staffPass: true } : {}),
+    ...(room.paid ? { liveEventId: room.paid.eventId, ...(room.paid.record !== "replay" ? { safetyOnly: true } : {}) } : {}),
   };
   await recRef(db, st.rid).set(rec);
   const token = recorderToken(secret(), { rid: st.rid, roomId }, now.getTime(), hours * 3600 + 3600);
@@ -438,10 +440,11 @@ export async function sweepRecordings(db: Firestore, deps: RecordingDeps = realR
 }
 
 // ── For the host and for safety review ──
-export type RecordingRow = { id: string; title: string; communityName: string; status: RecordingDoc["status"]; why?: string; startedAt: string; endedAt?: string; keepUntil?: string; published: boolean; replayId?: string; seconds?: number; hadVideo?: boolean; hostName?: string; forced?: boolean; teenOnStage?: boolean };
+export type RecordingRow = { id: string; title: string; communityName: string; status: RecordingDoc["status"]; why?: string; startedAt: string; endedAt?: string; keepUntil?: string; published: boolean; replayId?: string; seconds?: number; hadVideo?: boolean; hostName?: string; forced?: boolean; teenOnStage?: boolean; paidLive?: boolean; safetyOnly?: boolean };
 const row = (id: string, r: RecordingDoc): RecordingRow => ({
   id, title: r.title, communityName: r.communityName, status: r.status, ...(r.why ? { why: r.why } : {}), startedAt: r.startedAt, endedAt: r.endedAt, keepUntil: r.keepUntil,
   published: r.published, replayId: r.replayId, seconds: r.seconds, hadVideo: r.hadVideo, hostName: r.hostName, forced: r.forced, teenOnStage: r.teenOnStage,
+  ...(r.liveEventId ? { paidLive: true } : {}), ...(r.safetyOnly ? { safetyOnly: true } : {}),
 });
 export async function myRecordings(db: Firestore, uid: string): Promise<RecordingRow[]> {
   const snap = await db.collection("roomRecordings").where("hostUid", "==", uid).limit(200).get();
@@ -485,6 +488,8 @@ export async function publishReplay(db: Firestore, uid: string, rid: unknown, in
   if (r.hostUid !== uid) throw fail(404, "That recording wasn't found.");
   if (r.status !== "ready") throw fail(409, r.status === "deleted" ? "This recording was deleted." : "This recording isn't ready yet.");
   if (r.published && r.replayId) return { id: r.replayId, audience: (await readReplay(db, r.replayId)).r.audience };
+  // A paid live recorded for safety only (the host's choice, announced to everyone as they joined) is never offered as a replay.
+  if (r.safetyOnly) throw fail(409, "This paid live was recorded for safety review only, so it can't be offered as a replay.");
   // A team member on the staff test pass (lib/staff-pass.ts) skips the plan switch; teen rules and the audience checks below still apply.
   if (limitFor("replayPublish", await memberTier(db, uid), await getLimitOverrides(db)) <= 0 && !(await hasStaffPass(db, uid, now))) throw fail(403, "Your plan doesn't include publishing replays.");
   const host = (await db.doc(`users/${uid}`).get()).data() ?? {};
@@ -499,6 +504,7 @@ export async function publishReplay(db: Firestore, uid: string, rid: unknown, in
     title, audience, listed: isListed(audience) && host.teen !== true && host.keepHidden !== true, kind: r.hadVideo ? "video" : "audio",
     status: "processing", streamUid, createdAt: r.startedAt, publishedAt: now.toISOString(), views: 0,
     transcript: deps.transcriber() && r.files.audio?.done ? { status: "queued" } : { status: "off" },
+    ...(r.liveEventId ? { liveEventId: r.liveEventId } : {}),
   };
   await replayRef(db, id).set(doc);
   await ref.update({ published: true, replayId: id });
@@ -537,10 +543,11 @@ async function viewerCan(db: Firestore, r: ReplayDoc, uid: string | undefined): 
     const subscribed = !!sub && (sub.status === "demo" || (!!sub.currentPeriodEnd && Date.parse(sub.currentPeriodEnd) > Date.now()));
     return mayWatch(r, { uid, subscribed, member: false });
   }
+  if (r.liveEventId) return mayWatch(r, { uid, subscribed: false, member: await holdsLiveTicket(db, r.liveEventId, uid) });
   return mayWatch(r, { uid, subscribed: false, member: !!activeRole(await memberOf(db, r.cid, uid)) });
 }
-export type ReplayCard = Pick<ReplayDoc, "title" | "hostName" | "hostUsername" | "hostAvatar" | "communityName" | "audience" | "kind" | "status" | "duration" | "publishedAt" | "views"> & { id: string; noteId?: string };
-const card = (id: string, r: ReplayDoc): ReplayCard => ({ id, title: r.title, hostName: r.hostName, hostUsername: r.hostUsername, hostAvatar: r.hostAvatar, communityName: r.communityName, audience: r.audience, kind: r.kind, status: r.status, duration: r.duration, publishedAt: r.publishedAt, views: r.views, ...(r.noteId ? { noteId: r.noteId } : {}) });
+export type ReplayCard = Pick<ReplayDoc, "title" | "hostUid" | "hostName" | "hostUsername" | "hostAvatar" | "communityName" | "audience" | "kind" | "status" | "duration" | "publishedAt" | "views"> & { id: string; noteId?: string };
+const card = (id: string, r: ReplayDoc): ReplayCard => ({ id, title: r.title, hostUid: r.hostUid, hostName: r.hostName, hostUsername: r.hostUsername, hostAvatar: r.hostAvatar, communityName: r.communityName, audience: r.audience, kind: r.kind, status: r.status, duration: r.duration, publishedAt: r.publishedAt, views: r.views, ...(r.noteId ? { noteId: r.noteId } : {}) });
 // Stream finishes copying in a minute or two: the first look after that marks the replay ready.
 async function freshen(db: Firestore, id: string, r: ReplayDoc, deps: Pick<RecordingDeps, "stream">): Promise<ReplayDoc> {
   if (r.status !== "processing") return r;
