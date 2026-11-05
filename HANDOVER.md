@@ -920,7 +920,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Editorial tab of the Department Briefs; scoped to the `content` department); its SOP is `sop-editorial` (the Editorial tab of the SOP Manuals). Customer care now covers the **Community
     Strategist** (communities: onboarding, giving safety with Trust & safety, admins' requests) in its brief and SOP.
 
-123. **Community Strategist vacancy (v0.143.1, branch `push/community-strategist`):** nothing to deploy. A seeded role in Customer
+123. **Community Strategist vacancy (v0.143.2, branch `push/community-strategist`):** nothing to deploy. A seeded role in Customer
     care (`support`), reporting to the Customer care team lead, salary, 20 hours a week, remote in Nigeria (`lib/careers.ts`).
     `seedRoles` now opens a vacancy added to the seed later on a site that was seeded before, once (the marker's `roles` list), and
     never brings back a seeded role someone deleted. **Deleting a vacancy** (the owner, the same day; team hub, no changelog entry):
