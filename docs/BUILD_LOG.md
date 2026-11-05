@@ -3008,3 +3008,31 @@ go to NotesApp Credit, card payments included (`refundCardToCredit`); a payment 
 Tests: `tests/live-tickets/live-tickets.test.ts` (bands, late window, discount stacking, uplift, form checks) and
 `live-tickets.emulator.ts` (checkout → ticket → door → end → payout; cancel and no-show refunds; moderators), the rules test, `test:help`.
 
+## Pay-per-minute sessions: holds, the server's meter and paid calls (v0.142.0, built 5 November 2026)
+
+Phase 1b of the live economy plan (`docs/LIVE_ECONOMY.md`; owner's decisions of 3 and 4 November), built on paid lives (1a). A publisher
+sets a price per minute for voice and for video and who may book (everyone, or their own Premium, VIP or VVIP subscribers from that tier
+up) under Rates & payouts; a viewer books one of the publisher's session times and chooses the minutes to hold (at least `ppmMinMinutes`).
+The pure rules are `lib/ppm.ts` (the offer, the gate, the commission, the meter); the server is `lib/ppm-server.ts`; the screens are
+`components/ppm/` (Book · per minute on the profile, the settings card, the meter, `/ppm` and `/ppm/<id>`), with the meter shown over the
+call screen (`components/calls/CallManager.tsx`).
+
+**A hold in the wallet.** There was none: a wallet payment took the money at once. `placeHold` / `settleHold` (`lib/wallet-server.ts`)
+move credit (never Bonus Credits) out of the spendable balance into `walletHolds/{id}` inside the caller's transaction, can add to an open
+hold, and settle it once: the charge is kept (capped at the hold, `settleSplit` in `lib/wallet.ts`) and the rest goes back, with "hold"
+and "release" lines on the statement. The wallet page shows what's held.
+
+**The meter is the server's.** The call is the existing one-to-one call (`calls/{id}` with `ppm`), so it goes phone to phone first and
+through the relay only when needed, with PR #269's ICE recovery. Each phone posts a beat every 15 seconds while connected; the server
+writes its own time for each side, starts the meter when it has heard both, and decides everything else from those times: the top-up
+prompt when the held minutes are used, the end after the wait (`ppmTopUpWaitSec`, never charged), and a dropped phone (silent 45 s: the
+end is the last moment both were there). The cron sweeps sessions nobody is beating for, and expires sessions whose call never started.
+Billing is nothing within the grace (`ppmGraceSec`), then every started minute from the start (12:41 is 13 minutes, as in the mockup).
+
+**Money.** The commission is the publisher's rate plus `ppmUpliftPct` % of it (Admin → Pricing, default 20), fixed on the session at
+booking, like paid-live tickets (`upliftedRate`). At the end the charge becomes payment kind `ppm` (from the held credit, so a refund goes
+back to the wallet) and a held ledger entry released `PAYOUT_HOLD_HOURS` after the call, like a session; the viewer can report a problem in
+that window. Teens can neither sell nor book. Tests: `tests/ppm/ppm.test.ts` (grace, per started minute, the hold running out, the wait,
+unused minutes back, uplift, the offer, the gate) and `ppm.emulator.ts` (book → hold → call → beats → top-up prompt → add → end → charge
+and release → ledger → payout; the hold running out, a dropped phone, the grace, a missed call, cancelling, the sweep, teens, the tier
+gate, a report and a refund), the rules test, `test:help`.

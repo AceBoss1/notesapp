@@ -77,6 +77,8 @@ export type CallStageProps = {
   remoteVideo?: Ref<HTMLVideoElement>; localVideo?: Ref<HTMLVideoElement>; remoteAudio?: Ref<HTMLAudioElement>;
   // Where the sound plays and which microphone (components/calls/useCallAudio.ts); the Sound button shows when there's a choice.
   sound?: SoundChoice;
+  // A pay-per-minute session (components/ppm/PpmMeter.tsx): its meter under the name, and the line that replaces "Free call".
+  extra?: ReactNode; paidNote?: string;
 };
 
 export type SoundChoice = { routes: Route[]; mics: Mic[]; note: string; routeKey: string; micId: string; available: boolean; pickRoute: (r: Route) => void; pickMic: (deviceId: string) => void };
@@ -112,7 +114,7 @@ export function SoundSheet({ sound, onClose }: { sound: SoundChoice; onClose: ()
   );
 }
 
-export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, safetyCode, canShare, sharing, theirShare, onShare, remoteVideo, localVideo, remoteAudio, sound }: CallStageProps) {
+export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, safetyCode, canShare, sharing, theirShare, onShare, remoteVideo, localVideo, remoteAudio, sound, extra, paidNote }: CallStageProps) {
   const [swapped, setSwapped] = useState(false); // you big, them small
   const [soundOpen, setSoundOpen] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -161,7 +163,7 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
         {(kind === "audio" || !live) && <CallAvatar src={avatar} name={name} ring="gold" />}
         <p className={`max-w-full break-words font-display leading-tight drop-shadow ${liveVideo ? "text-2xl lg:text-3xl" : "mt-6 text-[34px] lg:text-[44px]"}`}>{name}</p>
         <p className={`font-mono text-[15px] text-white/60 drop-shadow lg:text-sm ${liveVideo ? "mt-1.5" : "mt-4"}`} aria-live="polite">{status}</p>
-        {kind === "audio" && live && <p className="mt-2 font-ui text-xs text-white/45">Free call · phone to phone</p>}
+        {kind === "audio" && live && <p className="mt-2 font-ui text-xs text-white/45">{paidNote ?? "Free call"} · phone to phone</p>}
         {theirShare && <p className="mt-1 font-ui text-xs text-white/60 drop-shadow">{name.split(" ")[0]} is sharing their screen</p>}
         {safetyCode && (
           <button type="button" onClick={() => setShowCode((v) => !v)} aria-expanded={showCode}
@@ -175,6 +177,7 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
             <p className="mt-1">{name.split(" ")[0]} sees a code too. If both codes match, this call is encrypted between your two devices and nobody, not even #NotesApp, can listen in or watch.</p>
           </div>
         )}
+        {extra && <div className="mt-4 flex w-full justify-center">{extra}</div>}
       </div>
 
       {sound?.available && soundOpen && !over && <SoundSheet sound={sound} onClose={() => setSoundOpen(false)} />}

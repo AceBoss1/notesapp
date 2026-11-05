@@ -820,6 +820,31 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     "Safety only" recordings can't be published as replays; a paid live's "community" replay audience means its ticket holders.
     **Not tried with real payments or a real relay:** buy a ticket by card on staging, open the live, enter from a second phone, end it,
     and check the ledger entry gets its `releaseAfter`. Tests: `test:live-tickets`, `test:live-tickets-server`, `test:help`, rules.
+120. **Pay-per-minute sessions, phase 1b of the live economy (v0.142.0, branch `push/live-ppm`, built on `push/live-paid`):** deploy
+    **`firebase deploy --only firestore`** (rules for `ppmOffers`, `ppmSessions` and `walletHolds`, and two indexes on `ppmSessions`:
+    viewerUid / hostUid + startsAt). No new environment variable; calls use the TURN set-up that exists. Then, in Admin: check **Pricing →
+    Gifts → Pay-per-minute sessions: extra commission** (`ppmUpliftPct`, default 20% of the publisher's rate) and **Limits → Audio rooms →
+    Pay-per-minute sessions** (`ppmMinMinutes` 10, `ppmMaxMinutes` 240, `ppmGraceSec` 60, `ppmTopUpWaitSec` 60, `ppmNoShowMin` 60); the help,
+    the roadmap and the forms read them live. **How it works:** the publisher's offer (`ppmOffers/{uid}`: voice/video ₦ a minute, who may
+    book: everyone or their Premium/VIP/VVIP subscribers from that tier up) is saved with Rates & payouts and uses their session times and
+    `slotLocks`. Booking (`bookPpm`) locks the slot and **holds** minutes × price from NotesApp Credit in one transaction: credit moves out
+    of `creditKobo` into `walletHolds/{sessionId}` (a "hold" statement line; Bonus Credits never), nothing is charged. The call is a normal
+    one-to-one call doc with `ppm: <sessionId>` (no follow rule; phone to phone first, relay only when needed). **The meter is the
+    server's:** each phone POSTs `beat` every 15 s while connected; the server stores its own clock time per side (`beats`), sets
+    `startedAt` when it has heard both within 45 s, asks for a top-up (`topUpAskedAt`) when the held minutes are used, and ends the session
+    itself when the wait passes or a phone has been silent 45 s (at the last moment both were there); the cron's `ppmSessions` job does
+    the same for calls nobody is beating for, and expires sessions whose call never started. Billing: 0 within the grace, else
+    ceil(elapsed / 60) counted from the start (12:41 → 13 min), never above the hold. At the end `settleHold` keeps the charge and puts the
+    rest back ("release" line); the charge is a `payments/PPM_<id>` of kind `ppm` (payWith wallet, so Admin refunds go back to the wallet)
+    and a held `ledger/PPM_<id>` (releaseAfter = the end, auto-released `PAYOUT_HOLD_HOURS` later; the viewer can report a problem in that
+    window, which marks it disputed). **Owner to confirm (decisions where the spec was silent):** the 60 s wait after the hold runs out is
+    not charged; a top-up during that wait bills the minutes talked as usual; either side may cancel before the call starts with
+    everything back (the fixed-session cancellation policy doesn't apply, since nothing is charged); a dropped call ends the session (ICE
+    recovery gets its 30 s first) and the viewer books again; prices ₦50–₦50,000 a minute; the call opens 10 minutes before the time;
+    booking from tomorrow, like paid sessions. **Not done:** Nana minutes (the mockup's "Nana minutes on" line is phase 4). **Not tried
+    with real phones:** book on staging, call between two phones, let the hold run out, add minutes, end, and check the wallet lines and
+    the ledger entry. A call left ringing (app closed) or with nobody beating is closed when either side calls again. Tests: `test:ppm`,
+    `test:ppm-server`, `test:help`, rules.
 
 ## 3. How the work is done (please keep these)
 

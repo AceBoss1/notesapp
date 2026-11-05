@@ -78,6 +78,7 @@ jobs:
       - run: npm run test:giving
       - run: npm run test:gifts
       - run: npm run test:live-tickets
+      - run: npm run test:ppm
       - run: npm run test:courses-server
       - run: npm run test:quizzes-server
       - run: npm run test:team-server
@@ -121,6 +122,7 @@ jobs:
       - run: npm run test:giving-server
       - run: npm run test:gifts-server
       - run: npm run test:live-tickets-server
+      - run: npm run test:ppm-server
       # Google and LinkedIn sign-in: the OpenID checks with a stand-in LinkedIn, then the Firestore and Auth emulators
       - run: npm run test:social-signin
       # the link-preview safety test listens on port 80, which needs root on the runner
