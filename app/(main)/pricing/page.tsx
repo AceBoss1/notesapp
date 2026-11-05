@@ -494,6 +494,7 @@ export default async function PricingPage() {
             ["/affiliates", "The affiliate marketplace — promote products for a share of each sale"],
             ["/community", "Community — giving with named funds and receipts"],
             ["/events", "Events — paid tickets with QR check-in"],
+            ["/lives", "Paid lives — tickets with early bird, normal and late prices, and subscriber discounts"],
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/shop", "Notes Market — every #NotesApp store in one place"],
             ["/academy", "Notes Academy — free and paid courses, and certificates anyone can verify"],

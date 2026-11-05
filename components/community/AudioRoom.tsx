@@ -547,10 +547,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-start justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)_+_1rem)]">
         <div className="min-w-0">
-          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName ?? "Audio room"} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
+          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName || (room?.paid ? "Paid live" : "Audio room")} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
           <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
-          {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
+          {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}{room.paid?.record === "safety" ? " for safety review only (no replay)" : ""}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
@@ -899,7 +899,7 @@ function VideoTile({ stream, mine, label }: { stream: MediaStream; mine: boolean
 }
 
 // The poster: upload a picture (made WebP and kept in our storage, like any upload), the profile picture, the challenge art, or none.
-function PosterChoice({ value, onChange, onError, light }: { value: { source: PosterSource; url?: string; preview?: string }; onChange: (p: { source: PosterSource; url?: string; preview?: string }) => void; onError: (m: string) => void; light?: boolean }) {
+export function PosterChoice({ value, onChange, onError, light }: { value: { source: PosterSource; url?: string; preview?: string }; onChange: (p: { source: PosterSource; url?: string; preview?: string }) => void; onError: (m: string) => void; light?: boolean }) {
   const [busy, setBusy] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const chip = (on: boolean) => `rounded-full px-3 py-1 font-ui text-xs font-semibold ${light ? (on ? "bg-crimson text-paper" : "border border-rule text-ink") : on ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`;

@@ -99,6 +99,9 @@ export type RecordingDoc = {
   stage: string[]; teenOnStage?: boolean;
   // Started in a room on the staff test pass (lib/staff-pass.ts): it may run to the top of the "Longest recording" range while the pass is on.
   staffPass?: boolean;
+  // A member's paid live (lib/live-tickets.ts): which one, and whether the host chose "safety only" (kept for review, never a replay).
+  // Its replay's "community" audience means the live's ticket holders (it has no community).
+  liveEventId?: string; safetyOnly?: boolean;
 };
 
 export const DAY_MS = 86_400_000;
@@ -144,11 +147,13 @@ export type ReplayDoc = {
   title: string; audience: ReplayAudience; listed: boolean; kind: "video" | "audio";
   status: ReplayStatus; streamUid: string; duration?: number; createdAt: string; publishedAt: string; views: number;
   noteId?: string; // the journal post made with Share to Journal
+  liveEventId?: string; // a paid live's replay: "community" means its ticket holders
   transcript?: { status: "off" | "queued" | "ready" | "failed" | "too-long"; text?: string; why?: string };
 };
 export const REPLAY_TITLE_MAX = 120;
 export const cleanReplayTitle = (v: unknown) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, REPLAY_TITLE_MAX);
-// Who may watch: public, anyone; subscribers, the host and their subscribers; community, the host and the community's members.
+// Who may watch: public, anyone; subscribers, the host and their subscribers; community, the host and the community's members (a paid
+// live's replay: its ticket holders, passed in as member).
 export const mayWatch = (r: Pick<ReplayDoc, "audience" | "hostUid">, v: { uid?: string; subscribed: boolean; member: boolean; admin?: boolean }) =>
   r.audience === "public" || (!!v.uid && (v.uid === r.hostUid || !!v.admin || (r.audience === "subscribers" ? v.subscribed : v.member)));
 

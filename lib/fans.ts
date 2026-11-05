@@ -82,19 +82,24 @@ export const tierUplift = (t: SubTier, s: FanSettings = FAN_LIVE) => (t === "vvi
 export const tierRate = (rate: number, t: SubTier, s: FanSettings = FAN_LIVE) => Math.min(1, Math.round(rate * (1 + tierUplift(t, s)) * 10_000) / 10_000);
 
 // ── A creator's tier prices (publisherSettings.subscription.tiers) ──
-export type TierOffer = { enabled: boolean; priceKobo: number; planCode?: string };
+// liveDiscountPct (v0.141.0): the discount this tier's subscribers get on the creator's paid-live tickets, set beside the tier's price
+// (0–100, capped by Admin → Limits → Audio rooms → Paid lives; lib/live-tickets.ts discountFor).
+export type TierOffer = { enabled: boolean; priceKobo: number; planCode?: string; liveDiscountPct?: number };
 export type TierOffers = Record<SubTier, TierOffer>;
 // Settings saved before tiers: their one price is Premium; VIP and VVIP are off.
 export function tierOffers(sub: { enabled?: boolean; priceKobo?: number; planCode?: string; tiers?: Partial<Record<SubTier, Partial<TierOffer>>> } | null | undefined): TierOffers {
   const out = {} as TierOffers;
   for (const t of SUB_TIERS) {
     const o = sub?.tiers?.[t];
-    if (o) out[t] = { enabled: o.enabled === true, priceKobo: Number(o.priceKobo) || 0, ...(o.planCode ? { planCode: String(o.planCode) } : {}) };
+    if (o) out[t] = { enabled: o.enabled === true, priceKobo: Number(o.priceKobo) || 0, ...(o.planCode ? { planCode: String(o.planCode) } : {}), ...(Number(o.liveDiscountPct) > 0 ? { liveDiscountPct: Math.min(100, Math.round(Number(o.liveDiscountPct))) } : {}) };
     else if (t === "premium" && sub) out[t] = { enabled: sub.enabled === true, priceKobo: Number(sub.priceKobo) || 0, ...(sub.planCode ? { planCode: sub.planCode } : {}) };
     else out[t] = { enabled: false, priceKobo: 0 };
   }
   return out;
 }
+// Each tier's paid-live ticket discount, as the host set it (before the Admin cap).
+export const tierLiveDiscounts = (o: TierOffers): Partial<Record<SubTier, number>> =>
+  Object.fromEntries(SUB_TIERS.filter((t) => (o[t].liveDiscountPct ?? 0) > 0).map((t) => [t, o[t].liveDiscountPct!]));
 export const openTiers = (o: TierOffers) => SUB_TIERS.filter((t) => o[t].enabled && !!o[t].planCode);
 
 // Who can see an item: everyone, or subscribers from a tier up. Old posts with premium: true are Premium and up.

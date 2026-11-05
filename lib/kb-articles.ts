@@ -35,6 +35,9 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
+import { DEFAULT_PAID_FIGURES, type PaidLiveFigures } from "./rooms";
+import { BAND_NAME } from "./live-tickets";
+import { PAYOUT_HOLD_HOURS } from "./cancellation";
 import { DEFAULT_ROOM_FIGURES, MOD_PERMS, ROOM_CHAT_MAX, ROOM_INVITE_MS, ROOM_MODS_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
 import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, type SubTier } from "./fans";
@@ -60,7 +63,9 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
 // Live recording: the keep days, the longest recording and whether the recorder is set up (lib/live-recording.ts).
 // Subscription tiers and fans: the tier price ranges and the VIP/VVIP commission shares (Admin → Limits → Subscriptions and fans, lib/fans.ts).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings };
+// Paid lives: the late window, the subscriber discount cap and the no-show minutes (Admin → Limits → Audio rooms → Paid lives); the
+// ticket commission share is a price (currentPricing().liveTicketUpliftPct).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -74,6 +79,8 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const roomListeners = n(room.listeners);
   const rec = live.recording ?? DEFAULT_RECORDING_FIGURES;
   const fan = live.fans ?? FAN_DEFAULTS;
+  const paid = live.paid ?? DEFAULT_PAID_FIGURES;
+  const liveUplift = currentPricing().liveTicketUpliftPct;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
   const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
@@ -282,9 +289,9 @@ They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending f
 **Paying from your wallet:** when you pay for a boost, the maroon ✔ badge, an ad campaign, a gift, a shop item, a download or a paid session, and you have something in your wallet, you're asked **Wallet** or **Card, bank transfer or USSD**. The same prices and rules apply as paying by card:
 - Shop items are **held** until you confirm delivery, and sessions until they have happened; then the seller is paid.
 - A badge paid from the wallet lasts one month and doesn't renew by itself; add it again when it ends.
-- Gifts, shop items, downloads and sessions use your credit only, not Bonus Credits.
+- Gifts, shop items, downloads, sessions and tickets to [paid lives](/help/paid-lives) use your credit only, not Bonus Credits.
 
-**Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
+**Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. A ticket to a paid live the host cancels or never starts comes back to your wallet as credit even if you paid by card. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
 
 **What you can't do:** NotesApp Credit can't be withdrawn, cashed out, sent or sold to another member. Sellers and publishers are always paid to their bank accounts, never into a wallet. Plans (Pro, Business), journal subscriptions, the gold badge and merch are paid by card for now.
 
@@ -302,6 +309,8 @@ On store sales, the commission is on the item price only (your delivery fee is y
 Your own rate is shown where you set your prices and see your earnings, under [Rates & payouts](/profile/publishing), and on [My bookings](/bookings). A sale keeps the rate in force when it was paid.
 
 **Not the same as gifts to you:** **giving** to a community (its funds) has no commission, just a flat charge like a bank transfer (${bandsText(money)}), plus the card charge at cost by card; see [Giving to a community](/help/giving). **Paid event tickets** have no commission on any plan either: each ticket has the same small charge, plus the card charge at cost; see [Paid event tickets](/help/event-tickets).
+
+**Paid lives:** on each ticket to your [paid live](/help/paid-lives), #NotesApp takes your rate above plus ${liveUplift}% of it, fixed when the ticket is bought, worked out on what the buyer paid after any subscriber discount.
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -342,6 +351,8 @@ A publisher can offer paid monthly subscriptions in up to three tiers, each at a
 
 **For readers:** subscribe from the creator's profile (or a locked entry), pick a tier, and pay by Paystack or NotesApp Credit; it renews every month, and you can cancel any time. Switching tier starts the new one now at its price, the days left on your old tier are added on, and the old tier stops renewing.
 
+**Paid-live discount:** beside each tier's price you can give that tier's subscribers a discount on tickets to your [paid lives](/help/paid-lives), from 0% up to ${paid.discountMaxPct}%. It applies to every paid live you run, on top of whichever price applies (early bird, normal or late).
+
 **For the publisher:** subscription money is released to your verified bank account after a 7-day window, minus your plan's commission: ${SESSION_RATES()} on Premium (see [commission rates](/help/commission-rates)). On **VIP**, #NotesApp takes your rate plus ${fan.vipUpliftPct}% of it, and on **VVIP** your rate plus ${fan.vvipUpliftPct}% of it: with an 8% rate, ${+(8 * (1 + fan.vipUpliftPct / 100)).toFixed(2)}% and ${+(8 * (1 + fan.vvipUpliftPct / 100)).toFixed(2)}%. The rate is fixed on each payment.`),
     A("fan-levels", "Fan levels, Top fans and live entrances", "Publishing and earning", `
 Every creator has a **Top fans** list (open it with **🏆 Top fans** on their profile). Your place on it comes from points you build with that creator, all-time:
@@ -371,6 +382,30 @@ Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the 
 **Top gifted today:** a creator who receives ${money(GIFT_SETTINGS.daily.targetKobo)}${GIFT_SETTINGS.daily.basis === "net" ? " after commission" : ""} or more in gifts in one day (midnight to midnight, Lagos time), from at least ${GIFT_SETTINGS.daily.minSenders} different people, is pinned in the **Top gifted today** shelf at the top of [Trending](/trending) and [Explore](/explore) for the rest of that day: the ${GIFT_SETTINGS.daily.slots} who received the most, and between two with the same amount, whoever got there first. A gift to yourself never counts. Members in teen mode only appear there for people who follow them.
 
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
+A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
+
+**Scheduling one:** on [Paid lives](/lives) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
+- **${BAND_NAME.early}:** until a date and time you pick.
+- **${BAND_NAME.normal}:** from then until the start.
+- **${BAND_NAME.late}:** from the start until the live has run ${paid.lateWindowMin} minute${paid.lateWindowMin === 1 ? "" : "s"}. After that, no more tickets.
+You need a publishing account and your bank account under Rates & payouts. Members in teen mode can't sell tickets.
+
+**Who can buy:** **Everyone**, **Premium and up** or **VIP and up** (subscribers of your own [subscription tiers](/help/subscriptions)). Subscribers still pay; this is who may buy.
+
+**Subscriber discount:** set once, beside each tier's price under Rates & payouts → Subscriptions (from 0% up to ${paid.discountMaxPct}%). It comes off every ticket to your paid lives for subscribers of that tier, on top of whichever price applies.
+
+**Recording:** **Off**, **Safety only** (kept for review, never a replay) or **Record and offer a replay**. Everyone is told as they join, and speakers agree before their mic goes on. More in [Recording a live, and replays](/help/live-recording-and-replays).
+
+**Buying a ticket:** open the live's page, check the price (yours, after any subscriber discount) and pay from your NotesApp Credit or by card, bank transfer or USSD. Bonus Credits can't be used for tickets. One ticket a person; you get reminders a day before, an hour before, and when it starts.
+
+**The door:** only ticket holders get in. When the host opens the live, **Enter the live** checks your ticket and takes you in; your ticket then shows **✓ Checked**. The host and the moderators the host names come in without a ticket. Only those moderators can moderate a paid live; a community's moderators have no powers there.
+
+**Going live:** the host can open the room from 15 minutes before the start. If the host's connection drops or they end it by mistake, they can reopen it within 30 minutes and the same tickets still work.
+
+**Refunds:** if the host cancels, or doesn't open the live within ${paid.noShowMin} minute${paid.noShowMin === 1 ? "" : "s"} of its time, every ticket is refunded **to NotesApp Credit** automatically (even if you paid by card), and you're told.
+
+**For the host:** #NotesApp takes your [normal rate](/help/commission-rates) plus ${liveUplift}% of it on each ticket, fixed when the ticket is bought and worked out on what the buyer paid. The rest is paid to your bank account after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems, like a paid session.`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -391,6 +426,7 @@ Add a bank account under Rates & payouts. We verify the account name first and s
 - **Digital downloads:** after a 7-day dispute window.
 - **Ad share:** monthly, after review (see [Ads and ad share](/help/ads-and-ad-share)).
 - **Event tickets:** after the event ends and a 24-hour window for problems (see [Paid event tickets](/help/event-tickets)).
+- **Paid-live tickets:** after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems (see [Paid lives](/help/paid-lives)).
 - **Gifts to a community:** held for a day, then paid on the next payout run (see [Giving to a community](/help/giving)).
 - **Referral and affiliate earnings:** after 7 days (14 for delivered shop items), as cash or as NotesApp Credit (see [Referrals and affiliates](/help/referrals)).
 
@@ -1029,7 +1065,7 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
 
-**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host, a moderator named for the live with that permission, or one of the community's moderators can **Remove** a message. The community's own moderators have these chat powers only in lives hosted as community lives; in a member's own live, only the moderators that host names (and the community owner) can moderate.
+**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host, a moderator named for the live with that permission, or one of the community's moderators can **Remove** a message. The community's own moderators have these chat powers only in lives hosted as community lives; in a member's own live, such as a [paid live](/help/paid-lives), only the moderators that host names can moderate.
 
 **Ending:** **End room** ends it for everyone; the host leaving ends it too. The chat is deleted when the room ends. Nothing is recorded unless the host switched recording on before going live: then everyone sees **${RECORDING_NOTICE}**, and speakers agree before their mic goes on. See [Recording and replays](/help/live-recording-and-replays).
 
@@ -1060,6 +1096,8 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Kept ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, then deleted.** A recording is kept for ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} after the live ends so it can be checked if someone reports something (our Trust & safety team can play any recording; the host can play their own), then deleted for good, unless the host publishes it as a replay. Nobody else can download it.
 
 **Replays:** in **[Media](/profile/media)** the host sees each recording with the days left, and can **Publish** it (hosts on ${planList("replayPublish")} can), **Play** it or **Delete** it. A replay can be for **everyone** (it shows on Explore and Trending), for the host's **journal subscribers** (paid, like a premium post), or for **members of the community** only. If the host or anyone who spoke is in teen mode, the replay stays inside the community. A replay isn't a journal post: tap **Share to Journal** to make a draft post with the replay${rec.transcripts ? ", its transcript" : ""} and a summary Nana drafts${rec.transcripts ? "" : " once transcripts are on"}, which you edit and publish like any post, with **Book a session** under it. Replays can also be shared to Moments, a chat or other apps.
+
+**Paid lives:** the host chooses the recording when they schedule a [paid live](/help/paid-lives): **Off**, **Safety only** (recorded and kept for review as above, never offered as a replay) or **Record and offer a replay**. Everyone is told as they join, and speakers agree before their mic goes on, as in any recorded room. A paid live's replay can be for everyone, for subscribers, or for **its ticket holders only**.
 
 **Unpublishing** removes the replay and its journal post. If that's within the first ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, the recording is kept another ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} and then deleted unless you publish it again; after that, it's deleted straight away.
 

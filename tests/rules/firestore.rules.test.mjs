@@ -1589,3 +1589,31 @@ test("fan levels: points and vehicle picks are server-only; a subscription's tie
   await assertFails(setDoc(doc(as("alice"), "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active", tier: "vvip" }));
   await assertFails(getDoc(doc(anon(), "fanScores/pub_alice")));
 });
+
+test("paid lives: lives and reminders are server-only; a ticket is read only by its holder and the host, and nobody writes one", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "liveEvents/L1"), { hostUid: "pub", title: "Q&A", status: "scheduled", sold: 1, prices: { earlyKobo: 200000, normalKobo: 300000, lateKobo: 400000 } });
+    await setDoc(doc(d, "liveTickets/L1_alice"), { eventId: "L1", uid: "alice", hostUid: "pub", status: "valid", paidKobo: 200000, code: "ABCDE23456" });
+    await setDoc(doc(d, "liveEventReminders/L1_day"), { at: "x" });
+  });
+  // The holder and the host read the ticket; anyone else (or signed out) can't.
+  await assertSucceeds(getDoc(doc(as("alice"), "liveTickets/L1_alice")));
+  await assertSucceeds(getDoc(doc(as("pub"), "liveTickets/L1_alice")));
+  await assertFails(getDoc(doc(as("mallory"), "liveTickets/L1_alice")));
+  await assertFails(getDoc(doc(anon(), "liveTickets/L1_alice")));
+  for (const who of ["alice", "pub", "mallory"]) {
+    const db = as(who);
+    // Nobody makes, changes or refunds a ticket from a browser (the door is checked by the server).
+    await assertFails(setDoc(doc(db, `liveTickets/L1_${who}`), { eventId: "L1", uid: who, hostUid: "pub", status: "valid", paidKobo: 0 }));
+    await assertFails(updateDoc(doc(db, "liveTickets/L1_alice"), { status: "valid", checkedInAt: "now" }));
+    await assertFails(deleteDoc(doc(db, "liveTickets/L1_alice")));
+    // The live itself (prices, status, sold count) and the reminders are the server's.
+    await assertFails(getDoc(doc(db, "liveEvents/L1")));
+    await assertFails(updateDoc(doc(db, "liveEvents/L1"), { status: "live" }));
+    await assertFails(setDoc(doc(db, "liveEvents/L2"), { hostUid: who, title: "Mine", status: "scheduled" }));
+    await assertFails(getDoc(doc(db, "liveEventReminders/L1_day")));
+    await assertFails(setDoc(doc(db, "liveEventReminders/L1_hour"), { at: "x" }));
+  }
+  await assertFails(getDocs(query(collection(as("mallory"), "liveTickets"), where("eventId", "==", "L1"))));
+});

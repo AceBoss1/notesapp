@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.141.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "Paid lives: schedule a live of your own with tickets (Lives → Schedule a paid live). Set the date and time, a title, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, after which no more tickets are sold. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers." },
+      { kind: "added", text: "Choose the recording when you schedule a paid live: off, for safety only (kept for review, never a replay), or recorded with a replay you can offer to everyone, your subscribers or the live's ticket holders. Everyone is told as they join, and speakers agree before their mic goes on." },
+      { kind: "added", text: "The paid live's lobby: your ticket (band, price and reference), the recording notice, and Enter the live, which checks your ticket at the door. Only ticket holders, the host and the moderators the host names get in, and only those moderators can moderate. Ticket holders are reminded a day before, an hour before and when it starts." },
+      { kind: "added", text: "Subscriber discounts on paid-live tickets: set a discount for each tier once, beside its price under Rates & payouts → Subscriptions. It applies to every paid live on top of the early bird, normal or late price." },
+      { kind: "added", text: "Tickets can be paid from NotesApp Credit or by card. If the host cancels or never opens the live, every ticket is refunded to NotesApp Credit automatically. Hosts are paid after the live ends and the problem window passes; #NotesApp takes the host's normal rate plus a share of it, set in Admin, fixed when the ticket is bought." },
+      { kind: "added", text: "Admin: the paid-live ticket share under Pricing; the late window, the largest tier discount and the no-show cancellation under Limits → Audio rooms → Paid lives." },
+    ],
+  },
+  {
     version: "v0.139.0",
     bump: "minor",
     date: "2026-11-04",
