@@ -94,6 +94,9 @@ export function markGeometry(width: number, height: number, username: string, s:
   };
 }
 
+// A picture the re-marking job can't write back in its own format (a GIF or AVIF): it gets a new marked address instead.
+export class FormatNotKept extends Error { constructor() { super("This picture's format can't be written back as it is."); } }
+
 // ── Videos and replays: one Stream watermark profile per creator and frame shape ──
 // Stream lays one PNG on a video at a position and a scale ("1.0 fills the entire video"). So the PNG is the whole frame, transparent, with
 // both marks drawn where they belong, and it is laid on at scale 1.0 in the centre with no padding and full opacity (the marks carry their

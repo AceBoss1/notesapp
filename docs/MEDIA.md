@@ -211,9 +211,15 @@ the corner). Code: `lib/media-mark.ts` (pure: the look and Admin's settings, `ma
   the phase, the last document and counts per kind (done, already, pending, failed, skipped, external), one run at a time (a lease).
   Videos: enable the old video's MP4 → `POST /stream/copy` with the profile (`requireSignedURLs` as before; a replay's MP4 link carries a
   token) → when ready, the post or replay points at the copy and the old video (and any v0.134 copy) is deleted; the steps live on the
-  item (`remark`, `remarkPending`), three tries. Pictures: `markedFiles/{sha1(old key)}` maps old → new, so a file used twice is marked
-  once; an original also used by the owner's site cover, banner, gallery or profile picture is kept. Outside links and pictures shipped
-  with the app are left alone ("external"). Running it again only counts "already".
+  item (`remark`, `remarkPending`), three tries. Pictures (`markKey` in `lib/mark-uploads-server.ts`): **written back over the same key in
+  the same format** (WebP, JPEG, PNG; `Cache-Control: public, max-age=3600`), so the address never changes and every copy of it (share
+  cards, chat cards, journal drafts, emails, link previews on other sites) shows the marked picture; nothing is deleted.
+  `markedFiles/{sha1(key)}` (`inPlace`, and the clean file's hash while writing) makes a re-run count it "already" and tells a run cut
+  off mid-write whether the write landed. A picture still used unmarked (the owner's site cover, banner, gallery or profile picture) or a
+  GIF/AVIF gets a new `-na` key on the item and keeps its original. Outside links and pictures shipped with the app are left alone
+  ("external"). Running it again only counts "already". Afterwards the owner purges the media domain's Cloudflare cache (HANDOVER 121).
+  Stream videos: nothing stores a thumbnail or player address (posters are built from the uid when shown), so deleting the old uid
+  breaks nothing.
 - **Not tried against real Stream:** `watermark` on `direct_upload` and `/copy`, scale 1.0 filling the frame exactly per shape, and
   `?filename=` on a public MP4. Try one upload of each shape on staging first.
 

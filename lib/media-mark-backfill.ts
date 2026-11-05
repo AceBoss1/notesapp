@@ -2,9 +2,9 @@ import { FieldPath, FieldValue, type DocumentReference, type Firestore } from "f
 import {
   BACKFILL_PHASES, emptyBackfill, emptyCounts, shapeOf, signedDownloadUrl, type BackfillKind, type BackfillState, type MarkShape,
 } from "./media-mark";
-import { getWatermarkSettings, markProfile } from "./media-mark-server";
-import { isMarked, markOnePicture, shiftBytes, startDownload, type MediaDeps } from "./media-server";
-import { dropClean, markUrl, type PictureStore } from "./mark-uploads-server";
+import { markProfile } from "./media-mark-server";
+import { isMarked, shiftBytes, startDownload, type MediaDeps } from "./media-server";
+import { markKey, markUrl, type PictureStore } from "./mark-uploads-server";
 import type { MediaPicture, MediaPostDoc } from "./media-rules";
 import type { RemarkState, ReplayDoc } from "./live-recording";
 
@@ -14,8 +14,10 @@ import type { RemarkState, ReplayDoc } from "./live-recording";
 // live on the video's own document (remark, remarkPending), so the job survives being cut off anywhere. Idempotent: what carries the
 // mark is counted as "already" and left alone; a picture marked earlier is found in markedFiles (lib/mark-uploads-server.ts).
 //
-// Pictures: read → marked → written under a new key → the item points at it → the clean file is deleted (unless it is still used
-// somewhere unmarked: the owner's site cover/gallery or profile picture).
+// Pictures: read → marked → written back OVER THE SAME KEY in the same format (lib/mark-uploads-server.ts markKey), so every address
+// already copied elsewhere (share cards, journal drafts, emails, link previews) shows the marked picture and nothing is deleted. Only a
+// picture still used unmarked (the owner's site cover/gallery or profile picture), or a GIF/AVIF, gets a new "-na" key on the item,
+// and its original is kept.
 // Videos (Media and replays): Stream makes an MP4 of the old video → copies it with the creator's watermark profile → when the copy is
 // ready the post or replay points at it → the old video (and any v0.134 download copy) is deleted.
 // Last, every member's Media storage is counted again from their posts.
@@ -195,11 +197,16 @@ async function mediaPost(db: Firestore, ref: DocumentReference, s: BackfillState
   }
   if (p.marked === true) return void s.counts.mediaPictures.already++;
   if (p.status !== "ready") return void s.counts.mediaPictures.skipped++; // a new post being marked by its own upload, or rejected
-  const st = await getWatermarkSettings(db, now.getTime());
   const pics: MediaPicture[] = [...(p.pictures ?? [])];
+  let failed = false;
   for (let i = 0; i < pics.length; i++) {
-    pics[i] = await markOnePicture({ ...pics[i], marked: pics[i].marked === true }, p.ownerUsername, st, deps, async (next) => { pics[i] = next; await ref.update({ pictures: pics }); });
+    if (pics[i].marked === true && !pics[i].cleanKey) continue;
+    const o = await markKey(db, pics[i].key, { uid: p.ownerUid, username: p.ownerUsername }, "media", deps, now);
+    if (o.result === "missing" || o.result === "failed") { failed = true; continue; }
+    pics[i] = { key: o.key, bytes: o.bytes ?? pics[i].bytes, marked: true };
+    await ref.update({ pictures: pics });
   }
+  if (failed) throw new Error("a picture couldn't be read or marked");
   const bytes = pics.reduce((n, x) => n + x.bytes, 0);
   await shiftBytes(db, p.ownerUid, bytes - (p.bytes || 0));
   await ref.update({ pictures: pics, marked: true, bytes, updatedAt: now.toISOString() });
@@ -242,7 +249,6 @@ async function storeItem(db: Firestore, ref: DocumentReference, s: BackfillState
   const { map, result } = await markAll(db, urls, { uid, username }, "shop", deps, now);
   if (map.size) {
     await ref.update({ ...(d.image ? { image: swapIn(String(d.image), map) } : {}), ...(Array.isArray(d.images) ? { images: (d.images as string[]).map((u) => swapIn(u, map)) } : {}) });
-    for (const old of Array.from(map.keys())) await dropClean(db, old, deps);
   }
   s.counts.shopItems[result]++;
 }
@@ -257,7 +263,6 @@ async function siteServices(db: Firestore, ref: DocumentReference, s: BackfillSt
   const { map, result } = await markAll(db, urls, { uid, username }, "service", deps, now);
   if (map.size) {
     await ref.update({ "blocks.services.items": items.map((x) => (x.image ? { ...x, image: swapIn(x.image, map) } : x)) });
-    for (const old of Array.from(map.keys())) await dropClean(db, old, deps);
   }
   s.counts.services[result]++;
 }
@@ -283,7 +288,6 @@ async function journal(db: Firestore, ref: DocumentReference, s: BackfillState, 
     let text = content;
     for (const [a, b] of Array.from(map.entries())) text = text.split(a).join(b);
     await ref.update({ ...(n.featured_image ? { featured_image: swapIn(String(n.featured_image), map) } : {}), ...(text !== content ? { content: text } : {}) });
-    for (const old of Array.from(map.keys())) await dropClean(db, old, deps);
   }
   s.counts.journals[result]++;
 }

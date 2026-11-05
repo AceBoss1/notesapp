@@ -849,7 +849,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     the Anya photos):** deploy **`firebase deploy --only firestore`** (rules: `markedFiles` server-only; `mediaWatermarks` now holds a
     profile per frame shape). No new environment variable. **Owner steps:** once deployed, open **Admin → Limits → Re-mark existing
     pictures and videos** and press **Start re-marking** once; the cron carries it on a batch a tick (or press **Run a batch now**) and
-    the table shows progress for each kind (Media pictures, Media videos, replays, shop items, services, journals). Check the Cloudflare
+    the table shows progress for each kind (Media pictures, Media videos, replays, shop items, services, journals). **When it shows
+    Done:** Cloudflare dashboard → the media domain's zone (notesapp.name.ng) → **Caching → Purge Cache → Custom purge** of the media
+    hostname (the `NEXT_PUBLIC_R2_PUBLIC_URL` host), or **Purge everything**, so the edge stops serving clean copies of pictures that were
+    marked in place (they are rewritten with `Cache-Control: public, max-age=3600`; uploads never set a Cache-Control, so the edge may
+    hold them for its default time). Check the Cloudflare
     Stream dashboard afterwards: every old Media video and video replay is copied once (Stream minutes, and twice the storage for a few
     minutes per video until the old one is deleted). Check the look in **Admin → Limits → Media watermark** (centre logo 16% and 60% of
     the width, corner na @username 88% with letters 3.6% of the width, 3% in, bottom right; new uploads only). **What is marked:** Media
@@ -867,9 +871,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     second "download copy" pipeline is gone (`lib/media-video-dl*.ts` deleted) and storage counts each file once. **The re-marking job**
     (`lib/media-mark-backfill.ts`, state `serverConfig/markBackfill`, one run at a time by a lease): phases Media posts → replays → shop
     items → sites → journals → storage recount; videos: MP4 of the old video → `POST /stream/copy` with the profile (signed for replays,
-    a token in the MP4 link) → swap the uid → delete the old video and any v0.134 copy; pictures: `markedFiles/{sha1(old key)}` records
-    each old → new key so a picture shared by two items is marked once, and an original that is also the owner's site cover/gallery or
-    profile picture is kept. Every step is stored on the item, so a run cut off anywhere carries on, and a second run only counts
+    a token in the MP4 link) → swap the uid → delete the old video and any v0.134 copy (nothing stores a Stream thumbnail or player
+    address: Media posters are built from the post's uid when shown, replay share cards use the host's picture, journals made from
+    replays link to /replays/{id}); pictures (coordinator's review): **written back over the same key, in the same format** (WebP, JPEG,
+    PNG; same Content-Type, `max-age=3600`), so items keep their address and every copy of it (share cards, Moments, chat cards, journal
+    drafts, emails, LinkedIn/WhatsApp previews) shows the marked picture; nothing is swapped or deleted. `markedFiles/{sha1(key)}`
+    (`inPlace: true`, and the clean file's hash while writing, so a run cut off mid-write can tell whether it landed) makes a re-run count
+    it "already". Only a picture still used unmarked (the owner's site cover/banner/gallery or profile picture) or a GIF/AVIF (can't be
+    written back) gets a new `-na` key on the item, with the original kept. Media posts' `bytes` and the storage counter follow the
+    marked size. Every step is stored on the item, so a run cut off anywhere carries on, and a second run only counts
     "already". **Decisions where unspecified (owner to confirm):** a replay's private recording in the bucket is kept under its own keep
     rules (it is never served to viewers and transcription reads it); the clean upload exists in the bucket for the seconds between the
     browser's PUT and the mark; a co-author's journal picture uploaded before the journal is first saved carries the uploader; journals

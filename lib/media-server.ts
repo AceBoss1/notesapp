@@ -51,10 +51,12 @@ export type MediaDeps = {
   head: (key: string) => Promise<{ size: number } | null>;
   readStart: (key: string) => Promise<Uint8Array>;
   read: (key: string) => Promise<Buffer>;
-  write: (key: string, bytes: Buffer, type: string) => Promise<void>;
+  // cacheControl: left out, a new key (cached for a year, it never changes); the re-marking job writes over an old key with a short one.
+  write: (key: string, bytes: Buffer, type: string, cacheControl?: string) => Promise<void>;
   remove: (key: string) => Promise<void>;
   // Draws the NotesApp mark into a picture (lib/media-watermark.tsx markPicture).
-  markPicture: (bytes: Buffer, username: string, s: WatermarkSettings) => Promise<MarkedFile>;
+  // keepFormat: WebP, JPEG and PNG stay as they are (the re-marking job writes over the same address); a GIF or AVIF throws FormatNotKept.
+  markPicture: (bytes: Buffer, username: string, s: WatermarkSettings, o?: { keepFormat?: boolean }) => Promise<MarkedFile>;
   stream: StreamDeps;
   mediaBase: string; // NEXT_PUBLIC_R2_PUBLIC_URL: profile pictures are only ever our own uploads
 };

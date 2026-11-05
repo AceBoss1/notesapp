@@ -169,6 +169,20 @@ const adult = { teen: false }, teen = { teen: true }, kept = { keepRepliesFollow
     assert.ok(diff(g.centre.x, g.centre.y, g.centre.x + g.centre.square, g.centre.y + g.centre.h) > 4, `${file}: the faint logo is in the middle`);
     assert.ok(diff(0, 0, Math.min(60, g.centre.x), Math.min(60, g.centre.y)) < 8, `${file}: the rest of the picture is kept`);
   }
+  // keepFormat (the re-marking job writing over the same address): a PNG comes back a PNG, a JPEG a JPEG; a GIF can't be kept.
+  {
+    const { FormatNotKept } = await import("../../lib/media-mark");
+    const src = readFileSync(join(ROOT, "public/images/journal/defi.jpg"));
+    const raw = plain(await sq.decodeBuffer(src));
+    const req2 = eval("require") as NodeRequire;
+    const { encodePng } = req2("next/dist/server/lib/squoosh/impl") as { encodePng: (i: Rgba) => Promise<Uint8Array> };
+    const pngIn = Buffer.from(await encodePng(raw));
+    const pngOut = await markPicture(pngIn, "emmanuel", undefined, { keepFormat: true });
+    assert.deepEqual([sniffPicture(pngOut.bytes), pngOut.type, pngOut.ext], ["png", "image/png", "png"]);
+    assert.equal(sniffPicture((await markPicture(src, "emmanuel", undefined, { keepFormat: true })).bytes), "jpeg");
+    assert.equal((await markPicture(pngIn, "emmanuel")).type, "image/jpeg", "a new upload's PNG becomes a JPEG as before");
+    await assert.rejects(markPicture(Buffer.concat([Buffer.from("GIF89a"), Buffer.alloc(30)]), "x", undefined, { keepFormat: true }), (e: Error) => e instanceof FormatNotKept);
+  }
   // The mark for a video profile: a PNG of the frame's shape, transparent where there's no mark.
   {
     const png = await renderVideoMark("tundemoney", "9x16");

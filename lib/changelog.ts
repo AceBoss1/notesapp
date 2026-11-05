@@ -19,7 +19,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Published live replays with video carry the same mark with the host's @username, burned in as they're published." },
       { kind: "added", text: "Shop item photos, the pictures of the services on your site and the pictures in journals (the cover and pictures in the text) carry the mark too. A journal's pictures carry its main author, even when a co-author adds them. Profile pictures, your site's cover, banner and gallery, course videos and covers, community and chat pictures aren't marked." },
       { kind: "changed", text: "Media downloads: Allow watermarked downloads is now Allow downloads. People save the same marked file everyone sees, so a downloadable video no longer keeps a second copy or takes twice the room in your Media storage." },
-      { kind: "changed", text: "Pictures and videos posted before the mark are being given it, and their clean originals deleted. A picture that's also your site's cover or gallery picture keeps its original there." },
+      { kind: "changed", text: "Pictures and videos posted before the mark are being given it. Pictures are marked where they are, so links already shared show the marked picture; old videos are replaced by marked copies. A picture that's also your site's cover or gallery picture keeps its original there." },
       { kind: "added", text: "Admin: Limits → Media watermark sets how faint and how big the centre logo and the corner mark are, and which corner; changes apply to new uploads. Re-mark existing pictures and videos runs the one-off job with progress for each kind." },
     ],
   },

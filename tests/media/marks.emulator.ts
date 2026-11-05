@@ -1,15 +1,18 @@
 // The permanent NotesApp mark beyond Media posts, against the Firestore emulator: shop item photos, service pictures and journal pictures
 // marked as they're uploaded (/api/upload/mark, lib/mark-uploads-server.ts), and the one-off re-marking job (lib/media-mark-backfill.ts)
-// over everything posted before the mark: Media pictures and videos, replays, shop items, services and journals. Resumable, safe to run
-// again, survives a failure part-way, counts storage again. The bucket and Cloudflare Stream are stand-ins.
+// over everything posted before the mark: Media pictures and videos, replays, shop items, services and journals. Pictures are written
+// over their own addresses in their own format (no swap, no delete), except one still used unmarked or a GIF (a new key, original kept).
+// Resumable, safe to run again, survives a failure part-way, counts storage again. The bucket and Cloudflare Stream are stand-ins.
 // Run: npm run test:marks-server → "ALL OK".
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import type { MediaDeps } from "../../lib/media-server";
-import { keyOfUrl, markUpload } from "../../lib/mark-uploads-server";
+import { IN_PLACE_CACHE, keyOfUrl, markKey, markUpload } from "../../lib/mark-uploads-server";
 import { controlBackfill, getBackfill, picturesIn, runBackfill } from "../../lib/media-mark-backfill";
 import { sniffPicture } from "../../lib/media-rules";
+import { FormatNotKept } from "../../lib/media-mark";
+import { createHash } from "node:crypto";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -19,7 +22,8 @@ const rejects = (p: Promise<unknown>, re: RegExp, why?: string) => assert.reject
 const B = "https://cdn.test";
 const objects = new Map<string, Buffer>();
 const removed: string[] = [], written: string[] = [];
-let failRemoves = 0;
+const cacheOf = new Map<string, string | undefined>(), typeOf = new Map<string, string>();
+let failWrites = 0;
 const stream = new Map<string, { readyToStream: boolean; size?: number; state?: string; width?: number; height?: number; signed?: boolean; watermark?: string; from?: string }>();
 const dlOn = new Map<string, { status: "inprogress" | "ready" | "error"; url: string }>();
 const profiles: string[] = [], streamRemoved: string[] = [];
@@ -30,9 +34,16 @@ const deps: MediaDeps = {
   head: async (k) => (objects.has(k) ? { size: objects.get(k)!.length } : null),
   readStart: async (k) => objects.get(k)!.subarray(0, 32),
   read: async (k) => { if (!objects.has(k)) throw new Error("NoSuchKey"); return objects.get(k)!; },
-  write: async (k, b) => { objects.set(k, b); written.push(k); },
-  remove: async (k) => { if (failRemoves > 0) { failRemoves--; throw new Error("R2 hiccup"); } objects.delete(k); removed.push(k); },
-  markPicture: async (b, u) => { if (!sniffPicture(b)) throw new Error("not a picture"); return { bytes: Buffer.concat([b, TAIL(u)]), type: "image/webp", ext: "webp" }; },
+  write: async (k, b, type, cache) => { if (failWrites > 0) { failWrites--; throw new Error("R2 hiccup"); } objects.set(k, b); written.push(k); cacheOf.set(k, cache); typeOf.set(k, type); },
+  remove: async (k) => { objects.delete(k); removed.push(k); },
+  // The mark stand-in: the picture plus "|na@user". keepFormat: WebP, JPEG and PNG come back in their own format; GIF can't be kept.
+  markPicture: async (b, u, _s, o) => {
+    const f = sniffPicture(b);
+    if (!f) throw new Error("not a picture");
+    if (o?.keepFormat && (f === "gif" || f === "avif")) throw new FormatNotKept();
+    const kept = o?.keepFormat ? f : "webp";
+    return { bytes: Buffer.concat([b, TAIL(u)]), type: kept === "jpeg" ? "image/jpeg" : `image/${kept}`, ext: kept === "jpeg" ? "jpg" : kept };
+  },
   mediaBase: B,
   stream: {
     configured: true,
@@ -100,8 +111,11 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   await db.doc("replays/r_video").set({ ...rep, kind: "video", status: "ready", streamUid: "rep_v" });
   await db.doc("replays/r_audio").set({ ...rep, kind: "audio", status: "ready", streamUid: "rep_a" });
   await db.doc("replays/r_done").set({ ...rep, kind: "video", status: "ready", streamUid: "rep_m", marked: true });
-  // Shop items: our pictures (one shared by two items), an outside link and a picture shipped with the app.
+  // Shop items: our pictures (one shared by two items, a PNG, a GIF), an outside link and a picture shipped with the app.
   put("journals/10-bag.webp"); put("journals/11-shoe.webp");
+  const PNG = Buffer.concat([Buffer.from([0x89]), Buffer.from("PNG\r\n"), Buffer.alloc(50)]), GIF = Buffer.concat([Buffer.from("GIF89a"), Buffer.alloc(40)]);
+  put("journals/13-logo.png", PNG); put("journals/12-anim.gif", GIF);
+  await db.doc("storeItems/s5").set({ ownerUid: "u_ada", title: "Logo and animation", image: `${B}/journals/13-logo.png`, images: [`${B}/journals/13-logo.png`, `${B}/journals/12-anim.gif`] });
   await db.doc("storeItems/s1").set({ ownerUid: "u_ada", title: "Bag", image: `${B}/journals/10-bag.webp`, images: [`${B}/journals/10-bag.webp`, `${B}/journals/11-shoe.webp`, "https://elsewhere.test/x.jpg"] });
   await db.doc("storeItems/s2").set({ ownerUid: "u_ada", title: "Bag again", image: `${B}/journals/10-bag.webp` });
   await db.doc("storeItems/s3").set({ ownerUid: "u_bayo", title: "Static", image: "/images/shop/x.jpg" });
@@ -121,7 +135,8 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   assert.equal((await runBackfill(db, deps)).status, "idle");
   await controlBackfill(db, "start", "admin1");
   // One small batch at a time (as if the cron were cut off after each): it keeps its place.
-  failRemoves = 1; // and a clean picture whose delete fails once: the item is counted as failed and the next run finishes it
+  const removedBefore = removed.length;
+  failWrites = 1; // and a write that fails once: that item is counted as failed and the next run finishes it
   let s = await runBackfill(db, deps, { budgetMs: 1, batch: 1 });
   assert.equal(s.status, "running"); assert.equal(s.cursor, "a_pics");
   for (let i = 0; i < 40 && s.phase < 6; i++) s = await runBackfill(db, deps, { budgetMs: 1, batch: 1 });
@@ -140,12 +155,14 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   stream.set(mcopy[0], { ...mcopy[1], readyToStream: true, size: 5200 }); stream.set(rcopy[0], { ...rcopy[1], readyToStream: true, size: 9100 });
   s = await runBackfill(db, deps);
   assert.equal(s.status, "done");
-  // The picture post whose clean file couldn't be deleted: its state survived (the marked copy is the post's; the clean key remembered).
+  // The picture post whose write failed: nothing half-done is shown, and its clean file is untouched.
   assert.deepEqual(s.counts.mediaPictures, { done: 0, already: 0, pending: 0, failed: 1, skipped: 0, external: 0 });
   const half = (await db.doc("mediaPosts/a_pics").get()).data()!;
-  assert.deepEqual(half.pictures[0], { key: "media/u_ada/old-1-na.webp", bytes: 223, marked: true, cleanKey: "media/u_ada/old-1.webp" });
   assert.equal(half.marked, undefined, "not marked until every picture is");
+  assert.ok(!isMarkedFor("media/u_ada/old-1.webp", "ada"));
   assert.match(String(s.lastError), /a_pics: R2 hiccup/);
+  assert.deepEqual([s.counts.shopItems.done, s.counts.shopItems.already, s.counts.shopItems.external, s.counts.shopItems.skipped], [2, 1, 1, 1], "s1 and s5 marked; s2 shares s1's file");
+  assert.deepEqual([s.counts.services.done, s.counts.journals.done, s.counts.journals.skipped], [1, 1, 1]);
   // "Run it again" finishes it.
   await controlBackfill(db, "start", "admin1");
   for (let i = 0; i < 10 && (s = await runBackfill(db, deps)).status === "running"; i++);
@@ -153,12 +170,15 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   assert.deepEqual(s.counts.mediaPictures, { done: 1, already: 0, pending: 0, failed: 0, skipped: 0, external: 0 }, "finished on the second run");
 
   // ── What it did ──
-  // Media pictures: marked, swapped, the clean files gone (the failed delete finished on a later pass), bytes recounted.
+  // Pictures are written over their own addresses: nothing to swap, nothing deleted, every copied link shows the mark.
+  assert.equal(removed.length, removedBefore, "the job deletes no picture files");
+  // Media pictures: same keys, marked bytes, storage follows the new size.
   const pics = (await db.doc("mediaPosts/a_pics").get()).data()!;
   assert.equal(pics.marked, true);
-  assert.deepEqual(pics.pictures.map((x: { key: string }) => x.key), ["media/u_ada/old-1-na.webp", "media/u_ada/old-2-na.webp"]);
-  assert.ok(!objects.has("media/u_ada/old-1.webp") && !objects.has("media/u_ada/old-2.webp"), "clean originals deleted");
-  assert.ok(pics.pictures.every((x: { cleanKey?: string }) => !x.cleanKey));
+  assert.deepEqual(pics.pictures, [{ key: "media/u_ada/old-1.webp", bytes: 223, marked: true }, { key: "media/u_ada/old-2.webp", bytes: 323, marked: true }]);
+  assert.ok(isMarkedFor("media/u_ada/old-1.webp", "ada") && isMarkedFor("media/u_ada/old-2.webp", "ada"), "marked in place");
+  assert.equal(cacheOf.get("media/u_ada/old-1.webp"), IN_PLACE_CACHE, "a short cache time on an overwritten picture");
+  assert.equal(typeOf.get("media/u_ada/old-1.webp"), "image/webp");
   assert.equal(pics.bytes, 216 + 7 + 316 + 7);
   // Media video: points at the marked copy, the old video and the old download copy deleted, downloads on the new one, bytes once.
   const vid = (await db.doc("mediaPosts/b_vid").get()).data()!;
@@ -170,31 +190,45 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   const rv = (await db.doc("replays/r_video").get()).data()!;
   assert.deepEqual([rv.streamUid, rv.marked], [rcopy[0], true]); assert.ok(streamRemoved.includes("rep_v"));
   assert.equal((await db.doc("replays/r_audio").get()).data()!.marked, undefined, "audio: nothing to mark");
-  // Shop: the shared picture marked once, both items point at it; the outside link and the app's own picture left alone.
-  const s1 = (await db.doc("storeItems/s1").get()).data()!, s2 = (await db.doc("storeItems/s2").get()).data()!;
-  assert.equal(s1.image, `${B}/journals/10-bag-na.webp`); assert.deepEqual(s1.images, [`${B}/journals/10-bag-na.webp`, `${B}/journals/11-shoe-na.webp`, "https://elsewhere.test/x.jpg"]);
-  assert.equal(s2.image, `${B}/journals/10-bag-na.webp`, "the same file on two items: one marked copy");
-  assert.equal(written.filter((k) => k === "journals/10-bag-na.webp").length, 1, "marked once");
-  assert.ok(isMarkedFor("journals/10-bag-na.webp", "ada") && !objects.has("journals/10-bag.webp") && !objects.has("journals/11-shoe.webp"));
+  // Shop: same addresses, marked once (the file two items share too); a PNG stays PNG; a GIF gets a marked copy and keeps its original.
+  const s1 = (await db.doc("storeItems/s1").get()).data()!, s2 = (await db.doc("storeItems/s2").get()).data()!, s5 = (await db.doc("storeItems/s5").get()).data()!;
+  assert.equal(s1.image, `${B}/journals/10-bag.webp`); assert.deepEqual(s1.images, [`${B}/journals/10-bag.webp`, `${B}/journals/11-shoe.webp`, "https://elsewhere.test/x.jpg"]);
+  assert.equal(s2.image, `${B}/journals/10-bag.webp`);
+  assert.equal(written.filter((k) => k === "journals/10-bag.webp").length, 1, "marked once");
+  assert.ok(isMarkedFor("journals/10-bag.webp", "ada") && isMarkedFor("journals/11-shoe.webp", "ada"));
+  assert.equal(typeOf.get("journals/13-logo.png"), "image/png"); assert.ok(isMarkedFor("journals/13-logo.png", "ada"), "a PNG is written back as a PNG");
+  assert.deepEqual(s5.images, [`${B}/journals/13-logo.png`, `${B}/journals/12-anim-na.webp`], "a GIF can't be written back: the item gets a marked copy");
+  assert.ok(objects.get("journals/12-anim.gif")!.equals(GIF) && isMarkedFor("journals/12-anim-na.webp", "ada") && cacheOf.get("journals/12-anim-na.webp") === undefined, "its original kept; the new copy cached long");
   assert.equal((await db.doc("storeItems/s3").get()).data()!.image, "/images/shop/x.jpg");
-  // Services: both marked; the one also in the gallery keeps its original for the gallery.
+  // Services: marked in place, except the one that is also the site's gallery picture (the gallery isn't marked): a new copy for the service.
   const site = (await db.doc("sites/u_bayo").get()).data()!;
-  assert.deepEqual(site.blocks.services.items.map((x: { image?: string }) => x.image), [`${B}/journals/20-facial-na.webp`, `${B}/journals/21-nails-na.webp`, undefined]);
+  assert.deepEqual(site.blocks.services.items.map((x: { image?: string }) => x.image), [`${B}/journals/20-facial.webp`, `${B}/journals/21-nails-na.webp`, undefined]);
   assert.equal(site.blocks.gallery.items[0].image, `${B}/journals/21-nails.webp`, "the gallery isn't marked");
-  assert.ok(objects.has("journals/21-nails.webp") && !objects.has("journals/20-facial.webp"), "a shared original is kept; the rest deleted");
-  assert.ok(isMarkedFor("journals/20-facial-na.webp", "bayo"));
-  // Journals: the cover and every use of the inline picture swapped.
+  assert.ok(isMarkedFor("journals/20-facial.webp", "bayo") && !isMarkedFor("journals/21-nails.webp", "bayo") && isMarkedFor("journals/21-nails-na.webp", "bayo"));
+  // Journals: the cover and the inline picture marked where they are; the text unchanged.
   const j1 = (await db.doc("notes/j1").get()).data()!;
-  assert.equal(j1.featured_image, `${B}/journals/30-cover-na.webp`);
-  assert.equal(j1.content, `Intro\n\n![a](${B}/journals/31-inline-na.webp)\n\nAgain ![b](${B}/journals/31-inline-na.webp)`);
-  assert.ok(!objects.has("journals/30-cover.webp") && !objects.has("journals/31-inline.webp"));
+  assert.equal(j1.featured_image, `${B}/journals/30-cover.webp`);
+  assert.equal(j1.content, `Intro\n\n![a](${B}/journals/31-inline.webp)\n\nAgain ![b](${B}/journals/31-inline.webp)`);
+  assert.ok(isMarkedFor("journals/30-cover.webp", "bayo") && isMarkedFor("journals/31-inline.webp", "bayo"));
   assert.equal((await db.doc("notes/j2").get()).data()!.featured_image, `${B}/journals/32-x.webp`, "no account to name: left alone");
-  // Counts per kind, and storage counted again from the posts (the processing upload's bytes included).
-  // (the second run's counts: everything else was done on the first)
+  // The second run's counts (everything else was done on the first), and storage counted again from the posts.
   assert.deepEqual([s.counts.mediaVideos.already, s.counts.mediaVideos.skipped, s.counts.replays.already, s.counts.replays.skipped], [1, 1, 2, 1]);
-  assert.deepEqual([s.counts.shopItems.already, s.counts.shopItems.external, s.counts.shopItems.skipped, s.counts.services.already, s.counts.journals.already, s.counts.journals.skipped], [2, 1, 1, 1, 1, 1]);
+  assert.deepEqual([s.counts.shopItems.already, s.counts.shopItems.external, s.counts.shopItems.skipped, s.counts.services.already, s.counts.journals.already, s.counts.journals.skipped], [3, 1, 1, 1, 1, 1]);
   assert.equal((await db.doc("mediaUsage/u_ada").get()).data()!.bytes, 216 + 7 + 316 + 7 + 5200 + 10, "storage: each marked file once");
   assert.ok(s.recounted >= 1);
+
+  // A run cut off right after writing over a picture (the record still says "writing"): the next run sees the file changed and doesn't
+  // mark it twice.
+  put("journals/40-x.webp"); const before = objects.get("journals/40-x.webp")!;
+  await db.doc(`markedFiles/${createHash("sha1").update("journals/40-x.webp").digest("hex")}`).set({ from: "journals/40-x.webp", to: "journals/40-x.webp", inPlace: true, state: "writing", srcHash: createHash("sha1").update(before).digest("hex") });
+  objects.set("journals/40-x.webp", Buffer.concat([before, TAIL("ada")])); // the write had landed
+  const w1 = written.length;
+  assert.deepEqual(await markKey(db, "journals/40-x.webp", { uid: "u_ada", username: "ada" }, "shop", deps), { key: "journals/40-x.webp", result: "already", inPlace: true, bytes: before.length + 7 });
+  assert.equal(written.length, w1, "not written again");
+  put("journals/41-y.webp"); const b41 = objects.get("journals/41-y.webp")!;
+  await db.doc(`markedFiles/${createHash("sha1").update("journals/41-y.webp").digest("hex")}`).set({ from: "journals/41-y.webp", to: "journals/41-y.webp", inPlace: true, state: "writing", srcHash: createHash("sha1").update(b41).digest("hex") });
+  assert.equal((await markKey(db, "journals/41-y.webp", { uid: "u_ada", username: "ada" }, "shop", deps)).result, "marked", "cut off before the write landed: marked now");
+  assert.ok(isMarkedFor("journals/41-y.webp", "ada") && !objects.get("journals/41-y.webp")!.subarray(0, -7).subarray(-7).equals(TAIL("ada")), "marked once");
 
   // ── Run again: nothing changes, everything counts as already marked ──
   const w0 = written.length, r0 = removed.length, c0 = cp;
@@ -202,7 +236,7 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   for (let i = 0; i < 10 && (s = await runBackfill(db, deps)).status === "running"; i++);
   assert.equal(s.status, "done");
   assert.deepEqual([written.length, removed.length, cp], [w0, r0, c0], "idempotent: no new files, deletes or copies");
-  assert.deepEqual([s.counts.mediaPictures.already, s.counts.mediaVideos.already, s.counts.replays.already, s.counts.shopItems.already, s.counts.services.already, s.counts.journals.already], [1, 1, 2, 2, 1, 1]);
+  assert.deepEqual([s.counts.mediaPictures.already, s.counts.mediaVideos.already, s.counts.replays.already, s.counts.shopItems.already, s.counts.services.already, s.counts.journals.already], [1, 1, 2, 3, 1, 1]);
   // Pause and carry on; only one run at a time.
   await controlBackfill(db, "start", "admin1"); await controlBackfill(db, "pause", "admin1");
   assert.equal((await runBackfill(db, deps)).status, "paused", "paused: the cron does nothing");

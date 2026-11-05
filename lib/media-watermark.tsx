@@ -2,7 +2,7 @@ import React from "react";
 import { readFile } from "fs/promises";
 import path from "path";
 import { ImageResponse } from "next/og";
-import { MARK_CRIMSON, MARK_WORD, WATERMARK_DEFAULTS, markGeometry, shapeSize, type MarkGeometry, type MarkShape, type WatermarkSettings } from "./media-mark";
+import { FormatNotKept, MARK_CRIMSON, MARK_WORD, WATERMARK_DEFAULTS, markGeometry, shapeSize, type MarkGeometry, type MarkShape, type WatermarkSettings } from "./media-mark";
 void React; // the tests run this file outside Next.js, where JSX needs React in scope
 
 // Draws the permanent NotesApp mark (lib/media-mark.ts has the look and the geometry). Server only. The marks are drawn by next/og (what
@@ -15,6 +15,7 @@ type Codecs = {
   decodeBuffer: (b: Buffer | Uint8Array) => Promise<Rgba>;
   encodeJpeg: (img: Rgba, o: { quality: number }) => Promise<Uint8Array | Buffer>;
   encodeWebp: (img: Rgba, o: { quality: number }) => Promise<Uint8Array | Buffer>;
+  encodePng: (img: Rgba) => Promise<Uint8Array | Buffer>;
 };
 let codecs: Codecs | null = null;
 function loadCodecs(): Codecs {
@@ -93,11 +94,18 @@ export function blendOver(base: Rgba, over: Rgba, x: number, y: number): void {
   }
 }
 
-export type MarkedPicture = { bytes: Buffer; type: "image/webp" | "image/jpeg"; ext: "webp" | "jpg"; width: number; height: number };
+export type MarkedPicture = { bytes: Buffer; type: "image/webp" | "image/jpeg" | "image/png"; ext: "webp" | "jpg" | "png"; width: number; height: number };
+const kindOf = (b: Buffer) => b.subarray(0, 4).toString("latin1") === "RIFF" && b.subarray(8, 12).toString("latin1") === "WEBP" ? "webp"
+  : b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? "jpeg" : b[0] === 0x89 && b.subarray(1, 4).toString("latin1") === "PNG" ? "png" : "other";
 // The whole job for a picture: any picture we accept (WebP, JPEG, PNG, GIF's first frame, AVIF) in, the marked picture out. A WebP stays
 // WebP (what the studio uploads); anything else becomes a JPEG (what was see-through becomes white, as most galleries would show it).
-export async function markPicture(input: Buffer, username: string, s: WatermarkSettings = WATERMARK_DEFAULTS, quality = 86): Promise<MarkedPicture> {
-  const { decodeBuffer, encodeJpeg, encodeWebp } = loadCodecs();
+// keepFormat (the re-marking job writing over the same address): WebP, JPEG and PNG come out in their own format; a GIF or AVIF throws
+// FormatNotKept (we can't write those), checked before any drawing.
+export async function markPicture(input: Buffer, username: string, s: WatermarkSettings = WATERMARK_DEFAULTS, o: { keepFormat?: boolean; quality?: number } = {}): Promise<MarkedPicture> {
+  const quality = o.quality ?? 86;
+  const kind = kindOf(input);
+  if (o.keepFormat && kind === "other") throw new FormatNotKept();
+  const { decodeBuffer, encodeJpeg, encodeWebp, encodePng } = loadCodecs();
   // The codec's image hands out a fresh copy of its pixels on every `.data`, so each is read once into a plain image.
   const plain = (x: Rgba): Rgba => ({ data: x.data, width: x.width, height: x.height });
   const img = plain(await decodeBuffer(input));
@@ -105,8 +113,8 @@ export async function markPicture(input: Buffer, username: string, s: WatermarkS
   const g = markGeometry(img.width, img.height, username, s), cb = cornerBox(g);
   blendOver(img, plain(await decodeBuffer(await png(<Centre g={g} />, g.width, g.centre.h))), 0, g.centre.y);
   blendOver(img, plain(await decodeBuffer(await png(<Corner g={g} />, cb.w, cb.h))), cb.x, cb.y);
-  const webp = input.subarray(0, 4).toString("latin1") === "RIFF" && input.subarray(8, 12).toString("latin1") === "WEBP";
-  if (webp) return { bytes: Buffer.from(await encodeWebp(img, { quality })), type: "image/webp", ext: "webp", width: img.width, height: img.height };
+  if (o.keepFormat && kind === "png") return { bytes: Buffer.from(await encodePng(img)), type: "image/png", ext: "png", width: img.width, height: img.height };
+  if (kind === "webp") return { bytes: Buffer.from(await encodeWebp(img, { quality })), type: "image/webp", ext: "webp", width: img.width, height: img.height };
   for (let k = 3; k < img.data.length; k += 4) {
     const a = img.data[k];
     if (a === 255) continue;

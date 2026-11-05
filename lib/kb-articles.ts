@@ -851,7 +851,7 @@ To show where a picture or video came from and whose it is, #NotesApp adds a **p
 
 **Not marked:** your profile picture, your site's cover, banner and gallery, course videos and covers, community pictures, chat pictures and attachments, Notes Life, and the files of digital products. A picture used from another website (a link, not an upload) is left as it is.
 
-**Pictures from before the mark:** we're adding the same mark to pictures and videos posted before it, and deleting the clean originals. If a shop or service picture is also your site's cover or gallery picture, only the copy on the item is marked.`),
+**Pictures from before the mark:** we're adding the same mark to pictures and videos posted before it. A picture is marked where it is, so links to it that were already shared (in chats, journals, emails or on other sites) show the marked picture; an old video is replaced by a marked copy. If a shop or service picture is also your site's cover or gallery picture, only the copy on the item is marked.`),
     A("pictures-and-uploads", "Pictures you upload (WebP)", "Getting started", `
 Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats, moments, Media and adverts) are turned into **WebP** on your phone or computer before they're sent. WebP files are much smaller than JPEG or PNG for the same look, so your pages load faster and use less of your visitors' data.
 

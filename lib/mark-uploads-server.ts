@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { MARK_FOLDER, type MarkPurpose } from "./upload-rules";
 import { getWatermarkSettings } from "./media-mark-server";
+import { FormatNotKept } from "./media-mark";
 import { markedKey, type MediaDeps } from "./media-server";
 
 // The permanent NotesApp mark on shop item photos, site service pictures and journal pictures (owner, 5 Nov 2026: "can we apply it on shop
@@ -13,7 +14,7 @@ import { markedKey, type MediaDeps } from "./media-server";
 export class MarkError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export type PictureStore = Pick<MediaDeps, "read" | "write" | "remove" | "markPicture" | "publicUrl" | "mediaBase">;
+export type PictureStore = Pick<MediaDeps, "head" | "read" | "write" | "remove" | "markPicture" | "publicUrl" | "mediaBase">;
 
 const usernameOf = async (db: Firestore, uid: string) => String((await db.doc(`users/${uid}`).get()).data()?.username ?? "");
 
@@ -59,10 +60,18 @@ export function keyOfUrl(url: string, mediaBase: string): string | null {
   const key = decodeURIComponent(url.slice(base.length + 1).split(/[?#]/)[0]);
   return /^[A-Za-z0-9._/-]{1,400}$/.test(key) && !key.includes("..") ? key : null;
 }
-// A picture marked by the job is recorded (markedFiles/{hash of its old key}), so the same file used by two items is marked once and both
-// point at the one marked copy, and running the job again changes nothing.
+// Every picture the job marks is recorded (markedFiles/{hash of its key}). Most are written back OVER THE SAME KEY, in their own format,
+// so the address never changes: items, share cards, journal drafts, emails and link previews on other sites that copied it all show
+// the marked picture, and nothing is swapped or deleted. The record is what makes a second run count it as "already" (the key looks the
+// same), and it remembers the clean file's hash while the write is happening, so a run cut off there can tell whether the write landed.
+// Only a clean file that is still used unmarked (the owner's site cover/gallery or profile picture), or one we can't write back as it is
+// (GIF, AVIF), gets a new "-na" key for the item, and the original is kept.
 const fileRef = (db: Firestore, key: string) => db.doc(`markedFiles/${createHash("sha1").update(key).digest("hex")}`);
-export const isMarkedKey = (key: string) => /-na2?\.(webp|jpg)$/.test(key);
+const hashOf = (b: Buffer) => createHash("sha1").update(b).digest("hex");
+export const isMarkedKey = (key: string) => /-na2?\.(webp|jpg|png)$/.test(key);
+// What a picture written over in place is served with: short, so browsers and Cloudflare's edge pick up the marked copy (the owner also
+// purges the media domain's cache once the job is done: HANDOVER 121).
+export const IN_PLACE_CACHE = "public, max-age=3600";
 
 // Is the clean file still used somewhere that isn't marked (the owner's site cover, banner or gallery, or their profile picture)? Then
 // it is kept: only the copy on the item is marked (owner: don't mark shared originals behind the creator's back).
@@ -76,29 +85,49 @@ export async function usedUnmarked(db: Firestore, ownerUid: string, url: string)
   return JSON.stringify(copy).includes(url);
 }
 
+export type KeyOutcome = { key: string; result: "marked" | "already" | "missing" | "failed"; inPlace?: boolean; kept?: boolean; bytes?: number };
+// One picture in our bucket, marked for `owner`: the key the item should point at (the same key, unless the original had to be kept).
+export async function markKey(db: Firestore, key: string, owner: { uid: string; username: string }, kind: string, deps: PictureStore, now = new Date()): Promise<KeyOutcome> {
+  if (isMarkedKey(key)) return { key, result: "already" };
+  const ref = fileRef(db, key);
+  const rec = (await ref.get()).data();
+  const sizeOf = async (k: string) => (await deps.head(k).catch(() => null))?.size;
+  if (rec?.to && rec.state !== "writing") return { key: String(rec.to), result: "already", bytes: await sizeOf(String(rec.to)) };
+  let src: Buffer;
+  try { src = await deps.read(key); } catch { return { key, result: "missing" }; }
+  if (rec?.state === "writing" && hashOf(src) !== rec.srcHash) { // cut off after the write landed: it's marked
+    await ref.update({ state: "done", bytes: src.length });
+    return { key, result: "already", inPlace: true, bytes: src.length };
+  }
+  const st = await getWatermarkSettings(db, now.getTime());
+  const kept = await usedUnmarked(db, owner.uid, deps.publicUrl(key));
+  if (!kept) {
+    let out;
+    try { out = await deps.markPicture(src, owner.username, st, { keepFormat: true }); } catch (e) {
+      if (!(e instanceof FormatNotKept)) return { key, result: "failed" };
+    }
+    if (out) {
+      await ref.set({ from: key, to: key, inPlace: true, state: "writing", srcHash: hashOf(src), kind, ownerUid: owner.uid, at: now.toISOString() });
+      await deps.write(key, out.bytes, out.type, IN_PLACE_CACHE);
+      await ref.update({ state: "done", bytes: out.bytes.length });
+      return { key, result: "marked", inPlace: true, bytes: out.bytes.length };
+    }
+  }
+  // Still used unmarked, or a format we can't write back: a new marked copy for the item; the original stays where it is.
+  let out;
+  try { out = await deps.markPicture(src, owner.username, st); } catch { return { key, result: "failed" }; }
+  const to = markedKey(key, out.ext);
+  await deps.write(to, out.bytes, out.type);
+  await ref.set({ from: key, to, kept: true, state: "done", kind, ownerUid: owner.uid, bytes: out.bytes.length, at: now.toISOString() });
+  return { key: to, result: "marked", kept: true, bytes: out.bytes.length };
+}
+
 export type UrlOutcome = { url: string; result: "marked" | "already" | "external" | "missing" | "failed"; kept?: boolean };
-// One address on an item: the marked copy's address (made now, or found from an earlier run), or the same address when it is not ours.
+// One address on an item: the address it should have now (the same one, unless the original had to be kept), or the same address when
+// the picture isn't ours (an outside link, a picture shipped with the app).
 export async function markUrl(db: Firestore, url: string, owner: { uid: string; username: string }, kind: string, deps: PictureStore, now = new Date()): Promise<UrlOutcome> {
   const key = keyOfUrl(url, deps.mediaBase);
   if (!key) return { url, result: "external" };
-  if (isMarkedKey(key)) return { url, result: "already" };
-  const ref = fileRef(db, key);
-  const done = (await ref.get()).data();
-  if (done?.to) return { url: deps.publicUrl(String(done.to)), result: "already" };
-  let src: Buffer;
-  try { src = await deps.read(key); } catch { return { url, result: "missing" }; }
-  let out;
-  try { out = await deps.markPicture(src, owner.username, await getWatermarkSettings(db, now.getTime())); } catch { return { url, result: "failed" }; }
-  const to = markedKey(key, out.ext);
-  await deps.write(to, out.bytes, out.type);
-  const kept = await usedUnmarked(db, owner.uid, url);
-  await ref.set({ from: key, to, kind, ownerUid: owner.uid, kept, at: now.toISOString() });
-  return { url: deps.publicUrl(to), result: "marked", kept };
-}
-// After the item points at the marked copy: the clean file goes, unless something unmarked still uses it.
-export async function dropClean(db: Firestore, url: string, deps: PictureStore): Promise<void> {
-  const key = keyOfUrl(url, deps.mediaBase);
-  if (!key || isMarkedKey(key)) return;
-  const d = (await fileRef(db, key).get()).data();
-  if (d?.to && d.kept !== true && !d.removed) { await deps.remove(key).catch(() => {}); await fileRef(db, key).update({ removed: true }); }
+  const o = await markKey(db, key, owner, kind, deps, now);
+  return { url: o.key === key ? url : deps.publicUrl(o.key), result: o.result, ...(o.kept ? { kept: true } : {}) };
 }

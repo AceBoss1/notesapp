@@ -3062,6 +3062,8 @@ full-frame transparent PNG with both marks, one per frame shape (seven, picked f
 use the recorder's 16:10. Downloads keep the per-post permission but serve the marked file (videos: the MP4 of the post's own video), so
 the v0.134 second copy and its double storage went. The re-marking job runs a batch per cron tick, keeps every step on the item it
 touches (a picture's `cleanKey`, a video's `remark`), records old → new keys in `markedFiles` so shared pictures are marked once, keeps
-an original that the owner's site or profile still uses, and recounts Media storage at the end. Tests: `test:media`, `test:media-server`,
+an original that the owner's site or profile still uses, and recounts Media storage at the end. After review, the job writes a picture
+back over its own key in its own format instead of a new key (share cards, journal drafts, emails and link previews on other sites copy
+addresses, so a new key plus a delete would have broken them); only a picture still used unmarked, or a GIF/AVIF, gets a new key. Tests: `test:media`, `test:media-server`,
 `test:marks-server` (new), `test:recording-server`, rules.
 

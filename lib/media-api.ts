@@ -32,10 +32,10 @@ export function mediaDeps(): MediaDeps {
     readStart: (key) => bodyBytes(key, "bytes=0-31"),
     read: (key) => bodyBytes(key),
     // A marked picture: cached for a year (its key is new, and never changes).
-    write: async (key, bytes, type) => { await getR2Client().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, Body: bytes, ContentType: type, CacheControl: "public, max-age=31536000, immutable" })); },
+    write: async (key, bytes, type, cacheControl = "public, max-age=31536000, immutable") => { await getR2Client().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, Body: bytes, ContentType: type, CacheControl: cacheControl })); },
     // Unlike the account-deletion helper, a failed delete is reported: the marking steps keep the clean key until it is really gone.
     remove: async (key) => { await getR2Client().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key })); },
-    markPicture: (bytes, username, s) => markPicture(bytes, username, s),
+    markPicture: (bytes, username, s, o) => markPicture(bytes, username, s, o),
     mediaBase: setting("NEXT_PUBLIC_R2_PUBLIC_URL") ?? "",
     stream: {
       configured: streamConfigured(),
