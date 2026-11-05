@@ -5,6 +5,8 @@ import { createMediaPost } from "@/lib/media-server";
 import { mediaCaller, mediaDeps, mediaFail } from "@/lib/media-api";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60; // up to 10 pictures are given the NotesApp mark before the post is shown
 
 // POST { kind: "pictures", pictureKeys[] | kind: "video", videoUploadId, caption, audience, allowComments, allowShares, allowGifts,
 // allowDownloads, pinned } → { post }

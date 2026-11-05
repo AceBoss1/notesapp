@@ -7,8 +7,16 @@ const nextConfig = {
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
       // Course covers made with Nana (lib/cover-render.tsx): the fonts, our mark, and Next's own WebP encoder (WebAssembly).
       "/api/academy/covers": ["./assets/fonts/**", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],
-      // Watermarked Media picture downloads (lib/media-watermark.tsx): Next's own picture decoders and JPEG encoder (WebAssembly).
-      "/api/media/posts/[id]/download": ["./node_modules/next/dist/server/lib/squoosh/**"],
+      // The permanent NotesApp mark (lib/media-watermark.tsx): Next's own picture codecs (WebAssembly) and the Inter fonts, wherever a
+      // picture is marked, a video's watermark profile is drawn, or the re-marking job runs.
+      "/api/media/posts/[id]/download": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/media/posts": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/media/video": ["./assets/fonts/Inter-*.ttf"],
+      "/api/media/studio": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/upload/mark": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/admin/media-marks": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/cron/reminders": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/replays": ["./assets/fonts/Inter-*.ttf"],
     },
   },
   // pdf.js (the view-only PDF viewer, components/PdfViewer.tsx) has an optional Node "canvas" import it never uses in the browser.

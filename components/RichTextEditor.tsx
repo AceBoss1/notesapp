@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { remark } from "remark";
 import html from "remark-html";
-import { uploadToR2 } from "@/lib/upload";
+import { uploadMarked, uploadToR2 } from "@/lib/upload";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import { remarkLinkify } from "@/lib/linkify";
 import MentionPicker from "@/components/MentionPicker";
@@ -15,11 +15,14 @@ type Props = {
   value: string;
   onChange: (v: string) => void;
   draftKey?: string; // enables local autosave + restore when set
+  // A journal's text (the journal editor and the co-author editor): pictures get the permanent NotesApp mark (lib/mark-uploads-server.ts).
+  // Left out elsewhere (course lessons, site pages), which aren't marked.
+  mark?: { noteId?: string };
 };
 
 type Action = { label: string; title: string; run: () => void };
 
-export default function RichTextEditor({ value, onChange, draftKey }: Props) {
+export default function RichTextEditor({ value, onChange, draftKey, mark }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [preview, setPreview] = useState("");
@@ -113,7 +116,7 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
     setError("");
     setUploading(true);
     try {
-      const url = await uploadToR2(file);
+      const url = mark ? await uploadMarked(file, "note", mark.noteId) : await uploadToR2(file);
       const alt = window.prompt("Describe the image (for accessibility)") || "image";
       edit((sel, before, after) => {
         const md = `\n\n![${alt}](${url})\n\n`;

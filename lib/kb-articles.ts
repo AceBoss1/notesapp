@@ -334,6 +334,8 @@ Pick up to 3 topics for each journal (and add your own hashtags), so readers who
 
 **Share to Journals:** on a journal, a course, a shop item, a service, a public event, a certificate, a coupon or a public community post, tap **Share** and choose **Share to Journals**. A new draft opens with it quoted at the top: its title as a link, its cover and "Shared from @name", crediting whoever made it. Add a title and your thoughts, then save the draft or publish it when you're ready: nothing is published for you. You need a publishing account to write, and to be signed in (visitors are asked to sign in and come back to finish).
 
+**Pictures:** the cover and the pictures you add to the text carry the [NotesApp mark](/help/notesapp-mark) with the journal's main author's @username, added as they upload; only the marked copy is kept.
+
 Readers can follow your journal, comment, like, share and save. You can also [boost a post](/help/boost-a-post) to reach more readers, or [co-author](/help/co-authoring) with other members. Browse examples on [Journals](/journals).`),
     A("kiswahili-journals", "Journals and voice notes in Kiswahili", "Publishing and earning", `
 With NKENNEAi, journals and voice notes can reach Kiswahili speakers.
@@ -816,13 +818,15 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 - **Pinned:** pin up to ${MEDIA_PINNED_MAX} posts to the top. You can also pin up to ${MOMENTS_PINNED_MAX} moments: open your moment and tap **📌 Pin**. A pinned moment stays on your Media after its 24, 48 or 72 hours, until you unpin it. Unpin one whose time is up and it is deleted there and then.
 - **Pictures from your site:** the cover, top banner, gallery and service pictures on [your site](/help/your-site) show in your Media straight away. In your studio you can hide any of them, or turn them all off.
 - **Profile pictures:** your past profile pictures, as an album, newest first. You can turn the album off.
-- **Lives & replays:** your published replays will show here once going live arrives in Media.
+- **Lives & replays:** your published replays, which carry the NotesApp mark like your videos.
 
 **Posting:** open your [Media studio](/profile/media) (Profile → Media), choose a video or pictures, and add a caption. Pictures are made WebP before they're sent, like everywhere on #NotesApp. Videos go to Cloudflare Stream, which plays them at the right quality for your connection, and they show on your Media within about a minute. You need a verified email to post.
 
 **Who can see each post:** **Everyone**, **Followers**, or **Subscribers** (people who subscribe to your journal). You can change it later from **⋯** on the post. You can also choose whether to allow comments, shares and gifts. With gifts on, anyone signed in can send you a gift from the post itself (see [Gifts](/help/gifts)); comments and reactions arrive with the Media feed.
 
-**Downloads:** off unless you turn on **Allow watermarked downloads** for a post. When it's on, people who can see the post can download its pictures. Each download carries your @username and the NotesApp mark, stamped on our server, and the original file is never sent. **Videos** download with a see-through mark (the NotesApp mark, your @username and NotesApp) in a corner of the picture: when you turn downloads on for a video, we make a second, marked copy of it for downloads, which takes a few minutes (your studio shows **Making the watermarked download copy…** until it's ready) and about the video's size again in your Media storage. The video people watch has no mark. Turning downloads off removes the marked copy and gives the room back; if a copy can't be made, your studio says why, and turning downloads off and on tries again.
+**The NotesApp mark:** every Media picture and video carries the NotesApp mark: a faint "na NotesApp" logo across the middle and **na @yourname** in a corner, both sized to the picture, so a phone photo and a wide banner look the same. It is added when you upload (pictures on our server, videos by Cloudflare Stream as they arrive), and we keep only the marked copy: the clean upload is deleted. A picture post shows on your Media once its pictures are marked, usually within seconds. See [The NotesApp mark](/help/notesapp-mark).
+
+**Downloads:** off unless you turn on **Allow downloads** for a post. When it's on, people who can see the post can save its pictures or its video. They get the same marked file everyone sees, so there's no second copy and nothing extra in your storage. The first time you allow downloads on a video, Cloudflare makes its download file, which takes a few minutes (your studio shows **Making the download file…**); if it can't be made, your studio says why, and turning downloads off and on tries again.
 
 **How much you can post** (set by plan, in Admin → Limits):
 ${LIMIT_TIERS.map((x) => `- **${LIMIT_TIER_LABEL[x]}:** ${lim("mediaVideosPerWeek", x) > 0 ? `${lim("mediaVideosPerWeek", x)} video${lim("mediaVideosPerWeek", x) === 1 ? "" : "s"} a week, each up to ${secondsText(lim("mediaVideoMaxSeconds", x))}` : "no videos"}; ${lim("mediaPicturePostsPerDay", x)} picture posts a day; ${lim("mediaStorageGB", x) === 0 ? "no storage limit" : `${lim("mediaStorageGB", x)} GB of storage`}`).join("\n")}
@@ -833,6 +837,21 @@ Media videos are counted apart from journal videos and video moments. Weeks star
 
 **Blocking:** someone you block can't see your Media, and you can't see theirs.
 `)] : []),
+    A("notesapp-mark", "The NotesApp mark on your pictures and videos", "Getting started", `
+To show where a picture or video came from and whose it is, #NotesApp adds a **permanent mark** to:
+- every [Media](/help/media) picture and video,
+- every published live [replay](/help/live-recording-and-replays) with video,
+- the photos of your [shop items](/help/selling-physical-goods),
+- the pictures of the services on [your site](/help/your-site),
+- the pictures in your [journals](/help/publishing-journals) (the cover and pictures in the text).
+
+**What it looks like:** a faint "na NotesApp" logo across the middle, and **na @yourname** in a corner (white letters with a soft dark edge, so they read on light and dark pictures). Both are sized to each picture, so a tall phone photo and a wide banner look the same. On a journal, the corner carries the journal's main author, even when a co-author adds the picture.
+
+**When it's added:** as you upload. Pictures are marked on our server a moment after they arrive; videos and replays are marked by Cloudflare Stream as they're processed. **We keep only the marked copy:** the clean file you uploaded is deleted, and downloads are the same marked file. There's no switch to turn it off.
+
+**Not marked:** your profile picture, your site's cover, banner and gallery, course videos and covers, community pictures, chat pictures and attachments, Notes Life, and the files of digital products. A picture used from another website (a link, not an upload) is left as it is.
+
+**Pictures from before the mark:** we're adding the same mark to pictures and videos posted before it, and deleting the clean originals. If a shop or service picture is also your site's cover or gallery picture, only the copy on the item is marked.`),
     A("pictures-and-uploads", "Pictures you upload (WebP)", "Getting started", `
 Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats, moments, Media and adverts) are turned into **WebP** on your phone or computer before they're sent. WebP files are much smaller than JPEG or PNG for the same look, so your pages load faster and use less of your visitors' data.
 
@@ -840,7 +859,9 @@ Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your 
 
 **Privacy:** the hidden camera details in a photo (such as where it was taken, and the phone that took it) are left out.
 
-GIFs (so they keep moving), and pictures already in WebP or AVIF, are sent as they are. Academy logos and signatures stay PNG for certificates.`),
+GIFs (so they keep moving), and pictures already in WebP or AVIF, are sent as they are. Academy logos and signatures stay PNG for certificates.
+
+**The NotesApp mark:** Media pictures, shop item photos, service pictures and journal pictures get the [NotesApp mark](/help/notesapp-mark) with your @username when they're uploaded; only the marked copy is kept.`),
     A("explore-and-saved", "Explore and Saved", "Getting started", `
 **Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics. The **Market** and **Academy** tabs show the most looked-at products and courses this week, with a search box and a way into [Notes Market](/shop) and [Notes Academy](/academy).
 
@@ -943,7 +964,7 @@ Your store lives at /u/yourname/store. Add an item, tick that it is sold through
 
 The buyer pays here with their delivery address and gets a parcel ID by email; their money is held until delivery. You dispatch and keep the log (courier and tracking number, or who holds the parcel by bike, bus or motor park). Payout is released when the buyer confirms delivery, or 7 days after you mark it delivered. If the buyer reports a problem the money stays held while we review.
 
-Every item needs a category (buyers can filter a store by it) and, for physical items, where it ships from, which buyers see before they pay. Shoppers can save items with the heart (their private list is under Saved items), and a store shows what buyers check most.\n\nSizes: if an item comes in sizes (or sizes and colours), add them one at a time. Type the size and how many pieces you have, then tick ✔ to save it and add the next, for example L: 2, XL: 5. You can save up to 60 entries, edit or remove any of them, and the total stock is added up for you.\n\nCommission applies to the item price only (see [commission rates](/help/commission-rates)). Stores do not link out to other shops. To sell more, make [discount codes and coupons](/help/discount-codes) or set an affiliate share so members promote your items ([Referrals and affiliates](/help/referrals)). Full details: [Store selling](/store-selling).\n\nSelling in person too? [Business books](/help/business-books) records walk-in sales, expenses and money owed next to your store, and every paid order comes into it by itself, with our commission as an expense, so you see your real profit.`),
+Every item needs a category (buyers can filter a store by it) and, for physical items, where it ships from, which buyers see before they pay. Shoppers can save items with the heart (their private list is under Saved items), and a store shows what buyers check most.\n\nSizes: if an item comes in sizes (or sizes and colours), add them one at a time. Type the size and how many pieces you have, then tick ✔ to save it and add the next, for example L: 2, XL: 5. You can save up to 60 entries, edit or remove any of them, and the total stock is added up for you.\n\nCommission applies to the item price only (see [commission rates](/help/commission-rates)). Stores do not link out to other shops. To sell more, make [discount codes and coupons](/help/discount-codes) or set an affiliate share so members promote your items ([Referrals and affiliates](/help/referrals)). Full details: [Store selling](/store-selling).\n\nSelling in person too? [Business books](/help/business-books) records walk-in sales, expenses and money owed next to your store, and every paid order comes into it by itself, with our commission as an expense, so you see your real profit.\n\n**Photos:** item photos carry the [NotesApp mark](/help/notesapp-mark) and your @username, added as they upload; only the marked copy is kept.`),
     A("digital-downloads-and-courses", "Selling digital downloads, PDFs and video courses", "Selling", `
 Choose **Digital download** when you add an item and upload your file (PDF, ePub, ZIP, audio, video, Office files or images, up to 200 MB). It is stored privately; only people who pay can download it, instantly. The sale is final once downloaded, and your share is paid after a 7-day dispute window.
 
@@ -1138,7 +1159,7 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Kept ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, then deleted.** A recording is kept for ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} after the live ends so it can be checked if someone reports something (our Trust & safety team can play any recording; the host can play their own), then deleted for good, unless the host publishes it as a replay. Nobody else can download it.
 
-**Replays:** in **[Media](/profile/media)** the host sees each recording with the days left, and can **Publish** it (hosts on ${planList("replayPublish")} can), **Play** it or **Delete** it. A replay can be for **everyone** (it shows on Explore and Trending), for the host's **journal subscribers** (paid, like a premium post), or for **members of the community** only. If the host or anyone who spoke is in teen mode, the replay stays inside the community. A replay isn't a journal post: tap **Share to Journal** to make a draft post with the replay${rec.transcripts ? ", its transcript" : ""} and a summary Nana drafts${rec.transcripts ? "" : " once transcripts are on"}, which you edit and publish like any post, with **Book a session** under it. Replays can also be shared to Moments, a chat or other apps.
+**Replays:** in **[Media](/profile/media)** the host sees each recording with the days left, and can **Publish** it (hosts on ${planList("replayPublish")} can), **Play** it or **Delete** it. A replay can be for **everyone** (it shows on Explore and Trending), for the host's **journal subscribers** (paid, like a premium post), or for **members of the community** only. If the host or anyone who spoke is in teen mode, the replay stays inside the community. A replay isn't a journal post: tap **Share to Journal** to make a draft post with the replay${rec.transcripts ? ", its transcript" : ""} and a summary Nana drafts${rec.transcripts ? "" : " once transcripts are on"}, which you edit and publish like any post, with **Book a session** under it. Replays can also be shared to Moments, a chat or other apps. A video replay carries the [NotesApp mark](/help/notesapp-mark) and the host's @username, burned in as it is published; no unmarked copy is put on our video service.
 
 **Paid lives:** the host chooses the recording when they schedule a [paid live](/help/paid-lives): **Off**, **Safety only** (recorded and kept for review as above, never offered as a replay) or **Record and offer a replay**. Everyone is told as they join, and speakers agree before their mic goes on, as in any recorded room. A paid live's replay can be for everyone, for subscribers, or for **its ticket holders only**.
 
@@ -1218,7 +1239,7 @@ The **Beauty and wellness** kit is for spas, massage therapists, hair salons and
 
 **What it looks like:** it uses the Luxe look and opens with a full photo (your banner picture, or your cover) with your words over it and two buttons: **Book your appointment** and **Check our services**. Your social links show over the photo.
 
-**Your services menu:** each service can have its **minutes**, a **tab** (Facials, Braids, Pedicure, Gel…) and a **picture**. They show as a menu of cards under tabs, each with its time, price and **Book now**, which opens your booking calendar. Services with minutes, tabs and pictures work on any site, not only this kit.
+**Your services menu:** each service can have its **minutes**, a **tab** (Facials, Braids, Pedicure, Gel…) and a **picture** (service pictures carry the [NotesApp mark](/help/notesapp-mark) with your @username; your cover, banner and gallery don't). They show as a menu of cards under tabs, each with its time, price and **Book now**, which opens your booking calendar. Services with minutes, tabs and pictures work on any site, not only this kit.
 
 **Book tab:** a **Book your appointment** tab stays at the side of every page, so a visitor can book from anywhere.
 

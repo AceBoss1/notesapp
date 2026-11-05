@@ -874,7 +874,8 @@ service cloud.firestore {
     match /mediaUploads/{id} { allow read, write: if false; }
     match /mediaUsage/{uid} { allow read, write: if false; }
     match /mediaSettings/{uid} { allow read, write: if false; }
-    match /mediaWatermarks/{uid} { allow read, write: if false; } // a creator's video download watermark profile (lib/media-video-dl-server.ts)
+    match /mediaWatermarks/{uid} { allow read, write: if false; } // a creator's NotesApp mark profiles on Cloudflare Stream (lib/media-mark-server.ts)
+    match /markedFiles/{id} { allow read, write: if false; } // pictures the re-marking job marked: old key → marked key (lib/mark-uploads-server.ts)
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }

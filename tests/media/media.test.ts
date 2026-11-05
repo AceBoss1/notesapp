@@ -1,4 +1,4 @@
-// Media phase M1, the pure parts (lib/media-rules.ts, the Media limits, lib/media-watermark.tsx). Run: npm run test:media → "ALL OK".
+// Media phase M1, the pure parts (lib/media-rules.ts, the Media limits, the permanent NotesApp mark: lib/media-mark.ts, lib/media-watermark.tsx). Run: npm run test:media → "ALL OK".
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,11 +9,11 @@ import {
 import { LIMITS, LIMIT_TIERS, capOf, cleanOverrides, limitFor } from "../../lib/limits";
 import { VIDEO_WEEKLY_LIMIT } from "../../lib/video-rules";
 import { MOMENT_VIDEO_WEEKLY_LIMIT } from "../../lib/moments-rules";
-import { badgeBox, blendOver, renderVideoMark, watermarkPicture, type Rgba } from "../../lib/media-watermark";
+import { blendOver, markPicture, renderMarks, renderVideoMark, type Rgba } from "../../lib/media-watermark";
 import {
-  DL_GIVE_UP_MS, WATERMARK_DEFAULTS, cleanWatermarkOverrides, dlPending, dlView, nextDlStep, signedDownloadUrl, streamWatermarkParams, watermarkProfileKey,
-  watermarkSettings, type VideoDl,
-} from "../../lib/media-video-dl";
+  MARK_SHAPES, STREAM_PROFILE, WATERMARK_DEFAULTS, cleanWatermarkOverrides, cornerText, downloadView, markGeometry, markProfileKey, shapeOf, shapeSize,
+  signedDownloadUrl, watermarkSettings, withFilename,
+} from "../../lib/media-mark";
 
 const ROOT = join(__dirname, "..", "..");
 const rel = (o: Partial<Relation> = {}): Relation => ({ signedIn: true, self: false, viewerFollows: false, followsViewer: false, subscribed: false, blocked: false, ...o });
@@ -92,10 +92,51 @@ const adult = { teen: false }, teen = { teen: true }, kept = { keepRepliesFollow
   assert.equal(capOf("mediaStorageGB", "pro", { mediaStorageGB: { pro: 0 } }), Infinity, "0 GB means no limit");
   assert.deepEqual(cleanOverrides({ mediaVideosPerWeek: { basic: 3, pro: 7 }, mediaVideoMaxSeconds: { basic: 5 } }), { mediaVideosPerWeek: { basic: 3 } }, "defaults and out-of-range values aren't saved");
 
-  // ── Watermark ──
-  const box = badgeBox(1200, 1600, "tundemoney");
-  assert.ok(box.h >= 26 && box.w <= 1200 * 0.7 && box.w > box.h * 2, "badge fits the picture");
-  assert.ok(badgeBox(200, 200, "a".repeat(40)).w <= 140, "a long name never covers most of a small picture");
+  // ── The permanent NotesApp mark: where it goes (lib/media-mark.ts) ──
+  // The approved mockup (5 Nov): centre logo ≈ 60% of the width at 16%; corner letters 3.6% of the width, 3% in, at 88%.
+  const shapes: [string, number, number][] = [["square", 1600, 1600], ["phone 9:16", 1080, 1920], ["wide 4:1", 2400, 600], ["16:9", 1920, 1080], ["small", 670, 510], ["tall 1:3", 600, 1800]];
+  for (const [name, w, h] of shapes) {
+    const g = markGeometry(w, h, "emmanuel");
+    const inside = (b: { x: number; y: number; w: number; h: number }) => b.x >= 0 && b.y >= 0 && b.x + b.w <= w + 1 && b.y + b.h <= h + 1;
+    assert.ok(inside(g.centre) && inside(g.corner), `${name}: both marks inside the picture`);
+    assert.ok(Math.abs(g.centre.x + g.centre.w / 2 - w / 2) <= 1 && Math.abs(g.centre.y + g.centre.h / 2 - h / 2) <= 1, `${name}: the logo is centred`);
+    assert.ok(g.centre.w <= w * 0.61 && g.centre.h <= h * 0.4 + 1, `${name}: the logo is at most 60% of the width and 40% of the height`);
+    assert.equal(g.centre.opacity, 0.16, "faint");
+    assert.equal(g.corner.opacity, 0.88);
+    assert.ok(g.corner.x + g.corner.w >= w * 0.96 && g.corner.y + g.corner.h >= h * 0.96, `${name}: bottom right, 3% in`);
+    assert.ok(g.corner.font <= w * 0.036 + 1 && g.corner.font <= h * 0.06 + 1, `${name}: the corner letters follow the picture`);
+    assert.equal(g.corner.text, "@emmanuel");
+  }
+  // Same look at any size: a phone photo and the same photo at half size have marks in the same proportion.
+  const big = markGeometry(1080, 1920, "emmanuel"), half = markGeometry(540, 960, "emmanuel");
+  assert.ok(Math.abs(big.centre.w / 1080 - half.centre.w / 540) < 0.01 && Math.abs(big.corner.font / 1080 - half.corner.font / 540) < 0.01, "scales with the picture");
+  assert.ok(Math.abs(markGeometry(2000, 1000, "x").centre.w - 1200) <= 2, "the logo is 60% of a wide picture's width");
+  assert.ok(Math.abs(markGeometry(1000, 1000, "x").corner.font - 36) <= 1, "corner letters 3.6% of the width");
+  // The corner never says NotesApp: only the na square and @username.
+  assert.equal(cornerText("emmanuel"), "@emmanuel");
+  assert.ok(!/notesapp/i.test(markGeometry(800, 600, "emmanuel").corner.text), "no NotesApp word in the corner");
+  // A very long username still fits in 70% of the width; other corners from Admin.
+  const long = markGeometry(600, 600, "a".repeat(40));
+  assert.ok(long.corner.w <= 600 * 0.7 + 1 && long.corner.x >= 0);
+  const ul = markGeometry(1000, 800, "x", watermarkSettings({ corner: 3 }));
+  assert.ok(ul.corner.x <= 31 && ul.corner.y <= 25 && ul.corner.corner === "upperLeft");
+  // Admin's numbers: whole numbers in range only; old (v0.134) keys dropped; never solid.
+  assert.deepEqual(cleanWatermarkOverrides({ centreOpacityPct: 20, cornerOpacityPct: 100, cornerSizePct: "150", paddingPct: 2.5, opacityPct: 30, sizePct: 22, junk: 1 }), { centreOpacityPct: 20, cornerSizePct: 150 });
+  assert.ok(watermarkSettings({ cornerOpacityPct: 100 }).cornerOpacityPct <= 90, "the corner stays see-through");
+  assert.equal(markGeometry(1000, 1000, "x", watermarkSettings({ cornerSizePct: 200 })).corner.font, 72, "the size setting scales the corner");
+  // Videos: one Stream profile per frame shape, a full-frame PNG laid on at scale 1 in the centre.
+  assert.deepEqual([shapeOf(1080, 1920), shapeOf(1920, 1080), shapeOf(1000, 1000), shapeOf(1280, 800), shapeOf(2560, 1080), shapeOf(undefined, 5)], ["9x16", "16x9", "1x1", "16x10", "21x9", "16x9"]);
+  for (const k of Object.keys(MARK_SHAPES) as (keyof typeof MARK_SHAPES)[]) { const z = shapeSize(k); assert.ok(Math.max(z.w, z.h) === 1280 && Math.abs(z.w / z.h - MARK_SHAPES[k]) < 0.01); }
+  assert.deepEqual(STREAM_PROFILE, { opacity: 1, padding: 0, scale: 1, position: "center" });
+  assert.notEqual(markProfileKey("Tunde", "9x16", WATERMARK_DEFAULTS), markProfileKey("Tunde", "16x9", WATERMARK_DEFAULTS));
+  assert.equal(markProfileKey("Tunde", "9x16", WATERMARK_DEFAULTS), markProfileKey("tunde", "9x16", WATERMARK_DEFAULTS), "usernames are matched without case");
+  assert.notEqual(markProfileKey("tunde", "9x16", WATERMARK_DEFAULTS), markProfileKey("tunde", "9x16", watermarkSettings({ centreOpacityPct: 20 })), "a new look, a new profile");
+  // Downloads: the creator sees preparing/failed; the MP4 link names the file; a signed video's MP4 carries a token.
+  assert.deepEqual([downloadView({ state: "rendering", startedAt: "", updatedAt: "" }), downloadView({ state: "ready", startedAt: "", updatedAt: "" }), downloadView(undefined)], ["preparing", "ready", undefined]);
+  assert.equal(withFilename("https://c/v1/downloads/default.mp4", "tunde-notesapp-ab12cd.mp4"), "https://c/v1/downloads/default.mp4?filename=tunde-notesapp-ab12cd.mp4");
+  assert.equal(signedDownloadUrl("https://customer-x.cloudflarestream.com/c1/downloads/default.mp4", "c1", "T.k"), "https://customer-x.cloudflarestream.com/T.k/downloads/default.mp4");
+
+  // blendOver: mixing by alpha, in place.
   const base: Rgba = { data: new Uint8Array(4 * 4 * 4).fill(0), width: 4, height: 4 };
   for (let k = 3; k < base.data.length; k += 4) base.data[k] = 255;
   const over: Rgba = { data: new Uint8Array([255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 128, 255, 255, 255, 255]), width: 2, height: 2 };
@@ -106,74 +147,49 @@ const adult = { teen: false }, teen = { teen: true }, kept = { keepRepliesFollow
   blendOver(blank, { data: new Uint8Array([200, 100, 50, 128]), width: 1, height: 1 }, 0, 0);
   assert.deepEqual(Array.from(blank.data.slice(0, 3)), [100, 50, 25], "half see-through mixes half and half");
 
-  // A real picture: same size out, a JPEG, the bottom-right corner changed, the top-left not.
+  // ── A real picture (lib/media-watermark.tsx): same size out, WebP stays WebP, JPEG becomes JPEG; the corner and centre changed. ──
   const req = eval("require") as NodeRequire;
   const sq = req("next/dist/server/lib/squoosh/impl") as { decodeBuffer: (b: Buffer) => Promise<Rgba>; encodeWebp: (i: Rgba, o: { quality: number }) => Promise<Uint8Array> };
-  const src = readFileSync(join(ROOT, "public/images/journal/defi.jpg"));
-  const before = await sq.decodeBuffer(src);
   const plain = (x: Rgba): Rgba => ({ data: x.data, width: x.width, height: x.height });
-  const b0 = plain(before);
-  // The same picture as WebP, as Media stores it.
-  const webp = Buffer.from(await sq.encodeWebp(b0, { quality: 85 }));
-  assert.equal(sniffPicture(webp), "webp");
-  for (const input of [src, webp]) {
-    const out = await watermarkPicture(input, "tundemoney");
-    assert.equal(sniffPicture(out), "jpeg", "a JPEG comes out");
-    const after = plain(await sq.decodeBuffer(out));
+  for (const file of ["public/anya/anya-display-case-black.webp", "public/anya/anya-nana-case.webp", "public/images/journal/defi.jpg"]) {
+    const src = readFileSync(join(ROOT, file));
+    const b0 = plain(await sq.decodeBuffer(src));
+    const out = await markPicture(src, "emmanuel");
+    assert.equal(sniffPicture(out.bytes), file.endsWith(".webp") ? "webp" : "jpeg", `${file}: format kept`);
+    assert.equal(out.type, file.endsWith(".webp") ? "image/webp" : "image/jpeg");
+    const after = plain(await sq.decodeBuffer(out.bytes));
     assert.deepEqual([after.width, after.height], [b0.width, b0.height], "same size");
     const diff = (x0: number, y0: number, x1: number, y1: number) => {
       let d = 0, n = 0;
-      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const k = (y * b0.width + x) * 4; d += Math.abs(after.data[k] - b0.data[k]) + Math.abs(after.data[k + 1] - b0.data[k + 1]); n++; }
+      for (let y = Math.round(y0); y < Math.round(y1); y++) for (let x = Math.round(x0); x < Math.round(x1); x++) { const k = (y * b0.width + x) * 4; d += Math.abs(after.data[k] - b0.data[k]) + Math.abs(after.data[k + 1] - b0.data[k + 1]); n++; }
       return d / n;
     };
-    const bx = badgeBox(b0.width, b0.height, "tundemoney");
-    const x0 = b0.width - bx.w - bx.margin, y0 = b0.height - bx.h - bx.margin;
-    assert.ok(diff(x0 + 4, y0 + 4, x0 + bx.w - 4, y0 + bx.h - 4) > 25, "the badge is stamped in the corner");
-    assert.ok(diff(0, 0, 120, 120) < 12, "the rest of the picture is kept");
+    const g = markGeometry(b0.width, b0.height, "emmanuel");
+    assert.ok(diff(g.corner.x + g.corner.w - g.corner.square, g.corner.y, g.corner.x + g.corner.w, g.corner.y + g.corner.h) > 18 || diff(g.corner.x, g.corner.y, g.corner.x + g.corner.square, g.corner.y + g.corner.h) > 18, `${file}: the na @username mark is in the corner`);
+    assert.ok(diff(g.centre.x, g.centre.y, g.centre.x + g.centre.square, g.centre.y + g.centre.h) > 4, `${file}: the faint logo is in the middle`);
+    assert.ok(diff(0, 0, Math.min(60, g.centre.x), Math.min(60, g.centre.y)) < 8, `${file}: the rest of the picture is kept`);
   }
-
-  // ── Watermarked video downloads (lib/media-video-dl.ts) ──
-  // The look: see-through by default and never solid; whole numbers within each range; corners by Stream's names.
-  assert.deepEqual(streamWatermarkParams(WATERMARK_DEFAULTS), { opacity: 0.4, scale: 0.22, padding: 0.04, position: "lowerRight" });
-  assert.deepEqual(cleanWatermarkOverrides({ opacityPct: 100, sizePct: "30", paddingPct: 2.5, corner: 2, junk: 1 }), { sizePct: 30, corner: 2 }, "100% (solid) and fractions are refused");
-  assert.equal(streamWatermarkParams(watermarkSettings({ corner: 3 })).position, "upperLeft");
-  assert.ok(watermarkSettings({ opacityPct: 90 }).opacityPct <= 70, "the mark stays see-through");
-  assert.notEqual(watermarkProfileKey("Tunde", WATERMARK_DEFAULTS), watermarkProfileKey("tunde2", WATERMARK_DEFAULTS));
-  assert.equal(watermarkProfileKey("Tunde", WATERMARK_DEFAULTS), watermarkProfileKey("tunde", WATERMARK_DEFAULTS), "usernames are matched without case");
-  // The steps: the original's MP4 → the marked copy → the copy's MP4 → ready; any error fails; a day without finishing gives up.
-  const t0 = Date.parse("2026-11-03T10:00:00Z");
-  const dl = (state: VideoDl["state"], extra: Partial<VideoDl> = {}): VideoDl => ({ state, startedAt: new Date(t0).toISOString(), updatedAt: "", profileUid: "wm1", bytes: 10, ...extra });
-  const now = t0 + 60_000;
-  assert.deepEqual(nextDlStep(dl("source"), { now, sourceDownload: { status: "inprogress", url: "" } }), { do: "wait" });
-  assert.deepEqual(nextDlStep(dl("source"), { now, sourceDownload: { status: "ready", url: "https://c/sv/downloads/default.mp4" } }), { do: "copy", url: "https://c/sv/downloads/default.mp4" });
-  assert.equal(nextDlStep(dl("source"), { now, sourceDownload: { status: "error", url: "" } }).do, "fail");
-  assert.equal(nextDlStep(dl("source"), { now, sourceDownload: null }).do, "fail");
-  assert.deepEqual(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: false } }), { do: "wait" });
-  assert.deepEqual(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: true } }), { do: "render" });
-  assert.equal(nextDlStep(dl("copying", { copyUid: "c1" }), { now, copy: { readyToStream: false, state: "error" } }).do, "fail");
-  assert.deepEqual(nextDlStep(dl("rendering", { copyUid: "c1" }), { now, copy: { readyToStream: true, size: 99 }, copyDownload: { status: "ready", url: "https://c/c1/downloads/default.mp4" } }), { do: "ready", url: "https://c/c1/downloads/default.mp4", bytes: 99 });
-  assert.equal(nextDlStep(dl("rendering", { copyUid: "c1" }), { now: t0 + DL_GIVE_UP_MS + 1, copyDownload: { status: "inprogress", url: "" } }).do, "fail", "gives up after a day");
-  assert.deepEqual(nextDlStep(dl("ready"), { now }), { do: "wait" });
-  assert.ok(dlPending(dl("copying")) && !dlPending(dl("ready")) && !dlPending(dl("failed")) && !dlPending(undefined));
-  assert.deepEqual([dlView(dl("source")), dlView(dl("rendering")), dlView(dl("ready")), dlView(dl("failed")), dlView(undefined)], ["preparing", "preparing", "ready", "failed", undefined]);
-  // The copy keeps signed links on: its MP4 address carries a token in place of its id.
-  assert.equal(signedDownloadUrl("https://customer-x.cloudflarestream.com/c1/downloads/default.mp4", "c1", "T.k", "tunde-notesapp-ab12cd.mp4"), "https://customer-x.cloudflarestream.com/T.k/downloads/default.mp4?filename=tunde-notesapp-ab12cd.mp4");
-  // The mark is a PNG with a transparent background (Stream lays it on see-through).
+  // The mark for a video profile: a PNG of the frame's shape, transparent where there's no mark.
   {
-    const png = await renderVideoMark("tundemoney");
+    const png = await renderVideoMark("tundemoney", "9x16");
     assert.equal(png.subarray(1, 4).toString(), "PNG");
-    const req = eval("require") as NodeRequire;
-    const { decodeBuffer } = req("next/dist/server/lib/squoosh/impl") as { decodeBuffer: (b: Buffer) => Promise<Rgba> };
-    const img = await decodeBuffer(png);
-    const data = img.data;
-    assert.equal(data[3], 0, "the top-left corner is fully see-through");
-    let clear = 0, solid = 0;
-    for (let k = 3; k < data.length; k += 4) { if (data[k] === 0) clear++; else if (data[k] === 255) solid++; }
-    assert.ok(clear > data.length / 8 && solid > 100, "mostly see-through around a drawn mark");
+    const img = plain(await sq.decodeBuffer(png));
+    assert.deepEqual([img.width, img.height], [720, 1280]);
+    assert.equal(img.data[3], 0, "the top-left corner is fully see-through");
+    let clear = 0, drawn = 0;
+    for (let k = 3; k < img.data.length; k += 4) { if (img.data[k] === 0) clear++; else drawn++; }
+    assert.ok(clear > (img.data.length / 4) * 0.8 && drawn > 1000, "mostly see-through around the drawn marks");
+    const g = markGeometry(720, 1280, "tundemoney");
+    const at = (x: number, y: number) => img.data[(Math.round(y) * 720 + Math.round(x)) * 4 + 3];
+    assert.ok(at(g.corner.x + g.corner.w - g.corner.square / 2, g.corner.y + g.corner.h / 2) > 150, "the corner square is drawn where the geometry says");
+    const c = at(g.centre.x + g.centre.square / 2, g.centre.y + g.centre.h / 2);
+    assert.ok(c > 20 && c < 70, `the centre square is faint (alpha ${c})`);
+    assert.equal((await renderMarks(300, 200, "x")).subarray(1, 4).toString(), "PNG");
   }
 
-  // The download route is traced with the codecs, and the studio and tab exist.
-  assert.match(readFileSync(join(ROOT, "next.config.js"), "utf8"), /"\/api\/media\/posts\/\[id\]\/download": \["\.\/node_modules\/next\/dist\/server\/lib\/squoosh\/\*\*"\]/);
+  // The routes that mark pictures are traced with the codecs and fonts.
+  const cfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+  for (const r of ["/api/media/posts/[id]/download", "/api/media/posts", "/api/upload/mark", "/api/admin/media-marks", "/api/cron/reminders"]) assert.ok(cfg.includes(`"${r}": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"]`), `${r} is traced with the codecs and fonts`);
   // Cloudflare Stream refusing an upload (its storage used up) is told apart from Firestore's daily quota: the member is not told
   // "we're at capacity", and the error is a StreamError the Media routes turn into an honest message.
   {

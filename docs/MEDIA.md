@@ -163,7 +163,8 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
   video, but only when the video is uploaded or copied (`watermark: { uid }` on `direct_upload` or `POST /stream/copy`), and it then shows in
   every rendition, playback included. MP4 downloads are made with `POST /stream/{uid}/downloads`. So a watermarked video download means a
   second, watermarked copy per video (one watermark profile per creator, made from their @username badge), with downloads enabled on the copy
-  only: about double the storage for each video that allows downloads. **Built in v0.134.0, below.**
+  only: about double the storage for each video that allows downloads. **Built in v0.134.0, then replaced in v0.143.0 by the permanent mark
+  (below): the stored file is marked, so there is no second copy.**
 - **Pinned Moments:** `pinMoment` and `listPinnedMoments` in `lib/moments-server.ts`; the moment viewer has 📌 Pin / Unpin; up to 10.
 - **Profile picture history:** `profilePictures` (kept since v0.43); the picture in use is now also recorded server-side by
   `profileAlbum` whenever Media reads it.
@@ -172,7 +173,51 @@ The score is computed by a scheduled job into a `mediaRank` field, so the feed i
   tile. The studio's Lives & replays tab is `ReplaysList` (record, publish, share, Share to Journal).
 - **Tests:** `npm run test:media`, `npm run test:media-server`, and the rules test.
 
-## Watermarked video downloads (v0.134.0, 3 Nov 2026)
+## The permanent NotesApp mark (v0.143.0, 5 Nov 2026)
+
+Owner decisions (5 Nov 2026): the mark is **permanent, not optional**, on Media pictures and videos and published video replays, then
+extended the same day to shop item photos, site service pictures and journal pictures. The marked file is the only copy kept. The look is
+the approved mockup "Both" (the Anya photos): a faint full logo across the middle and **na @username** in a corner (no "NotesApp" word in
+the corner). Code: `lib/media-mark.ts` (pure: the look and Admin's settings, `markGeometry`, frame shapes, the job's kinds),
+`lib/media-watermark.tsx` (drawing with next/og in Inter; `markPicture`, `renderVideoMark`, `blendOver`), `lib/media-mark-server.ts`
+(settings, Stream profiles), `lib/mark-uploads-server.ts` (shop/service/journal uploads; the job's picture helpers),
+`lib/media-mark-backfill.ts` (the re-marking job).
+
+- **Geometry** (`markGeometry`, from the mockup): centre = crimson na square 15% of the width + "NotesApp" at 8.8% of the width, together
+  60% of the width (never taller than 40% of the picture), 16% opacity, centred. Corner = letters 3.6% of the width (at most 6% of the
+  height, so a 4:1 banner keeps a sensible mark; shrunk to fit 70% of the width for a very long username), na square 1.9 letters, 3% in
+  from the right and the bottom, 88% opacity, white bold text with a soft dark edge. Admin → Limits → Media watermark
+  (`serverConfig/mediaWatermark`): centre opacity and width, corner opacity, size and padding, corner; **new uploads only**.
+- **Pictures (Media):** after the browser's direct PUT, `createMediaPost` saves the post as `processing` with `pictures[i].marked: false`,
+  then `markPicturePost`: read → mark (WebP stays WebP, anything else JPEG) → write `…-na.<ext>` → the post points at it (with `cleanKey`)
+  → delete the clean key → `marked: true`, `status: ready`, bytes = the marked files. `toView` never shows a picture with
+  `marked: false`. A post cut short is finished by the cron's `mediaVideos` job; an unreadable file rejects it; after a day it is rejected.
+- **Pictures elsewhere:** upload purposes `shop`, `service`, `note` (`lib/upload-rules.ts`) write to `shop|services|notes/{uid}/`;
+  `POST /api/upload/mark` (`markUpload`) marks it with the uploader's @username (a journal's: its `authorUid`'s, when the uploader is one
+  of its authors) and deletes the clean file, before the editor gets an address. Wired in `StoreManager`, the site's service `Picture`,
+  `NoteForm` (cover) and `RichTextEditor` with `mark` (the journal and co-author editors only).
+- **Videos (Media):** `startMediaVideo` gets the browser's width and height, picks the nearest shape (9:16, 3:4, 1:1, 4:3, 16:10, 16:9,
+  21:9), and `markProfile` makes (once) the creator's Stream watermark profile for it: one 1280-px **full-frame transparent PNG with both
+  marks drawn in place**, laid on with `scale: 1, position: "center", padding: 0, opacity: 1` (each mark carries its own see-through).
+  `direct_upload` carries `watermark: { uid }`, so Stream never keeps a clean copy. `mediaWatermarks/{uid}` holds a profile per shape; a
+  replaced one is deleted from Stream three days later (an upload already handed it still finishes).
+- **Replays:** `publishReplay` copies a video replay with the host's 16:10 profile (`StreamClient.mark`), so no unmarked replay reaches
+  Stream; audio replays have no picture. The private recording keeps its own keep rules (never served to viewers).
+- **Downloads:** the per-post switch stays (it is the permission), now **Allow downloads**. Pictures: the stored file. Videos: Stream's
+  MP4 of the post's own (marked) video (`download` on the post: rendering → ready/failed, `dlRendering` for the cron), linked directly
+  (public playback). The v0.134 second copy, its steps and its double storage are gone.
+- **The re-marking job** (Admin → Limits → Re-mark existing pictures and videos; `app/api/admin/media-marks`; the cron's `markBackfill`
+  job): phases Media posts → replays → shop items → sites (services) → journals → storage recount, `serverConfig/markBackfill` holding
+  the phase, the last document and counts per kind (done, already, pending, failed, skipped, external), one run at a time (a lease).
+  Videos: enable the old video's MP4 → `POST /stream/copy` with the profile (`requireSignedURLs` as before; a replay's MP4 link carries a
+  token) → when ready, the post or replay points at the copy and the old video (and any v0.134 copy) is deleted; the steps live on the
+  item (`remark`, `remarkPending`), three tries. Pictures: `markedFiles/{sha1(old key)}` maps old → new, so a file used twice is marked
+  once; an original also used by the owner's site cover, banner, gallery or profile picture is kept. Outside links and pictures shipped
+  with the app are left alone ("external"). Running it again only counts "already".
+- **Not tried against real Stream:** `watermark` on `direct_upload` and `/copy`, scale 1.0 filling the frame exactly per shape, and
+  `?filename=` on a public MP4. Try one upload of each shape on staging first.
+
+## Watermarked video downloads (v0.134.0, 3 Nov 2026; replaced by the permanent mark in v0.143.0)
 
 The owner's answer: "Yes, emphasis on TRANSPARENT watermark." Code: `lib/media-video-dl.ts` (pure: the look, the steps, signed links),
 `lib/media-video-dl-server.ts` (profiles, the steps, storage), Stream calls in `lib/stream.ts`, the mark in `lib/media-watermark.tsx`

@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
 import { verifyPublisherRequest, verifyAvatarUploadRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { ALLOWED_TYPES, maxUploadBytes } from "@/lib/upload-rules";
+import { ALLOWED_TYPES, MARK_FOLDER, isMarkPurpose, maxUploadBytes } from "@/lib/upload-rules";
 import { POSTER_FOLDER } from "@/lib/rooms-live";
 
 // Presigned-URL pattern, not a proxy upload: the browser asks this
@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
-    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isMedia ? `media/${uid}` : isChat ? `chatbg/${uid}` : isPoster ? `${POSTER_FOLDER}/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    // Shop photos, service pictures and journal pictures (lib/upload-rules.ts MARK_PURPOSES): the member's own folder, because
+    // /api/upload/mark gives them the NotesApp mark and deletes this clean file, and only touches files in the caller's folder.
+    const key = isMarkPurpose(purpose) ? `${MARK_FOLDER[purpose]}/${uid}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}` : `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isMedia ? `media/${uid}` : isChat ? `chatbg/${uid}` : isPoster ? `${POSTER_FOLDER}/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

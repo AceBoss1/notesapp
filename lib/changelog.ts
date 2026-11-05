@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.143.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "The NotesApp mark: every Media picture and video now carries a faint \"na NotesApp\" logo across the middle and na @yourname in a corner, both sized to the picture, so a phone photo and a wide banner look the same. It's added as you upload and only the marked copy is kept: the clean upload is deleted." },
+      { kind: "added", text: "Published live replays with video carry the same mark with the host's @username, burned in as they're published." },
+      { kind: "added", text: "Shop item photos, the pictures of the services on your site and the pictures in journals (the cover and pictures in the text) carry the mark too. A journal's pictures carry its main author, even when a co-author adds them. Profile pictures, your site's cover, banner and gallery, course videos and covers, community and chat pictures aren't marked." },
+      { kind: "changed", text: "Media downloads: Allow watermarked downloads is now Allow downloads. People save the same marked file everyone sees, so a downloadable video no longer keeps a second copy or takes twice the room in your Media storage." },
+      { kind: "changed", text: "Pictures and videos posted before the mark are being given it, and their clean originals deleted. A picture that's also your site's cover or gallery picture keeps its original there." },
+      { kind: "added", text: "Admin: Limits → Media watermark sets how faint and how big the centre logo and the corner mark are, and which corner; changes apply to new uploads. Re-mark existing pictures and videos runs the one-off job with progress for each kind." },
+    ],
+  },
+  {
     version: "v0.142.0",
     bump: "minor",
     date: "2026-11-05",

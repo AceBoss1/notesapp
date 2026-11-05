@@ -36,7 +36,16 @@ export async function looksLikeImage(file: File): Promise<boolean> {
 // down to `maxSide` (a profile picture needs far less than a cover). The original is kept when the browser can't make WebP or the
 // WebP comes out bigger.
 // "poster": the picture an audio room shows while video is off (lib/rooms-live.ts), in the host's own posters/ folder.
-export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "media" | "poster";
+// "shop", "service", "note": a shop item's photo, a site service's picture, a picture in a journal (its cover or in the text). Each goes to
+// the uploader's own folder and is then given the permanent NotesApp mark on our server (lib/mark-uploads-server.ts), which deletes the
+// clean upload: only the marked copy is kept (owner, 5 Nov 2026).
+export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "media" | "poster" | MarkPurpose;
+export const MARK_PURPOSES = ["shop", "service", "note"] as const;
+export type MarkPurpose = (typeof MARK_PURPOSES)[number];
+export const isMarkPurpose = (v: unknown): v is MarkPurpose => MARK_PURPOSES.includes(v as MarkPurpose);
+export const MARK_FOLDER: Record<MarkPurpose, string> = { shop: "shop", service: "services", note: "notes" };
+// The larger (10 MB) picture limit: journal pictures and the marked kinds; everything else (avatars, ads, moments…) is 5 MB.
+export const bigPictureUpload = (purpose: UploadPurpose) => purpose === "journal" || isMarkPurpose(purpose);
 export const WEBP_QUALITY = 0.82;
 export function webpPlan(type: string, purpose: UploadPurpose): { maxSide: number } | null {
   if (purpose === "academy") return null;

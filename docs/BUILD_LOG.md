@@ -3048,3 +3048,20 @@ that window. Teens can neither sell nor book. Tests: `tests/ppm/ppm.test.ts` (gr
 unused minutes back, uplift, the offer, the gate) and `ppm.emulator.ts` (book → hold → call → beats → top-up prompt → add → end → charge
 and release → ledger → payout; the hold running out, a dropped phone, the grace, a missed call, cancelling, the sweep, teens, the tier
 gate, a report and a refund), the rules test, `test:help`.
+
+**The permanent NotesApp mark (v0.143.0, 5 Nov 2026)** — The owner chose a permanent mark over watermarked downloads: every Media picture
+and video and every published video replay carries it, and the same day added shop item photos, site service pictures and journal
+pictures. The approved look ("Both", then the Anya photos) is a faint full logo across the middle and na @username in a corner, sized
+from each picture; `markGeometry` in `lib/media-mark.ts` turns the mockup's CSS into numbers (centre 15% + 8.8% of the width, 16%;
+corner letters 3.6% of the width, 3% in, 88%) and is tested on square, 9:16, 4:1, 16:9 and 1:3 frames. Pictures are drawn with next/og
+in Inter (each mark in its own small box, blended onto the decoded picture: about 0.7 s for a 1600-px photo, against 5 s for a
+full-frame layer) and kept WebP. The marked file is the only copy: Media posts stay "processing" until every picture is marked and its
+clean upload deleted; shop, service and journal pictures go to the uploader's own folder and are marked by `/api/upload/mark` before the
+editor sees an address, so shared folders (journals/) are never touched at upload. Stream lays one image per video, so the profile is a
+full-frame transparent PNG with both marks, one per frame shape (seven, picked from the video's size), at scale 1 in the centre; replays
+use the recorder's 16:10. Downloads keep the per-post permission but serve the marked file (videos: the MP4 of the post's own video), so
+the v0.134 second copy and its double storage went. The re-marking job runs a batch per cron tick, keeps every step on the item it
+touches (a picture's `cleanKey`, a video's `remark`), records old → new keys in `markedFiles` so shared pictures are marked once, keeps
+an original that the owner's site or profile still uses, and recounts Media storage at the end. Tests: `test:media`, `test:media-server`,
+`test:marks-server` (new), `test:recording-server`, rules.
+

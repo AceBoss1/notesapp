@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { uploadToR2 } from "@/lib/upload";
+import { uploadMarked, uploadToR2 } from "@/lib/upload";
 import { BLOCKS, BUTTON_KINDS, LIMITS, blockAllowed, type BlockId, type Blocks, type OrcidLink, type SiteButton } from "@/lib/site-kits";
 import { mergePublications } from "@/lib/publications-import";
 import ImportPublications from "./ImportPublications";
@@ -12,13 +12,14 @@ import { PLACE_NAMES, placeCoords } from "@/lib/places";
 const field = "mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 const small = "rounded-full border border-rule px-3 py-1 text-xs font-semibold text-ink hover:border-crimson disabled:opacity-40";
 
-export function Picture({ value, onChange, label }: { value: string; onChange: (url: string) => void; label: string }) {
+// `marked`: a service's picture, which gets the permanent NotesApp mark (lib/mark-uploads-server.ts); site pictures (cover, gallery…) don't.
+export function Picture({ value, onChange, label, marked }: { value: string; onChange: (url: string) => void; label: string; marked?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   async function pick(f: File | undefined) {
     if (!f) return;
     setBusy(true); setErr("");
-    try { onChange(await uploadToR2(f, "journal")); } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't upload the picture."); } finally { setBusy(false); }
+    try { onChange(marked ? await uploadMarked(f, "service") : await uploadToR2(f, "journal")); } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't upload the picture."); } finally { setBusy(false); }
   }
   return (
     <div className="flex items-center gap-3">
@@ -121,7 +122,7 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
                 <input aria-label="Note" placeholder="A short note (optional)" value={x.note} maxLength={160} onChange={(e) => s({ ...x, note: e.target.value })} className={field} />
                 <input aria-label="Minutes" type="number" min={5} max={720} placeholder="Minutes (optional)" value={x.minutes ?? ""} onChange={(e) => s({ ...x, minutes: e.target.value ? Number(e.target.value) : undefined })} className={field} />
                 <input aria-label="Tab" placeholder="Tab, e.g. Facials (optional)" value={x.group ?? ""} maxLength={40} onChange={(e) => s({ ...x, group: e.target.value })} className={field} />
-                <Picture value={x.image ?? ""} label="Picture (optional)" onChange={(image) => s({ ...x, image })} />
+                <Picture marked value={x.image ?? ""} label="Picture (optional)" onChange={(image) => s({ ...x, image })} />
               </div>
             )} />
             <p className="mt-2 text-xs text-slate">Add minutes, a tab or a picture and your services show as a menu of cards in tabs (Facials, Massages…), each with Book now while your sessions are on.</p></div>

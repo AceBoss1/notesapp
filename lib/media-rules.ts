@@ -1,12 +1,13 @@
 // Media (docs/MEDIA.md): NotesApp's own videos and pictures. Client-safe constants and pure rules, shared by the studio, the creator's
 // Media tab and the server (lib/media-server.ts). Phase M1: posting, the creator's grid, pinned Moments and posts, site pictures, the
-// profile picture album, watermarked picture downloads, plan limits and teen rules. The /media feed, comments, reactions and gifts are
+// profile picture album, the permanent NotesApp mark (lib/media-mark.ts), plan limits and teen rules. The /media feed, comments, reactions and gifts are
 // phase M2; their counters (commentsCount, reactions, giftsTotal…) are already on every post so M2 only has to fill them.
 import type { AccountTier } from "./users";
 import { setting } from "@/lib/config";
 import { VIDEO_WEEKLY_LIMIT } from "./video-rules";
 import { hearsOnlyFromFollowed, mayReshare, teenAudience, type YoungFlags } from "./young";
-import type { VideoDl, VideoDownloadView } from "./media-video-dl";
+import type { VideoDownload, VideoDownloadView } from "./media-mark";
+import type { RemarkState } from "./live-recording";
 
 // On everywhere unless NEXT_PUBLIC_MEDIA_LIVE is "false" (the tab then disappears and the API answers 404).
 export const MEDIA_LIVE = setting("NEXT_PUBLIC_MEDIA_LIVE") !== "false";
@@ -38,8 +39,12 @@ export const MEDIA_STORAGE_GB: Record<AccountTier, number> = { standard: 1, basi
 export const GB = 1024 ** 3;
 
 // A post as stored (mediaPosts/{id}). Server-written only; read through /api/media (firestore.rules refuse clients).
-export type MediaPicture = { key: string; bytes: number };
-export type MediaVideo = { streamUid: string; durationSec: number; bytes: number; uploadId: string };
+// marked: the NotesApp mark is in the file (lib/media-mark.ts). false: the clean upload, waiting to be marked (never shown); missing: a
+// picture posted before the mark (v0.143.0), shown until the re-marking job reaches it. cleanKey: the clean upload, while it is deleted.
+export type MediaPicture = { key: string; bytes: number; marked?: boolean; cleanKey?: string };
+export type MediaVideo = { streamUid: string; durationSec: number; bytes: number; uploadId: string; marked?: boolean };
+// The v0.134 download copy of a video (a second, marked Stream copy). No longer made; the re-marking job removes any left.
+export type LegacyVideoDl = { state?: string; copyUid?: string; bytes?: number };
 export type MediaStatus = "processing" | "ready" | "rejected";
 export type MediaPostDoc = {
   ownerUid: string; ownerUsername: string; kind: MediaKind;
@@ -50,9 +55,13 @@ export type MediaPostDoc = {
   allowComments: boolean; allowShares: boolean; allowGifts: boolean; allowDownloads: boolean;
   pinned: boolean; pinnedAt?: string;
   createdAt: string; updatedAt: string;
-  bytes: number; // counted against the plan's Media storage (a video's watermarked download copy included)
-  // A video with downloads on: its watermarked download copy (lib/media-video-dl.ts). dlPending: the copy is on its way (the cron's query).
-  videoDl?: VideoDl; dlPending?: boolean;
+  bytes: number; // counted against the plan's Media storage: the marked file(s), once
+  // marked: every file of the post carries the NotesApp mark (new posts, and old ones once re-marked: lib/media-mark-backfill.ts).
+  marked?: boolean;
+  // A video whose creator allows downloads: Stream's MP4 of the (marked) video. dlRendering: being made (the cron's query).
+  download?: VideoDownload; dlRendering?: boolean;
+  videoDl?: LegacyVideoDl; dlPending?: boolean; // left by v0.134 until re-marked
+  remark?: RemarkState; remarkPending?: boolean; // the re-marking job's steps for an older video (lib/media-mark-backfill.ts)
   // Counters. M1 fills viewCount and downloadCount; M2 (feed, comments, reactions, gifts) fills the rest.
   viewCount: number; downloadCount: number; sharesCount: number;
   commentsCount: number; reactions: Record<string, number>; reactionsCount: number; giftsTotal: number; giftsCount: number;

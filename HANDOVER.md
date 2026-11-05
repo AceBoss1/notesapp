@@ -845,6 +845,40 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     with real phones:** book on staging, call between two phones, let the hold run out, add minutes, end, and check the wallet lines and
     the ledger entry. A call left ringing (app closed) or with nobody beating is closed when either side calls again. Tests: `test:ppm`,
     `test:ppm-server`, `test:help`, rules.
+121. **The permanent NotesApp mark (v0.143.0, branch `push/permanent-watermark`; owner decisions 5 Nov 2026, approved mockups "Both" and
+    the Anya photos):** deploy **`firebase deploy --only firestore`** (rules: `markedFiles` server-only; `mediaWatermarks` now holds a
+    profile per frame shape). No new environment variable. **Owner steps:** once deployed, open **Admin → Limits → Re-mark existing
+    pictures and videos** and press **Start re-marking** once; the cron carries it on a batch a tick (or press **Run a batch now**) and
+    the table shows progress for each kind (Media pictures, Media videos, replays, shop items, services, journals). Check the Cloudflare
+    Stream dashboard afterwards: every old Media video and video replay is copied once (Stream minutes, and twice the storage for a few
+    minutes per video until the old one is deleted). Check the look in **Admin → Limits → Media watermark** (centre logo 16% and 60% of
+    the width, corner na @username 88% with letters 3.6% of the width, 3% in, bottom right; new uploads only). **What is marked:** Media
+    pictures (marked on our server after the browser's PUT, `markPicturePost`: written as `…-na.webp|jpg`, the post points at it, the
+    clean key deleted, then the post shows; hidden as "processing" until then, the cron finishes a post cut short, a day later it is
+    rejected and its bytes given back), Media videos (Stream `direct_upload` with `watermark.uid`: the creator's profile for the video's
+    shape, from the width and height the browser reads; one full-frame transparent PNG with both marks, laid on at scale 1, centre,
+    padding 0, opacity 1; seven shapes 9:16 … 21:9, `lib/media-mark.ts` MARK_SHAPES), video replays (`publishReplay` copies with the
+    host's 16:10 profile; audio replays have no picture), shop item photos, site service pictures and journal pictures (new upload
+    purposes `shop`/`service`/`note` put them in `shop|services|notes/{uid}/`, and `/api/upload/mark` marks them and deletes the clean
+    file before the editor ever sees an address; journals carry the primary author, `authorUid`'s username). Not marked: profile
+    pictures, site cover/banner/gallery, course videos and covers, community, chat, Notes Life, digital product files, outside links.
+    **Downloads:** the per-post switch stays (it is the permission; teens never), renamed **Allow downloads**; pictures download as the
+    stored file, videos as Stream's MP4 of the marked video itself (`download` on the post, `dlRendering` for the cron). The v0.134
+    second "download copy" pipeline is gone (`lib/media-video-dl*.ts` deleted) and storage counts each file once. **The re-marking job**
+    (`lib/media-mark-backfill.ts`, state `serverConfig/markBackfill`, one run at a time by a lease): phases Media posts → replays → shop
+    items → sites → journals → storage recount; videos: MP4 of the old video → `POST /stream/copy` with the profile (signed for replays,
+    a token in the MP4 link) → swap the uid → delete the old video and any v0.134 copy; pictures: `markedFiles/{sha1(old key)}` records
+    each old → new key so a picture shared by two items is marked once, and an original that is also the owner's site cover/gallery or
+    profile picture is kept. Every step is stored on the item, so a run cut off anywhere carries on, and a second run only counts
+    "already". **Decisions where unspecified (owner to confirm):** a replay's private recording in the bucket is kept under its own keep
+    rules (it is never served to viewers and transcription reads it); the clean upload exists in the bucket for the seconds between the
+    browser's PUT and the mark; a co-author's journal picture uploaded before the journal is first saved carries the uploader; journals
+    under an admin-picked name with no account are left as they are. **Not tried against real Stream:** `watermark` on `direct_upload`
+    and `/copy`, and whether scale 1.0 fills the frame exactly for every shape (it should: Stream's docs say 1.0 "fills the entire
+    video"); try one upload of each shape on staging before running the job. Tests: `test:media` (geometry for square, 9:16, 4:1, 16:9,
+    1:3 and a long name; no NotesApp word in the corner; real renders of the Anya photos), `test:media-server`, `test:marks-server`
+    (new: shop/service/journal marks, the job resumable, idempotent and surviving a failed delete, storage recount),
+    `test:recording-server` (a video replay copied with the host's profile), rules.
 
 ## 3. How the work is done (please keep these)
 

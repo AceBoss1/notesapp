@@ -285,7 +285,7 @@ const ROWS: Row[] = [
     render: (t, L) =>
       `Videos and pictures on your profile's Media tab, kept until you delete them · ` +
       (L.mediaVideosPerWeek[t.tier] > 0 ? `${L.mediaVideosPerWeek[t.tier]} video${L.mediaVideosPerWeek[t.tier] === 1 ? "" : "s"} a week, up to ${secondsText(L.mediaVideoMaxSeconds[t.tier])} each` : "pictures only (videos come with a paid plan)") +
-      ` · ${L.mediaPicturePostsPerDay[t.tier]} picture posts a day · ${L.mediaStorageGB[t.tier] === 0 ? "no storage limit" : `${L.mediaStorageGB[t.tier]} GB of storage`} · watermarked downloads if you allow them`,
+      ` · ${L.mediaPicturePostsPerDay[t.tier]} picture posts a day · ${L.mediaStorageGB[t.tier] === 0 ? "no storage limit" : `${L.mediaStorageGB[t.tier]} GB of storage`} · every picture and video carries the NotesApp mark`,
   },
   {
     label: "Email for new messages",

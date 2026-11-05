@@ -81,7 +81,7 @@ export default function SharedDraftPage() {
           <label className="block"><span className="eyebrow">Title</span>
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body outline-none focus:border-crimson" />
           </label>
-          <div><span className="eyebrow">Text</span><RichTextEditor value={content} onChange={setContent} /></div>
+          <div><span className="eyebrow">Text</span><RichTextEditor value={content} onChange={setContent} mark={{ noteId: id }} /></div>
           {error && <p className="text-sm text-crimson">{error}</p>}
           {note && <p className="text-sm text-emerald-800">{note}</p>}
           <div className="flex flex-wrap items-center gap-3">

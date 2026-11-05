@@ -5,7 +5,7 @@ import {
   DOWNLOADS_OFF, GB, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PICTURE_MAX_BYTES, MEDIA_PINNED_MAX, MEDIA_SOUND, TEEN_DOWNLOAD_BLOCKED,
   allowedSwitches, cleanMediaSettings, isMediaAudience, isMediaKind, isOwnMediaKey, mediaPageVisible, mediaVisible, sitePicturesOf, sniffPicture,
   streamPlayer, streamPoster,
-  type MediaAudience, type MediaPostDoc, type MediaPostView, type MediaSettings, type Relation, type ReplayTile, type SitePicture,
+  type MediaAudience, type MediaPicture, type MediaPostDoc, type MediaPostView, type MediaSettings, type Relation, type ReplayTile, type SitePicture,
 } from "./media-rules";
 import { STREAM_MAX_BYTES } from "./stream-config";
 import { isoWeekKey } from "./video-rules";
@@ -18,8 +18,11 @@ import { mentionedUsernames } from "./mentions-server";
 import { isPictureUrl } from "./profile-pictures";
 import { listPinnedMoments, type MomentDeps, type MomentView } from "./moments-server";
 import { replaysFor } from "./media-replays";
-import { VIDEO_DL_NOT_SET_UP, VIDEO_DL_PREPARING, dlPending, dlView, signedDownloadUrl, videoDownloadName, type VideoDl } from "./media-video-dl";
-import { VideoDlError, startVideoDl, stepVideoDl, stopVideoDl, sweepVideoDls, type VideoDlDeps } from "./media-video-dl-server";
+import {
+  DOWNLOAD_GIVE_UP_MS, NOT_MARKED_YET, VIDEO_DL_NOT_SET_UP, VIDEO_DL_PREPARING, downloadView, shapeOf, videoDownloadName, withFilename,
+  type VideoDownload, type WatermarkSettings,
+} from "./media-mark";
+import { getWatermarkSettings, markProfile, type MarkProfileDeps } from "./media-mark-server";
 
 // Server side of Media (phase M1; lib/media-rules.ts has the rules, docs/MEDIA.md the plan). Clients never read or write mediaPosts,
 // mediaUploads, mediaUsage or mediaSettings (firestore.rules say no): every read comes through here, so the audience, teen mode and blocks
@@ -28,21 +31,31 @@ export class MediaError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
-export type StreamDeps = {
+export type StreamDownload = { status: "inprogress" | "ready" | "error"; url: string };
+export type StreamDeps = MarkProfileDeps & {
   configured: boolean;
   // A one-time address the browser sends the video to. Public playback (Media is public), and Stream itself refuses anything longer.
-  create: (creatorUid: string, maxSeconds: number, name: string) => Promise<{ uploadURL: string; uid: string }>;
-  get: (uid: string) => Promise<{ readyToStream: boolean; duration?: number; size?: number; state?: string } | null>;
+  // watermarkUid: the creator's watermark profile, burned in as the video arrives (lib/media-mark.ts).
+  create: (creatorUid: string, maxSeconds: number, name: string, watermarkUid: string) => Promise<{ uploadURL: string; uid: string }>;
+  get: (uid: string) => Promise<{ readyToStream: boolean; duration?: number; size?: number; state?: string; width?: number; height?: number } | null>;
   remove: (uid: string) => Promise<void>;
+  // MP4 downloads of a video (POST/GET/DELETE /stream/{uid}/downloads).
+  downloads: { enable: (uid: string) => Promise<StreamDownload>; status: (uid: string) => Promise<StreamDownload | null>; disable: (uid: string) => Promise<void> };
+  // A copy of a video from a link with a watermark profile (the re-marking of older videos), and a token for a signed video's MP4.
+  copy: (o: { url: string; watermarkUid: string; creatorUid: string; name: string; signed: boolean; purpose: string }) => Promise<{ uid: string }>;
+  token: (uid: string, seconds: number) => Promise<string>;
 };
+export type MarkedFile = { bytes: Buffer; type: string; ext: string };
 export type MediaDeps = {
   publicUrl: (key: string) => string;
   head: (key: string) => Promise<{ size: number } | null>;
   readStart: (key: string) => Promise<Uint8Array>;
   read: (key: string) => Promise<Buffer>;
+  write: (key: string, bytes: Buffer, type: string) => Promise<void>;
   remove: (key: string) => Promise<void>;
+  // Draws the NotesApp mark into a picture (lib/media-watermark.tsx markPicture).
+  markPicture: (bytes: Buffer, username: string, s: WatermarkSettings) => Promise<MarkedFile>;
   stream: StreamDeps;
-  videoDl?: VideoDlDeps; // watermarked video downloads (lib/media-video-dl-server.ts); absent: video downloads aren't available
   mediaBase: string; // NEXT_PUBLIC_R2_PUBLIC_URL: profile pictures are only ever our own uploads
 };
 
@@ -104,6 +117,9 @@ async function giveBack(db: Firestore, uid: string, week: string | null, bytes: 
   });
 }
 const freeBytes = (db: Firestore, uid: string, bytes: number) => giveBack(db, uid, null, bytes);
+// A file's size changed (a picture once marked, a video once Stream knows it): the storage counter follows.
+export const shiftBytes = (db: Firestore, uid: string, delta: number) =>
+  delta ? db.doc(`mediaUsage/${uid}`).set({ uid, bytes: FieldValue.increment(delta) }, { merge: true }).catch(() => {}) : Promise.resolve();
 
 // ── Who is looking ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export async function relationOf(db: Firestore, viewer: Person | null, owner: Person, now = new Date()): Promise<Relation> {
@@ -121,7 +137,8 @@ export async function relationOf(db: Firestore, viewer: Person | null, owner: Pe
 
 // ── Views of a post ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 function toView(id: string, p: MediaPostDoc, viewerUid: string | null, deps: Pick<MediaDeps, "publicUrl">): MediaPostView {
-  const pictures = (p.pictures ?? []).map((x) => deps.publicUrl(x.key));
+  // Never a clean upload: a picture waiting for its mark isn't shown, even to its creator.
+  const pictures = (p.pictures ?? []).filter((x) => x.marked !== false).map((x) => deps.publicUrl(x.key));
   const video = p.video ? { streamUid: p.video.streamUid, durationSec: p.video.durationSec, poster: streamPoster(p.video.streamUid), player: streamPlayer(p.video.streamUid) } : undefined;
   const mine = viewerUid === p.ownerUid;
   return {
@@ -132,8 +149,8 @@ function toView(id: string, p: MediaPostDoc, viewerUid: string | null, deps: Pic
     viewCount: p.viewCount ?? 0, downloadCount: p.downloadCount ?? 0, sharesCount: p.sharesCount ?? 0, commentsCount: p.commentsCount ?? 0, reactionsCount: p.reactionsCount ?? 0, giftsTotal: p.giftsTotal ?? 0,
     mine,
     // The video's download: others only learn it is ready; the creator also sees it being prepared, or why it failed.
-    ...(p.videoDl && p.allowDownloads && (mine || p.videoDl.state === "ready") ? { videoDownload: dlView(p.videoDl) } : {}),
-    ...(mine && p.videoDl?.state === "failed" && p.videoDl.why ? { videoDownloadWhy: p.videoDl.why } : {}),
+    ...(p.download && p.allowDownloads && (mine || p.download.state === "ready") ? { videoDownload: downloadView(p.download) } : {}),
+    ...(mine && p.download?.state === "failed" && p.download.why ? { videoDownloadWhy: p.download.why } : {}),
   };
 }
 
@@ -168,7 +185,9 @@ async function pinnedCount(db: Firestore, uid: string, except?: string): Promise
 
 // The video's upload address. The plan's weekly videos, longest video and storage are checked first; the slot is taken now and given back
 // if the video is rejected (too long, or never arrives).
-export async function startMediaVideo(db: Firestore, owner: Person, tier: AccountTier, input: { durationSec: unknown; size: unknown; name?: unknown }, deps: MediaDeps, now = new Date()): Promise<{ uploadId: string; uploadURL: string; maxSeconds: number }> {
+// The video arrives with the creator's mark burned in by Stream (a watermark profile for the video's frame shape, from the width and
+// height the browser read), so Stream never keeps a clean copy.
+export async function startMediaVideo(db: Firestore, owner: Person, tier: AccountTier, input: { durationSec: unknown; size: unknown; name?: unknown; width?: unknown; height?: unknown }, deps: MediaDeps, now = new Date()): Promise<{ uploadId: string; uploadURL: string; maxSeconds: number }> {
   if (!owner.username) throw new MediaError(400, "Finish setting up your profile first.");
   if (!deps.stream.configured) throw new MediaError(503, "Media videos aren't switched on yet. Pictures work now.");
   const durationSec = Number(input.durationSec), size = Number(input.size);
@@ -179,10 +198,12 @@ export async function startMediaVideo(db: Firestore, owner: Person, tier: Accoun
   if (q.videos.limit > 0 && durationSec > q.maxVideoSeconds + 1) throw new MediaError(413, `Media videos on your plan can be up to ${q.maxVideoSeconds} seconds.`);
   await reserve(db, owner.uid, q, "video", size);
   try {
-    const up = await deps.stream.create(owner.uid, q.maxVideoSeconds, String(input.name ?? "media video").slice(0, 120));
+    const shape = shapeOf(input.width, input.height, "9x16"); // unknown: most Media videos are filmed on a phone
+    const profileUid = await markProfile(db, owner, shape, deps.stream, now);
+    const up = await deps.stream.create(owner.uid, q.maxVideoSeconds, String(input.name ?? "media video").slice(0, 120), profileUid);
     const uploadId = randomBytes(8).toString("hex");
     await db.doc(`mediaUploads/${uploadId}`).set({
-      uid: owner.uid, streamUid: up.uid, durationSec: Math.round(durationSec), size, week: q.week, used: false,
+      uid: owner.uid, streamUid: up.uid, durationSec: Math.round(durationSec), size, week: q.week, used: false, marked: true, shape, profileUid,
       createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000), // an upload never posted cleans itself up
     });
     return { uploadId, uploadURL: up.uploadURL, maxSeconds: q.maxVideoSeconds };
@@ -219,20 +240,22 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     if (!keys.length) throw new MediaError(400, "Add at least one picture.");
     if (keys.length > MEDIA_PICTURES_MAX) throw new MediaError(400, `Up to ${MEDIA_PICTURES_MAX} pictures in one post.`);
     if (new Set(keys).size !== keys.length) throw new MediaError(400, "The same picture is in twice.");
-    const pictures: { key: string; bytes: number }[] = [];
+    const pictures: MediaPicture[] = [];
     for (const key of keys) {
       if (!isOwnMediaKey(key, owner.uid)) throw new MediaError(400, "That picture wasn't uploaded for Media.");
       const head = await deps.head(key);
       if (!head) throw new MediaError(409, "A picture hasn't finished uploading yet.");
       if (head.size > MEDIA_PICTURE_MAX_BYTES) throw new MediaError(413, "A picture is too large.");
       if (!sniffPicture(await deps.readStart(key))) throw new MediaError(400, "One of the files isn't a picture.");
-      pictures.push({ key, bytes: head.size });
+      pictures.push({ key, bytes: head.size, marked: false });
     }
     const bytes = pictures.reduce((n, p) => n + p.bytes, 0);
     await reserve(db, owner.uid, await mediaQuota(db, owner.uid, tier, now), "pictures", bytes);
-    const doc = { ...base, kind: "pictures" as const, pictures, status: "ready" as const, bytes };
+    // Hidden ("processing") until every picture carries the mark and its clean upload is gone; the cron finishes it if this is cut short.
+    const doc: MediaPostDoc = { ...base, kind: "pictures", pictures, status: "processing", marked: false, bytes };
     await ref.set(doc);
-    return toView(ref.id, doc, owner.uid, deps);
+    const done = await markPicturePost(db, ref.id, deps, now).catch((e) => { console.error("[media] marking failed; the cron tries again", ref.id, e); return null; });
+    return toView(ref.id, done ?? doc, owner.uid, deps);
   }
 
   // A video: the upload this member started (once). It shows to others once Stream has it ready (refreshVideo).
@@ -244,11 +267,71 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     if (!up || up.uid !== owner.uid) throw new MediaError(404, "That upload wasn't found.");
     if (up.used === true) throw new MediaError(409, "That video is already posted.");
     t.update(upRef, { used: true, postId: ref.id, expireAt: FieldValue.delete() });
-    const d: MediaPostDoc = { ...base, kind: "video", video: { streamUid: String(up.streamUid), durationSec: Number(up.durationSec), bytes: Number(up.size), uploadId }, status: "processing", bytes: Number(up.size) };
+    const marked = up.marked === true;
+    const d: MediaPostDoc = { ...base, kind: "video", video: { streamUid: String(up.streamUid), durationSec: Number(up.durationSec), bytes: Number(up.size), uploadId, marked }, status: "processing", marked, bytes: Number(up.size) };
     t.set(ref, d);
     return d;
   });
   return toView(ref.id, (await refreshVideo(db, ref.id, deps, now)) ?? doc, owner.uid, deps);
+}
+
+// ── The mark on pictures ────────────────────────────────────────────────────────────────────────────────────────────────────────
+// The marked file's key, next to the clean upload's (never the same key, so no cache ever holds a clean picture under it).
+export function markedKey(key: string, ext: string): string {
+  const base = key.replace(/\.[A-Za-z0-9]+$/, "");
+  const k = `${base}-na.${ext}`;
+  return k === key ? `${base}-na2.${ext}` : k;
+}
+export class PictureUnreadable extends Error {}
+// One picture: read, marked, written under its new key; then the clean file is deleted. Returns the picture as stored now. Safe to run
+// again after any step failed: a picture already marked only has its clean file deleted (if that hadn't happened yet).
+export async function markOnePicture(x: MediaPicture, username: string, s: WatermarkSettings, deps: Pick<MediaDeps, "read" | "write" | "remove" | "markPicture">, save: (next: MediaPicture) => Promise<void>): Promise<MediaPicture> {
+  if (x.marked === true) {
+    if (x.cleanKey) { await deps.remove(x.cleanKey); const next = { key: x.key, bytes: x.bytes, marked: true }; await save(next); return next; }
+    return x;
+  }
+  const src = await deps.read(x.key);
+  let out: MarkedFile;
+  try { out = await deps.markPicture(src, username, s); } catch (e) { throw new PictureUnreadable(e instanceof Error ? e.message : "unreadable"); }
+  const key = markedKey(x.key, out.ext);
+  await deps.write(key, out.bytes, out.type);
+  const withClean: MediaPicture = { key, bytes: out.bytes.length, marked: true, cleanKey: x.key };
+  await save(withClean); // the marked file is the post's before the clean one goes
+  await deps.remove(x.key);
+  const next: MediaPicture = { key, bytes: out.bytes.length, marked: true };
+  await save(next);
+  return next;
+}
+
+// A picture post waiting for its mark: each picture marked in turn, then the post is shown. A file we can't read as a picture rejects
+// the post (its files removed, its bytes given back); anything else is tried again by the cron, and given up after a day.
+export async function markPicturePost(db: Firestore, id: string, deps: MediaDeps, now = new Date()): Promise<MediaPostDoc | null> {
+  const ref = db.doc(`mediaPosts/${id}`);
+  const p = (await ref.get()).data() as MediaPostDoc | undefined;
+  if (!p || p.kind !== "pictures" || p.status !== "processing") return p ?? null;
+  const s = await getWatermarkSettings(db, now.getTime());
+  const pics = [...(p.pictures ?? [])];
+  const reject = async (why: string): Promise<MediaPostDoc> => {
+    for (const x of pics) { await deps.remove(x.key).catch(() => {}); if (x.cleanKey) await deps.remove(x.cleanKey).catch(() => {}); }
+    await freeBytes(db, p.ownerUid, p.bytes);
+    const patch = { status: "rejected" as const, rejectedReason: why, bytes: 0, pictures: pics.map((x) => ({ key: x.key, bytes: 0, marked: false })), updatedAt: now.toISOString() };
+    await ref.update(patch);
+    return { ...p, ...patch };
+  };
+  try {
+    for (let i = 0; i < pics.length; i++) {
+      pics[i] = await markOnePicture(pics[i], p.ownerUsername, s, deps, async (next) => { pics[i] = next; await ref.update({ pictures: pics }); });
+    }
+  } catch (e) {
+    if (e instanceof PictureUnreadable) return reject("One of the files couldn't be read as a picture. Try saving it as a JPEG or WebP and posting again.");
+    if (now.getTime() - Date.parse(p.createdAt) > 86_400_000) return reject("We couldn't finish adding the NotesApp mark to these pictures. Please post them again.");
+    throw e;
+  }
+  const bytes = pics.reduce((n, x) => n + x.bytes, 0);
+  const patch = { pictures: pics, status: "ready" as const, marked: true, bytes, updatedAt: now.toISOString() };
+  await shiftBytes(db, p.ownerUid, bytes - p.bytes);
+  await ref.update(patch);
+  return { ...p, ...patch };
 }
 
 // A video post still processing: asks Stream. Ready → shown; too long, failed, or never arrived after a day → rejected, its slot and bytes
@@ -278,37 +361,63 @@ export async function refreshVideo(db: Firestore, id: string, deps: MediaDeps, n
   const patch = { status: "ready" as const, video: { ...p.video, durationSec: Math.round(duration), bytes }, bytes, updatedAt: now.toISOString() };
   if (bytes !== p.bytes) await db.doc(`mediaUsage/${p.ownerUid}`).update({ bytes: FieldValue.increment(bytes - p.bytes) }).catch(() => {});
   await ref.update(patch);
-  // Downloads were switched on while it processed: the watermarked copy can be made now.
-  if (p.allowDownloads) return (await beginVideoDl(db, id, { uid: p.ownerUid, username: p.ownerUsername }, deps, now)) ?? { ...p, ...patch };
-  return { ...p, ...patch };
+  // Downloads were switched on while it processed: Stream makes the MP4 of the (marked) video now.
+  const next = { ...p, ...patch };
+  if (p.allowDownloads && isMarked(next)) return (await startDownload(db, id, next, deps, now)) ?? next;
+  return next;
 }
 
-// Starts a video's watermarked download copy. If it can't (storage full, Stream not set up), downloads stay switched on but the creator
-// sees why on the post, and switching them off and on tries again. Returns the post as it is now.
-async function beginVideoDl(db: Firestore, id: string, owner: Person, deps: Pick<MediaDeps, "videoDl">, now: Date): Promise<MediaPostDoc | null> {
-  const user = (await db.doc(`users/${owner.uid}`).get()).data();
-  const tier = effectiveTier({ username: String(user?.username ?? ""), role: user?.role ?? "reader", accountTier: user?.accountTier ?? "standard" });
-  const q = await mediaQuota(db, owner.uid, tier, now);
+// ── Downloads: the stored file is already marked, so a download is that file ──────────────────────────────────────────────────────
+export const isMarked = (p: MediaPostDoc) => p.marked === true || p.video?.marked === true;
+// A video's MP4 (Stream makes it from the marked video, so it carries the mark). No second copy and nothing more in storage.
+export async function startDownload(db: Firestore, id: string, p: MediaPostDoc, deps: Pick<MediaDeps, "stream">, now: Date): Promise<MediaPostDoc> {
+  if (!p.video) return p;
+  const at = now.toISOString();
+  let dl: VideoDownload;
   try {
-    await startVideoDl(db, id, owner, Number.isFinite(q.storage.limitBytes) ? q.storage.limitBytes : null, deps.videoDl, now);
-  } catch (e) {
-    if (!(e instanceof VideoDlError)) throw e;
-    const at = now.toISOString();
-    const failed: VideoDl = { state: "failed", startedAt: at, updatedAt: at, profileUid: "", bytes: 0, why: e.message };
-    await db.doc(`mediaPosts/${id}`).update({ videoDl: failed });
+    const r = await deps.stream.downloads.enable(p.video.streamUid);
+    dl = r.status === "ready" && r.url ? { state: "ready", url: r.url, startedAt: at, updatedAt: at } : r.status === "error" ? { state: "failed", why: "Cloudflare couldn't make the download file. Switch downloads off and on to try again.", startedAt: at, updatedAt: at } : { state: "rendering", startedAt: at, updatedAt: at };
+  } catch {
+    dl = { state: "failed", why: "Cloudflare couldn't start the download file. Switch downloads off and on to try again.", startedAt: at, updatedAt: at };
   }
-  return ((await db.doc(`mediaPosts/${id}`).get()).data() as MediaPostDoc | undefined) ?? null;
+  await db.doc(`mediaPosts/${id}`).update({ download: dl, dlRendering: dl.state === "rendering" ? true : FieldValue.delete() });
+  return { ...p, download: dl, dlRendering: dl.state === "rendering" ? true : undefined };
+}
+async function stopDownload(db: Firestore, id: string, p: MediaPostDoc, deps: Pick<MediaDeps, "stream">): Promise<void> {
+  if (p.video && p.download) await deps.stream.downloads.disable(p.video.streamUid).catch(() => {});
+  await db.doc(`mediaPosts/${id}`).update({ download: FieldValue.delete(), dlRendering: FieldValue.delete() });
+}
+// The MP4 being made: asks Stream once. Returns the download as it is now.
+export async function stepDownload(db: Firestore, id: string, deps: Pick<MediaDeps, "stream">, now = new Date()): Promise<VideoDownload | undefined> {
+  const ref = db.doc(`mediaPosts/${id}`);
+  const p = (await ref.get()).data() as MediaPostDoc | undefined;
+  const d = p?.download;
+  if (!p?.video || !d || d.state !== "rendering") return d;
+  const r = await deps.stream.downloads.status(p.video.streamUid).catch(() => null);
+  const at = now.toISOString();
+  let next: VideoDownload = d;
+  if (r?.status === "ready" && r.url) next = { ...d, state: "ready", url: r.url, updatedAt: at };
+  else if (!r || r.status === "error" || now.getTime() - Date.parse(d.startedAt) > DOWNLOAD_GIVE_UP_MS) next = { ...d, state: "failed", why: "Cloudflare couldn't make the download file. Switch downloads off and on to try again.", updatedAt: at };
+  if (next === d) return d;
+  await ref.update({ download: next, dlRendering: FieldValue.delete() });
+  return next;
 }
 
-// Run by the scheduler: videos still processing, oldest first.
+// Run by the scheduler: posts still processing (pictures waiting for their mark, videos Stream hasn't finished), oldest first, and the
+// video downloads being made.
 export async function sweepProcessingVideos(db: Firestore, deps: MediaDeps, now = new Date(), batch = 50): Promise<number> {
   const s = await db.collection("mediaPosts").where("status", "==", "processing").limit(batch).get();
-  for (const d of s.docs) await refreshVideo(db, d.id, deps, now);
-  return s.size + (await sweepVideoDls(db, deps.videoDl, now)); // and the download copies on their way
+  for (const d of s.docs) {
+    if (d.data().kind === "pictures") await markPicturePost(db, d.id, deps, now).catch((e) => console.error("[media] marking failed", d.id, e));
+    else await refreshVideo(db, d.id, deps, now);
+  }
+  const r = await db.collection("mediaPosts").where("dlRendering", "==", true).limit(batch).get();
+  for (const d of r.docs) await stepDownload(db, d.id, deps, now).catch(() => {});
+  return s.size + r.size;
 }
 
 export type UpdateInput = { caption?: unknown; audience?: unknown; allowComments?: unknown; allowShares?: unknown; allowGifts?: unknown; allowDownloads?: unknown; pinned?: unknown };
-export async function updateMediaPost(db: Firestore, owner: Person, id: string, input: UpdateInput, deps: Pick<MediaDeps, "publicUrl" | "videoDl">, now = new Date()): Promise<MediaPostView> {
+export async function updateMediaPost(db: Firestore, owner: Person, id: string, input: UpdateInput, deps: Pick<MediaDeps, "publicUrl" | "stream">, now = new Date()): Promise<MediaPostView> {
   const ref = db.doc(`mediaPosts/${id}`);
   const p = (await ref.get()).data() as MediaPostDoc | undefined;
   if (!p || p.ownerUid !== owner.uid) throw new MediaError(404, "That post wasn't found.");
@@ -330,10 +439,11 @@ export async function updateMediaPost(db: Firestore, owner: Person, id: string, 
   }
   await ref.update(patch);
   let next = { ...p, ...patch, pinnedAt: patch.pinned === false ? undefined : (patch.pinnedAt ?? p.pinnedAt) } as MediaPostDoc;
-  // A video's downloads: on makes the watermarked copy (once the video is ready; refreshVideo starts it otherwise), off removes it.
+  // A video's downloads: on asks Stream for the MP4 of the marked video (once it is ready and marked: refreshVideo and the re-marking
+  // job start it otherwise); off removes the MP4.
   if (p.kind === "video" && patch.allowDownloads !== p.allowDownloads) {
-    if (patch.allowDownloads && p.status === "ready") next = (await beginVideoDl(db, id, owner, deps, now)) ?? next;
-    else if (!patch.allowDownloads) { await stopVideoDl(db, id, deps.videoDl); next = { ...next, videoDl: undefined, dlPending: undefined }; }
+    if (patch.allowDownloads && p.status === "ready" && isMarked(p)) next = await startDownload(db, id, next, deps, now);
+    else if (!patch.allowDownloads) { await stopDownload(db, id, p, deps); next = { ...next, download: undefined, dlRendering: undefined }; }
   }
   return toView(id, next, owner.uid, deps);
 }
@@ -342,10 +452,10 @@ export async function deleteMediaPost(db: Firestore, uid: string, id: string, de
   const ref = db.doc(`mediaPosts/${id}`);
   const p = (await ref.get()).data() as MediaPostDoc | undefined;
   if (!p || p.ownerUid !== uid) throw new MediaError(404, "That post wasn't found.");
-  for (const x of p.pictures ?? []) await deps.remove(x.key).catch(() => {});
-  if (p.video) await deps.stream.remove(p.video.streamUid).catch(() => {});
-  if (p.videoDl?.copyUid) await (deps.videoDl?.remove ?? deps.stream.remove)(p.videoDl.copyUid).catch(() => {}); // the download copy
-  if (p.bytes) await freeBytes(db, uid, p.bytes); // the post's bytes include its download copy's
+  for (const x of p.pictures ?? []) { await deps.remove(x.key).catch(() => {}); if (x.cleanKey) await deps.remove(x.cleanKey).catch(() => {}); }
+  if (p.video) await deps.stream.remove(p.video.streamUid).catch(() => {}); // its MP4 goes with it
+  if (p.videoDl?.copyUid) await deps.stream.remove(p.videoDl.copyUid).catch(() => {}); // a v0.134 download copy not yet removed
+  if (p.bytes) await freeBytes(db, uid, p.bytes);
   await db.recursiveDelete(ref);
 }
 
@@ -459,8 +569,8 @@ export async function mediaStudio(db: Firestore, me: Person, tier: AccountTier, 
   const docs: { id: string; p: MediaPostDoc }[] = [];
   for (const d of snap.docs) {
     let p = d.data() as MediaPostDoc;
-    if (p.status === "processing") p = (await refreshVideo(db, d.id, deps, now)) ?? p;
-    if (dlPending(p.videoDl)) { const dl = await stepVideoDl(db, d.id, deps.videoDl, now).catch(() => p.videoDl); p = { ...p, videoDl: dl }; }
+    if (p.status === "processing") p = (await (p.kind === "pictures" ? markPicturePost(db, d.id, deps, now).catch(() => null) : refreshVideo(db, d.id, deps, now))) ?? p;
+    if (p.download?.state === "rendering") { const dl = await stepDownload(db, d.id, deps, now).catch(() => p.download); p = { ...p, download: dl }; }
     docs.push({ id: d.id, p });
   }
   const user = (await db.doc(`users/${me.uid}`).get()).data();
@@ -476,13 +586,10 @@ export async function mediaStudio(db: Firestore, me: Person, tier: AccountTier, 
   };
 }
 
-// ── Watermarked downloads ───────────────────────────────────────────────────────────────────────────────────────────────────────
-// A picture from a post whose creator allowed downloads, for someone who can see the post: stamped @username + the NotesApp mark on the
-// server (lib/media-watermark.tsx), never the original file. Never a teen's. Videos: downloadVideo below.
-export async function downloadPicture(
-  db: Firestore, viewer: Person | null, id: string, index: number, deps: MediaDeps,
-  stamp: (bytes: Buffer, username: string) => Promise<Buffer>,
-): Promise<{ bytes: Buffer; filename: string }> {
+// ── Downloads ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// A picture from a post whose creator allowed downloads, for someone who can see the post: the stored file, which carries the mark. A
+// picture posted before the mark and not yet re-marked is marked on the way out (never the clean file). Never a teen's.
+export async function downloadPicture(db: Firestore, viewer: Person | null, id: string, index: number, deps: MediaDeps): Promise<{ bytes: Buffer; filename: string; type: string }> {
   const p = (await db.doc(`mediaPosts/${id}`).get()).data() as MediaPostDoc | undefined;
   if (!p) throw new MediaError(404, "That post wasn't found.");
   const owner = { uid: p.ownerUid, username: p.ownerUsername };
@@ -492,15 +599,18 @@ export async function downloadPicture(
   if (!p.allowDownloads) throw new MediaError(403, DOWNLOADS_OFF);
   if (p.kind !== "pictures") throw new MediaError(400, "That's a video: use the video download.");
   const pic = (p.pictures ?? [])[index];
-  if (!Number.isInteger(index) || !pic) throw new MediaError(404, "That picture wasn't found.");
-  const bytes = await stamp(await deps.read(pic.key), p.ownerUsername);
+  if (!Number.isInteger(index) || !pic || pic.marked === false) throw new MediaError(404, "That picture wasn't found.");
+  const raw = await deps.read(pic.key);
+  const out: MarkedFile = pic.marked === true
+    ? { bytes: raw, ...(sniffPicture(raw) === "webp" ? { type: "image/webp", ext: "webp" } : { type: "image/jpeg", ext: "jpg" }) }
+    : await deps.markPicture(raw, p.ownerUsername, await getWatermarkSettings(db));
   if (viewer?.uid !== p.ownerUid) await db.doc(`mediaPosts/${id}`).update({ downloadCount: FieldValue.increment(1) }).catch(() => {});
-  return { bytes, filename: `${p.ownerUsername}-notesapp-${id.slice(0, 6)}-${index + 1}.jpg` };
+  return { bytes: out.bytes, type: out.type, filename: `${p.ownerUsername}-notesapp-${id.slice(0, 6)}-${index + 1}.${out.ext}` };
 }
 
-// A video from a post whose creator allowed downloads, for someone who can see the post: a signed link (an hour) to the watermarked copy's
-// MP4 (lib/media-video-dl.ts), never the original. Never a teen's. While the copy is being made, says so (and moves it along a step).
-export async function downloadVideo(db: Firestore, viewer: Person | null, id: string, deps: Pick<MediaDeps, "videoDl">, now = new Date()): Promise<{ url: string; filename: string }> {
+// A video from a post whose creator allowed downloads, for someone who can see the post: Stream's MP4 of the video, which carries the
+// mark burned in. Never a teen's. While the MP4 is being made, says so (and asks Stream again).
+export async function downloadVideo(db: Firestore, viewer: Person | null, id: string, deps: Pick<MediaDeps, "stream">, now = new Date()): Promise<{ url: string; filename: string }> {
   const ref = db.doc(`mediaPosts/${id}`);
   const p = (await ref.get()).data() as MediaPostDoc | undefined;
   if (!p) throw new MediaError(404, "That post wasn't found.");
@@ -509,15 +619,16 @@ export async function downloadVideo(db: Firestore, viewer: Person | null, id: st
   if (!ownerDoc || ownerDoc.suspended === true || !mediaVisible({ owner: ownerDoc, audience: p.audience, status: p.status, rel: await relationOf(db, viewer, owner) })) throw new MediaError(404, "That post wasn't found.");
   if (hearsOnlyFromFollowed(ownerDoc)) throw new MediaError(403, TEEN_DOWNLOAD_BLOCKED);
   if (!p.allowDownloads) throw new MediaError(403, DOWNLOADS_OFF);
-  if (p.kind !== "video") throw new MediaError(400, "That post has pictures: use the picture download.");
-  if (!deps.videoDl) throw new MediaError(503, VIDEO_DL_NOT_SET_UP);
-  let dl = p.videoDl;
-  if (dlPending(dl)) dl = await stepVideoDl(db, id, deps.videoDl, now);
-  if (dl?.state !== "ready" || !dl.copyUid || !dl.url) throw new MediaError(409, VIDEO_DL_PREPARING);
+  if (p.kind !== "video" || !p.video) throw new MediaError(400, "That post has pictures: use the picture download.");
+  if (!deps.stream.configured) throw new MediaError(503, VIDEO_DL_NOT_SET_UP);
+  if (!isMarked(p)) throw new MediaError(409, NOT_MARKED_YET);
+  let dl = p.download;
+  if (!dl) dl = (await startDownload(db, id, p, deps, now)).download;
+  else if (dl.state === "rendering") dl = await stepDownload(db, id, deps, now);
+  if (dl?.state !== "ready" || !dl.url) throw new MediaError(409, dl?.state === "failed" ? (dl.why ?? VIDEO_DL_PREPARING) : VIDEO_DL_PREPARING);
   const filename = `${videoDownloadName(p.ownerUsername, id)}.mp4`;
-  const url = signedDownloadUrl(dl.url, dl.copyUid, await deps.videoDl.token(dl.copyUid, 3600), filename);
   if (viewer?.uid !== p.ownerUid) await ref.update({ downloadCount: FieldValue.increment(1) }).catch(() => {});
-  return { url, filename };
+  return { url: withFilename(dl.url, filename), filename };
 }
 
 // When an account is deleted: its Media posts and files (the account deletion job calls this).

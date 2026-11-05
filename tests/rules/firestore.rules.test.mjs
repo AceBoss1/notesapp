@@ -788,13 +788,14 @@ test("Media is API-only: posts, uploads, usage and settings are never read or wr
     await setDoc(doc(d, "mediaSettings/pub"), { uid: "pub", hideAllSite: false, hiddenSite: [] });
   });
   for (const ctx of [as("pub"), as("alice"), anon()]) {
-    for (const path of ["mediaPosts/p1", "mediaPosts/p1/views/alice", "mediaUploads/u1", "mediaUsage/pub", "mediaSettings/pub", "mediaWatermarks/pub"]) await assertFails(getDoc(doc(ctx, path)));
+    for (const path of ["mediaPosts/p1", "mediaPosts/p1/views/alice", "mediaUploads/u1", "mediaUsage/pub", "mediaSettings/pub", "mediaWatermarks/pub", "markedFiles/abc"]) await assertFails(getDoc(doc(ctx, path)));
     await assertFails(getDocs(query(collection(ctx, "mediaPosts"), where("ownerUid", "==", "pub"))));
   }
   await assertFails(setDoc(doc(as("pub"), "mediaPosts/p2"), { ownerUid: "pub", kind: "pictures", audience: "everyone", status: "ready" }));
   await assertFails(updateDoc(doc(as("pub"), "mediaPosts/p1"), { pinned: true, viewCount: 1000000 }));
   await assertFails(deleteDoc(doc(as("pub"), "mediaPosts/p1")));
   await assertFails(setDoc(doc(as("pub"), "mediaUsage/pub"), { videos: 0, bytes: 0 }));
+  await assertFails(setDoc(doc(as("pub"), "markedFiles/abc"), { from: "journals/x.webp", to: "journals/x-na.webp" })); // the re-marking record: server only
   await assertFails(setDoc(doc(as("pub"), "mediaSettings/pub"), { hideAllSite: true }));
   await assertFails(updateDoc(doc(as("pub"), "mediaUploads/u1"), { used: false }));
 });
