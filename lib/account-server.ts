@@ -34,6 +34,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     comments: comments.docs.map((d) => ({ id: d.id, ...clean(d.data()) })),
     following: await docs(db, "follows", "followerUid", uid),
     wallet: (await db.doc(`wallets/${uid}`).get()).data() ?? null,
+    paymentPhone: (await db.doc(`paymentContacts/${uid}`).get()).data()?.phone ?? null, // the phone you gave for CardTap top-ups (never public)
     walletActivity: await docs(db, "walletTx", "uid", uid),
     notesLife: { player: (await db.doc(`lifePlayers/${uid}`).get()).data() ?? null, save: (await db.doc(`lifeSaves/${uid}`).get()).data() ?? null, statement: await docs(db, "lifeTx", "uid", uid) },
     followers: username ? strip(await docs(db, "follows", "username", username), ["followerUid"]).length : 0,
@@ -225,6 +226,8 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   counts.passkeys = passkeys.size;
   // Google and LinkedIn sign-in links and their log (lib/social-auth-server.ts).
   counts.authLinks = await eraseAuthLinks(db, uid);
+  // The phone given for CardTap top-ups (lib/cardtap-topup-server.ts).
+  await db.doc(`paymentContacts/${uid}`).delete().catch(() => {});
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();

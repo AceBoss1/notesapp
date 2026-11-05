@@ -1,7 +1,7 @@
 // CardTap wallet top-ups (lib/cardtap-topup.ts): Paylony's fee at cost, the launch offer, and reading Paylony's replies strictly.
 // Run: npm run test:cardtap → "ALL OK".
 import assert from "node:assert/strict";
-import { CARDTAP_FEE_CAP_KOBO, cardtapFeeKobo, cardtapHealth, cardtapQuote, readStart, readVerify } from "../../lib/cardtap-topup";
+import { CARDTAP_FEE_CAP_KOBO, cardtapFeeKobo, cardtapHealth, cardtapQuote, maskNgMobile, ngMobile, readStart, readVerify } from "../../lib/cardtap-topup";
 
 const N = (n: number) => n * 100;
 // 1% of the top-up, never more than ₦1,000
@@ -35,5 +35,13 @@ assert.equal(cardtapHealth({ at: "x", ok: true }).state, "operational");
 assert.deepEqual(cardtapHealth({ at: "x", ok: false, code: "19", meaning: "Invalid Merchant Authorization", httpStatus: 401 }), { state: "down", note: "the latest top-up couldn't start: Invalid Merchant Authorization" });
 assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 502 }).note, "the latest top-up couldn't start: Paylony answered 502");
 assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 0 }).note, "the latest top-up couldn't start: Paylony didn't answer");
+
+// The payer's phone (Paylony refuses an empty one with 07, "Incomplete request"): any usual spelling → the 11-digit local form.
+for (const v of ["08031234567", "0803 123 4567", "+234 803 123 4567", "2348031234567", "234-803-123-4567", "8031234567", "(0803) 123-4567", "07011112222", "09151234567"]) {
+  assert.match(String(ngMobile(v)), /^0[789][01]\d{8}$/, v);
+}
+assert.equal(ngMobile("+234 803 123 4567"), "08031234567");
+for (const v of ["", "0803123456", "080312345678", "06031234567", "01234567890", "+44 7911 123456", "0803abc4567", null, undefined, 8031234567]) assert.equal(ngMobile(v), null, String(v));
+assert.equal(maskNgMobile("08031234567"), "0803•••4567");
 
 console.log("ALL OK");

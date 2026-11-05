@@ -3,7 +3,7 @@ import { setting } from "./config";
 import { payWithCardtap, paylonyConfigured, paylonyCodeText, replyCode } from "./paylony";
 import { CardtapNotPaid, fulfillPayment, type PaymentRecord } from "./payments";
 import { TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE, bonusFor } from "./wallet";
-import { CARDTAP_APP_URL, cardtapQuote, readStart } from "./cardtap-topup";
+import { CARDTAP_APP_URL, cardtapQuote, ngMobile, readStart } from "./cardtap-topup";
 import { newReference } from "./paystack";
 
 // Server-only. Wallet top-ups with Paylony CardTap (the pure rules are in lib/cardtap-topup.ts):
@@ -28,11 +28,24 @@ export async function setCardtapFeeWaived(db: Firestore, waived: boolean, byUid:
 export type CardtapStart = { reference: string; initiationRef: string; instruction: string; topupKobo: number; feeKobo: number; waived: boolean; payKobo: number; bonusKobo: number; appUrl: string };
 
 type Starter = typeof payWithCardtap;
-export async function startCardtap(db: Firestore, me: { uid: string; email: string }, amountNaira: unknown, origin: string, call: Starter = payWithCardtap): Promise<CardtapStart> {
+// The payer's phone for CardTap, kept server-only (profiles are public): paymentContacts/{uid}.phone, saved when they top up, so the
+// form can offer it again. Never on the public profile.
+const contactDoc = (db: Firestore, uid: string) => db.doc(`paymentContacts/${uid}`);
+export async function savedPhone(db: Firestore, uid: string): Promise<string | null> {
+  const [c, u] = await db.getAll(contactDoc(db, uid), db.doc(`users/${uid}`));
+  return ngMobile(c.data()?.phone) ?? ngMobile(u.data()?.phone); // an older profile field, if one was ever set
+}
+
+export async function startCardtap(db: Firestore, me: { uid: string; email: string }, amountNaira: unknown, origin: string, phoneInput?: unknown, call: Starter = payWithCardtap): Promise<CardtapStart> {
   if (!cardtapReady()) throw new CardtapError(409, "Topping up with CardTap isn't switched on yet.");
   const naira = Number(amountNaira);
   const topupKobo = Math.round(naira * 100);
   if (!Number.isInteger(naira) || topupKobo < TOPUP_MIN_KOBO || topupKobo > TOPUP_MAX_KOBO) throw new CardtapError(400, "Top up a whole amount from ₦1,000 to ₦500,000.");
+  const typed = phoneInput === undefined || phoneInput === null || phoneInput === "" ? null : ngMobile(phoneInput);
+  if (phoneInput !== undefined && phoneInput !== null && phoneInput !== "" && !typed) throw new CardtapError(400, "Enter a Nigerian mobile number, like 0803 123 4567.");
+  const phone = typed ?? (await savedPhone(db, me.uid));
+  if (!phone) throw new CardtapError(400, "Add your phone number: CardTap needs it to start the payment.");
+  if (typed) await contactDoc(db, me.uid).set({ phone: typed, updatedAt: new Date().toISOString() }, { merge: true });
   const q = cardtapQuote(topupKobo, (await cardtapConfig(db)).feeWaived);
   const u = (await db.doc(`users/${me.uid}`).get()).data() ?? {};
   const reference = newReference();
@@ -42,7 +55,7 @@ export async function startCardtap(db: Firestore, me: { uid: string; email: stri
   };
   await db.doc(`payments/${reference}`).set(record);
   const r = await call({
-    amount: q.payKobo / 100, currency: "NGN", name: String(u.displayName || u.username || me.email), email: me.email, phone: String(u.phone ?? ""),
+    amount: q.payKobo / 100, currency: "NGN", name: String(u.displayName || u.username || me.email), email: me.email, phone,
     terminal_id: setting("PAYLONY_CARDTAP_TERMINAL_ID")!, reference, title: "NotesApp Credit", description: "#NotesApp wallet top-up",
     redirectUrl: `${origin}/profile/wallet?cardtap=${reference}`,
   } as Parameters<Starter>[0]).catch((e) => ({ ok: false, httpStatus: 0, body: e instanceof Error ? e.message : "request failed" }));

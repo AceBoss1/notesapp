@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { callbackOrigin } from "@/lib/origin";
-import { CardtapError, cardtapConfig, cardtapReady, checkCardtap, startCardtap } from "@/lib/cardtap-topup-server";
+import { CardtapError, cardtapConfig, cardtapReady, checkCardtap, savedPhone, startCardtap } from "@/lib/cardtap-topup-server";
+import { maskNgMobile } from "@/lib/cardtap-topup";
 
 export const dynamic = "force-dynamic";
 
 // Wallet top-ups with Paylony CardTap (lib/cardtap-topup-server.ts), for the signed-in member.
-// GET → { ready, feeWaived } (whether to offer it, and the launch offer); GET ?ref= → { status: paid | waiting | failed, … }
-// POST { amountNaira } → the code for the CardTap app, what they pay (top-up + Paylony's fee, unless it's waived) and the bonus.
+// GET → { ready, feeWaived, phone } (whether to offer it, the launch offer, and the member's saved phone, partly hidden, or null);
+// GET ?ref= → { status: paid | waiting | failed, … }
+// POST { amountNaira, phone? } (phone: a Nigerian mobile; left out → the saved one) → the code for the CardTap app, what they pay (top-up + Paylony's fee, unless it's waived) and the bonus.
 async function member(req: NextRequest) {
   return verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
 }
@@ -21,7 +23,10 @@ export async function GET(req: NextRequest) {
   if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const ref = req.nextUrl.searchParams.get("ref");
   const db = getAdminDb();
-  if (!ref) return NextResponse.json({ ready: cardtapReady(), feeWaived: (await cardtapConfig(db)).feeWaived }, { headers: { "Cache-Control": "no-store" } });
+  if (!ref) {
+    const phone = await savedPhone(db, me.uid);
+    return NextResponse.json({ ready: cardtapReady(), feeWaived: (await cardtapConfig(db)).feeWaived, phone: phone ? maskNgMobile(phone) : null }, { headers: { "Cache-Control": "no-store" } });
+  }
   const limited = await rateLimit(req, "cardtap-check", me.uid, 40, 60); // the page asks every few seconds
   if (limited) return limited;
   try { return NextResponse.json(await checkCardtap(db, ref.slice(0, 80), me.uid), { headers: { "Cache-Control": "no-store" } }); }
@@ -34,7 +39,7 @@ export async function POST(req: NextRequest) {
   if (!me.emailVerified) return NextResponse.json({ error: "Verify your email first." }, { status: 403 });
   const limited = await rateLimit(req, "cardtap-start", me.uid, 6, 600);
   if (limited) return limited;
-  const body = (await req.json().catch(() => ({}))) as { amountNaira?: unknown };
-  try { return NextResponse.json(await startCardtap(getAdminDb(), { uid: me.uid, email: me.email }, body.amountNaira, await callbackOrigin(req))); }
+  const body = (await req.json().catch(() => ({}))) as { amountNaira?: unknown; phone?: unknown };
+  try { return NextResponse.json(await startCardtap(getAdminDb(), { uid: me.uid, email: me.email }, body.amountNaira, await callbackOrigin(req), body.phone)); }
   catch (e) { return fail(e); }
 }

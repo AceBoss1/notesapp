@@ -1598,6 +1598,9 @@ test("Google and LinkedIn sign-in links, states, tickets and their log are serve
     await assertFails(deleteDoc(doc(db, "authTickets/t1")));
     await assertFails(getDoc(doc(db, "authAudit/a1")));
     await assertFails(setDoc(doc(db, "authAudit/a2"), { uid: "alice", action: "unlink" }));
+    // CardTap payer phones (paymentContacts): server-only, not even the member can read or write theirs from the browser.
+    await assertFails(getDoc(doc(db, "paymentContacts/alice")));
+    await assertFails(setDoc(doc(db, "paymentContacts/alice"), { phone: "08030000000" }));
   }
 });
 
