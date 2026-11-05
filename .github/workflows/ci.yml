@@ -119,6 +119,8 @@ jobs:
       - run: npm run test:live-rooms-server
       - run: npm run test:giving-server
       - run: npm run test:gifts-server
+      # Google and LinkedIn sign-in: the OpenID checks with a stand-in LinkedIn, then the Firestore and Auth emulators
+      - run: npm run test:social-signin
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 

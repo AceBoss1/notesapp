@@ -24,9 +24,17 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Firestore emulator for the browser (127.0.0.1:8080). Never set on the live site. |
 | `NEXT_PUBLIC_AUTH_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Auth emulator for the browser (127.0.0.1:9099); the server reads FIREBASE_AUTH_EMULATOR_HOST. Never set on the live site. |
 | `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` | no | Which Firestore database the site uses: (default) when unset. Set it to a restored database's id (Admin → Backups) only to switch the whole site over after a recovery, once that database has the rules and indexes (HANDOVER, "Restoring"); then redeploy. |
+| `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE` | no | on: Google sign-in by redirect (phones, in-app browsers) runs through each site's own address (/__/auth, proxied to the Firebase auth domain) instead of the Firebase auth domain, so browsers that block third-party storage (Safari, in-app browsers) can finish it. Needs every https://<host>/__/auth/handler added to the Google OAuth client's redirect URIs first (docs/OWNER_SETUP.md, "Sign in with Google and LinkedIn"). |
 | `NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID` | no | OAuth web client id (Google Cloud → APIs & Services → Credentials) for the owner's Google sign-in on Admin → Backups, which switches on recovery, schedules backups and restores with the owner's own Google rights. |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | **yes** | Service-account JSON as one line; every server route needs it. |
 | `GOOGLE_APPLICATION_CREDENTIALS` | no | Local only: path to a service-account file, instead of FIREBASE_SERVICE_ACCOUNT_KEY. |
+
+## Sign-in
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `LINKEDIN_LOGIN_CLIENT_ID` | no | Optional: a separate LinkedIn app for Sign In with LinkedIn (product "Sign In with LinkedIn using OpenID Connect"). Unset: the publishing app (LINKEDIN_CLIENT_ID/SECRET) is used. The LinkedIn button appears when either pair is set. |
+| `LINKEDIN_LOGIN_CLIENT_SECRET` | **yes** | The secret of LINKEDIN_LOGIN_CLIENT_ID's app. |
 
 ## Storage
 
@@ -123,7 +131,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 
 | Setting | Secret | What it does |
 |---|---|---|
-| `LINKEDIN_CLIENT_ID` | no | Publish to a member's LinkedIn (appears when both LinkedIn values are set; needs ACCOUNT_DATA_KEY). |
+| `LINKEDIN_CLIENT_ID` | no | Publish to a member's LinkedIn (appears when both LinkedIn values are set; needs ACCOUNT_DATA_KEY). Also used for Sign In with LinkedIn unless LINKEDIN_LOGIN_CLIENT_ID is set. |
 | `LINKEDIN_CLIENT_SECRET` | **yes** | LinkedIn app secret. |
 | `LINKEDIN_API_VERSION` | no | LinkedIn API version, YYYYMM (default 202606). |
 | `X_CLIENT_ID` | no | Publish to a member's X account (appears when both X values are set). |

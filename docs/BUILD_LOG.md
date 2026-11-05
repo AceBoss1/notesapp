@@ -2937,6 +2937,22 @@ The owner adopted Anya ("eye" in Igbo) for NotesApp's own Qualcomm-based glasses
 coming-soon page with the owner's launch artwork as its hero, the three models, what Display does, a comparison table that lists only
 decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
 message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.
+**Sign in with Google and LinkedIn (v0.138.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
+accounts made with Google and, if possible, LinkedIn, and for existing members to link both like passkeys. Google: Firebase's
+`GoogleAuthProvider` (a pop-up; a redirect in in-app browsers or when the pop-up is blocked; optional `/__/auth` on our own addresses
+through `next.config.js` and `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE`), then `/api/auth/google` records the link in `authLinks` or, when
+Google landed on an account that already existed, takes it off again (no silent merge); `auth/account-exists-with-different-credential`
+keeps Google's credential and links it right after the password sign-in. LinkedIn ("Sign In with LinkedIn using OpenID Connect", the
+publishing app unless `LINKEDIN_LOGIN_CLIENT_ID/SECRET`): `/api/auth/linkedin/start` (state, nonce and a browser-binding cookie, kept in
+`authStates` for 10 minutes) → LinkedIn → `/api/auth/linkedin/callback` on the www. address of the visitor's domain family (state once
+only, code exchanged, ID token checked in `lib/social-oidc.ts` against LinkedIn's JWKS) → back to the page with a one-time ticket in the
+fragment → `/api/auth/linkedin/finish` (same browser, same address) signs in with a custom token (staff claims kept), makes a new account
+(confirmed email only), refuses an email that has an account, or links (fresh ID token). First-time accounts finish in `SignupFlow`
+(`completeUser`: username, Terms and age line, work, journals). Account settings → Sign-in methods (`components/SignInMethods.tsx`,
+`/api/auth/methods`); never the last way in (also for passkeys); every link and unlink in `authAudit`; an email when a method is linked.
+New collections server-only; export and erase cover them. Tests: `npm run test:social-signin` (the rules and OIDC checks with a stand-in
+JWKS, then Firestore and Auth emulators), the rules test, `test:passkeys`.
+
 **Stage seats and moderators in audio rooms (v0.139.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
 changes during the live (Solo, Approve, Open), empty chairs with a + (a request in Approve, the seat itself in Open), invitations the
 invited person accepts, and moderators for the live. After a first pass, the owner widened moderators to permissions the host ticks per

@@ -10,11 +10,16 @@ import PageHero from "@/components/PageHero";
 import { sendPasswordResetEmail } from "firebase/auth";
 import PasswordInput from "@/components/PasswordInput";
 import PasskeySignIn from "@/components/PasskeySignIn";
+import SocialSignIn from "@/components/SocialSignIn";
+import SignupFlow from "@/components/SignupFlow";
+import { hasPendingGoogle, linkPendingGoogle, needsCompletion, socialSignInBusy } from "@/lib/social-auth-client";
 import type { User } from "firebase/auth";
 
 // The sign-in form (with a forgot-password step). `embedded` drops the page header and padding so it fits inside a card (the app address's welcome screen), signs in
-// there and carries on to the journal; `onSwitch` swaps "Create an account" for an in-place switch.
-export default function LoginForm({ embedded = false, onSwitch }: { embedded?: boolean; onSwitch?: () => void }) {
+// there and carries on to the journal; `onSwitch` swaps "Create an account" for an in-place switch. Google and LinkedIn sit under the
+// password form (components/SocialSignIn.tsx); a first-time Google or LinkedIn sign-in goes on to the new-account steps right here
+// (`young`: Naija Exam Prep's wording for students under 18).
+export default function LoginForm({ embedded = false, onSwitch, young = false }: { embedded?: boolean; onSwitch?: () => void; young?: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,14 +27,25 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
   const router = useRouter();
   const [forgot, setForgot] = useState(false);
   const [sent, setSent] = useState(false);
+  const [completing, setCompleting] = useState<User | null>(null); // signed in with Google or LinkedIn, new-account steps to do
+  const [linkNote, setLinkNote] = useState("");
   useEffect(() => { if (embedded && new URLSearchParams(window.location.search).get("auth") === "forgot") setForgot(true); }, [embedded]);
   // Where to go after signing in on the app address: the page it was asked from (?next=…) or the journal.
   const nextPath = () => { const n = new URLSearchParams(window.location.search).get("next") || ""; return n.startsWith("/") && !n.startsWith("//") ? n : "/journals"; };
   // Already signed in here and sent over from a member's own site? Carry on straight back to it.
-  useEffect(() => onAuthStateChanged(auth, (u) => { if (u) goBack(u); }), []);
+  // Signed in with Google or LinkedIn but the new-account steps aren't done: those first.
+  useEffect(() => onAuthStateChanged(auth, (u) => {
+    if (!u || socialSignInBusy()) return;
+    needsCompletion(u).then((n) => { if (n) setCompleting(u); else void goBack(u); });
+  }), []);
 
   // After any sign-in (password or passkey): the admin profile check, then back to a member's own site or the page that asked.
   async function afterSignIn(u: User) {
+    // Google said this email had an account: now that they've signed in to it, link Google as they asked.
+    if (hasPendingGoogle()) {
+      try { if (await linkPendingGoogle(u)) setLinkNote("Google is now linked: next time, Continue with Google signs you in."); }
+      catch (e) { setLinkNote(e instanceof Error ? `Signed in, but Google wasn't linked: ${e.message}` : "Signed in, but Google wasn't linked."); }
+    }
     await ensureAdminProfile(u); // no-op for regular readers
     if (!(await goBack(u))) router.push(embedded || new URLSearchParams(window.location.search).has("next") ? nextPath() : "/");
   }
@@ -73,6 +89,13 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
       setLoading(false);
     }
   }
+
+  async function afterSocial(u: User, needsProfile: boolean) {
+    if (needsProfile) { setCompleting(u); return; }
+    await afterSignIn(u);
+  }
+
+  if (completing) return <SignupFlow embedded={embedded} young={young} completeUser={completing} />;
 
   if (embedded && forgot) {
     return (
@@ -129,7 +152,9 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
           {loading ? "Signing in…" : "Sign In"}
         </button>
       </form>
-      <PasskeySignIn onSignedIn={afterSignIn} className="mt-6" />
+      {linkNote && <p className="mt-3 text-sm text-green-700" role="status">{linkNote}</p>}
+      <SocialSignIn onSignedIn={afterSocial} afterPassword divider className="mt-6" />
+      <PasskeySignIn onSignedIn={afterSignIn} divider={false} className="mt-3" />
       <p className="mt-4 text-sm">
         {embedded ? (
           <button type="button" onClick={() => { setForgot(true); setError(""); }} className="text-crimson-bright font-semibold">Forgot password?</button>
