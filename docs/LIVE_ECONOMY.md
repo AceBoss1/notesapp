@@ -330,3 +330,5 @@ These are new.
 5. **Weekly boards reset at midnight going into Monday** (Lagos time).
 6. **Counsel for the FCCPC check is Legal** (the Legal department on the team hub): the sprint and the activity board stay staff-only
    until Legal signs off.
+
+**5 Nov 2026, moderation in lives:** a community's own moderators keep their chat powers only in lives hosted as community lives. In a member's own live inside a community (paid lives and pay-per-minute included), they have no moderation powers unless that host names them; only the community owner can moderate there.
