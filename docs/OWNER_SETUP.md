@@ -47,6 +47,7 @@ manager to keep every secret in.
 8. [ ] **Cloudflare Stream** has storage to spare and its token is in Vercel: [5](#5-cloudflare-stream). This is what failed in the
    "We're at capacity" video upload: Stream refused the upload because the account's stored minutes were used up.
 9. [ ] **The private R2 bucket** for recordings, paid downloads and message files is set: [5.6](#56-the-private-r2-bucket-recordings-paid-downloads-message-files).
+9a. [ ] **Upload permission (CORS) on both R2 buckets** lists every address, naapp.tech included: [5.7](#57-upload-permission-cors-on-both-r2-buckets). Without it, picture and avatar uploads fail on that address.
 
 ### Block 3: live audio and video (about 1 hour 30 minutes)
 
@@ -600,6 +601,21 @@ has Stream (the Account ID on the right of dash.cloudflare.com → **Workers & P
    in Vercel (both Sensitive).
 4. Vercel: add `R2_PRIVATE_BUCKET` = `notesapp-private` (not Sensitive).
 5. Redeploy. /status → **Digital downloads**: Operational.
+
+### 5.7 Upload permission (CORS) on both R2 buckets
+
+The browser uploads pictures, avatars, files and recordings straight to R2. R2 only accepts them from the addresses in the bucket's
+**CORS policy**, so every address the site is served on must be listed. The full list is kept in the repository as
+`scripts/r2-cors.json` (both domains with their www., app., life., prep. and mcp. addresses, plus notesapp.ng).
+
+1. On GitHub, open `scripts/r2-cors.json` on `main` and click **Copy raw file** (the copy icon above the file).
+2. dash.cloudflare.com → **R2 Object Storage** → `notesapp-media` → **Settings** → **CORS policy** → **Edit** (or **Add CORS policy**).
+3. Select everything in the box, paste the copied file over it, **Save**.
+4. Do the same on the private bucket (the name in `R2_PRIVATE_BUCKET`).
+5. No redeploy is needed: it works at once.
+
+**How to check it worked:** on `https://www.naapp.tech/profile/edit`, change your profile picture. It saves, and the browser console
+shows no "blocked by CORS policy" error. Paste the file again whenever it changes (a new domain or subdomain).
 
 ---
 
