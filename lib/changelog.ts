@@ -24,6 +24,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.142.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "Picture, avatar and file uploads on our naapp.tech addresses (and on life. and prep. of both domains): our storage now accepts uploads from every address #NotesApp is served on." },
+    ],
+  },
+  {
     version: "v0.142.0",
     bump: "minor",
     date: "2026-11-05",

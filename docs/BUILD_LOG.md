@@ -3049,6 +3049,12 @@ unused minutes back, uplift, the offer, the gate) and `ppm.emulator.ts` (book �
 and release → ledger → payout; the hold running out, a dropped phone, the grace, a missed call, cancelling, the sweep, teens, the tier
 gate, a report and a refund), the rules test, `test:help`.
 
+**R2 CORS for every address of both domains (v0.142.1, 5 Nov 2026)** — The owner's console on www.naapp.tech: avatar uploads (a
+presigned PUT straight to `notesapp-media` on R2) "blocked by CORS policy: No 'Access-Control-Allow-Origin' header". `scripts/r2-cors.json`
+predated the move: it had only www./bare/app. of notesapp.name.ng and notesapp.ng. It now lists bare, www., app., life., prep. and mcp. of
+notesapp.name.ng and naapp.tech, plus notesapp.ng, www.notesapp.ng and localhost:3000. `tests/host/host.test.ts` (in `test:host`)
+fails when a domain in `KNOWN_ROOTS` / `APP_SHORT_DOMAINS` or one of those subdomains is missing. Owner step: paste the file into both
+buckets' CORS policy (docs/DOMAIN_SWITCH.md step 2, docs/OWNER_SETUP.md). Nothing in the code changed.
 **The permanent NotesApp mark (v0.143.0, 5 Nov 2026)** — The owner chose a permanent mark over watermarked downloads: every Media picture
 and video and every published video replay carries it, and the same day added shop item photos, site service pictures and journal
 pictures. The approved look ("Both", then the Anya photos) is a faint full logo across the middle and na @username in a corner, sized
