@@ -29,6 +29,7 @@ import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
 import { trackJob } from "@/lib/ops-metrics-server";
+import { settleEndedPromotions } from "@/lib/promo-settle-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
 import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
@@ -94,6 +95,9 @@ async function run() {
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
   // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
   const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
+  // Ended boosts and adverts: the undelivered share refunded pro rata, the way the member paid, as the help and Terms promise
+  // (lib/promo-settle-server.ts). Each is settled once.
+  await job("settlePromotions", () => settleEndedPromotions(db));
   // Moments past their 24, 48 or 72 hours are deleted with their files (reads already refuse them).
   await job("mediaVideos", async () => sweepProcessingVideos(db, mediaDeps())); // Media videos Stream has finished (or rejected)
   await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
