@@ -2953,3 +2953,12 @@ fragment → `/api/auth/linkedin/finish` (same browser, same address) signs in w
 New collections server-only; export and erase cover them. Tests: `npm run test:social-signin` (the rules and OIDC checks with a stand-in
 JWKS, then Firestore and Auth emulators), the rules test, `test:passkeys`.
 
+
+## Boosts and adverts refund their undelivered share by themselves (v0.138.1, built 5 November 2026)
+
+The owner's Promotion tab showed a ₦12,500 advert (Starter: 5,000 impressions over 30 days) as "Completed" with 258 seen and the full
+₦12,500 spent. Ad campaigns are marked completed lazily when their window ends (`lib/ads-server.ts`), and boosts stop counting at
+`endsAt`; in both cases the promised pro-rata refund of the undelivered share was only made when an admin pressed "Refund undelivered"
+(Admin → Ads, Admin → Payments). `lib/promo-settle-server.ts` now settles them: claimed in a transaction, refunded the way the member
+paid, recorded with `settledAt`/`settledBy`/`refundedKobo`, the member told when money goes back. The cron runs it every 15 minutes,
+25 of each kind per run; the admin buttons call the same functions. For the screenshot's advert that is ₦11,855 back.

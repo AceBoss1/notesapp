@@ -4,7 +4,7 @@ import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { refundPayment } from "@/lib/refunds";
 import { sendEmail } from "@/lib/email";
 import { formatNaira } from "@/lib/booking-time";
-import { deliveredByAd } from "@/lib/ads-server";
+import { adEnded, settleAdCampaign } from "@/lib/promo-settle-server";
 import type { AdCampaign } from "@/lib/ad-packages";
 import { SITE_URL } from "@/lib/host";
 
@@ -62,26 +62,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "refund_undelivered") {
-      const ended = c.status === "completed" || (c.status === "live" && c.endsAt && new Date(c.endsAt).getTime() < Date.now());
-      if (!ended) return NextResponse.json({ error: "The campaign is still running." }, { status: 409 });
-      if (c.refundedKobo) return NextResponse.json({ error: "Already settled." }, { status: 409 });
-      const delivered = (await deliveredByAd([c.id]))[c.id]?.impressions ?? 0;
-      const shortfall = Math.max(0, c.impressionsBudget - delivered);
-      const refundKobo = Math.floor((c.amountKobo * shortfall) / c.impressionsBudget);
-      const batch = db.batch();
-      if (refundKobo > 0) {
-        await refundPayment(c.id, refundKobo);
-        // Keep the revenue books honest: a negative entry for the refunded part.
-        batch.set(db.doc(`adRevenue/refund_${c.id}`), {
-          month: lagosMonth(), source: "notesapp", label: `Refund (undelivered): ${c.advertiserName}`, amountKobo: -refundKobo,
-          note: c.id, campaignId: c.id, createdAt: now, createdBy: adminUid,
-        });
-      }
-      batch.update(ref, { status: "completed", refundedKobo: refundKobo, impressionsDelivered: delivered, completedAt: c.completedAt ?? now });
-      batch.update(db.doc(`adCreatives/${c.id}`), { active: false });
-      await batch.commit();
-      if (refundKobo > 0) await sendEmail({ to: c.email, bell: { uid: c.uid, type: "ad", linkHref: "/advertise/campaigns" }, subject: "Refund for undelivered ad impressions", text: `Your campaign delivered ${delivered.toLocaleString()} of ${c.impressionsBudget.toLocaleString()} impressions, so ${formatNaira(refundKobo)} is being refunded. We've started the refund and Paystack handles the rest of the process; it can take several business days to reach your bank or card.\n\n#NotesApp` }).catch(() => {});
-      return NextResponse.json({ ok: true, refundKobo });
+      // The same settlement the scheduled job runs (lib/promo-settle-server.ts); this button only does it sooner.
+      if (!adEnded(c as never)) return NextResponse.json({ error: "The campaign is still running." }, { status: 409 });
+      const r = await settleAdCampaign(db, c.id, { by: adminUid });
+      if (!r.settled) return NextResponse.json({ error: "Already settled." }, { status: 409 });
+      return NextResponse.json({ ok: true, refundKobo: r.refundKobo });
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

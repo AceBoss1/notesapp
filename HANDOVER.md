@@ -752,6 +752,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
     of its own). The owner asked not to use the aviator sunglasses photo.
 
+116. **Ended boosts and adverts refund themselves (v0.138.1, branch `push/promo-settle`):** nothing to deploy. The owner found adverts
+    showing "Completed" with 258 of 5,000 impressions delivered and nothing refunded. The help, Terms and boost and advertise pages
+    promise a pro-rata refund of whatever isn't delivered, but it only happened when an admin pressed "Refund undelivered". Now
+    `lib/promo-settle-server.ts` settles every ended boost (window over, or completed) and advert (completed, or live past its end):
+    refund of the undelivered share the way they paid (`refundPayment`), a negative `adRevenue` entry for adverts, a bell or email
+    when money goes back, `settledAt` so it happens once. It runs in the 15-minute cron (`settlePromotions`) and behind the two admin
+    buttons. A failed refund is retried up to 5 times, then left for an admin (`settleError`). The first run after deploy refunds
+    every ended promotion that was never settled. Test: `npm run test:settle`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

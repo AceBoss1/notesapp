@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.138.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "When a boost or an advert ends without delivering everything you paid for, the undelivered share is now refunded by itself, pro rata, the way you paid, with a bell or email saying how much. Before, it waited for our team to do it, so some ended promotions showed Completed with nothing refunded; those are being refunded now." },
+    ],
+  },
+  {
     version: "v0.138.0",
     bump: "minor",
     date: "2026-11-04",
