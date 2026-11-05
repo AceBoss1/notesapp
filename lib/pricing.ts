@@ -68,6 +68,9 @@ export type PricingConfig = {
   // Animated gifts and daily gift targets (lib/gift-catalogue.ts; owner, 3 Nov 2026): the catalogue (names, prices, on/off, order) and
   // the "Top gifted today" settings (target, places, gross or after commission, different senders).
   gifts: GiftSettings;
+  // Paid lives (docs/LIVE_ECONOMY.md 1a, lib/live-tickets.ts): #NotesApp takes the host's normal rate plus this % of it on each ticket,
+  // fixed on the payment at checkout, like premium gifts.
+  liveTicketUpliftPct: number;
 };
 
 const tier = (t: string) => TIERS.find((x) => x.tier === t)!;
@@ -94,8 +97,12 @@ export function currentPricing(): PricingConfig {
     boosts: BOOST_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
     ads: AD_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
     gifts: currentGiftSettings(),
+    liveTicketUpliftPct: LIVE_TICKETS.upliftPct,
   };
 }
+// Paid lives' ticket commission share (owner, 3 Nov 2026: "the same uplift as premium gifts").
+const LIVE_TICKETS = { upliftPct: 10 };
+export const liveTicketUpliftPct = () => LIVE_TICKETS.upliftPct;
 // Enterprise has no fixed price in TIERS (only display text), so its "from" prices are kept here.
 const ENTERPRISE_FROM = { monthly: 55_000 * 100, yearly: 550_000 * 100 };
 // The Enterprise course packages, kept here for the same reason. The regular Enterprise price above doesn't change with them.
@@ -179,6 +186,7 @@ export function applyPricing(c: PricingConfig): void {
   for (const b of c.boosts) { const p = BOOST_PACKAGES.find((x) => x.id === b.id); if (p) { p.impressions = b.impressions; p.priceKobo = b.priceKobo; p.maxPerDay = Math.ceil(b.impressions / p.minDays); } }
   for (const a of c.ads) { const p = AD_PACKAGES.find((x) => x.id === a.id); if (p) { p.impressions = a.impressions; p.priceKobo = a.priceKobo; } }
   if (c.gifts) applyGiftSettings(c.gifts);
+  if (typeof c.liveTicketUpliftPct === "number") LIVE_TICKETS.upliftPct = c.liveTicketUpliftPct;
 }
 
 // ── Checking what an admin typed ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -283,6 +291,9 @@ export function cleanPricing(input: unknown): PricingConfig {
   // Added later too: a config saved before animated gifts keeps the built-in catalogue and target.
   let gifts: GiftSettings;
   try { gifts = cleanGiftSettings(i.gifts, d.gifts); } catch (e) { throw e instanceof GiftSettingsError ? new PricingError(e.message) : e; }
+  // Added with paid lives (v0.141.0): a config saved before keeps the default.
+  const lu = i.liveTicketUpliftPct === undefined || i.liveTicketUpliftPct === "" ? d.liveTicketUpliftPct : Math.round(Number(i.liveTicketUpliftPct));
+  if (!Number.isFinite(lu) || lu < 0 || lu > 100) throw new PricingError("Paid-live tickets, extra commission: a whole percentage from 0 to 100.");
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
@@ -291,6 +302,7 @@ export function cleanPricing(input: unknown): PricingConfig {
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
     gifts,
+    liveTicketUpliftPct: lu,
   };
 }
 

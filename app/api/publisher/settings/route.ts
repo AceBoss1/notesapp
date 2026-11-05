@@ -6,6 +6,8 @@ import { LIMITS, PublisherSettings } from "@/lib/booking-time";
 import { rateLimit } from "@/lib/rate-limit";
 import { SUB_TIERS, TIER_NAME, tierOffers, tierRangeKobo, type TierOffer } from "@/lib/fans";
 import { getFanSettings } from "@/lib/fans-server";
+import { getRoomSettings } from "@/lib/rooms-server";
+import { cleanDiscountPct } from "@/lib/live-tickets";
 
 const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -61,7 +63,9 @@ export async function POST(req: NextRequest) {
     const subIn = body.subscription || {};
     const fanCfg = await getFanSettings(db);
     const before = tierOffers(existing?.subscription);
-    const tiersIn: Record<string, { enabled?: unknown; priceNaira?: unknown }> = subIn.tiers && typeof subIn.tiers === "object"
+    // Each tier's paid-live ticket discount (lib/live-tickets.ts), 0 up to Admin's cap; a form without it keeps what was saved.
+    const discountCap = (await getRoomSettings(db)).liveDiscountMaxPct;
+    const tiersIn: Record<string, { enabled?: unknown; priceNaira?: unknown; liveDiscountPct?: unknown }> = subIn.tiers && typeof subIn.tiers === "object"
       ? subIn.tiers
       : { premium: { enabled: subIn.enabled, priceNaira: subIn.priceNaira }, vip: before.vip.enabled ? { enabled: true, priceNaira: before.vip.priceKobo / 100 } : { enabled: false }, vvip: before.vvip.enabled ? { enabled: true, priceNaira: before.vvip.priceKobo / 100 } : { enabled: false } };
     const tiers = {} as Record<(typeof SUB_TIERS)[number], TierOffer>;
@@ -77,7 +81,13 @@ export async function POST(req: NextRequest) {
       if (on && (!planCode || before[t].priceKobo !== priceKobo)) {
         planCode = (await createPlan({ name: `@${user.username} ${TIER_NAME[t]} monthly`, amountKobo: priceKobo })).plan_code;
       }
-      tiers[t] = { enabled: on, priceKobo: priceKobo || minKobo, ...(planCode ? { planCode } : {}) };
+      const rawPct = tin.liveDiscountPct;
+      if (rawPct !== undefined && rawPct !== "" && rawPct !== null) {
+        const n = Number(rawPct);
+        if (!Number.isFinite(n) || n < 0 || n > discountCap) return NextResponse.json({ error: `${TIER_NAME[t]}: a paid-live discount from 0% to ${discountCap}%.` }, { status: 400 });
+      }
+      const liveDiscountPct = rawPct === undefined ? before[t].liveDiscountPct ?? 0 : cleanDiscountPct(rawPct, discountCap);
+      tiers[t] = { enabled: on, priceKobo: priceKobo || minKobo, ...(planCode ? { planCode } : {}), ...(liveDiscountPct > 0 ? { liveDiscountPct } : {}) };
     }
     const subEnabled = tiers.premium.enabled || tiers.vip.enabled || tiers.vvip.enabled;
     const subPriceKobo = tiers.premium.priceKobo;

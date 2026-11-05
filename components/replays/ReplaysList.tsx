@@ -65,19 +65,19 @@ export default function ReplaysList({ admin = false }: { admin?: boolean }) {
                   <p className="mt-1 text-xs text-slate">
                     {STATUS[r.status]}{r.why ? ` (${r.why})` : ""}
                     {r.published ? " · published as a replay" : r.status !== "deleted" && r.keepUntil ? ` · ${daysLeft(r.keepUntil)} day${daysLeft(r.keepUntil) === 1 ? "" : "s"} left` : ""}
-                    {r.forced ? " · recorded for safety" : ""}{r.teenOnStage ? " · someone in teen mode spoke" : ""}
+                    {r.forced || r.safetyOnly ? " · recorded for safety" : ""}{r.paidLive ? " · paid live" : ""}{r.teenOnStage ? " · someone in teen mode spoke" : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {r.status === "ready" && <button type="button" className={small} disabled={busy === r.id} onClick={() => act(r.id, { action: "play", id: r.id, ...(admin ? { admin: true } : {}) }, (j) => setPlaying({ id: r.id, url: String(j.url), type: String(j.type) }))}>Play</button>}
-                  {!admin && r.status === "ready" && !r.published && <button type="button" className={small} onClick={() => setPublishing(publishing === r.id ? null : r.id)}>Publish</button>}
+                  {!admin && r.status === "ready" && !r.published && !r.safetyOnly && <button type="button" className={small} onClick={() => setPublishing(publishing === r.id ? null : r.id)}>Publish</button>}
                   {!admin && r.status !== "starting" && r.status !== "recording" && <button type="button" className={small} disabled={busy === r.id} onClick={() => confirm(r.published ? "Delete this recording and its replay? This can't be undone." : "Delete this recording? This can't be undone.") && act(r.id, { action: "delete", id: r.id })}>Delete</button>}
                 </div>
               </div>
               {playing?.id === r.id && (playing.type.startsWith("video")
                 ? <video src={playing.url} controls className="mt-3 w-full rounded-xl bg-ink" />
                 : <audio src={playing.url} controls className="mt-3 w-full" />)}
-              {publishing === r.id && <PublishForm title={r.title} teen={!!r.teenOnStage} busy={busy === r.id} onCancel={() => setPublishing(null)}
+              {publishing === r.id && <PublishForm title={r.title} teen={!!r.teenOnStage} paid={!!r.paidLive} busy={busy === r.id} onCancel={() => setPublishing(null)}
                 onPublish={(title, audience) => act(r.id, { action: "publish", id: r.id, title, audience }, (j) => { setPublishing(null); setNote(j.why ? String(j.why) : "Published. Your replay is being prepared for streaming; it's ready in a minute or two."); })} />}
             </li>
           ))}
@@ -110,7 +110,7 @@ export default function ReplaysList({ admin = false }: { admin?: boolean }) {
   );
 }
 
-function PublishForm({ title, teen, busy, onPublish, onCancel }: { title: string; teen: boolean; busy: boolean; onPublish: (title: string, audience: ReplayAudience) => void; onCancel: () => void }) {
+function PublishForm({ title, teen, paid, busy, onPublish, onCancel }: { title: string; teen: boolean; paid?: boolean; busy: boolean; onPublish: (title: string, audience: ReplayAudience) => void; onCancel: () => void }) {
   const [t, setT] = useState(title);
   const [audience, setAudience] = useState<ReplayAudience>(teen ? "community" : "public");
   return (
@@ -119,7 +119,7 @@ function PublishForm({ title, teen, busy, onPublish, onCancel }: { title: string
       <fieldset className="space-y-1 text-sm">
         <legend className="text-xs font-semibold text-ink">Who can watch</legend>
         {REPLAY_AUDIENCES.map((a) => (
-          <label key={a.id} className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === a.id} disabled={teen && a.id !== "community"} onChange={() => setAudience(a.id)} className="accent-crimson" />{a.label}</label>
+          <label key={a.id} className="flex items-center gap-2"><input type="radio" name="aud" checked={audience === a.id} disabled={teen && a.id !== "community"} onChange={() => setAudience(a.id)} className="accent-crimson" />{paid && a.id === "community" ? "Ticket holders of this paid live only" : a.label}</label>
         ))}
         {teen && <p className="text-xs text-slate">Someone in teen mode spoke in this live, so its replay stays inside the community.</p>}
       </fieldset>

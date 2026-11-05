@@ -76,7 +76,14 @@ export type RoomDoc = {
   stageMode?: StageMode; mods?: Record<string, RoomModInfo>; invites?: Record<string, RoomInvite>; micMuted?: Record<string, string>;
   // pinned: the message or announcement at the top of the chat. consentAsk: a moderator reminded a speaker to agree to the recording.
   pinned?: RoomPin | null; consentAsk?: Record<string, string>;
+  // A member's own paid live (v0.141.0, lib/live-tickets.ts): hosted by the member, not a community (cid and communityName are ""). Only
+  // ticket holders, the host and the moderators the host named come in; the community's moderators have no powers here (isMemberLive).
+  // record: the host's recording choice (a "safety" recording is never offered as a replay).
+  paid?: { eventId: string; record: "off" | "safety" | "replay" }; // record: lib/live-tickets.ts LiveRecordChoice
 };
+// A member's own live (today: a paid live) rather than a community live. In it only the moderators the host names moderate (owner,
+// 5 Nov 2026); the community's own moderators get nothing.
+export const isMemberLive = (r: Pick<RoomDoc, "paid" | "cid">) => !!r.paid || !r.cid;
 // ── Stage seats (owner, 4 Nov 2026) ──
 // The host picks a stage mode and can change it during the live (only the host does):
 // - "solo": nobody asks to come up: no raised hands, no + on the empty seats (the host and moderators can still invite someone).
@@ -124,8 +131,8 @@ export const MOD_PRESETS: { id: "basic" | "full"; label: string; perms: ModPerm[
 ];
 export const BASIC_PERMS = MOD_PRESETS[0].perms;
 // The community's own moderators (not named for this live) keep the chat powers they had: remove, mute in the chat, remove from the live.
-// Owner, 5 Nov 2026: only in a live hosted as a community live (every audio room today). In a member's own live inside the community
-// (when those come), the community's moderators get nothing unless the host names them; only the community owner can moderate there.
+// Owner, 5 Nov 2026: only in a live hosted as a community live. In a member's own live (a paid live, v0.141.0: isMemberLive), the
+// community's moderators get nothing unless the host names them.
 export const COMMUNITY_MOD_PERMS: ModPerm[] = ["chatRemove", "chatMute", "ban"];
 export const isModPerm = (v: unknown): v is ModPerm => typeof v === "string" && (ALL_MOD_PERMS as string[]).includes(v);
 // What the host sent for one moderator: known permissions, in the list's order; not a list at all: the Basic preset.
@@ -216,9 +223,11 @@ export const roomIsFull = (r: Pick<RoomDoc, "hostUid" | "speakers" | "joined">, 
 // ── Settings (Admin → Limits → Audio rooms; saved in serverConfig/rooms, read through lib/rooms-server.ts) ──
 export type RoomSettingKey = "relayOn" | "relayListeners" | "p2pListeners" | "chatSlowAbove" | "chatSlowSeconds"
   | "videoOn" | "videoBudgetMinutes" | "videoGraceSeconds" | "videoNearlyLeftMinutes" | "videoBurstMinutes" | "videoTryMinutes"
-  | "dropPercent" | "dropWindowMinutes" | "videoKbps" | "videoFps" | "videoHeight";
-// group "live": Live mode (lib/rooms-live.ts), shown under its own heading in Admin → Limits → Audio rooms.
-export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" };
+  | "dropPercent" | "dropWindowMinutes" | "videoKbps" | "videoFps" | "videoHeight"
+  | "lateWindowMin" | "liveDiscountMaxPct" | "paidNoShowMin";
+// group "live": Live mode (lib/rooms-live.ts), shown under its own heading in Admin → Limits → Audio rooms. group "paid": paid lives
+// (lib/live-tickets.ts), under theirs.
+export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" | "paid" };
 export const ROOM_LISTENERS_MAX_RELAY = 500;
 // What the listener setting may be raised to. Rooms are planned for 10,000 listeners (owner, 2 Nov 2026): nothing writes once per
 // listener or sends everyone the full list (people/ and the count, above); the default stays at 500 until the owner raises it.
@@ -243,6 +252,11 @@ export const ROOM_SETTINGS: RoomSettingDef[] = [
   { key: "videoKbps", label: "Video quality cap per camera", unit: "kbps", min: 150, max: 2_500, def: 600, group: "live" },
   { key: "videoFps", label: "Video frame rate", unit: "frames a second", min: 10, max: 30, def: 24, group: "live" },
   { key: "videoHeight", label: "Video height", unit: "pixels (480 = 480p)", min: 240, max: 720, def: 480, group: "live" },
+  // Paid lives (docs/LIVE_ECONOMY.md 1a, lib/live-tickets.ts). The late window is fixed on each live when it's scheduled; the discount cap
+  // applies at once (a host's tier discount above it is cut to it at checkout).
+  { key: "lateWindowMin", label: "Paid lives: late tickets are sold until the live has run this long (then no more tickets)", unit: "minutes", min: 0, max: 180, def: 20, group: "paid" },
+  { key: "liveDiscountMaxPct", label: "Paid lives: the largest discount a host can give each subscription tier on tickets", unit: "%", min: 0, max: 100, def: 50, group: "paid" },
+  { key: "paidNoShowMin", label: "Paid lives: a live the host hasn't opened this long after its start time is cancelled and everyone refunded to NotesApp Credit", unit: "minutes", min: 10, max: 720, def: 60, group: "paid" },
 ];
 export type RoomSettings = Record<RoomSettingKey, number>;
 export type RoomOverrides = Partial<RoomSettings>;
@@ -287,6 +301,10 @@ export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false, li
   return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds, live: roomLiveFigures(s), ...(liveChat && mode === "relay" ? { liveChat: true as const } : {}) };
 };
 export const DEFAULT_ROOM_FIGURES = roomFigures();
+// Paid lives' figures (lib/live-tickets.ts), for the help, the public pages and the forms.
+export type PaidLiveFigures = { lateWindowMin: number; discountMaxPct: number; noShowMin: number };
+export const paidLiveFigures = (s: RoomSettings = ROOM_DEFAULTS): PaidLiveFigures => ({ lateWindowMin: s.lateWindowMin, discountMaxPct: s.liveDiscountMaxPct, noShowMin: s.paidNoShowMin });
+export const DEFAULT_PAID_FIGURES = paidLiveFigures();
 
 // ── Presence and the count in relay rooms ──
 export const isFresh = (p: Pick<RoomPerson, "seen"> | undefined, now = Date.now()) => !!p && now - Date.parse(p.seen) < ROOM_GONE_MS;

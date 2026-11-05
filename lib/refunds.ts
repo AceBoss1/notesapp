@@ -4,6 +4,7 @@ import { refundToWallet, restoreTopup, reverseTopup } from "./wallet-server";
 import { revokeForPayment } from "./certificates-server";
 import { reverseEarningsFor } from "./referrals-server";
 import { voidTicketsFor } from "./tickets-server";
+import { voidLiveTicket } from "./live-tickets-server";
 
 // Every refund goes through here. A payment made from the NotesApp Credit wallet goes back to the wallet (never to a card, since
 // nothing was charged to one); a wallet top-up refunded to the card first takes the unspent credit (and its bonus) back out;
@@ -16,6 +17,7 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
   const p = (await db.doc(`payments/${reference}`).get()).data();
   const whole = amountKobo === undefined || amountKobo >= Number(p?.amountKobo ?? 0);
   if (whole && p?.kind === "ticket") await voidTicketsFor(db, reference);
+  if (whole && p?.kind === "live_ticket") await voidLiveTicket(db, reference);
   if (whole && p?.kind === "giving") await db.doc(`communityGifts/${reference}`).update({ status: "refunded" }).catch(() => {});
 }
 

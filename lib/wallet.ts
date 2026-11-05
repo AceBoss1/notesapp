@@ -28,8 +28,9 @@ export function bonusFor(topupKobo: number): number {
 }
 
 // What can be paid from the wallet, and which of those may use Bonus Credits.
-export const WALLET_KINDS = ["boost", "ad", "badge", "gift", "store", "digital", "booking", "life_naira", "nana_credit", "certificate", "course", "logistics_addon", "inventory_addon", "giving"] as const;
+export const WALLET_KINDS = ["boost", "ad", "badge", "gift", "store", "digital", "booking", "life_naira", "nana_credit", "certificate", "course", "logistics_addon", "inventory_addon", "giving", "live_ticket"] as const;
 export type WalletKind = (typeof WALLET_KINDS)[number];
+// Tickets to paid lives (v0.141.0) are paid from credit, never Bonus Credits, as event tickets never take bonus either.
 export const BONUS_KINDS: readonly string[] = ["boost", "ad", "badge"];
 // Never paid with Bonus Credits, whatever BONUS_KINDS holds (owner, 4 Nov 2026): gifts are earnings for the receiver, so they come only
 // from a member's own credit or a card.

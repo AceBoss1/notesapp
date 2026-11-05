@@ -32,6 +32,7 @@ import { announceGrandGift, readGiftDaily, readGiftTallies, writeGiftDaily, writ
 import { upliftedRate, type GiftContext, type GiftMotif, type GiftToKind } from "./gift-catalogue";
 import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
+import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -40,7 +41,7 @@ import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProduct
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -136,7 +137,11 @@ export type PaymentRecord = {
   // A customer paying what they owe a Business books seller (lib/books-debt-server.ts): whose statement, which customer, and once paid
   // the payment's entry and the customer's receipt. publisherUid is the seller.
   debt?: DebtInfo;
+  // A ticket to a member's paid live (lib/live-tickets.ts): the band and list price, the subscriber discount (their tier's, capped), and
+  // the commission share fixed now (commissionRate is the host's rate plus upliftPct % of it). publisherUid is the host.
+  liveTicket?: LiveTicketInfo;
 };
+export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: string; band: "early" | "normal" | "late"; listKobo: number; discountPct: number; tier?: SubTier; holderName: string; baseRate: number; upliftPct: number };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
 // disputed  = admin froze it (no-show, complaint)
@@ -150,13 +155,16 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket";
   // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
   // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
   withdrawalOf?: number;
   needsApproval?: boolean;
   withdrawalId?: string;
   withdrawnAt?: string;
+  // Paid-live tickets (lib/live-tickets.ts): true until the live ends (lib/live-door-server.ts markLiveEnded), so nothing is paid out
+  // while the live hasn't happened; releaseAfter is then the end, and the payout waits PAYOUT_HOLD_HOURS more.
+  awaitingLive?: boolean;
   cardChargeKobo?: number; // giving and tickets by card: Paystack's charge at cost, passed on (grossKobo is already after it)
   affiliateKobo?: number; // an affiliate's share of this sale, already taken out of netKobo
   publisherUid: string;
@@ -299,6 +307,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     const codeRead = await readCodeForRedemption(t, db, current.discount);
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
     const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
+    const liveRead = current.kind === "live_ticket" && current.liveTicket ? await readForLiveTicket(t, db, current) : null;
     // A subscription replaces the subscriber's record with this creator (a tier change carries the days left over).
     const subPrev = current.kind === "subscription" && current.subscription ? (await t.get(db.doc(`subscriptions/${current.uid}_${current.subscription.username}`))).data() : undefined;
 
@@ -437,6 +446,15 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         ...(tk.cardChargeKobo ? { cardChargeKobo: tk.cardChargeKobo } : {}),
         status: "held", releaseAfter: new Date(tk.endsAt).toISOString(), createdAt: now,
       } satisfies LedgerEntry : ledgerFor(current, current.amountKobo, new Date(tk.endsAt), now));
+    } else if (current.kind === "live_ticket" && current.liveTicket && liveRead) {
+      // A paid-live ticket: one per person, written here with the sold count. The live cancelled or a ticket already held (two checkouts
+      // at once) → flagged for a refund, like a sold-out ticket. The host's money (after the commission fixed at checkout) is held until
+      // the live ends (awaitingLive), then the problem window.
+      if (!writeLiveTicket(t, db, current, liveRead, now)) {
+        t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
+        return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
+      }
+      t.set(db.doc(`ledger/${reference}`), { ...ledgerFor(current, current.amountKobo, new Date(current.liveTicket.startsAt), now), awaitingLive: true });
     } else if (current.kind === "debt" && current.debt && debtRead) {
       // A customer paid what they owe a Business books seller: the payment in the seller's books (oldest sales first), the customer's
       // receipt, and the seller's money held in the ledger, then paid out like a sale (lib/books-debt-server.ts).
@@ -638,6 +656,10 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     return { payment: { ...current, status: "paid" as const, paidAt: now }, fresh: true };
   });
 
+  // A paid-live ticket that couldn't be issued (the live was cancelled meanwhile, or they already hold one): back to their NotesApp Credit.
+  if (result.fresh && result.payment.status === "paid_slot_conflict" && result.payment.kind === "live_ticket") {
+    await refundLiveTicketToCredit(db, reference, "The live couldn't take this ticket").catch((e) => console.error("live ticket conflict refund", reference, e));
+  }
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
     await afterFanPayment(db, result.payment).catch((e) => console.error("fan points failed", e));
@@ -772,6 +794,7 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);
   if (p.kind === "ticket" && p.ticket) return notifyTickets(p);
+  if (p.kind === "live_ticket" && p.liveTicket) return notifyLiveTicket(p);
   if (p.kind === "life_naira") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/life/play", message: `N$ ${p.amountKobo.toLocaleString("en-NG")} added to Notes Life.` });
     return;

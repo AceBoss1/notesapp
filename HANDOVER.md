@@ -802,6 +802,24 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **Untested against real Paystack transfers** (tests use a stand-in transfer). **Owner to confirm:** the two settings live in Admin →
     Pricing → Gifts (the plan said Limits; Pricing is where the other gift numbers are and the gift sheet reads them live); anonymous gifts
     are left off Top gifters; individual gift entries are no longer released one by one, only through Withdraw (release by hand still works).
+119. **Paid lives, phase 1a of the live economy (v0.141.0, branch `push/live-paid`):** deploy **`firebase deploy --only firestore`**
+    (new rules for `liveEvents`, `liveTickets` and `liveEventReminders`, and a new index on `liveEvents` hostUid + status). Nothing else
+    to deploy: no new environment variable, the live-rooms worker is unchanged (the server tells it `mod: false` for a paid live's
+    tokens). Then, in Admin: check **Pricing → Gifts → Paid-live tickets: extra commission** (`liveTicketUpliftPct`, default 10% of the
+    host's rate) and **Limits → Audio rooms → Paid lives** (`lateWindowMin` 20, `liveDiscountMaxPct` 50, `paidNoShowMin` 60); the help,
+    the roadmap and the forms read these live. **The owner's open choice:** the spec says "0–100%, admin-capped" for the tier discount
+    without a number; the cap ships at **50%** (change it in Limits). **How a member's live is hosted:** the same `communityRooms/{id}`
+    doc and machinery (relay, worker, recording, Live mode), with `cid: ""` and `paid: { eventId, record }`; `mayEnter` in
+    `lib/rooms-server.ts` lets in only ticket holders, the host and the moderators the host names (by @username, anyone on #NotesApp),
+    and `isMemberLive` gives community moderators nothing there (owner, 5 Nov). The lobby (`/lives/<id>`) is the door (`enterPaidLive`
+    marks the ticket checked); joining checks the ticket again, so the room can't be entered around it. Tickets are payment kind
+    `live_ticket` (card or NotesApp Credit, never Bonus Credits, like event tickets), commission = the host's session rate plus the
+    uplift, fixed on the payment; the ledger entry carries `awaitingLive` until the room ends (`markLiveEnded`), then pays out
+    `PAYOUT_HOLD_HOURS` after the end. Host cancels, or doesn't open within `paidNoShowMin` → every ticket back to NotesApp Credit
+    (card payments too: `refundCardToCredit`), in the cron (`paidLives` job). The host can reopen a dropped live within 30 minutes.
+    "Safety only" recordings can't be published as replays; a paid live's "community" replay audience means its ticket holders.
+    **Not tried with real payments or a real relay:** buy a ticket by card on staging, open the live, enter from a second phone, end it,
+    and check the ledger entry gets its `releaseAfter`. Tests: `test:live-tickets`, `test:live-tickets-server`, `test:help`, rules.
 
 ## 3. How the work is done (please keep these)
 

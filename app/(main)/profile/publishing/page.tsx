@@ -36,7 +36,7 @@ export default function PublishingSettingsPage() {
   const [minutes, setMinutes] = useState(45);
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
-  const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000" }, vip: { on: false, price: "7500" }, vvip: { on: false, price: "25000" } });
+  const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000", discount: "0" }, vip: { on: false, price: "7500", discount: "0" }, vvip: { on: false, price: "25000", discount: "0" } });
   const [fansHidden, setFansHidden] = useState(false);
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
@@ -98,7 +98,7 @@ export default function PublishingSettingsPage() {
           setSubOn(!!s.subscription?.enabled);
           if (s.subscription) {
             const o = tierOffers(s.subscription);
-            setTiers({ premium: { on: o.premium.enabled, price: String((o.premium.priceKobo || 200_000) / 100) }, vip: { on: o.vip.enabled, price: String((o.vip.priceKobo || 750_000) / 100) }, vvip: { on: o.vvip.enabled, price: String((o.vvip.priceKobo || 2_500_000) / 100) } });
+            setTiers({ premium: { on: o.premium.enabled, price: String((o.premium.priceKobo || 200_000) / 100), discount: String(o.premium.liveDiscountPct ?? 0) }, vip: { on: o.vip.enabled, price: String((o.vip.priceKobo || 750_000) / 100), discount: String(o.vip.liveDiscountPct ?? 0) }, vvip: { on: o.vvip.enabled, price: String((o.vvip.priceKobo || 2_500_000) / 100), discount: String(o.vvip.liveDiscountPct ?? 0) } });
           }
           setFansHidden(s.fansHidden === true);
           setGiftsOn(s.gifts?.enabled !== false);
@@ -131,7 +131,7 @@ export default function PublishingSettingsPage() {
     try {
       await authedPost("/api/publisher/settings", {
         session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
-        subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price) }])) },
+        subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price), liveDiscountPct: Number(tiers[t].discount) || 0 }])) },
         fans: { hidden: fansHidden },
         gifts: { enabled: giftsOn },
         ads: { optIn: adsOn },

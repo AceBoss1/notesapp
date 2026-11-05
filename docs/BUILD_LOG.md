@@ -2985,6 +2985,29 @@ profile's new Gifts tab lists received gifts by gift with count and value, archi
 as one `gift_payout` ledger entry through the existing payout path, automatically under the Admin line (₦20,000 to start) and after
 approval in Admin → Payments from it up (`lib/gift-earnings-server.ts`). Weekly Top gifted and Top gifters (Lagos Monday 00:00) and gift
 points (1 per ₦100) are written with each gift (`giftWeekly`, `gifterWeekly`, `giftPoints`, `giftReceived`).
+## Paid lives: tickets, the recording choice and subscriber discounts (v0.141.0, built 5 November 2026)
+
+Phase 1a of the live economy plan (`docs/LIVE_ECONOMY.md` on the plan branch; owner's decisions of 3 and 4 November). A publisher
+schedules a live with three prices (early bird until a time they pick, normal until the start, late until the live has run
+`lateWindowMin`), who may buy (everyone, Premium and up, VIP and up), a poster and the recording choice (off, safety only, replay).
+Subscribers get the discount the host set for their tier once, beside its price (Rates & payouts → Subscriptions), capped in Admin and
+applied on top of the band. The pure rules are `lib/live-tickets.ts`; the server is `lib/live-tickets-server.ts` (scheduling, the
+lobby, checkout, the door, cancelling, reminders and no-show refunds), with `lib/live-door-server.ts` holding what the rooms need
+(the ticket check, and moving the ticket money's hold when the room ends or reopens).
+
+**Hosting a member's own live.** Every audio room was a community room. Rather than a second room collection, a paid live is the same
+`communityRooms/{id}` doc with no community (`cid: ""`) and `paid: { eventId, record }`, so the relay, the live-rooms worker, Live mode,
+the stage seats and the recorder all work unchanged. The community checks in `lib/rooms-server.ts` became one `mayEnter` (community
+members for a community live; the host, the moderators the host names and ticket holders for a paid live), and `isMemberLive` takes
+community moderators' chat powers away there (owner, 5 November). Moderators for a paid live are found by @username across #NotesApp.
+
+**Money.** Payment kind `live_ticket`, by card or NotesApp Credit (credit only, like event tickets never take Bonus Credits). The
+commission is the host's session rate plus `liveTicketUpliftPct` % of it (Admin → Pricing), fixed on the payment like premium gifts
+(`upliftedRate`). The ledger entry waits (`awaitingLive`) until the room ends, then `PAYOUT_HOLD_HOURS` like a session. Refunds always
+go to NotesApp Credit, card payments included (`refundCardToCredit`); a payment that lands after a cancel is refunded the same way.
+Tests: `tests/live-tickets/live-tickets.test.ts` (bands, late window, discount stacking, uplift, form checks) and
+`live-tickets.emulator.ts` (checkout → ticket → door → end → payout; cancel and no-show refunds; moderators), the rules test, `test:help`.
+
 
 **Google sign-in checked before the app sees it (v0.141.1, 5 Nov 2026)** — The owner's HAR of a real sign-in on www.naapp.tech showed
 Firebase signing a Google account straight into the existing account with the same email, and every `onAuthStateChanged` listener
