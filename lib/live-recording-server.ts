@@ -546,8 +546,8 @@ async function viewerCan(db: Firestore, r: ReplayDoc, uid: string | undefined): 
   if (r.liveEventId) return mayWatch(r, { uid, subscribed: false, member: await holdsLiveTicket(db, r.liveEventId, uid) });
   return mayWatch(r, { uid, subscribed: false, member: !!activeRole(await memberOf(db, r.cid, uid)) });
 }
-export type ReplayCard = Pick<ReplayDoc, "title" | "hostName" | "hostUsername" | "hostAvatar" | "communityName" | "audience" | "kind" | "status" | "duration" | "publishedAt" | "views"> & { id: string; noteId?: string };
-const card = (id: string, r: ReplayDoc): ReplayCard => ({ id, title: r.title, hostName: r.hostName, hostUsername: r.hostUsername, hostAvatar: r.hostAvatar, communityName: r.communityName, audience: r.audience, kind: r.kind, status: r.status, duration: r.duration, publishedAt: r.publishedAt, views: r.views, ...(r.noteId ? { noteId: r.noteId } : {}) });
+export type ReplayCard = Pick<ReplayDoc, "title" | "hostUid" | "hostName" | "hostUsername" | "hostAvatar" | "communityName" | "audience" | "kind" | "status" | "duration" | "publishedAt" | "views"> & { id: string; noteId?: string };
+const card = (id: string, r: ReplayDoc): ReplayCard => ({ id, title: r.title, hostUid: r.hostUid, hostName: r.hostName, hostUsername: r.hostUsername, hostAvatar: r.hostAvatar, communityName: r.communityName, audience: r.audience, kind: r.kind, status: r.status, duration: r.duration, publishedAt: r.publishedAt, views: r.views, ...(r.noteId ? { noteId: r.noteId } : {}) });
 // Stream finishes copying in a minute or two: the first look after that marks the replay ready.
 async function freshen(db: Firestore, id: string, r: ReplayDoc, deps: Pick<RecordingDeps, "stream">): Promise<ReplayDoc> {
   if (r.status !== "processing") return r;

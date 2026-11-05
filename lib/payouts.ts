@@ -106,7 +106,10 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
       // (releaseAfter, lib/giving.ts) and then go out on the same run.
       // Paid-live tickets: once the live has ended (awaitingLive cleared), its end plus the same window.
       if (l.awaitingLive) return false;
-      const due = l.kind === "booking" || l.kind === "ticket" || l.kind === "live_ticket" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" ? now : -Infinity;
+      // A gift withdrawal (lib/gift-earnings-server.ts) under the withdrawal line goes on the next run if sending it straight away failed;
+      // one from the line up (needsApproval) waits for a person to release it in Admin → Payments.
+      const due = l.kind === "booking" || l.kind === "ticket" || l.kind === "live_ticket" ? dueBefore
+        : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" || (l.kind === "gift_payout" && !l.needsApproval) ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -121,7 +124,8 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         // Waiting for the OTP Paystack emailed the business: the publisher hears once it is actually sent (lib/payout-otp-server.ts).
         if (r.transferStatus === "otp") continue;
         const to = await getUserEmail(l.publisherUid);
-        const what = l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
+        const what = l.kind === "gift_payout" ? { subject: "Your gift earnings are on their way", for: "from gifts you received", short: "gift earnings", link: `/u/${l.publisherUsername}?tab=gifts` }
+          : l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
           : l.kind === "ticket" ? { subject: "Your ticket sales payout is on its way", for: "for event tickets", short: "ticket sales", link: "/events" }
           : l.kind === "live_ticket" ? { subject: "Your paid live payout is on its way", for: "for a ticket to your paid live", short: "paid live ticket", link: "/lives" }
           : l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }

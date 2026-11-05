@@ -28,8 +28,8 @@ import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
 import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
 import { writeGiftReceipt } from "./giving-server";
-import { announceGrandGift, readGiftDaily, writeGiftDaily, writeGiftShow } from "./gifts-server";
-import { upliftedRate, type GiftMotif } from "./gift-catalogue";
+import { announceGrandGift, readGiftDaily, readGiftTallies, writeGiftDaily, writeGiftShow, writeGiftTallies, type TallyInput } from "./gifts-server";
+import { upliftedRate, type GiftContext, type GiftMotif, type GiftToKind } from "./gift-catalogue";
 import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
 import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
@@ -95,7 +95,9 @@ export type PaymentRecord = {
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   // animId/animName: an animated gift from the catalogue (lib/gift-catalogue.ts), its price fixed at checkout. liveId: sent during a live.
   // uplift: the premium or VIP gift's extra share of the commission rate, fixed at checkout (commissionRate already includes it).
-  gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string; animId?: GiftMotif; animName?: string; liveId?: string; uplift?: number };
+  // quantity: N of one animated gift sent as one payment (amountKobo is N × the catalogue price); toKind and context: who it was for
+  // and where it was sent (gifting everywhere, v0.140.0). Older gifts have none of these (one gift, to the creator).
+  gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string; animId?: GiftMotif; animName?: string; liveId?: string; uplift?: number; quantity?: number; toKind?: GiftToKind; context?: GiftContext; mediaId?: string; replayId?: string };
   // A basket (lib/cart.ts): the payment Paystack charges lists its orders; each order is an ordinary "store" payment carrying cartRef.
   // The basket's own record carries no money of its own in reports (its orders do).
   cart?: { orders: string[] };
@@ -145,13 +147,21 @@ export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: st
 // disputed  = admin froze it (no-show, complaint)
 // transferring / paid_out = payout to the publisher's bank
 // refunded  = returned to the payer
-export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "refunded";
+// withdrawn = a gift's share the receiver withdrew: it is paid through the "gift_payout" entry named in withdrawalId
+//             (lib/gift-earnings-server.ts), so it is never paid or refunded on its own
+export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "refunded" | "withdrawn";
 
 export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "live_ticket";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket";
+  // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
+  // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
+  withdrawalOf?: number;
+  needsApproval?: boolean;
+  withdrawalId?: string;
+  withdrawnAt?: string;
   // Paid-live tickets (lib/live-tickets.ts): true until the live ends (lib/live-door-server.ts markLiveEnded), so nothing is paid out
   // while the live hasn't happened; releaseAfter is then the end, and the payout waits PAYOUT_HOLD_HOURS more.
   awaitingLive?: boolean;
@@ -582,6 +592,9 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     } else if (current.kind === "gift" && current.gift) {
       // The receiver's total for the day (Lagos day), read before any write: the "Top gifted today" shelf (lib/gifts-server.ts).
       const dailyPrev = await readGiftDaily(t, db, current.publisherUid, now);
+      // The weekly boards, the sender's gift points and the receiver's list of received gifts (gifting everywhere), read now too.
+      const tally: TallyInput = { toUid: current.publisherUid, fromUid: current.uid, anonymous: current.gift.anonymous, grossKobo: current.amountKobo, quantity: current.gift.quantity ?? 1, ...(current.gift.animId ? { animId: current.gift.animId } : {}), name: current.gift.animName || "", at: now };
+      const tallyPrev = await readGiftTallies(t, db, tally);
       t.set(db.doc(`gifts/${reference}`), {
         reference,
         toUid: current.publisherUid,
@@ -595,6 +608,11 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         amountKobo: current.amountKobo,
         ...(current.gift.animId ? { animId: current.gift.animId, animName: current.gift.animName || "" } : {}),
         ...(current.gift.liveId ? { liveId: current.gift.liveId } : {}),
+        quantity: current.gift.quantity ?? 1,
+        toKind: current.gift.toKind ?? "creator",
+        context: current.gift.context ?? (current.gift.liveId ? "live" : current.gift.noteId ? "post" : "profile"),
+        ...(current.gift.mediaId ? { mediaId: current.gift.mediaId } : {}),
+        ...(current.gift.replayId ? { replayId: current.gift.replayId } : {}),
         createdAt: now,
       });
       // Held for the same 7-day dispute window as subscriptions. One entry per
@@ -611,8 +629,9 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const netKobo = shares.reduce((n, s, idx) => n + grosses[idx] - Math.round(grosses[idx] * s.rate), 0);
       writeGiftDaily(t, db, dailyPrev, { uid: current.publisherUid, fromUid: current.uid, grossKobo: current.amountKobo, netKobo, at: now, ...(current.gift.liveId ? { liveId: current.gift.liveId } : {}) });
       if (current.gift.animId) {
-        writeGiftShow(t, db, current.publisherUid, { reference, giftId: current.gift.animId, name: current.gift.animName || "", priceKobo: current.amountKobo, senderName: current.gift.anonymous ? "" : current.gift.senderName, at: now });
+        writeGiftShow(t, db, current.publisherUid, { reference, giftId: current.gift.animId, name: current.gift.animName || "", priceKobo: current.amountKobo, senderName: current.gift.anonymous ? "" : current.gift.senderName, at: now, ...((current.gift.quantity ?? 1) > 1 ? { quantity: current.gift.quantity } : {}) });
       }
+      writeGiftTallies(t, db, tallyPrev, tally);
     } else if (current.kind === "subscription" && current.subscription) {
       const { username, planCode } = current.subscription;
       const subRef = db.doc(`subscriptions/${current.uid}_${username}`);
@@ -1031,18 +1050,20 @@ async function notifyGift(p: PaymentRecord) {
   // A grand gift: everyone on the app sees it announced, with a link to the live (lib/gifts-server.ts). Never blocks the rest.
   if (p.gift.animId) {
     await ensurePricing(); // the grand-gift price and the announce switch in force
-    await announceGrandGift(db, { reference: p.reference, giftId: p.gift.animId, name: p.gift.animName, priceKobo: p.amountKobo, senderName: p.gift.anonymous ? "" : p.gift.senderName, toUid: p.publisherUid, toUsername: p.gift.username, liveId: p.gift.liveId })
+    // Judged on one gift's price: a send of N is always of a premium gift, so it is never announced.
+    await announceGrandGift(db, { reference: p.reference, giftId: p.gift.animId, name: p.gift.animName, priceKobo: Math.round(p.amountKobo / (p.gift.quantity ?? 1)), senderName: p.gift.anonymous ? "" : p.gift.senderName, toUid: p.publisherUid, toUsername: p.gift.username, liveId: p.gift.liveId })
       .catch((e) => console.error("[gifts] announcement failed", e));
   }
   const who = p.gift.anonymous ? "Someone" : p.gift.senderName || "A reader";
   const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
   const about = p.gift.noteSlug ? " on one of your posts" : "";
-  const what = p.gift.animId ? `a ${p.gift.animName || "gift"} (${formatNaira(p.amountKobo)})` : `a gift of ${formatNaira(p.amountKobo)}`;
+  const qty = p.gift.quantity ?? 1;
+  const what = p.gift.animId ? `${qty > 1 ? `${qty} × ${p.gift.animName || "gift"}` : `a ${p.gift.animName || "gift"}`} (${formatNaira(p.amountKobo)})` : `a gift of ${formatNaira(p.amountKobo)}`;
   await db.collection("notifications").add({
     recipientUid: p.publisherUid,
     type: "gift",
     message: `${who} sent you ${what}${about}${p.gift.message ? ` — "${p.gift.message}"` : ""}`,
-    ...(p.gift.animId ? { giftAnim: p.gift.animId } : {}),
+    ...(p.gift.animId ? { giftAnim: p.gift.animId, ...(qty > 1 ? { giftQty: qty } : {}) } : {}),
     read: false,
     createdAt: new Date().toISOString(),
     linkHref: p.gift.noteSlug ? `/journals/${p.gift.noteSlug}` : `/u/${p.gift.username}`,
@@ -1052,7 +1073,7 @@ async function notifyGift(p: PaymentRecord) {
     await sendEmail({
       to: pubEmail,
       subject: `You received a ${formatNaira(p.amountKobo)} gift`,
-      text: `${who} sent you ${what}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is released after a 7-day dispute window, to your verified bank account.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `${who} sent you ${what}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is ready to withdraw after a 7-day review: open Gifts on your profile and tap Withdraw.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
 }

@@ -32,6 +32,10 @@ export const WALLET_KINDS = ["boost", "ad", "badge", "gift", "store", "digital",
 export type WalletKind = (typeof WALLET_KINDS)[number];
 // Tickets to paid lives (v0.141.0) are paid from credit, never Bonus Credits, as event tickets never take bonus either.
 export const BONUS_KINDS: readonly string[] = ["boost", "ad", "badge"];
+// Never paid with Bonus Credits, whatever BONUS_KINDS holds (owner, 4 Nov 2026): gifts are earnings for the receiver, so they come only
+// from a member's own credit or a card.
+export const NEVER_BONUS_KINDS: readonly string[] = ["gift"];
+export const bonusAllowedFor = (kind: string) => BONUS_KINDS.includes(kind) && !NEVER_BONUS_KINDS.includes(kind);
 export const isWalletKind = (k: unknown): k is WalletKind => typeof k === "string" && (WALLET_KINDS as readonly string[]).includes(k);
 
 export type BonusLot = { id: string; kobo: number; expiresAt: string; source: "topup" | "refund" | "adjust" };

@@ -172,6 +172,32 @@ test("grand gifts: the sitewide announcement is public to read and server-writte
   await assertFails(setDoc(doc(as("pub"), "giftBursts/other"), { giftId: "sunrise" }));
 });
 
+test("gifting everywhere: weekly boards, gift points, received gifts and withdrawals are server-only", async () => {
+  const docs = {
+    "giftWeekly/2026-11-02_pub": { week: "2026-11-02", uid: "pub", grossKobo: 500_000, count: 25, senders: ["alice"], lastAt: "x" },
+    "gifterWeekly/2026-11-02_pub_alice": { week: "2026-11-02", toUid: "pub", fromUid: "alice", kobo: 500_000, count: 25, lastAt: "x" },
+    "giftPoints/alice": { uid: "alice", total: 50, week: "2026-11-02", thisWeek: 50, lastWeek: 0, updatedAt: "x" },
+    "giftReceived/pub_gardenegg": { uid: "pub", key: "gardenegg", animId: "gardenegg", name: "Garden Egg", count: 25, valueKobo: 500_000, archived: false, lastAt: "x" },
+    "giftWithdrawals/gw_pub_1": { id: "gw_pub_1", uid: "pub", amountKobo: 450_000, count: 1, entries: ["r1"], route: "auto", createdAt: "x" },
+  };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    for (const [path, data] of Object.entries(docs)) await setDoc(doc(d, path), data);
+  });
+  for (const path of Object.keys(docs)) {
+    for (const who of ["pub", "alice", "mallory"]) {
+      await assertFails(getDoc(doc(as(who), path)));
+      await assertFails(setDoc(doc(as(who), path), { archived: true, total: 999_999 }));
+      await assertFails(deleteDoc(doc(as(who), path)));
+    }
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "giftReceived"), where("uid", "==", "pub"))));
+  await assertFails(getDocs(query(collection(as("alice"), "giftWeekly"), where("week", "==", "2026-11-02"))));
+  // A member can't mark their own gift ledger entry withdrawn or make a payout entry for themselves.
+  await assertFails(setDoc(doc(as("pub"), "ledger/gw_pub_2"), { kind: "gift_payout", publisherUid: "pub", netKobo: 999_999, status: "held" }));
+});
+
 test("plan records: owner reads their own, others cannot; users can't self-upgrade their tier", async () => {
   await assertSucceeds(getDoc(doc(as("pub"), "tierSubscriptions/pub")));
   await assertFails(getDoc(doc(as("alice"), "tierSubscriptions/pub")));

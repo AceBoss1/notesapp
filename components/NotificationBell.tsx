@@ -89,7 +89,8 @@ export default function NotificationBell({ user, buttonClassName, panelClassName
     // An animated gift plays when its notification is opened (the price is the catalogue's; the message carries the exact amount).
     if (isGiftMotif(n.giftAnim)) {
       const g = findGift(n.giftAnim);
-      playGift({ giftId: n.giftAnim, name: g?.name ?? "A gift", priceKobo: g?.priceKobo ?? 0, key: `bell_${n.id}` });
+      const qty = Number((n as { giftQty?: unknown }).giftQty) > 1 ? Number((n as { giftQty?: unknown }).giftQty) : 1;
+      playGift({ giftId: n.giftAnim, name: g?.name ?? "A gift", priceKobo: (g?.priceKobo ?? 0) * qty, key: `bell_${n.id}`, ...(qty > 1 ? { quantity: qty } : {}) });
     }
     if (n.linkHref) router.push(n.linkHref);
   }

@@ -24,6 +24,21 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.140.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Gift anyone: tap ⋯ beside a name for Gift · Block · Report. It works for a speaker or host on a live's stage, someone who commented on a journal, someone who reviewed a shop item or a course, the creator of a Media post (when they allow gifts on it) and the host of a replay. The person needs a payout account; otherwise Gift is switched off and says why." },
+      { kind: "added", text: "Several gifts at once: tap a small gift twice and How many? opens. Send up to the most set in Admin (99 to start) as one payment, priced on our side at that many times the gift. It plays once, with ×N. VIP gifts still go one at a time." },
+      { kind: "added", text: "Received gifts on your profile, after Media: every gift you received with its count and value. Archive takes one out of the list but keeps its count and value under Archived. Withdraw sends everything past its 7-day review to your bank account in one payout: under the line set in Admin it goes automatically, and from the line up our team approves it first, through the same payouts and payout OTP as everything else." },
+      { kind: "added", text: "Weekly boards: Top gifted (who received the most, on the Gifts page) and each creator's Top gifters (on their Gifts tab) start again at midnight going into Monday, Lagos time, and last week's result stays one tap away. Anonymous gifts never name the sender on Top gifters." },
+      { kind: "added", text: "Gift points: every ₦100 you spend on gifts is a gift point, counted all time and each week, on your Gifts tab." },
+      { kind: "changed", text: "Gifts are paid only from your own NotesApp Credit or by card, never with Bonus Credits, and the gift sheet says so." },
+      { kind: "changed", text: "Teen mode: a member in teen mode can receive gifts only from people they follow back. For everyone else the gift action is switched off for them, and our side refuses it too." },
+      { kind: "added", text: "For the team: Admin → Pricing → Gifts has the most of one gift in a single send and the line under which gift withdrawals are paid automatically. Admin → Payments shows gift withdrawals (gift_payout) waiting for approval; Release approves one. Members reported from the new menu show in Admin → Reports as Member reports." },
+    ],
+  },
+  {
     version: "v0.139.0",
     bump: "minor",
     date: "2026-11-04",

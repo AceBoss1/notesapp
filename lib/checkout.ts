@@ -42,7 +42,7 @@ export async function startCheckout(
     | { kind: "store"; itemId: string; quantity: number; variant?: string[]; address: import("./merch").DeliveryAddress }
     | { kind: "store_cart"; lines: import("./cart").CartLine[]; address: import("./merch").DeliveryAddress }
     | { kind: "merch"; itemId: string; logoId: string; size?: string; quantity: number; address: import("./merch").DeliveryAddress }
-    | { kind: "gift"; username: string; amountNaira: number; giftId?: string; noteId?: string; liveId?: string; message?: string; anonymous?: boolean }
+    | { kind: "gift"; username: string; amountNaira: number; giftId?: string; noteId?: string; liveId?: string; message?: string; anonymous?: boolean; quantity?: number; toKind?: string; context?: string; mediaId?: string; replayId?: string }
     | { kind: "wallet_topup"; amountNaira: number }
     | { kind: "life_naira"; amountNaira: number }
     | { kind: "nana_credit"; packId: string }
