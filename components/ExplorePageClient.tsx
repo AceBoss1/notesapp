@@ -22,14 +22,15 @@ import { courseHref } from "@/lib/courses";
 import type { MarketItem } from "@/lib/shop-directory";
 import { EventCard, type Ev } from "@/components/events/Events";
 import ReplayShelf from "@/components/replays/ReplayShelf";
+import JobsTab from "@/components/jobs/JobsTab";
 
 // Explore (/explore, Moda redesign): what used to be the Topics, People and Channels tabs of Journals, now that Journals is the feed,
 // plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each. Events: every public,
 // upcoming event (not members-only, not from an invite-only community), soonest first (GET /api/events?explore=1).
-type Tab = "topics" | "people" | "channels" | "communities" | "events" | "replays" | "market" | "academy";
+type Tab = "topics" | "people" | "channels" | "communities" | "events" | "replays" | "market" | "academy" | "jobs";
 type CommunityRow = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; joinMode: string };
 const TABS: { id: Tab; label: string }[] = [
-  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "events", label: "Events" }, { id: "replays", label: "Replays" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
+  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "events", label: "Events" }, { id: "replays", label: "Replays" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" }, { id: "jobs", label: "Jobs" },
 ];
 const SHOW = 24;
 
@@ -95,9 +96,9 @@ export default function ExplorePageClient() {
   return (
     <div className="px-4 py-6 lg:px-0">
       <h1 className="font-display text-4xl text-ink">Explore</h1>
-      <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy and courses on #NotesApp.</p>
+      <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy, courses and jobs on #NotesApp.</p>
       <TopGiftedShelf className="mt-5" />
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "jobs" ? "Find jobs, organisations and cities" : tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
         className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
       <div className="mt-5 flex gap-2 overflow-x-auto" role="tablist">
         {TABS.map((t) => (
@@ -107,7 +108,7 @@ export default function ExplorePageClient() {
       </div>
       <div className="mt-5 empty:hidden"><AdSlot key={tab} placement="explore" offset={TABS.findIndex((t) => t.id === tab)} className="!my-0" /></div>
       <div className="mt-6">
-        {notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (
+        {tab === "jobs" ? <JobsTab query={query} /> : notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (
           <>
             {tab === "topics" && (
               <Shelf title="Topics" why={<>Browse by topic. <Link href="/interests" className="text-crimson underline underline-offset-2">Choose your interests</Link> to see your topics first.</>}>

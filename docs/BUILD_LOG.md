@@ -3081,3 +3081,12 @@ reshares, reports and account deletion needed no new logic: the remover knows th
 iframe player and moves between parts from its timeupdate messages. The re-marking job marks moment pictures in place, lets unpinned moment
 videos expire, and copies pinned ones to Stream. Tests: `test:moments-server` (new), `test:marks-server`, `test:messages`.
 
+**Notes Jobs (v0.144.0, 5 Nov 2026)** — The owner asked for a job board where firms say what they need and members apply with their
+NotesApp account, with Business and Enterprise jobs pushed to the right people. Decisions: verified (CAC) organisations only, free to
+post with paid promotion later (boosts are phase 2; adverts now), live at once and reportable, and all four matching surfaces (Jobs for
+you, a bell, suggested candidates, the "I need a job" switch). The owner named it Notes Jobs and added a city. Matching is a small,
+explainable score on what profiles already hold (industry, job title, interests) plus the private city, so the firm and the member both
+see the reasons; it needs no new model and can be tuned in one function. The bell is capped per member per day in a transaction
+(`jobBells/{uid}_{day}`) and per job, so a busy day of postings can't flood anyone. Applications carry no email (firms reply on NotesApp),
+and suggested candidates never include contact details or the city. Tests: `test:jobs`, rules.
+

@@ -1559,6 +1559,25 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
   }
 });
 
+test("Notes Jobs collections are server-only, even for the member they're about and staff", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "jobs/j1"), { title: "Driver", orgUid: "org", status: "open" });
+    await setDoc(doc(db, "jobApplications/j1_alice"), { uid: "alice", jobId: "j1", orgUid: "org" });
+    await setDoc(doc(db, "jobSeekers/alice"), { openToWork: true, city: "Lagos" });
+  });
+  for (const db of [as("alice"), as("org"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "jobs/j1")));
+    await assertFails(setDoc(doc(db, "jobs/j2"), { title: "x", orgUid: "org", status: "open" }));
+    await assertFails(getDoc(doc(db, "jobApplications/j1_alice")));
+    await assertFails(setDoc(doc(db, "jobApplications/j1_bob"), { uid: "bob" }));
+    await assertFails(getDoc(doc(db, "jobSeekers/alice")));
+    await assertFails(setDoc(doc(db, "jobSeekers/alice"), { openToWork: false }));
+    await assertFails(setDoc(doc(db, "jobInvites/j1_alice"), { uid: "alice" }));
+    await assertFails(setDoc(doc(db, "jobBells/alice_2026-11-05"), { n: 0 }));
+  }
+});
+
 test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
