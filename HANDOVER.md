@@ -916,7 +916,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     is new: discount codes, referrals, ads and traction. Team access, the team hub's departments, the staff library and Nana-HR all
     read the list, so it appears everywhere. The Marketing Brief and SOP move to Marketing (the library re-seeds when a document's
     department changes, without asking for a new read), and the seeded CMO and UA lead vacancies move to Marketing once. Tests:
-    `test:access`, `test:hr`, rules 91/91.
+    `test:access`, `test:hr`, rules 91/91. Editorial got its own brief too (`content/staff-library/brief-editorial.md`, the
+    Editorial tab of the Department Briefs; scoped to the `content` department); its SOP is still to be written.
 
 ## 3. How the work is done (please keep these)
 
