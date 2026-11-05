@@ -8,7 +8,7 @@ import { consentToRecording, recordingChoice } from "@/lib/live-recording-server
 import { mintLiveToken } from "@/lib/live-rooms-server";
 import {
   answerInvite, askConsent, banFromLive, beatRoom, cameraOff, closeRoom, declineRequest, inviteToStage, joinRoom, leaveRoom, liveRoomFigures, liveRooms, liveVideoConfig, muteSpeaker,
-  pinMessage, raiseHand, relayStep, removeChat, roomLiveStatus, roomModLog, roomPeople, roomStaff, sendRoomChat, setPoster, setRoomMods, setSpeaker, setStageMode, setStageVideo, startRoom, takeSeat,
+  pinMessage, raiseHand, relayStep, removeChat, roomLiveStatus, roomModLog, roomPeople, roomStaff, sendRoomChat, setPoster, setRoomMods, setRoomSong, setSpeaker, setStageMode, setStageVideo, startRoom, takeSeat,
 } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ const fail = (err: unknown, fallback: string) => (err instanceof CommunityError 
 //      { action: "chat", id, text } (relay rooms: the chat goes through the server, with slow mode in big rooms)
 //      Live mode (lib/rooms-live.ts): start and join also carry video (the camera's limits from the settings); start takes poster?
 //      { source, url? }. { action: "poster", id, source: "upload" | "profile" | "challenge" | "none", url? } (host) ·
+//      { action: "song", id, songId } (host: a NotesApp Sounds song is playing in their mix, or "" when it stops: lib/songs.ts) ·
 //      { action: "stagevideo", id, on } (host: speakers may use video) · { action: "live", id } → the host's minutes and prompt.
 //      Cameras go up and down through "relay" (ops video / unvideo; pull with video: true).
 //      The stage (lib/rooms.ts "Stage seats"): start also takes stageMode ("solo" | "approve" | "open") and mods ([uid or @username,
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(await sendRoomChat(db, me.uid, body.id, body.text));
       }
       case "poster": return NextResponse.json(await setPoster(db, me.uid, body.id, body.source, body.url));
+      case "song": return NextResponse.json(await setRoomSong(db, me.uid, body.id, body.songId));
       case "stagevideo": return NextResponse.json(await setStageVideo(db, me.uid, body.id, body.on));
       case "live": return NextResponse.json(await roomLiveStatus(db, me.uid, body.id));
       case "livetoken": {

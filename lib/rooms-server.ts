@@ -12,6 +12,7 @@ import { mayReach } from "./young";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
 import { recordingPlan, startRoomRecording, stopRoomRecording, type RecordingDeps } from "./live-recording-server";
 import { hasConsented } from "./live-recording";
+import { isSongId } from "./songs";
 import { edgeCount, edgeState, liveConfigFor, liveRoomsOn, readEdgeState, tellLiveRoom } from "./live-rooms-edge";
 import type { LiveHand } from "./live-rooms";
 import { CHALLENGE_POSTER, POSTER_FOLDER, canPullVideo, canVideo, type HostLive, type PosterSource } from "./rooms-live";
@@ -980,6 +981,16 @@ export async function setPoster(db: Firestore, uid: string, id: unknown, source:
   await ref.update({ poster: poster || FieldValue.delete() });
   await logMod(db, ref.id, r, uid, "change the poster");
   return { poster };
+}
+// The host plays a NotesApp Sounds song into the live, or stops it (songId ""): the room shows "Now playing" to everyone. Host only.
+export async function setRoomSong(db: Firestore, uid: string, id: unknown, songId: unknown, now = new Date()): Promise<{ song: string }> {
+  const { ref, r } = await roomOf(db, id);
+  if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+  if (uid !== r.hostUid) throw new CommunityError(403, "Only the host plays music in a live.");
+  if (songId === "" || songId === null || songId === undefined) { if (r.song) await ref.update({ song: FieldValue.delete() }); return { song: "" }; }
+  if (!isSongId(songId)) throw new CommunityError(400, "That song isn't in NotesApp Sounds.");
+  await ref.update({ song: { id: songId, at: now.toISOString() } });
+  return { song: songId };
 }
 // The host lets speakers turn video on, or not; turning it off takes the speakers' cameras down at once.
 export async function setStageVideo(db: Firestore, uid: string, id: unknown, on: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ stageVideo: boolean }> {

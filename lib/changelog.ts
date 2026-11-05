@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.144.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "NotesApp Sounds: songs made for #NotesApp, free to use here. The first is Leave Am by Emmanuel Adams, with more on the way." },
+      { kind: "added", text: "Media and Moments: under Sound, keep your original sound or pick a NotesApp Sounds song (▶ Listen plays 15 seconds). It plays from its best part while people watch, softly under a video's own sound or a voice-over, and the song's name shows on the post or moment." },
+      { kind: "added", text: "Lives: the host has a 🎵 Music button to play a NotesApp Sounds song through their mic, with its own volume. Everyone in the live hears it, and sees Now playing. Muting your mic mutes only your voice." },
+      { kind: "added", text: "Notes Life: NotesApp Sounds songs play very softly at the hotel (the Candellux lobby, your suite and the VIP bar), and the residents talk about them. Ask anyone about 🎵 Music in a chat." },
+    ],
+  },
+  {
     version: "v0.143.0",
     bump: "minor",
     date: "2026-11-05",

@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { SONG, isSongId, songLabel } from "./songs";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
@@ -144,7 +145,7 @@ function toView(id: string, p: MediaPostDoc, viewerUid: string | null, deps: Pic
   const video = p.video ? { streamUid: p.video.streamUid, durationSec: p.video.durationSec, poster: streamPoster(p.video.streamUid), player: streamPlayer(p.video.streamUid) } : undefined;
   const mine = viewerUid === p.ownerUid;
   return {
-    id, kind: p.kind, caption: p.caption, sound: p.sound, status: p.status, ...(mine && p.rejectedReason ? { rejectedReason: p.rejectedReason } : {}),
+    id, kind: p.kind, caption: p.caption, sound: p.sound, ...(p.songId ? { songId: p.songId } : {}), status: p.status, ...(mine && p.rejectedReason ? { rejectedReason: p.rejectedReason } : {}),
     pictures, ...(video ? { video } : {}), cover: video && p.status === "ready" ? video.poster : pictures[0] ?? "",
     audience: p.audience, allowComments: p.allowComments, allowShares: p.allowShares, allowGifts: p.allowGifts, allowDownloads: p.allowDownloads,
     pinned: p.pinned, createdAt: p.createdAt,
@@ -216,7 +217,7 @@ export async function startMediaVideo(db: Firestore, owner: Person, tier: Accoun
 }
 
 export type CreateInput = {
-  kind?: unknown; caption?: unknown; audience?: unknown; pictureKeys?: unknown; videoUploadId?: unknown;
+  kind?: unknown; caption?: unknown; audience?: unknown; pictureKeys?: unknown; videoUploadId?: unknown; songId?: unknown;
   allowComments?: unknown; allowShares?: unknown; allowGifts?: unknown; allowDownloads?: unknown; pinned?: unknown;
 };
 
@@ -229,9 +230,12 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
   const user = (await db.doc(`users/${owner.uid}`).get()).data();
   const sw = allowedSwitches(user, { allowComments: bool(input.allowComments, true), allowShares: bool(input.allowShares, true), allowGifts: bool(input.allowGifts, true), allowDownloads: bool(input.allowDownloads, false) });
   const pinned = input.pinned === true;
+  // The sound: Original sound, or one of the NotesApp Sounds (lib/songs.ts). Anything else is refused rather than quietly dropped.
+  if (input.songId !== undefined && input.songId !== "" && input.songId !== null && !isSongId(input.songId)) throw new MediaError(400, "That song isn't in NotesApp Sounds.");
+  const song = SONG(input.songId);
   if (pinned && (await pinnedCount(db, owner.uid)) >= MEDIA_PINNED_MAX) throw new MediaError(409, `You can pin up to ${MEDIA_PINNED_MAX} posts. Unpin one first.`);
   const base = {
-    ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, caption, sound: MEDIA_SOUND, audience, ...sw,
+    ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, caption, sound: song ? songLabel(song) : MEDIA_SOUND, ...(song ? { songId: song.id } : {}), audience, ...sw,
     pinned, ...(pinned ? { pinnedAt: now.toISOString() } : {}), createdAt: now.toISOString(), updatedAt: now.toISOString(),
     viewCount: 0, downloadCount: 0, sharesCount: 0, commentsCount: 0, reactions: {}, reactionsCount: 0, giftsTotal: 0, giftsCount: 0,
   };

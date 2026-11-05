@@ -1,5 +1,7 @@
 "use client";
 
+import { SONG, songLabel } from "@/lib/songs";
+import { SongPlayer } from "@/components/media/SongPicker";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LinkedText from "@/components/LinkedText";
@@ -221,9 +223,12 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
           {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6 pb-24"><ShareLinkCard link={m.link} /></div>}
           {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
           {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
+          {/* A NotesApp Sounds song: softer under a video or a voice-over, paused with the moment. A moment in a run of parts restarts it. */}
+          {m.songId && <SongPlayer key={`song-${m.id}`} songId={m.songId} under={m.kind === "video" || !!m.audioUrl} paused={paused} />}
         </div>
 
         <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-20">
+          {SONG(m.songId) && <p className="text-center font-ui text-xs font-semibold text-white/80 drop-shadow">♫ {songLabel(SONG(m.songId)!)}</p>}
           {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow"><LinkedText text={m.text} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
           {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
           {m.mine && showViewers && (

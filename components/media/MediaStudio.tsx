@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Studio } from "@/lib/media-server";
 import {
-  AUDIENCE_LABEL, MEDIA_AUDIENCES, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PINNED_MAX, MEDIA_SOUND, SITE_SOURCE_LABEL, compact, mediaDuration, secondsText,
+  AUDIENCE_LABEL, MEDIA_AUDIENCES, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PINNED_MAX, SITE_SOURCE_LABEL, compact, mediaDuration, secondsText,
   type MediaAudience, type MediaPostView,
 } from "@/lib/media-rules";
 import { LIMIT_TIER_LABEL } from "@/lib/limits";
@@ -13,6 +13,7 @@ import { DOWNLOADS_NOTE, MARK_NOTE } from "@/lib/media-mark";
 import { loadStudio, mediaApi, sendToStream, videoInfo } from "@/lib/media-client";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { Icon, Pattern } from "./MediaTile";
+import SongPicker from "./SongPicker";
 
 // /profile/media, the Media studio (approved mockup media-studio-*.png): a new post (video to Cloudflare Stream, or up to 10 pictures as
 // WebP to our bucket), your posts with their figures and switches, and the pictures from your site with a Hide switch each. Lives & replays
@@ -98,6 +99,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
+  const [songId, setSongId] = useState("");
   const [audience, setAudience] = useState<MediaAudience>("everyone");
   const [sw, setSw] = useState({ allowComments: true, allowShares: true, allowGifts: true, allowDownloads: false, pinned: false });
   const [progress, setProgress] = useState<number | null>(null);
@@ -121,7 +123,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
     if (!files.length) return setNote({ ok: false, text: "Choose a video or pictures first." });
     setBusy(true); setNote(null);
     try {
-      const common = { caption, audience, ...sw };
+      const common = { caption, audience, ...sw, ...(songId ? { songId } : {}) };
       if (isVideo) {
         const f = files[0];
         const { durationSec, width, height } = await videoInfo(f);
@@ -137,9 +139,9 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         }
         setProgress(1);
         const r = await mediaApi<{ post: MediaPostView }>("/api/media/posts", { body: { kind: "pictures", pictureKeys: keys, ...common }, signedIn: true });
-        if (r.post.status === "processing") { setFiles([]); setPreviews([]); setCaption(""); setProgress(null); setNote({ ok: true, text: "Posted. We're still adding the NotesApp mark; your pictures show on your Media in a few minutes." }); onPosted(); return; }
+        if (r.post.status === "processing") { setFiles([]); setPreviews([]); setCaption(""); setSongId(""); setProgress(null); setNote({ ok: true, text: "Posted. We're still adding the NotesApp mark; your pictures show on your Media in a few minutes." }); onPosted(); return; }
       }
-      setFiles([]); setPreviews([]); setCaption(""); setProgress(null);
+      setFiles([]); setPreviews([]); setCaption(""); setSongId(""); setProgress(null);
       setNote({ ok: true, text: isVideo ? "Posted. Your video shows on your Media once Cloudflare has finished it with the NotesApp mark, usually within a minute." : "Posted to your Media, with the NotesApp mark." });
       onPosted();
     } catch (e) {
@@ -176,7 +178,8 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         className="mt-1.5 w-full rounded-2xl border border-rule bg-card px-3.5 py-3 text-sm text-ink outline-none focus:border-crimson" />
 
       <p className="mt-3 font-ui text-[12.5px] font-bold text-ink">Sound</p>
-      <p className="mt-1.5 flex items-center gap-2 rounded-2xl border border-rule px-3.5 py-3 text-sm text-ink">♫ {MEDIA_SOUND}</p>
+      <SongPicker value={songId} onChange={setSongId} />
+      <p className="mt-1 text-xs text-slate">{isVideo && songId ? "The song plays softly under your video's own sound." : "NotesApp Sounds: songs you can use free on #NotesApp."}</p>
 
       <p className="mt-3 font-ui text-[12.5px] font-bold text-ink">Who can see it</p>
       <div className="mt-1.5 inline-flex gap-0.5 rounded-full bg-field p-[3px]" role="radiogroup" aria-label="Who can see it">

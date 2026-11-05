@@ -1,4 +1,5 @@
 import { addFanPointsByUsername } from "./fans-server";
+import { isSongId } from "./songs";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -52,6 +53,7 @@ type MomentDoc = {
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
   clipStart?: number; clipEnd?: number; splitGroup?: string; // a part of a longer video: this moment plays clipStart to clipEnd of the shared file
   audioKey?: string; audioDurationSec?: number; // voice-over
+  songId?: string; // a NotesApp Sounds song (lib/songs.ts), played while the moment shows
   link?: MomentLink; // kind "link": the card of what was shared (Share to Moments)
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; viewCount: number;
@@ -67,7 +69,7 @@ type MomentDoc = {
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
-  clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
+  clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number; songId?: string;
   streamVideo?: boolean; // the video is on Cloudflare Stream (signed): the viewer asks for a player link (POST action "play")
   link?: MomentLink;
   hours: MomentHours; createdAt: string; expiresAt: string;
@@ -150,6 +152,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
     ...(m.videoKey ? { ...(streamUidOf(m.videoKey) ? { streamVideo: true } : { videoUrl: deps.publicUrl(m.videoKey) }), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
+    ...(m.songId ? { songId: m.songId } : {}),
     ...(m.link ? { link: m.link } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
@@ -162,7 +165,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
 // Still showing: its time isn't up, or it is pinned (then it stays until it is unpinned or deleted).
 const isShowing = (m: MomentDoc, now: Date) => m.pinned === true || !isMomentExpired(m.expiresAt, now);
 
-export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown };
+export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown; songId?: unknown };
 
 export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
@@ -180,6 +183,11 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: true,
   };
   if (text) doc.text = text;
+  // A song from NotesApp Sounds (lib/songs.ts), on any kind of moment.
+  if (input.songId !== undefined && input.songId !== null && input.songId !== "") {
+    if (!isSongId(input.songId)) throw new MomentError(400, "That song isn't in NotesApp Sounds.");
+    doc.songId = input.songId;
+  }
 
   if (input.kind === "text") {
     if (!text) throw new MomentError(400, "Write something to share.");

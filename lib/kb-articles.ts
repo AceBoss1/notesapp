@@ -814,7 +814,7 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
 
 **What's on your Media:**
-- **Your posts:** a video, or up to ${MEDIA_PICTURES_MAX} pictures in one post. Every video uses its original sound (there is no music library).
+- **Your posts:** a video, or up to ${MEDIA_PICTURES_MAX} pictures in one post. Use your original sound, or pick a song from NotesApp Sounds (songs made for #NotesApp, free to use here); on a video the song plays softly under your own sound.
 - **Pinned:** pin up to ${MEDIA_PINNED_MAX} posts to the top. You can also pin up to ${MOMENTS_PINNED_MAX} moments: open your moment and tap **📌 Pin**. A pinned moment stays on your Media after its 24, 48 or 72 hours, until you unpin it. Unpin one whose time is up and it is deleted there and then.
 - **Pictures from your site:** the cover, top banner, gallery and service pictures on [your site](/help/your-site) show in your Media straight away. In your studio you can hide any of them, or turn them all off.
 - **Profile pictures:** your past profile pictures, as an album, newest first. You can turn the album off.

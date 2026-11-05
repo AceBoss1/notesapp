@@ -6,6 +6,7 @@ import { compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
 import { VIDEO_DL_PREPARING } from "@/lib/media-mark";
 import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-client";
 import { Icon, Pattern } from "./MediaTile";
+import { SongPlayer } from "./SongPicker";
 import GiftButton from "@/components/GiftButton";
 import PersonActions from "@/components/gifts/PersonActions";
 
@@ -50,6 +51,8 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
       <button type="button" onClick={onClose} className="absolute right-3 top-3 z-20 rounded-full bg-white/15 px-3 py-1.5 font-ui text-sm font-bold text-white backdrop-blur hover:bg-white/25" aria-label="Close">✕</button>
       <div className="relative flex h-full w-full max-w-[460px] flex-col overflow-hidden bg-black sm:h-[88vh] sm:rounded-[22px]">
         <div className="relative flex-1">
+          {/* A NotesApp Sounds song on the post: plays while it's open (softly under a video's own sound). */}
+          {post?.songId && post.status === "ready" && <SongPlayer songId={post.songId} under={!!video} />}
           {video ? (
             post?.status === "ready" ? (
               <iframe src={`${video.player}?autoplay=true&loop=true`} title="Video" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full border-0" />
