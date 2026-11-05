@@ -16,6 +16,15 @@ const nextConfig = {
     config.resolve.alias = { ...(config.resolve.alias || {}), canvas: false };
     return config;
   },
+  // Google sign-in's helper pages, served on our own addresses (NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE, lib/firebase.ts).
+  async rewrites() {
+    const d = (process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "").trim();
+    if (!/^[a-z0-9-]+\.(firebaseapp\.com|web\.app)$/.test(d)) return [];
+    return [
+      { source: "/__/auth/:path*", destination: `https://${d}/__/auth/:path*` },
+      { source: "/__/firebase/:path*", destination: `https://${d}/__/firebase/:path*` },
+    ];
+  },
   images: {
     remotePatterns: [
       // Legacy — pre-migration Cloudinary URLs may still exist on old

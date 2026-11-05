@@ -706,6 +706,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 113. **Printed QR codes (v0.136.2, branch `push/receipt-qr-print`):** nothing to deploy. Receipt and certificate QR
     codes (`lib/certificate-qr.ts`) are now drawn as filled rectangles instead of the 1-unit lines the `qrcode` package draws. A receipt
     saved as PDF on an Android phone came out with a faint pink, unreadable QR while the screen showed it clearly. Same modules as before.
+115. **Sign in with Google and LinkedIn (v0.138.0, branch `push/social-signin`):** owner steps in `docs/OWNER_SETUP.md` section 11:
+    check Firebase's authorised domains (every www./app./life./prep. address of both families and `notesapp.ng`), add the two LinkedIn
+    redirect URLs (`https://www.notesapp.name.ng/api/auth/linkedin/callback`, `https://www.naapp.tech/api/auth/linkedin/callback`),
+    deploy `firebase deploy --only firestore` (server-only `authLinks`, `authStates`, `authTickets`, `authAudit`; TTL on
+    `authStates.expireAt` and `authTickets.expireAt`). Optional: `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE=on` after adding each host's
+    `/__/auth/handler` to the Google OAuth client (redirect sign-in on Safari and in-app browsers), and `LINKEDIN_LOGIN_CLIENT_ID/SECRET`
+    for a separate LinkedIn app (otherwise the publishing app is used). How it fits: `lib/social-auth.ts` (rules), `lib/social-oidc.ts`
+    (LinkedIn's ID token: RS256 against LinkedIn's JWKS, issuer, audience, expiry, nonce), `lib/social-auth-server.ts`,
+    `lib/social-auth-client.ts`, `components/SocialSignIn.tsx`, `components/SignInMethods.tsx`, `/api/auth/{google,methods}`,
+    `/api/auth/linkedin/{start,callback,finish}`. A first Google or LinkedIn sign-in finishes its profile in `SignupFlow`
+    (`completeUser`); `lib/member-client.tsx` sends a signed-in Google/LinkedIn account without a profile to `/signup`. No silent merge:
+    when Firebase attaches Google to an existing account, `/api/auth/google` takes it off again and revokes the session; a LinkedIn
+    email that has an account gets "sign in, then link". **Untested against the real Google and LinkedIn** (the container has no
+    internet; the flows were tested with the Auth emulator's Google and a stand-in LinkedIn): check whether LinkedIn echoes the `nonce`
+    in its ID token (the code accepts a missing nonce but refuses a wrong one) and whether Firebase links a verified Google email to an
+    existing password account by itself or throws `auth/account-exists-with-different-credential` (both are handled). Tests:
+    `npm run test:social-signin`, `test:passkeys`, rules.
 
 114. **Anya smart glasses: the /anya page and the brand guidelines (v0.137.0, branch `push/anya-trademark`):** nothing to deploy.
     The owner adopted the names for NotesApp's own Qualcomm-based glasses: **Anya Display** (screen, side camera, mic, speakers,
@@ -734,8 +751,41 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **v0.137.5:** Anya Audio is the owner's square black frame with clear lenses (`anya-audio-glasses.webp`; the hero uses the side view):
     calls, open-ear speakers, extra-long-range Bluetooth, controls on the arm, and it works with the phone's own voice assistant (no AI
     of its own). The owner asked not to use the aviator sunglasses photo.
+117. **Stage seats and moderators in audio rooms (v0.139.0, branch `push/stage-seats`):** nothing to deploy for Firestore (every new
+    write goes through `/api/community/rooms`; `firestore.rules` is unchanged), but **redeploy the live-rooms worker** (the "Deploy live
+    rooms" workflow) so rooms on it learn the new signals (stage mode, hands sent through our server, mic off, invitations, moderators'
+    permissions, removals through our server, the moderators' log). An old worker ignores the new ops (it answers 400): the room doc still
+    carries everything, so the app keeps working, but Solo doesn't stop hands raised over the socket, and moderators named for the live
+    have no chat powers on the socket until it's redeployed. Owner's rule (5 Nov 2026): the community's own moderators keep their chat
+    powers (`COMMUNITY_MOD_PERMS`) only in lives hosted as community lives (every audio room today); in a member's own live inside the
+    community, when those come, only the moderators that host names and the community owner may moderate. The design is in `lib/rooms.ts` ("Stage seats"): `stageMode` (rooms from
+    before work as Approve), `mods` (uid → name, picture, permissions from `MOD_PERMS`; presets Basic and Full; `mayActOn`: never the
+    host, and over another moderator only when their permissions are a strict part of yours), `invites` (they lapse after
+    `ROOM_INVITE_MS`), `micMuted`, `pinned`, `consentAsk`; the server side in `lib/rooms-server.ts` (`takeSeat`, `inviteToStage`,
+    `answerInvite`, `declineRequest`, `muteSpeaker`, `cameraOff`, `banFromLive`, `pinMessage`, `askConsent`, `setStageMode`,
+    `setRoomMods`, `roomStaff`, `roomModLog`; `setSpeaker` approves a request and invites anyone else). **Mic off is enforced by the
+    server on the relay** (unpublished, the track closed at Cloudflare, `canPush` refuses it, `pullsFor`/`canPull` skip it); **phone to
+    phone** there is no server in the sound's path, so every phone obeys the room doc: the speaker's own track goes off and can't be
+    turned back on, the host's mix leaves them out (listeners only hear the mix) and other speakers' phones mute them. A modified phone
+    could still send to the other speakers (not to listeners); bring them down if that matters. Teen mode: an Open seat from a teen
+    becomes a request, and a teen is invited only by someone they follow (`mayReach`). Removals from the live (`banFromLive`, or on the
+    worker) live in `communityRooms/{id}/edge/state.banned` for every room now, checked by join, the stage and tokens. The community's
+    own moderators (not named for the live) keep their chat powers (remove, mute in the chat, remove from the live). The moderators' log
+    is `communityRooms/{id}/modLog` (server-only; kept after the live ends). **Not tried with real phones or a real worker:** check a
+    relay room with two speakers (mic off and back on, Open seat, invitation) and a phone-to-phone room (mic off: the listeners stop
+    hearing that speaker) before relying on it. Tests: `test:rooms`, `test:rooms-server` (new `tests/community/rooms-stage.emulator.ts`),
+    `test:live-rooms`, `test:live-rooms-server`, `test:recording-server`, `test:community-server`, `test:help`, rules.
 
-117. **Gifting everywhere (v0.140.0, branch `push/gifting-everywhere`; plan `docs/LIVE_ECONOMY.md` phase 2):** deploy the new indexes
+116. **Ended boosts and adverts refund themselves (v0.138.1, branch `push/promo-settle`):** nothing to deploy. The owner found adverts
+    showing "Completed" with 258 of 5,000 impressions delivered and nothing refunded. The help, Terms and boost and advertise pages
+    promise a pro-rata refund of whatever isn't delivered, but it only happened when an admin pressed "Refund undelivered". Now
+    `lib/promo-settle-server.ts` settles every ended boost (window over, or completed) and advert (completed, or live past its end):
+    refund of the undelivered share the way they paid (`refundPayment`), a negative `adRevenue` entry for adverts, a bell or email
+    when money goes back, `settledAt` so it happens once. It runs in the 15-minute cron (`settlePromotions`) and behind the two admin
+    buttons. A failed refund is retried up to 5 times, then left for an admin (`settleError`). The first run after deploy refunds
+    every ended promotion that was never settled. Test: `npm run test:settle`.
+
+118. **Gifting everywhere (v0.140.0, branch `push/gifting-everywhere`; plan `docs/LIVE_ECONOMY.md` phase 2):** deploy the new indexes
     (`giftWeekly` week+grossKobo, `gifterWeekly` week+toUid+kobo) and the rules (five new server-only collections: `giftWeekly`,
     `gifterWeekly`, `giftPoints`, `giftReceived`, `giftWithdrawals`). Numbered 116: 114 is on main (Anya) and the open sign-in
     (#280) and stage-seats (#281) branches hold 114/115 and v0.137.0/v0.138.0, so this skips to 116 and v0.140.0. What it does: Gift · Block · Report (`components/gifts/PersonActions.tsx`) beside names on

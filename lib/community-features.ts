@@ -130,7 +130,8 @@ export function communityFeatures(rooms: RoomFigures = DEFAULT_ROOM_FIGURES): Co
     sections: [
       { h: "Hosting a room", items: [
         "On the community's Home, tap + Start a room, give it a name (Sunday Q&A, Midweek Bible study) and Go live. Members see it at the top of Home with Join.",
-        `When a listener taps ✋ Raise hand to speak, the host sees it and taps Bring up. The host can also tap anyone and Invite to speak, or Move to listeners. Up to ${ROOM_SPEAKERS_MAX} speakers at a time besides the host.`,
+        `The stage shows empty chairs with a + on each. The host picks a stage mode and can change it during the live: Solo (only the host), Approve (people ask with +, and the host or a moderator approves) or Open (+ takes the seat at once). Up to ${ROOM_SPEAKERS_MAX} speakers at a time besides the host.`,
+        "The host can invite anyone listening on stage (they accept or decline), and name moderators for the live, ticking what each may do (Basic, Full, or one by one): approve requests, invite, bring speakers down, turn mics off, remove chat messages, and more. Moderators never act on the host.",
         "A green ring shows who's talking. The host's mic button mutes and unmutes. End room ends it for everyone; the host leaving ends it too.",
       ] },
       { h: "Listening and speaking", items: [

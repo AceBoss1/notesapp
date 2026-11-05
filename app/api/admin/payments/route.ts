@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { boostEnded, settleBoost } from "@/lib/promo-settle-server";
 import { refundable, undoCoursePurchase } from "@/lib/course-sales-server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    const admin = await verifyAdminRequest(idToken, ["finance"]);
+    const adminUid = await verifyAdminRequest(idToken, ["finance"]);
     const { action, reference, reason } = await req.json();
     if (typeof reference !== "string") return NextResponse.json({ error: "Missing reference" }, { status: 400 });
 
@@ -68,17 +69,14 @@ export async function POST(req: NextRequest) {
 
     // Boost that ended with impressions undelivered → refund the undelivered share.
     if (action === "refund_boost") {
-      const boostRef = db.doc(`boosts/${reference}`);
-      const b = (await boostRef.get()).data();
+      // The same settlement the scheduled job runs (lib/promo-settle-server.ts); this button only does it sooner.
+      const b = (await db.doc(`boosts/${reference}`).get()).data();
       if (!b) return NextResponse.json({ error: "Boost not found" }, { status: 404 });
-      if (b.status === "closed") return NextResponse.json({ error: "Already settled." }, { status: 409 });
-      const ended = new Date(b.endsAt).getTime() <= Date.now() || b.status === "completed";
-      if (!ended) return NextResponse.json({ error: "Boost is still running." }, { status: 409 });
-      const shortfall = Math.max(0, b.impressionsPurchased - b.impressionsDelivered);
-      const refundKobo = Math.floor((b.amountKobo * shortfall) / b.impressionsPurchased);
-      if (refundKobo > 0) await refundPayment(reference, refundKobo);
-      await boostRef.update({ status: "closed", refundedKobo: refundKobo, closedAt: new Date().toISOString() });
-      return NextResponse.json({ ok: true, refundKobo });
+      if (b.status === "closed" || b.settledAt) return NextResponse.json({ error: "Already settled." }, { status: 409 });
+      if (!boostEnded(b)) return NextResponse.json({ error: "Boost is still running." }, { status: 409 });
+      const r = await settleBoost(db, reference, { by: adminUid });
+      if (!r.settled) return NextResponse.json({ error: "Already settled." }, { status: 409 });
+      return NextResponse.json({ ok: true, refundKobo: r.refundKobo });
     }
 
     const ledger = ledgerSnap.data() as LedgerEntry | undefined;
@@ -184,7 +182,7 @@ export async function POST(req: NextRequest) {
       const r = await releaseLedgerEntry(reference, { allowDisputed: true });
       if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
       if (isGiftPayout) {
-        await ledgerRef.update({ approvedBy: admin, approvedAt: new Date().toISOString() }).catch(() => {});
+        await ledgerRef.update({ approvedBy: adminUid, approvedAt: new Date().toISOString() }).catch(() => {});
         if (ledger.needsApproval) await notifyBell({ uid: ledger.publisherUid, type: "gift", linkHref: `/u/${ledger.publisherUsername}?tab=gifts`, message: `Your gift withdrawal of ${formatNaira(ledger.netKobo)} was approved and is on its way to your bank account.` }).catch(() => {});
       }
       return NextResponse.json({ ok: true, transferStatus: r.transferStatus });

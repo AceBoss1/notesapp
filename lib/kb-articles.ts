@@ -35,7 +35,7 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
-import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
+import { DEFAULT_ROOM_FIGURES, MOD_PERMS, ROOM_CHAT_MAX, ROOM_INVITE_MS, ROOM_MODS_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
 import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, type SubTier } from "./fans";
 import { minutesLeftText } from "./rooms-live";
@@ -169,7 +169,9 @@ You see how many times each code was used, how much it took off and what buyers 
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
     A("create-an-account", "Creating an account", "Getting started", `
-Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
+Go to [Sign up](/signup). The quickest way is **Sign up with Google** (or **with LinkedIn**): you still choose your username, accept the Terms and say you are 18 or older, but there is no password to make and your email is already verified. See [Signing in with Google or LinkedIn](/help/google-linkedin-sign-in).
+
+With your email instead: choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
 
 You will be asked to follow a few journals so your feed is not empty. Verify your email using the link we send: you need a verified email before you can pay for sessions, subscriptions or gifts.
 
@@ -178,6 +180,18 @@ You can also tell us, if you like, what you do, your role and where you work. It
 Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [${APP_HOST}](${APP_URL}), you sign in or create your account right on the welcome screen.
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("google-linkedin-sign-in", "Signing in with Google or LinkedIn", "Getting started", `
+You can make a #NotesApp account with Google or LinkedIn and sign in with it afterwards, on the website, the app, Notes Life and Naija Exam Prep.
+
+**New here:** on [Sign up](/signup) or [Sign in](/login), tap **Continue with Google** or **Continue with LinkedIn** and choose your account. The first time, you finish your account just like an email sign-up: choose Personal or Organisation, your display name and @username, tell us what you do if you like, tick that you are 18 or older (on Naija Exam Prep, students under 18 get teen mode) and accept the [Terms](/terms) and [Privacy Policy](/privacy). Then follow a few journals. Google and LinkedIn confirm your email, so there is no verification link to click.
+
+**Already have an account:** link Google or LinkedIn to it first. Sign in the way you usually do, open [Account settings → Sign-in methods](/profile/account#sign-in-methods) and tap **Link Google** or **Link LinkedIn**. From then on, Continue with Google or LinkedIn signs you in to that account. We email you every time a new sign-in method is linked; if it wasn't you, unlink it there and change your password.
+
+**"You already have a #NotesApp account":** if you tap Continue with Google or LinkedIn and that email already has an account, we don't join them on our own, to keep your account safe. Sign in with your password or a passkey, then link it under Sign-in methods. After Google asks, signing in with your password on the same page links Google straight away.
+
+**Unlinking:** under Sign-in methods, tap **Unlink**. You always keep at least one way to sign in, so the last one can't be removed: add a password (use [Reset password](/forgot-password) to set one), a [passkey](/help/passkeys) or the other account first.
+
+**Good to know:** LinkedIn sign-in only reads your name, picture and confirmed email; it never posts. Posting your journals to LinkedIn is a separate switch (Publish to LinkedIn). An account made with Google or LinkedIn has no password until you set one with Reset password. Deleting your account removes its Google and LinkedIn links too.`),
     A("passkeys", "Signing in with a passkey", "Getting started", `
 A passkey lets you sign in with your fingerprint, face, phone screen lock or a security key instead of typing your password. It can't be guessed or phished, and it never leaves your device.
 
@@ -185,7 +199,7 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
-**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys. Deleting your account removes your passkeys too.`),
+**Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 
@@ -400,7 +414,7 @@ A boost puts a published post, or an item in your store, in front of more reader
 Packages:
 ${BOOST_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, delivered over at least ${p.minDays} days, running up to ${p.windowDays} days.`).join("\n")}
 
-Boosts have no commission, and anything not delivered by the end is refunded pro rata. You can also cancel a running boost under Boost performance: impressions already delivered are spent, you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why. See [Boost](/boost).`),
+Boosts have no commission, and anything not delivered by the end is refunded pro rata, by itself, within about 15 minutes of the boost ending, the way you paid (card or wallet); you get a bell saying how much. You can also cancel a running boost under Boost performance: impressions already delivered are spent, you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why. See [Boost](/boost).`),
     A("co-authoring", "Co-authoring a post", "Publishing and earning", `
 Pro, Business and Enterprise publishers can write a post with other members. The lead invites up to ${MAX_CO_AUTHORS} co-authors by username on a draft, and for each one chooses **what they can do** and **their share** of what the post earns (the lead keeps at least ${MIN_LEAD_PERCENT}%).
 
@@ -434,7 +448,7 @@ Co-tutors who joined before access levels existed keep what they had: they can v
     A("ads-and-ad-share", "Ads and ad share", "Publishing and earning", `
 **Advertising on #NotesApp:** anyone can buy a banner campaign, paid online and priced by validated impressions:
 ${AD_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, up to ${p.windowDays} days.`).join("\n")}
-Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata. Start at [Advertise](/advertise).
+Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata, by themselves, soon after the campaign ends; you get an email saying how much. Start at [Advertise](/advertise).
 
 **Sizes and spots:** one picture works everywhere: **1200 × 628 px** (1.91 : 1; at least 600 × 314, up to 2400 × 1256 for sharp screens), JPG, PNG or WebP, best under 500 KB and at most 1 MB, with the logo and words inside the middle 960 × 502. The campaign form crops other shapes for you before you pay. The headline is up to 60 characters and the text up to 120. Adverts can show on the home page, the journal feed, Trending, publishers' profiles and posts (when they show adverts), Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest (each email sent counts as an impression) and, if you choose, on a billboard in Notes Life, which needs its own 1600 × 900 picture. Never in Messages, checkout, lessons, paid course pages, certificates or the editors. When a spot has several adverts, each stays about 30 seconds. All of it, with templates to download: [Advert sizes and spots](/advertise/specifications).
 
@@ -1011,17 +1025,30 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Who hosts:** the owner, admins and moderators. On the community's Home, tap **+ Start a room**, give it a name (Sunday Q&A, Midweek Bible study) and **Go live**. Members see it at the top of Home with **Join**. Audio rooms come with every community, free.
 
-**On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. A listener taps **✋ Raise hand to speak**; the host sees the hand and taps **Bring up**. The host can also tap anyone and **Invite to speak**, or **Move to listeners**. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
+**On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. The stage shows the empty chairs too, each with a **+** in the middle when you can come up. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
+
+**Stage mode:** the host picks one when starting the room and can switch at any time during the live (**Solo**, **Approve** or **Open** above the stage):
+- **Solo:** only the host on stage. Nobody can ask to come up: no raised hands, no + on the chairs. The host and moderators can still invite someone.
+- **Approve:** tap **+** on an empty chair (or **✋ Ask for a seat**) to send a request. The host or a moderator taps **Approve** (or **Decline**) under **Seat requests**. Tap **Seat requested · cancel** to take it back.
+- **Open:** tap **+** on an empty chair and you're on stage straight away, while there's a seat. In a recorded live you still agree to the recording before your mic goes on. Members in teen mode always send a request instead, and someone removed from the live can't come up.
+
+**Invitations:** the host or a moderator can tap anyone listening and **Invite on stage**. The invited person sees who invited them and taps **Come up** or **Not now**; an invitation lapses after ${Math.round(ROOM_INVITE_MS / 60_000)} minutes. Members in teen mode can only be invited by people they follow; they can always ask for a seat themselves.
+
+**Moderators for the live:** when starting a room, or with **🛡 Moderators** during it, the host can name up to ${ROOM_MODS_MAX} moderators: the community's moderators and admins, or anyone in the community by @username. For each one the host ticks what they may do, or taps **Basic** (approve requests, invite, bring speakers down, turn mics off and on, remove chat messages) or **Full** (everything except ending the live). What can be ticked: ${MOD_PERMS.map((x) => x.label.toLowerCase()).join("; ")}. Starting or stopping the recording stays with the host. Moderators see only the controls they hold. A moderator can never act on the host, or on another moderator who holds as much as they do, and only the host names moderators or changes what they hold. Every moderator action is kept in the live's log, which the host opens with **📋 Moderators' log**.
+
+**On a speaker:** the host or a moderator taps a speaker for their menu: **Turn mic off** (the speaker can't turn it back on until the host or a moderator does; in a relay room their sound isn't sent on at all, and phone to phone every phone leaves it out), **Camera off**, **Remind to agree** (in a recorded live), **Bring down** and **Remove from live**.
+
+**Pinned message:** the host, or a moderator allowed to pin, can **📌 Pin an announcement** or **Pin** a chat message; it stays at the top of the chat until it's unpinned.
 
 **Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
 
-**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host or a moderator can **Remove** a message.
+**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host, a moderator named for the live with that permission, or one of the community's moderators can **Remove** a message. The community's own moderators have these chat powers only in lives hosted as community lives; in a member's own live, only the moderators that host names (and the community owner) can moderate.
 
 **Ending:** **End room** ends it for everyone; the host leaving ends it too. The chat is deleted when the room ends. Nothing is recorded unless the host switched recording on before going live: then everyone sees **${RECORDING_NOTICE}**, and speakers agree before their mic goes on. See [Recording and replays](/help/live-recording-and-replays).
 
 **How the sound travels:** ${room.relay
   ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and isn't kept there; only a room the host chose to record is recorded, by our own recorder. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).${room.liveChat
-    ? `\n\n**Chat in big rooms:** the chat, the listener count and raised hands travel live over one connection to our chat service, run on Cloudflare, so a room of thousands keeps up and everyone sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. **Slow mode is the host's tool:** at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on past ${n(room.chatSlowAbove)} listeners). The host or a moderator can also **Mute** someone in the chat (and **Unmute** them later) or **Remove from room** for the rest of the room; a message they take down disappears from every screen at once. The chat is still deleted when the room ends.`
+    ? `\n\n**Chat in big rooms:** the chat, the listener count and raised hands travel live over one connection to our chat service, run on Cloudflare, so a room of thousands keeps up and everyone sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. **Slow mode is the host's tool** (and a moderator's, if the host allows it): at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on past ${n(room.chatSlowAbove)} listeners). The host or a moderator can also **Mute** someone in the chat (and **Unmute** them later) or **Remove from room** for the rest of the room; a message they take down disappears from every screen at once. The chat is still deleted when the room ends.`
     : ""}`
   : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
 

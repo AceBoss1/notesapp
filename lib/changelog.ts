@@ -26,6 +26,39 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.139.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Audio rooms: the stage shows its empty chairs, each with a + in the middle. The host picks a stage mode when starting and can switch it any time during the live: Solo (only the host on stage, nobody can ask), Approve (tap + to ask for a seat; the host or a moderator approves or declines) or Open (tap + and you're on stage at once while there's a seat; a recorded live still asks you to agree first, members in teen mode send a request instead, and anyone removed from the live can't come up)." },
+      { kind: "added", text: "Invitations to the stage: the host or a moderator taps anyone listening and Invite on stage; they see who invited them and tap Come up or Not now. Members in teen mode can only be invited by people they follow." },
+      { kind: "added", text: "Moderators for a live: the host names them when starting the room or during it (the community's moderators and admins, or anyone in the community by @username) and ticks what each may do, or picks Basic or Full: approve requests, invite, bring speakers down, turn a speaker's mic off and on, turn a camera off, remove chat messages, mute in the chat, remove someone from the live, change the stage mode, slow mode, pin, the poster, speakers' video, recording reminders, and ending the live (off unless ticked). A moderator never acts on the host or on a moderator who holds as much, sees only the controls they hold, and every action goes in a log the host can open." },
+      { kind: "added", text: "Turning a speaker's mic off is enforced: the speaker can't turn it back on themselves; in a relay room their sound stops being sent at all, and phone to phone every phone leaves it out." },
+      { kind: "added", text: "A pinned message or announcement at the top of the room chat." },
+      { kind: "changed", text: "Raise hand is now Ask for a seat (the same request as + on an empty chair). Bringing up someone who hasn't asked sends them an invitation instead of moving them straight up." },
+    ],
+  },
+  {
+    version: "v0.138.1",
+    bump: "patch",
+    date: "2026-11-05",
+    changes: [
+      { kind: "fixed", text: "When a boost or an advert ends without delivering everything you paid for, the undelivered share is now refunded by itself, pro rata, the way you paid, with a bell or email saying how much. Before, it waited for our team to do it, so some ended promotions showed Completed with nothing refunded; those are being refunded now." },
+    ],
+  },
+  {
+    version: "v0.138.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Continue with Google on the sign-in and sign-up pages, on the app and on Naija Exam Prep. A new account made with Google takes the same steps as any other (your @username, the Terms and the age line, what you do, the journals to follow), and its email counts as verified." },
+      { kind: "added", text: "Continue with LinkedIn: make an account with LinkedIn, or sign in with it once it is linked. LinkedIn tells us your name and confirmed email; we never post to LinkedIn from sign-in." },
+      { kind: "added", text: "Account settings → Sign-in methods: see how you can sign in (password, passkeys, Google, LinkedIn), link Google or LinkedIn to your account and unlink them again. You always keep at least one way in, and we email you whenever a new one is linked." },
+      { kind: "changed", text: "If Google or LinkedIn uses an email that already has a NotesApp account, we no longer join them on our own: sign in the way you usually do, then link it under Sign-in methods. After Google asks, signing in with your password links it straight away." },
+      { kind: "changed", text: "Your last passkey can't be removed if it's your only way to sign in." },
+    ],
+  },
+  {
     version: "v0.137.6",
     bump: "patch",
     date: "2026-11-04",

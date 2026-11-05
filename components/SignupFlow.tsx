@@ -3,7 +3,7 @@
 import { goBack } from "@/lib/return-to";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, sendEmailVerification, User } from "firebase/auth";
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
@@ -16,6 +16,8 @@ import type { Work } from "@/lib/profile-work";
 import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
+import SocialSignIn from "@/components/SocialSignIn";
+import { needsCompletion, socialSignInBusy } from "@/lib/social-auth-client";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
 
@@ -29,8 +31,12 @@ function normalizeUsername(v: string) {
 // The sign-up form and the follow-5-journals step. `embedded` drops the page header and padding so it fits inside a card (the app address's welcome screen);
 // `onSwitch` swaps "Already have an account? Sign in" for an in-place switch; `onStarted` tells the host the account is being created (so it doesn't redirect mid-onboarding).
 // `young` (Naija Exam Prep): students under 18 may join; they're asked about teen mode right after (components/exam-prep/TeenCard.tsx).
-export default function SignupFlow({ embedded = false, onSwitch, onStarted, young = false }: { embedded?: boolean; onSwitch?: () => void; onStarted?: () => void; young?: boolean }) {
+// `completeUser`: someone signed in with Google or LinkedIn for the first time. They take the same new-account steps (account type,
+// name, @username, the Terms and the age line, what they do, then the journals to follow) without an email or password: Google and
+// LinkedIn have confirmed the email. Anyone signed in like that without a profile lands here too (lib/member-client.tsx).
+export default function SignupFlow({ embedded = false, onSwitch, onStarted, young = false, completeUser }: { embedded?: boolean; onSwitch?: () => void; onStarted?: () => void; young?: boolean; completeUser?: User | null }) {
   const [step, setStep] = useState<"account" | "follow">("account");
+  const [completeFor, setCompleteFor] = useState<User | null>(completeUser ?? null);
 
   // Step 1 — account
   const [displayName, setDisplayName] = useState("");
@@ -53,6 +59,24 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [finishing, setFinishing] = useState(false);
   const [mandatoryWritten, setMandatoryWritten] = useState(false);
+
+  // Already signed in with Google or LinkedIn, profile not made yet: finish it here.
+  useEffect(() => {
+    if (completeUser) return;
+    return onAuthStateChanged(auth, (u) => {
+      if (!u || socialSignInBusy()) return;
+      needsCompletion(u).then((n) => { if (n) { setCompleteFor(u); setDisplayName((d) => d || u.displayName || ""); } });
+    });
+  }, [completeUser]);
+  useEffect(() => { if (completeUser?.displayName) setDisplayName((d) => d || completeUser.displayName || ""); }, [completeUser]);
+
+  // "Sign up with Google / LinkedIn": a new account goes on to the steps below; one that already exists is simply signed in.
+  async function afterSocial(u: User, needsProfile: boolean) {
+    if (needsProfile) { onStarted?.(); setCompleteFor(u); setDisplayName((d) => d || u.displayName || ""); return; }
+    if (await goBack(u)) return;
+    const next = new URLSearchParams(window.location.search).get("next") || "";
+    router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/journals");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,10 +111,10 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
         return;
       }
       onStarted?.();
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const cred = completeFor ? { user: completeFor } : await createUserWithEmailAndPassword(auth, email, password);
       await signUpProfile({
         uid: cred.user.uid,
-        email,
+        email: completeFor ? completeFor.email || "" : email,
         username: cleanUsername,
         displayName: displayName || cleanUsername,
         work: kind === "organisation" ? { industry: work.industry } : work,
@@ -115,7 +139,8 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
         body: JSON.stringify({ action: "claim" }),
       }).catch(() => {});
       // Non-fatal: the banner offers a resend if this fails.
-      sendEmailVerification(cred.user).catch((e) => console.warn("Verification email failed:", e));
+      // (Google and LinkedIn have confirmed the email already.)
+      if (!cred.user.emailVerified) sendEmailVerification(cred.user).catch((e) => console.warn("Verification email failed:", e));
       setNewUser(cred.user);
       setNewUsername(cleanUsername);
       setStep("follow");
@@ -293,11 +318,27 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
 
   return (
     <>
-    <Hero max="max-w-sm" eyebrow="Join #NotesApp" title={<>Create your account</>}>
-      <p className="!text-base">Comment on journals, like your favorites, and get your own @username — the same account works on Precheks too.</p>
+    <Hero max="max-w-sm" eyebrow={completeFor ? "Almost there" : "Join #NotesApp"} title={completeFor ? <>Finish your account</> : <>Create your account</>}>
+      {completeFor ? (
+        <p className="!text-base">Choose your @username and accept the Terms to start using #NotesApp.</p>
+      ) : (
+        <p className="!text-base">Comment on journals, like your favorites, and get your own @username — the same account works on Precheks too.</p>
+      )}
     </Hero>
     <section className={embedded ? "text-left" : "mx-auto max-w-sm px-4 py-10"}>
-      <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
+      {completeFor ? (
+        <p className="mt-6 rounded-xl border border-rule bg-card px-4 py-3 text-sm text-slate">
+          Signed in as <span className="font-semibold text-ink">{completeFor.email || completeFor.displayName || "you"}</span>{" "}
+          with {completeFor.providerData.some((p) => p.providerId === "google.com") ? "Google" : "LinkedIn"}.{" "}
+          <button type="button" onClick={() => { signOut(auth).catch(() => {}); setCompleteFor(null); }} className="font-semibold text-crimson-bright">Not you?</button>
+        </p>
+      ) : (
+        <>
+          <SocialSignIn verb="Sign up" onSignedIn={afterSocial} className="mt-8" />
+          <div className="mt-6 flex items-center gap-3 text-xs text-slate" aria-hidden="true"><span className="h-px flex-1 bg-rule" />or with your email<span className="h-px flex-1 bg-rule" /></div>
+        </>
+      )}
+      <form onSubmit={handleSubmit} className="mt-6 grid gap-5">
         <fieldset>
           <legend className="eyebrow">Account type</legend>
           <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
@@ -344,26 +385,30 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
             />
           </div>
         </label>
-        <label className="block">
-          <span className="eyebrow">Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
-          />
-        </label>
-        <label className="block">
-          <span className="eyebrow">Password</span>
-          <PasswordInput
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
-          />
-        </label>
+        {!completeFor && (
+          <>
+            <label className="block">
+              <span className="eyebrow">Email</span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="eyebrow">Password</span>
+              <PasswordInput
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+              />
+            </label>
+          </>
+        )}
         <WorkFields value={work} onChange={setWork} orgOnly={kind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none" />
         <label className="flex items-start gap-3 text-sm text-slate">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
@@ -380,17 +425,17 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
           disabled={loading}
           className="rounded-full bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-bright transition-colors disabled:opacity-50"
         >
-          {loading ? "Creating account…" : "Sign Up"}
+          {loading ? "Creating account…" : completeFor ? "Finish" : "Sign Up"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-slate">
+      {!completeFor && <p className="mt-6 text-sm text-slate">
         Already have an account?{" "}
         {onSwitch ? (
           <button type="button" onClick={onSwitch} className="text-crimson-bright font-semibold">Sign in</button>
         ) : (
           <a href="/login" className="text-crimson-bright font-semibold">Sign in</a>
         )}
-      </p>
+      </p>}
     </section>
     </>
   );

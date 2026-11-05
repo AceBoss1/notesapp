@@ -206,13 +206,73 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   clock += 2000; await room.alarm();
   assert.equal(host.last("count")!.n, 2, "l1 still has two tabs; late left");
 
+  // ── the stage (lib/rooms.ts "Stage seats"): our server's stage mode, hands, microphones, invitations and the moderators' permissions ──
+  const m2 = (await connect("m2", "listener")).ws!;
+  const x1 = (await connect("x1", "listener")).ws!;
+  await server({ op: "hand", uid: "x1", up: true, name: "X1", avatar: "", at: new Date(clock).toISOString() });
+  assert.equal(host.last("hand")!.uid, "x1", "a request through our server reaches the sockets");
+  await server({ op: "stagemode", mode: "solo" });
+  assert.deepEqual(m2.last("stagemode"), { t: "stagemode", mode: "solo" });
+  assert.deepEqual(host.last("hand"), { t: "hand", uid: "x1", up: false }, "Solo: every hand goes down");
+  await say(x1, { t: "hand", up: true });
+  assert.match(x1.last("err")!.msg, /keeping the stage/, "and none goes up");
+  await server({ op: "hand", uid: "x1", up: true, name: "X1" });
+  assert.deepEqual(host.last("hand"), { t: "hand", uid: "x1", up: false }, "not even through our server");
+  await server({ op: "stagemode", mode: "approve" });
+  await say(x1, { t: "hand", up: true });
+  assert.equal(host.last("hand")!.up, true);
+  await server({ op: "hand", uid: "x1", up: false }); // declined
+  assert.deepEqual(host.last("hand"), { t: "hand", uid: "x1", up: false });
+  await server({ op: "mic", uid: "spk", on: true });
+  assert.deepEqual(x1.last("mic"), { t: "mic", uid: "spk", on: true });
+  assert.deepEqual((await connect("x2", "listener")).ws!.last("hello")!.mics, ["spk"], "a newcomer learns whose mic is off");
+  await server({ op: "invite", uid: "x1", on: true, by: "HOST" });
+  assert.deepEqual(x1.last("invite"), { t: "invite", on: true, by: "HOST" });
+  assert.equal(m2.last("invite"), undefined, "only the invited person hears it");
+  // a moderator named for the live holds only what the host ticked
+  await say(m2, { t: "chat", text: "from m2" });
+  await say(host, { t: "chat", text: "from the host" });
+  const hostMsg = host.last("chat")!.m.id;
+  await say(x1, { t: "chat", text: "from x1" });
+  const x1Msg = host.last("chat")!.m.id;
+  await say(m2, { t: "del", id: x1Msg });
+  assert.notEqual(host.last("del")?.id, x1Msg, "no permission yet: nothing");
+  await server({ op: "mods", mods: { m2: ["chatRemove"], x2: ["chatRemove", "chatMute"] } });
+  await say(m2, { t: "del", id: x1Msg });
+  assert.deepEqual(host.last("del"), { t: "del", id: x1Msg });
+  await say(m2, { t: "del", id: hostMsg });
+  assert.match(m2.last("err")!.msg, /Only the host/, "never the host's message");
+  await say(m2, { t: "mute", uid: "x1", on: true });
+  assert.notDeepEqual(host.last("muted"), { t: "muted", uid: "x1", on: true }, "no chat-mute permission");
+  await say(m2, { t: "slow", on: true });
+  assert.notEqual(host.last("slow")?.hostSlow, true, "no slow-mode permission");
+  await say(m2, { t: "ban", uid: "x1" });
+  assert.equal(x1.closed, null, "no removal permission");
+  await server({ op: "mods", mods: { m2: ["chatRemove", "chatMute", "ban", "slow"], x2: ["chatRemove", "chatMute"] } });
+  await say(m2, { t: "slow", on: true });
+  assert.equal(host.last("slow")!.hostSlow, true);
+  await say(m2, { t: "slow", on: null });
+  await say(m2, { t: "mute", uid: "x2", on: true });
+  assert.deepEqual(host.last("muted"), { t: "muted", uid: "x2", on: true }, "over a moderator with less say");
+  await say((await connect("x2", "listener")).ws!, { t: "ban", uid: "m2" });
+  assert.equal(m2.closed, null, "never over one with more say");
+  // removed through our server: closed now, kept out (not reported back: our server already has it)
+  await server({ op: "ban", uid: "x1" });
+  assert.equal((x1.closed as { code?: number } | null)?.code, 4003);
+  assert.equal((await connect("x1", "listener")).res.status, 403);
+  clock += LIVE_BATCH_MS + LIVE_COUNT_PUSH_MS; await runAlarm();
+  const logged = posts.flatMap((p) => p.body.modLog ?? []).map((e) => `${e.by}:${e.action}`);
+  for (const want of ["m2:remove a chat message", "m2:slow mode: on", "m2:mute in the chat"]) assert.ok(logged.includes(want), `logged: ${want}`);
+  assert.equal(logged.some((x) => x.startsWith("host:")), false);
+  assert.equal(posts.flatMap((p) => p.body.banned).includes("x1"), false);
+
   // ── the end: everyone told and disconnected, the last batch with the peak, and no way back in ──
   await say(l1b, { t: "chat", text: "last word" });
   const n = posts.length;
   await server({ op: "end" });
   assert.deepEqual(host.last("ended"), { t: "ended" }); assert.equal(host.closed?.code, 4000);
   const fin = posts[n];
-  assert.equal(fin.body.final, true); assert.equal(fin.body.peak, 5, "the most at once: host, spk, l1, l2, mod"); assert.equal(fin.body.chat[0].text, "last word");
+  assert.equal(fin.body.final, true); assert.equal(fin.body.peak, 6, "the most at once, as the alarm counted (the stage checks brought newcomers)"); assert.equal(fin.body.chat[0].text, "last word");
   const all = posts.flatMap((p) => ev(p.body));
   assert.ok(all.includes("late:in") && all.includes("late:out"), "late came and went");
   for (const u of ["host", "spk", "mod", "l1"]) assert.ok(ev(fin.body).includes(`${u}:out`), `the end closes ${u}'s session`);

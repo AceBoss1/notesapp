@@ -2937,6 +2937,45 @@ The owner adopted Anya ("eye" in Igbo) for NotesApp's own Qualcomm-based glasses
 coming-soon page with the owner's launch artwork as its hero, the three models, what Display does, a comparison table that lists only
 decided features, and one action: register interest, which opens the contact form on the new **anya** lead topic with a starter
 message. No prices, specifications or dates are shown until they are decided. The names are listed as trademarks on /brand.
+**Sign in with Google and LinkedIn (v0.138.0, 4 Nov 2026)** — The owner switched on Google in Firebase Authentication and asked for
+accounts made with Google and, if possible, LinkedIn, and for existing members to link both like passkeys. Google: Firebase's
+`GoogleAuthProvider` (a pop-up; a redirect in in-app browsers or when the pop-up is blocked; optional `/__/auth` on our own addresses
+through `next.config.js` and `NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE`), then `/api/auth/google` records the link in `authLinks` or, when
+Google landed on an account that already existed, takes it off again (no silent merge); `auth/account-exists-with-different-credential`
+keeps Google's credential and links it right after the password sign-in. LinkedIn ("Sign In with LinkedIn using OpenID Connect", the
+publishing app unless `LINKEDIN_LOGIN_CLIENT_ID/SECRET`): `/api/auth/linkedin/start` (state, nonce and a browser-binding cookie, kept in
+`authStates` for 10 minutes) → LinkedIn → `/api/auth/linkedin/callback` on the www. address of the visitor's domain family (state once
+only, code exchanged, ID token checked in `lib/social-oidc.ts` against LinkedIn's JWKS) → back to the page with a one-time ticket in the
+fragment → `/api/auth/linkedin/finish` (same browser, same address) signs in with a custom token (staff claims kept), makes a new account
+(confirmed email only), refuses an email that has an account, or links (fresh ID token). First-time accounts finish in `SignupFlow`
+(`completeUser`: username, Terms and age line, work, journals). Account settings → Sign-in methods (`components/SignInMethods.tsx`,
+`/api/auth/methods`); never the last way in (also for passkeys); every link and unlink in `authAudit`; an email when a method is linked.
+New collections server-only; export and erase cover them. Tests: `npm run test:social-signin` (the rules and OIDC checks with a stand-in
+JWKS, then Firestore and Auth emulators), the rules test, `test:passkeys`.
+
+
+## Boosts and adverts refund their undelivered share by themselves (v0.138.1, built 5 November 2026)
+
+The owner's Promotion tab showed a ₦12,500 advert (Starter: 5,000 impressions over 30 days) as "Completed" with 258 seen and the full
+₦12,500 spent. Ad campaigns are marked completed lazily when their window ends (`lib/ads-server.ts`), and boosts stop counting at
+`endsAt`; in both cases the promised pro-rata refund of the undelivered share was only made when an admin pressed "Refund undelivered"
+(Admin → Ads, Admin → Payments). `lib/promo-settle-server.ts` now settles them: claimed in a transaction, refunded the way the member
+paid, recorded with `settledAt`/`settledBy`/`refundedKobo`, the member told when money goes back. The cron runs it every 15 minutes,
+25 of each kind per run; the admin buttons call the same functions. For the screenshot's advert that is ₦11,855 back.
+**Stage seats and moderators in audio rooms (v0.139.0)** — The owner asked for a stage the host controls: a stage mode the host picks and
+changes during the live (Solo, Approve, Open), empty chairs with a + (a request in Approve, the seat itself in Open), invitations the
+invited person accepts, and moderators for the live. After a first pass, the owner widened moderators to permissions the host ticks per
+moderator (presets Basic and Full) covering the whole live, never against the host or a moderator with as much say, every action logged.
+The pure rules are in `lib/rooms.ts` ("Stage seats": `seatAction`, `MOD_PERMS`, `permsOf`, `mayActOn`, `inviteFor`, `isMicMuted`),
+every check is on the server in `lib/rooms-server.ts` (one `moveStage` transaction for approvals, open seats, accepted invitations and
+bringing down), and rooms on the live-rooms worker get the mode, hands, mic marks, invitations and moderators' permissions from our
+server (`workers/live-rooms/src/room.ts` checks the permissions for chat removals, chat mutes, removals and slow mode, and sends its
+moderators' actions back in the batches for the log). Mic off is enforced on the relay by unpublishing and closing the track at
+Cloudflare (`canPush` refuses it); phone to phone, every phone obeys the room doc. Teen mode turns an Open seat into a request and allows
+invitations only from people the teen follows. UI: `components/community/StageControls.tsx` (the mode switch, the seats, the
+moderators sheet) and `AudioRoom.tsx` (menus per permission, seat requests, the invitation card, the pinned message, the log). Tests:
+`test:rooms`, `tests/community/rooms-stage.emulator.ts` in `test:rooms-server`, worker tests in `test:live-rooms`, `test:live-rooms-server`,
+existing tests updated so a bring-up without a request is an invitation.
 
 **Gifting everywhere (v0.140.0, 4 Nov 2026)** — Phase 2 of the live economy plan. A ⋯ menu with Gift · Block · Report beside names on
 journal comments, shop and course reviews, a live's stage, Media posts and replays (`components/gifts/PersonActions.tsx`), with the server
