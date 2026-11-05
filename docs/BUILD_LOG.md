@@ -3073,3 +3073,11 @@ back over its own key in its own format instead of a new key (share cards, journ
 addresses, so a new key plus a delete would have broken them); only a picture still used unmarked, or a GIF/AVIF, gets a new key. Tests: `test:media`, `test:media-server`,
 `test:marks-server` (new), `test:recording-server`, rules.
 
+**Moments carry the mark (v0.143.0, 5 Nov 2026)** — The owner added moments and chose "Move to Stream, burn in" for their videos. A
+moment's picture is marked as the moment is created; a moment's video now goes from the browser to Stream with the creator's per-shape
+watermark profile and signed playback (a moment is only for its audience, so the player link comes from an audience-checked action). The
+Stream video is kept in the moment's existing `videoKey` as "stream:<uid>", which meant expiry, the shared file of a long video's parts,
+reshares, reports and account deletion needed no new logic: the remover knows the prefix. The moment viewer plays a Stream video in the
+iframe player and moves between parts from its timeupdate messages. The re-marking job marks moment pictures in place, lets unpinned moment
+videos expire, and copies pinned ones to Stream. Tests: `test:moments-server` (new), `test:marks-server`, `test:messages`.
+

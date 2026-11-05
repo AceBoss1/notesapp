@@ -150,6 +150,8 @@ export const BACKFILL_KINDS = [
   { key: "shopItems", label: "Shop items" },
   { key: "services", label: "Services (sites)" },
   { key: "journals", label: "Journals" },
+  { key: "momentPictures", label: "Moment pictures" },
+  { key: "momentVideos", label: "Moment videos (pinned)" },
 ] as const;
 export type BackfillKind = (typeof BACKFILL_KINDS)[number]["key"];
 // done: marked now; already: carried the mark; pending: a video Stream is still copying; failed: couldn't (see the log, run again);
@@ -157,7 +159,7 @@ export type BackfillKind = (typeof BACKFILL_KINDS)[number]["key"];
 // outside link or one shipped with the app), left as it is.
 export const BACKFILL_COUNTS = ["done", "already", "pending", "failed", "skipped", "external"] as const;
 export type BackfillCounts = Record<(typeof BACKFILL_COUNTS)[number], number>;
-export const BACKFILL_PHASES = ["mediaPosts", "replays", "storeItems", "sites", "notes", "recount"] as const;
+export const BACKFILL_PHASES = ["mediaPosts", "replays", "storeItems", "sites", "notes", "moments", "recount"] as const;
 export type BackfillState = {
   status: "idle" | "running" | "paused" | "done";
   phase: number; cursor: string | null; counts: Record<BackfillKind, BackfillCounts>;

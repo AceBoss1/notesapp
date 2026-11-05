@@ -1,14 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
 import { r2PublicUrl, deleteMediaObject } from "./r2";
-import { MomentError, type MomentDeps } from "./moments-server";
+import { MomentError, streamUidOf, type MomentDeps } from "./moments-server";
+import { copyWithWatermark, createSignedDirectUpload, createWatermarkProfile, deleteVideo, deleteWatermarkProfile, getVideo, playbackToken, streamConfigured } from "./stream";
+import { renderVideoMark } from "./media-watermark";
 import { MessageError } from "./messages-server";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { friendlyMessage } from "./api-errors";
 
 // Shared by the Moments and Messages routes: checks the feature is switched on, the caller is signed in with a verified
 // email and not suspended, and turns our own errors into responses.
-export const momentDeps: MomentDeps = { publicUrl: r2PublicUrl, remove: deleteMediaObject };
+// The files: the media bucket, and Cloudflare Stream for moment videos ("stream:<uid>" keys, lib/moments-server.ts). A moment's picture is
+// given the NotesApp mark (lib/media-watermark.tsx) under a new key and the clean upload deleted.
+export const momentDeps: MomentDeps = {
+  publicUrl: r2PublicUrl,
+  remove: async (key) => {
+    const uid = streamUidOf(key);
+    if (!uid) return deleteMediaObject(key);
+    if (streamConfigured()) await deleteVideo(uid);
+  },
+  markImage: async (key, username) => {
+    const [{ mediaDeps }, { getWatermarkSettings }, { markedKey }] = await Promise.all([import("./media-api"), import("./media-mark-server"), import("./media-server")]);
+    const d = mediaDeps();
+    const out = await d.markPicture(await d.read(key), username, await getWatermarkSettings(getAdminDb()));
+    const to = markedKey(key, out.ext);
+    await d.write(to, out.bytes, out.type);
+    await d.remove(key);
+    return to;
+  },
+  get stream() {
+    return {
+      configured: streamConfigured(),
+      create: createSignedDirectUpload,
+      copy: copyWithWatermark,
+      get: async (uid: string) => { const v = await getVideo(uid); return v ? { readyToStream: v.readyToStream, state: v.status?.state } : null; },
+      token: (uid: string, seconds: number) => playbackToken(uid, seconds),
+      watermark: createWatermarkProfile, dropWatermark: deleteWatermarkProfile, markPng: renderVideoMark,
+    };
+  },
+};
 
 export type Caller = { uid: string; username: string };
 

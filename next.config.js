@@ -17,6 +17,10 @@ const nextConfig = {
       "/api/admin/media-marks": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
       "/api/cron/reminders": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
       "/api/replays": ["./assets/fonts/Inter-*.ttf"],
+      // Moments: a picture is marked when the moment is posted (also from a chat), a video's watermark profile drawn when it starts.
+      "/api/moments": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/messages/file/reuse": ["./node_modules/next/dist/server/lib/squoosh/**", "./assets/fonts/Inter-*.ttf"],
+      "/api/video": ["./assets/fonts/Inter-*.ttf"],
     },
   },
   // pdf.js (the view-only PDF viewer, components/PdfViewer.tsx) has an optional Node "canvas" import it never uses in the browser.

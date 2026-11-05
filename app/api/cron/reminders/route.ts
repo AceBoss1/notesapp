@@ -9,7 +9,7 @@ import { expireTiers } from "@/lib/tier-billing";
 import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
 import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
-import { sweepExpiredMoments, sweepStaleAudio } from "@/lib/moments-server";
+import { sweepExpiredMoments, sweepMomentCopies, sweepStaleAudio } from "@/lib/moments-server";
 import { sweepProcessingVideos } from "@/lib/media-server";
 import { mediaDeps } from "@/lib/media-api";
 import { runBackfill } from "@/lib/media-mark-backfill";
@@ -107,7 +107,7 @@ async function run() {
   await job("mediaVideos", async () => sweepProcessingVideos(db, mediaDeps())); // Media videos Stream has finished (or rejected), pictures still being marked
   // The one-off re-marking of what was posted before the NotesApp mark (Admin → Limits): a batch per tick while an admin has it running.
   await job("markBackfill", async () => { const r = await runBackfill(db, mediaDeps(), { budgetMs: 20_000 }); return r.status === "running" ? 1 : 0; });
-  await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
+  await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)) + (await sweepMomentCopies(db, momentDeps)));
   // One email a day to the team about open reports (nothing when there are none).
   await job("sweepMessageRequests", () => sweepMessageRequests(db));
   // Live recordings: past their keep days (Admin → Limits → Live recording) and not published, deleted; a recording the recorder never

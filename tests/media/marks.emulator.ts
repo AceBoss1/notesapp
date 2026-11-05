@@ -128,6 +128,15 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   await db.doc("notes/j1").set({ title: "J", authorUid: "u_bayo", featured_image: `${B}/journals/30-cover.webp`, content: `Intro\n\n![a](${B}/journals/31-inline.webp)\n\nAgain ![b](${B}/journals/31-inline.webp)`, status: "published" });
   await db.doc("notes/j2").set({ title: "Founder", author: "Emmanuel", featured_image: `${B}/journals/32-x.webp`, content: "", status: "published" });
   await db.doc("notes/j3").set({ title: "Words", authorUid: "u_bayo", featured_image: "", content: "Only words", status: "published" });
+  // Moments: a picture (and a reshare of it), a live video left to expire, a pinned video in two parts, and a text one.
+  put("moments/u_ada/old-pic.webp"); objects.set("moments/u_ada/pin.mp4", Buffer.from("mp4")); objects.set("moments/u_ada/live.mp4", Buffer.from("mp4"));
+  const mo = { ownerUid: "u_ada", ownerUsername: "ada", hours: 24, createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 86_400_000).toISOString(), likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: true };
+  await db.doc("moments/mo_pic").set({ ...mo, kind: "image", imageKey: "moments/u_ada/old-pic.webp" });
+  await db.doc("moments/mo_rs").set({ ...mo, ownerUid: "u_bayo", ownerUsername: "bayo", kind: "image", imageKey: "moments/u_ada/old-pic.webp", ownsMedia: false, resharedFrom: { momentId: "mo_pic", ownerUsername: "ada", rootMomentId: "mo_pic", rootOwnerUid: "u_ada" } });
+  await db.doc("moments/mo_live").set({ ...mo, kind: "video", videoKey: "moments/u_ada/live.mp4" });
+  await db.doc("moments/mo_pin1").set({ ...mo, kind: "video", videoKey: "moments/u_ada/pin.mp4", pinned: true, expiresAt: new Date(Date.now() - 86_400_000).toISOString(), splitGroup: "g1" });
+  await db.doc("moments/mo_pin2").set({ ...mo, kind: "video", videoKey: "moments/u_ada/pin.mp4", ownsMedia: false, splitGroup: "g1" });
+  await db.doc("moments/mo_text").set({ ...mo, kind: "text", text: "hi" });
   // Storage counted wrong (the old download copy counted twice).
   await db.doc("mediaUsage/u_ada").set({ uid: "u_ada", bytes: 999_999 });
 
@@ -142,7 +151,7 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   for (let i = 0; i < 40 && s.phase < 6; i++) s = await runBackfill(db, deps, { budgetMs: 1, batch: 1 });
   assert.equal(s.phase, 6, "every kind scanned");
   // Videos wait on Stream: the old video's MP4, then the marked copy.
-  assert.equal(s.counts.mediaVideos.pending, 1); assert.equal(s.counts.replays.pending, 1);
+  assert.equal(s.counts.mediaVideos.pending, 1); assert.equal(s.counts.replays.pending, 1); assert.equal(s.counts.momentVideos.pending, 1, "the pinned moment's video is copying");
   assert.equal(s.status, "running", "not done while videos are copying");
   dlOn.set("old_v", { status: "ready", url: "https://customer-x.cloudflarestream.com/old_v/downloads/default.mp4" });
   dlOn.set("rep_v", { status: "ready", url: "https://customer-x.cloudflarestream.com/rep_v/downloads/default.mp4" });
@@ -152,7 +161,10 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   assert.deepEqual([rcopy[1].signed, rcopy[1].from], [true, "https://customer-x.cloudflarestream.com/tok-rep_v-21600/downloads/default.mp4"], "a replay's copy stays signed; copied through a token");
   assert.deepEqual(profiles, ["NotesApp @ada 9x16", "NotesApp @bayo 16x10"], "each creator's profile for the video's frame");
   assert.ok(mcopy[1].watermark && rcopy[1].watermark);
-  stream.set(mcopy[0], { ...mcopy[1], readyToStream: true, size: 5200 }); stream.set(rcopy[0], { ...rcopy[1], readyToStream: true, size: 9100 });
+  const mocopy = Array.from(stream.entries()).find(([, v]) => v.from?.includes("pin.mp4"))!;
+  assert.deepEqual([mocopy[1].from, mocopy[1].signed, !!mocopy[1].watermark], [`${B}/moments/u_ada/pin.mp4`, true, true], "a pinned moment's video: Stream copies it from our bucket with @ada's mark, signed");
+  assert.ok(!Array.from(stream.values()).some((v) => v.from?.includes("live.mp4")), "a moment that isn't pinned is left to expire");
+  stream.set(mcopy[0], { ...mcopy[1], readyToStream: true, size: 5200 }); stream.set(rcopy[0], { ...rcopy[1], readyToStream: true, size: 9100 }); stream.set(mocopy[0], { ...mocopy[1], readyToStream: true });
   s = await runBackfill(db, deps);
   assert.equal(s.status, "done");
   // The picture post whose write failed: nothing half-done is shown, and its clean file is untouched.
@@ -163,6 +175,12 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   assert.match(String(s.lastError), /a_pics: R2 hiccup/);
   assert.deepEqual([s.counts.shopItems.done, s.counts.shopItems.already, s.counts.shopItems.external, s.counts.shopItems.skipped], [2, 1, 1, 1], "s1 and s5 marked; s2 shares s1's file");
   assert.deepEqual([s.counts.services.done, s.counts.journals.done, s.counts.journals.skipped], [1, 1, 1]);
+  assert.deepEqual([s.counts.momentPictures.done, s.counts.momentPictures.skipped, s.counts.momentVideos.done, s.counts.momentVideos.skipped], [1, 1, 1, 2], "moments: the picture marked (its reshare shares it); the pinned video re-marked; the live one and the second part skipped");
+  // Moments: the picture marked where it is (the reshare shows it too); the pinned video's parts now play the marked Stream copy, and the
+  // unmarked file in our bucket is gone; the live one's file is left for its expiry.
+  assert.ok(isMarkedFor("moments/u_ada/old-pic.webp", "ada"));
+  assert.deepEqual([(await db.doc("moments/mo_pin1").get()).data()!.videoKey, (await db.doc("moments/mo_pin2").get()).data()!.videoKey], [`stream:${mocopy[0]}`, `stream:${mocopy[0]}`]);
+  assert.ok(!objects.has("moments/u_ada/pin.mp4") && objects.has("moments/u_ada/live.mp4"));
   // "Run it again" finishes it.
   await controlBackfill(db, "start", "admin1");
   for (let i = 0; i < 10 && (s = await runBackfill(db, deps)).status === "running"; i++);
@@ -171,7 +189,7 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
 
   // ── What it did ──
   // Pictures are written over their own addresses: nothing to swap, nothing deleted, every copied link shows the mark.
-  assert.equal(removed.length, removedBefore, "the job deletes no picture files");
+  assert.deepEqual(removed.slice(removedBefore), ["moments/u_ada/pin.mp4"], "the job deletes no picture files (only the pinned moment video's unmarked bucket file)");
   // Media pictures: same keys, marked bytes, storage follows the new size.
   const pics = (await db.doc("mediaPosts/a_pics").get()).data()!;
   assert.equal(pics.marked, true);
@@ -237,6 +255,7 @@ const isMarkedFor = (key: string, u: string) => !!objects.get(key)?.subarray(-TA
   assert.equal(s.status, "done");
   assert.deepEqual([written.length, removed.length, cp], [w0, r0, c0], "idempotent: no new files, deletes or copies");
   assert.deepEqual([s.counts.mediaPictures.already, s.counts.mediaVideos.already, s.counts.replays.already, s.counts.shopItems.already, s.counts.services.already, s.counts.journals.already], [1, 1, 2, 3, 1, 1]);
+  assert.deepEqual([s.counts.momentPictures.already, s.counts.momentVideos.already, s.counts.momentVideos.skipped], [1, 1, 2]);
   // Pause and carry on; only one run at a time.
   await controlBackfill(db, "start", "admin1"); await controlBackfill(db, "pause", "admin1");
   assert.equal((await runBackfill(db, deps)).status, "paused", "paused: the cron does nothing");

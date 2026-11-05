@@ -67,7 +67,7 @@ export async function runBackfill(db: Firestore, deps: MediaDeps, o: { now?: () 
         const n = await recountStorage(db, s, batch);
         if (n === 0) { s.phase++; s.cursor = null; }
       } else {
-        const col = phase === "storeItems" ? "storeItems" : phase === "sites" ? "sites" : phase === "notes" ? "notes" : phase;
+        const col = phase;
         let q = db.collection(col).orderBy(FieldPath.documentId()).limit(batch);
         if (s.cursor) q = q.startAfter(s.cursor);
         const snap = await q.get();
@@ -78,9 +78,10 @@ export async function runBackfill(db: Firestore, deps: MediaDeps, o: { now?: () 
             else if (phase === "replays") await replay(db, d.ref, s, deps, clock());
             else if (phase === "storeItems") await storeItem(db, d.ref, s, deps, clock());
             else if (phase === "sites") await siteServices(db, d.ref, s, deps, clock());
+            else if (phase === "moments") await moment(db, d.ref, s, deps, clock());
             else await journal(db, d.ref, s, deps, clock());
           } catch (e) {
-            const kind: BackfillKind = phase === "mediaPosts" ? (d.data().kind === "video" ? "mediaVideos" : "mediaPictures") : phase === "replays" ? "replays" : phase === "storeItems" ? "shopItems" : phase === "sites" ? "services" : "journals";
+            const kind: BackfillKind = phase === "mediaPosts" ? (d.data().kind === "video" ? "mediaVideos" : "mediaPictures") : phase === "replays" ? "replays" : phase === "storeItems" ? "shopItems" : phase === "sites" ? "services" : phase === "moments" ? (d.data().kind === "video" ? "momentVideos" : "momentPictures") : "journals";
             s.counts[kind].failed++;
             s.lastError = `${col}/${d.id}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300);
             console.error("[mark-backfill]", col, d.id, e);
@@ -99,7 +100,8 @@ export async function runBackfill(db: Firestore, deps: MediaDeps, o: { now?: () 
 }
 
 const pendingVideos = async (db: Firestore) =>
-  (await db.collection("mediaPosts").where("remarkPending", "==", true).limit(1).get()).size + (await db.collection("replays").where("remarkPending", "==", true).limit(1).get()).size;
+  (await db.collection("mediaPosts").where("remarkPending", "==", true).limit(1).get()).size + (await db.collection("replays").where("remarkPending", "==", true).limit(1).get()).size
+  + (await db.collection("moments").where("remarkPending", "==", true).limit(1).get()).size;
 
 async function advanceVideos(db: Firestore, s: BackfillState, deps: MediaDeps, now: Date, batch: number): Promise<number> {
   let moved = 0;
@@ -110,6 +112,11 @@ async function advanceVideos(db: Firestore, s: BackfillState, deps: MediaDeps, n
       const out = await stepVideo(db, target(col, d.ref, d.data(), deps), deps, now).catch((e) => { s.lastError = String(e instanceof Error ? e.message : e).slice(0, 300); return "pending" as const; });
       if (out === "done" || out === "failed") { s.counts[kind].pending = Math.max(0, s.counts[kind].pending - 1); s.counts[kind][out]++; moved++; }
     }
+  }
+  const ms = await db.collection("moments").where("remarkPending", "==", true).limit(batch).get();
+  for (const d of ms.docs) {
+    const out = await stepMomentVideo(db, d.ref, d.data() as MomentRow, deps, now).catch((e) => { s.lastError = String(e instanceof Error ? e.message : e).slice(0, 300); return "pending" as const; });
+    if (out === "done" || out === "failed") { s.counts.momentVideos.pending = Math.max(0, s.counts.momentVideos.pending - 1); s.counts.momentVideos[out]++; moved++; }
   }
   return moved;
 }
@@ -290,6 +297,60 @@ async function journal(db: Firestore, ref: DocumentReference, s: BackfillState, 
     await ref.update({ ...(n.featured_image ? { featured_image: swapIn(String(n.featured_image), map) } : {}), ...(text !== content ? { content: text } : {}) });
   }
   s.counts.journals[result]++;
+}
+
+// ── Moments (owner, 5 Nov 2026) ──
+// Pictures: marked in place like every other picture (a reshare points at the same file, so the original's is marked once). Videos: a
+// moment that isn't pinned is gone within 72 hours, so its video is left to expire with it; a pinned one stays on its owner's Media, so
+// Stream copies it from our bucket with the owner's watermark profile, the moment (and its other parts and reshares) then points at the
+// Stream video, and the bucket's file is deleted.
+type MomentRow = { ownerUid: string; ownerUsername: string; kind: string; imageKey?: string; videoKey?: string; ownsMedia?: boolean; pinned?: boolean; expiresAt: string; remark?: RemarkState };
+async function moment(db: Firestore, ref: DocumentReference, s: BackfillState, deps: MediaDeps, now: Date) {
+  const m = (await ref.get()).data() as MomentRow;
+  const kind: BackfillKind = m.kind === "video" ? "momentVideos" : "momentPictures";
+  if (m.kind !== "image" && m.kind !== "video") return; // text and shared cards have no file of their own
+  if (m.ownsMedia === false) return void s.counts[kind].skipped++; // a reshare: the original's file is the one marked
+  if (!m.pinned && Date.parse(m.expiresAt) <= now.getTime()) return void s.counts[kind].skipped++; // the sweep is removing it
+  if (m.kind === "image" && m.imageKey) {
+    const o = await markKey(db, m.imageKey, { uid: m.ownerUid, username: m.ownerUsername }, "moment", deps, now);
+    if (o.result === "missing" || o.result === "failed") throw new Error(`the picture couldn't be ${o.result === "missing" ? "found" : "marked"}`);
+    if (o.key !== m.imageKey) {
+      const same = await db.collection("moments").where("imageKey", "==", m.imageKey).get();
+      for (const d of same.docs) await d.ref.update({ imageKey: o.key });
+    }
+    return void s.counts[kind][o.result === "marked" ? "done" : "already"]++;
+  }
+  if (!m.videoKey || m.videoKey.startsWith("stream:")) return void s.counts[kind].already++;
+  if (!m.pinned) return void s.counts[kind].skipped++; // gone within 72 hours with its moment
+  if (m.remark?.step === "copying") return;
+  const out = await stepMomentVideo(db, ref, m, deps, now);
+  if (out === "pending") s.counts[kind].pending++; else s.counts[kind][out]++;
+}
+async function stepMomentVideo(db: Firestore, ref: DocumentReference, m: MomentRow, deps: MediaDeps, now: Date): Promise<"pending" | "done" | "failed"> {
+  const key = String(m.videoKey);
+  const r = m.remark;
+  if (!r || r.step === "failed") {
+    if (r?.step === "failed" && r.tries >= MAX_TRIES) return "failed";
+    const profileUid = await markProfile(db, { uid: m.ownerUid, username: m.ownerUsername }, "9x16", deps.stream, now);
+    const c = await deps.stream.copy({ url: deps.publicUrl(key), watermarkUid: profileUid, creatorUid: m.ownerUid, name: `moment of @${m.ownerUsername}`, signed: true, purpose: "moment" });
+    await ref.update({ remark: { step: "copying", startedAt: now.toISOString(), profileUid, newUid: c.uid, tries: (r?.tries ?? 0) + 1 }, remarkPending: true });
+    return "pending";
+  }
+  const fail = async (why: string): Promise<"failed"> => {
+    if (r.newUid) await deps.stream.remove(r.newUid).catch(() => {});
+    await ref.update({ remark: { ...r, step: "failed", why }, remarkPending: FieldValue.delete() });
+    return "failed";
+  };
+  if (now.getTime() - Date.parse(r.startedAt) > GIVE_UP_MS) return fail("Cloudflare took more than a day. Run the job again to retry.");
+  const v = await deps.stream.get(r.newUid!).catch(() => null);
+  if (!v || v.state === "error") return fail("Cloudflare couldn't copy the video with the mark.");
+  if (!v.readyToStream) return "pending";
+  const streamKey = `stream:${r.newUid}`;
+  const same = await db.collection("moments").where("videoKey", "==", key).get(); // its other parts and its reshares
+  for (const d of same.docs) await d.ref.update({ videoKey: streamKey, ...(d.id === ref.id ? { remark: FieldValue.delete(), remarkPending: FieldValue.delete() } : {}) });
+  if (!same.docs.some((d) => d.id === ref.id)) await ref.update({ videoKey: streamKey, remark: FieldValue.delete(), remarkPending: FieldValue.delete() });
+  await deps.remove(key).catch(() => {}); // the unmarked file in our bucket
+  return "done";
 }
 
 // Every member's Media storage, counted again from what they have: their posts' files (once each) and video uploads not yet posted.

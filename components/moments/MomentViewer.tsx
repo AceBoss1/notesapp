@@ -197,7 +197,14 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
             side-by-side TikTok duet, can never spill past the edges of the window. */}
         <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-black" onClick={tap}>
           {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="h-full w-full object-contain" />}
-          {m.kind === "video" && (
+          {m.kind === "video" && m.streamVideo && (
+            // On Cloudflare Stream with the NotesApp mark burned in (signed: a player link only for the moment's audience).
+            <StreamMoment key={m.id} id={m.id} clipStart={m.clipStart ?? 0} clipEnd={m.clipEnd}
+              onProgress={(f) => setFrac((p) => (p === f ? p : f))}
+              onDone={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+              onError={(t) => setNote(t)} />
+          )}
+          {m.kind === "video" && !m.streamVideo && (
             // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
             <video
               key={m.videoUrl} ref={videoEl} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
@@ -319,6 +326,47 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         {nextGroup && onSelectGroup && <p className="text-center text-xs text-white/50">Moves on to {nextGroup.displayName} next</p>}
       </aside>
       {reporting && <ReportDialog kind="moment" targetId={m.id} onClose={() => setReporting(false)} />}
+    </div>
+  );
+}
+
+// A moment's video on Cloudflare Stream: Stream's player (no controls), started at the part's own start and moved on from at its end,
+// from the player's timeupdate messages (as the course player reads them). Taps go to the transparent layer over it, so tapping still
+// moves between moments.
+function StreamMoment({ id, clipStart, clipEnd, onProgress, onDone, onError }: { id: string; clipStart: number; clipEnd?: number; onProgress: (f: number) => void; onDone: () => void; onError: (t: string) => void }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [player, setPlayer] = useState<string | null>(null);
+  const cb = useRef({ onProgress, onDone });
+  cb.current = { onProgress, onDone };
+  useEffect(() => {
+    let live = true;
+    api<{ player: string }>(`/api/moments/${id}`, { body: { action: "play" } }).then((r) => { if (live) setPlayer(r.player); }, () => { if (live) onError("This video couldn't be loaded. Check your connection and try again."); });
+    return () => { live = false; };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let duration = 0;
+    const onMsg = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow) return;
+      const d = typeof e.data === "string" ? (() => { try { return JSON.parse(e.data); } catch { return null; } })() : e.data;
+      const ev = d?.__privateUnstableMessageType ?? d?.event ?? d?.type;
+      const v = d?.value ?? d?.data ?? {};
+      if (typeof v.duration === "number") duration = v.duration;
+      if (ev === "ended") return cb.current.onDone();
+      if ((ev === "timeupdate" || ev === "propertyChange") && typeof v.currentTime === "number") {
+        const to = clipEnd ?? duration;
+        if (to > clipStart) cb.current.onProgress(Math.round(Math.min(1, Math.max(0, (v.currentTime - clipStart) / (to - clipStart))) * 100) / 100);
+        if (clipEnd && v.currentTime >= clipEnd - 0.05) cb.current.onDone();
+      }
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [player, clipStart, clipEnd]);
+  if (!player) return <p className="text-sm text-white/70">Loading the video…</p>;
+  return (
+    <div className="relative h-full w-full">
+      <iframe ref={frame} src={`${player}?autoplay=true&controls=false&preload=auto${clipStart ? `&startTime=${Math.floor(clipStart)}s` : ""}`} title="Moment video"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" className="absolute inset-0 h-full w-full border-0" />
+      <div className="absolute inset-0" aria-hidden />
     </div>
   );
 }

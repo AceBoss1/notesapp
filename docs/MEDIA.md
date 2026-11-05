@@ -220,6 +220,10 @@ the corner). Code: `lib/media-mark.ts` (pure: the look and Admin's settings, `ma
   ("external"). Running it again only counts "already". Afterwards the owner purges the media domain's Cloudflare cache (HANDOVER 121).
   Stream videos: nothing stores a thumbnail or player address (posters are built from the uid when shown), so deleting the old uid
   breaks nothing.
+- **Moments** (added 5 Nov): a moment's picture is marked when it is posted (new key, clean upload deleted); a moment's video uploads
+  to Stream with the creator's profile (signed: `momentPlayer` hands a player link to the moment's audience only), stored as
+  `videoKey: "stream:<uid>"` so expiry, parts, reshares, reports and deletion handle it unchanged. The job marks existing moment
+  pictures in place, leaves unpinned moment videos to expire, and copies pinned ones to Stream with the mark (bucket file deleted).
 - **Not tried against real Stream:** `watermark` on `direct_upload` and `/copy`, scale 1.0 filling the frame exactly per shape, and
   `?filename=` on a public MP4. Try one upload of each shape on staging first.
 

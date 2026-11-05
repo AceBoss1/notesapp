@@ -93,6 +93,7 @@ jobs:
       - run: npm run test:young-server
       - run: npm run test:media-server
       - run: npm run test:marks-server
+      - run: npm run test:moments-server
       - run: npm run test:prep-schools-server
       - run: npm run test:kids-server
       - run: npm run test:time-server

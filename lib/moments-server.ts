@@ -16,6 +16,8 @@ import { effectiveTier, type AccountTier } from "./users";
 import { limit } from "./limits-server";
 import { isAutoFollowed } from "./journals-directory";
 import { MOMENTS_PINNED_MAX } from "./media-rules";
+import { markProfile, type MarkProfileDeps } from "./media-mark-server";
+import { shapeOf } from "./media-mark";
 import { MENTION_BLOCKED, REPLY_BLOCKED, RESHARE_BLOCKED, firstName, hearsOnlyFromFollowed, mayReach, mayReshare, teenAudience } from "./young";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
@@ -25,9 +27,24 @@ export class MomentError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+// The permanent NotesApp mark on moments (owner, 5 Nov 2026; lib/media-mark.ts): a moment's picture is marked as it is posted (only the
+// marked copy kept), and a moment's video goes to Cloudflare Stream with the creator's watermark profile burned in. A Stream video is
+// kept in the moment's `videoKey` as "stream:<uid>", so everything that deletes, keeps or passes on a moment's files (expiry, deleting,
+// the parts of a long video, reshares, reports, account deletion) works for it unchanged: `remove` deletes it from Stream.
+export const STREAM_KEY = "stream:";
+export const streamUidOf = (key: string | undefined) => (key?.startsWith(STREAM_KEY) ? key.slice(STREAM_KEY.length) : null);
+export type MomentStreamDeps = MarkProfileDeps & {
+  configured: boolean;
+  create: (creatorUid: string, maxSeconds: number, name: string, watermarkUid: string) => Promise<{ uploadURL: string; uid: string }>; // signed playback
+  copy: (o: { url: string; watermarkUid: string; creatorUid: string; name: string; signed: boolean; purpose: string }) => Promise<{ uid: string }>;
+  get: (uid: string) => Promise<{ readyToStream: boolean; state?: string } | null>;
+  token: (uid: string, seconds: number) => Promise<string>;
+};
 export type MomentDeps = {
   publicUrl: (key: string) => string;
-  remove: (key: string) => Promise<void>; // deletes a media object from the bucket
+  remove: (key: string) => Promise<void>; // deletes a media object from the bucket, or a "stream:<uid>" video from Stream
+  markImage?: (key: string, username: string) => Promise<string>; // the picture marked: returns the marked key (the clean one deleted)
+  stream?: MomentStreamDeps;
 };
 
 type MomentDoc = {
@@ -49,7 +66,9 @@ type MomentDoc = {
 
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
-  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
+  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
+  clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
+  streamVideo?: boolean; // the video is on Cloudflare Stream (signed): the viewer asks for a player link (POST action "play")
   link?: MomentLink;
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
@@ -129,7 +148,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     id, ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, kind: m.kind,
     ...(m.text ? { text: m.text } : {}),
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
-    ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
+    ...(m.videoKey ? { ...(streamUidOf(m.videoKey) ? { streamVideo: true } : { videoUrl: deps.publicUrl(m.videoKey) }), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
     ...(m.link ? { link: m.link } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
@@ -166,20 +185,42 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     if (!text) throw new MomentError(400, "Write something to share.");
   } else if (input.kind === "image") {
     const key = String(input.imageKey ?? "");
-    // Uploaded through /api/upload (purpose "moment"), which puts it under this member's own folder.
+    // Uploaded through /api/upload (purpose "moment"), which puts it under this member's own folder. It is given the NotesApp mark now and
+    // only the marked copy is kept (the clean upload is deleted).
     if (!key.startsWith(`moments/${owner.uid}/`) || key.includes("..")) throw new MomentError(400, "Upload an image first.");
-    doc.imageKey = key;
+    if (!deps.markImage) throw new MomentError(503, "Pictures can't be shared as moments right now. Try again later.");
+    try { doc.imageKey = await deps.markImage(key, owner.username); } catch { throw new MomentError(400, "That picture couldn't be read. Try a JPEG or WebP."); }
   } else {
-    const up = (await db.doc(`videoUploads/${String(input.videoUploadId ?? "")}`).get()).data();
-    if (!up || up.uid !== owner.uid || up.verified !== true) throw new MomentError(400, "The video hasn't finished uploading.");
-    if (!String(up.key).startsWith(`moments/${owner.uid}/`)) throw new MomentError(400, "That video wasn't uploaded for a moment.");
+    const upRef = db.doc(`videoUploads/${String(input.videoUploadId ?? "")}`);
+    const up = (await upRef.get()).data();
+    if (!up || up.uid !== owner.uid) throw new MomentError(400, "The video hasn't finished uploading.");
     if (!(up.contentType in VIDEO_TYPES)) throw new MomentError(400, "Use an MP4 or WebM video.");
+    let videoKey: string;
+    if (up.streamUid) {
+      // Sent straight to Stream (startMomentVideo), with the mark burned in: there once Stream has the file.
+      if (up.verified !== true) {
+        const v = await deps.stream?.get(String(up.streamUid)).catch(() => null);
+        if (!v || v.state === "pendingupload" || v.state === "error") throw new MomentError(400, v?.state === "error" ? "Cloudflare couldn't take that video. Try an MP4." : "The video hasn't finished uploading.");
+        await upRef.update({ verified: true, verifiedAt: now.toISOString() });
+      }
+      videoKey = `${STREAM_KEY}${up.streamUid}`;
+    } else {
+      // A video in our bucket (shared from a chat, lib/chat-media-server.ts): Stream copies it with the mark, and the bucket's copy goes.
+      if (up.verified !== true) throw new MomentError(400, "The video hasn't finished uploading.");
+      if (!String(up.key).startsWith(`moments/${owner.uid}/`)) throw new MomentError(400, "That video wasn't uploaded for a moment.");
+      if (!deps.stream?.configured) throw new MomentError(503, "Video moments aren't switched on yet. Pictures and text work now.");
+      const profileUid = await markProfile(db, owner, shapeOf(up.width, up.height, "9x16"), deps.stream, now);
+      const c = await deps.stream.copy({ url: deps.publicUrl(String(up.key)), watermarkUid: profileUid, creatorUid: owner.uid, name: `moment of @${owner.username}`, signed: true, purpose: "moment" });
+      await upRef.update({ streamUid: c.uid, bucketKey: up.key, verified: true }); // the other parts use the same Stream video
+      videoKey = `${STREAM_KEY}${c.uid}`;
+      // The bucket's copy is removed once Stream has it (sweepMomentCopies); a few minutes, not the moment's whole life.
+    }
     // Which stretch of the file this moment plays: at most 90 seconds. A video that's short enough needs no clip.
     const start = input.clipStart === undefined ? 0 : Number(input.clipStart);
     const end = input.clipEnd === undefined ? Math.min(up.durationSec, MOMENT_VIDEO_MAX_SECONDS) : Number(input.clipEnd);
     if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > up.durationSec + 1) throw new MomentError(400, "That part of the video isn't valid.");
     if (end - start > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Each moment can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
-    doc.videoKey = up.key;
+    doc.videoKey = videoKey;
     doc.durationSec = up.durationSec;
     if (up.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1 || input.clipEnd !== undefined) { doc.clipStart = start; doc.clipEnd = end; }
     doc.splitGroup = String(input.videoUploadId);
@@ -494,8 +535,6 @@ export async function listPinnedMoments(db: Firestore, viewerUid: string | null,
   return shown.sort((a, b) => String(b.m.pinnedAt ?? "").localeCompare(String(a.m.pinnedAt ?? ""))).map((d) => toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
 }
 
-// A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
-// 90 seconds at most, in the member's own `moments/` folder, and no weekly post-video quota — moments have their own daily limit.
 // Where the member stands on video moments this week: the plan's allowance, what's used, and what's left.
 const weeklyVideoLimit = (db: Firestore, tier: AccountTier) => limit(db, "momentVideosPerWeek", tier);
 
@@ -505,14 +544,18 @@ export async function momentVideoQuota(db: Firestore, uid: string, tier: Account
   return { limit, used, remaining: Math.max(0, limit - used) };
 }
 
-// A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), in the member's
-// own `moments/` folder, with no weekly post-video quota: moments have their own weekly allowance by plan, one for each moment.
-// A video longer than 90 seconds is cut into parts, one moment each: the parts it needs come out of the allowance, and if there
-// isn't room for all of them only the first 90 seconds of as many parts as there is room for are used (`partsAllowed`).
+// A moment's video goes straight from the browser to Cloudflare Stream (a one-time upload address), with the creator's watermark profile
+// for the video's frame shape burned in (owner, 5 Nov 2026: "Move to Stream, burn in"), and signed playback (a moment is only for its
+// audience). The same checks as before (type, size, length), and the plan's weekly video moments: a video longer than 90 seconds is cut
+// into parts, one moment each, all playing their own stretch of the one Stream video; the parts it needs come out of the allowance, and if
+// there isn't room for all of them only the first 90 seconds of as many parts as there is room for are used (`partsAllowed`).
 export async function startMomentVideo(
-  db: Firestore, uid: string, tier: AccountTier, input: { size: number; contentType: string; durationSec: number },
-  presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date()
-): Promise<{ id: string; key: string; uploadUrl: string; partsAllowed: number; partsNeeded: number }> {
+  db: Firestore, owner: { uid: string; username: string }, tier: AccountTier, input: { size: number; contentType: string; durationSec: number; width?: unknown; height?: unknown },
+  deps: Pick<MomentDeps, "stream">, now = new Date()
+): Promise<{ id: string; uploadURL: string; partsAllowed: number; partsNeeded: number }> {
+  const uid = owner.uid;
+  if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
+  if (!deps.stream?.configured) throw new MomentError(503, "Video moments aren't switched on yet. Pictures and text work now.");
   const ext = VIDEO_TYPES[input.contentType];
   if (!ext) throw new MomentError(400, "Use an MP4 (H.264) or WebM video.");
   if (!Number.isInteger(input.size) || input.size <= 0) throw new MomentError(400, "That file looks empty.");
@@ -536,19 +579,42 @@ export async function startMomentVideo(
     t.set(usageRef, { uid, week: isoWeekKey(now), kind: "moment", count: used + partsAllowed }, { merge: true });
   });
   const id = randomBytes(8).toString("hex");
-  const key = `moments/${uid}/${id}.${ext}`;
   try {
-    const uploadUrl = await presign(key, input.contentType, input.size);
+    const shape = shapeOf(input.width, input.height, "9x16");
+    const profileUid = await markProfile(db, owner, shape, deps.stream, now);
+    const up = await deps.stream.create(uid, input.durationSec, `moment of @${owner.username}`, profileUid);
     await db.doc(`videoUploads/${id}`).set({
-      uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, quotaDoc,
-      partsAllowed, partsNeeded, partsCreated: 0,
+      uid, streamUid: up.uid, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, quotaDoc,
+      purpose: "moment", marked: true, shape, partsAllowed, partsNeeded, partsCreated: 0,
       createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000),
     });
-    return { id, key, uploadUrl, partsAllowed, partsNeeded };
+    return { id, uploadURL: up.uploadURL, partsAllowed, partsNeeded };
   } catch (err) {
     await usageRef.update({ count: FieldValue.increment(-partsAllowed) }).catch(() => {});
     throw err;
   }
+}
+
+// A moment's video Stream is still copying from our bucket (one shared from a chat): once Stream has it, the bucket's copy is removed.
+// An upload never used for a moment is removed from Stream when its upload record runs out (two days).
+export async function sweepMomentCopies(db: Firestore, deps: MomentDeps, now = new Date(), batch = 50): Promise<number> {
+  const snap = await db.collection("videoUploads").where("bucketKey", ">", "").limit(batch).get();
+  let n = 0;
+  for (const d of snap.docs) {
+    const up = d.data();
+    const v = await deps.stream?.get(String(up.streamUid)).catch(() => null);
+    const old = now.getTime() - Date.parse(String(up.createdAt ?? now.toISOString())) > 86_400_000;
+    if (v?.readyToStream || v?.state === "error" || old) { await deps.remove(String(up.bucketKey)).catch(() => {}); await d.ref.update({ bucketKey: FieldValue.delete() }); n++; }
+  }
+  return n;
+}
+
+// A player link for a moment's Stream video (signed, a few hours), for someone in the moment's audience (the same check as everything else).
+export async function momentPlayer(db: Firestore, viewerUid: string, id: string, deps: MomentDeps, now = new Date()): Promise<{ player: string }> {
+  const { m } = await loadActive(db, viewerUid, id, now);
+  const uid = streamUidOf(m.videoKey);
+  if (!uid || !deps.stream) throw new MomentError(400, "That moment has no video to play.");
+  return { player: `https://iframe.videodelivery.net/${encodeURIComponent(await deps.stream.token(uid, 6 * 3600))}` };
 }
 
 // Voice-over upload, same shape as the video one: ask (type, size and length checked, size signed in), PUT to the bucket,

@@ -8,7 +8,7 @@ import { BACKFILL_COUNTS, BACKFILL_KINDS, BACKFILL_PHASES, type BackfillState } 
 // (v0.143.0) the same mark and deletes the clean originals (lib/media-mark-backfill.ts). Start it once; it carries on by itself on the
 // cron a batch at a time, and "Run a batch now" moves it along while you watch. It can be paused, and started again safely.
 const PHASE_LABEL: Record<(typeof BACKFILL_PHASES)[number], string> = {
-  mediaPosts: "Media posts", replays: "live replays", storeItems: "shop items", sites: "services on sites", notes: "journals", recount: "counting Media storage again",
+  mediaPosts: "Media posts", replays: "live replays", storeItems: "shop items", sites: "services on sites", notes: "journals", moments: "moments", recount: "counting Media storage again",
 };
 const COUNT_LABEL: Record<(typeof BACKFILL_COUNTS)[number], string> = { done: "Marked now", already: "Already marked", pending: "Video copying", failed: "Failed", skipped: "Nothing to mark", external: "Not our file" };
 

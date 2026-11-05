@@ -889,6 +889,24 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     1:3 and a long name; no NotesApp word in the corner; real renders of the Anya photos), `test:media-server`, `test:marks-server`
     (new: shop/service/journal marks, the job resumable, idempotent and surviving a failed delete, storage recount),
     `test:recording-server` (a video replay copied with the host's profile), rules.
+    **Moments (owner, 5 Nov, added after review):** a moment's picture is marked when the moment is created (`createMoment` →
+    `momentDeps.markImage`: new `-na` key, clean upload deleted; this also covers a chat photo posted as a moment). A moment's **video now
+    uploads to Cloudflare Stream** (`startMomentVideo`: signed direct upload with the creator's per-shape profile; the composer sends the
+    width and height). It is stored in the moment as `videoKey: "stream:<uid>"`, so expiry, deleting, the parts of a long video (all parts
+    share the one Stream video and play their own `clipStart`–`clipEnd`), reshares, reports (evidence keeps it; Admin → Reports shows its
+    signed player) and account deletion all work unchanged: `momentDeps.remove` deletes a `stream:` key from Stream. Playback: signed,
+    because a moment is only for its audience; the viewer asks `POST /api/moments/{id} { action: "play" }`, which runs the same audience
+    check (followers or public setting, blocks, teen mutuals) and returns an iframe player link with a 6-hour token; the viewer drives
+    Stream's player from its timeupdate/ended messages (start at the part's start, move on at its end). A chat video posted as a moment is
+    copied to Stream with the mark (`/copy` from its public bucket address) and the bucket copy deleted by the cron once Stream has it
+    (`sweepMomentCopies`). Expired and deleted moments delete their Stream video; a pinned part keeps it. Without Stream set up, video
+    moments are switched off (pictures and text still work). **Existing moments (the re-marking job):** pictures are marked in place;
+    a video that isn't pinned is left to expire (gone within 72 hours, no Stream minutes spent); a **pinned** moment's video is copied to
+    Stream with the mark, its parts and reshares then point at it, and its bucket file is deleted. **Stream minutes:** each video moment
+    is stored on Stream only for its 24–72 hours (pinned ones until unpinned), and every view is delivered minutes; small next to Media.
+    **Not tried with real Stream:** the iframe player's `startTime` and its timeupdate messages for moving between parts (the same
+    messages the course player already reads), autoplay with sound inside the moment viewer, and a 9:16 profile on a chat video whose
+    size we don't know. Tests: `test:moments-server` (new), `test:marks-server` (moments in the job), `test:messages` (chat → moment).
 
 ## 3. How the work is done (please keep these)
 

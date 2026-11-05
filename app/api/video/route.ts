@@ -9,6 +9,7 @@ import { effectiveTier } from "@/lib/users";
 import { VideoError, finishVideoUpload, startVideoUpload } from "@/lib/video-server";
 import { MomentError, momentVideoQuota, startMomentVideo } from "@/lib/moments-server";
 import { MOMENTS_LIVE } from "@/lib/moments-rules";
+import { momentDeps } from "@/lib/moments-api";
 import { verifyAvatarUploadRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 
 async function momentUploader(token: string | undefined): Promise<string> {
@@ -19,7 +20,9 @@ async function momentUploader(token: string | undefined): Promise<string> {
 
 export const dynamic = "force-dynamic";
 
-// POST { action: "start", size, contentType, durationSec }  → { id, key, uploadUrl, publicUrl }
+// POST { action: "start", size, contentType, durationSec }  → { id, key, uploadUrl, publicUrl }  (a journal's video, to our bucket)
+// POST { action: "start", purpose: "moment", size, contentType, durationSec, width?, height? } → { id, uploadURL, partsAllowed, partsNeeded }
+//   (a moment's video, to Cloudflare Stream with the NotesApp mark; no finish step)
 // POST { action: "finish", id }                             → { ok, key, publicUrl }
 export async function POST(req: NextRequest) {
   try {
@@ -42,12 +45,14 @@ export async function POST(req: NextRequest) {
 
     if (body.action === "start" && isMoment) {
       const mu = (await db.doc(`users/${uid}`).get()).data();
+      // Straight to Cloudflare Stream with the creator's NotesApp mark burned in (lib/moments-server.ts startMomentVideo): the browser
+      // sends the file to uploadURL (a form post), then posts the moment(s); there is no "finish" step for a moment's video.
       const out = await startMomentVideo(
-        db, uid, effectiveTier({ username: mu?.username ?? "", role: mu?.role ?? "reader", accountTier: mu?.accountTier ?? "standard" }),
-        { size: Number(body.size), contentType: String(body.contentType || ""), durationSec: Number(body.durationSec) },
-        (key, contentType, size) => getSignedUrl(r2, new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, ContentType: contentType, ContentLength: size }), { expiresIn: 900 })
+        db, { uid, username: String(mu?.username ?? "") }, effectiveTier({ username: mu?.username ?? "", role: mu?.role ?? "reader", accountTier: mu?.accountTier ?? "standard" }),
+        { size: Number(body.size), contentType: String(body.contentType || ""), durationSec: Number(body.durationSec), width: body.width, height: body.height },
+        momentDeps,
       );
-      return NextResponse.json({ ...out, publicUrl: r2PublicUrl(out.key) });
+      return NextResponse.json(out);
     }
 
     if (body.action === "start") {

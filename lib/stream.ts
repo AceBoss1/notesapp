@@ -48,6 +48,18 @@ export function createPublicDirectUpload(creatorUid: string, maxSeconds: number,
   });
 }
 
+// A moment's video (lib/moments-server.ts): signed playback, because a moment is only for its audience (followers, or a teen's mutual
+// followers), checked by our API before it hands out a token; the creator's watermark profile is burned in as it arrives.
+export function createSignedDirectUpload(creatorUid: string, maxSeconds: number, name: string, watermarkUid: string) {
+  return cf<{ uploadURL: string; uid: string }>("/direct_upload", {
+    method: "POST",
+    body: JSON.stringify({
+      maxDurationSeconds: Math.max(1, Math.min(STREAM_MAX_SECONDS, Math.round(maxSeconds) + 1)), requireSignedURLs: true, creator: creatorUid,
+      meta: { name, purpose: "moment" }, watermark: { uid: watermarkUid },
+    }),
+  });
+}
+
 // ── The NotesApp mark and downloads of Media videos (lib/media-mark.ts) ──
 // MP4 downloads of one video: switched on, read, switched off. Stream answers { default: { status, url, percentComplete } }.
 export type StreamDownload = { status: "inprogress" | "ready" | "error"; url: string };

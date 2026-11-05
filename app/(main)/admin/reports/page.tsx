@@ -83,7 +83,9 @@ export default function AdminReportsPage() {
                     <p className="text-slate">{r.evidence.kind} moment by @{r.evidence.ownerUsername}{r.evidence.hasVoiceOver ? " (with a voice-over)" : ""}</p>
                     {r.evidence.text && <p className="mt-1 whitespace-pre-wrap text-ink">{r.evidence.text}</p>}
                     {r.mediaUrls.map((u) =>
-                      /\.(mp4|webm)$/.test(u) ? <video key={u} src={u} controls className="mt-2 max-h-64" />
+                      // A moment's video on Cloudflare Stream: its signed player.
+                      u.startsWith("https://iframe.videodelivery.net/") ? <iframe key={u} src={u} title="Reported video" allow="encrypted-media" className="mt-2 aspect-video w-full max-w-md border-0" />
+                      : /\.(mp4|webm)$/.test(u) ? <video key={u} src={u} controls className="mt-2 max-h-64" />
                       : /\.m4a$/.test(u) ? <audio key={u} src={u} controls className="mt-2 w-full" />
                       : /* eslint-disable-next-line @next/next/no-img-element */ <img key={u} src={u} alt="" className="mt-2 max-h-64" />
                     )}
