@@ -3020,3 +3020,10 @@ server's sign-in check would take Google off an account being linked on purpose)
 didn't run, `afterGoogle` still checks the old way. Test: `tests/social-signin/google-gate.emulator.ts` (browser SDK against the Auth
 emulator, in `test:social-signin`). The same HAR confirmed LinkedIn end to end on the live site (real ID token and nonce accepted) and
 the `/__/auth` on-site handler.
+
+**R2 CORS for every address of both domains (v0.142.1, 5 Nov 2026)** — The owner's console on www.naapp.tech: avatar uploads (a
+presigned PUT straight to `notesapp-media` on R2) "blocked by CORS policy: No 'Access-Control-Allow-Origin' header". `scripts/r2-cors.json`
+predated the move: it had only www./bare/app. of notesapp.name.ng and notesapp.ng. It now lists bare, www., app., life., prep. and mcp. of
+notesapp.name.ng and naapp.tech, plus notesapp.ng, www.notesapp.ng and localhost:3000. `tests/host/host.test.ts` (in `test:host`)
+fails when a domain in `KNOWN_ROOTS` / `APP_SHORT_DOMAINS` or one of those subdomains is missing. Owner step: paste the file into both
+buckets' CORS policy (docs/DOMAIN_SWITCH.md step 2, docs/OWNER_SETUP.md). Nothing in the code changed.
