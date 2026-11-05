@@ -3,7 +3,7 @@ import { setting } from "./config";
 import { SITE_URL } from "./host";
 import { LIVE_SIG_HEADER, signBody } from "./live-token";
 import { liveHttpBase, type LiveConfig, type LiveServerOp } from "./live-rooms";
-import { EDGE_STALE_MS, type RoomSettings } from "./rooms";
+import { EDGE_STALE_MS, type RoomSettings, type StageMode } from "./rooms";
 import type { LiveHand } from "./live-rooms";
 
 // Our server's side of the live-rooms worker (workers/live-rooms; lib/live-rooms.ts): whether it is switched on, and the signed calls
@@ -16,8 +16,8 @@ export const liveRoomsSecret = () => (setting("LIVE_ROOMS_SECRET") ?? "").trim()
 export const liveRoomsOn = () => /^wss?:\/\/[^/\s]+/i.test(liveRoomsUrl()) && liveRoomsSecret().length >= 16;
 // Where the worker sends a room's chat batches and count: this site's own address (lib/host.ts), never a hard-coded domain.
 export const liveCallbackUrl = () => `${SITE_URL}/api/community/rooms/edge`;
-export const liveConfigFor = (roomId: string, hostUid: string, s: Pick<RoomSettings, "chatSlowAbove" | "chatSlowSeconds">): LiveConfig =>
-  ({ roomId, callback: liveCallbackUrl(), hostUid, slowAbove: s.chatSlowAbove, slowSeconds: s.chatSlowSeconds });
+export const liveConfigFor = (roomId: string, hostUid: string, s: Pick<RoomSettings, "chatSlowAbove" | "chatSlowSeconds">, stageMode?: StageMode): LiveConfig =>
+  ({ roomId, callback: liveCallbackUrl(), hostUid, slowAbove: s.chatSlowAbove, slowSeconds: s.chatSlowSeconds, ...(stageMode ? { stageMode } : {}) });
 
 // Tests swap the transport for a stand-in.
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;

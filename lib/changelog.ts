@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.139.0",
+    bump: "minor",
+    date: "2026-11-04",
+    changes: [
+      { kind: "added", text: "Audio rooms: the stage shows its empty chairs, each with a + in the middle. The host picks a stage mode when starting and can switch it any time during the live: Solo (only the host on stage, nobody can ask), Approve (tap + to ask for a seat; the host or a moderator approves or declines) or Open (tap + and you're on stage at once while there's a seat; a recorded live still asks you to agree first, members in teen mode send a request instead, and anyone removed from the live can't come up)." },
+      { kind: "added", text: "Invitations to the stage: the host or a moderator taps anyone listening and Invite on stage; they see who invited them and tap Come up or Not now. Members in teen mode can only be invited by people they follow." },
+      { kind: "added", text: "Moderators for a live: the host names them when starting the room or during it (the community's moderators and admins, or anyone in the community by @username) and ticks what each may do, or picks Basic or Full: approve requests, invite, bring speakers down, turn a speaker's mic off and on, turn a camera off, remove chat messages, mute in the chat, remove someone from the live, change the stage mode, slow mode, pin, the poster, speakers' video, recording reminders, and ending the live (off unless ticked). A moderator never acts on the host or on a moderator who holds as much, sees only the controls they hold, and every action goes in a log the host can open." },
+      { kind: "added", text: "Turning a speaker's mic off is enforced: the speaker can't turn it back on themselves; in a relay room their sound stops being sent at all, and phone to phone every phone leaves it out." },
+      { kind: "added", text: "A pinned message or announcement at the top of the room chat." },
+      { kind: "changed", text: "Raise hand is now Ask for a seat (the same request as + on an empty chair). Bringing up someone who hasn't asked sends them an invitation instead of moving them straight up." },
+    ],
+  },
+  {
     version: "v0.138.1",
     bump: "patch",
     date: "2026-11-05",

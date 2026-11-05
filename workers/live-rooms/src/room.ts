@@ -11,8 +11,9 @@ import { LIVE_SIG_HEADER, signBody, verifyBody, verifyLiveToken, type LiveRole }
 import {
   LIVE_BATCH_MS, LIVE_SESSIONS_BATCH, LIVE_SESSIONS_MAX, LIVE_CHAT_RATE, LIVE_COUNT_BROADCAST_MS, LIVE_COUNT_KEEPALIVE_MS, LIVE_COUNT_PUSH_MS, LIVE_FRAME_MAX, LIVE_PENDING_MAX, LIVE_RECENT, LIVE_SIGNAL_RATE,
   batchDue, cleanLiveText, countPushDue, isLiveChatId, liveChatId, liveSlow, liveWait, retryDelay, take,
-  type Bucket, type LiveBatch, type LiveChat, type LiveClientMsg, type LiveConfig, type LiveHand, type LiveSession, type LiveServerMsg, type LiveServerOp,
+  type Bucket, type LiveBatch, type LiveChat, type LiveClientMsg, type LiveConfig, type LiveHand, type LiveModAction, type LiveSession, type LiveServerMsg, type LiveServerOp,
 } from "../../../lib/live-rooms";
+import { ALL_MOD_PERMS, COMMUNITY_MOD_PERMS, isStageMode, strictlyWithin, type ModPerm, type StageMode } from "../../../lib/rooms";
 import type { CfDurableObjectState, CfWebSocket, Env } from "./cf";
 
 // What each socket remembers (its attachment): who it is, and its rate-limit buckets.
@@ -30,6 +31,9 @@ export type Meta = {
   // For our server: raised hands' changes since the last batch (uid → the hand, or null for down), and how many session events wait
   // (the events themselves are under "sess"; each person's open session is marked under "o:<uid>").
   handsOut: Record<string, LiveHand | null>; sessCount: number;
+  // The stage (lib/rooms.ts "Stage seats"), as our server last said: the mode (Solo refuses hands), the moderators named for this live
+  // and their permissions, and the speakers whose microphone is off. modLogOut: moderators' socket actions waiting for our server.
+  stageMode?: StageMode; mods?: Record<string, ModPerm[]>; mics?: string[]; modLogOut?: LiveModAction[];
 };
 const META0: Meta = { config: null, ended: false, hostSlow: null, hands: {}, video: {}, roles: {}, muted: [], banned: [], bansOut: [], removed: [], pendingIds: [], peak: 0, fails: 0, countAt: 0, countSent: -1, countDirty: false, connected: 0, handsOut: {}, sessCount: 0 };
 const HANDS_MAX = 500;
@@ -113,7 +117,7 @@ export class LiveRoom {
     server.serializeAttachment(att);
     m.countDirty = true;
     const recent = (await this.loadRecent()).filter((x) => !m.removed.includes(x.id));
-    this.send(server, { t: "hello", you: { uid: claims.u, role, mod: claims.mod, muted: m.muted.includes(claims.u) }, ...(claims.mod || role === "host" ? { mutedList: m.muted } : {}), count: Math.max(0, m.countSent), hands: m.hands, video: m.video, recent, slow: this.slowNow(m), hostSlow: m.hostSlow });
+    this.send(server, { t: "hello", you: { uid: claims.u, role, mod: claims.mod, muted: m.muted.includes(claims.u) }, ...(this.may(m, att, "chatMute") ? { mutedList: m.muted } : {}), count: Math.max(0, m.countSent), hands: m.hands, video: m.video, recent, slow: this.slowNow(m), hostSlow: m.hostSlow, ...(m.stageMode ? { stageMode: m.stageMode } : {}), ...(m.mics?.length ? { mics: m.mics } : {}) });
     await this.save();
     await this.schedule();
     return response();
@@ -131,6 +135,8 @@ export class LiveRoom {
         if (!op.config || op.config.roomId !== roomId) return json(400, { error: "wrong room" });
         m.config = op.config;
         m.ended = false;
+        if (isStageMode(op.config.stageMode)) m.stageMode = op.config.stageMode;
+        if (op.config.mods && typeof op.config.mods === "object") m.mods = op.config.mods;
         this.broadcast({ t: "slow", slow: this.slowNow(m), hostSlow: m.hostSlow });
         break;
       }
@@ -157,6 +163,50 @@ export class LiveRoom {
         if (!op.uid) return json(400, { error: "bad uid" });
         if (op.on === true) m.video[op.uid] = true; else delete m.video[op.uid];
         this.broadcast({ t: "video", uid: op.uid, on: op.on === true });
+        break;
+      }
+      case "stagemode": {
+        if (!isStageMode(op.mode)) return json(400, { error: "bad mode" });
+        m.stageMode = op.mode;
+        if (op.mode === "solo") for (const u of Object.keys(m.hands)) this.handDown(m, u);
+        this.broadcast({ t: "stagemode", mode: op.mode });
+        break;
+      }
+      case "hand": {
+        if (!op.uid) return json(400, { error: "bad uid" });
+        if (op.up === true) {
+          if (m.stageMode === "solo") break;
+          const h: LiveHand = { name: String(op.name ?? "").slice(0, 80), avatar: String(op.avatar ?? "").slice(0, 500), at: String(op.at ?? new Date(this.now()).toISOString()) };
+          m.hands[op.uid] = h; // our server already keeps it: not reported back
+          this.broadcast({ t: "hand", uid: op.uid, up: true, ...h });
+        } else if (m.hands[op.uid]) {
+          delete m.hands[op.uid];
+          this.broadcast({ t: "hand", uid: op.uid, up: false });
+        }
+        break;
+      }
+      case "mic": {
+        if (!op.uid) return json(400, { error: "bad uid" });
+        m.mics = (m.mics ?? []).filter((u) => u !== op.uid);
+        if (op.on === true) m.mics.push(op.uid);
+        this.broadcast({ t: "mic", uid: op.uid, on: op.on === true });
+        break;
+      }
+      case "invite": {
+        if (!op.uid) return json(400, { error: "bad uid" });
+        for (const ws of this.state.getWebSockets(op.uid)) this.send(ws, { t: "invite", on: op.on === true, ...(op.by ? { by: String(op.by).slice(0, 80) } : {}) });
+        break;
+      }
+      case "mods": {
+        if (!op.mods || typeof op.mods !== "object") return json(400, { error: "bad mods" });
+        m.mods = op.mods;
+        break;
+      }
+      case "ban": {
+        if (!op.uid || op.uid === m.config?.hostUid) return json(400, { error: "bad uid" });
+        if (!m.banned.includes(op.uid)) m.banned.push(op.uid); // our server already keeps it: not reported back
+        this.kick(m, op.uid);
+        await this.sessionOut(m, op.uid);
         break;
       }
       case "unchat": {
@@ -186,7 +236,6 @@ export class LiveRoom {
     const m = await this.load();
     if (m.ended) { this.send(ws, { t: "ended" }); return; }
     const now = this.now();
-    const staff = a.role === "host" || a.mod;
     switch (msg.t) {
       case "ping": this.send(ws, { t: "pong" }); return;
       case "chat": {
@@ -214,6 +263,7 @@ export class LiveRoom {
       case "hand": {
         if (!this.signal(ws, a, now)) return;
         if (msg.up === true && a.role === "listener") {
+          if (m.stageMode === "solo") { this.send(ws, { t: "err", msg: "The host is keeping the stage to themselves right now." }); return; }
           if (Object.keys(m.hands).length >= HANDS_MAX && !m.hands[a.u]) { this.send(ws, { t: "err", msg: "Lots of hands are up already: try again in a moment." }); return; }
           const h: LiveHand = { name: a.n, avatar: a.a, at: new Date(now).toISOString() };
           m.hands[a.u] = h; m.handsOut[a.u] = h; m.oldestPending ??= now;
@@ -224,30 +274,34 @@ export class LiveRoom {
         break;
       }
       case "del": {
-        if (!staff || !isLiveChatId(msg.id)) return;
+        if (!this.may(m, a, "chatRemove") || !isLiveChatId(msg.id)) return;
+        const author = (await this.loadRecent()).find((x) => x.id === msg.id)?.from;
+        if (author && author !== a.u && !this.over(m, a, author)) { this.send(ws, { t: "err", msg: "Only the host can remove that message." }); return; }
         await this.drop(m, msg.id, true);
+        this.logMod(m, a, "remove a chat message", author);
         break;
       }
       case "mute": {
-        if (!staff || typeof msg.uid !== "string" || !msg.uid || msg.uid === m.config?.hostUid || msg.uid === a.u) return;
+        if (!this.may(m, a, "chatMute") || typeof msg.uid !== "string" || !msg.uid || !this.over(m, a, msg.uid)) return;
         m.muted = m.muted.filter((u) => u !== msg.uid);
         if (msg.on === true) m.muted.push(msg.uid);
         this.broadcast({ t: "muted", uid: msg.uid, on: msg.on === true });
+        this.logMod(m, a, msg.on === true ? "mute in the chat" : "unmute in the chat", msg.uid);
         break;
       }
       case "ban": {
-        if (!staff || typeof msg.uid !== "string" || !msg.uid || msg.uid === m.config?.hostUid || msg.uid === a.u) return;
+        if (!this.may(m, a, "ban") || typeof msg.uid !== "string" || !msg.uid || !this.over(m, a, msg.uid)) return;
         if (!m.banned.includes(msg.uid)) { m.banned.push(msg.uid); m.bansOut.push(msg.uid); m.oldestPending ??= now; }
-        m.countDirty = true;
-        if (m.hands[msg.uid]) this.handDown(m, msg.uid);
-        for (const s of this.state.getWebSockets(msg.uid)) { this.send(s, { t: "err", msg: "You've been removed from this room." }); try { s.close(4003, "removed"); } catch { /* gone */ } }
+        this.kick(m, msg.uid);
         await this.sessionOut(m, msg.uid);
+        this.logMod(m, a, "remove from the live", msg.uid);
         break;
       }
       case "slow": {
-        if (a.role !== "host") return;
+        if (!this.may(m, a, "slow")) return;
         m.hostSlow = msg.on === true ? true : msg.on === false ? false : null;
         this.broadcast({ t: "slow", slow: this.slowNow(m), hostSlow: m.hostSlow });
+        this.logMod(m, a, `slow mode: ${m.hostSlow === null ? "automatic" : m.hostSlow ? "on" : "off"}`);
         break;
       }
       default: return;
@@ -270,6 +324,31 @@ export class LiveRoom {
     await this.schedule();
   }
   async webSocketError(ws: CfWebSocket): Promise<void> { return this.webSocketClose(ws); }
+
+  // Permissions (lib/rooms.ts MOD_PERMS): the host all; a moderator named for this live the ones the host gave them; the community's own
+  // moderators (the token's mod) their chat powers. Never against the host, nor a moderator whose permissions aren't a strict part of one's own.
+  permsOf(m: Meta, a: Pick<Attachment, "u" | "role" | "mod">): ModPerm[] {
+    if (a.role === "host") return ALL_MOD_PERMS;
+    return [...new Set([...(m.mods?.[a.u] ?? []), ...(a.mod ? COMMUNITY_MOD_PERMS : [])])];
+  }
+  may(m: Meta, a: Pick<Attachment, "u" | "role" | "mod">, p: ModPerm) { return this.permsOf(m, a).includes(p); }
+  over(m: Meta, a: Pick<Attachment, "u" | "role" | "mod">, target: string): boolean {
+    if (!target || target === m.config?.hostUid) return false;
+    if (a.role === "host") return true;
+    if (target === a.u) return false;
+    const theirs = m.mods?.[target];
+    return !theirs || strictlyWithin(theirs, this.permsOf(m, a));
+  }
+  private logMod(m: Meta, a: Attachment, action: string, target?: string) {
+    if (a.role === "host") return;
+    m.modLogOut = [...(m.modLogOut ?? []), { by: a.u, byName: a.n, action, ...(target ? { target } : {}), at: this.now() }].slice(-200);
+    m.oldestPending ??= this.now();
+  }
+  private kick(m: Meta, uid: string) {
+    m.countDirty = true;
+    if (m.hands[uid]) this.handDown(m, uid);
+    for (const s of this.state.getWebSockets(uid)) { this.send(s, { t: "err", msg: "You've been removed from this room." }); try { s.close(4003, "removed"); } catch { /* gone */ } }
+  }
 
   private signal(ws: CfWebSocket, a: Attachment, now: number): boolean {
     const r = take(a.sig, LIVE_SIGNAL_RATE, now);
@@ -303,7 +382,7 @@ export class LiveRoom {
     m.sessCount = list.length;
     m.oldestPending ??= ev.at;
   }
-  private outstanding(m: Meta) { return m.pendingIds.length > 0 || m.removed.length > 0 || m.bansOut.length > 0 || m.sessCount > 0 || Object.keys(m.handsOut).length > 0; }
+  private outstanding(m: Meta) { return m.pendingIds.length > 0 || m.removed.length > 0 || m.bansOut.length > 0 || m.sessCount > 0 || Object.keys(m.handsOut).length > 0 || (m.modLogOut?.length ?? 0) > 0; }
 
   private async remember(item: LiveChat) {
     const recent = await this.loadRecent();
@@ -375,7 +454,7 @@ export class LiveRoom {
     const hands = { ...m.handsOut };
     const batch: LiveBatch = {
       roomId: m.config.roomId, chat, removed: m.removed.slice(0, 200), banned: m.bansOut.slice(0, 200),
-      ...(sess.length ? { sessions: sess } : {}), ...(Object.keys(hands).length ? { hands } : {}),
+      ...(sess.length ? { sessions: sess } : {}), ...(Object.keys(hands).length ? { hands } : {}), ...(m.modLogOut?.length ? { modLog: m.modLogOut.slice(0, 200) } : {}),
       ...(count !== undefined ? { count, peak: m.peak } : {}), ...(final ? { final: true, peak: m.peak } : {}),
     };
     const body = JSON.stringify(batch);
@@ -396,6 +475,7 @@ export class LiveRoom {
     for (const [u, h] of Object.entries(hands)) if (m.handsOut[u] === h) delete m.handsOut[u];
     m.removed = m.removed.slice(batch.removed.length);
     m.bansOut = m.bansOut.slice(batch.banned.length);
+    if (batch.modLog?.length) m.modLogOut = (m.modLogOut ?? []).slice(batch.modLog.length);
     if (count !== undefined) m.pushed = { at: now, n: count };
     m.oldestPending = this.outstanding(m) ? now : undefined;
     return true;

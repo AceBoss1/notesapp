@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { setting } from "@/lib/config";
 import { LIVE_FALLBACK_AFTER, liveSocketUrl, reconnectDelay, type LiveChat, type LiveClientMsg, type LiveHand, type LiveServerMsg } from "@/lib/live-rooms";
 import type { LiveRole } from "@/lib/live-token";
-import type { RoomChat, RoomDoc } from "@/lib/rooms";
+import type { RoomChat, RoomDoc, StageMode } from "@/lib/rooms";
 import { capi } from "./api";
 
 // A relay room's chat and live signals over the live-rooms worker (lib/live-rooms.ts, v0.127.0): one WebSocket to the room's Durable
@@ -25,6 +25,8 @@ export type LiveChannel = {
   msgs: LiveChat[]; slow: number; hostSlow: boolean | null;
   you: { role: LiveRole; mod: boolean; muted: boolean } | null;
   mutedList: string[]; // the host and moderators: who is muted in the chat (to unmute)
+  // The stage (lib/rooms.ts "Stage seats"), as the worker last said; the room doc stays the truth and is used whenever these are null.
+  stageMode: StageMode | null; mics: Record<string, boolean> | null; invite: { on: boolean; by?: string } | null;
   err: string; gone: string; // the last refusal (slow mode, rate), and why the room closed on us (ended, removed)
   send: (text: string) => boolean; // false: not connected (send through the server instead)
   remove: (id: string) => boolean; raise: (up: boolean) => boolean;
@@ -49,6 +51,9 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
   const [mutedList, setMutedList] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const [gone, setGone] = useState("");
+  const [stageMode, setStageMode] = useState<StageMode | null>(null);
+  const [mics, setMics] = useState<Record<string, boolean> | null>(null);
+  const [invite, setInvite] = useState<{ on: boolean; by?: string } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -80,7 +85,11 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
           fails = 0; fallback(false); setStatus("live");
           setYou(m.you); setMutedList(m.mutedList ?? []); setCount(m.count); setHands(m.hands); setVideo(m.video); setSlow(m.slow); setHostSlow(m.hostSlow);
           setMsgs((cur) => byId([...cur, ...m.recent]));
+          setStageMode(m.stageMode ?? null); setMics(Object.fromEntries((m.mics ?? []).map((u) => [u, true])));
           return;
+        case "stagemode": setStageMode(m.mode); return;
+        case "mic": setMics((cur) => { const next = { ...(cur ?? {}) }; if (m.on) next[m.uid] = true; else delete next[m.uid]; return next; }); return;
+        case "invite": setInvite({ on: m.on, ...(m.by ? { by: m.by } : {}) }); return;
         case "chat": setMsgs((cur) => byId([...cur, m.m])); return;
         case "del": setMsgs((cur) => cur.filter((x) => x.id !== m.id)); return;
         case "count": setCount(m.n); return;
@@ -135,7 +144,7 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
     return true;
   };
   return {
-    on, status, count, hands, video, msgs, slow, hostSlow, you, mutedList, err, gone,
+    on, status, count, hands, video, msgs, slow, hostSlow, you, mutedList, err, gone, stageMode, mics, invite,
     send: (text) => out({ t: "chat", text }),
     remove: (mid) => out({ t: "del", id: mid }),
     raise: (up) => out({ t: "hand", up }),
