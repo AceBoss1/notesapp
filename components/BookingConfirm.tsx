@@ -24,7 +24,7 @@ type Result = {
   certificate?: { courseTitle: string; issuedId: string | null };
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
-  gift?: { username: string; noteSlug?: string; animId?: string; animName?: string };
+  gift?: { username: string; noteSlug?: string; animId?: string; animName?: string; quantity?: number };
   booking?: { username: string; date: string; slot: string };
   subscription?: { username: string };
 };
@@ -40,7 +40,7 @@ function Confirm() {
   // An animated gift that went through plays for the sender too.
   useEffect(() => {
     const g = result?.status === "paid" && result.kind === "gift" ? result.gift : undefined;
-    if (g && isGiftMotif(g.animId)) playGift({ giftId: g.animId, name: g.animName || "", priceKobo: result?.amountKobo ?? 0, toName: `@${g.username}`, key: `sent_${reference}` });
+    if (g && isGiftMotif(g.animId)) playGift({ giftId: g.animId, name: g.animName || "", priceKobo: result?.amountKobo ?? 0, toName: `@${g.username}`, key: `sent_${reference}`, ...((g.quantity ?? 1) > 1 ? { quantity: g.quantity } : {}) });
   }, [result, reference]);
 
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BONUS_KINDS, PAY_EVENT, nairaOf, type PayAsk } from "@/lib/wallet";
+import { PAY_EVENT, bonusAllowedFor, nairaOf, type PayAsk } from "@/lib/wallet";
 
 // "Pay with": the wallet or a card. Opened by lib/checkout.ts (choosePayment) when the member has something in their wallet and the
 // thing they're buying can be paid from it. Mounted once in the main layout.
@@ -14,7 +14,7 @@ export default function PayChooser() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<Pending>).detail;
-      const bonusOk = BONUS_KINDS.includes(d.kind);
+      const bonusOk = bonusAllowedFor(d.kind);
       const usable = d.creditKobo + (bonusOk ? d.bonusKobo : 0);
       setPick(d.amountKobo === undefined || usable >= d.amountKobo ? "wallet" : "card");
       setAsk(d);
@@ -24,7 +24,7 @@ export default function PayChooser() {
   }, []);
   if (!ask) return null;
   const done = (v: "wallet" | "card" | null) => { ask.resolve(v); setAsk(null); };
-  const bonusOk = BONUS_KINDS.includes(ask.kind);
+  const bonusOk = bonusAllowedFor(ask.kind);
   const amt = ask.amountKobo;
   const bonusUse = amt === undefined || !bonusOk ? 0 : Math.min(ask.bonusKobo, amt);
   const creditUse = amt === undefined ? 0 : amt - bonusUse;

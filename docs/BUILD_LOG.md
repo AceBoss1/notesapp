@@ -2976,3 +2976,12 @@ invitations only from people the teen follows. UI: `components/community/StageCo
 moderators sheet) and `AudioRoom.tsx` (menus per permission, seat requests, the invitation card, the pinned message, the log). Tests:
 `test:rooms`, `tests/community/rooms-stage.emulator.ts` in `test:rooms-server`, worker tests in `test:live-rooms`, `test:live-rooms-server`,
 existing tests updated so a bring-up without a request is an invitation.
+
+**Gifting everywhere (v0.140.0, 4 Nov 2026)** — Phase 2 of the live economy plan. A ⋯ menu with Gift · Block · Report beside names on
+journal comments, shop and course reviews, a live's stage, Media posts and replays (`components/gifts/PersonActions.tsx`), with the server
+deciding whether the viewer may gift that person (`giftGate`: payouts, gifts off, blocks, teen mode only from mutual followers). Double-tap
+a small gift for How many? (`giftQuantity`; one payment, ×N on the overlay and the bell). Wallet gifts never touch Bonus Credits. The
+profile's new Gifts tab lists received gifts by gift with count and value, archive, and Withdraw: every gift past its 7-day review goes out
+as one `gift_payout` ledger entry through the existing payout path, automatically under the Admin line (₦20,000 to start) and after
+approval in Admin → Payments from it up (`lib/gift-earnings-server.ts`). Weekly Top gifted and Top gifters (Lagos Monday 00:00) and gift
+points (1 per ₦100) are written with each gift (`giftWeekly`, `gifterWeekly`, `giftPoints`, `giftReceived`).

@@ -20,7 +20,7 @@ export default function GiftShowWatcher({ uid, toName }: { uid?: string; toName?
       stop = onSnapshot(doc(db, "giftShows", uid), (s) => {
         const g = s.data();
         if (!g || !isGiftMotif(g.giftId) || !(Date.parse(String(g.at)) > opened)) return;
-        playGift({ giftId: g.giftId, name: String(g.name || ""), priceKobo: Number(g.priceKobo) || 0, senderName: g.senderName ? String(g.senderName) : undefined, toName, key: String(g.reference || g.at) });
+        playGift({ giftId: g.giftId, name: String(g.name || ""), priceKobo: Number(g.priceKobo) || 0, senderName: g.senderName ? String(g.senderName) : undefined, toName, key: String(g.reference || g.at), ...(Number(g.quantity) > 1 ? { quantity: Number(g.quantity) } : {}) });
       }, () => {});
     });
     return () => { off(); stop?.(); };

@@ -523,6 +523,38 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "giftWeekly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "week",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "grossKobo",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "gifterWeekly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "week",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "toUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "kobo",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

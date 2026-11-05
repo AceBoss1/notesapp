@@ -1,5 +1,6 @@
 "use client";
 
+import PersonActions from "@/components/gifts/PersonActions";
 import { FanChips, useFanBadges, type FanBadge } from "@/components/fans/FanBadges";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import AppLink from "@/components/AppLink";
@@ -106,6 +107,10 @@ function CommentRow({
             <span className="rounded-full bg-crimson/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-crimson-bright">
               Official
             </span>
+          )}
+          {/* Gift · Block · Report the commenter (components/gifts/PersonActions.tsx); not on a member's own site. */}
+          {linkProfiles && !suspended && comment.authorUid && comment.authorUsername !== NA_NOTESAPP_PROFILE.username && (
+            <PersonActions uid={comment.authorUid} username={comment.authorUsername} name={comment.authorDisplayName} toKind="commenter" context="comment" where="a comment on a journal" text={comment.content} compact />
           )}
           {suspended && (
             <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-red-800">

@@ -1,6 +1,6 @@
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import {
-  BONUS_DAYS, BONUS_KINDS, EMPTY_WALLET, applySpend, bonusBalance, liveLots, nairaOf, refundSplit, splitSpend,
+  BONUS_DAYS, EMPTY_WALLET, bonusAllowedFor, applySpend, bonusBalance, liveLots, nairaOf, refundSplit, splitSpend,
   type BonusLot, type Wallet, type WalletTx,
 } from "./wallet";
 import type { PaymentRecord } from "./payments";
@@ -54,7 +54,7 @@ export async function payFromWallet(db: Firestore, record: PaymentRecord, now = 
     const [ws, ps] = await Promise.all([t.get(ref), t.get(payRef)]);
     if (ps.exists) throw new WalletError(409, "This payment has already started.");
     const w = walletOf(ws.data());
-    const bonusOk = BONUS_KINDS.includes(record.kind);
+    const bonusOk = bonusAllowedFor(record.kind);
     const split = splitSpend(w, record.amountKobo, bonusOk, now);
     if (!split) {
       const bonus = bonusBalance(w, now);

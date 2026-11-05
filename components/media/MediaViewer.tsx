@@ -6,6 +6,8 @@ import { compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
 import { VIDEO_DL_PREPARING } from "@/lib/media-video-dl";
 import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-client";
 import { Icon, Pattern } from "./MediaTile";
+import GiftButton from "@/components/GiftButton";
+import PersonActions from "@/components/gifts/PersonActions";
 
 // One item on a creator's Media, full screen: a post (pictures you swipe through with ‹ ›, or a video on Cloudflare Stream's player), a
 // site picture, or the profile picture album. The vertical feed with comments, reactions and gifts is phase M2 (docs/MEDIA.md).
@@ -13,7 +15,7 @@ export type ViewerItem =
   | { type: "post"; post: MediaPostView }
   | { type: "pictures"; title: string; note: string; urls: string[]; start?: number };
 
-export default function MediaViewer({ item, username, onClose }: { item: ViewerItem; username: string; onClose: () => void }) {
+export default function MediaViewer({ item, username, ownerUid, ownerName, onClose }: { item: ViewerItem; username: string; ownerUid?: string; ownerName?: string; onClose: () => void }) {
   const urls = item.type === "post" ? item.post.pictures : item.urls;
   const [i, setI] = useState(item.type === "pictures" ? item.start ?? 0 : 0);
   const [note, setNote] = useState<string | null>(null);
@@ -68,7 +70,11 @@ export default function MediaViewer({ item, username, onClose }: { item: ViewerI
           )}
         </div>
         <div className="space-y-2 bg-gradient-to-t from-black via-black/90 to-black/70 p-4 text-white">
-          <p className="font-ui text-sm font-bold">@{username}</p>
+          <p className="flex items-center gap-2 font-ui text-sm font-bold">@{username}
+            {/* Gift the creator for this post (when they allow gifts on it), and Gift · Block · Report beside their name. */}
+            {post && !post.mine && ownerUid && <PersonActions uid={ownerUid} username={username} name={ownerName || username} toKind="creator" context="media" mediaId={post.id} where="a Media post" text={post.caption} dark compact />}
+          </p>
+          {post && !post.mine && post.allowGifts && ownerUid && <GiftButton publisherUid={ownerUid} username={username} toName={ownerName || username} toKind="creator" context="media" mediaId={post.id} label="🎁 Gift this post" />}
           {post ? (
             <>
               {post.caption && <p className="text-sm text-white/90"><LinkedText text={post.caption} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
