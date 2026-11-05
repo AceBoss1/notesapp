@@ -1,16 +1,33 @@
 [
   {
     "AllowedOrigins": [
-      "https://www.notesapp.name.ng",
       "https://notesapp.name.ng",
+      "https://www.notesapp.name.ng",
       "https://app.notesapp.name.ng",
+      "https://life.notesapp.name.ng",
+      "https://prep.notesapp.name.ng",
+      "https://mcp.notesapp.name.ng",
+      "https://naapp.tech",
+      "https://www.naapp.tech",
+      "https://app.naapp.tech",
+      "https://life.naapp.tech",
+      "https://prep.naapp.tech",
+      "https://mcp.naapp.tech",
       "https://notesapp.ng",
       "https://www.notesapp.ng",
       "http://localhost:3000"
     ],
-    "AllowedMethods": ["PUT", "GET", "HEAD"],
-    "AllowedHeaders": ["*"],
-    "ExposeHeaders": ["ETag"],
+    "AllowedMethods": [
+      "PUT",
+      "GET",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
     "MaxAgeSeconds": 3600
   }
 ]

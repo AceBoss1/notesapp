@@ -44,6 +44,11 @@ Do the steps in this order. Steps 1 to 3 can happen days before the switch; noth
 - [ ] Firebase → Authentication → Templates: if the action link (email verification, password reset) is set to a custom
       address on `notesapp.name.ng`, change it to `https://www.naapp.tech/auth/action`. Old links still work (the old address still serves the page).
 - [ ] Dojah dashboard: add the new address to the widget's allowed domains, if the dashboard has that list.
+- [ ] **Uploads (R2 CORS).** Cloudflare → R2 → **each bucket** (`notesapp-media` and the private one, `R2_PRIVATE_BUCKET`) → Settings →
+      **CORS policy** → Edit → paste the whole of `scripts/r2-cors.json` → Save. The browser uploads straight to R2, so a missing
+      address blocks every picture, avatar, file and video-cover upload there ("blocked by CORS policy" in the console). The file lists
+      every address of both domains; `npm run test:host` fails if a domain in `lib/host.ts` is missing from it. (Added 5 Nov 2026:
+      this step was missed at the move and avatar uploads on www.naapp.tech failed.)
 
 ### 3. Email (can stay on the old domain at first)
 Email is a separate setting so the website can move before mail does.
