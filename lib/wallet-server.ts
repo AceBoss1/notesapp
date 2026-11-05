@@ -26,7 +26,7 @@ function expiredLine(t: Transaction, db: Firestore, uid: string, w: Wallet, now:
   if (gone > 0) t.set(db.doc(`walletTx/exp_${uid}_${now.getTime()}`), { uid, type: "bonus_expired", creditKobo: 0, bonusKobo: -gone, label: "Bonus Credits ended", at: now.toISOString() } satisfies WalletTx);
 }
 
-export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"]; giving?: PaymentRecord["giving"] }): string {
+export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"]; giving?: PaymentRecord["giving"]; liveTicket?: PaymentRecord["liveTicket"] }): string {
   switch (p.kind) {
     case "boost": return p.boost?.itemId ? "Boost for a store item" : "Boost for a post";
     case "ad": return "Advert campaign";
@@ -39,11 +39,12 @@ export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername"
     case "certificate": return "Notes Academy certificate";
     case "course": return `${p.course?.courseTitle ?? "Course"} · Notes Academy`;
     case "giving": return `Gift to ${p.giving?.communityName ?? "a community"}${p.giving ? ` · ${p.giving.fund}` : ""}`;
+    case "live_ticket": return `Ticket: ${p.liveTicket?.eventTitle ?? "paid live"} · @${p.publisherUsername}`;
     case "booking": return `Session with @${p.booking?.username ?? p.publisherUsername}${p.booking ? ` · ${p.booking.date} ${p.booking.slot}` : ""}`;
     default: return "Payment";
   }
 }
-const HELD_KINDS = ["store", "booking", "digital", "course"];
+const HELD_KINDS = ["store", "booking", "digital", "course", "live_ticket"];
 
 // Pays a checkout from the wallet: takes the money and writes the payment record in one step, so either both happen or neither.
 // The caller then runs fulfillPayment(reference), which skips Paystack for wallet payments.
@@ -119,6 +120,26 @@ export async function refundToWallet(db: Firestore, reference: string, amountKob
       uid: p.uid, type: "refund", creditKobo: back.creditKobo, bonusKobo: back.bonusKobo, label: label ?? `Refund: ${paymentLabel(p)}`, reference, kind: p.kind, at: now.toISOString(),
     } satisfies WalletTx);
     return total;
+  });
+}
+
+// A card payment given back as NotesApp Credit instead of to the card (a paid live the host cancelled or never started: owner, 3 Nov
+// 2026, "everyone is refunded to their NotesApp Credit automatically"). The whole amount, once (creditRefundedKobo); returns what went back.
+export async function refundCardToCredit(db: Firestore, reference: string, label?: string, now = new Date()): Promise<number> {
+  const payRef = db.doc(`payments/${reference}`);
+  return db.runTransaction(async (t) => {
+    const p = (await t.get(payRef)).data() as (PaymentRecord & { creditRefundedKobo?: number }) | undefined;
+    if (!p || p.payWith === "wallet") throw new WalletError(404, "That isn't a card payment.");
+    if (p.creditRefundedKobo) return 0;
+    const ref = walletDoc(db, p.uid);
+    const w = walletOf((await t.get(ref)).data());
+    expiredLine(t, db, p.uid, w, now);
+    t.set(ref, { creditKobo: w.creditKobo + p.amountKobo, bonusLots: liveLots(w, now), updatedAt: now.toISOString() });
+    t.update(payRef, { creditRefundedKobo: p.amountKobo });
+    t.set(db.doc(`walletTx/${reference}_credit_${now.getTime()}`), {
+      uid: p.uid, type: "refund", creditKobo: p.amountKobo, bonusKobo: 0, label: label ?? `Refund: ${paymentLabel(p)}`, reference, kind: p.kind, at: now.toISOString(),
+    } satisfies WalletTx);
+    return p.amountKobo;
   });
 }
 

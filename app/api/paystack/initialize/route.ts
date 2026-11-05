@@ -48,6 +48,7 @@ import { GiftError, giftGate, priceAnimatedGift, senderVerified } from "@/lib/gi
 import { giftQuantity, giftUplift, isGiftContext, isGiftToKind, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
 import { ticketCheckout } from "@/lib/tickets-server";
+import { LiveEventError, liveTicketCheckout } from "@/lib/live-tickets-server";
 import { EventError } from "@/lib/events-server";
 import { ReferralError, affiliateFor, offerIdFor, offerPercent, referralByCode, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
 
@@ -214,6 +215,23 @@ export async function POST(req: NextRequest) {
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- a ticket to a member's paid live (lib/live-tickets.ts): by card or from NotesApp Credit (never Bonus Credits); the band, the
+    // subscriber discount and the commission (the host's rate plus liveTicketUpliftPct % of it) are fixed now ----
+    if (kind === "live_ticket") {
+      let lt: Awaited<ReturnType<typeof liveTicketCheckout>>;
+      try { lt = await liveTicketCheckout(db, user.uid, body); }
+      catch (e) { if (e instanceof LiveEventError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: lt.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, eventId: lt.info.eventId } });
+      const record: PaymentRecord = {
+        reference, kind: "live_ticket", uid: user.uid, email: user.email, amountKobo: lt.amountKobo, status: "pending",
+        publisherUid: lt.hostUid, publisherUsername: lt.hostUsername, commissionRate: lt.commissionRate, liveTicket: lt.info, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
     // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----

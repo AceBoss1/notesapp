@@ -7,7 +7,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { MEDIA_LIVE } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
-import { certificateMin } from "@/lib/pricing";
+import { certificateMin, liveTicketUpliftPct } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
@@ -125,6 +125,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     body: "Live: a community for churches, NGOs, schools, clubs and associations, run by the organisation's own admins, like a Facebook group with a channel. Public and members-only Spaces, a General announcement channel where admins post and members react and comment, and private Circles on Business. Events for every account: RSVP (Going or Interested), reminders a day and an hour before, repeating events, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet. Giving to a community, and paid event tickets with QR check-in at the door.",
     detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Giving and paid event tickets with QR check-in are live, both with no commission, only a charge like a bank transfer. Later, in this order: bigger Circles, then our own live streaming as a paid add-on. No date yet.",
     link: { href: "/community", label: "See Community →" },
+  },
+  {
+    title: "Paid lives",
+    tag: "Live · Lives",
+    body: "Live now: schedule a live of your own with tickets. Set a date and time, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, then no more tickets. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers, who get the discount you set for their tier. Choose the recording when you schedule it: off, for safety only, or recorded with a replay. Only ticket holders get in, and they're reminded a day, an hour and at the start. Next: pay-per-minute sessions.",
+    get detail() { return `#NotesApp takes your normal rate plus ${liveTicketUpliftPct()}% of it on each ticket, fixed when the ticket is bought. You're paid after the live ends and the problem window has passed, like a session. If you cancel or never start, every ticket is refunded to NotesApp Credit automatically. Only the moderators you name moderate a paid live. Members in teen mode can't sell tickets.`; },
+    link: { href: "/lives", label: "See paid lives →" },
   },
   {
     title: "Online status and followers lists",

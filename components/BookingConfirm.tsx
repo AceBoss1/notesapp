@@ -13,7 +13,8 @@ import { playGift } from "@/lib/gift-play";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "giving" | "ticket";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "giving" | "ticket" | "live_ticket";
+  liveTicket?: { eventId: string; eventTitle: string };
   giving?: { cid: string; communityName: string; fund: string; giftKobo: number };
   ticket?: { eventId: string; eventTitle: string; quantity: number; typeName: string };
   soldOut?: string[]; // a basket: items that sold out before the payment landed (refunded)
@@ -194,6 +195,18 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">{result.ticket.quantity} × {result.ticket.typeName} for {result.ticket.eventTitle}. Show the QR code on each ticket at the door. Your tickets are on their way by email too.</p>
           <AppLink href="/tickets" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">My tickets</AppLink>
         </>
+      ) : result.status === "paid" && result.kind === "live_ticket" && result.liveTicket ? (
+        <div className="mt-8 text-center">
+          <p className="font-display text-2xl text-ink">Your ticket is ready</p>
+          <p className="mt-3 text-sm text-slate">You&apos;re in for {result.liveTicket.eventTitle}. We&apos;ll remind you a day and an hour before, and when it starts. Go in from the live&apos;s page.</p>
+          <Link href={`/lives/${result.liveTicket.eventId}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">Open the live</Link>
+        </div>
+      ) : result.kind === "live_ticket" && result.liveTicket ? (
+        <div className="mt-8 text-center">
+          <p className="font-display text-2xl text-ink">That ticket couldn&apos;t be issued</p>
+          <p className="mt-3 text-sm text-slate">The live was cancelled or has ended, or you already hold a ticket. What you paid is back in your NotesApp Credit.</p>
+          <Link href="/wallet" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">My wallet</Link>
+        </div>
       ) : result.kind === "ticket" ? (
         <>
           <p className="font-display text-2xl text-ink">Those tickets sold out</p>

@@ -5,7 +5,7 @@ import { CommunityError, activeRole, memberOf, readCommunity, type Member } from
 import {
   ROOM_CHAT_MAX, ROOM_GONE_MS, ROOM_PEOPLE_PAGE, ROOM_SPEAKERS_MAX, canPull, canPush, chatSlowFor, chatWait, chooseRoomMode, cleanRoomOverrides, cleanRoomTitle, countDue, headcount,
   isFresh, listenerCap, listenerPresent, edgeFresh, presentIn, roomFigures, roomFullText, roomIsFull, roomRole, roomSettings,
-  ROOM_MODS_MAX, COMMUNITY_MOD_PERMS, cleanPerms, inviteFor, isMicMuted, isRoomMod, isStageMode, mayActOn, permsOf, requestsOpen, roomCan, runsStage, stageModeOf,
+  ROOM_MODS_MAX, COMMUNITY_MOD_PERMS, cleanPerms, inviteFor, isMemberLive, isMicMuted, isRoomMod, isStageMode, mayActOn, permsOf, requestsOpen, roomCan, runsStage, stageModeOf,
   type ModLogEntry, type ModPerm, type RoomPin, type RoomChat, type RoomDoc, type RoomFigures, type RoomInvite, type RoomMode, type RoomModInfo, type RoomPersonDoc, type RoomRelayRecord, type RoomSettings, type StageMode,
 } from "./rooms";
 import { mayReach } from "./young";
@@ -20,6 +20,8 @@ import { r2PublicUrl } from "./r2";
 import { liveSettingsWithPass, staffListenerCap } from "./staff-pass";
 import { hasStaffPass, roomOnPass } from "./staff-pass-server";
 import { liveEntrance } from "./fans-server";
+import { holdsLiveTicket, markLiveEnded } from "./live-door-server";
+import type { LiveRecordChoice } from "./live-tickets";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -81,6 +83,14 @@ async function person(db: Firestore, uid: string) {
 async function roleIn(db: Firestore, cid: string, uid: string) {
   return activeRole(await memberOf(db, cid, uid));
 }
+// Who may come into a room: a community live, the community's active members; a member's own paid live (lib/live-tickets.ts), the host,
+// the moderators the host named and ticket holders (the door: holdsLiveTicket), nobody else.
+async function mayEnter(db: Firestore, r: RoomDoc, uid: string): Promise<boolean> {
+  if (r.paid) return uid === r.hostUid || !!r.mods?.[uid] || (await holdsLiveTicket(db, r.paid.eventId, uid));
+  return !!r.cid && !!(await roleIn(db, r.cid, uid));
+}
+export const NOT_IN_TEXT = (r: Pick<RoomDoc, "paid">) => (r.paid ? "This live is for ticket holders. Get a ticket in the lobby." : "Rooms are for the community's members.");
+export { mayEnter as mayEnterRoom };
 async function roomOf(db: Firestore, id: unknown) {
   const ref = db.doc(`communityRooms/${String(id ?? "")}`);
   const r = (await ref.get()).data() as RoomDoc | undefined;
@@ -145,14 +155,24 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   if (!can(await roleIn(db, c.id, uid), "rooms")) throw new CommunityError(403, "Admins and moderators start audio rooms.");
   const t = cleanRoomTitle(title);
   if (t.length < 3) throw new CommunityError(400, "Give the room a name, like Sunday Q&A.");
+  // Chosen with the room (optional): checked like a later change (setPoster). A bad one is refused before the room opens.
+  const posterUrl = poster?.source ? await posterFor(db, uid, poster.source, poster.url) : "";
+  return openRoom(db, uid, { cid: c.id, communityName: c.name }, t, posterUrl, now, deps, opts);
+}
+
+// A member's own paid live (lib/live-tickets-server.ts startPaidLive): the same room, hosted by the member with no community. The
+// recording follows the host's choice when they scheduled it (off, safety only, or replay); moderators are anyone the host names.
+export async function startMemberLive(db: Firestore, uid: string, live: { eventId: string; title: string; poster: string; record: LiveRecordChoice }, now = new Date(), deps: RoomDeps = defaultDeps, opts: { stageMode?: unknown; mods?: unknown } = {}): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
+  return openRoom(db, uid, { cid: "", communityName: "", paid: { eventId: live.eventId, record: live.record } }, cleanRoomTitle(live.title), live.poster, now, deps, { ...opts, record: live.record !== "off" });
+}
+
+async function openRoom(db: Firestore, uid: string, base: Pick<RoomDoc, "cid" | "communityName" | "paid">, t: string, posterUrl: string, now: Date, deps: RoomDeps, opts: { record?: unknown; stageMode?: unknown; mods?: unknown }): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
   // One live room per host: an old one they left open is closed first.
   const mine = await db.collection("communityRooms").where("hostUid", "==", uid).where("status", "==", "live").limit(5).get();
   for (const d of mine.docs) await endRoom(db, d.id, now, deps);
   const me = await person(db, uid);
-  // Chosen with the room (optional): checked like a later change (setPoster). A bad one is refused before the room opens.
-  const posterUrl = poster?.source ? await posterFor(db, uid, poster.source, poster.url) : "";
   const stageMode: StageMode = isStageMode(opts.stageMode) ? opts.stageMode : "approve";
-  const mods = await resolveMods(db, c.id, uid, opts.mods);
+  const mods = await resolveMods(db, base.cid, uid, opts.mods);
   const host = await hostExtras(db, uid);
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const at = now.toISOString();
@@ -174,7 +194,7 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   if (rec.note) note = note ? `${note} ${rec.note}` : rec.note;
   const r: RoomDoc = {
     ...(rec.state ? { recording: rec.state, consent: { [uid]: at } } : {}),
-    cid: c.id, communityName: c.name, title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
+    cid: base.cid, communityName: base.communityName, ...(base.paid ? { paid: base.paid } : {}), title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
     stageMode, mods, invites: {}, micMuted: {},
     ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {}, videoOn: {}, stageVideo: false, ...(liveRoomsOn() ? { edge: true } : {}) } : {}), ...(note ? { note } : {}),
     ...(posterUrl ? { poster: posterUrl } : {}), ...host, ...(staffPass ? { staffPass: true } : {}),
@@ -190,7 +210,7 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
 // The staff test pass (lib/staff-pass.ts): a team member on it, or anyone joining a room opened under it, meets only the hard ceiling.
 export async function joinRoom(db: Firestore, uid: string, id: unknown, now = new Date()): Promise<{ ok: true; mode: RoomMode; cap: number }> {
   const { ref, r } = await roomOf(db, id);
-  if (!(await roleIn(db, r.cid, uid))) throw new CommunityError(403, "Rooms are for the community's members.");
+  if (!(await mayEnter(db, r, uid))) throw new CommunityError(403, NOT_IN_TEXT(r));
   // Removed from this live by the host or a moderator (banFromLive, or on the live-rooms worker): kept out until it ends.
   if (uid !== r.hostUid && (await readEdgeState(db, ref.id)).banned?.[uid]) throw new CommunityError(403, "You've been removed from this room.");
   const me = await person(db, uid);
@@ -332,13 +352,15 @@ export async function roomModLog(db: Firestore, uid: string, id: unknown): Promi
 }
 // A community moderator (not named for this live) keeps the chat powers they had (COMMUNITY_MOD_PERMS).
 async function communityModPerms(db: Firestore, r: RoomDoc, uid: string): Promise<readonly ModPerm[]> {
+  // A member's own live (a paid live): the community's moderators get nothing; only the moderators the host names (owner, 5 Nov 2026).
+  if (isMemberLive(r)) return [];
   return !isRoomMod(r, uid) && uid !== r.hostUid && can(await roleIn(db, r.cid, uid), "remove_post") ? COMMUNITY_MOD_PERMS : [];
 }
 
 // Bans keep people off the stage: removed from this room (on the live-rooms worker: edge/state banned), or no longer an active member of
 // the community (banned or removed there since they came in).
 async function stageBarred(db: Firestore, r: RoomDoc, roomId: string, uid: string): Promise<string> {
-  if (!(await roleIn(db, r.cid, uid))) return "They're no longer a member of this community.";
+  if (!(await mayEnter(db, r, uid))) return r.paid ? "They don't hold a ticket to this live." : "They're no longer a member of this community.";
   if ((await readEdgeState(db, roomId)).banned?.[uid]) return "They've been removed from this room.";
   return "";
 }
@@ -564,6 +586,22 @@ async function resolveMods(db: Firestore, cid: string, hostUid: string, input: u
   const list = [...new Map(entries.map((e) => [e.raw, e])).values()];
   if (list.length > ROOM_MODS_MAX) throw new CommunityError(400, `Up to ${ROOM_MODS_MAX} moderators for a live.`);
   const out: Record<string, RoomModInfo> = {};
+  // A member's own live (no community): anyone on #NotesApp the host names, by uid or @username, whose account is in good standing.
+  if (!cid) {
+    for (const { raw, perms } of list) {
+      const handle = raw.replace(/^@/, "").toLowerCase();
+      let u: { id: string; data: FirebaseFirestore.DocumentData } | null = null;
+      if (!raw.startsWith("@") && /^[A-Za-z0-9_-]{1,128}$/.test(raw)) { const d = await db.doc(`users/${raw}`).get(); if (d.exists) u = { id: d.id, data: d.data()! }; }
+      if (!u && /^[a-z0-9_.]{1,40}$/.test(handle)) {
+        const snap = await db.collection("users").where("username", "==", handle).limit(1).get();
+        if (!snap.empty) u = { id: snap.docs[0].id, data: snap.docs[0].data() };
+      }
+      if (!u || u.data.suspended === true) throw new CommunityError(400, `${raw.startsWith("@") ? raw : `@${handle}`} wasn't found.`);
+      if (u.id === hostUid) continue;
+      out[u.id] = { name: String(u.data.displayName || u.data.username || "A member"), avatar: String(u.data.avatar ?? ""), perms };
+    }
+    return out;
+  }
   for (const { raw, perms } of list) {
     const handle = raw.replace(/^@/, "").toLowerCase();
     let m: Member | null = raw.startsWith("@") || !/^[A-Za-z0-9_-]{1,128}$/.test(raw) ? null : await memberOf(db, cid, raw);
@@ -718,7 +756,7 @@ export async function removeChat(db: Firestore, uid: string, id: unknown, messag
 // Ending: the host, or an admin of the community. The connection details are cleared.
 export async function closeRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: Pick<RoomDeps, "recording"> = {}): Promise<void> {
   const { ref, r } = await roomOf(db, id);
-  if (uid !== r.hostUid && !roomCan(r, uid, "end") && !can(await roleIn(db, r.cid, uid), "settings")) throw new CommunityError(403, "Only the host or an admin can end the room.");
+  if (uid !== r.hostUid && !roomCan(r, uid, "end") && (isMemberLive(r) || !can(await roleIn(db, r.cid, uid), "settings"))) throw new CommunityError(403, "Only the host or an admin can end the room.");
   await logMod(db, ref.id, r, uid, "end the live");
   await endRoom(db, ref.id, now, deps);
 }
@@ -732,6 +770,8 @@ export async function endRoom(db: Firestore, id: string, now = new Date(), deps:
     return r;
   });
   if (!ended) return;
+  // A paid live: the live is over (it can be reopened for a short while) and the ticket money's hold runs from now (lib/live-door-server.ts).
+  if (ended.paid) await markLiveEnded(db, ended.paid.eventId, now).catch((e) => console.error("[rooms] paid live end", e));
   // The worker tells everyone, closes the sockets and sends its last batch and the room's peak.
   if (ended.edge) await tellLiveRoom(id, { op: "end" });
   // A recorded room: the recorder stops and sends what's left; the 30-day keep timer starts (lib/live-recording-server.ts).
