@@ -908,7 +908,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     messages the course player already reads), autoplay with sound inside the moment viewer, and a 9:16 profile on a chat video whose
     size we don't know. Tests: `test:moments-server` (new), `test:marks-server` (moments in the job), `test:messages` (chat → moment).
 
-117. **Marketing & user acquisition, its own department (team hub, no changelog entry; branch `push/marketing-dept`):** deploy
+122. **Marketing & user acquisition, its own department (team hub, no changelog entry; branch `push/marketing-dept`):** deploy
     `firebase deploy --only firestore` (rules: Marketing reads adStats, adPublisherStats, adCampaigns and boosts, and runs adCreatives).
     The department briefs have Marketing (the Marketing Brief, the Marketing and UA SOP) and Sales & partnerships (its own brief and
     SOP) as two departments; the code had one, "Growth & partnerships". Now `growth` keeps its key (staff already given it keep their
@@ -917,7 +917,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     read the list, so it appears everywhere. The Marketing Brief and SOP move to Marketing (the library re-seeds when a document's
     department changes, without asking for a new read), and the seeded CMO and UA lead vacancies move to Marketing once. Tests:
     `test:access`, `test:hr`, rules 91/91. Editorial got its own brief too (`content/staff-library/brief-editorial.md`, the
-    Editorial tab of the Department Briefs; scoped to the `content` department); its SOP is still to be written.
+    Editorial tab of the Department Briefs; scoped to the `content` department); its SOP is `sop-editorial` (the Editorial tab of the SOP Manuals). Customer care now covers the **Community
+    Strategist** (communities: onboarding, giving safety with Trust & safety, admins' requests) in its brief and SOP.
 
 ## 3. How the work is done (please keep these)
 

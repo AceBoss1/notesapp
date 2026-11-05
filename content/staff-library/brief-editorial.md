@@ -38,4 +38,4 @@ Editorial sits under the COO with Customer care and Trust & safety. It works wit
 - Reported question errors fixed within 7 days (target: all).
 - Posts on NotesApp's own journals each week (target: at least one).
 
-Its SOP is to be written; until then, follow the shared procedures in the SOP manuals' overview.
+Its SOP is the Editorial tab of the SOP Manuals.
