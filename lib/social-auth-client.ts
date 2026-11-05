@@ -6,6 +6,7 @@ import { auth } from "./firebase";
 import { getUserByUid } from "./users";
 import { KID_PREFIX } from "./kids";
 import { isInAppBrowser, type MethodsSummary, type SocialProvider } from "./social-auth";
+import { installGoogleGate, type GoogleCheck, type GoogleGate } from "./google-gate";
 
 // Browser side of signing in with Google and LinkedIn (lib/social-auth.ts has the rules, lib/social-auth-server.ts the checks).
 
@@ -20,10 +21,12 @@ export type SocialOutcome =
 let busy = 0;
 const REDIRECT_FLAG = "na_google_redirect";
 const store = () => { try { return window.sessionStorage; } catch { return null; } };
-let redirectPending = typeof window !== "undefined" && store()?.getItem(REDIRECT_FLAG) === "1";
+// The flag says which Google redirect is coming back: "signin" (checked by the gate before the app sees the user) or "link".
+const redirectMode = typeof window !== "undefined" ? store()?.getItem(REDIRECT_FLAG) ?? null : null; // as the page loaded
+let redirectPending = !!redirectMode;
 if (redirectPending) setTimeout(() => { redirectPending = false; }, 20_000); // never stuck
 export const socialSignInBusy = () => busy > 0 || redirectPending;
-const redirecting = () => store()?.setItem(REDIRECT_FLAG, "1");
+const redirecting = (mode: "signin" | "link") => store()?.setItem(REDIRECT_FLAG, mode);
 async function hold<T>(f: () => Promise<T>): Promise<T> { busy++; try { return await f(); } finally { busy--; } }
 
 // Google said the email has an account already: kept here so it can be linked right after the person signs in with their password.
@@ -61,13 +64,25 @@ function existsError(e: unknown): SocialOutcome | null {
 }
 
 async function confirmGoogle(user: User, mode: "signin" | "link") {
-  return call<{ status: "ok"; needsProfile: boolean } | { status: "link-required"; email: string; hasOtherWay: boolean }>("/api/auth/google", { token: await user.getIdToken(true), json: { mode } });
+  return call<GoogleCheck>("/api/auth/google", { token: await user.getIdToken(true), json: { mode } });
 }
 
+// Our server checks a Google sign-in before the app hears about it (lib/google-gate.ts). Installed once, in the browser.
+const gate: GoogleGate | null = typeof window === "undefined" ? null
+  : installGoogleGate(auth, (u) => confirmGoogle(u, "signin"), () => redirectPending && redirectMode === "signin"); // only the redirect this page load came back from
+const heldOutcome = (): SocialOutcome | null => {
+  const b = gate?.blocked();
+  if (!b) return null;
+  if ("error" in b) throw friendly(b.error);
+  return { kind: "link-required", provider: "google", email: b.result.email, hasOtherWay: b.result.hasOtherWay };
+};
+
 async function afterGoogle(user: User): Promise<SocialOutcome> {
-  let r;
-  try { r = await confirmGoogle(user, "signin"); }
-  catch (e) { await signOut(auth).catch(() => {}); throw e; }
+  let r = gate?.take(user.uid) ?? null; // already checked by the gate (the usual case)
+  if (!r) {
+    try { r = await confirmGoogle(user, "signin"); }
+    catch (e) { await signOut(auth).catch(() => {}); throw e; }
+  }
   if (r.status === "link-required") {
     await signOut(auth).catch(() => {});
     return { kind: "link-required", provider: "google", email: r.email, hasOtherWay: r.hasOtherWay };
@@ -78,15 +93,19 @@ async function afterGoogle(user: User): Promise<SocialOutcome> {
 // "Continue with Google": a pop-up, or a redirect in in-app browsers and wherever the pop-up can't open.
 export function continueWithGoogle(): Promise<SocialOutcome> {
   return hold(async () => {
-    if (isInAppBrowser(navigator.userAgent)) { redirecting(); await signInWithRedirect(auth, googleProvider()); return { kind: "redirecting" }; }
+    if (isInAppBrowser(navigator.userAgent)) { redirecting("signin"); await signInWithRedirect(auth, googleProvider()); return { kind: "redirecting" }; }
     let cred;
+    gate?.arm();
     try { cred = await signInWithPopup(auth, googleProvider()); }
     catch (e) {
+      const held = heldOutcome();
+      if (held) return held;
       const exists = existsError(e);
       if (exists) return exists;
-      if (needsRedirect(e)) { redirecting(); await signInWithRedirect(auth, googleProvider()); return { kind: "redirecting" }; }
+      if (needsRedirect(e)) { redirecting("signin"); await signInWithRedirect(auth, googleProvider()); return { kind: "redirecting" }; }
       throw friendly(e);
     }
+    finally { gate?.disarm(); }
     return afterGoogle(cred.user);
   });
 }
@@ -96,7 +115,7 @@ export function googleRedirectResult(): Promise<SocialOutcome | null> {
   return hold(async () => {
     let cred;
     try { cred = await getRedirectResult(auth); }
-    catch (e) { const exists = existsError(e); if (exists) return exists; throw friendly(e); }
+    catch (e) { const held = heldOutcome(); if (held) return held; const exists = existsError(e); if (exists) return exists; throw friendly(e); }
     finally { redirectPending = false; store()?.removeItem(REDIRECT_FLAG); }
     if (!cred) return null;
     if (cred.operationType === "link") { await confirmGoogle(cred.user, "link"); return { kind: "linked", provider: "google" }; }
@@ -116,7 +135,7 @@ export async function linkPendingGoogle(user: User): Promise<boolean> {
 export async function linkGoogle(user: User): Promise<SocialOutcome> {
   try { await linkWithPopup(user, googleProvider()); }
   catch (e) {
-    if (needsRedirect(e)) { redirecting(); await linkWithRedirect(user, googleProvider()); return { kind: "redirecting" }; }
+    if (needsRedirect(e)) { redirecting("link"); await linkWithRedirect(user, googleProvider()); return { kind: "redirecting" }; }
     throw friendly(e);
   }
   await confirmGoogle(user, "link");
