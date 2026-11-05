@@ -7,7 +7,7 @@ import { ensurePricing } from "./pricing-server";
 import { getLimitOverrides } from "./limits-server";
 import { getAgentSettings } from "./agents/config-server";
 import { getRoomSettings, liveRoomFigures } from "./rooms-server";
-import { paidLiveFigures } from "./rooms";
+import { paidLiveFigures, ppmFigures } from "./rooms";
 import { liveRecordingFigures } from "./live-recording-server";
 
 // The knowledge base the Help centre and Nana AI read: the built-in articles plus whatever staff have written at Admin → Help & Nana.
@@ -41,8 +41,11 @@ export async function loadKbLive(db: Firestore): Promise<KbLive> {
     getFanSettings(db).catch(() => undefined),
   ]);
   // Paid lives (Admin → Limits → Audio rooms → Paid lives): the late window, the discount cap, the no-show minutes.
-  const paid = await getRoomSettings(db).then(paidLiveFigures).catch(() => undefined);
-  return { limits, agents, rooms, recording, fans, paid };
+  const roomSettings = await getRoomSettings(db).catch(() => undefined);
+  const paid = roomSettings ? paidLiveFigures(roomSettings) : undefined;
+  // Pay-per-minute sessions (Admin → Limits → Pay-per-minute sessions): the minutes, the grace, the wait and the no-show minutes.
+  const ppm = roomSettings ? ppmFigures(roomSettings) : undefined;
+  return { limits, agents, rooms, recording, fans, paid, ppm };
 }
 
 // Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles

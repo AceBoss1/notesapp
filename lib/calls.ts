@@ -18,6 +18,9 @@ export type CallDoc = {
   offer?: { type: string; sdp: string }; answer?: { type: string; sdp: string };
   // A mid-call ICE restart (lib/ice-recovery.ts): the caller's new offer and the answer to it, written by the two browsers.
   restart?: IceRestartOffer; restartAnswer?: IceRestartAnswer;
+  // A pay-per-minute session's call (lib/ppm.ts): the session's id. Made by the server for the session's two people (no follow needed);
+  // the meter is the server's, from both phones' heartbeats (lib/ppm-server.ts), never this doc's acceptedAt.
+  ppm?: string;
 };
 
 export type CallLog = { kind: CallKind; outcome: CallEnd; seconds: number };

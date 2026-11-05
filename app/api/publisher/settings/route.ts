@@ -8,6 +8,7 @@ import { SUB_TIERS, TIER_NAME, tierOffers, tierRangeKobo, type TierOffer } from 
 import { getFanSettings } from "@/lib/fans-server";
 import { getRoomSettings } from "@/lib/rooms-server";
 import { cleanDiscountPct } from "@/lib/live-tickets";
+import { PpmError, savePpmOffer } from "@/lib/ppm-server";
 
 const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -45,6 +46,11 @@ export async function POST(req: NextRequest) {
       availability[String(d)] = Array.from(new Set(slots as string[])).sort();
     }
     const sessionEnabled = !!sIn.enabled;
+    // Pay-per-minute sessions (lib/ppm.ts) use the same weekly times.
+    const ppmOn = body.ppm?.enabled === true;
+    if (ppmOn && !Object.values(availability).some((a) => a.length)) {
+      return NextResponse.json({ error: "Pay-per-minute sessions: add at least one available time." }, { status: 400 });
+    }
     if (sessionEnabled) {
       if (!(sessionPriceKobo >= LIMITS.sessionMinKobo && sessionPriceKobo <= LIMITS.sessionMaxKobo)) {
         return NextResponse.json({ error: "Session price must be between ₦5,000 and ₦500,000." }, { status: 400 });
@@ -114,6 +120,11 @@ export async function POST(req: NextRequest) {
       ...(existing?.payoutReady ? { payoutReady: true } : {}),
       updatedAt: new Date().toISOString(),
     };
+    // Pay-per-minute prices and who may book (ppmOffers/{uid}); checked before anything is saved.
+    if (body.ppm !== undefined) {
+      try { await savePpmOffer(db, uid, body.ppm); }
+      catch (e) { if (e instanceof PpmError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+    }
     await db.doc(`publisherSettings/${uid}`).set(settings);
     // Ad opt-in is a public flag on the profile so pages can decide whether to
     // show ads without reading private settings. Only paid tiers can choose.

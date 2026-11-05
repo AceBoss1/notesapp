@@ -35,7 +35,8 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
-import { DEFAULT_PAID_FIGURES, type PaidLiveFigures } from "./rooms";
+import { DEFAULT_PAID_FIGURES, DEFAULT_PPM_FIGURES, type PaidLiveFigures, type PpmFigures } from "./rooms";
+import { PPM_ADD_STEP, PPM_EARLY_MS, PPM_RATE_MAX_KOBO, PPM_RATE_MIN_KOBO } from "./ppm";
 import { BAND_NAME } from "./live-tickets";
 import { PAYOUT_HOLD_HOURS } from "./cancellation";
 import { DEFAULT_ROOM_FIGURES, MOD_PERMS, ROOM_CHAT_MAX, ROOM_INVITE_MS, ROOM_MODS_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
@@ -65,7 +66,9 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // Subscription tiers and fans: the tier price ranges and the VIP/VVIP commission shares (Admin → Limits → Subscriptions and fans, lib/fans.ts).
 // Paid lives: the late window, the subscriber discount cap and the no-show minutes (Admin → Limits → Audio rooms → Paid lives); the
 // ticket commission share is a price (currentPricing().liveTicketUpliftPct).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures };
+// Pay-per-minute sessions: the minimum and maximum minutes held, the grace, the wait for more minutes and the no-show minutes (Admin →
+// Limits → Pay-per-minute sessions); the commission share is a price (currentPricing().ppmUpliftPct).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -81,6 +84,9 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const fan = live.fans ?? FAN_DEFAULTS;
   const paid = live.paid ?? DEFAULT_PAID_FIGURES;
   const liveUplift = currentPricing().liveTicketUpliftPct;
+  const ppm = live.ppm ?? DEFAULT_PPM_FIGURES;
+  const ppmUplift = currentPricing().ppmUpliftPct;
+  const secs = (x: number) => `${x} second${x === 1 ? "" : "s"}`;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
   const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
@@ -284,18 +290,19 @@ Paid plans renew automatically through Paystack, monthly or yearly. Cancel any t
 
 **Bonus Credits** come with larger top-ups:
 ${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
-They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners (and paid calls, when those arrive). Bonus amounts can change and are always shown before you pay.
+They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners. Bonus amounts can change and are always shown before you pay.
 
 **Paying from your wallet:** when you pay for a boost, the maroon ✔ badge, an ad campaign, a gift, a shop item, a download or a paid session, and you have something in your wallet, you're asked **Wallet** or **Card, bank transfer or USSD**. The same prices and rules apply as paying by card:
 - Shop items are **held** until you confirm delivery, and sessions until they have happened; then the seller is paid.
 - A badge paid from the wallet lasts one month and doesn't renew by itself; add it again when it ends.
 - Gifts, shop items, downloads, sessions and tickets to [paid lives](/help/paid-lives) use your credit only, not Bonus Credits.
+- **Pay-per-minute sessions** [hold](/help/pay-per-minute) the minutes you choose from your credit (never Bonus Credits) when you book. Held credit can't be spent elsewhere until the call ends; then you pay only the minutes used and the rest comes straight back. The Wallet page shows what's held.
 
 **Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. A ticket to a paid live the host cancels or never starts comes back to your wallet as credit even if you paid by card. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
 
 **What you can't do:** NotesApp Credit can't be withdrawn, cashed out, sent or sold to another member. Sellers and publishers are always paid to their bank accounts, never into a wallet. Plans (Pro, Business), journal subscriptions, the gold badge and merch are paid by card for now.
 
-**Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds). Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
+**Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds), and the credit held for pay-per-minute sessions. Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
       : []),
     A("commission-rates", "What #NotesApp takes (commission) on each plan", "Plans and pricing", `
 On **paid sessions, journal subscriptions and gifts to you** (one rate for all three), #NotesApp takes a commission that falls as you move up:
@@ -311,6 +318,8 @@ Your own rate is shown where you set your prices and see your earnings, under [R
 **Not the same as gifts to you:** **giving** to a community (its funds) has no commission, just a flat charge like a bank transfer (${bandsText(money)}), plus the card charge at cost by card; see [Giving to a community](/help/giving). **Paid event tickets** have no commission on any plan either: each ticket has the same small charge, plus the card charge at cost; see [Paid event tickets](/help/event-tickets).
 
 **Paid lives:** on each ticket to your [paid live](/help/paid-lives), #NotesApp takes your rate above plus ${liveUplift}% of it, fixed when the ticket is bought, worked out on what the buyer paid after any subscriber discount.
+
+**Pay-per-minute sessions:** on each [pay-per-minute session](/help/pay-per-minute), #NotesApp takes your rate above plus ${ppmUplift}% of it, fixed when the session is booked, worked out on the minutes the call used.
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -341,7 +350,9 @@ Publishers set a session price (${money(LIMITS.sessionMinKobo)} to ${money(LIMIT
 
 **What #NotesApp takes:** ${SESSION_RATES()} of each paid session; the same rate as subscriptions and gifts (see [commission rates](/help/commission-rates)). Your own rate shows under Rates & payouts and on My bookings.
 
-To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).`),
+To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).
+
+**Paid by the minute instead:** publishers can also offer [pay-per-minute sessions](/help/pay-per-minute): voice or video calls at a price per minute, booked in the same weekly times, where the caller holds minutes from their NotesApp Credit and pays only what the call uses.`),
     A("subscriptions", "Subscriptions: Premium, VIP and VVIP", "Publishing and earning", `
 A publisher can offer paid monthly subscriptions in up to three tiers, each at a price they set: **Premium** (${tierRange("premium")} a month), **VIP** (${tierRange("vip")}) and **VVIP** (${tierRange("vvip")}). Each tier includes the ones below it. Set them under [Rates & payouts](/profile/publishing): tick the tiers you offer and type each price. Subscribers from before tiers are Premium at the price they pay.
 
@@ -418,6 +429,24 @@ You need a publishing account and your bank account under Rates & payouts. Membe
 **Refunds:** if the host cancels, or doesn't open the live within ${paid.noShowMin} minute${paid.noShowMin === 1 ? "" : "s"} of its time, every ticket is refunded **to NotesApp Credit** automatically (even if you paid by card), and you're told.
 
 **For the host:** #NotesApp takes your [normal rate](/help/commission-rates) plus ${liveUplift}% of it on each ticket, fixed when the ticket is bought and worked out on what the buyer paid. The rest is paid to your bank account after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems, like a paid session.`),
+    A("pay-per-minute", "Pay-per-minute sessions: voice and video calls by the minute", "Publishing and earning", `
+A **pay-per-minute session** is a one-to-one voice or video call with a publisher, paid by the minute from your NotesApp Credit. You hold some minutes when you book, the call is metered by #NotesApp, and you pay only for what you use. Your sessions are on [Pay-per-minute sessions](/ppm).
+
+**For publishers:** under [Rates & payouts](/profile/publishing), tick **Offer pay-per-minute sessions** and set a price per minute for **voice**, for **video**, or both (${money(PPM_RATE_MIN_KOBO)} to ${money(PPM_RATE_MAX_KOBO)} a minute), and who can book: **Everyone**, or your own **Premium, VIP and VVIP**, **VIP and VVIP**, or **VVIP** subscribers ([subscription tiers](/help/subscriptions); they still pay per minute). People book your weekly times, the same ones as [paid sessions](/help/paid-sessions). You need a publishing account and a bank account for payouts.
+
+**Booking:** on the publisher's profile, under **Book · per minute**, choose voice or video, a day and a time, and how many minutes to hold (at least ${ppm.minMinutes}, up to ${ppm.maxMinutes} when booking). That many minutes at their price are **held** from your NotesApp Credit: set aside, not charged. Bonus Credits can't be used, so you need enough credit; [top up](/profile/wallet) first if not.
+
+**The call:** either of you can start it from the session's page, from ${PPM_EARLY_MS / 60_000} minutes before the time. It's the same call as in Messages: phone to phone, end-to-end encrypted, through a relay only when a network needs one. A meter shows the time, the minutes billed and what's left of your hold. The meter is #NotesApp's: it starts when both phones are connected and counts on our clock, not on either phone.
+
+**What you pay:** if the call ends within the first ${secs(ppm.graceSec)}, nothing. After that, every **started minute** is charged, counted from the start: a call of 12:41 is 13 minutes. Unused minutes go back to your NotesApp Credit as soon as the call ends.
+
+**Running out:** when your held minutes are used up you're asked to add minutes (**+ Add ${PPM_ADD_STEP} minutes** holds ${PPM_ADD_STEP} more). If you don't, the call ends ${secs(ppm.topUpWaitSec)} later, and that wait isn't charged: you never pay more than you held. If a phone loses the connection for good, the call ends at the last moment you were both on it.
+
+**Cancelling:** until the call starts, either of you can cancel and everything held comes back. A session whose call hasn't started ${ppm.noShowMin} minute${ppm.noShowMin === 1 ? "" : "s"} after its time ends by itself, and the hold comes back.
+
+**For the publisher:** #NotesApp takes your [normal rate](/help/commission-rates) plus ${ppmUplift}% of it, fixed when the session is booked, on what the call used. The rest is paid to your bank account after the call ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems, like a paid session. Within that window the caller can report a problem from the session's page, which pauses the payout while we review it.
+
+**Teens:** members in teen mode can't sell or book pay-per-minute sessions.`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -440,6 +469,7 @@ Add a bank account under Rates & payouts. We verify the account name first and s
 - **Ad share:** monthly, after review (see [Ads and ad share](/help/ads-and-ad-share)).
 - **Event tickets:** after the event ends and a 24-hour window for problems (see [Paid event tickets](/help/event-tickets)).
 - **Paid-live tickets:** after the live ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems (see [Paid lives](/help/paid-lives)).
+- **Pay-per-minute sessions:** what the call used, after the call ends and a ${PAYOUT_HOLD_HOURS}-hour window for problems (see [Pay-per-minute sessions](/help/pay-per-minute)).
 - **Gifts to a community:** held for a day, then paid on the next payout run (see [Giving to a community](/help/giving)).
 - **Referral and affiliate earnings:** after 7 days (14 for delivered shop items), as cash or as NotesApp Credit (see [Referrals and affiliates](/help/referrals)).
 
@@ -519,7 +549,7 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
       : []),
     ...(CALLS_LIVE
       ? [A("voice-and-video-calls", "Voice and video calls", "Publishing and earning", `
-**Free voice and video calls** in [Messages](/messages), with anyone you follow who follows you back. No minute limit, on every plan.
+**Free voice and video calls** in [Messages](/messages), with anyone you follow who follows you back. No minute limit, on every plan. Paid calls with a publisher are [pay-per-minute sessions](/help/pay-per-minute): the same call, with the session's meter on screen.
 
 **Make a call:** open the conversation and tap the **phone** (voice) or **camera** (video) at the top. It rings on the other person's phone or computer wherever they are on #NotesApp, for up to 45 seconds. During a call you can mute, turn your camera off and on, and end the call. In a video call, drag your own small picture to any corner, tap it to swap it with the other person's, and tap **🔄** to switch between your front and back camera.
 

@@ -30,6 +30,7 @@ import MomentRing from "@/components/moments/MomentRing";
 import MessageButton from "@/components/messages/MessageButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
+import PpmBook from "@/components/ppm/PpmBook";
 import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
 import GiftShowWatcher from "@/components/GiftShowWatcher";
@@ -385,6 +386,8 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
       {!synthetic && (
         <div id="book" className="mt-14 scroll-mt-28">
           <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
+          {/* Pay-per-minute voice and video sessions (lib/ppm.ts): hidden unless the publisher offers them. */}
+          <PpmBook username={profile.username} viewer={viewer} />
         </div>
       )}
 

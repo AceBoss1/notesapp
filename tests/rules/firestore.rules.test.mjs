@@ -1643,3 +1643,38 @@ test("paid lives: lives and reminders are server-only; a ticket is read only by 
   }
   await assertFails(getDocs(query(collection(as("mallory"), "liveTickets"), where("eventId", "==", "L1"))));
 });
+
+test("pay-per-minute: offers are server-only; a session and its hold are read only by their people, and nobody writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "ppmOffers/pub"), { uid: "pub", username: "pub", enabled: true, voiceKobo: 15000, videoKobo: 30000, audience: "premium" });
+    await setDoc(doc(d, "ppmSessions/S1"), { viewerUid: "alice", hostUid: "pub", kind: "voice", perMinuteKobo: 15000, holdMinutes: 30, holdKobo: 450000, status: "live", startedAt: "x", beats: { viewer: "x", host: "x" } });
+    await setDoc(doc(d, "walletHolds/S1"), { uid: "alice", kobo: 450000, status: "held", kind: "ppm", label: "x", createdAt: "x" });
+    await setDoc(doc(d, "calls/pc1"), { callerUid: "alice", calleeUid: "pub", kind: "audio", status: "accepted", cid: "alice_pub", createdAt: "x", ppm: "S1" });
+  });
+  // The viewer and the publisher read the session; anyone else (or signed out) can't. The hold is the viewer's alone.
+  await assertSucceeds(getDoc(doc(as("alice"), "ppmSessions/S1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "ppmSessions/S1")));
+  await assertFails(getDoc(doc(as("mallory"), "ppmSessions/S1")));
+  await assertFails(getDoc(doc(anon(), "ppmSessions/S1")));
+  await assertSucceeds(getDoc(doc(as("alice"), "walletHolds/S1")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "walletHolds"), where("uid", "==", "alice"))));
+  await assertFails(getDoc(doc(as("pub"), "walletHolds/S1")));
+  await assertFails(getDocs(query(collection(as("mallory"), "ppmSessions"), where("hostUid", "==", "pub"))));
+  for (const who of ["alice", "pub", "mallory"]) {
+    const db = as(who);
+    // The offer (prices, who may book) is read and written only by the server.
+    await assertFails(getDoc(doc(db, "ppmOffers/pub")));
+    await assertFails(setDoc(doc(db, `ppmOffers/${who}`), { uid: who, enabled: true, voiceKobo: 1, videoKobo: 1, audience: "everyone" }));
+    // Nobody moves the meter, the hold or the bill from a browser: the server's clock and both phones' beats are the meter.
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { startedAt: "later" }));
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { beats: { viewer: "x", host: "x" } }));
+    await assertFails(updateDoc(doc(db, "ppmSessions/S1"), { status: "ended", billedMinutes: 0 }));
+    await assertFails(setDoc(doc(db, "ppmSessions/S2"), { viewerUid: who, hostUid: "pub", status: "live" }));
+    await assertFails(deleteDoc(doc(db, "ppmSessions/S1")));
+    await assertFails(updateDoc(doc(db, "walletHolds/S1"), { kobo: 0 }));
+    await assertFails(setDoc(doc(db, `walletHolds/H_${who}`), { uid: who, kobo: 1, status: "held" }));
+    // A session's call can't be pointed at another session, or started, from a browser.
+    await assertFails(updateDoc(doc(db, "calls/pc1"), { ppm: "S9" }));
+  }
+});

@@ -1,6 +1,6 @@
 # Live economy: paid lives, pay-per-minute, gifting everywhere and the weekend incentive pool
 
-**Status:** approved plan. Built so far: phase 2 (gifting everywhere, v0.140.0) and phase 1a (paid lives, v0.141.0). Phase 1b (pay-per-minute) and phases 3 to 5 are not built yet.
+**Status:** approved plan. Built so far: phase 2 (gifting everywhere, v0.140.0), phase 1a (paid lives, v0.141.0) and phase 1b (pay-per-minute sessions, v0.142.0). Phases 3 to 5 are not built yet.
 **Owner's decisions:** 3 and 4 November 2026, quoted where they set a rule.
 **Rule for every number below:** it is a default. Each one is editable in Admin (Pricing, Limits or the new Live economy page), and
 the help and public pages read the live value, never a figure typed into them (`tests/help/live-figures.test.ts`).
