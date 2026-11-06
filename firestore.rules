@@ -1473,6 +1473,9 @@ service cloud.firestore {
     // ============================================================
     // Artist songs, uploads in progress, artist applications, play counts and the once-a-day Notes Life plays: read and written by the
     // server only (/api/sounds, /api/sounds/mine, /api/admin/sounds). settings/sounds (the royalty pool) is under settings above.
+    // NotesApp Ventures (lib/ventures-server.ts): pitches to Rewrite the Playbook, kept confidential, server only. settings/ventures (the round)
+    // is under settings above.
+    match /ventureApplications/{id} { allow read, write: if false; }
     match /sounds/{id} { allow read, write: if false; }
     match /soundUploads/{id} { allow read, write: if false; }
     match /soundArtists/{uid} { allow read, write: if false; }

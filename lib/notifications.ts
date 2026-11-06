@@ -44,6 +44,7 @@ export type NotificationType =
   | "course" // Notes Academy: a co-tutor invitation, a course sale
   | "team" // the team hub: a comment on your work, the morning summary
   | "community" // communities: join requests, approvals, announcements in General, comments on your posts
+  | "ventures" // NotesApp Ventures (Rewrite the Playbook): a pitch received, read, shortlisted, picked or not
   | "job" // Notes Jobs: an application moved on, an invitation to apply, a job that matches you (with "I need a job" on)
   | "event" // events: reminders 24 hours and 1 hour before, and changes to an event you said you'd go to
   | "coupon" // a saved coupon (My coupons) ending soon

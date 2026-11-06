@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.147.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "NotesApp Ventures and its open call, Rewrite the Playbook (/ventures): pitch the feature, product or business you're sure the crowd would jump into. If it's picked, #NotesApp builds it with you, our engineers, platform and guidance, for equity and a board seat on terms that fit the project. For ideas and ventures in emerging markets, from members aged 18 and over." },
+      { kind: "added", text: "Every pitch is kept confidential, a person reads each one, and you're told in your notifications as it moves on: received, being read, shortlisted, picked or not. Up to 3 pitches a round, each one withdrawable while it's under review. Everyone who pitches gets perks." },
+    ],
+  },
+  {
     version: "v0.146.0",
     bump: "minor",
     date: "2026-11-06",
