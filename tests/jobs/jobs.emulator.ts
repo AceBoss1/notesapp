@@ -61,6 +61,18 @@ const db = getFirestore();
   const mine = await S.listJobs(db, "u_bola");
   assert.deepEqual(mine.forYou.map((j) => j.id), [j1.id]); assert.ok(mine.forYou[0].reasons.length >= 3);
 
+  // Nana: a job question gets the open jobs that fit, and our own /careers roles too
+  await db.doc("staffMeta/careersSeed").set({ marketingSplit: "x" }); // no seeded roles in this test
+  await db.doc("careerRoles/r_care").set({ title: "Customer care lead", dept: "care", reportsTo: "CEO", summary: "Lead customer care for our members", about: "", responsibilities: [], requirements: ["3+ years in customer support"], hours: "Full-time", location: "Remote (Nigeria)", arrangement: "salary", status: "open", createdAt: "2026-11-01", updatedAt: "2026-11-01", createdByUid: "x" });
+  await S.postJob(db, { uid: "org_free" }, "org_free", { ...job, title: "Customer support agent", mode: "remote", city: "", industry: "", topics: [] });
+  const { jobsBlock, jobPaths } = await import("../../lib/nana-prompt");
+  const forNana = await S.jobsForNana(db, "I want more remote work for customers services representative so I can apply");
+  assert.deepEqual(forNana.matches.map((o) => o.title), ["Customer support agent", "Customer care lead"]);
+  assert.equal(forNana.matches[1].href, "/careers/r_care"); assert.equal(forNana.careers, 1); assert.equal(forNana.open, 3);
+  assert.ok(jobsBlock(forNana).includes("[Customer care lead](/careers/r_care) at #NotesApp (our own team)"));
+  assert.ok(jobPaths(forNana).every((p) => p.startsWith("/jobs/") || p.startsWith("/careers/")));
+  assert.ok(jobsBlock(await S.jobsForNana(db, "pilot jobs")).startsWith("NOTES JOBS: no open job fits"));
+
   // suggested candidates: Business only; Bola and Chi (needs a job, fit), never the teen; no email, phone or city
   await refused(S.suggestedCandidates(db, { uid: "org_free" }, j2.id), 403);
   const cands = await S.suggestedCandidates(db, { uid: "u_admin" }, j1.id);

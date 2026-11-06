@@ -7,8 +7,9 @@ import { headline } from "./profile-work";
 import type { UserProfile } from "./users";
 import {
   BELLS_PER_DAY, BELLS_PER_JOB, JOBS_BRAND, JOB_APP_STATUS_LABEL, JobsError, KEEP_DAYS, STRONG_MATCH, SUGGESTED_MAX, cleanJob, cleanJobApplication,
-  isJobAppStatus, matchScore, matchingTier, type Job, type JobApplication, type Seeker,
+  isJobAppStatus, jobsForQuestion, matchScore, openingOfJob, type Opening, type WorkMode, matchingTier, type Job, type JobApplication, type Seeker,
 } from "./jobs";
+import type { CareerRole } from "./careers";
 
 // Notes Jobs on the server (lib/jobs.ts has the rules). Collections, all server-only (firestore.rules):
 //   jobs/{id}                      a job; status open | closed | removed (removed = taken down after a report)
@@ -306,4 +307,18 @@ export async function removeJobAfterReport(db: Firestore, jobId: string, now = n
   await ref.update({ status: "removed", updatedAt: now.toISOString() });
   await startPurge(db, jobId, now);
   await notifyBell({ uid: String(cur.orgUid), type: "job", linkHref: "/profile/jobs", message: `Your job "${cur.title}" was taken down by #NotesApp after a report. Contact us if you think that's wrong.` }).catch(() => {});
+}
+
+// ---- Nana ----
+// The openings that fit what someone asked Nana: Notes Jobs jobs and #NotesApp's own roles on /careers (lib/nana-prompt.ts jobsBlock).
+export async function jobsForNana(db: Firestore, question: string, now = new Date()): Promise<{ matches: Opening[]; open: number; careers: number }> {
+  const { openRoles } = await import("./careers-server"); // loaded here: careers-server reaches back to nana-server
+  const [{ jobs }, roles] = await Promise.all([listJobs(db, null, now), openRoles(db).catch(() => [] as CareerRole[])]);
+  const ours = roles.map((r) => ({
+    r, title: r.title, summary: r.summary, requirements: r.requirements, industry: "", city: r.location, state: "",
+    mode: (/remote/i.test(r.location) ? "remote" : /hybrid/i.test(r.location) ? "hybrid" : "onsite") as WorkMode, createdAt: r.openedAt || r.createdAt,
+  }));
+  const fromJobs = jobsForQuestion(question, jobs).map(openingOfJob);
+  const fromUs = jobsForQuestion(question, ours, 3).map((x): Opening => ({ title: x.r.title, org: "#NotesApp (our own team)", place: x.r.location, kind: x.r.hours, pay: "", summary: x.r.summary, href: `/careers/${x.r.id}` }));
+  return { matches: [...fromJobs, ...fromUs].slice(0, 6), open: jobs.length, careers: roles.length };
 }

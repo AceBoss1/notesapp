@@ -138,3 +138,42 @@ export const payText = (j: Pick<Job, "payMinKobo" | "payMaxKobo" | "payPeriod">)
 };
 export const placeText = (j: Pick<Job, "mode" | "city" | "state">) =>
   j.mode === "remote" ? (j.city ? `Remote (${j.city})` : "Remote") : [j.city, j.state].filter(Boolean).join(", ") + (j.mode === "hybrid" ? " · Hybrid" : "");
+
+// ---- Nana and Notes Jobs ----
+// Nana hears "I want remote work as a customer service rep" without the word "job"; these find that, and the open jobs that fit.
+const JOB_WORDS = /\b(jobs?|work|working|vacanc(?:y|ies)|hiring|hire|recruit\w*|employ\w*|career|careers|apply|applying|application|cv|resume|intern(?:ship)?s?|role|roles|position|positions|opening|openings|salary|full[- ]time|part[- ]time|remote|freelance|gig)\b/i;
+const SEEKING = /\b(i (?:want|need|am looking for|'m looking for|m looking for)|looking for|find|get|any|more|available|open|apply|hiring|vacanc|jobs?\b)/i;
+const GAME_WORDS = /\b(notes life|life game|in the game|in game|shift|shifts|n\$|digital witch|my character|sim)\b/i;
+export const jobIntent = (text: string) => JOB_WORDS.test(text) && SEEKING.test(text) && !GAME_WORDS.test(text);
+
+const FILLER = new Set(["want", "need", "more", "work", "working", "job", "jobs", "apply", "applying", "can", "get", "find", "any", "looking", "for", "some", "please", "available", "open", "role", "roles", "position", "positions", "remote", "there", "with", "that", "what", "how", "who", "where", "which", "have", "from", "into", "about", "would", "like", "you", "your", "the", "and", "are", "help", "me", "so", "i"]);
+const norm = (w: string) => (w.length > 4 && w.endsWith("ies") ? `${w.slice(0, -3)}y` : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
+const wordsOf = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2).map(norm);
+// The words of a question that say what kind of job, with a few everyday equivalents (customer service = support = care).
+const SAME: Record<string, string> = { support: "customer", care: "customer", service: "customer", helpdesk: "customer", agent: "rep", representative: "rep", advisor: "rep", adviser: "rep", developer: "engineer", programmer: "engineer", coder: "engineer", writer: "content", copywriter: "content", editor: "content", sale: "sales", seller: "sales" };
+const keyWords = (s: string) => Array.from(new Set(wordsOf(s).filter((w) => !FILLER.has(w)).map((w) => SAME[w] ?? w)));
+
+// Open jobs ranked for what someone asked: words in the title count 3, in the summary, requirements or industry 1; asking for remote
+// (or a city) counts for jobs that are remote (or there). Only jobs with a match on what the job is, or on remote alone when that's
+// all they said, are returned.
+export type Rankable = Pick<Job, "title" | "summary" | "requirements" | "industry" | "city" | "state" | "mode" | "createdAt">;
+export function jobsForQuestion<T extends Rankable>(question: string, jobs: T[], max = 5): T[] {
+  const ws = keyWords(question);
+  const remote = /\bremote(ly)?\b|from home|wfh/i.test(question);
+  const scored = jobs.map((j) => {
+    const title = new Set(keyWords(j.title)), rest = new Set(keyWords(`${j.summary} ${j.requirements.join(" ")} ${j.industry}`));
+    const place = new Set(wordsOf(`${j.city} ${j.state}`));
+    let what = 0, where = 0;
+    for (const w of ws) { if (title.has(w)) what += 3; else if (rest.has(w)) what += 1; if (place.has(w)) where += 2; }
+    if (remote && j.mode === "remote") where += 2; else if (remote && j.mode === "hybrid") where += 1;
+    return { j, what, where };
+  });
+  const askedWhat = ws.some((w) => !jobs.some((j) => wordsOf(`${j.city} ${j.state}`).includes(w)));
+  return scored.filter((x) => (askedWhat ? x.what > 0 : x.where > 0))
+    .sort((a, b) => b.what + b.where - (a.what + a.where) || (a.j.createdAt < b.j.createdAt ? 1 : -1)).slice(0, max).map((x) => x.j);
+}
+
+// What Nana is given for each opening: a Notes Jobs job, or one of #NotesApp's own roles on /careers.
+export type Opening = { title: string; org: string; place: string; kind: string; pay: string; summary: string; href: string };
+export const openingOfJob = (j: Job): Opening =>
+  ({ title: j.title, org: j.orgName, place: placeText(j), kind: JOB_TYPE_LABEL[j.type], pay: payText(j), summary: j.summary, href: `/jobs/${j.id}` });

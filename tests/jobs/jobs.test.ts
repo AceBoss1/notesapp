@@ -1,7 +1,7 @@
 // Notes Jobs rules (lib/jobs.ts): what a job and an application must hold, and how a job is matched to a member.
 // Run: npm run test:jobs → "ALL OK".
 import assert from "node:assert/strict";
-import { JobsError, cleanJob, cleanJobApplication, matchScore, matchingTier, payText, placeText, STRONG_MATCH } from "../../lib/jobs";
+import { JobsError, cleanJob, cleanJobApplication, jobIntent, jobsForQuestion, matchScore, matchingTier, payText, placeText, STRONG_MATCH } from "../../lib/jobs";
 
 const base = { title: "Community manager", summary: "Grow our members' communities across Lagos", requirements: "2 years with communities\nWarm and organised", type: "full_time", mode: "onsite", city: "Lagos", industry: "media", topics: ["marketing", "socialmedia", "business"] };
 const j = cleanJob(base);
@@ -35,4 +35,17 @@ assert.equal(matchScore(job, {}).score, 0, "nothing known, no match");
 assert.equal(matchScore({ ...job, mode: "remote", city: "" }, {}).score, 1, "a remote job suits anyone a little");
 assert.equal(matchScore(job, { jobTitle: "Senior manager" }).score, 0, "common words like manager don't count");
 assert.equal(matchingTier("business"), true); assert.equal(matchingTier("enterprise"), true); assert.equal(matchingTier("pro"), false);
+// Nana: a real job search, even without the word "job", and the openings that fit it (the owner's example, 6 Nov 2026)
+const ask = "I want more remote work for customers services representative so I can apply";
+assert.equal(jobIntent(ask), true);
+for (const q of ["any vacancies in Lagos?", "is anyone hiring a developer", "I need a job", "how do I find work as a writer"]) assert.equal(jobIntent(q), true, q);
+for (const q of ["how do I get the Digital Witch certificate in Notes Life", "how much does a shift pay in the game", "how does booking work", "what is NotesApp"]) assert.equal(jobIntent(q), false, q);
+const J = (id: string, title: string, mode: "onsite" | "hybrid" | "remote", city = "Lagos", summary = "Help our members", createdAt = "2026-11-01") =>
+  ({ id, title, mode, city, state: "", summary, requirements: [] as string[], industry: "", createdAt });
+const open = [J("a", "Customer support agent", "remote"), J("b", "Customer care representative", "onsite"), J("c", "Delivery rider", "onsite"), J("d", "Social media lead", "remote")];
+const fit = jobsForQuestion(ask, open).map((j) => j.id);
+assert.deepEqual(fit, ["a", "b"], "customer service = support = care; remote ranks first; nothing unrelated");
+assert.deepEqual(jobsForQuestion("any remote jobs?", open).map((j) => j.id).sort(), ["a", "d"], "remote alone");
+assert.deepEqual(jobsForQuestion("any jobs in Lagos?", open).length, 4, "a city alone");
+assert.deepEqual(jobsForQuestion("pilot jobs", open), [], "nothing fits");
 console.log("ALL OK");

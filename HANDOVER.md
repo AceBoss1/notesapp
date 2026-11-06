@@ -932,7 +932,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     with a private city) get a bell from 5+ (3 a day, 300 per job), and the firm sees them as suggested candidates (public info only, "Same
     city" rather than the city) and can invite each once. Teens and organisations can't switch it on and are never suggested. Account
     export and erase include jobs. Brand: **Notes Jobs** (`JOBS_BRAND`; footer, brand guidelines). **Phase 2, not built:** boosting a
-    job through the boost payments (for now firms use banner adverts). Tests: `test:jobs` (new: pure + emulator), rules 92/92.
+    job through the boost payments (for now firms use banner adverts). **Nana:** a job question (`jobIntent`: job words plus a
+    seeking phrase, not about the Notes Life game) gets the open Notes Jobs jobs and our own `/careers` roles that fit (`jobsForNana`,
+    `jobsForQuestion`: customer service = support = care, remote and city count), the Notes Jobs article first, and those pages as
+    allowed links; such answers aren't banked (the listings change). Her rules say real jobs are Notes Jobs unless the person means the
+    game. Tests: `test:jobs` (new: pure + emulator + Nana), rules 92/92.
 
 ## 3. How the work is done (please keep these)
 
