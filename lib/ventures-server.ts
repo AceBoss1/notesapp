@@ -6,8 +6,8 @@ import { randomBytes } from "crypto";
 import { isKidUid } from "./kids";
 import { notifyBell } from "./email";
 import {
-  AGREE_TEXT, CALL_NAME, DEFAULT_CALL, LIMITS, OPEN_STATUSES, PICKS_PER_QUARTER, STATUS_NOTE, VENTURES_PATH,
-  isKind, isRegion, isSector, isStage, isStatus, quarterOf,
+  AGREE_TEXT, CALL_NAME, DEFAULT_CALL, LIMITS, OPEN_STATUSES, PICKS_MAX, PICKS_MIN, STATUS_NOTE, VENTURES_PATH,
+  isKind, isPicks, isRegion, isSector, isStage, isStatus, quarterOf,
   type Application, type CallSettings, type MyApplication, type Status,
 } from "./ventures";
 
@@ -23,10 +23,13 @@ const text = (v: unknown, max: number, label: string, min = 0): string => {
   return s;
 };
 
-// Rolling applications: the call is open unless the team pauses it (Admin → Ventures).
+// Rolling applications: the call is open unless the team pauses it (Admin → Ventures); picks a quarter from Admin → Limits.
 export async function callSettings(db: Firestore): Promise<CallSettings> {
   const d = (await db.doc("settings/ventures").get()).data();
-  return { open: typeof d?.open === "boolean" ? d.open : DEFAULT_CALL.open };
+  return {
+    open: typeof d?.open === "boolean" ? d.open : DEFAULT_CALL.open,
+    picksPerQuarter: isPicks(d?.picksPerQuarter) ? d.picksPerQuarter : DEFAULT_CALL.picksPerQuarter,
+  };
 }
 
 export type ApplyInput = Record<string, unknown>;
@@ -91,7 +94,7 @@ export async function withdrawPitch(db: Firestore, uid: string, id: unknown, now
 }
 
 // ── The team (Admin → Ventures) ──────────────────────────────────────────────────────────────────────────────────────────────────
-export type AdminVentures = { applications: Application[]; call: CallSettings; quarter: string; pickedThisQuarter: number; picksPerQuarter: number };
+export type AdminVentures = { applications: Application[]; call: CallSettings; quarter: string; pickedThisQuarter: number };
 export async function adminPitches(db: Firestore, now = new Date()): Promise<AdminVentures> {
   const s = await db.collection(COL).get();
   const order: Record<Status, number> = { received: 0, reviewing: 1, shortlisted: 2, picked: 3, "not-picked": 4, withdrawn: 5 };
@@ -99,7 +102,7 @@ export async function adminPitches(db: Firestore, now = new Date()): Promise<Adm
     .sort((a, b) => order[a.status] - order[b.status] || b.createdAt.localeCompare(a.createdAt));
   const quarter = quarterOf(now);
   const pickedThisQuarter = applications.filter((a) => a.status === "picked" && a.pickedQuarter === quarter).length;
-  return { applications, call: await callSettings(db), quarter, pickedThisQuarter, picksPerQuarter: PICKS_PER_QUARTER };
+  return { applications, call: await callSettings(db), quarter, pickedThisQuarter };
 }
 
 export async function decidePitch(db: Firestore, id: unknown, input: { status?: unknown; notes?: unknown; advice?: unknown; perksSent?: unknown }, now = new Date()): Promise<void> {
@@ -108,16 +111,17 @@ export async function decidePitch(db: Firestore, id: unknown, input: { status?: 
   const a = (await ref.get()).data() as Application | undefined;
   if (!a) throw new VenturesError(404, "Pitch not found.");
   const patch: Record<string, unknown> = { updatedAt: now.toISOString() };
+  const { picksPerQuarter } = await callSettings(db);
   if (input.status !== undefined) {
     if (!isStatus(input.status) || input.status === "withdrawn") throw new VenturesError(400, "Choose a status.");
     if (a.status === "withdrawn") throw new VenturesError(409, "The member withdrew this pitch.");
     patch.status = input.status;
-    // Up to PICKS_PER_QUARTER picks a quarter (owner, 6 Nov 2026: what the team can build at its current strength).
+    // Up to picksPerQuarter picks a quarter (owner, 6 Nov 2026: what the team can build at its current strength; Admin → Limits).
     if (input.status === "picked" && a.status !== "picked") {
       const quarter = quarterOf(now);
       const picked = await db.collection(COL).where("pickedQuarter", "==", quarter).get();
-      if (picked.docs.filter((d) => d.data().status === "picked").length >= PICKS_PER_QUARTER) {
-        throw new VenturesError(409, `${PICKS_PER_QUARTER} pitches are already picked in ${quarter}. Un-pick one first, or pick this next quarter.`);
+      if (picked.docs.filter((d) => d.data().status === "picked").length >= picksPerQuarter) {
+        throw new VenturesError(409, `${picksPerQuarter} pitch${picksPerQuarter === 1 ? " is" : "es are"} already picked in ${quarter}, the most a quarter (Admin → Limits). Un-pick one first, or pick this next quarter.`);
       }
       patch.pickedQuarter = quarter;
     }
@@ -128,7 +132,14 @@ export async function decidePitch(db: Firestore, id: unknown, input: { status?: 
   await ref.update(patch);
   const st = patch.status as Status | undefined;
   const tell = st && st !== a.status ? STATUS_NOTE[st] : undefined;
-  if (tell) await notifyBell({ uid: a.uid, type: "ventures", linkHref: VENTURES_PATH + "#mine", message: tell(a.title) }).catch(() => {});
+  if (tell) await notifyBell({ uid: a.uid, type: "ventures", linkHref: VENTURES_PATH + "#mine", message: tell(a.title, picksPerQuarter) }).catch(() => {});
+}
+
+// Picks a quarter (super admin, Admin → Limits → NotesApp Ventures). Applies sitewide at once; picks already made stay picked.
+export async function setPicksPerQuarter(db: Firestore, n: unknown, by: string): Promise<CallSettings> {
+  if (!isPicks(n)) throw new VenturesError(400, `Picks a quarter is a whole number from ${PICKS_MIN} to ${PICKS_MAX}.`);
+  await db.doc("settings/ventures").set({ picksPerQuarter: n, updatedBy: by, updatedAt: new Date().toISOString() }, { merge: true });
+  return callSettings(db);
 }
 
 // Pause or reopen the call (super admin).

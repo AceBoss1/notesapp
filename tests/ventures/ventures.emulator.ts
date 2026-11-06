@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { adminPitches, callSettings, decidePitch, myPitches, sendPitch, setCall, withdrawPitch } from "../../lib/ventures-server";
+import { adminPitches, callSettings, decidePitch, myPitches, sendPitch, setCall, setPicksPerQuarter, withdrawPitch } from "../../lib/ventures-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -42,7 +42,7 @@ async function main() {
 
   // Rolling, grouped by quarter. A pitch; the same name twice in a quarter is refused; up to 3 a member a quarter.
   const NOV = new Date("2026-11-06T10:00:00Z"), JAN = new Date("2027-01-10T10:00:00Z");
-  assert.deepEqual(await callSettings(db), { open: true });
+  assert.deepEqual(await callSettings(db), { open: true, picksPerQuarter: 3 });
   const p1 = await sendPitch(db, ME, ok(), NOV);
   assert.deepEqual([p1.status, p1.quarter], ["received", "Q4 2026"]);
   await rejects(sendPitch(db, ME, ok({ title: "kolo circles" }), NOV), /already pitched/);
@@ -62,7 +62,7 @@ async function main() {
   assert.equal("notes" in mine, false, "notes never reach the member");
   const all = await adminPitches(db, NOV);
   const a1 = all.applications.find((a) => a.id === p1.id)!;
-  assert.deepEqual([a1.notes, !!a1.perksSentAt, all.quarter, all.picksPerQuarter], ["Strong founder-market fit", true, "Q4 2026", 3]);
+  assert.deepEqual([a1.notes, !!a1.perksSentAt, all.quarter, all.call.picksPerQuarter], ["Strong founder-market fit", true, "Q4 2026", 3]);
   await rejects(decidePitch(db, p3.id, { status: "picked" }, NOV), /withdrew/);
   await rejects(decidePitch(db, p1.id, { status: "withdrawn" }, NOV), /Choose a status/);
 
@@ -74,6 +74,18 @@ async function main() {
   }
   assert.equal((await adminPitches(db, NOV)).pickedThisQuarter, 3);
   await rejects(decidePitch(db, p1.id, { status: "picked" }, NOV), /3 pitches are already picked in Q4 2026/);
+  // A super admin raises the quota (Admin → Limits): the 4th pick goes through, and the 5th is refused at the new limit.
+  await rejects(setPicksPerQuarter(db, 0, "admin"), /1 to 50/);
+  await rejects(setPicksPerQuarter(db, 2.5, "admin"), /1 to 50/);
+  await setPicksPerQuarter(db, 4, "admin");
+  assert.equal((await callSettings(db)).picksPerQuarter, 4);
+  await decidePitch(db, p1.id, { status: "picked" }, NOV);
+  await db.doc("users/u_m9").set({ username: "m9" });
+  const x9 = await sendPitch(db, { uid: "u_m9", emailVerified: true }, ok({ title: "Idea 9" }), NOV);
+  await rejects(decidePitch(db, x9.id, { status: "picked" }, NOV), /4 pitches are already picked in Q4 2026/);
+  // Back to 3 and un-pick p1, so the next-quarter check below starts clean.
+  await setPicksPerQuarter(db, 3, "admin");
+  await decidePitch(db, p1.id, { status: "shortlisted" }, NOV);
   await decidePitch(db, p4.id, { status: "not-picked", advice: "Try again with a pilot." }, NOV);
   assert.equal((await myPitches(db, "u_ada")).find((a) => a.id === p4.id)!.status, "not-picked");
   await decidePitch(db, p1.id, { status: "picked" }, JAN);

@@ -50,7 +50,7 @@ export default function AdminVenturesPage() {
 
       {meta && (
         <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-rule bg-card p-4 text-sm">
-          <p className="text-ink"><b>{meta.quarter}:</b> {meta.pickedThisQuarter} of {meta.picksPerQuarter} picked</p>
+          <p className="text-ink"><b>{meta.quarter}:</b> {meta.pickedThisQuarter} of {meta.call.picksPerQuarter} picked <Link href="/admin/limits#ventures" className="text-xs text-crimson underline">change in Limits</Link></p>
           <p className="text-slate">Rolling applications · {meta.call.open ? "open for pitches" : "paused"}</p>
           <button type="button" disabled={busy === "call"} onClick={() => { if (confirm(meta.call.open ? "Pause new pitches? The page tells people to check back." : "Reopen pitches?")) void act("call", { action: "call", open: !meta.call.open }); }} className={`${btn} ml-auto`}>{meta.call.open ? "Pause pitches" : "Reopen pitches"} (super admin)</button>
         </div>

@@ -4,7 +4,7 @@ import { CALL_NAME, VENTURES_NAME } from "@/lib/ventures";
 // The /ventures cover: "Rewrite the Playbook". An open playbook whose old rules are struck through in red ink and rewritten, with lines
 // rising from its pages to a dot map of the emerging markets (Africa, Latin America, the Middle East, South and Southeast Asia) that
 // light up. Drawn in SVG (no image to download); the pen strokes draw themselves once, and stay still for people who prefer less motion.
-export default function VenturesHero() {
+export default function VenturesHero({ picks }: { picks: number }) {
   return (
     <section className="relative overflow-hidden bg-crimson-deep text-paper"
       style={{ backgroundImage: "radial-gradient(52rem 30rem at 88% 8%, rgba(244,184,96,0.22), transparent 62%), radial-gradient(60rem 34rem at 10% 110%, rgba(166,9,61,0.75), transparent 70%), linear-gradient(140deg, #2A000D 0%, #4E0119 45%, #7A0328 100%)" }}>
@@ -44,13 +44,13 @@ export default function VenturesHero() {
             Got a feature, product or business you&apos;re sure the crowd would jump into? Pitch it. If it&apos;s picked, #NotesApp builds it
             with you: our engineers, our platform, our guidance, for equity and a board seat on terms that fit your project.
           </p>
-          <p className="mt-3 max-w-xl text-sm text-paper/70">For ideas and ventures built for emerging markets. Rolling applications, with 3 picked each quarter. Every pitch is kept confidential.</p>
+          <p className="mt-3 max-w-xl text-sm text-paper/70">For ideas and ventures built for emerging markets. Rolling applications, with {picks} picked each quarter. Every pitch is kept confidential.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#apply" className="rounded-full bg-[#F4B860] px-6 py-3 font-ui text-sm font-bold text-crimson-deep shadow-lg shadow-black/20 hover:bg-[#f7c77e]">Pitch your idea</a>
             <a href="#how" className="rounded-full border border-paper/30 px-6 py-3 font-ui text-sm font-semibold text-paper hover:bg-paper/10">How it works</a>
           </div>
           <ul className="mt-8 flex flex-wrap gap-2 text-xs font-semibold text-paper/85">
-            {["Emerging markets only", "Rolling · 3 picked a quarter", "Kept confidential", "Perks for every participant"].map((x) => (
+            {["Emerging markets only", `Rolling · ${picks} picked a quarter`, "Kept confidential", "Perks for every participant"].map((x) => (
               <li key={x} className="rounded-full bg-black/20 px-3 py-1.5 ring-1 ring-inset ring-paper/15">{x}</li>
             ))}
           </ul>

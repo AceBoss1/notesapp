@@ -5,8 +5,8 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
-  AGREE_TEXT, CALL_NAME, KINDS, KIND_LABEL, LIMITS, NOT_PICKED_NOTE, OPEN_STATUSES, PICKS_PER_QUARTER, REGIONS, REGION_LABEL, SECTORS, SECTOR_LABEL,
-  STAGES, STAGE_LABEL, STATUS_LABEL,
+  AGREE_TEXT, CALL_NAME, KINDS, KIND_LABEL, LIMITS, OPEN_STATUSES, PICKS_PER_QUARTER, REGIONS, REGION_LABEL, SECTORS, SECTOR_LABEL,
+  STAGES, STAGE_LABEL, STATUS_LABEL, notPickedNote,
   type CallSettings, type MyApplication,
 } from "@/lib/ventures";
 
@@ -33,7 +33,7 @@ export default function PitchForm() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-  const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ call: { open: true }, quarter: "", mine: [], signedIn: !!u }));
+  const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ call: { open: true, picksPerQuarter: PICKS_PER_QUARTER }, quarter: "", mine: [], signedIn: !!u }));
   useEffect(() => { if (user !== undefined) void load(user); }, [user?.uid, user === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF({ ...f, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value });
@@ -79,7 +79,7 @@ export default function PitchForm() {
         <form onSubmit={submit} className="grid gap-5 rounded-[22px] border border-rule bg-card p-5 sm:p-7">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-display text-2xl text-ink">Your pitch</p>
-            <p className="text-xs font-semibold text-crimson">Rolling · we pick {PICKS_PER_QUARTER} a quarter{data.quarter ? ` · now ${data.quarter}` : ""}</p>
+            <p className="text-xs font-semibold text-crimson">Rolling · we pick {data.call.picksPerQuarter} a quarter{data.quarter ? ` · now ${data.quarter}` : ""}</p>
           </div>
 
           <fieldset>
@@ -149,7 +149,7 @@ export default function PitchForm() {
                   <p className="font-ui font-bold text-ink">{a.title} <span className="text-xs font-normal text-slate">· {a.quarter} · {REGION_LABEL[a.region]}</span></p>
                   <p className="truncate text-sm text-slate">{a.oneLiner}</p>
                   {a.advice && <p className="mt-2 rounded-xl bg-field p-3 text-sm text-ink"><b>Advice from the team:</b> <span className="whitespace-pre-wrap">{a.advice}</span></p>}
-                  {a.status === "not-picked" && <p className="mt-2 text-xs text-slate">{NOT_PICKED_NOTE}</p>}
+                  {a.status === "not-picked" && <p className="mt-2 text-xs text-slate">{notPickedNote(data.call.picksPerQuarter)}</p>}
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${a.status === "picked" ? "bg-green-100 text-green-800" : a.status === "shortlisted" ? "bg-amber-100 text-amber-900" : "bg-field text-ink"}`}>{STATUS_LABEL[a.status]}</span>
                 {OPEN_STATUSES.includes(a.status) && <button type="button" onClick={() => void withdraw(a.id, a.title)} className="text-xs text-slate underline">Withdraw</button>}

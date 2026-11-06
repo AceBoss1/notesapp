@@ -1,5 +1,5 @@
 // NotesApp Ventures and its open call, Rewrite the Playbook (owner, 6 Nov 2026). Applications are rolling, and the team picks up to 3 a
-// quarter (owner, 6 Nov 2026: "owing to our current strength"). Members pitch a feature, product or business they're
+// quarter (owner, 6 Nov 2026: "owing to our current strength"); a super admin raises or lowers that in Admin → Limits, sitewide. Members pitch a feature, product or business they're
 // sure the crowd would jump into; the ones picked are built with #NotesApp (engineers, platform, guidance) in exchange for equity and a
 // board seat, on terms that fit each project. Only ideas and ventures for emerging markets are welcome. Every pitch is kept confidential
 // (counsel, 6 Nov 2026: "kept confidential", never "NDA"). Every participant gets perks. Client-safe: the rules, shared by the page, the
@@ -71,11 +71,11 @@ export const STATUS_LABEL: Record<Status, string> = {
 export const isStatus = (v: unknown): v is Status => STATUSES.includes(v as Status);
 export const OPEN_STATUSES: Status[] = ["received", "reviewing", "shortlisted"];
 // What the member is told in their notifications when the team moves an application on.
-export const STATUS_NOTE: Partial<Record<Status, (title: string) => string>> = {
+export const STATUS_NOTE: Partial<Record<Status, (title: string, picks: number) => string>> = {
   reviewing: (t) => `${CALL_NAME}: the team is reading "${t}".`,
   shortlisted: (t) => `${CALL_NAME}: "${t}" is shortlisted. We'll be in touch to talk it through.`,
   picked: (t) => `${CALL_NAME}: "${t}" is picked! We'd like to build it with you. We'll send the next steps and terms.`,
-  "not-picked": (t) => `${CALL_NAME}: "${t}" wasn't one of the ${PICKS_PER_QUARTER} we picked this quarter. It's nothing personal: we receive many pitches and can only take on ${PICKS_PER_QUARTER} a quarter for now. Read the team's advice on the Ventures page, and pitch again next quarter.`,
+  "not-picked": (t, n) => `${CALL_NAME}: "${t}" wasn't one of the ${n} we picked this quarter. It's nothing personal: we receive many pitches and can only take on ${n} a quarter for now. Read the team's advice on the Ventures page, and pitch again next quarter.`,
 };
 
 export const LIMITS = {
@@ -84,11 +84,14 @@ export const LIMITS = {
   advice: 2000,
 };
 
-// Rolling: pitch any time. The team picks up to PICKS_PER_QUARTER a quarter (enforced when a pitch is marked picked). Pitches are grouped
-// by the quarter they're sent in, like "Q4 2026".
+// Rolling: pitch any time. The team picks up to `picksPerQuarter` a quarter (enforced when a pitch is marked picked). The default is 3; a
+// super admin changes it in Admin → Limits → NotesApp Ventures (settings/ventures), and the page, the form, the notifications and the cap
+// all follow. Pitches are grouped by the quarter they're sent in, like "Q4 2026".
 export const PICKS_PER_QUARTER = 3;
+export const PICKS_MIN = 1, PICKS_MAX = 50;
+export const isPicks = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= PICKS_MIN && v <= PICKS_MAX;
 export const quarterOf = (d: Date) => `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${d.getUTCFullYear()}`;
-export const NOT_PICKED_NOTE = `It's nothing personal. We receive many pitches and, with the team we have today, can only build ${PICKS_PER_QUARTER} a quarter. Read the team's advice, sharpen your pitch, and try again next quarter: several picks will be second tries.`;
+export const notPickedNote = (n: number) => `It's nothing personal. We receive many pitches and, with the team we have today, can only build ${n} a quarter. Read the team's advice, sharpen your pitch, and try again next quarter: several picks will be second tries.`;
 
 // The call's terms, shown beside the form and agreed to with the tick box (counsel's wording: "kept confidential").
 export const CONFIDENTIAL_TERMS = [
@@ -108,9 +111,10 @@ export const PERKS = [
   "Invitations to Rewrite the Playbook sessions with the #NotesApp team",
 ] as const;
 
-// The call (Admin → Ventures): open for pitches, or paused. settings/ventures. Rolling, so there are no rounds to name or close.
-export type CallSettings = { open: boolean };
-export const DEFAULT_CALL: CallSettings = { open: true };
+// The call: open for pitches or paused (Admin → Ventures), and how many are picked a quarter (Admin → Limits). settings/ventures. Rolling,
+// so there are no rounds to name or close.
+export type CallSettings = { open: boolean; picksPerQuarter: number };
+export const DEFAULT_CALL: CallSettings = { open: true, picksPerQuarter: PICKS_PER_QUARTER };
 
 export type Application = {
   id: string; uid: string; username: string; name: string;
