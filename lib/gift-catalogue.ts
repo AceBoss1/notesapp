@@ -88,7 +88,7 @@ export const DEFAULT_CATALOGUE: AnimatedGift[] = [
   { id: "gele", name: "Golden Gele", priceKobo: 25_000 * 100, enabled: true },
   { id: "kente", name: "Kente Crown", priceKobo: 50_000 * 100, enabled: true },
   { id: "baobab", name: "Baobab of Blessings", priceKobo: 100_000 * 100, enabled: true },
-  { id: "champagne", name: "Circova Champagne", priceKobo: 150_000 * 100, enabled: true },
+  { id: "champagne", name: "Cricova Champagne", priceKobo: 150_000 * 100, enabled: true },
   { id: "argungu", name: "Argungu Fishing", priceKobo: 250_000 * 100, enabled: true },
   { id: "durbar", name: "Durbar Horse", priceKobo: 500_000 * 100, enabled: true },
   { id: "ijele", name: "Ijele Masquerade", priceKobo: 750_000 * 100, enabled: true },
@@ -121,6 +121,13 @@ export const GIFT_NAME_MAX = 30;
 export const SLOTS_MAX = 20;
 export const MIN_SENDERS_MAX = 50;
 // How long a gift plays: every gift fills the screen; grand ones stay longer, and the biggest longest.
+// Gifts that play a video instead of the drawn card (components/GiftOverlay.tsx). The video plays in full with its own sound (when
+// the viewer has gift sounds on), over the page dimmed behind it with its edges faded, so its dark background melts in; a Skip button
+// appears after skipAfterMs. Owner, 6 Nov 2026: the Cricova Champagne video, black background dropped this way, Skip after 8 s.
+export type GiftVideo = { src: string; poster: string; ms: number; skipAfterMs: number };
+export const GIFT_VIDEOS: Partial<Record<GiftMotif, GiftVideo>> = {
+  champagne: { src: "/gifts/cricova-champagne.mp4", poster: "/gifts/cricova-champagne.jpg", ms: 16_500, skipAfterMs: 8_000 },
+};
 export const playMs = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS) => (priceKobo >= 500_000 * 100 ? 7_000 : isGrand(priceKobo, s) ? 5_500 : 3_800);
 export const isGrand = (priceKobo: number, s: GiftSettings = GIFT_SETTINGS) => priceKobo >= s.grand.fromKobo;
 // Premium (below the grand price) or VIP (from it), and the extra share of the creator's rate that kind of gift carries.

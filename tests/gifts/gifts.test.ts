@@ -22,7 +22,7 @@ assert.equal(D[0].priceKobo, 200 * 100);
 // The owner's list of 3 November 2026, names and prices.
 assert.deepEqual(D.map((g) => [g.name, g.priceKobo / 100]), [
   ["Garden Egg", 200], ["Kola Nut", 1_000], ["Zobo Bottle", 2_000], ["Jollof Plate", 5_000], ["Talking Drum", 10_000], ["Adire Fan", 20_000],
-  ["Golden Gele", 25_000], ["Kente Crown", 50_000], ["Baobab of Blessings", 100_000], ["Circova Champagne", 150_000], ["Argungu Fishing", 250_000],
+  ["Golden Gele", 25_000], ["Kente Crown", 50_000], ["Baobab of Blessings", 100_000], ["Cricova Champagne", 150_000], ["Argungu Fishing", 250_000],
   ["Durbar Horse", 500_000], ["Ijele Masquerade", 750_000], ["Kilimanjaro Sunrise", 1_000_000],
 ]);
 // Every gift plays with some or all of the five effects; the biggest with all of them.

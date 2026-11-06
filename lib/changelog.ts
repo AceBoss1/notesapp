@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.147.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "Cricova Champagne now plays its own video when it's given: the bottle pops over the page, slightly see-through so you can still see what's going on behind it, with the sender's name below. It plays with sound when gift sounds are on; otherwise tap 🔊 Sound. Skip appears after a few seconds." },
+      { kind: "changed", text: "Circova Champagne is now spelled Cricova Champagne." },
+    ],
+  },
+  {
     version: "v0.146.1",
     bump: "patch",
     date: "2026-11-06",
