@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
-import { MOTIF_EFFECTS, giftNaira, isGrand, playMs, type GiftEffect, type GiftMotif } from "@/lib/gift-catalogue";
-import { GIFT_PLAY_EVENT, giftSoundOn, type GiftPlay } from "@/lib/gift-play";
+import { GIFT_VIDEOS, MOTIF_EFFECTS, giftNaira, isGrand, playMs, type GiftEffect, type GiftMotif, type GiftVideo } from "@/lib/gift-catalogue";
+import { GIFT_PLAY_EVENT, giftSoundOn, setGiftSound, type GiftPlay } from "@/lib/gift-play";
 
 // Plays animated gifts full screen over the page (lib/gift-play.ts). Each gift plays with its own mix of rays, stars, fireworks,
 // confetti and sound (MOTIF_EFFECTS in lib/gift-catalogue.ts); grand gifts are bigger and stay longer. It never blocks taps. One at a
@@ -60,6 +60,55 @@ function Effects({ fx, big }: { fx: GiftEffect[]; big: boolean }) {
   );
 }
 
+// A gift with its own video (GIFT_VIDEOS): full colour over the page dimmed behind it, edges faded so the video's dark background
+// melts in (owner, 6 Nov 2026: option C), and a little see-through (video .85, light scrim) so the page's activity shows faintly behind. Sound only when the viewer has gift sounds on; otherwise it plays muted with a sound button
+// (tapping it also switches gift sounds on). A browser that refuses sound without a tap gets the same button. Skip after skipAfterMs.
+// Reduced motion: the still frame and the caption, briefly.
+function VideoGift({ g, v, onDone }: { g: GiftPlay; v: GiftVideo; onDone: () => void }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+  const [canSkip, setCanSkip] = useState(false);
+  const [still] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    if (still) { const t = setTimeout(onDone, 4_000); return () => clearTimeout(t); }
+    const el = ref.current;
+    const skip = setTimeout(() => setCanSkip(true), v.skipAfterMs);
+    const end = setTimeout(onDone, v.ms + 2_000); // never stuck if the video stalls or never fires "ended"
+    if (el) {
+      const wantSound = giftSoundOn();
+      el.muted = !wantSound;
+      el.play().then(() => setMuted(el.muted)).catch(() => { el.muted = true; setMuted(true); el.play().catch(() => onDone()); });
+    }
+    return () => { clearTimeout(skip); clearTimeout(end); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const soundOn = () => { const el = ref.current; if (!el) return; el.muted = false; setMuted(false); setGiftSound(true); el.play().catch(() => {}); };
+  return (
+    <div className="gift-vid fixed inset-0 z-[70] flex flex-col items-center justify-center" role="status" aria-live="polite" data-gift={g.giftId} data-gift-video>
+      <style>{VID_CSS}</style>
+      <div className="gift-vid-frame relative">
+        {still
+          ? <img src={v.poster} alt={g.name} className="gift-vid-media" />
+          : <video ref={ref} src={v.src} poster={v.poster} playsInline preload="auto" className="gift-vid-media" onEnded={onDone} onError={onDone} aria-label={g.name} />}
+      </div>
+      <p className="gift-vid-cap mt-1 px-4 text-center font-ui text-sm text-paper">
+        {g.senderName ? <strong>{g.senderName}</strong> : "Someone"} sent <strong>{g.name}</strong>{(g.quantity ?? 1) > 1 && <span data-gift-qty={g.quantity}> ×{g.quantity}</span>} · {giftNaira(g.priceKobo)}{g.toName ? ` to ${g.toName}` : ""}
+      </p>
+      <div className="pointer-events-auto mt-3 flex gap-2">
+        {!still && muted && <button type="button" onClick={soundOn} className="rounded-full bg-paper/90 px-4 py-1.5 font-ui text-xs font-bold text-ink">🔊 Sound</button>}
+        {(canSkip || still) && <button type="button" onClick={onDone} className="rounded-full bg-paper/90 px-4 py-1.5 font-ui text-xs font-bold text-ink">Skip ›</button>}
+      </div>
+    </div>
+  );
+}
+
+const VID_CSS = `
+.gift-vid{pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 38%,rgba(0,0,0,.4) 100%);animation:gift-vid-in .45s ease-out both}
+.gift-vid-frame{height:min(78vh,150vw);aspect-ratio:9/16;max-width:94vw}
+.gift-vid-media{width:100%;height:100%;object-fit:cover;opacity:.85;-webkit-mask-image:radial-gradient(ellipse 50% 40% at 50% 50%,#000 52%,transparent 100%);mask-image:radial-gradient(ellipse 50% 40% at 50% 50%,#000 52%,transparent 100%)}
+.gift-vid-cap{text-shadow:0 1px 3px #000}
+@keyframes gift-vid-in{from{opacity:0}to{opacity:1}}
+`;
+
 export default function GiftOverlay() {
   const [now, setNow] = useState<GiftPlay | null>(null);
   const queue = useRef<GiftPlay[]>([]);
@@ -80,7 +129,7 @@ export default function GiftOverlay() {
   }, []);
 
   useEffect(() => {
-    if (!now) return;
+    if (!now || GIFT_VIDEOS[now.giftId]) return; // a video gift times itself (VideoGift)
     const fx = MOTIF_EFFECTS[now.giftId] ?? [];
     const unit = Math.round(now.priceKobo / Math.max(1, now.quantity ?? 1)); // a send of N plays as one gift of that kind
     if (fx.includes("sound") && giftSoundOn()) sound(now.giftId, isGrand(unit), fx.includes("fireworks"));
@@ -89,6 +138,8 @@ export default function GiftOverlay() {
   }, [now]);
 
   if (!now) return null;
+  const video = GIFT_VIDEOS[now.giftId];
+  if (video) return <VideoGift key={now.key ?? `${now.giftId}-${now.senderName}`} g={now} v={video} onDone={next} />;
   const unit = Math.round(now.priceKobo / Math.max(1, now.quantity ?? 1));
   const grand = isGrand(unit);
   const ms = playMs(unit);
