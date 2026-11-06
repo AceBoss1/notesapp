@@ -600,7 +600,7 @@ on `main` that isn't understood is raised with the owner first.
     (`day` + `grossKobo` desc, `day` + `netKobo` desc) before the code. Owner decisions of 3 Nov 2026. The catalogue
     (`lib/gift-catalogue.ts`), the owner's list: six **premium** gifts (Garden Egg ₦200, Kola Nut ₦1,000, Zobo Bottle ₦2,000, Jollof
     Plate ₦5,000, Talking Drum ₦10,000, Adire Fan ₦20,000) and eight **VIP** gifts for verified senders (Golden Gele ₦25,000, Kente
-    Crown ₦50,000, Baobab of Blessings ₦100,000, Circova Champagne ₦150,000, Argungu Fishing ₦250,000, Durbar Horse ₦500,000, Ijele
+    Crown ₦50,000, Baobab of Blessings ₦100,000, Cricova Champagne (plays its own video) ₦150,000, Argungu Fishing ₦250,000, Durbar Horse ₦500,000, Ijele
     Masquerade ₦750,000, Kilimanjaro Sunrise ₦1,000,000). The owner wrote "Arugungu"; it is spelt Argungu (the festival) here and
     can be renamed in Admin. Settings saved with the pricing config (`platformSettings/pricing`, `gifts`) from Admin → Pricing →
     Gifts and applied live; a config saved before keeps the defaults: `grand` (VIP from ₦25,000, announce on), `uplift` (premium
@@ -945,7 +945,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     allowed links; such answers aren't banked (the listings change). Her rules say real jobs are Notes Jobs unless the person means the
     game. Tests: `test:jobs` (new: pure + emulator + Nana), rules 92/92.
 
-125. **Crypto and stablecoins: the shop and advert rules (v0.147.0, branch `push/stablecoin-angels`; owner, 6 Nov 2026):** deploy
+125. **Crypto and stablecoins: the shop and advert rules (v0.149.0, branch `push/stablecoin-angels`; owner, 6 Nov 2026):** deploy
     `firebase deploy --only firestore` (rules: `validStoreItem` calls `notCryptoListing` on the lower-cased title). After the CBN's
     stablecoin and virtual asset rules (5 Nov 2026), stores can't sell crypto, stablecoins or tokens themselves, P2P trades or exchange
     services; books, guides and courses about them stay allowed. `lib/money-rules.ts` holds the patterns (whole words, built without

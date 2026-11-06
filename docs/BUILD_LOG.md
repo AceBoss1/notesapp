@@ -3100,6 +3100,20 @@ see the reasons; it needs no new model and can be tuned in one function. The bel
 (`jobBells/{uid}_{day}`) and per job, so a busy day of postings can't flood anyone. Applications carry no email (firms reply on NotesApp),
 and suggested candidates never include contact details or the city. Tests: `test:jobs`, rules.
 
+**CardTap: read Paylony's real start reply (v0.146.1, 6 Nov 2026)** — The owner's first live top-up after v0.143.1 got HTTP 200
+`{"status":"00","message":"Transaction initialized","initiationTranRef":"202611060112REL2QV",…}` from /pay_with_cardtap, but `readStart`
+(lib/cardtap-topup.ts) looked for initiationRef and other spellings, not initiationTranRef, so the start was recorded as failed and the
+member saw no code. initiationTranRef (and initiation_tran_ref) are now read first; tests/cardtap/topup.test.ts checks the exact live reply.
+
+**Cricova Champagne video (v0.147.0, 6 Nov 2026)** — The owner sent a 16.5 s video of the champagne gift and asked for it to play,
+with its sound, whenever the gift is given, without the video's black background. The gift was renamed from "Circova" to "Cricova".
+The owner picked "dim page, fade edges": the page is dimmed behind a radial scrim and the video is masked with a radial gradient, so
+its dark background fades into the scrim instead of showing as a black box. The owner then asked for a little transparency so the page's
+activity shows faintly: the video plays at 85% opacity over a lighter scrim. It plays the full video with Skip after 8 s (owner's choice).
+`GIFT_VIDEOS` in lib/gift-catalogue.ts maps a gift to its video (src, poster, length, skip delay), so another gift can get one by adding
+a line. Sound follows the viewer's gift-sound setting; when it's off, or the browser won't play sound without a tap, the video plays muted
+with a 🔊 Sound button (which also turns gift sounds on). A fallback timer ends it if the video stalls. Reduced motion shows the poster.
+The file is the owner's original, remuxed with faststart (2.0 MB) so it starts before it has fully downloaded. Tests: test:gifts.
 
 **Stablecoin rails, the early-investor note and cross-border payouts on the roadmap (6 Nov 2026)** — The owner shared a post on
 stablecoin settlement in African payments and a table of Uber's first investors, and asked for all three follow-ups. The claims were
@@ -3111,7 +3125,7 @@ answer a "why now" line and names the partners to ask (Flutterwave first: it's o
 "What is coming next" article add **Getting paid across borders** as being explored, worded around a licensed partner and paying
 in your own currency, with no crypto to hold and no date.
 
-**The CBN's stablecoin rules, and crypto in the shop and adverts (v0.147.0, 6 Nov 2026)** — The owner asked what the Central Bank of
+**The CBN's stablecoin rules, and crypto in the shop and adverts (v0.149.0, 6 Nov 2026)** — The owner asked what the Central Bank of
 Nigeria's stablecoin and virtual asset rules (5 Nov 2026: ₦10B for naira issuers, ₦15B and local presence for dollar issuers, ₦1B for
 other virtual asset businesses, a ban on yield) mean for NotesApp, then for three follow-ups. Nothing we run today needs a licence;
 the cross-border idea survives only through licensed partners (the rules' wholesale-settlement exception), and the dollar-balance

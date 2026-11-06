@@ -115,7 +115,7 @@ const rejects = (p: Promise<unknown>, status: number, re: RegExp) => assert.reje
   await db.doc("communityRooms/room1").set({ cid: "c1", status: "live", title: "Friday live" });
   const r9 = await send("chidi", "dayo", "champagne", true, "room1");
   burst = (await db.doc("giftBursts/latest").get()).data()!;
-  assert.deepEqual([burst.reference, burst.href, burst.live, burst.senderName, burst.name], [r9, "/c/c1?room=room1", true, "", "Circova Champagne"]);
+  assert.deepEqual([burst.reference, burst.href, burst.live, burst.senderName, burst.name], [r9, "/c/c1?room=room1", true, "", "Cricova Champagne"]);
   // The live has ended: the link falls back to the creator's page.
   await db.doc("communityRooms/room1").update({ status: "ended" });
   const r10 = await send("chidi", "dayo", "gele", false, "room1");

@@ -11,13 +11,30 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.147.0",
+    version: "v0.149.0",
     bump: "minor",
     date: "2026-11-06",
     changes: [
       { kind: "changed", text: "Stores can't sell crypto, stablecoins or tokens themselves (USDT, USDC, Bitcoin and the like), P2P trades or exchange services: in Nigeria they need a Central Bank licence under its stablecoin rules of November 2026. Books, guides and courses about crypto are still fine. The add-item form lists what you can't sell." },
       { kind: "changed", text: "Adverts for crypto, stablecoin or other virtual-asset services run only when the advertiser shows a Central Bank of Nigeria licence or registration for that service, and we never run adverts promising interest, yield or returns for holding coins or tokens." },
       { kind: "added", text: "Help: Crypto and stablecoins on #NotesApp, and Nana answers questions about paying, selling or advertising with crypto." },
+    ],
+  },
+  {
+    version: "v0.147.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "Cricova Champagne now plays its own video when it's given: the bottle pops over the page, slightly see-through so you can still see what's going on behind it, with the sender's name below. It plays with sound when gift sounds are on; otherwise tap 🔊 Sound. Skip appears after a few seconds." },
+      { kind: "changed", text: "Circova Champagne is now spelled Cricova Champagne." },
+    ],
+  },
+  {
+    version: "v0.146.1",
+    bump: "patch",
+    date: "2026-11-06",
+    changes: [
+      { kind: "fixed", text: "Topping up with CardTap: Paylony started the payment, but the wallet didn't recognise the code in its reply and said it couldn't start. It now shows the code to paste into the CardTap app (and its QR) as soon as Paylony answers." },
     ],
   },
   {

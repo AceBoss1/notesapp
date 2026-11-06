@@ -643,7 +643,7 @@ stablecoins). The post's line that Circle's VP used "almost identical language" 
    points or Credit on a chain is now a legal line.
 5. **Fewer partners, at least at first:** the capital bar favours the largest (Flutterwave above all); some smaller rails may pause
    or leave, and fees may rise at first.
-6. **The shop and adverts** (v0.147.0, `lib/money-rules.ts`): stores can't sell crypto, stablecoins or tokens themselves, P2P trades
+6. **The shop and adverts** (v0.149.0, `lib/money-rules.ts`): stores can't sell crypto, stablecoins or tokens themselves, P2P trades
    or exchange services (books, guides and courses about them are fine; enforced in firestore.rules on the title). Crypto adverts
    run only with the advertiser's CBN licence or registration, and never with promises of interest, yield or returns.
 7. **Kenya and Ghana** have their own regimes (Kenya's virtual asset law; the Bank of Ghana): a corridor needs both ends checked.
