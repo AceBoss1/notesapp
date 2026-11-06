@@ -826,7 +826,7 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 
 **What artists see:** [Your sounds](/profile/sounds) shows each song's plays this month, last month and in all; where they were played (Media posts, Moments, Lives, Notes Life); the last 30 days; and how many posts and moments use it. A summary also shows in [Analytics](/profile/analytics). A play is a member's first view of a post or a moment with the song, everyone listening when a host starts it in a live, and a Notes Life player hearing it at the hotel (once a day per song).
 
-**Royalties in ad share:** each month a share of the ad revenue #NotesApp receives (the Sounds pool, set by the team; 10% to start) is split between artists by how many times their songs were played that month. It appears as a 🎵 song royalty statement next to your ad share, is checked, then paid to your bank with it after the usual hold. Amounts below the minimum roll over to the next month, like ad share.
+**Royalties in ad share:** each month a share of the ad revenue #NotesApp receives (the Sounds pool, a share the team sets; your Sounds page shows it) is split between artists by how many times their songs were played that month. It appears as a 🎵 song royalty statement next to your ad share, is checked, then paid to your bank with it after the usual hold. Amounts below the minimum roll over to the next month, like ad share.
 `),
     ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
