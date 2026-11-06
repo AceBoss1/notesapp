@@ -17,7 +17,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 6 | **Village Global Velocity** (pre-seed, up to USD 1M, rolling): §6 | [villageglobal.com/velocity](https://www.villageglobal.com/velocity) | none (rolling) | equity; terms set per company, not published | same week as Alliance: the answers are shared |
 | 7 | **Capital Wings** (Bahrain): §7 | capital-wings.com | — | unknown ("fee arrangements" discussed later) | **not applying**: share no data, pay no fees |
 | 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
-| 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | only if a woman co-founder leads it with us (§13) |
+| 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | **applying (both)**, led by Emmanuela Emmanuel, co-founder and CLO (§13) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -283,7 +283,8 @@ layer so outside AI assistants can work on a member's account with permission. K
 **Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
 2,150+ WAEC and NECO practice questions in 18 subjects; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
-**Team:** Emmanuel Adams, founder (Adams Consults), built the whole platform. `[co-founders, if any]` `[background]`
+**Team:** Emmanuel Adams, co-founder, CEO and CTO (Adams Consults), built the whole platform; Emmanuela Emmanuel, co-founder and
+Chief Legal Officer. `[other co-founders]` `[background]`
 
 **Funding so far:** bootstrapped; no institutional money. Startup perks from Claude for Startups, Moda and Granola (credits).
 Applying to the .tech No Excuses Fund (a grant).
@@ -546,8 +547,8 @@ at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translatio
 **Business model:** plan subscriptions (Free, Pro, Business, Enterprise); a commission on what members sell, book and teach; verification
 badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
 
-**Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with co-founders in the USA (2),
-the UK, South Africa and China `[names and roles]`, and staff across Nigeria.
+**Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with
+Emmanuela Emmanuel, co-founder and Chief Legal Officer, other co-founders `[names and roles]`, and staff across Nigeria.
 
 **Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
 to say]`.
@@ -703,8 +704,8 @@ Don't: promise or imply returns, show a "your ₦100,000 could become…" figure
 
 ## 13. Aurora Tech Award and Aurora Ventures (inDrive): women-led startups
 
-> Status: **assessment and draft, not applied (6 November 2026).** The owner shared the "Get funding" link and said we have female
-> co-founders. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
+> Status: **draft, not applied (6 November 2026).** The owner shared the "Get funding" link and decided: we apply for **both the
+> award and Aurora Ventures**, with **Emmanuela Emmanuel, co-founder and Chief Legal Officer** (she holds equity) as the applicant. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
 > the end) and **must be checked on the site** before applying, especially dates, amounts and the "led by a woman" wording.
 
 **What it is.** inDrive's annual award for women tech founders in emerging markets, run since 2021. In 2025 it drew 2,018
@@ -717,21 +718,22 @@ award is the free, non-dilutive one.
 
 | Rule (as reported) | NotesApp |
 |---|---|
-| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | **The deciding question.** We have women co-founders `[names, countries, roles]`. If the site requires a woman to *lead* (CEO or a named leading role), we qualify only if one genuinely does: never retitle someone for an application. If co-founding or co-ownership is enough, we qualify. |
+| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | Yes: **Emmanuela Emmanuel** is a co-founder, holds equity and leads as Chief Legal Officer. Check the site's exact wording: if it requires the **CEO** to be a woman, we don't qualify, and we don't retitle anyone to fit. |
 | A working product or prototype | Yes: live in Nigeria and Kenya |
 | Under 5 years old | Yes: NotesApp Technologies Ltd (RC 9825642) is recent |
 | Raised under USD 6M (some older listings: USD 4M) | Yes: bootstrapped, no institutional money |
 | Emerging market | Yes: Nigeria, Kenya next |
 | Pitch in English | Yes |
 
-**Before applying, the owner decides:**
-1. **Who applies and leads the pitch.** The applicant should be the woman co-founder with the clearest leading role (product,
-   growth, a market such as South Africa or the UK diaspora). She presents; the judges will expect her to answer for the company.
+**Decided (owner, 6 November 2026):**
+1. **Emmanuela Emmanuel applies and leads the pitch**, as co-founder and Chief Legal Officer. Where she lives isn't part of our
+   answers; if a form asks for the applicant's country of residence directly, answer it truthfully.
 2. **The cap table says the same thing everywhere.** Our other applications list "Emmanuel Adams, founder, CEO and CTO". The
    co-founders' names, roles and shares must be identical across Aurora, Alliance, Village Global, the Global Startup Awards and
    any SAFE (§5), or a due-diligence check will catch the difference.
-3. **Award only, or the fund too.** The award costs nothing and takes no equity. Aurora Ventures is an investment: like any SAFE
-   or shares, counsel reads it first (`accel-legal-safe`).
+3. **Both the award and Aurora Ventures.** The award costs nothing and takes no equity. Aurora Ventures is an investment for
+   equity: its terms are read by **outside counsel**, not only by Emmanuela, since as a shareholder she's on our side of the deal
+   (`accel-legal-safe`), and the dilution is added up with the other rounds (§5) before anything is signed.
 
 ### Draft answers (fit them to the live form)
 
@@ -746,8 +748,13 @@ transfers, and lose sales and trust in the gaps. NotesApp gives them one place t
 Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
 from /admin, if we can show it.]`
 
-**The team:** `[woman co-founder's name]`, co-founder and `[her role]` `[background]`; Emmanuel Adams, co-founder, `[CEO and CTO]`,
-built the platform end to end; `[other co-founders: names, countries, roles]`.
+**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer: she owns our legal and regulatory work (company and
+contracts, privacy and data protection, payments and the Central Bank of Nigeria's rules) `[her background in a line]`.
+**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. `[Other co-founders: names and roles.]`
+
+**Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
+safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
+CBN's November 2026 framework. `[Her own words: why NotesApp, and what she wants for women earning online.]`
 
 **Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
 2,150+ WAEC and NECO practice questions; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
@@ -756,6 +763,18 @@ built the platform end to end; `[other co-founders: names, countries, roles]`.
 growth among women-led businesses.
 
 **Funding so far:** bootstrapped; no institutional money (perks and credits only).
+
+### Aurora Ventures (the fund)
+
+Apply alongside the award (check whether the site takes one form for both or a separate one). What to have ready, as for any
+pre-seed investor:
+- **The ask:** `[amount within the reported USD 180k–250k]` `[instrument: SAFE or shares; the cap or valuation]`. No numbers
+  until the owner sets them.
+- **Entity:** whether they invest in NotesApp Technologies Ltd (Nigeria) or NotesApp Inc (Delaware, being incorporated); the same
+  question as Alliance (§5).
+- **Cap table:** founders and their shares, the same on every application.
+- **Deck and video:** reuse the No Excuses Fund deck (`fund-deck-video`), presented by Emmanuela.
+- **Use of funds:** `[the owner's split]`: the Kenya launch (Flutterwave, M-Pesa, January 2027), the mobile apps, first hires.
 
 Sources (coverage and listings; the official site wasn't readable from our tools):
 [auroratechaward.com](https://www.auroratechaward.com/),
