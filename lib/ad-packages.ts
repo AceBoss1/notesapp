@@ -42,5 +42,6 @@ export const AD_RULES = [
   "Adult, hateful, violent or harassing content.",
   "Impersonating #NotesApp, another brand or a person, or copying a verification badge.",
   "Loans or investment schemes promising guaranteed returns; unlicensed financial, medical or betting offers.",
+  "Crypto, stablecoin or other virtual-asset services (exchanges, wallets, P2P, tokens) unless you show us a Central Bank of Nigeria licence or registration for that service; and never interest, yield or returns for holding coins or tokens.",
   "Links to malware, phishing or pages that differ from what the ad says.",
 ];

@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.147.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "changed", text: "Stores can't sell crypto, stablecoins or tokens themselves (USDT, USDC, Bitcoin and the like), P2P trades or exchange services: in Nigeria they need a Central Bank licence under its stablecoin rules of November 2026. Books, guides and courses about crypto are still fine. The add-item form lists what you can't sell." },
+      { kind: "changed", text: "Adverts for crypto, stablecoin or other virtual-asset services run only when the advertiser shows a Central Bank of Nigeria licence or registration for that service, and we never run adverts promising interest, yield or returns for holding coins or tokens." },
+      { kind: "added", text: "Help: Crypto and stablecoins on #NotesApp, and Nana answers questions about paying, selling or advertising with crypto." },
+    ],
+  },
+  {
     version: "v0.146.0",
     bump: "minor",
     date: "2026-11-06",

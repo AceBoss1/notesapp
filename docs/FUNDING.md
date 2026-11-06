@@ -234,7 +234,10 @@ one of the least crypto-native teams in the room, pitching to mentors whose netw
    stylist. Today that's a Naira card through Paystack at the day's rate, and later Flutterwave and dollars through the Inc. Settling
    between our countries in a dollar stablecoin and paying out in Naira or shillings is a real, testable idea for the Nigeria ↔
    Kenya ↔ Ghana corridor we're opening.
-2. **A dollar-stable balance for creators.** Members who earn in Naira and are paid in dollars by foreign buyers could hold part of
+2. ~~**A dollar-stable balance for creators.**~~ **Off for Nigeria (6 November 2026):** under the CBN's stablecoin and virtual asset
+   rules of 5 November 2026, holding or paying out stablecoins for members would make us a licensed virtual asset service provider
+   (₦1B capital, a CBN licence, AML and KYC duties), and any return on the balance falls under the ban on yield (§11). Don't pitch it.
+   The original idea, for the record: Members who earn in Naira and are paid in dollars by foreign buyers could hold part of
    their earnings in a dollar balance. This touches licensing and consumer protection in Nigeria and Kenya; nothing here is advice,
    and counsel must say what's allowed before we say it out loud.
 
@@ -606,8 +609,8 @@ stablecoins). The post's line that Circle's VP used "almost identical language" 
   NotesApp that's good news: the rails are being built by companies we already work with or plan to (Flutterwave is our Kenya
   partner and now settles in USDC and RLUSD). We sit on top of whichever rail wins; members keep being paid in their own currency.
 - **Where it helps:** cross-border earnings (§5 angle 1): a Kenyan student paying a Nigerian tutor, a diaspora buyer paying a Lagos
-  stylist, payouts to Ghana. Settling between countries over a partner's stablecoin rail could cut FX loss and delay without us
-  holding crypto or a licence of our own.
+  stylist, payouts to Ghana. Settling between countries over a licensed partner's stablecoin rail could cut FX loss and delay without us
+  holding crypto or a licence of our own (see the CBN rules below).
 - **What we compete on** is what sits on top: the journal, bookings, courses, the shop, communities and the audience. Payments are
   the plumbing, not our pitch.
 - **Partners to ask** (in this order, because we already talk to the first two): Flutterwave (USDC/RLUSD settlement, Kenya),
@@ -615,12 +618,55 @@ stablecoins). The post's line that Circle's VP used "almost identical language" 
 - **Before anyone says "stablecoin" publicly:** counsel confirms what Nigeria (CBN, SEC) and Kenya allow for a platform that only
   uses a licensed partner's settlement (`accel-legal-safe`). The public roadmap says "being explored", with no date.
 
+### The CBN's stablecoin rules (in force 5 November 2026)
+
+> From news coverage on 6 November; the circular itself wasn't read, and reports differ on deadlines. Counsel reads the circular
+> before we rely on any of this (`accel-legal-safe`).
+
+| Who | What's needed |
+|---|---|
+| Issuer of a naira stablecoin (Class 1) | ₦10B paid-up capital; a Nigerian company; CBN approval for each token |
+| Issuer of a dollar stablecoin, e.g. USDC or USDT (Class 2) | ₦15B (about USD 11M); a Nigerian company with real management here. A foreign licence doesn't count; foreign stablecoins reach Nigerians only through a locally licensed entity |
+| Other virtual asset businesses (exchanges, custodians, wallets, payment service providers) | ₦1B and a CBN licence; licences from other regulators (including the SEC) don't count |
+| Existing operators | Register within 30 days or apply within 180 days (reports differ); existing dollar-stablecoin arrangements need express CBN permission to keep running during the assessment |
+| Exception | The CBN may recognise a coin issued abroad for **wholesale cross-border settlement** by an authorised dealer or approved licensee |
+| Banned | Algorithmic stablecoins, coins backed mainly by other crypto, coins without redemption at par, and paying interest or yield on holdings |
+
+**What it means for NotesApp**
+1. **Today, nothing changes.** We don't issue, hold, exchange or offer stablecoins; payments are naira through Paystack and Paylony. No licence, no ₦1B.
+2. **Cross-border payouts through a partner survive, through a licensed partner only.** The wholesale-settlement exception fits our
+   model (the partner settles between countries; members are paid in naira or shillings). Flutterwave, Kora and Yellow Card now have
+   to register and be licensed, and their USDC settlement needs CBN permission meanwhile. So: no dependence on stablecoin settlement
+   before mid-2027, fiat rails stay the default, and a partner shows its CBN licence or registration in writing before we sign.
+3. **The dollar-stable balance is off for Nigeria** (§5 angle 2).
+4. **NotesApp Credit stays plain naira:** never on a chain, never transferable or redeemable like a token. Our rule against tokens,
+   points or Credit on a chain is now a legal line.
+5. **Fewer partners, at least at first:** the capital bar favours the largest (Flutterwave above all); some smaller rails may pause
+   or leave, and fees may rise at first.
+6. **The shop and adverts** (v0.147.0, `lib/money-rules.ts`): stores can't sell crypto, stablecoins or tokens themselves, P2P trades
+   or exchange services (books, guides and courses about them are fine; enforced in firestore.rules on the title). Crypto adverts
+   run only with the advertiser's CBN licence or registration, and never with promises of interest, yield or returns.
+7. **Kenya and Ghana** have their own regimes (Kenya's virtual asset law; the Bank of Ghana): a corridor needs both ends checked.
+8. **The pitch gets stronger:** a regulated route now exists, and we sit on the partner side, not the licence side.
+
+**Questions for counsel:** (a) the circular's exact deadlines, and whether a platform that only receives naira settled over a
+partner's stablecoin rail has any duty of its own; (b) whether our payout partners' arrangements fall under the wholesale exception;
+(c) whether NotesApp Credit sits under the payment-service (e-money) rules rather than the virtual asset rules.
+
+Sources: [The Block](https://www.theblock.co/news/regulation/2026-11-06-nigerias-central-bank-introduces-stablecoin-licensing-rules-bans-algorithmic-versions-435867),
+[TechCabal](https://techcabal.com/2026/11/06/cbn-new-rules-foreign-stablecoin-issuers/),
+[crypto.news](https://crypto.news/nigeria-central-bank-stablecoin-rules-algorithmic-ban/),
+[Gazette](https://gazettengr.com/cbn-imposes-n1-billion-capital-requirement-on-crypto-operators-gives-180-days-to-obtain-licence/),
+[The Will](https://thewillnews.com/cbn-to-regulate-stablecoins-virtual-asset-exchanges-and-wallet-providers-in-nigeria/).
+
 **For the Alliance answer (§5), a "why now" line:**
 
 > Payments infrastructure across Africa is moving to stablecoin settlement this year: Ripple and Circle both invested in Flutterwave,
 > Circle in CrissCross, Kora launched stablecoin settlement for merchants, and Yellow Card moved entirely to business stablecoin
-> rails. Sub-Saharan Africa received about USD 205 billion in on-chain value in a year (Chainalysis). Those rails are being built; we
-> want to be the creator platform that uses them, so an African creator's earnings cross borders without being lost on the way.
+> rails. Sub-Saharan Africa received about USD 205 billion in on-chain value in a year (Chainalysis). And in November 2026 Nigeria's
+> central bank set out licensing for stablecoins, with room for licensed partners to settle across borders. The rails are being
+> built and now regulated; we want to be the creator platform that uses them through licensed partners, never our own tokens, so an
+> African creator's earnings cross borders without being lost on the way.
 
 ---
 

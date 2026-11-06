@@ -95,6 +95,7 @@ const SYN: Record<string, string> = {
   report: "report", reporting: "report", block: "report", abuse: "report", suspended: "suspension", suspension: "suspension", appeal: "suspension", appeals: "suspension", safe: "safety", secure: "safety", security: "safety",
   data: "data", privacy: "data", gdpr: "data", contact: "contact", support: "contact", help: "contact", email: "contact",
   status: "moment", story: "moment", stories: "moment", moments: "moment", dp: "picture", avatar: "picture", photo: "picture", photos: "picture", pic: "picture", pics: "picture",
+  crypto: "crypto", cryptocurrency: "crypto", bitcoin: "crypto", btc: "crypto", usdt: "crypto", usdc: "crypto", tether: "crypto", stablecoin: "crypto", stablecoins: "crypto", p2p: "crypto",
   job: "job", jobs: "job", vacancy: "job", vacancies: "job", hire: "job", hiring: "job", recruit: "job", recruiting: "job", recruitment: "job", employ: "job", employer: "job", employers: "job", employment: "job", candidate: "job", candidates: "job", applicant: "job", applicants: "job", cv: "job", resume: "job", career: "job", careers: "job",
   dollar: "currency", dollars: "currency", usd: "currency", forex: "currency", exchange: "currency", currencies: "currency",
 };
