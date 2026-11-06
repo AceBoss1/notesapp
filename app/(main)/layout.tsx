@@ -74,6 +74,7 @@ const COMPANY = [
   { href: "/about", label: "About Us" },
   { href: "/explore?tab=jobs", label: "Notes Jobs" },
   { href: "/careers", label: "Careers" },
+  { href: "/ventures", label: "Ventures: Rewrite the Playbook" },
   { href: "/contact", label: "Contact" },
   { href: "/pricing", label: "Pricing" },
   { href: "/roadmap", label: "Roadmap" },

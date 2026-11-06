@@ -811,6 +811,21 @@ Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, sh
 
 See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 `),
+    A("notesapp-ventures", "NotesApp Ventures: Rewrite the Playbook", "Publishing and earning", `
+**Rewrite the Playbook** is the open call of **NotesApp Ventures**. Got a feature, product or business you're sure the crowd would jump into? Pitch it at [Ventures](/ventures). If it's picked, #NotesApp builds it with you: our engineers, our platform, our audience and guidance, in exchange for equity and a board seat, on terms that fit your project.
+
+**Who it's for:** anyone aged 18 or over with a NotesApp account and a verified email, from anywhere, with an idea or venture **for emerging markets** (Africa, the Middle East and North Africa, South and Southeast Asia, Latin America, the Caribbean, Central Asia, Eastern Europe and the Pacific islands). Only ideas for emerging markets are welcome. You can pitch alone or as a team, from an idea on a napkin to a business already making money.
+
+**How to pitch:** sign in, open [Ventures](/ventures) and fill in the pitch: what it is (a feature, a product or a business), its name and one-line pitch, the market and countries it's for, the area, how far along it is, the problem, your idea, why you, any traction, your team size and links. Tick that it's for emerging markets and that you accept the terms. Up to 3 pitches a quarter; you can withdraw one while it's being reviewed.
+
+**Rolling, a set number picked each quarter:** you can pitch any time. The team reads pitches as they come in and picks a set number each quarter (the [Ventures page](/ventures) shows how many) to build with their founders; that's what the team can take on properly today. If yours isn't picked, it's nothing personal: many pitches come in for a few places. Read the team's advice, shown with your pitch on the Ventures page, sharpen it, and pitch again next quarter.
+
+**Kept confidential:** only the Ventures review team reads your pitch, and #NotesApp never shares it outside the company without your permission, picked or not. #NotesApp builds many products, so it may already be working on something similar, or build it later on its own; pitching doesn't stop that or give either side rights over the other's work. If your idea is picked, the terms (what each side brings, the equity, the board seat, who owns what) are agreed with you before any work starts, and nothing is binding until both sides sign.
+
+**What happens next:** a person reads every pitch. You're told in your notifications when it's received, being read, shortlisted (we'd like to talk), and picked or not picked this quarter. Any advice from the team shows with your pitch. Your pitches and where they stand are listed on the Ventures page.
+
+**Perks:** everyone who pitches gets perks from #NotesApp, sent by the team once the pitch is read. The Ventures page lists them.
+`),
     A("notesapp-sounds", "NotesApp Sounds: songs for your posts, moments and lives, and royalties for artists", "Publishing and earning", `
 **NotesApp Sounds** are songs made for #NotesApp that anyone can use for free here. The first ones are by Emmanuel Adams (@emmanuel), the founder: Leave Am, Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. Verified artists add more. See them all at [NotesApp Sounds](/sounds).
 
