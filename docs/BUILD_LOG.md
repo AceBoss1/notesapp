@@ -3081,3 +3081,12 @@ reshares, reports and account deletion needed no new logic: the remover knows th
 iframe player and moves between parts from its timeupdate messages. The re-marking job marks moment pictures in place, lets unpinned moment
 videos expire, and copies pinned ones to Stream. Tests: `test:moments-server` (new), `test:marks-server`, `test:messages`.
 
+
+**CardTap top-ups ask for the payer's phone (v0.143.1, 5 Nov 2026)** — /status showed Wallet top-ups (CardTap) down with Paylony's code
+07, "Incomplete request". `startCardtap` sent `phone: String(users/{uid}.phone ?? "")`, and profiles have no phone field (they are
+public; the owner chose email over phone), so every start went out with an empty phone. Now: `ngMobile` (lib/cardtap-topup.ts) accepts
+any usual spelling of a Nigerian mobile and returns the 11-digit local form; the wallet's CardTap box asks for it (or shows the saved one
+as 0803•••4567 with Change); the server refuses a start with no valid phone before writing a payment or calling Paylony, and keeps the
+number server-only in `paymentContacts/{uid}` (rules: no browser access; in the data export, removed on erase). Tests: test:cardtap
+(ngMobile), test:cardtap-server (no phone → 400 and nothing sent; typed → local form, saved, reused; never on the profile), rules 91/91.
+Invoices' Paylony checkout accounts also send an empty phone (lib/invoices-server.ts); not changed here.

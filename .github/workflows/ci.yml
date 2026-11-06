@@ -8,7 +8,7 @@ on:
 # Staging and releases: docs/STAGING.md.
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned: GitHub moved ubuntu-latest to 26.04, where Playwright 1.56 can't install Chromium (5 Nov 2026)
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -134,7 +134,7 @@ jobs:
   # token; values are redacted in the log. Known non-secrets are listed in .gitleaks.toml. A real leak means rotating the key
   # first (docs/DEPLOY.md), then removing it from the code.
   secrets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned: GitHub moved ubuntu-latest to 26.04, where Playwright 1.56 can't install Chromium (5 Nov 2026)
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -146,7 +146,7 @@ jobs:
       - run: "$(go env GOPATH)/bin/gitleaks git --config .gitleaks.toml --redact --no-banner --verbose ."
 
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned: GitHub moved ubuntu-latest to 26.04, where Playwright 1.56 can't install Chromium (5 Nov 2026)
     # The production build before the smoke test now takes most of the old 45 minutes (3 Nov 2026: a run passed all 22 tests and was
     # cancelled while shutting down at 45:04), so the job gets an hour.
     timeout-minutes: 60

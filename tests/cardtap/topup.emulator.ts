@@ -64,6 +64,21 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
   assert.equal(l.payKobo, 500_000); assert.equal(l.waived, true); assert.equal(sent[sent.length - 1].body.amount, 5_000);
   await assert.rejects(startCardtap(db, me, 999, "https://x"), (e: unknown) => e instanceof CardtapError && e.status === 400, "₦1,000 at least");
 
+  // The phone: profiles have none (they are public), so the form asks; Paylony refuses an empty one (07, "Incomplete request").
+  await db.doc("users/u_bo").set({ username: "bo", displayName: "Bo" }); // no phone anywhere
+  const bo = { uid: "u_bo", email: "bo@x.test" };
+  const before = sent.length;
+  await assert.rejects(startCardtap(db, bo, 2_000, "https://x"), (e: unknown) => e instanceof CardtapError && e.status === 400 && /phone/i.test((e as Error).message), "no phone: asked for, Paylony not called");
+  await assert.rejects(startCardtap(db, bo, 2_000, "https://x", "12345"), (e: unknown) => e instanceof CardtapError && e.status === 400, "not a Nigerian mobile");
+  assert.equal(sent.length, before, "nothing was sent to Paylony without a phone");
+  assert.equal((await db.collection("payments").where("uid", "==", "u_bo").get()).size, 0, "no pending payment either");
+  await startCardtap(db, bo, 2_000, "https://x", "+234 803 555 0101");
+  assert.equal(sent[sent.length - 1].body.phone, "08035550101", "sent in the local form");
+  assert.equal((await db.doc("paymentContacts/u_bo").get()).data()?.phone, "08035550101", "saved server-only");
+  assert.equal((await db.doc("users/u_bo").get()).data()?.phone, undefined, "never on the public profile");
+  await startCardtap(db, bo, 2_000, "https://x"); // next time: the saved one
+  assert.equal(sent[sent.length - 1].body.phone, "08035550101");
+
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
