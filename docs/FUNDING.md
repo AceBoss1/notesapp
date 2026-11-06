@@ -749,15 +749,21 @@ transfers, and lose sales and trust in the gaps. NotesApp gives them one place t
 Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
 from /admin, if we can show it.]`
 
-**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder of **Living Without Borders International (LWB)** `[what LWB does, in a line]`
-(on NotesApp as @emmanuela and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
+**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder and CEO of **Living Without Borders International (LWB)**. An author, speaker and coach, she helps people
+ready for change break through limiting beliefs, unlock their potential and turn their passion into profit, through coaching and
+courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
 protection, payments and the Central Bank of Nigeria's rules.
 **Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. `[Other co-founders: names and roles.]`
 
 **How NotesApp began (her story, the heart of this application):** Emmanuela had ideas she wanted to build, but the technical
 side meant she and her clients had to hop between one app after another to get anything done. That pain gave birth to NotesApp:
-one place where Africans can build their dream ventures without hopping from app to app, or losing hope on the way. `[Her own
-words, two or three sentences: a moment when the hopping cost her or a client, and what NotesApp now does for Living Without Borders International.]`
+one place where Africans can build their dream ventures without hopping from app to app, or losing hope on the way.
+
+Draft for her to confirm or change (it follows from what LWB does; she hasn't said these exact words): *"Running Living Without
+Borders meant a booking link for coaching calls, another site for my courses, bank transfers I had to chase, and WhatsApp groups
+for my clients. Every new idea meant another app, and every app lost someone along the way. On NotesApp, my coaching sessions,
+courses, payments and community live in one place, and my clients find them under one name."* `[Her own moment: when the
+hopping cost her or a client.]`
 
 **Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
 safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
