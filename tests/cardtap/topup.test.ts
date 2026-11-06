@@ -36,6 +36,10 @@ assert.deepEqual(cardtapHealth({ at: "x", ok: false, code: "19", meaning: "Inval
 assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 502 }).note, "the latest top-up couldn't start: Paylony answered 502");
 assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 0 }).note, "the latest top-up couldn't start: Paylony didn't answer");
 
+// Paylony's real start reply (the owner's first live top-up, 6 Nov 2026): the code is initiationTranRef.
+const live = { success: true, status: "00", message: "Transaction initialized", amount: 10100, fee: 101, totalAmount: 10100, initiationTranRef: "202611060112REL2QV", instruction: "Scan the QR code or Copy the payment reference to complete payment on your CardTap Mobile App.", transactionRef: "Paylony-xu8wqmgyx8dbsykrcd1lx", reference: "na_1793923935966_99d9576b8f60", accountExpiry: "2026-11-08T00:12:18.147535Z" };
+assert.deepEqual(readStart(live), { initiationRef: "202611060112REL2QV", instruction: "Scan the QR code or Copy the payment reference to complete payment on your CardTap Mobile App." });
+
 // The payer's phone (Paylony refuses an empty one with 07, "Incomplete request"): any usual spelling → the 11-digit local form.
 for (const v of ["08031234567", "0803 123 4567", "+234 803 123 4567", "2348031234567", "234-803-123-4567", "8031234567", "(0803) 123-4567", "07011112222", "09151234567"]) {
   assert.match(String(ngMobile(v)), /^0[789][01]\d{8}$/, v);
