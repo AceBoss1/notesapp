@@ -17,6 +17,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 6 | **Village Global Velocity** (pre-seed, up to USD 1M, rolling): §6 | [villageglobal.com/velocity](https://www.villageglobal.com/velocity) | none (rolling) | equity; terms set per company, not published | same week as Alliance: the answers are shared |
 | 7 | **Capital Wings** (Bahrain): §7 | capital-wings.com | — | unknown ("fee arrangements" discussed later) | **not applying**: share no data, pay no fees |
 | 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
+| 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | **applying (both)**, led by Emmanuela Emmanuel, co-founder and CLO (§13) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -282,7 +283,8 @@ layer so outside AI assistants can work on a member's account with permission. K
 **Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
 2,150+ WAEC and NECO practice questions in 18 subjects; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
-**Team:** Emmanuel Adams, founder (Adams Consults), built the whole platform. `[co-founders, if any]` `[background]`
+**Team:** Emmanuel Adams, co-founder, CEO and CTO (Adams Consults), built the whole platform; Emmanuela Emmanuel, co-founder and
+Chief Legal Officer. `[other co-founders]` `[background]`
 
 **Funding so far:** bootstrapped; no institutional money. Startup perks from Claude for Startups, Moda and Granola (credits).
 Applying to the .tech No Excuses Fund (a grant).
@@ -545,8 +547,8 @@ at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translatio
 **Business model:** plan subscriptions (Free, Pro, Business, Enterprise); a commission on what members sell, book and teach; verification
 badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
 
-**Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with co-founders in the USA (2),
-the UK, South Africa and China `[names and roles]`, and staff across Nigeria.
+**Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with
+Emmanuela Emmanuel, co-founder and Chief Legal Officer, other co-founders `[names and roles]`, and staff across Nigeria.
 
 **Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
 to say]`.
@@ -697,3 +699,88 @@ every later round, so "×10,000" maths isn't real.
 > companies say nothing about ours. This is not an offer of shares.*
 
 Don't: promise or imply returns, show a "your ₦100,000 could become…" figure, or send this to anyone we don't know.
+
+---
+
+## 13. Aurora Tech Award and Aurora Ventures (inDrive): women-led startups
+
+> Status: **draft, not applied (6 November 2026).** The owner shared the "Get funding" link and decided: we apply for **both the
+> award and Aurora Ventures**, with **Emmanuela Emmanuel, co-founder and Chief Legal Officer** (she holds equity) as the applicant. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
+> the end) and **must be checked on the site** before applying, especially dates, amounts and the "led by a woman" wording.
+
+**What it is.** inDrive's annual award for women tech founders in emerging markets, run since 2021. In 2025 it drew 2,018
+applications from 116 countries; the 2026 cycle offered USD 85,000 in prizes in all (winners up to about USD 25k–50k each,
+non-dilutive), with investor introductions, mentoring and visibility for finalists. **Aurora Ventures** is a separate, newer fund
+for the same founders, reported to invest USD 180k–250k at early stage (for equity). The "Get funding" page may point to either; the
+award is the free, non-dilutive one.
+
+**Eligibility as reported, and where we stand**
+
+| Rule (as reported) | NotesApp |
+|---|---|
+| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | Yes: **Emmanuela Emmanuel** is a co-founder, holds equity and leads as Chief Legal Officer. Check the site's exact wording: if it requires the **CEO** to be a woman, we don't qualify, and we don't retitle anyone to fit. |
+| A working product or prototype | Yes: live in Nigeria and Kenya |
+| Under 5 years old | Yes: NotesApp Technologies Ltd (RC 9825642) is recent |
+| Raised under USD 6M (some older listings: USD 4M) | Yes: bootstrapped, no institutional money |
+| Emerging market | Yes: Nigeria, Kenya next |
+| Pitch in English | Yes |
+
+**Decided (owner, 6 November 2026):**
+1. **Emmanuela Emmanuel applies and leads the pitch**, as co-founder and Chief Legal Officer. Where she lives isn't part of our
+   answers; if a form asks for the applicant's country of residence directly, answer it truthfully.
+2. **The cap table says the same thing everywhere.** Our other applications list "Emmanuel Adams, founder, CEO and CTO". The
+   co-founders' names, roles and shares must be identical across Aurora, Alliance, Village Global, the Global Startup Awards and
+   any SAFE (§5), or a due-diligence check will catch the difference.
+3. **Both the award and Aurora Ventures.** The award costs nothing and takes no equity. Aurora Ventures is an investment for
+   equity: its terms are read by **outside counsel**, not only by Emmanuela, since as a shareholder she's on our side of the deal
+   (`accel-legal-safe`), and the dilution is added up with the other rounds (§5) before anything is signed.
+
+### Draft answers (fit them to the live form)
+
+**One line:** NotesApp is one home for Africa's creators, teachers and professionals to share what they know, teach it, sell it and
+get paid for it, in their own currency.
+
+**What you're building:** use the company paragraph (§1).
+
+**Why it matters for women:** many of the people earning on NotesApp are women running knowledge and service businesses: tutors,
+coaches, stylists, bakers, consultants, church and community leaders. Today they stitch together WhatsApp, a booking link and bank
+transfers, and lose sales and trust in the gaps. NotesApp gives them one place to publish, take bookings, teach, sell and be paid in
+Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
+from /admin, if we can show it.]`
+
+**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer: she owns our legal and regulatory work (company and
+contracts, privacy and data protection, payments and the Central Bank of Nigeria's rules) `[her background in a line]`.
+**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. `[Other co-founders: names and roles.]`
+
+**Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
+safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
+CBN's November 2026 framework. `[Her own words: why NotesApp, and what she wants for women earning online.]`
+
+**Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
+2,150+ WAEC and NECO practice questions; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
+
+**Use of the prize:** `[the owner's split]`, e.g. the Kenya launch with M-Pesa (January 2027), the iOS and Android apps, and
+growth among women-led businesses.
+
+**Funding so far:** bootstrapped; no institutional money (perks and credits only).
+
+### Aurora Ventures (the fund)
+
+Apply alongside the award (check whether the site takes one form for both or a separate one). What to have ready, as for any
+pre-seed investor:
+- **The ask:** `[amount within the reported USD 180k–250k]` `[instrument: SAFE or shares; the cap or valuation]`. No numbers
+  until the owner sets them.
+- **Entity:** whether they invest in NotesApp Technologies Ltd (Nigeria) or NotesApp Inc (Delaware, being incorporated); the same
+  question as Alliance (§5).
+- **Cap table:** founders and their shares, the same on every application.
+- **Deck and video:** reuse the No Excuses Fund deck (`fund-deck-video`), presented by Emmanuela.
+- **Use of funds:** `[the owner's split]`: the Kenya launch (Flutterwave, M-Pesa, January 2027), the mobile apps, first hires.
+
+Sources (coverage and listings; the official site wasn't readable from our tools):
+[auroratechaward.com](https://www.auroratechaward.com/),
+[BusinessDay](https://businessday.ng/companies/article/aurora-tech-award-2026-opens-with-85000-for-women-founders/),
+[fundsforNGOs](https://www2.fundsforngos.org/information-technology/aurora-tech-award-a-30000-prize-for-women-founders/),
+[inDrive on X](https://x.com/inDrive/status/1913248904948088939),
+[inDrive blog: the 2026 winner](https://blog.indrive.com/article/quipu-is-the-winner-of-the-2026-aurora-tech-award),
+[MSME Africa: Aurora Ventures](https://msmeafricaonline.com/indrive-backs-aurora-ventures-to-fund-emerging-market-female-tech-founders/),
+[Path Founders: Aurora Ventures](https://pathfounders.com/p/aurora-tech-award-launches-venture-fund).
