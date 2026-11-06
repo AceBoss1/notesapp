@@ -84,6 +84,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & trust" },
   { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & trust" },
   { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & trust" },
+  { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },
   { href: "/admin/traction", label: "Traction", need: ["marketing", "growth", "finance"], group: "Growth" },
   { href: "/admin/digest", label: "Weekly digest", need: "super", group: "Growth" },
   { href: "/admin/announcements", label: "Announcements", need: "super", group: "Growth" },

@@ -36,6 +36,8 @@ jobs:
       - run: npm run test:chat
       - run: npm run test:uploads
       - run: npm run test:media
+      - run: npm run test:sounds
+      - run: npm run test:ventures
       - run: npm run test:cart
       - run: npm run test:discounts
       - run: npm run test:referrals
