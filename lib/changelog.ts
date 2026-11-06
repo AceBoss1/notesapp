@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.143.2",
+    bump: "patch",
+    date: "2026-11-06",
+    changes: [
+      { kind: "fixed", text: "Topping up with CardTap: Paylony started the payment, but the wallet didn't recognise the code in its reply and said it couldn't start. It now shows the code to paste into the CardTap app (and its QR) as soon as Paylony answers." },
+    ],
+  },
+  {
     version: "v0.143.1",
     bump: "patch",
     date: "2026-11-05",

@@ -3090,3 +3090,8 @@ as 0803•••4567 with Change); the server refuses a start with no valid phon
 number server-only in `paymentContacts/{uid}` (rules: no browser access; in the data export, removed on erase). Tests: test:cardtap
 (ngMobile), test:cardtap-server (no phone → 400 and nothing sent; typed → local form, saved, reused; never on the profile), rules 91/91.
 Invoices' Paylony checkout accounts also send an empty phone (lib/invoices-server.ts); not changed here.
+
+**CardTap: read Paylony's real start reply (v0.143.2, 6 Nov 2026)** — The owner's first live top-up after v0.143.1 got HTTP 200
+`{"status":"00","message":"Transaction initialized","initiationTranRef":"202611060112REL2QV",…}` from /pay_with_cardtap, but `readStart`
+(lib/cardtap-topup.ts) looked for initiationRef and other spellings, not initiationTranRef, so the start was recorded as failed and the
+member saw no code. initiationTranRef (and initiation_tran_ref) are now read first; tests/cardtap/topup.test.ts checks the exact live reply.
