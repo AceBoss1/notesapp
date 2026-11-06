@@ -1,6 +1,7 @@
 "use client";
 
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
+import { adFlags } from "@/lib/money-rules";
 import { useEffect, useState } from "react";
 import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -236,6 +237,16 @@ export default function AdminAdsPage() {
                   <p className="text-xs text-slate">{c.advertiserName} · {c.email} · {c.packageName} {formatNaira(c.amountKobo)} · {c.impressionsBudget.toLocaleString()} imps · {c.placements.join(", ")}</p>
                   <p className="text-xs"><a href={c.creative.href} target="_blank" rel="noopener noreferrer nofollow" className="text-crimson underline">{c.creative.href}</a></p>
                   {c.creative.text && <p className="text-xs text-ink">{c.creative.text}</p>}
+                  {(() => {
+                    // lib/money-rules.ts: crypto adverts need a CBN licence or registration; yield promises are never run. A prompt, not a decision.
+                    const f = adFlags(`${c.creative.title} ${c.creative.text ?? ""} ${c.creative.href}`);
+                    return (f.crypto || f.yieldPromise) && (
+                      <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900" role="note">
+                        {f.crypto && "Crypto or stablecoin: run only with the advertiser's CBN licence or registration for this service. "}
+                        {f.yieldPromise && "Promises interest, yield or returns: we don't run that for coins or tokens, and not guaranteed returns at all."}
+                      </p>
+                    );
+                  })()}
                   {c.creative.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.creative.image} alt="" className="mt-1 aspect-[1.91/1] w-32 object-cover" />

@@ -220,6 +220,12 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     detail: "No member needs to do anything: plans and saved cards stay as they are. Each country gets prices in its own currency, set by us rather than converted at checkout, and payouts to local banks or mobile money. Dollar payments come with NotesApp Inc, our US company.",
   },
   {
+    title: "Getting paid across borders",
+    tag: "Payments",
+    body: "Being explored, with no date yet: a Kenyan student paying a Nigerian tutor, a buyer abroad paying a Lagos stylist, payouts to Ghana, without the earnings being lost to exchange rates and slow transfers on the way. Payment companies across Africa are moving money between countries over faster settlement networks (including dollar stablecoins), and we'd use a licensed partner's network for that.",
+    detail: "You'd still pay and be paid in your own currency, to your bank or mobile money: no crypto to hold or manage. We won't hold crypto ourselves, and nothing changes until lawyers confirm what's allowed in each country.",
+  },
+  {
     title: "Mobile apps — iOS and Android",
     tag: "Apps",
     body: "#NotesApp isn't complete until it runs as a real app on the devices people use: iOS and Android apps for reading, publishing, booking sessions, getting paid, and managing your journal from your phone. Being prepared now: the apps wrap the same #NotesApp you use on the web, so every update reaches them the same day, and they follow NotesApp Inc, our US company, which will hold the App Store and Google Play accounts. Nigeria first, then Kenya and Ghana.",

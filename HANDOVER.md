@@ -945,6 +945,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     allowed links; such answers aren't banked (the listings change). Her rules say real jobs are Notes Jobs unless the person means the
     game. Tests: `test:jobs` (new: pure + emulator + Nana), rules 92/92.
 
+125. **Crypto and stablecoins: the shop and advert rules (v0.149.0, branch `push/stablecoin-angels`; owner, 6 Nov 2026):** deploy
+    `firebase deploy --only firestore` (rules: `validStoreItem` calls `notCryptoListing` on the lower-cased title). After the CBN's
+    stablecoin and virtual asset rules (5 Nov 2026), stores can't sell crypto, stablecoins or tokens themselves, P2P trades or exchange
+    services; books, guides and courses about them stay allowed. `lib/money-rules.ts` holds the patterns (whole words, built without
+    lookarounds because Firestore's RE2 has none: a coin word next to a trade word, unless an "about" word like guide or course is in
+    the title); `LISTING_PATTERNS` must stay the same as the rules' copy. The store form says why before saving. Adverts: `AD_RULES`
+    and the Terms add that crypto services need the advertiser's CBN licence or registration and that yield promises never run; the
+    admin review shows a note from `adFlags` (a prompt, never a decision). Help: "Crypto and stablecoins on #NotesApp"; Nana folds
+    USDT, USDC, Bitcoin, stablecoin and P2P into "crypto". FUNDING.md §11 has the CBN rules and what they mean for us; §5's
+    dollar-balance idea is off for Nigeria. Tests: `test:money` (new), rules 93/93, `test:help`, `test:nana`.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

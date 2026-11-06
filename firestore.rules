@@ -633,10 +633,17 @@ service cloud.firestore {
 
     // Stores sell physical goods through #NotesApp checkout only (no link-outs):
     // every item carries a price, a delivery fee and a managed stock count.
+    // The shop doesn't sell crypto or stablecoins themselves (CBN rules of 5 Nov 2026; lib/money-rules.ts LISTING_PATTERNS, the same three
+    // patterns on the lower-cased title): a coin word next to a trade word, unless it is a book, guide or course about them.
+    function notCryptoListing(t) {
+      return !(t.matches('(^|.*[^a-z0-9])(usdt|usdc|rlusd|busd|tether|stablecoins?|bitcoins?|btc|ethereum|solana|crypto|cryptocurrency|cryptocurrencies)([^a-z0-9]|[^a-z0-9].*[^a-z0-9])(for sale|p2p|exchange|rates?|buy|sell|selling|instant|naira|swap|cash ?out|otc)([^a-z0-9].*|$)') || t.matches('(^|.*[^a-z0-9])(for sale|p2p|exchange|rates?|buy|sell|selling|instant|naira|swap|cash ?out|otc)([^a-z0-9]|[^a-z0-9].*[^a-z0-9])(usdt|usdc|rlusd|busd|tether|stablecoins?|bitcoins?|btc|ethereum|solana|crypto|cryptocurrency|cryptocurrencies)([^a-z0-9].*|$)'))
+        || t.matches('(^|.*[^a-z0-9])(guide|course|book|ebook|class|lesson|training|explained|basics|beginners?|masterclass|tutorial|webinar|handbook)([^a-z0-9].*|$)');
+    }
     function validStoreItem(d) {
       return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'subcategory', 'shipsFrom', 'featured', 'weightKg'])
         && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta', 'sellable', 'priceKobo', 'deliveryKobo', 'stock'])
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && notCryptoListing(d.title.lower())
         && (!('subtitle' in d) || (d.subtitle is string && d.subtitle.size() <= 1200))
         && d.price is string && d.price.size() <= 24
         && (!('badge' in d) || (d.badge is string && d.badge.size() <= 24))

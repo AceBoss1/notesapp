@@ -288,6 +288,17 @@ test("suspension details are private; the member can only file an appeal", async
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
 });
 
+test("the shop refuses crypto and stablecoins themselves, not books or courses about them (CBN rules, lib/money-rules.ts)", async () => {
+  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 4 };
+  let n = 0;
+  for (const title of ["USDT for sale", "Buy USDT at the best rate", "Instant USDT to Naira", "Bitcoin P2P exchange", "BTC OTC desk"])
+    await assertFails(setDoc(doc(as("pub"), `storeItems/c${n++}`), { ...item, title }));
+  for (const title of ["Crypto basics: a beginner's guide", "How to buy Bitcoin safely (ebook)", "Ethiopian coffee beans, available now", "A token of love gift box", "Leather wallet for sale", "Cryptography textbook"])
+    await assertSucceeds(setDoc(doc(as("pub"), `storeItems/ok${n++}`), { ...item, title }));
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/u1"), item));
+  await assertFails(updateDoc(doc(as("pub"), "storeItems/u1"), { title: "Sell your crypto here" })); // nor by editing the title later
+});
+
 test("publishers manage only their own valid store items", async () => {
   const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 4 };
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/i1"), item));

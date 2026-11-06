@@ -3114,3 +3114,24 @@ activity shows faintly: the video plays at 85% opacity over a lighter scrim. It 
 a line. Sound follows the viewer's gift-sound setting; when it's off, or the browser won't play sound without a tap, the video plays muted
 with a 🔊 Sound button (which also turns gift sounds on). A fallback timer ends it if the video stalls. Reduced motion shows the poster.
 The file is the owner's original, remuxed with faststart (2.0 MB) so it starts before it has fully downloaded. Tests: test:gifts.
+
+**Stablecoin rails, the early-investor note and cross-border payouts on the roadmap (6 Nov 2026)** — The owner shared a post on
+stablecoin settlement in African payments and a table of Uber's first investors, and asked for all three follow-ups. The claims were
+checked first: Ripple's and Circle's Flutterwave investments, Circle's CrissCross investment, Kora's One Rail, Yellow Card's move to
+business and Chainalysis's USD 205B are confirmed; "Nigerian USDC at USD 3B a month" and "sixfold" aren't, and the Uber table's
+per-investor amounts aren't either, so `docs/FUNDING.md` §11 and §12 say what may be used and what may not. §11 gives the Alliance
+answer a "why now" line and names the partners to ask (Flutterwave first: it's our Kenya partner and now settles in USDC and RLUSD).
+§12 is an honest early-investor slide with a risk line, for a friends-and-angels round only after counsel. The public roadmap and the
+"What is coming next" article add **Getting paid across borders** as being explored, worded around a licensed partner and paying
+in your own currency, with no crypto to hold and no date.
+
+**The CBN's stablecoin rules, and crypto in the shop and adverts (v0.149.0, 6 Nov 2026)** — The owner asked what the Central Bank of
+Nigeria's stablecoin and virtual asset rules (5 Nov 2026: ₦10B for naira issuers, ₦15B and local presence for dollar issuers, ₦1B for
+other virtual asset businesses, a ban on yield) mean for NotesApp, then for three follow-ups. Nothing we run today needs a licence;
+the cross-border idea survives only through licensed partners (the rules' wholesale-settlement exception), and the dollar-balance
+idea is off for Nigeria (FUNDING.md §5 and §11). To keep us out of unlicensed virtual-asset business, stores can't sell crypto or
+stablecoins themselves (books and courses about them are fine), and crypto adverts need the advertiser's CBN licence or registration,
+with yield promises never run. The shop rule is enforced in firestore.rules: a coin word next to a trade word in the title, unless the
+title says it's a guide, book or course. Whole-word matching had to be built without lookarounds (Firestore's RE2 has none), and
+"eth" and "token" were left out because they match ordinary words ("Ethiopian", "a token of love"). Adverts are flagged for the admin
+reviewing them, never refused by a pattern.

@@ -1,6 +1,7 @@
 "use client";
 
 import { CategorySuggestions } from "@/components/NanaSuggest";
+import { CRYPTO_LISTING_MESSAGE, STORE_RULES, cryptoListing } from "@/lib/money-rules";
 import { ensureSubtopics } from "@/lib/subtopics-client";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/lib/users";
@@ -148,6 +149,7 @@ export default function StoreManager({
     const withOptions = !digital && rows.length > 0;
     const stock = digital ? 0 : withOptions ? totalPieces : Number(form.stock);
     if (!form.title.trim()) return setError("Add a title.");
+    if (cryptoListing(form.title)) return setError(CRYPTO_LISTING_MESSAGE);
     if (!form.category) return setError("Choose a category so buyers can find the item.");
     if (!digital && !shipsFromOk(form.shipsFrom)) return setError("Say where this item ships from (for example Lekki, Lagos). Buyers see it before they pay.");
     if (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO) return setError("Price must be between ₦100 and ₦5,000,000.");
@@ -297,6 +299,10 @@ export default function StoreManager({
 
       {open && (
         <form onSubmit={save} className="mt-4 grid gap-3 border-t border-rule pt-4 sm:grid-cols-2">
+          <details className="sm:col-span-2 text-xs text-slate">
+            <summary className="cursor-pointer">What you can&apos;t sell</summary>
+            <ul className="mt-1 list-disc space-y-1 pl-5">{STORE_RULES.map((r) => <li key={r}>{r}</li>)}</ul>
+          </details>
           <div className="sm:col-span-2 text-xs text-slate">
             What are you selling?
             <div className="mt-1 inline-flex overflow-hidden rounded-full border border-rule" role="group" aria-label="Item type">

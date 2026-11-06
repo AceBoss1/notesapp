@@ -1,4 +1,5 @@
 import { addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { CRYPTO_LISTING_MESSAGE, cryptoListing } from "./money-rules";
 import { cleanSubtopicLabel } from "./subtopics";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
@@ -183,6 +184,7 @@ export async function getStoreItems(uid: string | undefined, username: string): 
 // delivery fee and a managed stock count (no link-outs — the founders' own catalogues above
 // are the only exception). Legacy link-out listings can no longer be saved, only removed.
 function clean(input: StoreItemInput) {
+  if (cryptoListing(input.title)) throw new Error(CRYPTO_LISTING_MESSAGE); // firestore.rules refuses it too
   const digital = input.kind === "digital";
   const images = [...new Set((input.images ?? []).map((u) => u.trim()).filter(Boolean))].slice(0, MAX_IMAGES);
   const options = digital ? [] : cleanOptions(input.options);
