@@ -22,6 +22,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Are you an artist? Apply on Your sounds with your artist name and links to your music. Once the team verifies you, add your own songs (MP3 and a cover); each is checked before anyone can use it, and you can take one down any time." },
       { kind: "added", text: "Song royalties in ad share: each month a share of the ad revenue (the Sounds pool, 10% to start) is split between artists by how many times their songs were played, and paid with ad share. Admin → Sounds verifies artists, reviews songs and sets the pool." },
       { kind: "added", text: "Nana knows about NotesApp Sounds, song pages, artist verification and royalties (help: NotesApp Sounds)." },
+      { kind: "changed", text: "Explore → Jobs features our own open roles at #NotesApp at the top (Work at #NotesApp), each opening its page on Careers to apply. The search box filters them too." },
     ],
   },
   {
