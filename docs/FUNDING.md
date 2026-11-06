@@ -749,7 +749,7 @@ transfers, and lose sales and trust in the gaps. NotesApp gives them one place t
 Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
 from /admin, if we can show it.]`
 
-**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder of **LWB** `[what LWB does, in a line]`
+**The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder of **Living Without Borders International (LWB)** `[what LWB does, in a line]`
 (on NotesApp as @emmanuela and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
 protection, payments and the Central Bank of Nigeria's rules.
 **Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. `[Other co-founders: names and roles.]`
@@ -757,7 +757,7 @@ protection, payments and the Central Bank of Nigeria's rules.
 **How NotesApp began (her story, the heart of this application):** Emmanuela had ideas she wanted to build, but the technical
 side meant she and her clients had to hop between one app after another to get anything done. That pain gave birth to NotesApp:
 one place where Africans can build their dream ventures without hopping from app to app, or losing hope on the way. `[Her own
-words, two or three sentences: a moment when the hopping cost her or a client, and what NotesApp now does for LWB.]`
+words, two or three sentences: a moment when the hopping cost her or a client, and what NotesApp now does for Living Without Borders International.]`
 
 **Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
 safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
