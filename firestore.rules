@@ -899,6 +899,13 @@ service cloud.firestore {
     match /adminViewLog/{id} { allow read, write: if false; }
     match /careerRoles/{id} { allow read, write: if false; } // roles: public fields through /api/public/careers, the rest in the team hub (server only)
     match /careerApplications/{id} { allow read, write: if false; } // applications, Nana-HR summaries; TTL purgeAt (server only)
+    // Notes Jobs (lib/jobs-server.ts): jobs, applications (TTL purgeAt), members' private job settings, invitations and the daily bell
+    // counts (TTL expireAt). All through /api/jobs and /api/account/job-seeker.
+    match /jobs/{id} { allow read, write: if false; }
+    match /jobApplications/{id} { allow read, write: if false; }
+    match /jobSeekers/{id} { allow read, write: if false; }
+    match /jobInvites/{id} { allow read, write: if false; }
+    match /jobBells/{id} { allow read, write: if false; }
     match /hrDrafts/{id} { allow read, write: if false; } // Nana-HR's onboarding drafts (server only)
     match /staffMeta/{id} { allow read, write: if false; } // seed markers for the staff library and careers (server only)
     match /passkeys/{id} { allow read, write: if false; } // passkey public keys and counters (lib/passkeys-server.ts): server only
