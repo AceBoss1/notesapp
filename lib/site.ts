@@ -44,6 +44,7 @@ export const WHAT_YOU_CAN_DO = [
   "Teach free and paid courses in Notes Academy, on your own, with co-tutors or as an organisation, with quizzes, and give learners certificates anyone can check",
   "Prepare for JAMB, WAEC and NECO with Naija Exam Prep: free practice questions with explanations, timed mocks and packs that work offline",
   "Run a community for your church, school, club or business, with announcements, Spaces, private Circles, audio rooms, events with paid tickets, and giving",
+  "Find a job on Notes Jobs and apply with your NotesApp account, or post jobs free as a verified organisation",
   "Message people and groups, and make free voice and video calls",
   "Ask Nana, our AI helper, about the platform, and let her suggest topics, summarise and translate chats",
   "Earn from journal subscriptions and gifts, from referrals, and by promoting other members' products on the affiliate marketplace",

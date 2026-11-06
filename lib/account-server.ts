@@ -66,6 +66,9 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     messagesSent: await sentMessages(db, uid), // direct messages and group messages you wrote
     socialAccounts: await socialAccountsOf(db, uid), // LinkedIn / X accounts you connected (never the access tokens)
     signInLinks: await docs(db, "authLinks", "uid", uid), // Google and LinkedIn accounts you sign in with (lib/social-auth-server.ts)
+    jobApplications: await docs(db, "jobApplications", "uid", uid), // Notes Jobs: the jobs you applied for (lib/jobs-server.ts)
+    jobSettings: (await db.doc(`jobSeekers/${uid}`).get()).data() ?? null, // "I need a job" and your city
+    jobsPosted: await docs(db, "jobs", "orgUid", uid), // an organisation's jobs
     signInLog: await docs(db, "authAudit", "uid", uid), // when sign-in methods were linked or unlinked
     nanaChats: await docs(db, "nanaChats", "uid", uid), // your conversations with Nana AI
     aiConnection: await aiConnectionOf(db, uid), // whether you connected your own AI account (never the key)
@@ -228,6 +231,16 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   counts.authLinks = await eraseAuthLinks(db, uid);
   // The phone given for CardTap top-ups (lib/cardtap-topup-server.ts).
   await db.doc(`paymentContacts/${uid}`).delete().catch(() => {});
+  // Notes Jobs (lib/jobs-server.ts): your applications, settings and invitations; an organisation's jobs and the applications to them.
+  const jobRefs = [
+    ...(await db.collection("jobApplications").where("uid", "==", uid).get()).docs.map((d) => d.ref),
+    ...(await db.collection("jobInvites").where("uid", "==", uid).get()).docs.map((d) => d.ref),
+    ...(await db.collection("jobApplications").where("orgUid", "==", uid).get()).docs.map((d) => d.ref),
+    ...(await db.collection("jobs").where("orgUid", "==", uid).get()).docs.map((d) => d.ref),
+    db.doc(`jobSeekers/${uid}`),
+  ];
+  await deleteAll(db, jobRefs);
+  counts.jobs = jobRefs.length - 1;
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();

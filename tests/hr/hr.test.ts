@@ -4,8 +4,8 @@ import { CareersError, SEED_ROLES, cleanApplication, cleanRole, nextStatusAllowe
 import { announcement, cleanTerms, draftsFor, offerLetter, optionGrant } from "../../lib/hr-drafts";
 
 // The five seeded vacancies the owner asked for, each with requirements Nana-HR can check against.
-assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead"]);
-assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
+assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist"]);
+assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
 for (const r of SEED_ROLES) assert.ok(r.requirements.length >= 4 && r.responsibilities.length >= 4, r.title);
 
 // Roles need a title, a department and requirements; lists are trimmed and bullets dropped.

@@ -34,7 +34,20 @@ export async function seedRoles(db: Firestore, now = new Date()): Promise<number
       }
       await marker.set({ marketingSplit: now.toISOString() }, { merge: true });
     }
-    return 0;
+    // A vacancy added to the seed later (the Community Strategist, 5 Nov 2026) opens once on a site seeded before; one listed in the
+    // marker was seeded already, so a role someone deleted never comes back.
+    const seeded = new Set<string>(Array.isArray(m.data()?.roles) ? m.data()!.roles : []);
+    let added = 0;
+    for (const r of SEED_ROLES.filter((r) => !seeded.has(r.seedKey))) {
+      const ref = db.doc(`${ROLES}/seed-${r.seedKey}`);
+      if (!(await ref.get()).exists) {
+        await ref.set({ ...r, status: "open", openedAt: now.toISOString(), createdAt: now.toISOString(), updatedAt: now.toISOString(), createdByUid: "seed" });
+        added++;
+      }
+      seeded.add(r.seedKey);
+    }
+    if (added || seeded.size !== (m.data()?.roles?.length ?? 0)) await marker.set({ roles: Array.from(seeded) }, { merge: true });
+    return added;
   }
   let n = 0;
   for (const r of SEED_ROLES) {
@@ -124,6 +137,36 @@ export async function setRoleStatus(db: Firestore, me: Staff, id: unknown, to: u
     const apps = await db.collection(APPS).where("roleId", "==", String(id)).get();
     for (const a of apps.docs) if (!a.data().futureRoles) await a.ref.update({ purgeAt });
   }
+}
+
+// Deleting a vacancy (the owner, 5 Nov 2026). A super admin can delete any role; the Chief of Staff only a draft, since only a super
+// admin puts a role on /careers or takes it off. Its applications go with it, and anyone still in the running is told the role was
+// withdrawn; kept are a hired applicant's (the person's record) and those who asked to be considered for future roles (deleted 6 months
+// from now, as when a role closes). A deleted seeded role isn't seeded again (seedRoles' marker lists it).
+export async function deleteRole(db: Firestore, me: Staff, id: unknown, now = new Date()): Promise<{ removed: number; kept: number }> {
+  need(canManageTeam(me.access));
+  const ref = db.doc(`${ROLES}/${String(id ?? "")}`);
+  const cur = (await ref.get()).data();
+  if (!cur) throw new CareersError("That role isn't there any more.", 404);
+  if (!isSuper(me.access) && cur.status !== "draft") throw new CareersError("Only a super admin can delete a role that has been on /careers.", 403);
+  const purgeAt = new Date(now.getTime() + KEEP_DAYS * 86_400_000);
+  const apps = await db.collection(APPS).where("roleId", "==", String(id)).get();
+  let removed = 0, kept = 0;
+  for (const a of apps.docs) {
+    const d = a.data();
+    if (d.status === "hired" || d.futureRoles) {
+      await a.ref.update({ roleDeleted: true, ...(d.status === "hired" ? {} : { purgeAt }), updatedAt: now.toISOString() });
+      kept++;
+      continue;
+    }
+    if (["new", "reviewing", "interview", "offer"].includes(String(d.status))) {
+      await notifyBell({ uid: String(d.uid), type: "team", linkHref: "/careers", message: `We've withdrawn the ${String(d.roleTitle || cur.title)} role at #NotesApp, so your application has closed. Thank you for applying; see /careers for other roles.` }).catch(() => {});
+    }
+    await a.ref.delete();
+    removed++;
+  }
+  await ref.delete();
+  return { removed, kept };
 }
 
 const TELL: Partial<Record<keyof typeof APP_STATUS_LABEL, (role: string) => string>> = {

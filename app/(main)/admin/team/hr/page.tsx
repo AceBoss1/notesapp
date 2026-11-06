@@ -150,6 +150,12 @@ export default function NanaHrPage() {
                       {data.canOpen && r.status !== "open" && <button className={btn} disabled={busy} onClick={() => run({ action: "roleStatus", id: r.id, status: "open" }, "Role opened on /careers.")}>Open on /careers</button>}
                       {data.canOpen && r.status === "open" && <button className={ghost} disabled={busy} onClick={() => { if (confirm(`Close ${r.title}? Its applications are deleted 6 months from now, unless an applicant asked to be kept.`)) run({ action: "roleStatus", id: r.id, status: "closed" }, "Role closed."); }}>Close</button>}
                       <button className={ghost} onClick={() => setOpenRole(openRole === r.id ? null : r.id)}>{openRole === r.id ? "Hide applications" : "Applications"}</button>
+                      {(data.canOpen || r.status === "draft") && (
+                        <button className={`${ghost} !text-red-700`} disabled={busy} onClick={() => {
+                          const live = mine.filter((a) => ["new", "reviewing", "interview", "offer"].includes(a.status)).length;
+                          if (confirm(`Delete ${r.title}? It comes off /careers and out of the team hub for good, with its applications${live ? `; ${live} applicant${live === 1 ? " is" : "s are"} still in the running and will be told it was withdrawn` : ""}. Hired applicants and those who asked to be kept for future roles are kept.`)) run({ action: "deleteRole", id: r.id }, "Role deleted.");
+                        }}>Delete</button>
+                      )}
                     </div>
                   </div>
                   {openRole === r.id && (

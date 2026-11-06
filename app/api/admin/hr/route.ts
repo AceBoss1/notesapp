@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { canManageTeam } from "@/lib/admin-access";
 import { CareersError } from "@/lib/careers";
-import { hiringBoard, listDrafts, makeDrafts, saveRole, setApplicationStatus, setRoleStatus, summarise } from "@/lib/careers-server";
+import { deleteRole, hiringBoard, listDrafts, makeDrafts, saveRole, setApplicationStatus, setRoleStatus, summarise } from "@/lib/careers-server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ const fail = (err: unknown, fallback: string) => {
 
 // Hiring and Nana-HR for super admins and the Chief of Staff.
 // GET → roles, applications, onboarding drafts and the questions Nana-HR couldn't answer.
-// POST { action: "saveRole" | "roleStatus" | "appStatus" | "summarise" | "drafts", … }
+// POST { action: "saveRole" | "roleStatus" | "deleteRole" | "appStatus" | "summarise" | "drafts", … }
 export async function GET(req: NextRequest) {
   try {
     const me = await verifyAdminAccess(bearer(req));
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     switch (b.action) {
       case "saveRole": return NextResponse.json({ role: await saveRole(db, me, b.id, b.role ?? {}) });
       case "roleStatus": await setRoleStatus(db, me, b.id, b.status); return NextResponse.json({ ok: true });
+      case "deleteRole": return NextResponse.json({ ok: true, ...(await deleteRole(db, me, b.id)) });
       case "appStatus": await setApplicationStatus(db, me, b.id, b.status, b.notes); return NextResponse.json({ ok: true });
       case "summarise": return NextResponse.json({ summary: await summarise(db, me, b.id) });
       case "drafts": return NextResponse.json(await makeDrafts(db, me, b.terms ?? {}));

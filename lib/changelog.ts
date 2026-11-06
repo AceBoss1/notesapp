@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.143.2",
+    version: "v0.144.1",
     bump: "patch",
     date: "2026-11-06",
     changes: [
@@ -19,9 +19,29 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.144.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "Notes Jobs, the job board on #NotesApp: Explore → Jobs lists open jobs from organisations whose CAC registration we've verified. Apply with your #NotesApp account: a short note, links to your work and, if you like, a phone number and city. The firm sees your application and public profile, never your email, and you get a bell when they invite you to interview, make an offer or don't take it forward. Your job search (Profile) lists your applications; withdraw any time." },
+      { kind: "added", text: "\"I need a job\": switch it on in Your job search and add your city (private, used only for matching). Jobs from Business and Enterprise organisations that fit your industry, job title and interests show as Jobs for you on Explore, and a strong match sends you a bell (at most 3 a day)." },
+      { kind: "added", text: "Verified organisations post jobs free from Your jobs: the organisation or one of its admins. A job goes live at once and stays open 7 to 60 days; review each application, set its status, close or delete the job. On Business and Enterprise, each job also shows suggested candidates (members who need a job and fit it: name, job title and why, never contact details) to invite to apply." },
+      { kind: "added", text: "Ask Nana for work (\"any remote customer service jobs?\") and she lists the open jobs on Notes Jobs and on our own Careers page that fit, with links to apply, or tells you none fit yet and how to get a bell when one does." },
+      { kind: "added", text: "Report a job from its page (scams, asking applicants for money, a fake firm): Trust & safety takes it down and the firm is told. A real employer never asks you to pay to apply." },
+    ],
+  },
+  {
+    version: "v0.143.2",
+    bump: "patch",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "A new opening at /careers: Community Strategist, helping churches, mosques, NGOs, schools, creators and businesses build thriving, safe communities on #NotesApp. Remote across Nigeria." },
+    ],
+  },
+  {
     version: "v0.143.1",
     bump: "patch",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "fixed", text: "Topping up with CardTap: CardTap needs your phone number to start the payment, and profiles have no phone field, so every CardTap top-up was refused (\"Incomplete request\"). The top-up now asks for your phone number the first time, keeps it privately for the next one (never on your profile) and lets you change it." },
     ],
@@ -29,7 +49,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.143.0",
     bump: "minor",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "added", text: "The NotesApp mark: every Media picture and video now carries a faint \"na NotesApp\" logo across the middle and na @yourname in a corner, both sized to the picture, so a phone photo and a wide banner look the same. It's added as you upload and only the marked copy is kept: the clean upload is deleted." },
       { kind: "added", text: "Published live replays with video carry the same mark with the host's @username, burned in as they're published." },
@@ -43,7 +63,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.142.1",
     bump: "patch",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "fixed", text: "Picture, avatar and file uploads on our naapp.tech addresses (and on life. and prep. of both domains): our storage now accepts uploads from every address #NotesApp is served on." },
     ],
@@ -51,7 +71,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.142.0",
     bump: "minor",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "added", text: "Pay-per-minute sessions: publishers can offer voice and video calls by the minute (Rates & payouts → Offer pay-per-minute sessions). Set a price per minute for voice, for video or both, and who can book: everyone, or your own Premium, VIP or VVIP subscribers. People book your weekly times, the same ones as paid sessions." },
       { kind: "added", text: "Book · per minute on a publisher's profile: choose voice or video, a day and time, and the minutes to hold. The minutes' price is held from your NotesApp Credit, not charged; you pay only for what the call uses and the rest comes back when it ends. Bonus Credits can't be used." },
@@ -64,7 +84,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.141.1",
     bump: "patch",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "fixed", text: "Continue with Google on an email that already has a #NotesApp account (not yet linked to Google): the app no longer shows you as signed in to that account for a moment while we check. The check now happens before the app hears about the sign-in, so you go straight to \"You already have a #NotesApp account\" and nothing is loaded or saved as that account. Sign in the usual way, then link Google in Account settings → Sign-in methods." },
     ],
@@ -72,7 +92,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.141.0",
     bump: "minor",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "added", text: "Paid lives: schedule a live of your own with tickets (Lives → Schedule a paid live). Set the date and time, a title, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, after which no more tickets are sold. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers." },
       { kind: "added", text: "Choose the recording when you schedule a paid live: off, for safety only (kept for review, never a replay), or recorded with a replay you can offer to everyone, your subscribers or the live's ticket holders. Everyone is told as they join, and speakers agree before their mic goes on." },
@@ -113,7 +133,7 @@ export const CHANGELOG: Release[] = [
   {
     version: "v0.138.1",
     bump: "patch",
-    date: "2026-11-05",
+    date: "2026-11-06",
     changes: [
       { kind: "fixed", text: "When a boost or an advert ends without delivering everything you paid for, the undelivered share is now refunded by itself, pro rata, the way you paid, with a bell or email saying how much. Before, it waited for our team to do it, so some ended promotions showed Completed with nothing refunded; those are being refunded now." },
     ],

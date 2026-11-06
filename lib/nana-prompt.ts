@@ -1,4 +1,5 @@
 import { articlePath, queryWords, searchArticles, type KbArticle } from "./kb";
+import type { Opening } from "./jobs";
 import { NANA_NAME } from "./nana";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { GROUP_CALL_MAX } from "./group-calls";
@@ -12,7 +13,7 @@ export const NANA_PAGES: [path: string, what: string][] = [
   ["/gifts", "Gifts"], ["/boost", "Boost packages and prices"], ["/coauthoring", "Co-authoring"], ["/advertise", "Advertise on #NotesApp"], ["/advertise/specifications", "Advert sizes, spots, rotation and the Notes Life billboard"], ["/badges", "Verified and gold badges"],
   ["/store-selling", "Selling physical goods and digital downloads"], ["/books", "Business books: walk-in sales, expenses, money owed and profit (open it at /profile/books)"], ["/track", "Track a parcel"], ["/logistics", "For logistics businesses: shipments, tracking and their own site"], ["/shipments", "A logistics business's shipments (Business and Enterprise)"], ["/merchstore", "Merch store"], ["/organisations", "Organisation accounts"],
   ["/organisation", "Turn an account into an organisation"], ["/domains", "Domains (coming soon)"], ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing; not available yet)"], ["/docs", "API docs"],
-  ["/explore", "Explore topics, people, channels, and the Market and Academy tabs"], ["/saved", "A member's saved journals, store items, courses and messages kept from chats"], ["/interests", "Choose your interests"], ["/shop", "Notes Market: every #NotesApp store"], ["/academy", "Notes Academy: free and paid courses"],
+  ["/explore", "Explore topics, people, channels, and the Market and Academy tabs"], ["/explore?tab=jobs", "Notes Jobs: open jobs from verified organisations, and Jobs for you"], ["/profile/applications", "Your job search: the I need a job switch, your private city and your applications"], ["/profile/jobs", "Your jobs: a verified organisation posts jobs and reviews applications"], ["/saved", "A member's saved journals, store items, courses and messages kept from chats"], ["/interests", "Choose your interests"], ["/shop", "Notes Market: every #NotesApp store"], ["/academy", "Notes Academy: free and paid courses"],
   ["/academy/teach", "Teach: a teacher's courses, co-tutor invites and sales"], ["/academy/teach/setup", "Set up your academy and certificates"], ["/certificates", "Check a Notes Academy certificate"],
   ["/nana", "Nana: gems, the free weekly allowance and Nana credit"], ["/life", "Notes Life, the free life game"], ["/life/play", "Play Notes Life"], ["/life/partners", "Partner with Notes Life"], ["/install", "Install #NotesApp on a phone or computer"],
   ["/community", "Community: start one or find one (churches, NGOs, schools, clubs)"], ["/events", "Events: upcoming events, add your own"], ["/profile/site", "Your site: kits, looks, colours and sections (Free Basic and above; own domain on Business and Enterprise)"], ["/profile/wallet", "NotesApp Credit wallet"],
@@ -86,6 +87,11 @@ Our own tools first (owner, 1 Nov 2026)
 - Never suggest setting something up on an outside platform that #NotesApp already does. Suggest ours, with its page and help article: a group for members, learners or customers (not a WhatsApp or Telegram group) → Community, with Spaces and Circles, and a course's own course group; calls and live talks (not Zoom or Google Meet) → our encrypted calls and Community audio rooms; booking (not Calendly) → Booking; selling (not an outside store) → the Store and Notes Market; events and tickets → Events; courses → Notes Academy; a page of links → the member's site.
 - Be honest about limits: group calls hold ${GROUP_CALL_MAX.audio} people (${GROUP_CALL_MAX.video} on video) and an audio room holds the host, ${ROOM_SPEAKERS_MAX} speakers and as many listeners as the Audio rooms help article says (an admin setting), so for a bigger live class or a video stream a meeting link is still fine. Sharing a link on WhatsApp, a person's own social profiles, and payment providers are fine to mention.
 
+Jobs: real ones and the game's (owner, 6 Nov 2026)
+- "Work", "a job", "a role", "vacancies" or "hiring" means real jobs on Notes Jobs unless the person is clearly talking about Notes Life, the game (its shifts, N$ pay, game certificates or playing). Never answer a real job search with Notes Life's in-game jobs, and never say we can't point to real listings: Notes Jobs is ours.
+- When a NOTES JOBS block is given, it holds the open jobs that fit their question right now. List those (title, organisation, where, and pay if shown) each as a link to its page from the block, and say they apply there with their #NotesApp account; a role \"at #NotesApp (our own team)\" is a job with us, on our [Careers](/careers) page. If none fit, say so plainly, link [Explore → Jobs](/explore?tab=jobs) to see every open job, and suggest switching on **I need a job** in [Your job search](/profile/applications) with their city, so they get a bell when a good match is posted. Never invent a job, an organisation or a salary.
+- Organisations asking how to hire: posting is free for CAC-verified organisations from [Your jobs](/profile/jobs) (see the Notes Jobs help article).
+
 When a person is needed
 - If the person asks for a human, is upset, reports a payment, payout, refund, order or safety problem that needs staff, or cannot get into their account, reassure them and say the team will follow up on the email they gave, and end your reply with the tag [[HANDOFF]]. Still share any self-service steps that may help.
 
@@ -99,6 +105,20 @@ ${index}`;
 }
 
 // Who is asking: small, and kept out of the cached block above.
+// The openings that fit a job question (lib/jobs-server.ts jobsForNana): Notes Jobs jobs and our own /careers roles, with their pages.
+export function jobsBlock(found: { matches: Opening[]; open: number; careers: number }): string {
+  const totals = `${found.open} Notes Jobs job${found.open === 1 ? " is" : "s are"} open in all, on /explore?tab=jobs, and ${found.careers} role${found.careers === 1 ? "" : "s"} on our own team, on /careers`;
+  if (!found.matches.length) return `NOTES JOBS: no open job fits this question right now (${totals}).`;
+  const line = (o: Opening) => `- [${o.title}](${o.href}) at ${o.org}: ${[o.place, o.kind, o.pay].filter(Boolean).join(", ")}. ${o.summary}`;
+  return `NOTES JOBS: the openings that fit this question (${totals}):\n${found.matches.map(line).join("\n")}`;
+}
+// A job question always carries the Notes Jobs article (first), even when its words ("remote work") don't name a job.
+export function withJobsArticle(picked: KbArticle[], all: KbArticle[], jobQ: boolean): KbArticle[] {
+  const a = jobQ ? all.find((x) => x.slug === "notes-jobs") : undefined;
+  return a ? [a, ...picked.filter((x) => x.slug !== a.slug)].slice(0, ARTICLES_MAX) : picked;
+}
+export const jobPaths = (found: { matches: Opening[] }) => found.matches.map((o) => o.href);
+
 export function visitorBlock(v: { name: string; signedIn: boolean; page?: string }): string {
   return `The person you are chatting with is ${v.name}${v.signedIn ? " (signed in to #NotesApp)" : " (a visitor who is not signed in; their email is on file for follow-up)"}.${v.page ? ` They are looking at ${v.page}.` : ""}`;
 }
