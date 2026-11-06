@@ -1,7 +1,9 @@
-// Notes Life sound. Everything is made in the browser with the Web Audio API, so there are no sound files to download (good on slow
-// data). Two channels under one master volume: effects (taps, money, the phone, water, cooking…) and surroundings (birds by day,
+// Notes Life sound. Almost everything is made in the browser with the Web Audio API, so there are few sound files to download (good on
+// slow data): only the NotesApp Sounds songs at the hotel stream, quietly, and only while you're there. Two channels under one master volume: effects (taps, money, the phone, water, cooking…) and surroundings (birds by day,
 // crickets at night, traffic on the street, lounge music at Candellux, the pool). Settings live on this device (localStorage).
 // Browsers only allow sound after the player touches the page, so nothing plays until unlock() runs on the first tap.
+
+import { SONGS } from "@/lib/songs";
 
 export type SoundPrefs = { on: boolean; master: number; sfx: number; amb: number };
 export const DEFAULT_SOUND: SoundPrefs = { on: true, master: 0.8, sfx: 0.9, amb: 0.5 };
@@ -18,7 +20,8 @@ export function loadSoundPrefs(): SoundPrefs {
 export function saveSoundPrefs(p: SoundPrefs) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode: this visit only */ } }
 
 export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page" | "nepa_off" | "up_nepa" | "pull" | "nfc";
-export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool" | "calm";
+// "hotel": the Candellux lobby, "suite": your hotel suite and the VIP bar. Both play the NotesApp Sounds songs (lib/songs.ts) very softly.
+export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool" | "calm" | "suite";
 
 type Ctx = AudioContext;
 export class Sound {
@@ -29,6 +32,10 @@ export class Sound {
   private amb: Ambience = "none"; private ambStop: (() => void)[] = []; private ambTimer = 0; private ambNext = 0;
   private ringTimer = 0;
   private music = 0;
+  // The hotel's songs: one <audio> wired into the surroundings bus once; leaving pauses it where it was, coming back carries on.
+  // Called when a song starts at the hotel (LifeGame counts it as a play of the song, once a day per player: lib/sounds-server.ts).
+  onSong: ((id: string) => void) | null = null;
+  private songEl: HTMLAudioElement | null = null; private songGain: GainNode | null = null; private songIdx = Math.floor(Math.random() * Math.max(1, SONGS.length)); private songTurn = 0;
 
   constructor(prefs: SoundPrefs) { this.prefs = prefs; }
 
@@ -177,7 +184,8 @@ export class Sound {
     }
     if (next === "room") this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 700, gain: 0.04, bus, attack: 1, loop: true }).stop); // the fan
     if (next === "pool") this.ambStop.push(this.hiss(now, 1, { freq: 700, q: 0.4, gain: 0.12, bus, attack: 1, loop: true }).stop); // water
-    if (next === "hotel") this.lounge();
+    if (next === "hotel") { if (!this.songs(0.16)) this.lounge(); }
+    if (next === "suite") { if (!this.songs(0.1)) this.softTune(); }
     if (next === "calm") this.softTune();
     this.ambNext = 0;
     this.ambTimer = window.setInterval(() => {
@@ -200,6 +208,33 @@ export class Sound {
       }
     }, 200);
   }
+  // The NotesApp Sounds songs, very light, one after another. False when there are none (the made-up tunes play instead).
+  private songs(level: number): boolean {
+    if (!this.ctx || !SONGS.length || typeof Audio === "undefined") return false;
+    const c = this.ctx, turn = ++this.songTurn;
+    if (!this.songEl) {
+      const el = new Audio(); el.preload = "none";
+      const src = c.createMediaElementSource(el), g = c.createGain(); g.gain.value = 0.0001;
+      src.connect(g); g.connect(this.ambBus);
+      el.src = SONGS[this.songIdx].src;
+      el.onended = () => { this.songIdx = (this.songIdx + 1) % SONGS.length; el.src = SONGS[this.songIdx].src; void el.play().then(() => this.onSong?.(SONGS[this.songIdx].id)).catch(() => {}); };
+      // No connection (or the file is missing): the lounge chords or the soft tune, as before the songs.
+      el.onerror = () => { if (this.music === 0) { if (this.amb === "hotel") this.lounge(); else if (this.amb === "suite") this.softTune(); } };
+      this.songEl = el; this.songGain = g;
+    }
+    this.songGain!.gain.setTargetAtTime(level, c.currentTime, 0.8);
+    const wasPaused = this.songEl.paused;
+    void this.songEl.play().then(() => { if (wasPaused) this.onSong?.(SONGS[this.songIdx].id); }).catch(() => {});
+    this.ambStop.push(() => {
+      if (!this.ctx || !this.songGain) return;
+      this.songGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.3);
+      window.setTimeout(() => { if (this.songTurn === turn) this.songEl?.pause(); }, 1500);
+    });
+    return true;
+  }
+  // Which song is on at the hotel now (for the residents to talk about), or null.
+  get nowPlaying(): string | null { return this.songEl && !this.songEl.paused && (this.amb === "hotel" || this.amb === "suite") ? SONGS[this.songIdx]?.id ?? null : null; }
+
   // Candellux: soft lounge chords (Cmaj7, Am7, Fmaj7, G6), four seconds each, round and round.
   private lounge() {
     const chords = [[261.6, 329.6, 392, 493.9], [220, 261.6, 329.6, 392], [174.6, 220, 261.6, 329.6], [196, 246.9, 293.7, 329.6]];
@@ -244,6 +279,7 @@ export class Sound {
     this.ringing(false);
     this.gens.mine?.(); this.gens.near?.();
     this.ambience("none");
+    this.songEl?.pause(); this.songEl = null; this.songGain = null;
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
   }

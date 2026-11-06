@@ -16,7 +16,7 @@
 - **Studio (`/profile/media`):** upload (video to Cloudflare Stream by direct upload, open question 5; pictures to R2 as WebP like every other
   upload), caption, who can see it (**everyone / followers / subscribers**, replacing "only me"), comments on/off, allow shares, allow gifts,
   pin, **allow watermarked downloads** (default off; open question 9), my posts with stats, and "From your site" pictures with Hide switches.
-- **Music:** original sound only, no music library (open question 4).
+- **Music:** original sound, or a song from **NotesApp Sounds** (owner, 5 Nov 2026): the owner's own songs, built in (`lib/songs.ts`, files in `public/songs/`). They can go on Media posts and moments, a host can play them into a live (mixed into their mic, so listeners and the recording hear them), and Notes Life plays them softly at the hotel, where the residents talk about them. No outside music. Each song has a page (`/sounds/<id>`, components/sounds/SoundPage.tsx) with the posts and moments made with it; plays are counted by where (`songPlays`, `songTotals`), shown to the artist on `/profile/sounds`, and paid as a monthly song royalty in ad share (a pool of the month's ad revenue split by plays, Admin → Sounds). Verified artists upload their own songs, which the team reviews (lib/sounds-server.ts). Media posts have reactions (one per member).
 - **Plan limits:** a new "Media" group in Admin → Limits (below), read live by the help and the pricing table.
 - **Teen mode:** a teen's Media is for mutual followers only, no downloads of it, and comments and mentions only from people they follow.
 - **Data:** a server-written `mediaPosts` collection read through our API (like Moments), with counts on the profile. Phase M1 doesn't

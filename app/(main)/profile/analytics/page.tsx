@@ -5,6 +5,7 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import PageHero from "@/components/PageHero";
+import SoundsSummary from "@/components/sounds/SoundsSummary";
 import { formatNaira } from "@/lib/booking-time";
 import { LOW_STOCK, RANGE_DAYS, SOURCE_LABEL, change, salesCsv, type Report } from "@/lib/analytics";
 
@@ -131,6 +132,7 @@ export default function AnalyticsPage() {
             : <span className="ml-auto text-xs text-slate">Download sales: <Link href="/pricing" className="text-crimson underline">Pro</Link></span>)}
         </div>
         {error && <p className="mt-4 text-sm text-crimson" role="alert">{error}</p>}
+        {user && !as && <SoundsSummary />}
         {!r ? <p className="mt-8 text-sm text-slate">{busy || user === undefined ? "Loading…" : ""}</p> : (
           <>
             <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-rule text-sm" aria-label="Analytics">

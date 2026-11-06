@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { adShareFor } from "@/lib/tiers";
+import { computeSoundRoyalties } from "@/lib/sounds-server";
 import { ensurePricing } from "@/lib/pricing-server";
 import { AD_SHARE_HOLD_DAYS, AD_SHARE_MIN_KOBO, AdRevenueEntry, AdShareStatement, adFlags, isMonth } from "@/lib/ad-share";
 
@@ -78,7 +79,9 @@ export async function POST(req: NextRequest) {
       const revenueKobo = rev.docs.reduce((n, d) => n + (Number(d.data().amountKobo) || 0), 0);
       const totalImpressions = stats.docs.reduce((n, d) => n + (Number(d.data().impressions) || 0), 0);
       if (revenueKobo <= 0) return NextResponse.json({ error: "Record the month's ad revenue first." }, { status: 409 });
-      if (totalImpressions <= 0) return NextResponse.json({ error: "No ad impressions were counted in that month." }, { status: 409 });
+      // NotesApp Sounds: the artists' pool, split by plays (its own statements, reviewed and paid below like the rest).
+      const sounds = await computeSoundRoyalties(db, month, revenueKobo, now);
+      if (totalImpressions <= 0) return NextResponse.json({ error: `No ad impressions were counted in that month.${sounds.statements ? ` ${sounds.statements} song royalty statement(s) were made.` : ""}` }, { status: 409 });
       const rpmKobo = revenueKobo / totalImpressions;
 
       const byPub = new Map<string, { impressions: number; clicks: number; days: Set<string> }>();
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
         await ref.set(statement);
         created++;
       }
-      return NextResponse.json({ ok: true, statements: created, rpmKobo });
+      return NextResponse.json({ ok: true, statements: created, rpmKobo, sounds });
     }
 
     // ------------------------------------------------------------- decisions
