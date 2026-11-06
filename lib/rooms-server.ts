@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { can } from "./community";
 import { CommunityError, activeRole, memberOf, readCommunity, type Member } from "./community-server";
 import {
-  ROOM_CHAT_MAX, ROOM_GONE_MS, ROOM_PEOPLE_PAGE, ROOM_SPEAKERS_MAX, canPull, canPush, chatSlowFor, chatWait, chooseRoomMode, cleanRoomOverrides, cleanRoomTitle, countDue, headcount,
+  ROOM_CHAT_MAX, ROOM_GONE_MS, ROOM_PEOPLE_PAGE, ROOM_SPEAKERS_MAX, canPull, canPush, chatSlowFor, chatWait, chooseRoomMode, cleanRoomOverrides, cleanRoomTitle, countDue, headcount, listenerCount,
   isFresh, listenerCap, listenerPresent, edgeFresh, presentIn, roomFigures, roomFullText, roomIsFull, roomRole, roomSettings,
   ROOM_MODS_MAX, COMMUNITY_MOD_PERMS, cleanPerms, inviteFor, isMemberLive, isMicMuted, isRoomMod, isStageMode, mayActOn, permsOf, requestsOpen, roomCan, runsStage, stageModeOf,
   type ModLogEntry, type ModPerm, type RoomPin, type RoomChat, type RoomDoc, type RoomFigures, type RoomInvite, type RoomMode, type RoomModInfo, type RoomPersonDoc, type RoomRelayRecord, type RoomSettings, type StageMode,
@@ -12,6 +12,7 @@ import { mayReach } from "./young";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
 import { recordingPlan, startRoomRecording, stopRoomRecording, type RecordingDeps } from "./live-recording-server";
 import { hasConsented } from "./live-recording";
+import { countPlay, songIdOk } from "./sounds-server";
 import { edgeCount, edgeState, liveConfigFor, liveRoomsOn, readEdgeState, tellLiveRoom } from "./live-rooms-edge";
 import type { LiveHand } from "./live-rooms";
 import { CHALLENGE_POSTER, POSTER_FOLDER, canPullVideo, canVideo, type HostLive, type PosterSource } from "./rooms-live";
@@ -980,6 +981,18 @@ export async function setPoster(db: Firestore, uid: string, id: unknown, source:
   await ref.update({ poster: poster || FieldValue.delete() });
   await logMod(db, ref.id, r, uid, "change the poster");
   return { poster };
+}
+// The host plays a NotesApp Sounds song into the live, or stops it (songId ""): the room shows "Now playing" to everyone. Host only.
+export async function setRoomSong(db: Firestore, uid: string, id: unknown, songId: unknown, now = new Date()): Promise<{ song: string }> {
+  const { ref, r } = await roomOf(db, id);
+  if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+  if (uid !== r.hostUid) throw new CommunityError(403, "Only the host plays music in a live.");
+  if (songId === "" || songId === null || songId === undefined) { if (r.song) await ref.update({ song: FieldValue.delete() }); return { song: "" }; }
+  if (typeof songId !== "string" || !(await songIdOk(db, songId))) throw new CommunityError(400, "That song isn't in NotesApp Sounds.");
+  await ref.update({ song: { id: songId, at: now.toISOString() } });
+  // Everyone listening when the host starts it hears it: one play each (the host isn't counted).
+  if (r.song?.id !== songId || Date.parse(r.song.at) < now.getTime() - 60_000) await countPlay(db, songId, "live", Math.max(0, listenerCount(r)), now);
+  return { song: songId };
 }
 // The host lets speakers turn video on, or not; turning it off takes the speakers' cameras down at once.
 export async function setStageVideo(db: Firestore, uid: string, id: unknown, on: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ stageVideo: boolean }> {

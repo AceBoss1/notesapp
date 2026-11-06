@@ -1,9 +1,10 @@
 // Chats with residents (computer players) stay on this device only (localStorage), never on our servers. Chats with real players are
 // real NotesApp messages, opened in Messages.
 import { RESIDENT, type Resident } from "@/lib/life/catalog";
+import { songTalk } from "@/lib/songs";
 
 export type Line = { me: boolean; text: string; at: number };
-export type Topic = keyof Resident["lines"];
+export type Topic = keyof Resident["lines"] | "music";
 const KEY = (uid: string) => `notesLife:chats:${uid}`;
 
 function all(uid: string): Record<string, Line[]> { try { return JSON.parse(localStorage.getItem(KEY(uid)) || "{}") || {}; } catch { return {}; } }
@@ -15,13 +16,16 @@ export const TOPICS: { id: Topic; label: string; ask: string }[] = [
   { id: "work", label: "💼 Work", ask: "Any work tips?" },
   { id: "nepa", label: "⚡ NEPA", ask: "What do you do when NEPA takes light?" },
   { id: "money", label: "💰 Money", ask: "How do I make money here?" },
+  // The NotesApp Sounds songs that play at the hotel (lib/songs.ts): every resident has something to say about them.
+  { id: "music", label: "🎵 Music", ask: "Have you heard the song they play at the hotel?" },
 ];
 
 // You ask, they answer (one of their lines on that topic). Keeps the last 30 lines with each resident.
 export function say(uid: string, id: string, topic: Topic): Line[] {
   const r = RESIDENT(id); if (!r) return [];
   const t = TOPICS.find((x) => x.id === topic)!;
-  const opts = r.lines[topic]?.length ? r.lines[topic] : r.lines.greet;
+  const music = topic === "music" ? songTalk(id + ":" + Math.floor(Math.random() * 1000)) : null;
+  const opts = topic === "music" ? (music ? [music.line] : r.lines.greet) : r.lines[topic]?.length ? r.lines[topic] : r.lines.greet;
   const now = Date.now();
   const lines = [...chatWith(uid, id), { me: true, text: t.ask, at: now }, { me: false, text: opts[Math.floor(Math.random() * opts.length)], at: now + 1 }].slice(-30);
   try { const a = all(uid); a[id] = lines; localStorage.setItem(KEY(uid), JSON.stringify(a)); } catch { /* private mode: this visit only */ }

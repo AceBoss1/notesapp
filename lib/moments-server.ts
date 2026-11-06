@@ -1,4 +1,5 @@
 import { addFanPointsByUsername } from "./fans-server";
+import { countPlay, countUse, songIdOk } from "./sounds-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -52,6 +53,7 @@ type MomentDoc = {
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
   clipStart?: number; clipEnd?: number; splitGroup?: string; // a part of a longer video: this moment plays clipStart to clipEnd of the shared file
   audioKey?: string; audioDurationSec?: number; // voice-over
+  songId?: string; // a NotesApp Sounds song (lib/songs.ts), played while the moment shows
   link?: MomentLink; // kind "link": the card of what was shared (Share to Moments)
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; viewCount: number;
@@ -67,7 +69,7 @@ type MomentDoc = {
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
-  clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
+  clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number; songId?: string;
   streamVideo?: boolean; // the video is on Cloudflare Stream (signed): the viewer asks for a player link (POST action "play")
   link?: MomentLink;
   hours: MomentHours; createdAt: string; expiresAt: string;
@@ -150,6 +152,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
     ...(m.videoKey ? { ...(streamUidOf(m.videoKey) ? { streamVideo: true } : { videoUrl: deps.publicUrl(m.videoKey) }), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
+    ...(m.songId ? { songId: m.songId } : {}),
     ...(m.link ? { link: m.link } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
@@ -162,7 +165,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
 // Still showing: its time isn't up, or it is pinned (then it stays until it is unpinned or deleted).
 const isShowing = (m: MomentDoc, now: Date) => m.pinned === true || !isMomentExpired(m.expiresAt, now);
 
-export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown };
+export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown; songId?: unknown };
 
 export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
@@ -180,6 +183,11 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: true,
   };
   if (text) doc.text = text;
+  // A song from NotesApp Sounds (lib/songs.ts), on any kind of moment.
+  if (input.songId !== undefined && input.songId !== null && input.songId !== "") {
+    if (typeof input.songId !== "string" || !(await songIdOk(db, input.songId))) throw new MomentError(400, "That song isn't in NotesApp Sounds.");
+    doc.songId = input.songId;
+  }
 
   if (input.kind === "text") {
     if (!text) throw new MomentError(400, "Write something to share.");
@@ -261,6 +269,7 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
     if (audioRef) t.update(audioRef, { attached: true });
   });
+  if (full.songId) await countUse(db, full.songId, "moments");
   if (text.includes("@")) {
     const u = (await db.doc(`users/${owner.uid}`).get()).data();
     await notifyMentions(db, { kind: "moment", sourceId: id, text, author: { uid: owner.uid, name: String(u?.displayName ?? owner.username), username: owner.username, avatar: String(u?.avatar ?? "") }, where: "in a moment", linkHref: `/u/${owner.username}` }, now).catch(() => {});
@@ -314,6 +323,28 @@ async function likedSet(db: Firestore, uid: string, ids: string[]): Promise<Set<
   if (!ids.length) return new Set();
   const snaps = await db.getAll(...ids.map((id) => db.doc(`moments/${id}/likes/${uid}`)));
   return new Set(snaps.filter((s) => s.exists).map((s) => s.ref.parent.parent!.id));
+}
+
+// A song's page (/sounds/<id>): the moments made with it that this viewer may see now (newest first, up to 60). Never signed out.
+export async function momentsWithSong(db: Firestore, viewerUid: string | null, songId: string, deps: MomentDeps, now = new Date()): Promise<MomentGroup[]> {
+  if (!viewerUid) return [];
+  const snap = await db.collection("moments").where("songId", "==", songId).limit(200).get();
+  const live = snap.docs.map((d) => ({ id: d.id, m: d.data() as MomentDoc })).filter((d) => isShowing(d.m, now)).sort((a, b) => b.m.createdAt.localeCompare(a.m.createdAt));
+  const shown: { id: string; m: MomentDoc }[] = [];
+  for (const d of live) { if (shown.length >= 60) break; if (await canSee(db, viewerUid, d.m)) shown.push(d); }
+  const liked = await likedSet(db, viewerUid, shown.map((d) => d.id));
+  const owners = Array.from(new Set(shown.map((d) => d.m.ownerUid)));
+  const users = owners.length ? await db.getAll(...owners.map((u) => db.doc(`users/${u}`))) : [];
+  const info = new Map(users.map((u) => [u.id, u.data()]));
+  // One ring per person, like the Moments strip: tapping it plays their moments with this song in order.
+  const groups = new Map<string, MomentGroup>();
+  for (const d of shown) {
+    const g = groups.get(d.m.ownerUid) ?? { ownerUid: d.m.ownerUid, ownerUsername: d.m.ownerUsername, displayName: String(info.get(d.m.ownerUid)?.displayName ?? d.m.ownerUsername), avatar: String(info.get(d.m.ownerUid)?.avatar ?? ""), moments: [] };
+    g.moments.push(toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
+    groups.set(d.m.ownerUid, g);
+  }
+  for (const g of groups.values()) g.moments.reverse(); // oldest first within a person, as the viewer plays them
+  return [...groups.values()];
 }
 
 export type MomentGroup = { ownerUid: string; ownerUsername: string; displayName: string; avatar: string; isOrg?: boolean; moments: MomentView[] };
@@ -402,11 +433,13 @@ export async function recordView(db: Firestore, uid: string, id: string, now = n
   const { m } = await loadActive(db, uid, id, now);
   if (m.ownerUid === uid) return;
   const viewRef = db.doc(`moments/${id}/views/${uid}`);
-  await db.runTransaction(async (t) => {
-    if ((await t.get(viewRef)).exists) return;
+  const fresh = await db.runTransaction(async (t) => {
+    if ((await t.get(viewRef)).exists) return false;
     t.set(viewRef, { uid, at: now.toISOString(), ...(m.pinned ? {} : { expireAt: new Date(m.expiresAt) }) });
     t.update(db.doc(`moments/${id}`), { viewCount: FieldValue.increment(1) });
+    return true;
   });
+  if (fresh && m.songId) await countPlay(db, m.songId, "moment", 1, now); // a first view of a moment with a song: one play of it
 }
 
 // A reshare puts the moment on the resharer's own ring for the rest of the original's time — never longer.

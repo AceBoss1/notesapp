@@ -29,7 +29,8 @@ export type AdRevenueEntry = {
 };
 
 export type AdShareStatement = {
-  id: string; // `${month}_${uid}`
+  id: string; // `${month}_${uid}`, or `${month}_${uid}_sounds` for a NotesApp Sounds royalty
+  kind?: "sounds"; // a song royalty (lib/sounds-server.ts computeSoundRoyalties): impressions are the songs' plays, rate is 1
   uid: string;
   username: string;
   month: string;

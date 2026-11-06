@@ -20,6 +20,8 @@ import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type Rec
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 import type { LiveHand } from "@/lib/live-rooms";
 import StageGifts from "@/components/gifts/StageGifts";
+import { useSongs } from "@/lib/sounds-client";
+import { SongTag } from "@/components/media/SongPicker";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -144,6 +146,14 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [hostLive, setHostLive] = useState<HostLive | null>(null);
   const [prompt, setPrompt] = useState<HostLive["prompt"]>(null);
   const [posterOpen, setPosterOpen] = useState(false);
+  // Music (lib/songs.ts): the host plays NotesApp Sounds into their microphone mix, so listeners and the recording hear it.
+  const [musicOpen, setMusicOpen] = useState(false);
+  const [songOn, setSongOn] = useState("");
+  const [songVol, setSongVol] = useState(0.5);
+  const songVolRef = useRef(0.5); songVolRef.current = songVol;
+  const songs = useSongs(); // house songs and approved artist songs
+  const songsRef = useRef(songs); songsRef.current = songs;
+  const songRef = useRef<{ play: (id: string) => boolean; stop: () => void; volume: (v: number) => void }>({ play: () => false, stop: () => {}, volume: () => {} });
   const liveRef = useRef<{ startVideo: () => Promise<void>; stopVideo: (tell?: boolean) => Promise<void>; resync: () => void }>({ startVideo: async () => {}, stopVideo: async () => {}, resync: () => {} });
   const tookLive = useCallback((h: HostLive | undefined) => { if (!h) return; setHostLive(h); if (h.prompt) setPrompt(h.prompt); }, []);
   useEffect(() => { const a = readAudioOnly(); audioOnlyRef.current = a; setAudioOnly(a); }, []);
@@ -157,6 +167,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     // The host's mix for listeners: their own microphone and everyone else on stage, as one stream.
     let ctx: AudioContext | null = null, mixOut: MediaStreamAudioDestinationNode | null = null;
     const mixIn = new Map<string, MediaStreamAudioSourceNode>();
+    // The host's own send: their microphone plus the song they're playing, mixed into one track (what goes up and into the p2p mix).
+    // rawMic is the microphone alone: mute and the talking ring work on it, so muting never stops the music.
+    let rawMic: MediaStream | null = null, sendOut: MediaStreamAudioDestinationNode | null = null, songGain: GainNode | null = null, songEl: HTMLAudioElement | null = null, songSrc: MediaElementAudioSourceNode | null = null;
     const meters = new Map<string, AnalyserNode>();
     // Relay rooms: my one connection to Cloudflare, what I send, and what I receive (by the mid Cloudflare gave each track).
     let relayMode = false, rpc: RTCPeerConnection | null = null, fresh = true, pushed: RTCRtpTransceiver | null = null;
@@ -198,6 +211,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       unsubs.forEach((u) => u()); clearInterval(beat); clearInterval(tick); clearInterval(levelTimer); clearTimeout(goneTimer);
       conns.forEach((c) => c.pc.close()); conns.clear();
       rpc?.close(); rpc = null;
+      songEl?.pause(); songEl = null;
+      rawMic?.getTracks().forEach((t) => t.stop());
       mic?.getTracks().forEach((t) => t.stop());
       cam?.getTracks().forEach((t) => t.stop()); cam = null;
       void ctx?.close().catch(() => {});
@@ -210,13 +225,49 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     // My microphone, on stage only.
     const ensureMic = async () => {
       if (mic) return mic;
-      mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      micRef.current = mic; setMuted(false); userMutedRef.current = false;
-      if (silencedRef.current) mic.getAudioTracks().forEach((t) => { t.enabled = false; });
-      meter(me, mic);
+      const raw = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      rawMic = raw; micRef.current = raw; setMuted(false); userMutedRef.current = false;
+      if (silencedRef.current) raw.getAudioTracks().forEach((t) => { t.enabled = false; });
+      meter(me, raw);
+      mic = raw;
+      if (latest && roomRole(latest, me) === "host") {
+        const a = audio();
+        sendOut = a.createMediaStreamDestination();
+        a.createMediaStreamSource(raw).connect(sendOut);
+        songGain = a.createGain(); songGain.gain.value = songVolRef.current; songGain.connect(sendOut);
+        const monitor = a.createGain(); monitor.gain.value = 0.5; songGain.connect(monitor); monitor.connect(a.destination); // the host hears it too
+        mic = sendOut.stream;
+      }
       return mic;
     };
-    const stopMic = () => { mic?.getTracks().forEach((t) => t.stop()); mic = null; micRef.current = null; meters.delete(me); mixIn.get(me)?.disconnect(); mixIn.delete(me); };
+    const stopSong = () => { songEl?.pause(); setSongOn(""); };
+    const stopMic = () => {
+      stopSong();
+      rawMic?.getTracks().forEach((t) => t.stop()); rawMic = null;
+      mic?.getTracks().forEach((t) => t.stop()); mic = null; micRef.current = null; meters.delete(me); mixIn.get(me)?.disconnect(); mixIn.delete(me);
+      songGain?.disconnect(); songGain = null; sendOut = null;
+    };
+    // Music: one <audio> for the whole live (a media element can only be wired into Web Audio once). A song that ends moves on to the next.
+    songRef.current = {
+      play: (songId) => {
+        const s = songsRef.current.find((x) => x.id === songId);
+        if (!s || !songGain || !ctx) return false;
+        if (!songEl) {
+          songEl = new Audio(); songEl.preload = "auto";
+          songSrc = ctx.createMediaElementSource(songEl);
+          songEl.onended = () => { const list = songsRef.current; const i = list.findIndex((x) => x.src === songEl?.getAttribute("src")); const nx = list[(i + 1) % list.length]; if (nx) songRef.current.play(nx.id); };
+        }
+        songSrc?.disconnect(); songSrc?.connect(songGain);
+        songEl.src = s.src; songEl.currentTime = 0;
+        void ctx.resume().catch(() => {});
+        void songEl.play().catch(() => setNote("The song couldn't start. Tap Play again."));
+        setSongOn(s.id);
+        capi("/api/community/rooms", { action: "song", id, songId: s.id }).catch(() => {});
+        return true;
+      },
+      stop: () => { stopSong(); capi("/api/community/rooms", { action: "song", id, songId: "" }).catch(() => {}); },
+      volume: (v) => { if (songGain && ctx) songGain.gain.setTargetAtTime(v, ctx.currentTime, 0.05); },
+    };
 
     const wire = (uid: string, kind: RoomLinkKind, peerAt: string, linkId: string, isOffer: boolean) => {
       drop(uid);
@@ -397,7 +448,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       // phone keeps it: mine stops sending, the host's mix leaves that speaker out (listeners hear only the mix), and the other
       // speakers' phones don't play them (RemoteAudio below).
       silencedRef.current = isMicMuted(r, me);
-      mic?.getAudioTracks().forEach((t) => { t.enabled = !silencedRef.current && !userMutedRef.current; });
+      rawMic?.getAudioTracks().forEach((t) => { t.enabled = !silencedRef.current && !userMutedRef.current; });
       if (roomRole(r, me) === "host") for (const [u, c] of conns) {
         if (c.kind !== "stage" || !c.stream) continue;
         const want = !isMicMuted(r, u);
@@ -555,6 +606,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
+          {room?.song && <p className="mt-2 flex items-center gap-2 text-xs font-semibold" role="status">Now playing: <SongTag songId={room.song.id} newTab /></p>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
@@ -576,9 +628,30 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs">
             {role === "host" && <button type="button" onClick={() => void openMods()} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🛡 Moderators{room.mods && Object.keys(room.mods).length ? ` · ${Object.keys(room.mods).length}` : ""}</button>}
             {role === "host" && room.mods && Object.keys(room.mods).length > 0 && <button type="button" onClick={() => act<{ log: ModLogEntry[] }>({ action: "modlog" }).then((r) => setLog(r?.log ?? []))} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">📋 Moderators&apos; log</button>}
+            {role === "host" && <button type="button" onClick={() => setMusicOpen((v) => !v)} aria-expanded={musicOpen} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${songOn ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎵 Music{songOn ? " · on" : ""}</button>}
             {may("poster") && <button type="button" onClick={() => setPosterOpen((v) => !v)} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🖼 Poster</button>}
             {may("video") && relayRoom && videoCfg.on && (
               <label className="flex items-center gap-2 text-white/70"><input type="checkbox" checked={room?.stageVideo === true} onChange={(e) => act({ action: "stagevideo", on: e.target.checked })} className="h-4 w-4" />Speakers can turn video on</label>
+            )}
+            {role === "host" && musicOpen && (
+              <div className="w-full rounded-2xl bg-white/[0.06] p-3">
+                <p className="font-ui text-sm font-bold">NotesApp Sounds</p>
+                <p className="mt-0.5 text-white/60">Plays through your mic to everyone here{isRecorded(room) ? " and into the recording" : ""}. Your mute button mutes only your voice.</p>
+                <ul className="mt-2 max-h-64 space-y-1.5 overflow-y-auto">
+                  {songs.map((s) => (
+                    <li key={s.id} className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.cover} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                      <span className="min-w-0 flex-1"><b className="block truncate font-ui text-sm">{s.title}</b><span className="text-white/60">{s.artist}</span></span>
+                      {songOn === s.id
+                        ? <button type="button" onClick={() => songRef.current.stop()} className="rounded-full bg-white px-3 py-1.5 font-ui font-bold text-ink">■ Stop</button>
+                        : <button type="button" onClick={() => { if (!songRef.current.play(s.id)) flash("Music plays once your mic is on."); }} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">▶ Play</button>}
+                    </li>
+                  ))}
+                </ul>
+                <label className="mt-2 flex items-center gap-2 text-white/70">Music volume
+                  <input type="range" min={0} max={100} value={Math.round(songVol * 100)} onChange={(e) => { const v = Number(e.target.value) / 100; setSongVol(v); songRef.current.volume(v); }} className="w-40 accent-white" aria-label="Music volume" /></label>
+              </div>
             )}
             {posterOpen && <div className="w-full"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
           </div>

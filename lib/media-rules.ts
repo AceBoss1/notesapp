@@ -28,7 +28,9 @@ export const MEDIA_PICTURES_MAX = 10; // pictures in one post (a carousel)
 export const MEDIA_PINNED_MAX = 3; // pinned posts at the top of a creator's Media
 export const MOMENTS_PINNED_MAX = 10; // pinned Moments (they stay past their 24–72 hours while pinned)
 export const MEDIA_PICTURE_MAX_BYTES = 5 * 1024 * 1024; // what /api/upload allows a member's own pictures (lib/upload-rules.ts)
-export const MEDIA_SOUND = "Original sound"; // owner, 3 Nov 2026: original sound only, no music library
+// Reactions on a post (one per member).
+export const MEDIA_REACTIONS = ["❤️", "🔥", "😂", "😮", "👏", "🙏"] as const;
+export const MEDIA_SOUND = "Original sound"; // owner, 3 Nov 2026: no outside music library. 5 Nov 2026: plus the owner's own songs (lib/songs.ts)
 
 // Plan limits (Admin → Limits, group "Media"). The video ladder mirrors post videos and video moments (VIDEO_WEEKLY_LIMIT); the rest are
 // the defaults proposed in docs/MEDIA.md. Media videos are counted apart from post videos and video moments.
@@ -48,7 +50,7 @@ export type LegacyVideoDl = { state?: string; copyUid?: string; bytes?: number }
 export type MediaStatus = "processing" | "ready" | "rejected";
 export type MediaPostDoc = {
   ownerUid: string; ownerUsername: string; kind: MediaKind;
-  caption: string; sound: string;
+  caption: string; sound: string; songId?: string; // songId: one of the NotesApp Sounds (lib/songs.ts); sound is then its label
   pictures?: MediaPicture[]; video?: MediaVideo;
   status: MediaStatus; rejectedReason?: string;
   audience: MediaAudience;
@@ -69,7 +71,7 @@ export type MediaPostDoc = {
 
 // What a viewer gets: no keys or upload ids, only addresses.
 export type MediaPostView = {
-  id: string; kind: MediaKind; caption: string; sound: string; status: MediaStatus; rejectedReason?: string;
+  id: string; kind: MediaKind; caption: string; sound: string; songId?: string; status: MediaStatus; rejectedReason?: string;
   pictures: string[]; video?: { streamUid: string; durationSec: number; poster: string; player: string };
   cover: string; // the first picture or the video's poster; "" when there is none (the tile shows the pattern)
   audience: MediaAudience; allowComments: boolean; allowShares: boolean; allowGifts: boolean; allowDownloads: boolean;

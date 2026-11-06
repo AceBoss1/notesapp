@@ -11,11 +11,37 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.144.1",
+    version: "v0.146.1",
     bump: "patch",
     date: "2026-11-06",
     changes: [
       { kind: "fixed", text: "Topping up with CardTap: Paylony started the payment, but the wallet didn't recognise the code in its reply and said it couldn't start. It now shows the code to paste into the CardTap app (and its QR) as soon as Paylony answers." },
+    ],
+  },
+  {
+    version: "v0.146.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "Ten more NotesApp Sounds songs by Emmanuel Adams (@emmanuel): Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. The Sound picker now has a search box." },
+      { kind: "added", text: "Every song has its own page (/sounds/song-name): tap a song's name or spinning cover on a post, a moment or in a live. Play it, see the artist and their @username, how often it's been played and where, tap Use this sound, and see the moments and Media posts people made with it. Tap a post to open it full screen to react, gift or report. /sounds lists every song." },
+      { kind: "added", text: "Reactions on Media posts: ❤️ 🔥 😂 😮 👏 🙏, one per person (tap the same one again to take it back)." },
+      { kind: "added", text: "Artists: Your sounds (Profile → Sounds) shows your songs' plays this month, last month and in all, where they were played (Media posts, Moments, Lives, Notes Life), the last 30 days, and how many posts and moments use each one. A summary shows in Analytics." },
+      { kind: "added", text: "Are you an artist? Apply on Your sounds with your artist name and links to your music. Once the team verifies you, add your own songs (MP3 and a cover); each is checked before anyone can use it, and you can take one down any time." },
+      { kind: "added", text: "Song royalties in ad share: each month a share of the ad revenue (the Sounds pool, 10% to start) is split between artists by how many times their songs were played, and paid with ad share. Admin → Sounds verifies artists, reviews songs and sets the pool." },
+      { kind: "added", text: "Nana knows about NotesApp Sounds, song pages, artist verification and royalties (help: NotesApp Sounds)." },
+      { kind: "changed", text: "Explore → Jobs features our own open roles at #NotesApp at the top (Work at #NotesApp), each opening its page on Careers to apply. The search box filters them too." },
+    ],
+  },
+  {
+    version: "v0.145.0",
+    bump: "minor",
+    date: "2026-11-05",
+    changes: [
+      { kind: "added", text: "NotesApp Sounds: songs made for #NotesApp, free to use here. The first is Leave Am by Emmanuel Adams, with more on the way." },
+      { kind: "added", text: "Media and Moments: under Sound, keep your original sound or pick a NotesApp Sounds song (▶ Listen plays 15 seconds). It plays from its best part while people watch, softly under a video's own sound or a voice-over, and the song's name shows on the post or moment." },
+      { kind: "added", text: "Lives: the host has a 🎵 Music button to play a NotesApp Sounds song through their mic, with its own volume. Everyone in the live hears it, and sees Now playing. Muting your mic mutes only your voice." },
+      { kind: "added", text: "Notes Life: NotesApp Sounds songs play very softly at the hotel (the Candellux lobby, your suite and the VIP bar), and the residents talk about them. Ask anyone about 🎵 Music in a chat." },
     ],
   },
   {
