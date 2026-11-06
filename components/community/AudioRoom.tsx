@@ -20,7 +20,8 @@ import { RECORDING_HELP, RECORDING_NOTICE, isRecorded, recordingPrompt, type Rec
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 import type { LiveHand } from "@/lib/live-rooms";
 import StageGifts from "@/components/gifts/StageGifts";
-import { SONG, SONGS, songLabel } from "@/lib/songs";
+import { useSongs } from "@/lib/sounds-client";
+import { SongTag } from "@/components/media/SongPicker";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -150,6 +151,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [songOn, setSongOn] = useState("");
   const [songVol, setSongVol] = useState(0.5);
   const songVolRef = useRef(0.5); songVolRef.current = songVol;
+  const songs = useSongs(); // house songs and approved artist songs
+  const songsRef = useRef(songs); songsRef.current = songs;
   const songRef = useRef<{ play: (id: string) => boolean; stop: () => void; volume: (v: number) => void }>({ play: () => false, stop: () => {}, volume: () => {} });
   const liveRef = useRef<{ startVideo: () => Promise<void>; stopVideo: (tell?: boolean) => Promise<void>; resync: () => void }>({ startVideo: async () => {}, stopVideo: async () => {}, resync: () => {} });
   const tookLive = useCallback((h: HostLive | undefined) => { if (!h) return; setHostLive(h); if (h.prompt) setPrompt(h.prompt); }, []);
@@ -247,12 +250,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     // Music: one <audio> for the whole live (a media element can only be wired into Web Audio once). A song that ends moves on to the next.
     songRef.current = {
       play: (songId) => {
-        const s = SONG(songId);
+        const s = songsRef.current.find((x) => x.id === songId);
         if (!s || !songGain || !ctx) return false;
         if (!songEl) {
           songEl = new Audio(); songEl.preload = "auto";
           songSrc = ctx.createMediaElementSource(songEl);
-          songEl.onended = () => { const i = SONGS.findIndex((x) => x.src === songEl?.getAttribute("src")); const nx = SONGS[(i + 1) % SONGS.length]; if (nx) songRef.current.play(nx.id); };
+          songEl.onended = () => { const list = songsRef.current; const i = list.findIndex((x) => x.src === songEl?.getAttribute("src")); const nx = list[(i + 1) % list.length]; if (nx) songRef.current.play(nx.id); };
         }
         songSrc?.disconnect(); songSrc?.connect(songGain);
         songEl.src = s.src; songEl.currentTime = 0;
@@ -603,7 +606,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
-          {room?.song && SONG(room.song.id) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold" role="status"><span aria-hidden>♫</span>Now playing: {songLabel(SONG(room.song.id)!)}</p>}
+          {room?.song && <p className="mt-2 flex items-center gap-2 text-xs font-semibold" role="status">Now playing: <SongTag songId={room.song.id} newTab /></p>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
@@ -634,8 +637,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
               <div className="w-full rounded-2xl bg-white/[0.06] p-3">
                 <p className="font-ui text-sm font-bold">NotesApp Sounds</p>
                 <p className="mt-0.5 text-white/60">Plays through your mic to everyone here{isRecorded(room) ? " and into the recording" : ""}. Your mute button mutes only your voice.</p>
-                <ul className="mt-2 space-y-1.5">
-                  {SONGS.map((s) => (
+                <ul className="mt-2 max-h-64 space-y-1.5 overflow-y-auto">
+                  {songs.map((s) => (
                     <li key={s.id} className="flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={s.cover} alt="" className="h-9 w-9 rounded-lg object-cover" />

@@ -1,9 +1,10 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { SONG, isSongId, songLabel } from "./songs";
+import { songLabel } from "./songs";
+import { countPlay, countUse, findSong } from "./sounds-server";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
-  DOWNLOADS_OFF, GB, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PICTURE_MAX_BYTES, MEDIA_PINNED_MAX, MEDIA_SOUND, TEEN_DOWNLOAD_BLOCKED,
+  DOWNLOADS_OFF, GB, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PICTURE_MAX_BYTES, MEDIA_PINNED_MAX, MEDIA_REACTIONS, MEDIA_SOUND, TEEN_DOWNLOAD_BLOCKED,
   allowedSwitches, cleanMediaSettings, isMediaAudience, isMediaKind, isOwnMediaKey, mediaPageVisible, mediaVisible, sitePicturesOf, sniffPicture,
   streamPlayer, streamPoster,
   type MediaAudience, type MediaPicture, type MediaPostDoc, type MediaPostView, type MediaSettings, type Relation, type ReplayTile, type SitePicture,
@@ -231,8 +232,8 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
   const sw = allowedSwitches(user, { allowComments: bool(input.allowComments, true), allowShares: bool(input.allowShares, true), allowGifts: bool(input.allowGifts, true), allowDownloads: bool(input.allowDownloads, false) });
   const pinned = input.pinned === true;
   // The sound: Original sound, or one of the NotesApp Sounds (lib/songs.ts). Anything else is refused rather than quietly dropped.
-  if (input.songId !== undefined && input.songId !== "" && input.songId !== null && !isSongId(input.songId)) throw new MediaError(400, "That song isn't in NotesApp Sounds.");
-  const song = SONG(input.songId);
+  const song = input.songId === undefined || input.songId === "" || input.songId === null ? undefined : await findSong(db, input.songId, deps);
+  if (input.songId && !song) throw new MediaError(400, "That song isn't in NotesApp Sounds.");
   if (pinned && (await pinnedCount(db, owner.uid)) >= MEDIA_PINNED_MAX) throw new MediaError(409, `You can pin up to ${MEDIA_PINNED_MAX} posts. Unpin one first.`);
   const base = {
     ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, caption, sound: song ? songLabel(song) : MEDIA_SOUND, ...(song ? { songId: song.id } : {}), audience, ...sw,
@@ -260,6 +261,7 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     // Hidden ("processing") until every picture carries the mark and its clean upload is gone; the cron finishes it if this is cut short.
     const doc: MediaPostDoc = { ...base, kind: "pictures", pictures, status: "processing", marked: false, bytes };
     await ref.set(doc);
+    if (song) await countUse(db, song.id, "posts");
     const done = await markPicturePost(db, ref.id, deps, now).catch((e) => { console.error("[media] marking failed; the cron tries again", ref.id, e); return null; });
     return toView(ref.id, done ?? doc, owner.uid, deps);
   }
@@ -278,6 +280,7 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     t.set(ref, d);
     return d;
   });
+  if (song) await countUse(db, song.id, "posts");
   return toView(ref.id, (await refreshVideo(db, ref.id, deps, now)) ?? doc, owner.uid, deps);
 }
 
@@ -463,6 +466,7 @@ export async function deleteMediaPost(db: Firestore, uid: string, id: string, de
   if (p.videoDl?.copyUid) await deps.stream.remove(p.videoDl.copyUid).catch(() => {}); // a v0.134 download copy not yet removed
   if (p.bytes) await freeBytes(db, uid, p.bytes);
   await db.recursiveDelete(ref);
+  if (p.songId) await countUse(db, p.songId, "posts", -1);
 }
 
 // Counts each signed-in member once; the owner's own views don't count. (M2's feed adds watch time and completion.)
@@ -474,11 +478,68 @@ export async function viewMediaPost(db: Firestore, viewer: Person | null, id: st
   const ownerDoc = (await db.doc(`users/${p.ownerUid}`).get()).data();
   if (!mediaVisible({ owner: ownerDoc, audience: p.audience, status: p.status, rel: await relationOf(db, viewer, owner) })) return;
   const vref = db.doc(`mediaPosts/${id}/views/${viewer.uid}`);
-  await db.runTransaction(async (t) => {
-    if ((await t.get(vref)).exists) return;
+  const fresh = await db.runTransaction(async (t) => {
+    if ((await t.get(vref)).exists) return false;
     t.set(vref, { uid: viewer.uid, at: new Date().toISOString() });
     t.update(db.doc(`mediaPosts/${id}`), { viewCount: FieldValue.increment(1) });
+    return true;
   });
+  // A first view of a post with a NotesApp Sounds song is one play of it (the artist's analytics and royalty).
+  if (fresh && p.songId) await countPlay(db, p.songId, "media");
+}
+
+// ── Reactions (owner, 5 Nov 2026: on a song's page and the full-screen viewer) ────────────────────────────────────────────────
+// One reaction per member per post: the same emoji again takes it back, another one changes it.
+export async function reactMediaPost(db: Firestore, viewer: Person, id: string, emoji: unknown): Promise<{ reaction: string | null; reactions: Record<string, number>; reactionsCount: number }> {
+  if (typeof emoji !== "string" || !(MEDIA_REACTIONS as readonly string[]).includes(emoji)) throw new MediaError(400, "Pick a reaction.");
+  const ref = db.doc(`mediaPosts/${id}`);
+  const p = (await ref.get()).data() as MediaPostDoc | undefined;
+  if (!p) throw new MediaError(404, "That post wasn't found.");
+  const ownerDoc = (await db.doc(`users/${p.ownerUid}`).get()).data();
+  if (!mediaVisible({ owner: ownerDoc, audience: p.audience, status: p.status, rel: await relationOf(db, viewer, { uid: p.ownerUid, username: p.ownerUsername }) })) throw new MediaError(404, "That post wasn't found.");
+  const rref = db.doc(`mediaPosts/${id}/reactions/${viewer.uid}`);
+  return db.runTransaction(async (t) => {
+    const [had, cur] = await Promise.all([t.get(rref), t.get(ref)]);
+    const was = had.exists ? String(had.data()?.emoji ?? "") : "";
+    const reactions: Record<string, number> = { ...((cur.data()?.reactions as Record<string, number> | undefined) ?? {}) };
+    let count = Number(cur.data()?.reactionsCount ?? 0);
+    if (was) { reactions[was] = Math.max(0, (reactions[was] ?? 0) - 1); count = Math.max(0, count - 1); }
+    const next = was === emoji ? null : emoji;
+    if (next) { reactions[next] = (reactions[next] ?? 0) + 1; count += 1; t.set(rref, { uid: viewer.uid, emoji: next, at: new Date().toISOString() }); }
+    else t.delete(rref);
+    t.update(ref, { reactions, reactionsCount: count });
+    return { reaction: next, reactions, reactionsCount: count };
+  });
+}
+export async function myMediaReaction(db: Firestore, viewer: Person | null, id: string): Promise<{ reaction: string | null; reactions: Record<string, number> }> {
+  const p = (await db.doc(`mediaPosts/${id}`).get()).data() as MediaPostDoc | undefined;
+  const reactions = (p?.reactions ?? {}) as Record<string, number>;
+  if (!viewer || !p) return { reaction: null, reactions };
+  const r = (await db.doc(`mediaPosts/${id}/reactions/${viewer.uid}`).get()).data();
+  return { reaction: r ? String(r.emoji) : null, reactions };
+}
+
+// ── A song's page: the Media posts made with it that this viewer may see ─────────────────────────────────────────────────────────
+export type SongPost = { post: MediaPostView; owner: { uid: string; username: string; displayName: string; avatar: string } };
+export async function mediaWithSong(db: Firestore, viewer: Person | null, songId: string, deps: Pick<MediaDeps, "publicUrl">, now = new Date()): Promise<SongPost[]> {
+  const snap = await db.collection("mediaPosts").where("songId", "==", songId).limit(300).get();
+  const docs = snap.docs.map((d) => ({ id: d.id, p: d.data() as MediaPostDoc })).filter((d) => d.p.status === "ready").sort((a, b) => b.p.createdAt.localeCompare(a.p.createdAt));
+  const owners = Array.from(new Set(docs.map((d) => d.p.ownerUid)));
+  const users = owners.length ? await db.getAll(...owners.map((u) => db.doc(`users/${u}`))) : [];
+  const info = new Map(users.map((u) => [u.id, u.data()]));
+  const rels = new Map<string, Relation>();
+  const out: SongPost[] = [];
+  for (const d of docs) {
+    if (out.length >= 90) break;
+    const u = info.get(d.p.ownerUid);
+    if (!u || u.suspended === true) continue;
+    const owner = { uid: d.p.ownerUid, username: d.p.ownerUsername };
+    if (!rels.has(owner.uid)) rels.set(owner.uid, await relationOf(db, viewer, owner, now));
+    const rel = rels.get(owner.uid)!;
+    if (!mediaPageVisible(u, rel) || !mediaVisible({ owner: u, audience: d.p.audience, status: d.p.status, rel })) continue;
+    out.push({ post: toView(d.id, d.p, viewer?.uid ?? null, deps), owner: { ...owner, displayName: String(u.displayName ?? owner.username), avatar: String(u.avatar ?? "") } });
+  }
+  return out;
 }
 
 // ── Settings: site pictures and the album ──────────────────────────────────────────────────────────────────────────────────────

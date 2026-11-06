@@ -100,6 +100,8 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
   const [songId, setSongId] = useState("");
+  // "Use this sound" on a song's page opens the studio with ?song=<id> (lib/songs.ts).
+  useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("song"); if (q) setSongId(q); } catch { /* no query */ } }, []);
   const [audience, setAudience] = useState<MediaAudience>("everyone");
   const [sw, setSw] = useState({ allowComments: true, allowShares: true, allowGifts: true, allowDownloads: false, pinned: false });
   const [progress, setProgress] = useState<number | null>(null);

@@ -1,7 +1,6 @@
 "use client";
 
-import { SONG, songLabel } from "@/lib/songs";
-import { SongPlayer } from "@/components/media/SongPicker";
+import { SongPlayer, SongTag } from "@/components/media/SongPicker";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LinkedText from "@/components/LinkedText";
@@ -228,7 +227,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         </div>
 
         <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-20">
-          {SONG(m.songId) && <p className="text-center font-ui text-xs font-semibold text-white/80 drop-shadow">♫ {songLabel(SONG(m.songId)!)}</p>}
+          {m.songId && <p className="flex justify-center font-ui text-xs font-semibold text-white/90 drop-shadow"><SongTag songId={m.songId} /></p>}
           {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow"><LinkedText text={m.text} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
           {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
           {m.mine && showViewers && (

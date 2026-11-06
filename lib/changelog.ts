@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.145.0",
+    bump: "minor",
+    date: "2026-11-06",
+    changes: [
+      { kind: "added", text: "Ten more NotesApp Sounds songs by Emmanuel Adams (@emmanuel): Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. The Sound picker now has a search box." },
+      { kind: "added", text: "Every song has its own page (/sounds/song-name): tap a song's name or spinning cover on a post, a moment or in a live. Play it, see the artist and their @username, how often it's been played and where, tap Use this sound, and see the moments and Media posts people made with it. Tap a post to open it full screen to react, gift or report. /sounds lists every song." },
+      { kind: "added", text: "Reactions on Media posts: ❤️ 🔥 😂 😮 👏 🙏, one per person (tap the same one again to take it back)." },
+      { kind: "added", text: "Artists: Your sounds (Profile → Sounds) shows your songs' plays this month, last month and in all, where they were played (Media posts, Moments, Lives, Notes Life), the last 30 days, and how many posts and moments use each one. A summary shows in Analytics." },
+      { kind: "added", text: "Are you an artist? Apply on Your sounds with your artist name and links to your music. Once the team verifies you, add your own songs (MP3 and a cover); each is checked before anyone can use it, and you can take one down any time." },
+      { kind: "added", text: "Song royalties in ad share: each month a share of the ad revenue (the Sounds pool, 10% to start) is split between artists by how many times their songs were played, and paid with ad share. Admin → Sounds verifies artists, reviews songs and sets the pool." },
+      { kind: "added", text: "Nana knows about NotesApp Sounds, song pages, artist verification and royalties (help: NotesApp Sounds)." },
+    ],
+  },
+  {
     version: "v0.144.0",
     bump: "minor",
     date: "2026-11-05",

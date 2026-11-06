@@ -810,6 +810,24 @@ Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, sh
 
 See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 `),
+    A("notesapp-sounds", "NotesApp Sounds: songs for your posts, moments and lives, and royalties for artists", "Publishing and earning", `
+**NotesApp Sounds** are songs made for #NotesApp that anyone can use for free here. The first ones are by Emmanuel Adams (@emmanuel), the founder: Leave Am, Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. Verified artists add more. See them all at [NotesApp Sounds](/sounds).
+
+**Using a song:**
+- **Media posts and moments:** under **Sound**, keep your original sound or pick a song (search the list, and tap ▶ Listen for 15 seconds of it). It plays from its best part while people watch, softly under a video's own sound or a voice-over.
+- **Lives:** the host taps **🎵 Music** and plays a song through their mic, with its own volume. Everyone in the live hears it and sees **Now playing**; muting your mic mutes only your voice. A recorded live records it too.
+- **Notes Life:** the songs play softly at the hotel (the lobby, your suite and the VIP bar), and the residents talk about them: ask anyone about 🎵 Music in a chat.
+
+**A song's page:** tap the song's name or cover on a post, a moment or in a live to open its page (/sounds/song-name). It shows the cover with a player, the artist and their @username, how often it has been played and where, **Use this sound** (opens your Media studio with the song picked), the moments made with it (signed in) and the Media posts made with it. Tap a post to open it full screen to react, gift the creator or report it. You only see posts and moments their owners let you see.
+
+**Reactions on Media posts:** ❤️ 🔥 😂 😮 👏 🙏, one per person; tap the same one again to take it back.
+
+**Are you an artist?** Open [Your sounds](/profile/sounds) and apply: your artist name, links to your music (Audiomack, Boomplay, Spotify, Apple Music, YouTube…) and a tick to confirm you own the rights. The team checks it. Once verified, add songs there: an MP3 up to 15 MB and 15 minutes, a cover picture, and where the best part starts. Each song is checked by the team before anyone can use it. You can take your own song down at any time.
+
+**What artists see:** [Your sounds](/profile/sounds) shows each song's plays this month, last month and in all; where they were played (Media posts, Moments, Lives, Notes Life); the last 30 days; and how many posts and moments use it. A summary also shows in [Analytics](/profile/analytics). A play is a member's first view of a post or a moment with the song, everyone listening when a host starts it in a live, and a Notes Life player hearing it at the hotel (once a day per song).
+
+**Royalties in ad share:** each month a share of the ad revenue #NotesApp receives (the Sounds pool, set by the team; 10% to start) is split between artists by how many times their songs were played that month. It appears as a 🎵 song royalty statement next to your ad share, is checked, then paid to your bank with it after the usual hold. Amounts below the minimum roll over to the next month, like ad share.
+`),
     ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
 

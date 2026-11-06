@@ -138,6 +138,16 @@ export default function LifeGame() {
   const sfx = (n: Sfx) => snd.current?.play(n);
   useEffect(() => () => { snd.current?.dispose(); snd.current = null; }, []);
   useEffect(() => { snd.current?.setPrefs(soundPrefs); saveSoundPrefs(soundPrefs); }, [soundPrefs]);
+  // A NotesApp Sounds song heard at the hotel counts as a play for its artist (the server keeps it to once a day per song).
+  useEffect(() => {
+    if (!snd.current) return;
+    const heard = new Set<string>();
+    snd.current.onSong = (songId) => {
+      if (!user || heard.has(songId)) return; heard.add(songId);
+      void user.getIdToken().then((t) => fetch("/api/sounds/play", { method: "POST", headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" }, body: JSON.stringify({ songId }) })).catch(() => {});
+    };
+    return () => { if (snd.current) snd.current.onSong = null; };
+  }, [user]);
   useEffect(() => {
     const vis = () => (document.visibilityState === "hidden" ? snd.current?.pause() : snd.current?.resume());
     document.addEventListener("visibilitychange", vis);
@@ -304,7 +314,7 @@ export default function LifeGame() {
       const songId = snd.current?.nowPlaying; if (!songId) return;
       const who = (C.RESIDENTS_AT.hotel ?? [])[Math.floor(Math.random() * (C.RESIDENTS_AT.hotel ?? []).length)];
       const r = who ? C.RESIDENT(who) : undefined; const s = SONG(songId); if (!r || !s) return;
-      const talk = songTalk(r.id + ":" + songId);
+      const talk = songTalk(r.id, undefined, songId);
       say(`🎵 ${s.title} · ${s.artist} is playing. ${r.name} 🤖: “${talk?.line ?? "I like this song o!"}”`);
     }, 6000);
     return () => window.clearTimeout(t);

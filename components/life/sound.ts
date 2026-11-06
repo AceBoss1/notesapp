@@ -33,7 +33,9 @@ export class Sound {
   private ringTimer = 0;
   private music = 0;
   // The hotel's songs: one <audio> wired into the surroundings bus once; leaving pauses it where it was, coming back carries on.
-  private songEl: HTMLAudioElement | null = null; private songGain: GainNode | null = null; private songIdx = 0; private songTurn = 0;
+  // Called when a song starts at the hotel (LifeGame counts it as a play of the song, once a day per player: lib/sounds-server.ts).
+  onSong: ((id: string) => void) | null = null;
+  private songEl: HTMLAudioElement | null = null; private songGain: GainNode | null = null; private songIdx = Math.floor(Math.random() * Math.max(1, SONGS.length)); private songTurn = 0;
 
   constructor(prefs: SoundPrefs) { this.prefs = prefs; }
 
@@ -215,13 +217,14 @@ export class Sound {
       const src = c.createMediaElementSource(el), g = c.createGain(); g.gain.value = 0.0001;
       src.connect(g); g.connect(this.ambBus);
       el.src = SONGS[this.songIdx].src;
-      el.onended = () => { this.songIdx = (this.songIdx + 1) % SONGS.length; el.src = SONGS[this.songIdx].src; void el.play().catch(() => {}); };
+      el.onended = () => { this.songIdx = (this.songIdx + 1) % SONGS.length; el.src = SONGS[this.songIdx].src; void el.play().then(() => this.onSong?.(SONGS[this.songIdx].id)).catch(() => {}); };
       // No connection (or the file is missing): the lounge chords or the soft tune, as before the songs.
       el.onerror = () => { if (this.music === 0) { if (this.amb === "hotel") this.lounge(); else if (this.amb === "suite") this.softTune(); } };
       this.songEl = el; this.songGain = g;
     }
     this.songGain!.gain.setTargetAtTime(level, c.currentTime, 0.8);
-    void this.songEl.play().catch(() => {});
+    const wasPaused = this.songEl.paused;
+    void this.songEl.play().then(() => { if (wasPaused) this.onSong?.(SONGS[this.songIdx].id); }).catch(() => {});
     this.ambStop.push(() => {
       if (!this.ctx || !this.songGain) return;
       this.songGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.3);

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import LinkedText from "@/components/LinkedText";
-import { compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
+import { MEDIA_REACTIONS, compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
 import { VIDEO_DL_PREPARING } from "@/lib/media-mark";
 import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-client";
 import { Icon, Pattern } from "./MediaTile";
-import { SongPlayer } from "./SongPicker";
+import { SongPlayer, SongTag } from "./SongPicker";
 import GiftButton from "@/components/GiftButton";
 import PersonActions from "@/components/gifts/PersonActions";
 
@@ -22,9 +22,18 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const post = item.type === "post" ? item.post : null;
+  // Reactions: mine and the counts, from the view call; one per member (the same one again takes it back).
+  const [mine, setMine] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Record<string, number>>({});
+  const react = async (emoji: string) => {
+    if (!post) return;
+    try { const r = await mediaApi<{ reaction: string | null; reactions: Record<string, number> }>(`/api/media/posts/${post.id}`, { body: { action: "react", emoji }, signedIn: true }); setMine(r.reaction); setReactions(r.reactions); }
+    catch (e) { setNote(e instanceof Error ? e.message : "Couldn't react."); }
+  };
 
   useEffect(() => {
-    if (post && !post.mine) mediaApi(`/api/media/posts/${post.id}`, { body: { action: "view" } }).catch(() => {});
+    if (post) mediaApi<{ reaction?: string | null; reactions?: Record<string, number> }>(`/api/media/posts/${post.id}`, { body: { action: "view" } })
+      .then((r) => { setMine(r.reaction ?? null); setReactions(r.reactions ?? {}); }).catch(() => {});
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") setI((x) => Math.min(urls.length - 1, x + 1));
@@ -84,9 +93,17 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
               <p className="flex flex-wrap items-center gap-3 font-ui text-xs font-semibold text-white/70">
                 <span className="inline-flex items-center gap-1"><Icon name="eye" className="h-3 w-3" />{compact(post.viewCount)}</span>
                 {video && <span className="inline-flex items-center gap-1"><Icon name="play" className="h-3 w-3" />{mediaDuration(video.durationSec)}</span>}
-                <span>♫ {post.sound}</span>
+                {post.songId ? <SongTag songId={post.songId} fallback={post.sound} /> : <span>♫ {post.sound}</span>}
                 <span>{new Date(post.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</span>
               </p>
+              {post.status === "ready" && (
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="React">
+                  {MEDIA_REACTIONS.map((e) => (
+                    <button key={e} type="button" onClick={() => void react(e)} aria-pressed={mine === e} aria-label={`React ${e}`}
+                      className={`rounded-full px-2.5 py-1 text-sm ${mine === e ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{e}{reactions[e] ? <span className="ml-1 font-ui text-xs font-bold">{compact(reactions[e])}</span> : null}</button>
+                  ))}
+                </div>
+              )}
               {/* Every picture and video carries the NotesApp mark, so a download is the same file. A video: once Stream has made its MP4. */}
               {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? (
                 <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download"}</button>

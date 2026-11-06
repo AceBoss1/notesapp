@@ -1460,5 +1460,17 @@ service cloud.firestore {
     match /agentEvents/{id} { allow read, write: if false; }
     match /nanaOps/{uid} { allow read, write: if false; }
 
+    // ============================================================
+    // NOTESAPP SOUNDS (lib/songs.ts, lib/sounds-server.ts)
+    // ============================================================
+    // Artist songs, uploads in progress, artist applications, play counts and the once-a-day Notes Life plays: read and written by the
+    // server only (/api/sounds, /api/sounds/mine, /api/admin/sounds). settings/sounds (the royalty pool) is under settings above.
+    match /sounds/{id} { allow read, write: if false; }
+    match /soundUploads/{id} { allow read, write: if false; }
+    match /soundArtists/{uid} { allow read, write: if false; }
+    match /songPlays/{id} { allow read, write: if false; }
+    match /songTotals/{id} { allow read, write: if false; }
+    match /songPlayOnce/{id} { allow read, write: if false; }
+
   }
 }
