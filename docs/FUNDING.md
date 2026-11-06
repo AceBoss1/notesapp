@@ -17,6 +17,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 6 | **Village Global Velocity** (pre-seed, up to USD 1M, rolling): §6 | [villageglobal.com/velocity](https://www.villageglobal.com/velocity) | none (rolling) | equity; terms set per company, not published | same week as Alliance: the answers are shared |
 | 7 | **Capital Wings** (Bahrain): §7 | capital-wings.com | — | unknown ("fee arrangements" discussed later) | **not applying**: share no data, pay no fees |
 | 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
+| 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | only if a woman co-founder leads it with us (§13) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -697,3 +698,70 @@ every later round, so "×10,000" maths isn't real.
 > companies say nothing about ours. This is not an offer of shares.*
 
 Don't: promise or imply returns, show a "your ₦100,000 could become…" figure, or send this to anyone we don't know.
+
+---
+
+## 13. Aurora Tech Award and Aurora Ventures (inDrive): women-led startups
+
+> Status: **assessment and draft, not applied (6 November 2026).** The owner shared the "Get funding" link and said we have female
+> co-founders. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
+> the end) and **must be checked on the site** before applying, especially dates, amounts and the "led by a woman" wording.
+
+**What it is.** inDrive's annual award for women tech founders in emerging markets, run since 2021. In 2025 it drew 2,018
+applications from 116 countries; the 2026 cycle offered USD 85,000 in prizes in all (winners up to about USD 25k–50k each,
+non-dilutive), with investor introductions, mentoring and visibility for finalists. **Aurora Ventures** is a separate, newer fund
+for the same founders, reported to invest USD 180k–250k at early stage (for equity). The "Get funding" page may point to either; the
+award is the free, non-dilutive one.
+
+**Eligibility as reported, and where we stand**
+
+| Rule (as reported) | NotesApp |
+|---|---|
+| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | **The deciding question.** We have women co-founders `[names, countries, roles]`. If the site requires a woman to *lead* (CEO or a named leading role), we qualify only if one genuinely does: never retitle someone for an application. If co-founding or co-ownership is enough, we qualify. |
+| A working product or prototype | Yes: live in Nigeria and Kenya |
+| Under 5 years old | Yes: NotesApp Technologies Ltd (RC 9825642) is recent |
+| Raised under USD 6M (some older listings: USD 4M) | Yes: bootstrapped, no institutional money |
+| Emerging market | Yes: Nigeria, Kenya next |
+| Pitch in English | Yes |
+
+**Before applying, the owner decides:**
+1. **Who applies and leads the pitch.** The applicant should be the woman co-founder with the clearest leading role (product,
+   growth, a market such as South Africa or the UK diaspora). She presents; the judges will expect her to answer for the company.
+2. **The cap table says the same thing everywhere.** Our other applications list "Emmanuel Adams, founder, CEO and CTO". The
+   co-founders' names, roles and shares must be identical across Aurora, Alliance, Village Global, the Global Startup Awards and
+   any SAFE (§5), or a due-diligence check will catch the difference.
+3. **Award only, or the fund too.** The award costs nothing and takes no equity. Aurora Ventures is an investment: like any SAFE
+   or shares, counsel reads it first (`accel-legal-safe`).
+
+### Draft answers (fit them to the live form)
+
+**One line:** NotesApp is one home for Africa's creators, teachers and professionals to share what they know, teach it, sell it and
+get paid for it, in their own currency.
+
+**What you're building:** use the company paragraph (§1).
+
+**Why it matters for women:** many of the people earning on NotesApp are women running knowledge and service businesses: tutors,
+coaches, stylists, bakers, consultants, church and community leaders. Today they stitch together WhatsApp, a booking link and bank
+transfers, and lose sales and trust in the gaps. NotesApp gives them one place to publish, take bookings, teach, sell and be paid in
+Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
+from /admin, if we can show it.]`
+
+**The team:** `[woman co-founder's name]`, co-founder and `[her role]` `[background]`; Emmanuel Adams, co-founder, `[CEO and CTO]`,
+built the platform end to end; `[other co-founders: names, countries, roles]`.
+
+**Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
+2,150+ WAEC and NECO practice questions; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
+
+**Use of the prize:** `[the owner's split]`, e.g. the Kenya launch with M-Pesa (January 2027), the iOS and Android apps, and
+growth among women-led businesses.
+
+**Funding so far:** bootstrapped; no institutional money (perks and credits only).
+
+Sources (coverage and listings; the official site wasn't readable from our tools):
+[auroratechaward.com](https://www.auroratechaward.com/),
+[BusinessDay](https://businessday.ng/companies/article/aurora-tech-award-2026-opens-with-85000-for-women-founders/),
+[fundsforNGOs](https://www2.fundsforngos.org/information-technology/aurora-tech-award-a-30000-prize-for-women-founders/),
+[inDrive on X](https://x.com/inDrive/status/1913248904948088939),
+[inDrive blog: the 2026 winner](https://blog.indrive.com/article/quipu-is-the-winner-of-the-2026-aurora-tech-award),
+[MSME Africa: Aurora Ventures](https://msmeafricaonline.com/indrive-backs-aurora-ventures-to-fund-emerging-market-female-tech-founders/),
+[Path Founders: Aurora Ventures](https://pathfounders.com/p/aurora-tech-award-launches-venture-fund).
