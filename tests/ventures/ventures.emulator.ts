@@ -1,11 +1,11 @@
 // NotesApp Ventures (Rewrite the Playbook) against the Firestore emulator: who may pitch (verified email, 18 and over, not suspended), the
-// emerging-markets rule and the terms tick box, the checks on each field, the round (open, closed, a closing day), up to 3 pitches a
-// round, withdrawing, the team's decisions and notes (never shown to the member), and opening a new round.
+// emerging-markets rule and the terms tick box, the checks on each field, rolling applications grouped by quarter, up to 3 pitches a member
+// a quarter, withdrawing, the team's decisions (up to 3 picked a quarter), advice the member sees and notes they never see, and pausing.
 // Run: npm run test:ventures → "ALL OK".
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { adminPitches, decidePitch, myPitches, roundSettings, sendPitch, setRound, withdrawPitch } from "../../lib/ventures-server";
+import { adminPitches, callSettings, decidePitch, myPitches, sendPitch, setCall, withdrawPitch } from "../../lib/ventures-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -40,43 +40,53 @@ async function main() {
   await rejects(sendPitch(db, ME, ok({ links: ["http://plain.example"] })), /https/);
   await rejects(sendPitch(db, ME, ok({ teamSize: 0 })), /Team size/);
 
-  // A pitch; the same name twice in a round is refused; up to 3 a round.
-  assert.deepEqual(await roundSettings(db), { round: "Round 1", open: true });
-  const p1 = await sendPitch(db, ME, ok());
-  assert.equal(p1.status, "received");
-  await rejects(sendPitch(db, ME, ok({ title: "kolo circles" })), /already pitched/);
-  await sendPitch(db, ME, ok({ title: "Second" }));
-  const p3 = await sendPitch(db, ME, ok({ title: "Third" }));
-  await rejects(sendPitch(db, ME, ok({ title: "Fourth" })), /up to 3/);
-  // Withdrawing frees a place.
+  // Rolling, grouped by quarter. A pitch; the same name twice in a quarter is refused; up to 3 a member a quarter.
+  const NOV = new Date("2026-11-06T10:00:00Z"), JAN = new Date("2027-01-10T10:00:00Z");
+  assert.deepEqual(await callSettings(db), { open: true });
+  const p1 = await sendPitch(db, ME, ok(), NOV);
+  assert.deepEqual([p1.status, p1.quarter], ["received", "Q4 2026"]);
+  await rejects(sendPitch(db, ME, ok({ title: "kolo circles" }), NOV), /already pitched/);
+  await sendPitch(db, ME, ok({ title: "Second" }), NOV);
+  const p3 = await sendPitch(db, ME, ok({ title: "Third" }), NOV);
+  await rejects(sendPitch(db, ME, ok({ title: "Fourth" }), NOV), /up to 3 pitches a quarter/);
+  // Withdrawing frees a place; someone else can't withdraw yours.
   await withdrawPitch(db, "u_ada", p3.id);
   await rejects(withdrawPitch(db, "u_other", p1.id), /not found/);
-  await sendPitch(db, ME, ok({ title: "Fourth" }));
+  const p4 = await sendPitch(db, ME, ok({ title: "Fourth" }), NOV);
   assert.equal((await myPitches(db, "u_ada")).length, 4);
 
-  // The team: notes stay private, status changes tell the member, a withdrawn pitch can't be moved.
-  await decidePitch(db, p1.id, { status: "shortlisted", notes: "Strong founder-market fit", perksSent: true });
+  // The team: advice reaches the member, notes never do; the member is told; a withdrawn pitch can't be moved.
+  await decidePitch(db, p1.id, { status: "shortlisted", notes: "Strong founder-market fit", advice: "Show us 20 market women who'd join.", perksSent: true }, NOV);
   const mine = (await myPitches(db, "u_ada")).find((a) => a.id === p1.id)!;
-  assert.equal(mine.status, "shortlisted");
+  assert.deepEqual([mine.status, mine.advice], ["shortlisted", "Show us 20 market women who'd join."]);
   assert.equal("notes" in mine, false, "notes never reach the member");
-  const all = await adminPitches(db);
+  const all = await adminPitches(db, NOV);
   const a1 = all.applications.find((a) => a.id === p1.id)!;
-  assert.deepEqual([a1.notes, !!a1.perksSentAt], ["Strong founder-market fit", true]);
-  await rejects(decidePitch(db, p3.id, { status: "picked" }), /withdrew/);
-  await rejects(decidePitch(db, p1.id, { status: "withdrawn" }), /Choose a status/);
-  await rejects(withdrawPitch(db, "u_ada", (await myPitches(db, "u_ada")).find((a) => a.status === "received")!.id).then(async () => {
-    await decidePitch(db, p1.id, { status: "picked" });
-    await withdrawPitch(db, "u_ada", p1.id);
-  }), /can't be withdrawn/);
+  assert.deepEqual([a1.notes, !!a1.perksSentAt, all.quarter, all.picksPerQuarter], ["Strong founder-market fit", true, "Q4 2026", 3]);
+  await rejects(decidePitch(db, p3.id, { status: "picked" }, NOV), /withdrew/);
+  await rejects(decidePitch(db, p1.id, { status: "withdrawn" }, NOV), /Choose a status/);
 
-  // Rounds: closed, a closing day passed, then a new round.
-  await setRound(db, { round: "Round 1", open: false }, "admin");
-  await rejects(sendPitch(db, ME, ok({ title: "Closed" })), /is closed/);
-  await setRound(db, { round: "Round 1", open: true, closesOn: "2026-11-01" }, "admin");
-  await rejects(sendPitch(db, ME, ok({ title: "Late" }), new Date("2026-11-06T10:00:00Z")), /is closed/);
-  await setRound(db, { round: "Round 2", open: true }, "admin");
-  const r2 = await sendPitch(db, ME, ok({ title: "Kolo Circles" }));
-  assert.equal(r2.round, "Round 2", "a new round has its own limit and names");
+  // Up to 3 picked a quarter: other members' pitches fill the quarter, the 4th pick is refused, next quarter it's fine.
+  for (const n of [1, 2, 3]) {
+    await db.doc(`users/u_m${n}`).set({ username: `m${n}` });
+    const x = await sendPitch(db, { uid: `u_m${n}`, emailVerified: true }, ok({ title: `Idea ${n}` }), NOV);
+    await decidePitch(db, x.id, { status: "picked" }, NOV);
+  }
+  assert.equal((await adminPitches(db, NOV)).pickedThisQuarter, 3);
+  await rejects(decidePitch(db, p1.id, { status: "picked" }, NOV), /3 pitches are already picked in Q4 2026/);
+  await decidePitch(db, p4.id, { status: "not-picked", advice: "Try again with a pilot." }, NOV);
+  assert.equal((await myPitches(db, "u_ada")).find((a) => a.id === p4.id)!.status, "not-picked");
+  await decidePitch(db, p1.id, { status: "picked" }, JAN);
+  assert.equal((await adminPitches(db, JAN)).pickedThisQuarter, 1, "a new quarter has its own 3 picks");
+  await rejects(withdrawPitch(db, "u_ada", p1.id), /can't be withdrawn/);
+
+  // A new quarter has its own pitch limit and names; the team can pause the call.
+  const q1 = await sendPitch(db, ME, ok({ title: "Kolo Circles" }), JAN);
+  assert.equal(q1.quarter, "Q1 2027");
+  await rejects(setCall(db, {}, "admin"), /Open or pause/);
+  await setCall(db, { open: false }, "admin");
+  await rejects(sendPitch(db, ME, ok({ title: "Paused" }), JAN), /paused/);
+  await setCall(db, { open: true }, "admin");
 
   console.log("ALL OK");
 }

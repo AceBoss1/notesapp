@@ -44,13 +44,13 @@ export default function VenturesHero() {
             Got a feature, product or business you&apos;re sure the crowd would jump into? Pitch it. If it&apos;s picked, #NotesApp builds it
             with you: our engineers, our platform, our guidance, for equity and a board seat on terms that fit your project.
           </p>
-          <p className="mt-3 max-w-xl text-sm text-paper/70">For ideas and ventures built for emerging markets. Every pitch is kept confidential.</p>
+          <p className="mt-3 max-w-xl text-sm text-paper/70">For ideas and ventures built for emerging markets. Rolling applications, with 3 picked each quarter. Every pitch is kept confidential.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#apply" className="rounded-full bg-[#F4B860] px-6 py-3 font-ui text-sm font-bold text-crimson-deep shadow-lg shadow-black/20 hover:bg-[#f7c77e]">Pitch your idea</a>
             <a href="#how" className="rounded-full border border-paper/30 px-6 py-3 font-ui text-sm font-semibold text-paper hover:bg-paper/10">How it works</a>
           </div>
           <ul className="mt-8 flex flex-wrap gap-2 text-xs font-semibold text-paper/85">
-            {["Emerging markets only", "Kept confidential", "Built with #NotesApp", "Perks for every participant"].map((x) => (
+            {["Emerging markets only", "Rolling · 3 picked a quarter", "Kept confidential", "Perks for every participant"].map((x) => (
               <li key={x} className="rounded-full bg-black/20 px-3 py-1.5 ring-1 ring-inset ring-paper/15">{x}</li>
             ))}
           </ul>

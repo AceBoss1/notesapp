@@ -1,4 +1,5 @@
-// NotesApp Ventures and its open call, Rewrite the Playbook (owner, 6 Nov 2026). Members pitch a feature, product or business they're
+// NotesApp Ventures and its open call, Rewrite the Playbook (owner, 6 Nov 2026). Applications are rolling, and the team picks up to 3 a
+// quarter (owner, 6 Nov 2026: "owing to our current strength"). Members pitch a feature, product or business they're
 // sure the crowd would jump into; the ones picked are built with #NotesApp (engineers, platform, guidance) in exchange for equity and a
 // board seat, on terms that fit each project. Only ideas and ventures for emerging markets are welcome. Every pitch is kept confidential
 // (counsel, 6 Nov 2026: "kept confidential", never "NDA"). Every participant gets perks. Client-safe: the rules, shared by the page, the
@@ -74,13 +75,20 @@ export const STATUS_NOTE: Partial<Record<Status, (title: string) => string>> = {
   reviewing: (t) => `${CALL_NAME}: the team is reading "${t}".`,
   shortlisted: (t) => `${CALL_NAME}: "${t}" is shortlisted. We'll be in touch to talk it through.`,
   picked: (t) => `${CALL_NAME}: "${t}" is picked! We'd like to build it with you. We'll send the next steps and terms.`,
-  "not-picked": (t) => `${CALL_NAME}: "${t}" wasn't picked this round. Thank you for pitching it; it stays confidential, and you're welcome to pitch again.`,
+  "not-picked": (t) => `${CALL_NAME}: "${t}" wasn't one of the ${PICKS_PER_QUARTER} we picked this quarter. It's nothing personal: we receive many pitches and can only take on ${PICKS_PER_QUARTER} a quarter for now. Read the team's advice on the Ventures page, and pitch again next quarter.`,
 };
 
 export const LIMITS = {
   title: 80, oneLiner: 160, problem: 1500, solution: 1500, whyYou: 1000, traction: 800, countries: 120, links: 5, teamSize: 50,
-  perRound: 3, // pitches one member can send in a round (withdrawn ones don't count)
+  perQuarter: 3, // pitches one member can send in a quarter (withdrawn ones don't count)
+  advice: 2000,
 };
+
+// Rolling: pitch any time. The team picks up to PICKS_PER_QUARTER a quarter (enforced when a pitch is marked picked). Pitches are grouped
+// by the quarter they're sent in, like "Q4 2026".
+export const PICKS_PER_QUARTER = 3;
+export const quarterOf = (d: Date) => `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${d.getUTCFullYear()}`;
+export const NOT_PICKED_NOTE = `It's nothing personal. We receive many pitches and, with the team we have today, can only build ${PICKS_PER_QUARTER} a quarter. Read the team's advice, sharpen your pitch, and try again next quarter: several picks will be second tries.`;
 
 // The call's terms, shown beside the form and agreed to with the tick box (counsel's wording: "kept confidential").
 export const CONFIDENTIAL_TERMS = [
@@ -100,17 +108,19 @@ export const PERKS = [
   "Invitations to Rewrite the Playbook sessions with the #NotesApp team",
 ] as const;
 
-// The current round (Admin → Ventures): open or closed, and its name. settings/ventures.
-export type RoundSettings = { round: string; open: boolean; closesOn?: string };
-export const DEFAULT_ROUND: RoundSettings = { round: "Round 1", open: true };
+// The call (Admin → Ventures): open for pitches, or paused. settings/ventures. Rolling, so there are no rounds to name or close.
+export type CallSettings = { open: boolean };
+export const DEFAULT_CALL: CallSettings = { open: true };
 
 export type Application = {
   id: string; uid: string; username: string; name: string;
-  round: string; kind: Kind; sector: Sector; stage: Stage; region: Region; countries: string;
+  quarter: string; kind: Kind; sector: Sector; stage: Stage; region: Region; countries: string;
   title: string; oneLiner: string; problem: string; solution: string; whyYou: string; traction: string;
   teamSize: number; links: string[];
   status: Status; createdAt: string; updatedAt: string;
+  advice?: string; // the team's advice to the member (shown to them, with any decision)
+  pickedQuarter?: string; // the quarter it was picked in (up to PICKS_PER_QUARTER a quarter)
   notes?: string; perksSentAt?: string; // the team's own (never shown to the member)
 };
 // What the member sees of their own pitch.
-export type MyApplication = Pick<Application, "id" | "round" | "title" | "oneLiner" | "status" | "createdAt" | "kind" | "region">;
+export type MyApplication = Pick<Application, "id" | "quarter" | "title" | "oneLiner" | "status" | "createdAt" | "kind" | "region" | "advice">;

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
-import { VenturesError, adminPitches, decidePitch, setRound } from "@/lib/ventures-server";
+import { VenturesError, adminPitches, decidePitch, setCall } from "@/lib/ventures-server";
 
 export const dynamic = "force-dynamic";
-// The executive office and growth read pitches; only a super admin opens or closes a round (lib/admin-access.ts).
+// The executive office and growth read pitches and decide (up to 3 picked a quarter); only a super admin pauses or reopens the call.
 const NEED = ["executive", "growth"] as const;
 
-// Admin → Ventures. GET → { applications, round }.
-// POST { action: "decide", id, status?, notes?, perksSent? } · { action: "round", round, open, closesOn? } (super admin)
+// Admin → Ventures. GET → { applications, call, quarter, pickedThisQuarter, picksPerQuarter }.
+// POST { action: "decide", id, status?, advice? (shown to the member), notes? (team only), perksSent? } · { action: "call", open } (super admin)
 export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), NEED);
@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const body = await req.json().catch(() => ({}));
-    const by = await verifyAdminRequest(token, body.action === "round" ? "super" : NEED);
+    const by = await verifyAdminRequest(token, body.action === "call" ? "super" : NEED);
     const db = getAdminDb();
     if (body.action === "decide") { await decidePitch(db, body.id, body); return NextResponse.json({ ok: true }); }
-    if (body.action === "round") return NextResponse.json({ round: await setRound(db, body, by) });
+    if (body.action === "call") return NextResponse.json({ call: await setCall(db, body, by) });
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   } catch (err) {
     return fail(err);

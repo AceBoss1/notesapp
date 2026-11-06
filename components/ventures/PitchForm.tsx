@@ -5,13 +5,15 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
-  AGREE_TEXT, CALL_NAME, KINDS, KIND_LABEL, LIMITS, OPEN_STATUSES, REGIONS, REGION_LABEL, SECTORS, SECTOR_LABEL, STAGES, STAGE_LABEL, STATUS_LABEL,
-  type MyApplication, type RoundSettings,
+  AGREE_TEXT, CALL_NAME, KINDS, KIND_LABEL, LIMITS, NOT_PICKED_NOTE, OPEN_STATUSES, PICKS_PER_QUARTER, REGIONS, REGION_LABEL, SECTORS, SECTOR_LABEL,
+  STAGES, STAGE_LABEL, STATUS_LABEL,
+  type CallSettings, type MyApplication,
 } from "@/lib/ventures";
 
 // The Rewrite the Playbook pitch (lib/ventures-server.ts sendPitch), with the member's own pitches below it. Signed in only; the API checks
-// everything again (18 and over, verified email, emerging markets, the round open, up to 3 pitches a round).
-type Data = { round: RoundSettings; mine: MyApplication[]; signedIn: boolean };
+// everything again (18 and over, verified email, emerging markets, the call not paused, up to 3 pitches a quarter). Rolling: the team
+// picks up to 3 a quarter; a pitch not picked shows the team's advice and an invitation to try again next quarter.
+type Data = { call: CallSettings; quarter: string; mine: MyApplication[]; signedIn: boolean };
 const field = "mt-1 block w-full rounded-xl border border-rule bg-card px-3 py-2.5 text-sm text-ink outline-none focus:border-crimson";
 const label = "block text-sm font-semibold text-ink";
 const hint = "mt-1 text-xs font-normal text-slate";
@@ -31,14 +33,13 @@ export default function PitchForm() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-  const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ round: { round: "Round 1", open: true }, mine: [], signedIn: !!u }));
+  const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ call: { open: true }, quarter: "", mine: [], signedIn: !!u }));
   useEffect(() => { if (user !== undefined) void load(user); }, [user?.uid, user === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF({ ...f, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value });
 
   if (user === undefined || !data) return <p className="text-sm text-slate">Loading…</p>;
-  const { round } = data;
-  const closed = !round.open || (!!round.closesOn && new Date().toISOString().slice(0, 10) > round.closesOn);
+  const closed = !data.call.open;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,14 +72,14 @@ export default function PitchForm() {
         </div>
       ) : closed ? (
         <div className="rounded-[22px] border border-rule bg-card p-6">
-          <p className="font-display text-2xl text-ink">{round.round} is closed</p>
-          <p className="mt-1 text-sm text-slate">Thank you to everyone who pitched. Follow <Link href="/u/notesapp" className="text-crimson underline">#NotesApp</Link> to hear when the next round of {CALL_NAME} opens.</p>
+          <p className="font-display text-2xl text-ink">Pitches are paused for now</p>
+          <p className="mt-1 text-sm text-slate">Thank you to everyone who pitched. Follow <Link href="/u/notesapp" className="text-crimson underline">#NotesApp</Link> to hear when {CALL_NAME} opens again.</p>
         </div>
       ) : (
         <form onSubmit={submit} className="grid gap-5 rounded-[22px] border border-rule bg-card p-5 sm:p-7">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="font-display text-2xl text-ink">Your pitch · {round.round}</p>
-            {round.closesOn && <p className="text-xs font-semibold text-crimson">Closes {new Date(round.closesOn + "T12:00:00Z").toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}</p>}
+            <p className="font-display text-2xl text-ink">Your pitch</p>
+            <p className="text-xs font-semibold text-crimson">Rolling · we pick {PICKS_PER_QUARTER} a quarter{data.quarter ? ` · now ${data.quarter}` : ""}</p>
           </div>
 
           <fieldset>
@@ -132,7 +133,7 @@ export default function PitchForm() {
           {msg && !msg.ok && <p className="text-sm text-red-700" role="alert">{msg.text}</p>}
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={busy} className="rounded-full bg-crimson px-7 py-3 font-ui text-sm font-bold text-paper disabled:opacity-50">{busy ? "Sending…" : "Send my pitch"}</button>
-            <p className="text-xs text-slate">Kept confidential. Up to {LIMITS.perRound} pitches a round.</p>
+            <p className="text-xs text-slate">Kept confidential. Up to {LIMITS.perQuarter} pitches a quarter.</p>
           </div>
         </form>
       )}
@@ -145,8 +146,10 @@ export default function PitchForm() {
             {data.mine.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-rule bg-card p-4">
                 <div className="min-w-0 flex-1">
-                  <p className="font-ui font-bold text-ink">{a.title} <span className="text-xs font-normal text-slate">· {a.round} · {REGION_LABEL[a.region]}</span></p>
+                  <p className="font-ui font-bold text-ink">{a.title} <span className="text-xs font-normal text-slate">· {a.quarter} · {REGION_LABEL[a.region]}</span></p>
                   <p className="truncate text-sm text-slate">{a.oneLiner}</p>
+                  {a.advice && <p className="mt-2 rounded-xl bg-field p-3 text-sm text-ink"><b>Advice from the team:</b> <span className="whitespace-pre-wrap">{a.advice}</span></p>}
+                  {a.status === "not-picked" && <p className="mt-2 text-xs text-slate">{NOT_PICKED_NOTE}</p>}
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${a.status === "picked" ? "bg-green-100 text-green-800" : a.status === "shortlisted" ? "bg-amber-100 text-amber-900" : "bg-field text-ink"}`}>{STATUS_LABEL[a.status]}</span>
                 {OPEN_STATUSES.includes(a.status) && <button type="button" onClick={() => void withdraw(a.id, a.title)} className="text-xs text-slate underline">Withdraw</button>}

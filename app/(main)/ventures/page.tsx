@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import VenturesHero from "@/components/ventures/VenturesHero";
 import PitchForm from "@/components/ventures/PitchForm";
-import { CALL_NAME, CONFIDENTIAL_TERMS, PERKS, REGIONS, REGION_LABEL, VENTURES_NAME } from "@/lib/ventures";
+import { CALL_NAME, CONFIDENTIAL_TERMS, NOT_PICKED_NOTE, PERKS, PICKS_PER_QUARTER, REGIONS, REGION_LABEL, VENTURES_NAME } from "@/lib/ventures";
 
 export const metadata: Metadata = {
   title: `${CALL_NAME} · ${VENTURES_NAME}`,
-  description: "Pitch the feature, product or business you're sure the crowd would jump into. If it's picked, #NotesApp builds it with you, for equity and a board seat. For ideas and ventures in emerging markets. Every pitch is kept confidential.",
+  description: "Pitch the feature, product or business you're sure the crowd would jump into. Rolling applications; 3 picked a quarter and built with #NotesApp for equity and a board seat. For ideas and ventures in emerging markets. Every pitch is kept confidential.",
   openGraph: { title: `${CALL_NAME}: pitch your idea to ${VENTURES_NAME}`, description: "We build the picked ideas with you. Emerging markets only. Kept confidential. Perks for every participant." },
 };
 
@@ -16,7 +16,7 @@ const STEPS = [
   { n: "1", title: "Pitch it", body: "Ten minutes: the problem, your idea, who it's for and why you. Signed in with your NotesApp account." },
   { n: "2", title: "We read every pitch", body: "A person on the Ventures team reads each one. Nothing is scored by a machine, and every pitch is kept confidential." },
   { n: "3", title: "Shortlist and talk", body: "If it's shortlisted, we talk it through with you: the market, the plan, what you'd need from us." },
-  { n: "4", title: "Build it together", body: "Picked ideas are built with #NotesApp's engineers, platform and guidance, for equity and a board seat, on terms that fit the project." },
+  { n: "4", title: `${PICKS_PER_QUARTER} picked a quarter`, body: `Applications are rolling. Each quarter we pick ${PICKS_PER_QUARTER} to build with #NotesApp's engineers, platform and guidance, for equity and a board seat, on terms that fit the project.` },
 ];
 const LOOK_FOR = [
   ["People already do it", "The best ideas make something people already do easier, cheaper or safer. Not the box. The habit."],
@@ -29,8 +29,10 @@ const FAQ = [
   ["What can I pitch?", "A feature for #NotesApp, a new product, or a whole business or venture. It can be an idea on a napkin or something already making money."],
   ["What does #NotesApp ask for in return?", "If we pick your idea and build it with you, we agree terms with you before any work starts: usually equity and a board seat for #NotesApp, in exchange for our engineers, platform, audience and guidance. Terms differ from project to project, and nothing is binding until both sides sign."],
   ["Is my idea safe?", "Your pitch is kept confidential: only the Ventures review team reads it, and we never share it outside #NotesApp without your permission, picked or not. Read the terms on this page before you pitch."],
-  ["How many ideas can I pitch?", "Up to three in each round. You can withdraw a pitch while it's being reviewed and send another."],
-  ["How will I hear back?", "In your NotesApp notifications: when your pitch is received, read, shortlisted, and picked or not."],
+  ["When can I pitch, and when do you decide?", `Any time: applications are rolling. We read pitches as they come in and pick up to ${PICKS_PER_QUARTER} a quarter to build with their founders. That's what our team can take on properly today.`],
+  ["What if my idea isn't picked?", `${NOT_PICKED_NOTE} Your pitch stays confidential, and your perks are yours either way.`],
+  ["How many ideas can I pitch?", "Up to three a quarter. You can withdraw a pitch while it's being reviewed and send another."],
+  ["How will I hear back?", "In your NotesApp notifications: when your pitch is received, read, shortlisted, and picked or not. Any advice from the team shows with your pitch on this page."],
 ];
 
 export default function VenturesPage() {
