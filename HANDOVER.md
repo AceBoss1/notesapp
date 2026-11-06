@@ -600,7 +600,7 @@ on `main` that isn't understood is raised with the owner first.
     (`day` + `grossKobo` desc, `day` + `netKobo` desc) before the code. Owner decisions of 3 Nov 2026. The catalogue
     (`lib/gift-catalogue.ts`), the owner's list: six **premium** gifts (Garden Egg ₦200, Kola Nut ₦1,000, Zobo Bottle ₦2,000, Jollof
     Plate ₦5,000, Talking Drum ₦10,000, Adire Fan ₦20,000) and eight **VIP** gifts for verified senders (Golden Gele ₦25,000, Kente
-    Crown ₦50,000, Baobab of Blessings ₦100,000, Circova Champagne ₦150,000, Argungu Fishing ₦250,000, Durbar Horse ₦500,000, Ijele
+    Crown ₦50,000, Baobab of Blessings ₦100,000, Cricova Champagne (plays its own video) ₦150,000, Argungu Fishing ₦250,000, Durbar Horse ₦500,000, Ijele
     Masquerade ₦750,000, Kilimanjaro Sunrise ₦1,000,000). The owner wrote "Arugungu"; it is spelt Argungu (the festival) here and
     can be renamed in Admin. Settings saved with the pricing config (`platformSettings/pricing`, `gifts`) from Admin → Pricing →
     Gifts and applied live; a config saved before keeps the defaults: `grand` (VIP from ₦25,000, announce on), `uplift` (premium
