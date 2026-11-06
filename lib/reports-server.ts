@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { removeJobAfterReport } from "./jobs-server";
 import { FieldValue } from "firebase-admin/firestore";
 import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_REASON_LABEL, type ReportReason, REPORT_URGENT_HOURS, URGENT_REASONS } from "./moments-rules";
 import { sendEmail } from "./email";
@@ -15,7 +16,8 @@ import { isAutoFollowed } from "./journals-directory";
 // deletes that copy. The reporter and the reported member never see each other's side. Server-only (see firestore.rules).
 // "person": a member reported from the Gift · Block · Report menu beside their name (a comment, a review, a live's stage, a Media post
 // or a replay; v0.140.0). The evidence is where it was and the words shown there, as they were.
-export type ReportKind = "moment" | "conversation" | "person";
+// "job": a Notes Jobs posting (lib/jobs-server.ts); actioning the report takes the job down.
+export type ReportKind = "moment" | "conversation" | "person" | "job";
 
 export type MediaDeps = Pick<MomentDeps, "remove" | "publicUrl">;
 
@@ -29,7 +31,7 @@ export async function createReport(
   db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown; messageId?: unknown; where?: unknown; href?: unknown; text?: unknown }, now = new Date(),
 ): Promise<{ id: string }> {
   const kind = input.kind;
-  if (kind !== "moment" && kind !== "conversation" && kind !== "person") throw new MomentError(400, "Choose what to report.");
+  if (kind !== "moment" && kind !== "conversation" && kind !== "person" && kind !== "job") throw new MomentError(400, "Choose what to report.");
   if (!isReportReason(input.reason)) throw new MomentError(400, "Choose a reason.");
   const targetId = String(input.targetId ?? "");
   const note = trimNote(input.note);
@@ -46,7 +48,13 @@ export async function createReport(
   let evidence: Record<string, unknown>;
   let evidenceKeys: string[] = [];
 
-  if (kind === "person") {
+  if (kind === "job") {
+    const j = /^[A-Za-z0-9_-]{1,128}$/.test(targetId) ? (await db.doc(`jobs/${targetId}`).get()).data() : undefined;
+    if (!j || j.status === "removed") throw new MomentError(404, "That job wasn't found.");
+    if (j.orgUid === reporterUid) throw new MomentError(400, "That's your own job.");
+    targetUid = String(j.orgUid);
+    evidence = { jobId: targetId, title: j.title, orgUsername: j.orgUsername, summary: j.summary, about: String(j.about ?? "").slice(0, 2000), pay: { min: j.payMinKobo ?? null, max: j.payMaxKobo ?? null, period: j.payPeriod ?? null }, createdAt: j.createdAt };
+  } else if (kind === "person") {
     const p = /^[A-Za-z0-9_-]{1,128}$/.test(targetId) ? (await db.doc(`users/${targetId}`).get()).data() : undefined;
     if (!p) throw new MomentError(404, "That member wasn't found.");
     if (targetId === reporterUid) throw new MomentError(400, "That's you.");
@@ -161,6 +169,7 @@ export async function resolveReport(db: Firestore, adminUid: string, id: string,
     // Files kept as evidence go unless another open report needs them, or the moment is still live and will clean up by itself.
     if (!live || outcome === "actioned") for (const k of (r.evidenceKeys as string[]) ?? []) if (!stillNeeded.has(k)) await deps.remove(k).catch(() => {});
   }
+  if (outcome === "actioned" && r.kind === "job") await removeJobAfterReport(db, String(r.targetId), now);
   // Actioning a report of a group message takes that message out of the group ("Message removed by #NotesApp").
   const reportedMessageId = r.kind === "conversation" ? String(r.evidence?.reportedMessageId ?? "") : "";
   if (outcome === "actioned" && reportedMessageId) await wipeMessage(db, String(r.targetId), reportedMessageId, "notesapp", privateFilesConfigured() ? deleteObject : undefined, now).catch(() => {});
