@@ -8,7 +8,9 @@ import {
   NANA_HISTORY_MAX, NANA_TRANSCRIPT_MAX, NANA_USER_MAX, NanaError, cleanVisitor, parseReply, type NanaMsg,
 } from "./nana";
 import { kbReply } from "./nana-kb";
-import { STAFF_PAGES, buildSystem, knowledgeBlock, knownPaths, pickArticles, visitorBlock } from "./nana-prompt";
+import { STAFF_PAGES, buildSystem, jobPaths, jobsBlock, knowledgeBlock, knownPaths, pickArticles, visitorBlock, withJobsArticle } from "./nana-prompt";
+import { jobIntent } from "./jobs";
+import { jobsForNana } from "./jobs-server";
 import { setting } from "@/lib/config";
 import type { Effort, Gem, Usage } from "./nana-gems";
 import { EFFORT_INFO, pickEffort, pickGem } from "./nana-gems";
@@ -173,7 +175,10 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
   const helpCentre = articles.map((a) => `${a.slug}\n${a.title}\n${a.body}`).join("\n\n");
   // A general first question may already be in the answer bank (lib/nana-bank.ts); if not, it's answered without the person's name or
   // page so the answer suits the next person too.
-  const bankQ = !hub && bankDays() > 0 ? bankQuestion(messages) : null;
+  // A real job search: the open Notes Jobs that fit it go to Nana (live listings, so the answer isn't banked) with the Notes Jobs article.
+  const jobQ = !hub && jobIntent(asked);
+  const jobsFound = jobQ ? await jobsForNana(db, asked, now).catch(() => null) : null;
+  const bankQ = !hub && !jobsFound && bankDays() > 0 ? bankQuestion(messages) : null;
   const key = bankQ ? bankKey(bankQ, !!who.uid, helpCentre) : null;
   const banked = key ? await bankGet(db, key, gem, now).catch(() => null) : null;
   const system: SystemBlock[] = [
@@ -183,7 +188,8 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
     // Nana-HR: her rules and the library this person may open, kept ready for an hour like the instructions above.
     ...(input.hr ? [{ type: "text" as const, text: `${input.hr.rules}\n\n${input.hr.library}`, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }] : []),
     // Only the articles that match this conversation, in full (lib/nana-prompt.ts pickArticles).
-    { type: "text", text: knowledgeBlock(pickArticles(articles, messages.filter((m) => m.role === "user").map((m) => String(m.content)))) },
+    { type: "text", text: knowledgeBlock(withJobsArticle(pickArticles(articles, messages.filter((m) => m.role === "user").map((m) => String(m.content))), articles, jobQ)) },
+    ...(jobsFound ? [{ type: "text" as const, text: jobsBlock(jobsFound) }] : []),
     { type: "text", text: visitorBlock(key ? { name: "there", signedIn: !!who.uid } : { name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") + (input.hr ? `\n\n${input.hr.records}` : "") },
   ];
 
@@ -200,6 +206,7 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
     via = "kb";
   }
   const paths = knownPaths(articles);
+  if (jobsFound) for (const p of jobPaths(jobsFound)) paths.add(p); // the job pages Nana was given
   if (staffKb.length) for (const p of STAFF_PAGES) paths.add(p); // inside the hub, Nana may link to the admin pages she explains
   const reply = sanitizeLinks(parsed.text, paths) || "Sorry, I didn't catch that. Could you say it another way?";
   // A fresh AI answer to a general question goes in the bank (not a refusal, a hand-off or a gap in the help centre).

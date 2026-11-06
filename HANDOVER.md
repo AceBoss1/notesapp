@@ -927,6 +927,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Nana-HR & hiring → a role → **Delete**. A super admin deletes any role, the Chief of Staff only a draft (`deleteRole`). Its
     applications go with it and applicants still in the running get a bell; hired applicants and those kept for future roles stay
     (the latter until 6 months on). Test: `test:hr`.
+124. **Notes Jobs, the job board (v0.144.0, branch `push/notes-jobs`; owner decisions 5 Nov 2026):** deploy
+    `firebase deploy --only firestore` (rules: jobs, jobApplications, jobSeekers, jobInvites and jobBells are server-only; TTL on
+    jobApplications.purgeAt and jobBells.expireAt). Verified organisations only (`orgVerified`: CAC checked), the organisation account or
+    an `orgMembers` admin (`actingFor` in `lib/jobs-server.ts`; writers can't). Posting is free and live at once; a job is open 7–60 days
+    (30 by default) and can be reported (`contentReports` kind "job"; actioning it calls `removeJobAfterReport`: status "removed", the
+    firm gets a bell). Members apply once per job (`jobApplications/{jobId}_{uid}`); no email is stored or shared, applications are
+    deleted 6 months after the job closes (`purgeAt`). **Matching** (`matchScore` in `lib/jobs.ts`) runs only for jobs whose organisation
+    was on Business or Enterprise when it posted (`orgTier`): industry 3, shared topics 2 each (max 4), job-title words 2 each (max 4),
+    same city 2 or remote 1. "Jobs for you" on Explore shows scores of 3+; members who switched on **I need a job** (`jobSeekers/{uid}`
+    with a private city) get a bell from 5+ (3 a day, 300 per job), and the firm sees them as suggested candidates (public info only, "Same
+    city" rather than the city) and can invite each once. Teens and organisations can't switch it on and are never suggested. Account
+    export and erase include jobs. Brand: **Notes Jobs** (`JOBS_BRAND`; footer, brand guidelines). **Phase 2, not built:** boosting a
+    job through the boost payments (for now firms use banner adverts). **Nana:** a job question (`jobIntent`: job words plus a
+    seeking phrase, not about the Notes Life game) gets the open Notes Jobs jobs and our own `/careers` roles that fit (`jobsForNana`,
+    `jobsForQuestion`: customer service = support = care, remote and city count), the Notes Jobs article first, and those pages as
+    allowed links; such answers aren't banked (the listings change). Her rules say real jobs are Notes Jobs unless the person means the
+    game. Tests: `test:jobs` (new: pure + emulator + Nana), rules 92/92.
 
 ## 3. How the work is done (please keep these)
 

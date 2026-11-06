@@ -37,6 +37,7 @@ const ICON: Record<NotificationType, string> = {
   moment: "💬", // a reply to your moment is a conversation too
   team: "📋",
   community: "👥",
+  job: "💼",
   event: "📅",
   coupon: "🏷️",
   announcement: "📢",
