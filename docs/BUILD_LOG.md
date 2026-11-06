@@ -3100,3 +3100,7 @@ see the reasons; it needs no new model and can be tuned in one function. The bel
 (`jobBells/{uid}_{day}`) and per job, so a busy day of postings can't flood anyone. Applications carry no email (firms reply on NotesApp),
 and suggested candidates never include contact details or the city. Tests: `test:jobs`, rules.
 
+**CardTap: read Paylony's real start reply (v0.146.1, 6 Nov 2026)** — The owner's first live top-up after v0.143.1 got HTTP 200
+`{"status":"00","message":"Transaction initialized","initiationTranRef":"202611060112REL2QV",…}` from /pay_with_cardtap, but `readStart`
+(lib/cardtap-topup.ts) looked for initiationRef and other spellings, not initiationTranRef, so the start was recorded as failed and the
+member saw no code. initiationTranRef (and initiation_tran_ref) are now read first; tests/cardtap/topup.test.ts checks the exact live reply.

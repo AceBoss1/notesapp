@@ -29,7 +29,8 @@ export const pick = (body: unknown, keys: string[]): unknown => {
 
 // The code to paste into the CardTap app, and the words Paylony gives to go with it.
 export function readStart(body: unknown): { initiationRef: string; instruction: string } | null {
-  const ref = pick(body, ["initiationRef", "initiation_ref", "initiationReference", "initiation_reference", "paymentRef", "code"]);
+  // Paylony's live reply (6 Nov 2026) names it initiationTranRef; the others are kept for other shapes of the same API.
+  const ref = pick(body, ["initiationTranRef", "initiation_tran_ref", "initiationRef", "initiation_ref", "initiationReference", "initiation_reference", "paymentRef", "code"]);
   if (typeof ref !== "string" && typeof ref !== "number") return null;
   const instruction = pick(body, ["instruction", "instructions", "message"]);
   return { initiationRef: String(ref), instruction: typeof instruction === "string" ? instruction : "" };
