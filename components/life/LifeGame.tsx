@@ -19,6 +19,7 @@ import { CARDTAP, cardLast4, tapCharge } from "@/lib/life/cardtap";
 const SUITE_LABEL = "In your Imperial Suite";
 import FriendChat, { type ChatFriend } from "./FriendChat";
 import { NameBadgeIcons } from "@/components/PersonName";
+import { SONG, songTalk } from "@/lib/songs";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 import { familyHost } from "@/lib/host";
 import { loadAds, weightedOrder, type Ad } from "@/components/AdSlot";
@@ -137,6 +138,16 @@ export default function LifeGame() {
   const sfx = (n: Sfx) => snd.current?.play(n);
   useEffect(() => () => { snd.current?.dispose(); snd.current = null; }, []);
   useEffect(() => { snd.current?.setPrefs(soundPrefs); saveSoundPrefs(soundPrefs); }, [soundPrefs]);
+  // A NotesApp Sounds song heard at the hotel counts as a play for its artist (the server keeps it to once a day per song).
+  useEffect(() => {
+    if (!snd.current) return;
+    const heard = new Set<string>();
+    snd.current.onSong = (songId) => {
+      if (!user || heard.has(songId)) return; heard.add(songId);
+      void user.getIdToken().then((t) => fetch("/api/sounds/play", { method: "POST", headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" }, body: JSON.stringify({ songId }) })).catch(() => {});
+    };
+    return () => { if (snd.current) snd.current.onSong = null; };
+  }, [user]);
   useEffect(() => {
     const vis = () => (document.visibilityState === "hidden" ? snd.current?.pause() : snd.current?.resume());
     document.addEventListener("visibilitychange", vis);
@@ -292,8 +303,22 @@ export default function LifeGame() {
   // A soft tune, and no NEPA noise, in your hotel suite, at the VIP bar and in class at the Digital Witch hub.
   const act0 = save?.activity, calm = panel === "vip" || act0?.kind === "class" || (act0?.kind === "hotel" && (act0.label.startsWith(SUITE_LABEL) || act0.label.startsWith("Room service") || act0.label === C.HOTEL_OF("vipbar")?.name));
   calmRef.current = calm;
-  const ambience: Ambience = calm ? "calm" : !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" || spec.id === "strip" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
+  // At the hotel (your suite, room service, the VIP bar) the soft tune gives way to the NotesApp Sounds songs, very light (lib/songs.ts).
+  const atHotelCalm = calm && (panel === "vip" || act0?.kind === "hotel");
+  const ambience: Ambience = atHotelCalm ? "suite" : calm ? "calm" : !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" || spec.id === "strip" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
+  // Walk into the hotel and you overhear a resident on the song that's playing (once a visit, a few seconds in, only with sound on).
+  useEffect(() => {
+    if ((ambience !== "hotel" && ambience !== "suite") || !soundPrefs.on) return;
+    const t = window.setTimeout(() => {
+      const songId = snd.current?.nowPlaying; if (!songId) return;
+      const who = (C.RESIDENTS_AT.hotel ?? [])[Math.floor(Math.random() * (C.RESIDENTS_AT.hotel ?? []).length)];
+      const r = who ? C.RESIDENT(who) : undefined; const s = SONG(songId); if (!r || !s) return;
+      const talk = songTalk(r.id, undefined, songId);
+      say(`🎵 ${s.title} · ${s.artist} is playing. ${r.name} 🤖: “${talk?.line ?? "I like this song o!"}”`);
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [ambience === "hotel" || ambience === "suite"]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { snd.current?.generators(!calm && src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out && !calm); }, [src, save?.place, nepa.out, player?.owned, calm]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
   useEffect(() => { snd.current?.ringing(!!ringing); }, [ringing]);
@@ -1424,7 +1449,7 @@ export default function LifeGame() {
             <label key={k} className="flex items-center gap-3"><span className="w-40 shrink-0 font-semibold">{l}</span>
               <input type="range" min={0} max={100} value={Math.round(soundPrefs[k] * 100)} disabled={!soundPrefs.on} onChange={(e) => setSoundPrefs((x) => ({ ...x, [k]: Number(e.target.value) / 100 }))} onPointerUp={() => sfx(k === "amb" ? "bell" : "coin")} className="w-full accent-emerald-600" aria-label={l} />
               <b className="w-8 text-right">{Math.round(soundPrefs[k] * 100)}</b></label>))}
-          <p className="text-[10px] text-slate">Birds by day, crickets at night, traffic on the street, generators in a blackout, lounge music at Candellux. Saved on this device.</p>
+          <p className="text-[10px] text-slate">Birds by day, crickets at night, traffic on the street, generators in a blackout, and NotesApp Sounds songs playing softly at the hotel. Saved on this device.</p>
           <button onClick={() => snd.current?.test()} className="justify-self-start rounded-full border px-3 py-1 text-xs font-bold">▶ Test sound</button>
           <p className="text-[10px] text-slate">No sound? Turn your phone's volume up (media volume) and, on iPhone, the silent switch off.</p>
         </div>

@@ -811,11 +811,29 @@ Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, sh
 
 See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 `),
+    A("notesapp-sounds", "NotesApp Sounds: songs for your posts, moments and lives, and royalties for artists", "Publishing and earning", `
+**NotesApp Sounds** are songs made for #NotesApp that anyone can use for free here. The first ones are by Emmanuel Adams (@emmanuel), the founder: Leave Am, Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. Verified artists add more. See them all at [NotesApp Sounds](/sounds).
+
+**Using a song:**
+- **Media posts and moments:** under **Sound**, keep your original sound or pick a song (search the list, and tap ▶ Listen for 15 seconds of it). It plays from its best part while people watch, softly under a video's own sound or a voice-over.
+- **Lives:** the host taps **🎵 Music** and plays a song through their mic, with its own volume. Everyone in the live hears it and sees **Now playing**; muting your mic mutes only your voice. A recorded live records it too.
+- **Notes Life:** the songs play softly at the hotel (the lobby, your suite and the VIP bar), and the residents talk about them: ask anyone about 🎵 Music in a chat.
+
+**A song's page:** tap the song's name or cover on a post, a moment or in a live to open its page (/sounds/song-name). It shows the cover with a player, the artist and their @username, how often it has been played and where, **Use this sound** (opens your Media studio with the song picked), the moments made with it (signed in) and the Media posts made with it. Tap a post to open it full screen to react, gift the creator or report it. You only see posts and moments their owners let you see.
+
+**Reactions on Media posts:** ❤️ 🔥 😂 😮 👏 🙏, one per person; tap the same one again to take it back.
+
+**Are you an artist?** Open [Your sounds](/profile/sounds) and apply: your artist name, links to your music (Audiomack, Boomplay, Spotify, Apple Music, YouTube…) and a tick to confirm you own the rights. The team checks it. Once verified, add songs there: an MP3 up to 15 MB and 15 minutes, a cover picture, and where the best part starts. Each song is checked by the team before anyone can use it. You can take your own song down at any time.
+
+**What artists see:** [Your sounds](/profile/sounds) shows each song's plays this month, last month and in all; where they were played (Media posts, Moments, Lives, Notes Life); the last 30 days; and how many posts and moments use it. A summary also shows in [Analytics](/profile/analytics). A play is a member's first view of a post or a moment with the song, everyone listening when a host starts it in a live, and a Notes Life player hearing it at the hotel (once a day per song).
+
+**Royalties in ad share:** each month a share of the ad revenue #NotesApp receives (the Sounds pool, a share the team sets; your Sounds page shows it) is split between artists by how many times their songs were played that month. It appears as a 🎵 song royalty statement next to your ad share, is checked, then paid to your bank with it after the usual hold. Amounts below the minimum roll over to the next month, like ad share.
+`),
     ...(MEDIA_LIVE ? [A("media", "Media: your videos and pictures", "Publishing and earning", `
 **Media** is the tab on your profile, between Notes and Store, for your own videos and pictures. Anyone can open it at /u/yourname/media. Unlike [moments](/help/messages-moments-groups), Media posts stay until you delete them.
 
 **What's on your Media:**
-- **Your posts:** a video, or up to ${MEDIA_PICTURES_MAX} pictures in one post. Every video uses its original sound (there is no music library).
+- **Your posts:** a video, or up to ${MEDIA_PICTURES_MAX} pictures in one post. Use your original sound, or pick a song from NotesApp Sounds (songs made for #NotesApp, free to use here); on a video the song plays softly under your own sound.
 - **Pinned:** pin up to ${MEDIA_PINNED_MAX} posts to the top. You can also pin up to ${MOMENTS_PINNED_MAX} moments: open your moment and tap **📌 Pin**. A pinned moment stays on your Media after its 24, 48 or 72 hours, until you unpin it. Unpin one whose time is up and it is deleted there and then.
 - **Pictures from your site:** the cover, top banner, gallery and service pictures on [your site](/help/your-site) show in your Media straight away. In your studio you can hide any of them, or turn them all off.
 - **Profile pictures:** your past profile pictures, as an album, newest first. You can turn the album off.
@@ -1175,7 +1193,7 @@ Already have a personal account? You do not need a new one: open [Make an organi
 
 You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. They can also teach on [Notes Academy](/academy) as the organisation (**Teach as**), free or paid, with certificates in your academy's name and logo. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
     A("notes-jobs", "Notes Jobs: finding a job and posting one", "Teams and organisations", `
-**Notes Jobs** is the job board on #NotesApp. Open [Explore → Jobs](/explore?tab=jobs) to see every open job; tap one to read it and apply with your #NotesApp account.
+**Notes Jobs** is the job board on #NotesApp. Open [Explore → Jobs](/explore?tab=jobs) to see every open job; tap one to read it and apply with your #NotesApp account. Our own open roles at #NotesApp are featured at the top under **Work at #NotesApp**; they open on [Careers](/careers), where you apply.
 
 **Applying:** write a short note on why the job and what you'd bring, add links to your work if you like (a CV, a portfolio, LinkedIn), and an optional phone number and city. The firm sees your application and your public profile, never your email address; they reply on #NotesApp and you get a bell when they invite you to interview, make an offer or don't take it forward. You can apply once to each job and withdraw at any time. Your applications are on [Your job search](/profile/applications). Applications are deleted 6 months after the job closes. **Never pay to apply:** a real employer never asks for a fee. Report a job that does (the Report link on the job), and our Trust & safety team takes it down.
 

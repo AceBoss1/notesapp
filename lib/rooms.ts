@@ -65,6 +65,9 @@ export type RoomDoc = {
   // whether the host lets speakers turn video on, and the poster everyone sees while video is off (a picture URL, never video).
   // Server-written, like the rest of the room. videoUsedMs: the video minutes this live used, written when it ends (for replays, 2c).
   videoOn?: Record<string, string>; stageVideo?: boolean; poster?: string; videoUsedMs?: number;
+  // The NotesApp Sounds song the host is playing into the live now (lib/songs.ts), for the "Now playing" line. The sound itself is in
+  // the host's microphone mix, so it reaches listeners (and the recording) like their voice does.
+  song?: { id: string; at: string };
   // The host's @username and whether they take paid sessions (publisherSettings session.enabled), so "Book a session" stays in view.
   hostUsername?: string; hostBooks?: boolean;
   // Opened by a #NotesApp team member while the staff test pass was on (lib/staff-pass.ts): no listener cap below the hard ceiling and no

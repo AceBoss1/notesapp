@@ -78,7 +78,7 @@ export default function AdminAdSharePage() {
       <h1 className="font-display text-4xl">Ad share</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate">
         Each month: record the ad revenue you actually received, compute statements (revenue ÷ all valid impressions = revenue per impression, then each
-        opted-in paid publisher earns impressions on their pages × that rate × their plan&apos;s share), review the flags, approve. Approved amounts go
+        opted-in paid publisher earns impressions on their pages × that rate × their plan&apos;s share), review the flags, approve. Artists get a 🎵 song royalty too: the Sounds pool (Admin → Sounds) split by plays. Approved amounts go
         to the payout ledger and are held {AD_SHARE_HOLD_DAYS} days before release in Payments. Under {formatNaira(AD_SHARE_MIN_KOBO)} rolls over.
       </p>
 
@@ -151,8 +151,8 @@ export default function AdminAdSharePage() {
               <tbody>
                 {data?.statements.map((s) => (
                   <tr key={s.id} className="border-t border-rule">
-                    <td className="py-1.5 pr-3 text-ink">@{s.username} <span className="text-xs text-slate">{Math.round(s.rate * 100)}%</span></td>
-                    <td>{s.impressions.toLocaleString()}</td>
+                    <td className="py-1.5 pr-3 text-ink">@{s.username} <span className="text-xs text-slate">{s.kind === "sounds" ? "🎵 song royalty" : `${Math.round(s.rate * 100)}%`}</span></td>
+                    <td>{s.impressions.toLocaleString()}{s.kind === "sounds" ? " plays" : ""}</td>
                     <td>{s.clicks.toLocaleString()}</td>
                     <td>{formatNaira(s.grossKobo)}</td>
                     <td className="font-semibold text-ink">{formatNaira(s.shareKobo)}{s.payableKobo && s.payableKobo !== s.shareKobo ? ` (payable ${formatNaira(s.payableKobo)})` : ""}</td>

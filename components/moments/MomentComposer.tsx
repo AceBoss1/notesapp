@@ -1,5 +1,6 @@
 "use client";
 
+import SongPicker from "@/components/media/SongPicker";
 import { useRef, useState } from "react";
 import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
@@ -31,6 +32,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   const [hours, setHours] = useState<MomentHours>(MOMENT_DEFAULT_HOURS);
   const [file, setFile] = useState<File | null>(null);
   const [voice, setVoice] = useState<VoiceOver | null>(null);
+  const [songId, setSongId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -75,7 +77,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         try {
           for (let i = 0; i < clips.length; i++) {
             const caption = clips.length === 1 ? text : text ? `${text} (${i + 1}/${clips.length})` : `Part ${i + 1} of ${clips.length}`;
-            await api("/api/moments", { body: { kind: "video", hours, text: caption, videoUploadId: start.id, clipStart: clips[i].start, clipEnd: clips[i].end, ...(i === 0 && voiceId ? { audioUploadId: voiceId } : {}) } });
+            await api("/api/moments", { body: { kind: "video", hours, text: caption, videoUploadId: start.id, clipStart: clips[i].start, clipEnd: clips[i].end, ...(i === 0 && voiceId ? { audioUploadId: voiceId } : {}), ...(songId ? { songId } : {}) } });
             made++;
           }
         } catch (e) {
@@ -96,6 +98,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         return;
       }
       if (voice) body.audioUploadId = await uploadVoiceOver(voice);
+      if (songId) body.songId = songId;
       if (!auth.currentUser) throw new Error("Sign in first.");
       await api("/api/moments", { body });
       onPosted();
@@ -155,6 +158,8 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         <div className="relative"><MentionPicker target={captionBox} value={text} onChange={setText} /><textarea ref={captionBox} value={text} onChange={(e) => setText(e.target.value)} maxLength={MOMENT_TEXT_MAX} rows={4} placeholder={MOMENT_HINT} className="mt-4 w-full rounded border border-rule p-3 text-sm" /></div>
         <p className="text-right text-xs text-slate">{text.length}/{MOMENT_TEXT_MAX}</p>
         <VoiceOverRecorder value={voice} onChange={setVoice} />
+        <p className="mt-3 text-sm font-bold text-ink">Sound</p>
+        <SongPicker value={songId} onChange={setSongId} />
         <fieldset className="mt-3">
           <legend className="text-sm font-bold text-ink">Disappears after</legend>
           <div className="mt-2 flex gap-4 text-sm">
