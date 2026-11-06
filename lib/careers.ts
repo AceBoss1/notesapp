@@ -162,4 +162,23 @@ export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "upda
       ...SHARED_REQS,
     ],
   },
+  {
+    // Added 5 Nov 2026 (the owner): Customer care grows to look after communities (the Customer care brief and SOP, "Communities").
+    seedKey: "community-strategist", title: "Community Strategist", dept: "support", reportsTo: "The Customer care team lead",
+    hours: LEADER.hours, location: LEADER.location, arrangement: "salary",
+    summary: "Help churches, mosques, NGOs, schools, creators and businesses build thriving, safe communities on NotesApp.",
+    about: "Communities are where groups gather their people on NotesApp (/c/name), hold lives and services, and collect giving. You'll help them succeed: onboarding new communities and their admins, setting up healthy rules and roles, planning events and lives with hosts, and bringing what they ask for to Product. You'll work with Trust & safety on safe giving, Marketing on community campaigns, and Sales & partnerships when an organisation joins.",
+    responsibilities: [
+      "Welcome every new community within 2 working days and take its admins through onboarding: rules, roles, moderators and a first event",
+      "Plan lives, audio rooms and series with active hosts, and help quiet communities get going",
+      "Check giving appeals with Trust & safety before they're promoted, and report scams the same day",
+      "Bring admins' requests to Product in their own words, and report each month on active communities and first events",
+    ],
+    requirements: [
+      "2+ years running or growing online communities, a church or NGO's members, or a creator's audience",
+      "Warm, organised and persistent: you follow up until things happen",
+      "Comfortable with lives, group chats and social media, and with numbers in a simple report",
+      ...SHARED_REQS,
+    ],
+  },
 ];
