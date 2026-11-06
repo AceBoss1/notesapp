@@ -3100,3 +3100,13 @@ see the reasons; it needs no new model and can be tuned in one function. The bel
 (`jobBells/{uid}_{day}`) and per job, so a busy day of postings can't flood anyone. Applications carry no email (firms reply on NotesApp),
 and suggested candidates never include contact details or the city. Tests: `test:jobs`, rules.
 
+
+**Stablecoin rails, the early-investor note and cross-border payouts on the roadmap (6 Nov 2026)** — The owner shared a post on
+stablecoin settlement in African payments and a table of Uber's first investors, and asked for all three follow-ups. The claims were
+checked first: Ripple's and Circle's Flutterwave investments, Circle's CrissCross investment, Kora's One Rail, Yellow Card's move to
+business and Chainalysis's USD 205B are confirmed; "Nigerian USDC at USD 3B a month" and "sixfold" aren't, and the Uber table's
+per-investor amounts aren't either, so `docs/FUNDING.md` §11 and §12 say what may be used and what may not. §11 gives the Alliance
+answer a "why now" line and names the partners to ask (Flutterwave first: it's our Kenya partner and now settles in USDC and RLUSD).
+§12 is an honest early-investor slide with a risk line, for a friends-and-angels round only after counsel. The public roadmap and the
+"What is coming next" article add **Getting paid across borders** as being explored, worded around a licensed partner and paying
+in your own currency, with no crypto to hold and no date.

@@ -268,7 +268,7 @@ get paid for it, in their own currency.
 Business books, the NotesApp Credit wallet and payouts in Naira through Paystack, Exam Prep, our assistant Nana, and an MCP agent
 layer so outside AI assistants can work on a member's account with permission. Kenya with M-Pesa is next."
 
-**How are you involved in crypto or stablecoins?** (only if `accel-alliance-angle` says yes)
+**How are you involved in crypto or stablecoins?** (only if `accel-alliance-angle` says yes; add the "why now" line from §11)
 
 > Not yet, and we won't pretend otherwise. We are a payments-heavy platform: members are paid in Naira today, Kenya (M-Pesa) opens
 > next and dollar payments come through our US company. The problem we want to solve with Alliance is moving a creator's earnings
@@ -576,3 +576,78 @@ When the numbers are in, it can be made as a PDF from this text in the brand col
 - If naapp.tech is granted, start the move (§2) and note the 4-month deadline in HANDOVER.
 - Nothing that sells shares or a SAFE is signed before counsel has read it and the dilution is added up (§5, team hub
   `accel-legal-safe`).
+
+---
+
+## 11. Stablecoin rails in African payments: where NotesApp fits (checked 6 November 2026)
+
+> Internal. Why it's here: a post the owner shared argues that stablecoin settlement is now an infrastructure race in African
+> payments. It backs the Alliance pitch (§5, decided 2 Nov) and the Kenya and Ghana plan, so the facts are checked below with
+> sources. Use only the **checked** lines in anything we send.
+
+**Checked (news coverage of the announcements; amounts mostly undisclosed):**
+
+| When | What | Source |
+|---|---|---|
+| 16 Jun 2026 | **Ripple** invests in Flutterwave's **Series E at a USD 3.2B valuation**; its RLUSD stablecoin goes into Flutterwave's payments and Send App. Amount not disclosed. | [The Block](https://www.theblock.co/news/business/2026-06-16-ripple-flutterwave-series-3-2-billion-valuation-rlusd-integration-404942), [FinTech Futures](https://www.fintechfutures.com/venture-capital-funding/flutterwave-reaches-3-2bn-valuation-with-series-e-funding-round) |
+| 7 Jul 2026 | **Circle Ventures** invests in **Flutterwave**, which adds USDC settlement (merchants collect locally, can settle in USDC). Amount not disclosed. | [Finextra](https://www.finextra.com/pressarticle/110359/flutterwave-secures-investment-from-circle-ventures), [Tekedia](https://www.tekedia.com/flutterwave-expands-stablecoin-strategy-with-circle-investment/) |
+| ~1 Oct 2026 | **Kora** launches **One Rail**: eligible merchants accept USDT and USDC and settle to banks, mobile wallets or stablecoin wallets. Kora works in Nigeria, Kenya, Ghana, South Africa, Egypt and others; we found no "eight markets at launch" figure. | [fintech.global](https://fintech.global/2026/10/06/kora-launches-stablecoin-rail-for-african-cross-border-payments/), [crypto.news](https://crypto.news/african-businesses-stablecoins-to-cut-payment-delays/) |
+| 26–27 Oct 2026 | **Circle Ventures** invests in **CrissCross** (South Africa, part of Stitch): collections, payouts, FX and treasury over one API in 30+ African markets. Amount not disclosed. | [TechCabal](https://techcabal.com/2026/10/27/crisscross-raises-funds/), [The Paypers](https://thepaypers.com/crypto-web3-and-cbdc/news/crisscross-receives-circle-ventures-investment-for-african-payments) |
+| 29 Oct 2025 (closed 1 Jan 2026) | **Yellow Card** closed its consumer app to focus on business stablecoin payments, settlement, custody and local issuance. | [TechCabal](https://techcabal.com/2025/11/03/yellow-card-closes-retail-app-turns-to-enterprises/), [BusinessDay](https://businessday.ng/technology/article/yellow-card-exits-retail-crypto-bets-on-40bn-stablecoin-payments-market/) |
+| Jul 2024–Jun 2025 | **Sub-Saharan Africa received about USD 205B** in on-chain crypto value, **up 52%**; **Nigeria about USD 92B** of it (Chainalysis, 2025 Geography of Cryptocurrency). | [Cointelegraph](https://cointelegraph.com/news/sub-saharan-africa-third-fastest-growing-region-crypto-adoption-report) |
+| Jul 2023–Jun 2024 | Nigeria: **nearly USD 22B** in stablecoin transactions (Yellow Card's report). | [Nairametrics](https://nairametrics.com/2025/08/19/nigeria-leads-africas-stablecoin-market-with-22-billion-in-transactions-in-one-year-report) |
+
+**Not confirmed, don't repeat:** "Nigerian USDC volume hit USD 3 billion per month" and "stablecoin activity surged sixfold". We found
+no source for either (one report gives about USD 3B of stablecoin transfers in Nigeria for **a quarter**, Q1 2024, across all
+stablecoins). The post's line that Circle's VP used "almost identical language" for both deals wasn't checked.
+
+**What it means for us**
+- **We don't build rails.** The post's own point is that "settlement in minutes at under 1% cost" is becoming the baseline. For
+  NotesApp that's good news: the rails are being built by companies we already work with or plan to (Flutterwave is our Kenya
+  partner and now settles in USDC and RLUSD). We sit on top of whichever rail wins; members keep being paid in their own currency.
+- **Where it helps:** cross-border earnings (§5 angle 1): a Kenyan student paying a Nigerian tutor, a diaspora buyer paying a Lagos
+  stylist, payouts to Ghana. Settling between countries over a partner's stablecoin rail could cut FX loss and delay without us
+  holding crypto or a licence of our own.
+- **What we compete on** is what sits on top: the journal, bookings, courses, the shop, communities and the audience. Payments are
+  the plumbing, not our pitch.
+- **Partners to ask** (in this order, because we already talk to the first two): Flutterwave (USDC/RLUSD settlement, Kenya),
+  Paystack (whether it plans the same), Kora (One Rail), Yellow Card (B2B), CrissCross (pan-African payouts).
+- **Before anyone says "stablecoin" publicly:** counsel confirms what Nigeria (CBN, SEC) and Kenya allow for a platform that only
+  uses a licensed partner's settlement (`accel-legal-safe`). The public roadmap says "being explored", with no date.
+
+**For the Alliance answer (§5), a "why now" line:**
+
+> Payments infrastructure across Africa is moving to stablecoin settlement this year: Ripple and Circle both invested in Flutterwave,
+> Circle in CrissCross, Kora launched stablecoin settlement for merchants, and Yellow Card moved entirely to business stablecoin
+> rails. Sub-Saharan Africa received about USD 205 billion in on-chain value in a year (Chainalysis). Those rails are being built; we
+> want to be the creator platform that uses them, so an African creator's earnings cross borders without being lost on the way.
+
+---
+
+## 12. Early investors: the Uber story (for a friends-and-angels round)
+
+> Internal draft. Use only if the owner opens a small round for early backers (friends, family, angels), and only after counsel
+> (`accel-legal-safe`). Offering shares in Nigeria is regulated (SEC Nigeria); a SAFE or shares go to people we know, not the public,
+> unless counsel sets up something else.
+
+**What's checked:** Uber (then UberCab) raised a **USD 200,000 seed in August 2009** led by First Round Capital, then a **USD 1.25M
+seed round in October 2010** at about a USD 4M pre-money valuation, with First Round, Lowercase Capital and Founder Collective among
+others ([Motley Fool](https://www.fool.com/investing/2017/12/12/how-much-is-uber-worth-right-now.aspx); other accounts differ in
+detail). Uber listed in **May 2019 at USD 45 a share**.
+
+**What's not checked:** the table the owner shared (Garrett Camp, the Kapor trust, the Banisters, Calacanis and others, with
+amounts and "value today"). Its own footnote says the figures are estimates that assume no shares were ever sold, and we found no
+reliable source for the individual amounts. **Never put those numbers in front of an investor.** Early stakes are also diluted by
+every later round, so "×10,000" maths isn't real.
+
+**Slide or note (honest version):**
+
+> **Why back NotesApp now.** The people who backed Uber in 2009 and 2010 put in small cheques when it was a black-car app in one
+> city. They weren't buying the company it became; they were backing a founder solving a real, everyday problem early. NotesApp is
+> at that stage: live in Nigeria, Kenya next, one home for Africa's creators, teachers and professionals to earn from what they
+> know.
+>
+> *Early-stage investing is risky: most startups fail, and you could lose all of what you put in. Past outcomes of other
+> companies say nothing about ours. This is not an offer of shares.*
+
+Don't: promise or imply returns, show a "your ₦100,000 could become…" figure, or send this to anyone we don't know.
