@@ -9,7 +9,7 @@ import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO } from "@/lib/boost-conf
 import { formatNaira } from "@/lib/booking-time";
 import { GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftPointsFor, isGrand, needsVerified, quantityCap, senderVerified, verifiedRuleText, type AnimatedGift, type GiftContext, type GiftToKind } from "@/lib/gift-catalogue";
 import { WALLET_LIVE, nairaOf } from "@/lib/wallet";
-import { giftSoundOn, setGiftSound } from "@/lib/gift-play";
+import { giftSoundOn, playGift, setGiftSound } from "@/lib/gift-play";
 import { useLivePricing } from "@/lib/useLivePricing";
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
 
@@ -115,7 +115,7 @@ export default function GiftButton({
     const reason = why || "This member hasn't set up payouts yet, so gifts can't reach them. Try again later.";
     if (sheetOnly) {
       return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 sm:items-center sm:p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[150] flex items-end justify-center bg-ink/50 sm:items-center sm:p-4" onClick={() => setOpen(false)}>
           <div role="dialog" aria-modal="true" aria-label="Gifts are off" className="w-full max-w-sm rounded-t-3xl bg-paper p-5 text-left shadow-xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
             <p className="font-ui text-base font-bold text-ink">🎁 Gift switched off</p>
             <p className="mt-2 text-sm text-slate">{reason}</p>
@@ -167,14 +167,21 @@ export default function GiftButton({
     if (payWith === "wallet" && short) return setError("There isn't enough in your NotesApp Credit for this gift. Pay by card, or choose a smaller one.");
     setBusy(true);
     try {
-      await startCheckout(
+      const done = await startCheckout(
         user,
         {
           kind: "gift", username, amountNaira: kobo / 100, ...(chosen ? { giftId: chosen.id, ...(n > 1 ? { quantity: n } : {}) } : {}), noteId, liveId, message, anonymous,
           ...(toKind ? { toKind } : {}), ...(context ? { context } : {}), ...(mediaId ? { mediaId } : {}), ...(replayId ? { replayId } : {}),
         },
-        { amountKobo: kobo, payWith: WALLET_LIVE ? payWith : "card" },
+        // During a live, a gift paid from the wallet stays in the room: leaving for the confirmation page would drop the sender out (and
+        // end the live if they host it). By card it still goes to Paystack.
+        { amountKobo: kobo, payWith: WALLET_LIVE ? payWith : "card", stayIfPaid: !!liveId },
       );
+      if (done?.paid) {
+        if (chosen) playGift({ giftId: chosen.id, name: chosen.name, priceKobo: kobo, senderName: anonymous ? "" : user.displayName || "", toName: name, key: done.reference, ...(n > 1 ? { quantity: n } : {}) });
+        setWallet((w) => (w === null ? w : w - kobo));
+        setBusy(false); setMessage(""); setOpen(false);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
@@ -199,7 +206,7 @@ export default function GiftButton({
         </button>
       )}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 sm:items-center sm:p-4" onClick={() => !busy && setOpen(false)}>
+        <div className="fixed inset-0 z-[150] flex items-end justify-center bg-ink/60 sm:items-center sm:p-4" onClick={() => !busy && setOpen(false)}>
           <GiftArtStyles />
           <div role="dialog" aria-modal="true" aria-label="Send a gift" className="flex max-h-[94vh] w-full max-w-xl flex-col rounded-t-3xl bg-paper text-left shadow-xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule sm:hidden" />

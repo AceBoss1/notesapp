@@ -21,6 +21,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.153.1",
+    bump: "patch",
+    date: "2026-11-07",
+    changes: [
+      { kind: "fixed", text: "Gifts during a live: the gift sheet opened behind the live, so nothing seemed to happen. It now opens on top, and so do the gift animation, the grand-gift banner and Report." },
+      { kind: "fixed", text: "A gift paid from your NotesApp Credit during a live no longer takes you out of the live: it's sent there and then, and plays in the room." },
+      { kind: "added", text: "Live chat: tap ⋯ beside anyone who wrote in the chat to gift them (or block or report them), like the people on stage." },
+    ],
+  },
+  {
     version: "v0.153.0",
     bump: "minor",
     date: "2026-11-07",

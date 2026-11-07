@@ -23,6 +23,7 @@ import StageGifts from "@/components/gifts/StageGifts";
 import { useSongs } from "@/lib/sounds-client";
 import { SongTag } from "@/components/media/SongPicker";
 import FollowButton from "@/components/FollowButton";
+import PersonActions from "@/components/gifts/PersonActions";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -871,7 +872,7 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
           <div key={m.id} className="group flex gap-2.5">
             <Avatar src={m.avatar} alt="" size={30} className="!h-[30px] !w-[30px] shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">
-              <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
+              <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{m.from !== me && room.profile?.gifts !== false && <span className="ml-1 inline-block align-middle"><PersonActions uid={m.from} name={m.name} toKind={m.from === room.hostUid ? "host" : room.speakers.includes(m.from) ? "speaker" : "commenter"} context="live" liveId={id} where="a live's chat" text={m.text} dark compact /></span>}{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
               <p className="whitespace-pre-line break-words text-sm text-white/85">{m.text}</p>
             </div>
             {(canPin || (m.from !== me && over(m.from) && (canRemove || canMute || canBan))) && (

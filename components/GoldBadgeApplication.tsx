@@ -117,7 +117,7 @@ export default function GoldBadgeApplication() {
     body = (
       <div className="mt-2">
         <p className="text-sm text-ink">Approved — {GOLD_KIND_LABEL[request.kind ?? "endorsement"]}. Subscribe to switch the gold badge on.</p>
-        <button disabled={busy} onClick={() => run(() => startCheckout(user, { kind: "gold" }))} className="btn-primary mt-3 !px-4 !py-2 text-xs">
+        <button disabled={busy} onClick={() => run(async () => { await startCheckout(user, { kind: "gold" }); })} className="btn-primary mt-3 !px-4 !py-2 text-xs">
           {busy ? "Starting…" : `Subscribe — ${formatNaira(price.monthlyKobo)}/month`}
         </button>
       </div>
@@ -129,7 +129,7 @@ export default function GoldBadgeApplication() {
           Pay the {formatNaira(price.identityDepositKobo)} identity-check deposit to start review. It covers the third-party check and is
           <strong> non-refundable</strong>, whether or not the check passes.
         </p>
-        <button disabled={busy} onClick={() => run(() => startCheckout(user, { kind: "gold_deposit" }))} className="btn-primary mt-3 !px-4 !py-2 text-xs">
+        <button disabled={busy} onClick={() => run(async () => { await startCheckout(user, { kind: "gold_deposit" }); })} className="btn-primary mt-3 !px-4 !py-2 text-xs">
           {busy ? "Starting…" : `Pay ${formatNaira(price.identityDepositKobo)} deposit`}
         </button>
       </div>
