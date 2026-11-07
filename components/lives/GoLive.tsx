@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { capi } from "@/components/community/api";
 import { useGoLive } from "./useGoLive";
+import { GoLiveNow } from "./ProfileLive";
 
 type Hosted = { id: string; name: string; avatar?: string; memberCount?: number; role: string };
 type Mine = { id: string; title: string; status: string; startsAt: string };
@@ -35,7 +36,9 @@ export default function GoLive() {
       <h1 className="font-display text-4xl text-ink">🔴 Go live</h1>
       <p className="mt-2 text-slate">Choose how you want to go live. Everyone in a live can chat, send gifts and ask to come on stage.</p>
 
-      <section className="card mt-6 p-5">
+      <GoLiveNow />
+
+      <section className="card mt-4 p-5">
         <h2 className="font-ui text-lg font-bold text-ink">🎟 A paid live</h2>
         <p className="mt-1 text-sm text-slate">Sell tickets (early bird, normal and late prices), pick who can buy, and go live at the time you set. You open it from its page.</p>
         {mine.length > 0 && (
@@ -71,7 +74,6 @@ export default function GoLive() {
           ) : <p className="mt-3 text-sm text-slate">You don&apos;t run a community yet. <Link href="/community" className="text-crimson underline">Start or find one</Link>.</p>}
       </section>
 
-      <p className="mt-4 rounded-xl border border-dashed border-rule p-4 text-sm text-slate"><b className="text-ink">Coming next:</b> a free live straight from your profile, for your followers, with no ticket and no community needed.</p>
     </div>
   );
 }

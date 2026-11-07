@@ -19,6 +19,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.152.0",
+    bump: "minor",
+    date: "2026-11-07",
+    changes: [
+      { kind: "added", text: "🔴 Go live from your profile, free: no ticket and no community. Choose who can watch (everyone, your followers or your subscribers), the stage, gifts on or off, and whether to record. Your followers get a bell. The #NotesApp team is trying it first; it opens to everyone after." },
+      { kind: "added", text: "Live now: people live from their profile show at the top of your feed and Explore, and a LIVE button with Join the live shows on their profile. Follow the host from inside the live." },
+      { kind: "added", text: "When you end a live from your profile: a summary of who joined, the peak, gifts and new followers, and your replay to publish if you recorded." },
+    ],
+  },
+  {
     version: "v0.151.0",
     bump: "minor",
     date: "2026-11-07",

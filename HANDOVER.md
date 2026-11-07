@@ -962,6 +962,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     the Moment window scrolls, the song list shows three songs, and Media videos not ready after a day are rejected with the slot back
     (the three stuck 5 Nov videos clear on the next sweep; re-post them).
 
+127. **🔴 Go live from your profile (v0.152.0, branch `push/golive-profile`; mockups approved 7 Nov 2026):** see `docs/GO_LIVE.md`.
+    Team accounts start one while the staff test pass is on; anyone the host allows joins (everyone, followers or subscribers). Deploy the
+    Firestore indexes (`firebase deploy --only firestore:indexes`) so the summary can count new followers. To open it to everyone later,
+    change `mayStartProfileLive` in `lib/profile-lives-server.ts` (and the Go live button's check, `GET /api/lives?golive=1`, which uses it).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

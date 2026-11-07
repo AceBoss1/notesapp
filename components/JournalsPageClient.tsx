@@ -25,6 +25,7 @@ import { useInterests } from "@/lib/interests-client";
 import { useWeeklyViews } from "@/lib/weekly-views-client";
 import { useSavedJournals } from "@/lib/saved-journals-client";
 import { byForYou, byMostViewed, byRecent, type Shelfable } from "@/lib/discovery";
+import { LiveNowStrip } from "@/components/lives/ProfileLive";
 
 // Journals (/journals): the feed (Moda redesign, October 2026). Tabs For you (your interests first, then everything newest
 // first), Following, Latest and Top · 7d (lib/discovery.ts). Between posts on a phone: Most read this week, Who to follow and
@@ -189,6 +190,7 @@ export default function JournalsPageClient() {
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr),20rem] lg:gap-6 lg:pb-12">
       <div className="min-w-0">
         <div className="sticky top-[65px] z-30 lg:hidden">{tabsRow}</div>
+        <LiveNowStrip className="mb-4" />
         <div className="lg:mb-5"><MomentsStrip look="feed" /></div>
         <div className="overflow-hidden lg:rounded-2xl lg:border lg:border-rule lg:bg-card">
           <div className="hidden lg:block">{tabsRow}</div>

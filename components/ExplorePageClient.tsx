@@ -23,6 +23,7 @@ import type { MarketItem } from "@/lib/shop-directory";
 import { EventCard, type Ev } from "@/components/events/Events";
 import ReplayShelf from "@/components/replays/ReplayShelf";
 import JobsTab from "@/components/jobs/JobsTab";
+import { LiveNowStrip } from "@/components/lives/ProfileLive";
 
 // Explore (/explore, Moda redesign): what used to be the Topics, People and Channels tabs of Journals, now that Journals is the feed,
 // plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each. Events: every public,
@@ -96,6 +97,7 @@ export default function ExplorePageClient() {
   return (
     <div className="px-4 py-6 lg:px-0">
       <h1 className="font-display text-4xl text-ink">Explore</h1>
+      <LiveNowStrip className="mt-4" />
       <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy, courses and jobs on #NotesApp.</p>
       <TopGiftedShelf className="mt-5" />
       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "jobs" ? "Find jobs, organisations and cities" : tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
