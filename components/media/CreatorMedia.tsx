@@ -9,6 +9,7 @@ import type { MomentView } from "@/lib/moments-server";
 import MomentViewer from "@/components/moments/MomentViewer";
 import MediaTile, { Icon, Pattern } from "./MediaTile";
 import MediaViewer, { type ViewerItem } from "./MediaViewer";
+import { useGoLive } from "@/components/lives/useGoLive";
 
 // A creator's Media (the Media tab on /u/{username}, and /u/{username}/media): pinned Moments at the top, then All · Videos · Pictures ·
 // Profile pictures · Lives & replays over a grid of 9:16 tiles, as in the approved mockups (media-creator-*.png). Pinned posts come first
@@ -16,6 +17,7 @@ import MediaViewer, { type ViewerItem } from "./MediaViewer";
 type Filter = "all" | "videos" | "pictures" | "album" | "replays";
 
 export default function CreatorMedia({ data, isOwn, onChanged }: { data: Data | null | undefined; isOwn: boolean; onChanged?: () => void }) {
+  const goLive = useGoLive(); // 🔴 Go live: team accounts while the staff test pass is on (Admin → Limits)
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<ViewerItem | null>(null);
   const [moments, setMoments] = useState<MomentView[] | null>(null);
@@ -107,7 +109,7 @@ export default function CreatorMedia({ data, isOwn, onChanged }: { data: Data | 
       )), true) : empty("No past profile pictures yet."))}
       {filter === "replays" && (replayTiles.length ? grid(replayTiles) : empty("No lives or replays yet. When @" + username + " goes live and publishes a replay, it shows here."))}
 
-      {isOwn && <p className="mt-5 flex flex-wrap items-center justify-end gap-4"><Link href="/lives/start" className="rounded-full bg-crimson px-4 py-1.5 font-ui text-sm font-bold text-white hover:bg-crimson-bright">🔴 Go live</Link><Link href="/profile/media" className="font-ui text-sm font-semibold text-crimson">Open your Media studio →</Link></p>}
+      {isOwn && <p className="mt-5 flex flex-wrap items-center justify-end gap-4">{goLive && <Link href="/lives/start" className="rounded-full bg-crimson px-4 py-1.5 font-ui text-sm font-bold text-white hover:bg-crimson-bright">🔴 Go live</Link>}<Link href="/profile/media" className="font-ui text-sm font-semibold text-crimson">Open your Media studio →</Link></p>}
       {open && <MediaViewer item={open} username={username} ownerUid={data.owner.uid} ownerName={data.owner.displayName} onClose={() => { setOpen(null); onChanged?.(); }} />}
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={onChanged} />}
     </div>

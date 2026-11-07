@@ -11,10 +11,12 @@ import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { useGoLive } from "@/components/lives/useGoLive";
 
 // `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
 // the bell in a soft circle and the picture opens the menu, without the @username.
 export default function AuthNav({ onDark = false, compact = false }: { onDark?: boolean; compact?: boolean }) {
+  const goLive = useGoLive(); // 🔴 Go live: team accounts while the staff test pass is on (Admin → Limits)
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
@@ -88,7 +90,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
-            {profile && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
+            {profile && goLive && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
             {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>
             <Link href="/profile/account" className={item}>Account (email, username)</Link>

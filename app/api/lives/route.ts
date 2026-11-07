@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
+import { hasStaffPass } from "@/lib/staff-pass-server";
 import { rateLimit } from "@/lib/rate-limit";
 import { CommunityError } from "@/lib/community-server";
 import { iceServers } from "@/lib/calls-server";
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams;
     if (q.get("figures")) return NextResponse.json({ figures: await paidFigures(db) }, { headers: { "Cache-Control": "public, s-maxage=60" } });
     const uid = await viewer(req);
+    // ?golive=1 → { show }: the 🔴 Go live button, for #NotesApp team accounts while the staff test pass is on (Admin → Limits; owner,
+    // 7 Nov 2026: "only for the team after I turn it on in admin"). Everyone else doesn't see it yet.
+    if (q.get("golive")) return NextResponse.json({ show: !!uid && (await hasStaffPass(db, uid).catch(() => false)) }, { headers: { "Cache-Control": "no-store" } });
     if (q.get("id")) return NextResponse.json(await liveLobby(db, q.get("id"), uid), { headers: { "Cache-Control": "no-store" } });
     const [upcoming, mine, hosting] = await Promise.all([upcomingLives(db), uid ? myLiveTickets(db, uid) : [], uid ? hostLives(db, uid) : []]);
     return NextResponse.json({ upcoming, mine, hosting }, { headers: { "Cache-Control": "no-store" } });

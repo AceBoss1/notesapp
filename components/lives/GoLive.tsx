@@ -5,6 +5,7 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { capi } from "@/components/community/api";
+import { useGoLive } from "./useGoLive";
 
 type Hosted = { id: string; name: string; avatar?: string; memberCount?: number; role: string };
 type Mine = { id: string; title: string; status: string; startsAt: string };
@@ -16,15 +17,19 @@ export default function GoLive() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [hosted, setHosted] = useState<Hosted[] | null>(null);
   const [mine, setMine] = useState<Mine[]>([]);
+  const allowed = useGoLive();
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => {
-    if (!user) return;
+    if (!user || !allowed) return;
     capi<{ communities: Hosted[] }>("/api/community?host=1").then((r) => setHosted(r.communities)).catch(() => setHosted([]));
     capi<{ hosting?: Mine[] }>("/api/lives").then((r) => setMine((r.hosting ?? []).filter((e) => e.status === "scheduled" || e.status === "live"))).catch(() => {});
-  }, [user]);
+  }, [user, allowed]);
 
   if (user === undefined) return <p className="text-sm text-slate">Loading…</p>;
   if (user === null) return <p className="card p-6 text-sm"><Link href="/login?next=/lives/start" className="text-crimson underline">Sign in</Link> to go live.</p>;
+  if (allowed === null) return <p className="text-sm text-slate">Loading…</p>;
+  // Team accounts only, while the staff test pass is on (Admin → Limits). Paid lives stay open to everyone from Paid lives (/lives).
+  if (!allowed) return <div className="card p-6"><h1 className="font-display text-3xl text-ink">🔴 Go live is coming soon</h1><p className="mt-2 text-sm text-slate">Going live from your profile isn&apos;t open yet. You can still <Link href="/lives" className="text-crimson underline">schedule a paid live</Link>, or start a room in a community you run.</p></div>;
   return (
     <div>
       <h1 className="font-display text-4xl text-ink">🔴 Go live</h1>
