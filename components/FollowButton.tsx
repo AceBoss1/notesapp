@@ -8,7 +8,8 @@ import { auth } from "@/lib/firebase";
 import { isFollowing, followJournal, unfollowJournal } from "@/lib/follows";
 import { MANDATORY_USERNAMES } from "@/lib/journals-directory";
 
-export default function FollowButton({ username }: { username: string }) {
+// onFollow: after a follow goes through (a live tells its chat: "@ada followed @emmanuel").
+export default function FollowButton({ username, onFollow }: { username: string; onFollow?: () => void }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,6 +67,7 @@ export default function FollowButton({ username }: { username: string }) {
       } else {
         await followJournal(user.uid, username, false);
         setFollowing(true);
+        onFollow?.();
       }
     } catch (e) {
       // Say so instead of failing silently; the code (e.g. permission-denied) tells us where to look.

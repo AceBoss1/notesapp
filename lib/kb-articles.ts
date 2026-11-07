@@ -1169,7 +1169,9 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Pinned message:** the host, or a moderator allowed to pin, can **📌 Pin an announcement** or **Pin** a chat message; it stays at the top of the chat until it's unpinned.
 
-**Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
+**Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like.
+
+**❤️ Like and ↗ Share:** like the live (once; everyone sees the count) or share its link. **The chat tells everyone what's happening**, in small lines between the messages: who joined (grouped when many arrive at once), who liked or shared the live, who sent a gift and what, who followed the host, when a grand gift bursts across #NotesApp, and when slow mode goes on or off. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
 
 **The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host, a moderator named for the live with that permission, or one of the community's moderators can **Remove** a message. The community's own moderators have these chat powers only in lives hosted as community lives; in a member's own live, such as a [paid live](/help/paid-lives), only the moderators that host names can moderate.
 

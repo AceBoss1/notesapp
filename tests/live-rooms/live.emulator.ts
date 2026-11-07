@@ -34,7 +34,8 @@ const relay: RelayClient = {
 };
 const deps: R.RoomDeps = { relay: () => relay };
 const roomDoc = async (id: string) => (await db.doc(`communityRooms/${id}`).get()).data() as RoomDoc;
-const chatIds = async (id: string) => (await db.collection(`communityRooms/${id}/chat`).orderBy("at").get()).docs.map((d) => d.id);
+// people's messages only: the event lines our server writes (lib/room-events-server.ts, e.g. "@l1 joined") aren't the worker's batches
+const chatIds = async (id: string) => (await db.collection(`communityRooms/${id}/chat`).orderBy("at").get()).docs.filter((d) => !d.data().ev).map((d) => d.id);
 // The stand-in worker: records what our server tells each room, or hands it to a real LiveRoom.
 const told: { url: string; op: LiveServerOp; sigOk: boolean }[] = [];
 let workerUp = true;

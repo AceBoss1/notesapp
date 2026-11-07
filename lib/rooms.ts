@@ -37,7 +37,11 @@ export const ROOM_TITLE_MAX = 80;
 // communityRooms/{id}/chat, written by the people in the room (firestore.rules checks it's them, with their own name and picture), and
 // goes when the room ends. The host (or a moderator of the community) can take a message down.
 export const ROOM_CHAT_MAX = 500;
-export type RoomChat = { from: string; name: string; avatar: string; text: string; at: string };
+// ev: a line about what happened in the live (lib/room-events-server.ts), written by our server with no sender: shown in the chat as a
+// divider, like the day lines in Messages (owner, 7 Nov 2026).
+export type RoomChat = { from: string; name: string; avatar: string; text: string; at: string; ev?: RoomEventKind };
+export const ROOM_EVENT_KINDS = ["join", "share", "like", "gift", "follow", "burst", "slow"] as const;
+export type RoomEventKind = (typeof ROOM_EVENT_KINDS)[number];
 
 export type RoomMode = "p2p" | "relay";
 export type RoomPerson = { name: string; avatar: string; at: string; seen: string };
@@ -87,6 +91,8 @@ export type RoomDoc = {
   // come in: everyone signed in, the host's followers, or their subscribers. gifts: whether gifts can be sent in it. notified: followers
   // were sent a bell. Like a paid live, only the moderators the host names moderate.
   profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean };
+  // ❤️ likes in this live, one per person (lib/room-events-server.ts).
+  likes?: number;
 };
 export const PROFILE_LIVE_AUDIENCES = ["everyone", "followers", "subscribers"] as const;
 export type ProfileLiveAudience = (typeof PROFILE_LIVE_AUDIENCES)[number];

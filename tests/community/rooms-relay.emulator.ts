@@ -94,8 +94,10 @@ const step = (uid: string, id: string, body: Record<string, unknown>) => R.relay
   await R.sendRoomChat(db, "host", room.id, "Hosts are never slowed"); await R.sendRoomChat(db, "host", room.id, "Again");
   await fails(R.sendRoomChat(db, "outsider", room.id, "hi"), 409);
   await fails(R.sendRoomChat(db, "l1", room.id, "   "), 400);
-  const chat = (await db.collection(`communityRooms/${room.id}/chat`).orderBy("at").get()).docs.map((d) => d.data());
+  const all = (await db.collection(`communityRooms/${room.id}/chat`).orderBy("at").get()).docs.map((d) => d.data());
+  const chat = all.filter((m) => !m.ev); // people's messages; the event lines (lib/room-events-server.ts) are counted below
   assert.equal(chat.length, 5); assert.deepEqual([chat[0].from, chat[0].name], ["l1", "L1"]);
+  assert.ok(all.some((m) => m.ev === "join" && /joined$/.test(m.text) && m.from === ""), "the listener's join is a line in the chat, with no sender");
   await db.doc(`communityRooms/${room.id}`).update({ chatSlow: 0 });
 
   // the host sends their microphone: a fresh session, a local track, an answer back, and the room marks them as sending

@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.154.0",
+    bump: "minor",
+    date: "2026-11-07",
+    changes: [
+      { kind: "added", text: "Live chat shows what's happening, in small lines between the messages, like the day lines in Messages: who joined (grouped when lots arrive at once), who liked or shared the live, who sent a gift and what, who followed the host, burst mode when a grand gift shows across #NotesApp, and slow mode on or off." },
+      { kind: "added", text: "❤️ Like and ↗ Share in every live: one like each (everyone sees the count) and the live's link to share." },
+      { kind: "added", text: "Follow the host from inside any live, not only lives from a profile." },
+    ],
+  },
+  {
     version: "v0.153.1",
     bump: "patch",
     date: "2026-11-07",

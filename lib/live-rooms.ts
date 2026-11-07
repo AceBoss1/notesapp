@@ -23,7 +23,7 @@ export const LIVE_COUNT_BROADCAST_MS = 2_000; // the count to the sockets at mos
 export const LIVE_CHAT_RATE: Rate = { burst: 5, perSec: 0.5 };
 export const LIVE_SIGNAL_RATE: Rate = { burst: 10, perSec: 1 };
 
-export type LiveChat = { id: string; from: string; name: string; avatar: string; text: string; at: string };
+export type LiveChat = { id: string; from: string; name: string; avatar: string; text: string; at: string; ev?: string }; // ev: an event line (lib/room-events-server.ts)
 export type LiveHand = { name: string; avatar: string; at: string };
 // What our server tells a room (created, settings changed): where to send batches, and the slow-mode settings.
 // stageMode (v0.139.0, lib/rooms.ts "Stage seats"): in Solo the room refuses raised hands. mods: the moderators named for this live and

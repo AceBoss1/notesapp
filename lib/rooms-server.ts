@@ -22,6 +22,7 @@ import { liveSettingsWithPass, staffListenerCap } from "./staff-pass";
 import { hasStaffPass, roomOnPass } from "./staff-pass-server";
 import { liveEntrance } from "./fans-server";
 import { holdsLiveTicket, markLiveEnded } from "./live-door-server";
+import { flushJoins, handleOf, noteJoin, oncePerPerson, postRoomEvent } from "./room-events-server";
 import type { LiveRecordChoice } from "./live-tickets";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
@@ -252,6 +253,7 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     await pref.set({ ...me, at: before?.at ?? at, seen: at, ...(before?.chatAt ? { chatAt: before.chatAt } : {}), ...(before?.edgeIn ? { edgeIn: true } : {}) } satisfies RoomPersonDoc);
     await recount(db, ref.id, now).catch(() => null);
     if (arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
+    if (arriving && uid !== r.hostUid) await noteJoin(db, ref.id, uid, now).catch(() => {}); // "@ada joined" in the chat
     return { ok: true, mode: "relay", cap };
   }
   const res = await db.runTransaction(async (t) => {
@@ -265,6 +267,7 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     return { ok: true as const, mode, cap, arriving: !cur.joined[uid] };
   });
   if (res.arriving) await announceEntrance(db, ref, r.hostUid, uid, "in", now);
+  if (res.arriving && uid !== r.hostUid) await noteJoin(db, ref.id, uid, now).catch(() => {});
   return { ok: true, mode: res.mode, cap: res.cap };
 }
 
@@ -295,6 +298,7 @@ export async function beatRoom(db: Firestore, uid: string, id: unknown, now = ne
   if (listener) await pref.update({ seen: now.toISOString() });
   else await ref.update({ [`joined.${uid}.seen`]: now.toISOString() });
   if (r.mode === "relay" && countDue(r, now.getTime())) await recount(db, ref.id, now).catch(() => null);
+  if (uid === r.hostUid) await flushJoins(db, ref.id, now).catch(() => {}); // joins grouped during a rush (lib/room-events-server.ts)
   // Live mode: the host's beat brings their minutes and prompts (and enforces the budget); a speaker sending video enforces it too.
   // Listeners' beats never touch it, so a big room costs nothing more.
   // On the live-rooms worker the host also gets the raised hands it reported (so they still show if the host's socket is down).
@@ -1033,4 +1037,25 @@ export async function roomLiveStatus(db: Firestore, uid: string, id: unknown, no
 export async function liveVideoConfig(db: Firestore): Promise<{ on: boolean; kbps: number; fps: number; height: number }> {
   const s = await getRoomSettings(db).catch(() => roomSettings());
   return { on: s.videoOn > 0, kbps: s.videoKbps, fps: s.videoFps, height: s.videoHeight };
+}
+
+// ❤️ Like, ↗ Share and Follow in a live (owner, 7 Nov 2026): a line in the chat, once per person per live (lib/room-events-server.ts).
+// Anyone who may be in the room; a follow only once they really follow the host. Returns whether a line was written.
+export async function markRoomEvent(db: Firestore, uid: string, id: unknown, kind: unknown, now = new Date()): Promise<{ ok: true; posted: boolean; likes?: number }> {
+  if (kind !== "like" && kind !== "share" && kind !== "follow") throw new CommunityError(400, "Unknown event.");
+  const { ref, r } = await roomOf(db, id);
+  if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+  if (uid === r.hostUid && kind !== "share") return { ok: true, posted: false };
+  if (!(await mayEnter(db, r, uid))) throw new CommunityError(403, NOT_IN_TEXT(r));
+  const hostHandle = r.profile?.hostUsername || r.hostUsername;
+  if (kind === "follow" && (!hostHandle || !(await db.doc(`follows/${uid}_${hostHandle}`).get()).exists)) return { ok: true, posted: false };
+  const first = await oncePerPerson(db, ref.id, kind, uid);
+  if (first) {
+    const who = await handleOf(db, uid);
+    const host = hostHandle ? `@${hostHandle}` : r.hostName;
+    const text = kind === "like" ? `${who} liked the live` : kind === "share" ? `${who} shared the live` : `${who} followed ${host}`;
+    await postRoomEvent(db, ref.id, kind, text, now, r);
+  }
+  const likes = kind === "like" ? Number(((await ref.get()).data() as RoomDoc | undefined)?.likes ?? 0) : undefined;
+  return { ok: true, posted: first, ...(likes !== undefined ? { likes } : {}) };
 }
