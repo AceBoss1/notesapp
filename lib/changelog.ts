@@ -15,7 +15,7 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-07",
     changes: [
-      { kind: "changed", text: "Gifts you receive now come to your bell only, with no email: every gift, of any kind and however it was paid. Your gifts and their totals are on Gifts on your profile, as before." },
+      { kind: "changed", text: "Gifts now come to your bell only, never by email, for everyone involved: gifts you receive (of any kind, however they were paid), gifts you give to a community (your receipt stays under My giving), and when gift earnings or community gifts are paid out to your bank account." },
     ],
   },
   {

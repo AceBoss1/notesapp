@@ -1104,7 +1104,7 @@ Churches, NGOs, schools and clubs can take offerings, tithes and donations in th
 
 **For admins:** open your community's **Admin** tab, find **Giving**, tick **Take gifts** and name your funds (Tithe, Offering, Building fund; "Donation" if you name none). Gifts are paid to the bank account of the community's owner under Rates & payouts, so add it first. Below the settings you see every gift (an anonymous giver's name hidden), and the totals per fund. Card details never reach us or you.
 
-**For givers:** tap **Give** on the community (members, and anyone signed in when the community is listed). Choose the amount (from ${money(GIVING_MIN_KOBO)}), the fund, add a note if you like, and choose whether to give anonymously and whether to **cover the charges**. You see the charges and the total before you pay. Every gift gets a receipt by email, and all your receipts are under [My giving](/giving).
+**For givers:** tap **Give** on the community (members, and anyone signed in when the community is listed). Choose the amount (from ${money(GIVING_MIN_KOBO)}), the fund, add a note if you like, and choose whether to give anonymously and whether to **cover the charges**. You see the charges and the total before you pay. Every gift gets a receipt under [My giving](/giving), and a note in your bell (no email).
 
 **Charges, like a bank transfer:** ${bandsText(money)}. By card or bank, Paystack's own charge is added at cost and shown as the **card charge** (${CARD_CHARGE_TEXT()}). From the NotesApp Credit wallet there's no card charge, so it costs less. There's no commission on top. If you cover the charges, you pay the gift plus the charges and the community gets the whole gift; otherwise the charges come out of the gift.
 

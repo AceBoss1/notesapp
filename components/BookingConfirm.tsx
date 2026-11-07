@@ -183,7 +183,7 @@ function Confirm() {
       ) : result.status === "paid" && result.kind === "giving" && result.giving ? (
         <>
           <p className="font-display text-2xl text-ink">Thank you 🙏</p>
-          <p className="mt-3 text-sm text-slate">Your gift of {formatNaira(result.giving.giftKobo)} to {result.giving.communityName} ({result.giving.fund}) is received. Your receipt is on its way by email and stays under My giving.</p>
+          <p className="mt-3 text-sm text-slate">Your gift of {formatNaira(result.giving.giftKobo)} to {result.giving.communityName} ({result.giving.fund}) is received. Your receipt is under My giving.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <AppLink href="/giving" className="btn-primary inline-block !px-5 !py-2 text-xs">My giving</AppLink>
             <Link href={`/c/${result.giving.cid}`} className="inline-block rounded-full border border-rule px-5 py-2 text-xs font-semibold text-ink">Back to {result.giving.communityName}</Link>

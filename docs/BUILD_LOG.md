@@ -3136,8 +3136,9 @@ title says it's a guide, book or course. Whole-word matching had to be built wit
 "eth" and "token" were left out because they match ordinary words ("Ethiopian", "a token of love"). Adverts are flagged for the admin
 reviewing them, never refused by a pattern.
 
-**Gifts: bell, no email (v0.153.0, 7 Nov 2026)** — Owner: "every gift should trigger bell but not email". `notifyGift`
-(lib/payments.ts) wrote a bell and also emailed the receiver; the email is gone. Every gift still writes the receiver's bell (with its
-animation for catalogue gifts), whatever was sent and however it was paid (card or wallet both reach notifyGift through the payment's
-notify step); co-authors get their bell in notifyGiftShares. Community giving (donations) is separate and unchanged: the giver still gets
-an emailed receipt, and the community's owner a bell.
+**Gifts: bell, no email (v0.153.0, 7 Nov 2026)** — Owner: "every gift should trigger bell but not email", then "no gift email, to any
+party". Removed every gift email: the receiver's email in `notifyGift` (the bell stays, written for every gift however it was paid;
+co-authors get theirs in notifyGiftShares); the giver's emailed receipt for a gift to a community (`notifyGiving` now sends bells to the
+giver and the community's owner; the receipt stays under My giving); and the payout emails for gift earnings (`gift_payout`) and community
+gifts (`giving`) in lib/payouts.ts, which now ring the bell only. Wording that promised an email (Give, the giving confirmation, My giving,
+the help article) now points to My giving and the bell. Paystack may still send its own card receipt; that isn't ours to switch off.
