@@ -910,7 +910,7 @@ export async function POST(req: NextRequest) {
       metadata: { kind, username, uid: user.uid },
     });
     await savePayment(record);
-    return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
   } catch (err) {
     if (err instanceof WalletError) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err instanceof GiftError) return NextResponse.json({ error: err.message }, { status: err.status });

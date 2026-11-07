@@ -83,7 +83,7 @@ function VideoGift({ g, v, onDone }: { g: GiftPlay; v: GiftVideo; onDone: () => 
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const soundOn = () => { const el = ref.current; if (!el) return; el.muted = false; setMuted(false); setGiftSound(true); el.play().catch(() => {}); };
   return (
-    <div className="gift-vid fixed inset-0 z-[70] flex flex-col items-center justify-center" role="status" aria-live="polite" data-gift={g.giftId} data-gift-video>
+    <div className="gift-vid fixed inset-0 z-[160] flex flex-col items-center justify-center" role="status" aria-live="polite" data-gift={g.giftId} data-gift-video>
       <style>{VID_CSS}</style>
       <div className="gift-vid-frame relative">
         {still
@@ -144,7 +144,7 @@ export default function GiftOverlay() {
   const grand = isGrand(unit);
   const ms = playMs(unit);
   return (
-    <div className={`gift-ov pointer-events-none fixed inset-0 z-[70] flex items-center justify-center ${grand ? "gift-ov-grand" : ""}`} style={{ ["--gift-ms" as string]: `${ms}ms` }} role="status" aria-live="polite" data-gift={now.giftId}>
+    <div className={`gift-ov pointer-events-none fixed inset-0 z-[160] flex items-center justify-center ${grand ? "gift-ov-grand" : ""}`} style={{ ["--gift-ms" as string]: `${ms}ms` }} role="status" aria-live="polite" data-gift={now.giftId}>
       <GiftArtStyles />
       <style>{OV_CSS}</style>
       <Effects fx={MOTIF_EFFECTS[now.giftId] ?? []} big={grand} />

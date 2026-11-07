@@ -3170,3 +3170,14 @@ co-authors get theirs in notifyGiftShares); the giver's emailed receipt for a gi
 giver and the community's owner; the receipt stays under My giving); and the payout emails for gift earnings (`gift_payout`) and community
 gifts (`giving`) in lib/payouts.ts, which now ring the bell only. Wording that promised an email (Give, the giving confirmation, My giving,
 the help article) now points to My giving and the bell. Paystack may still send its own card receipt; that isn't ours to switch off.
+
+**Gifts in a live: the sheet behind the room, gifting commenters (v0.153.1, 7 Nov 2026)** — The owner's HAR from a live: the gift sheet
+for Chef Adams loaded (/api/gifts/can ok, the wallet read) but nothing was ever sent. The sheet is portalled to the page at z-50 while
+the live room covers the screen at z-[130], so it opened behind the room. The gift sheet (both forms), Report, the gift animation and the
+grand-gift banner now sit above every full-screen layer (z-[150]–[160]; the room is 130–140, calls 120–130, the Media and picture viewers
+100–110), which also fixes gifting from the Media viewer. Second: paying from the wallet still sent the browser to /booking/confirm,
+taking the sender out of the live (and ending it if they host). The gift route now answers `paid` like the others, and startCheckout's
+`stayIfPaid` keeps a live gift in the room: the sheet closes and the gift plays there. By card it still goes to Paystack. Third (the
+owner's ask): the live chat has ⋯ (Gift · Block · Report, toKind commenter/host/speaker, context live) beside everyone else's name,
+hidden in a profile live with gifts off. Checked in the browser against emulators: a viewer gifting the host from the stage, the host
+gifting a commenter from the chat, a wallet gift sent with the host still in the room and the animation playing over it.
