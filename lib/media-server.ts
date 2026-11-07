@@ -343,7 +343,7 @@ export async function markPicturePost(db: Firestore, id: string, deps: MediaDeps
   return { ...p, ...patch };
 }
 
-// A video post still processing: asks Stream. Ready → shown; too long, failed, or never arrived after a day → rejected, its slot and bytes
+// A video post still processing: asks Stream. Ready → shown; too long, failed, or not ready after a day → rejected, its slot and bytes
 // given back, and the file removed. Returns the post as it is now (null if missing).
 export async function refreshVideo(db: Firestore, id: string, deps: MediaDeps, now = new Date()): Promise<MediaPostDoc | null> {
   const ref = db.doc(`mediaPosts/${id}`);
@@ -361,7 +361,11 @@ export async function refreshVideo(db: Firestore, id: string, deps: MediaDeps, n
   const ageMs = now.getTime() - new Date(p.createdAt).getTime();
   if (!v) return ageMs > 86_400_000 ? reject("The video never finished uploading. Your slot for this week is back.") : p;
   if (v.state === "error") return reject("Cloudflare couldn't process this video. Try exporting it as MP4 and posting again; your slot is back.");
-  if (!v.readyToStream) return p;
+  // Not ready after a day: the upload never reached Stream (state "pendingupload", e.g. while Stream storage was full on 5 Nov 2026) or
+  // Stream stalled. It used to stay "Processing" for ever; now it is rejected like the cases above, so the slot comes back.
+  if (!v.readyToStream) return ageMs > 86_400_000
+    ? reject(v.state === "pendingupload" || !v.state ? "The video never finished uploading. Your slot for this week is back; post it again." : "Cloudflare didn't finish preparing this video within a day. Your slot is back; post it again.")
+    : p;
   const user = (await db.doc(`users/${p.ownerUid}`).get()).data();
   const max = await limit(db, "mediaVideoMaxSeconds", effectiveTier({ username: String(user?.username ?? ""), role: user?.role ?? "reader", accountTier: user?.accountTier ?? "standard" }));
   const duration = Number(v.duration ?? p.video.durationSec);

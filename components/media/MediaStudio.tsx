@@ -88,7 +88,13 @@ export default function MediaStudio() {
       {tab === "live" && (
         // The recordings and replays from lives (PR #256): publish, share, Share to Journal; published ones show on the creator's Lives &
         // replays tab (lib/media-replays.ts replaysFor).
-        <div className="mt-4"><ReplaysList /></div>
+        <div className="mt-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rule bg-card p-4">
+            <p className="text-sm text-slate">Start a paid live, or a room in a community you run. Recordings and replays show below.</p>
+            <Link href="/lives/start" className="btn-primary !px-4 !py-2 text-sm">🔴 Go live</Link>
+          </div>
+          <ReplaysList />
+        </div>
       )}
       {tab === "settings" && <div className="mt-4 max-w-2xl"><FromYourSite s={s} onChanged={setS} settingsOnly /></div>}
     </div>

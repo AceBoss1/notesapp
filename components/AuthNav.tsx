@@ -88,6 +88,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
+            {profile && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
             {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>
             <Link href="/profile/account" className={item}>Account (email, username)</Link>

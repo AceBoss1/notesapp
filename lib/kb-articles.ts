@@ -412,6 +412,8 @@ Gifts to a community's funds are [giving](/help/giving) instead: no commission, 
     A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
 A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
 
+**Where to start:** tap **🔴 Go live** on your profile (under your Media), in your Media studio (Lives & replays) or in your account menu. [Go live](/lives/start) lists your paid lives and the communities you can start a room in.
+
 **Scheduling one:** on [Paid lives](/lives) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
 - **${BAND_NAME.early}:** until a date and time you pick.
 - **${BAND_NAME.normal}:** from then until the start.
