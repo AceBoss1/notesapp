@@ -955,6 +955,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     admin review shows a note from `adFlags` (a prompt, never a decision). Help: "Crypto and stablecoins on #NotesApp"; Nana folds
     USDT, USDC, Bitcoin, stablecoin and P2P into "crypto". FUNDING.md §11 has the CBN rules and what they mean for us; §5's
     dollar-balance idea is off for Nigeria. Tests: `test:money` (new), rules 93/93, `test:help`, `test:nana`.
+126. **🔴 Go live and the media fixes (v0.151.0, branch `push/golive-media-fixes`; owner, 7 Nov 2026):** the Go live button (profile Media
+    tab, Media studio, account menu) and `/lives/start` show only to team accounts while the **staff test pass** is on (Admin → Limits);
+    `GET /api/lives?golive=1` answers `hasStaffPass`. Starting a live is the team's; joining a public live is anyone's. To try it: switch the
+    pass on, open your profile → Media. The free profile live is planned with mockups in `docs/GO_LIVE.md` (awaiting approval). Same PR:
+    the Moment window scrolls, the song list shows three songs, and Media videos not ready after a day are rejected with the slot back
+    (the three stuck 5 Nov videos clear on the next sweep; re-post them).
 
 ## 3. How the work is done (please keep these)
 

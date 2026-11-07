@@ -46,11 +46,12 @@ const readAudioOnly = () => {
 };
 type RecChoice = RecordingFigures & { canRecord: boolean };
 
-export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: boolean; onOpen: (id: string, title?: string) => void }) {
+export function RoomsCard({ cid, canHost, onOpen, startOpen }: { cid: string; canHost: boolean; onOpen: (id: string, title?: string) => void; startOpen?: boolean }) {
   const [rooms, setRooms] = useState<Card[] | null>(null);
   const [figures, setFigures] = useState<RoomFigures>(DEFAULT_ROOM_FIGURES);
   const [title, setTitle] = useState("");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!startOpen && canHost); // ?start=room (Go live, /lives/start)
+  const scrolled = useRef(false);
   const [err, setErr] = useState("");
   const [poster, setPoster] = useState<{ source: PosterSource; url?: string; preview?: string }>({ source: "none" });
     // Recording (lib/live-recording.ts): off by default; hidden with a note while the recorder isn't set up; ticked and fixed when forced.
@@ -65,7 +66,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
   useEffect(() => { load(); const t = setInterval(load, 20_000); return () => clearInterval(t); }, [load]);
   if (rooms === null || (!rooms.length && !canHost)) return null;
   return (
-    <section className="overflow-hidden rounded-2xl border border-rule bg-card" aria-labelledby="rooms-h">
+    <section ref={(el) => { if (el && startOpen && !scrolled.current) { scrolled.current = true; el.scrollIntoView({ block: "start", behavior: "smooth" }); } }} className="scroll-mt-24 overflow-hidden rounded-2xl border border-rule bg-card" aria-labelledby="rooms-h">
       <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-crimson-deep to-crimson px-4 py-3 text-paper">
         <p id="rooms-h" className="flex items-center gap-2 font-ui text-sm font-bold"><span aria-hidden className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-paper/70" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-paper" /></span>Audio rooms</p>
         {canHost && !open && <button type="button" onClick={() => setOpen(true)} className="rounded-full bg-paper/15 px-3 py-1 font-ui text-xs font-semibold hover:bg-paper/25">+ Start a room</button>}

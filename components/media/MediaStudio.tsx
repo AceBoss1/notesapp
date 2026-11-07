@@ -14,6 +14,7 @@ import { loadStudio, mediaApi, sendToStream, videoInfo } from "@/lib/media-clien
 import { uploadToR2WithKey } from "@/lib/upload";
 import { Icon, Pattern } from "./MediaTile";
 import SongPicker from "./SongPicker";
+import { useGoLive } from "@/components/lives/useGoLive";
 
 // /profile/media, the Media studio (approved mockup media-studio-*.png): a new post (video to Cloudflare Stream, or up to 10 pictures as
 // WebP to our bucket), your posts with their figures and switches, and the pictures from your site with a Hide switch each. Lives & replays
@@ -41,6 +42,7 @@ const card = "rounded-[22px] border border-rule bg-card p-5 sm:p-6";
 const fmtGB = (b: number) => (b >= 1024 ** 3 ? `${+(b / 1024 ** 3).toFixed(1)} GB` : `${Math.max(0, Math.round(b / 1024 ** 2))} MB`);
 
 export default function MediaStudio() {
+  const goLive = useGoLive(); // 🔴 Go live: team accounts while the staff test pass is on (Admin → Limits)
   const [s, setS] = useState<Studio | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("posts");
@@ -88,7 +90,13 @@ export default function MediaStudio() {
       {tab === "live" && (
         // The recordings and replays from lives (PR #256): publish, share, Share to Journal; published ones show on the creator's Lives &
         // replays tab (lib/media-replays.ts replaysFor).
-        <div className="mt-4"><ReplaysList /></div>
+        <div className="mt-4">
+          {goLive && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rule bg-card p-4">
+            <p className="text-sm text-slate">Start a paid live, or a room in a community you run. Recordings and replays show below.</p>
+            <Link href="/lives/start" className="btn-primary !px-4 !py-2 text-sm">🔴 Go live</Link>
+          </div>}
+          <ReplaysList />
+        </div>
       )}
       {tab === "settings" && <div className="mt-4 max-w-2xl"><FromYourSite s={s} onChanged={setS} settingsOnly /></div>}
     </div>

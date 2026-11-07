@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import {
-  CommunityError, addComment, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, trendingCommunities, insights, join, leave, like, listCircles,
+  CommunityError, addComment, communitiesIHost, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, trendingCommunities, insights, join, leave, like, listCircles,
   listComments, listMembers, listPosts, pinPost, removeComment, removeMember, removePost, rotateInvite, setCircleMembers, setRole, unban,
   updateSettings, viewCommunity,
 } from "@/lib/community-server";
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams;
     const id = q.get("id") ?? "", as = q.get("as") ?? undefined;
     if (q.get("run")) return ok({ communities: uid ? await communitiesIRun(db, uid) : [] });
+    if (q.get("host")) return ok({ communities: uid ? await communitiesIHost(db, uid) : [] });
     if (q.get("comments")) return ok({ comments: await listComments(db, uid, q.get("comments")!, as) });
     // The same for everyone, so the CDN keeps it 5 minutes (it reads a week of posts, comments and joins).
     if (q.get("trending")) return NextResponse.json({ communities: await trendingCommunities(db, Number(q.get("trending"))) }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });

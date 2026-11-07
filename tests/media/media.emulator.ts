@@ -151,6 +151,15 @@ const put = (key: string, b: Buffer = WEBP_STUB) => { objects.set(key, b); retur
   stream.set(await uidOf(vp3.id), { readyToStream: false, state: "error" });
   assert.equal((await refreshVideo(db, vp3.id, deps))!.status, "rejected", "Stream couldn't process it");
   assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 1);
+  // Stuck: Stream has it but it never became ready (the upload never arrived, e.g. while Stream storage was full). Waits a day, then rejected.
+  const v4 = await startMediaVideo(db, T, "pro", { durationSec: 30, size: 1000 }, deps);
+  const vp4 = await createMediaPost(db, T, "pro", { kind: "video", videoUploadId: v4.uploadId }, deps);
+  stream.set(await uidOf(vp4.id), { readyToStream: false, state: "pendingupload" });
+  assert.equal((await refreshVideo(db, vp4.id, deps))!.status, "processing", "not ready yet: still waiting");
+  const dayOn = new Date(Date.now() + 86_400_000 + 60_000);
+  const stuck = (await refreshVideo(db, vp4.id, deps, dayOn))!;
+  assert.equal(stuck.status, "rejected", "not ready after a day: rejected"); assert.match(String(stuck.rejectedReason), /never finished uploading/);
+  assert.equal((await mediaQuota(db, "u_tunde", "pro")).videos.used, 1, "its slot is given back");
 
   // ── Who can see: everyone / followers / subscribers, and blocks ──
   const fp = await createMediaPost(db, T, "pro", { kind: "pictures", audience: "followers", pictureKeys: [put("media/u_tunde/f.webp")] }, deps);

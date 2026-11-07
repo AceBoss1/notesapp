@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.151.0",
+    bump: "minor",
+    date: "2026-11-07",
+    changes: [
+      { kind: "added", text: "🔴 Go live, being tried by the #NotesApp team first: a button on your profile, in your Media studio and in your account menu, opening one page with the ways to go live (a paid live, or a room in a community you run). It opens to everyone after the team's tests, with a free live straight from your profile to follow." },
+      { kind: "fixed", text: "New moment: the window now scrolls on small screens, so Share moment is always reachable." },
+      { kind: "fixed", text: "Sounds: the song list shows three songs at a time and scrolls (search still finds any song), and ▶ Listen is no longer cut off on phones." },
+      { kind: "fixed", text: "Media videos that never finished uploading no longer stay on Processing for ever: after a day they are marked as not posted, with the reason, and your weekly video slot comes back so you can post again." },
+    ],
+  },
+  {
     version: "v0.149.0",
     bump: "minor",
     date: "2026-11-06",
@@ -21,7 +32,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.148.0",
+    version: "v0.150.0",
     bump: "minor",
     date: "2026-11-06",
     changes: [

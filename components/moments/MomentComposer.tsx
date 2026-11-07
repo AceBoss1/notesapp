@@ -132,7 +132,8 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="New moment">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      {/* Never taller than the screen: the window scrolls, so Share moment is always reachable. */}
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-ink">New moment</h2>
           <button onClick={onClose} aria-label="Close" className="px-2 text-2xl leading-none text-slate">×</button>

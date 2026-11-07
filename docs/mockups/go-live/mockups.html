@@ -1,0 +1,165 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:860px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px}
+.item{width:330px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}
+.cap b{color:var(--ink);display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.cam{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.face{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:120px;height:150px;border-radius:50% 50% 45% 45%;background:radial-gradient(ellipse at 45% 40%,#b7795a,#6d3a28 70%);opacity:.85}
+.body{position:absolute;left:50%;top:44%;transform:translateX(-50%);width:230px;height:260px;border-radius:120px 120px 0 0;background:linear-gradient(#5b1426,#2a0811)}
+.pill{background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.live{background:#E0123E;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.chat{position:absolute;left:12px;right:70px;bottom:70px;display:flex;flex-direction:column;gap:6px}
+.msg{color:#fff;font-size:12.5px;line-height:1.35;text-shadow:0 1px 2px #000}.msg b{color:#FFD6E0}
+.rail{position:absolute;right:10px;bottom:76px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.rb{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px)}
+.rb small{display:block}
+.bar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;align-items:center}
+.input{flex:1;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;border:1px solid rgba(255,255,255,.25)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.lbl{font-size:12px;font-weight:700;color:var(--ink);margin:10px 0 6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg span{border:1px solid var(--rule);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;background:#fff}
+.seg .on{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.tg{width:34px;height:20px;border-radius:999px;background:var(--crimson);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#cfc3bc}.tg.off:after{right:auto;left:2px}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ring{width:84px;height:84px;border-radius:50%;padding:3px;background:conic-gradient(#E0123E,#ff6a88,#E0123E);position:relative}
+.ring>div{width:100%;height:100%;border-radius:50%;border:3px solid var(--paper);background:radial-gradient(#b7795a,#5b1426)}
+.ring .lv{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:14px;padding:11px;margin-top:8px}
+.opt.hl{border-color:var(--crimson);background:#fbf0f3}
+.opt i{font-style:normal;font-size:20px}.opt b{font-size:13.5px;display:block}.opt span{font-size:11.5px;color:var(--slate)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:20px;display:block;font-family:Fraunces,serif}.stat span{font-size:11.5px;color:var(--slate)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.gift{position:absolute;left:12px;top:150px;background:linear-gradient(90deg,rgba(122,3,40,.9),rgba(166,9,61,.75));color:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12px;display:flex;gap:8px;align-items:center}
+.gift i{font-style:normal;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.seats{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:8px}
+.seat{width:58px;height:74px;border-radius:12px;background:rgba(0,0,0,.35);border:1.5px dashed rgba(255,255,255,.55);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.seat.f{border:2px solid #3ddc84;background:radial-gradient(#8a5b45,#2a120b)}
+</style></head><body>
+<h1>🔴 Go live from your profile: mockups</h1>
+<p class="lede">A free live straight from your profile: no ticket and no community. <b>For now only the #NotesApp team can start one, while the staff test pass is on (Admin → Limits).</b> Anyone can join a public live. It runs on the same rooms as community lives: video, chat, gifts, the stage, recording and replays.</p>
+<div class="grid">
+
+<!-- 1 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">na</span>NotesApp</div>
+  <div style="padding:18px 16px;text-align:center">
+    <div style="display:flex;justify-content:center"><div class="ring" style="background:var(--rule)"><div></div></div></div>
+    <p style="font-family:Fraunces,serif;font-size:22px;margin-top:10px">Emmanuel Adams</p>
+    <p style="font-size:12px;color:var(--crimson);letter-spacing:.12em;margin-top:2px">FOUNDER &amp; CEO · @EMMANUEL</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px"><span class="btn pri">🔴 Go live</span><span class="btn sec">Edit profile</span></div>
+  </div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <p style="font-weight:800;font-size:16px">Go live</p>
+    <div class="opt hl"><i>🔴</i><div><b>Go live now · free</b><span>From your profile. Your followers are told. Anyone can join if it's public.</span></div></div>
+    <div class="opt"><i>🎟</i><div><b>Schedule a paid live</b><span>Tickets with early bird, normal and late prices.</span></div></div>
+    <div class="opt"><i>👥</i><div><b>A room in your community</b><span>Lagos Creators Hub, Living Without Borders</span></div></div>
+  </div>
+</div></div><p class="cap"><b>1 · Tap 🔴 Go live on your profile</b>A choice sheet: go live now for free (new), a paid live, or a room in a community you run. Members outside the team don't see the button until you open it to everyone.</p></div>
+
+<!-- 2 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#000">
+  <div class="cam"></div><div class="face"></div><div class="body"></div>
+  <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between"><span class="pill">✕ Close</span><span class="pill">🔄 Flip</span></div>
+  <div class="sheet" style="padding:14px">
+    <input class="card" style="width:100%;font:600 14px Inter;padding:10px" value="Sunday chat: building NotesApp in public">
+    <p class="lbl">Who can watch</p>
+    <div class="seg"><span class="on">🌍 Everyone</span><span>Followers</span><span>Subscribers</span></div>
+    <p class="lbl">Stage</p>
+    <div class="seg"><span>Solo</span><span class="on">Approve</span><span>Open</span></div>
+    <div style="margin-top:8px">
+      <div class="row">🔔 Tell my followers<span class="tg"></span></div>
+      <div class="row">🎁 Gifts<span class="tg"></span></div>
+      <div class="row">⏺ Record for a replay<span class="tg off"></span></div>
+    </div>
+    <span class="btn pri" style="width:100%;margin-top:8px;padding:12px">🔴 Go live</span>
+    <p style="font-size:10.5px;color:var(--slate);text-align:center;margin-top:6px">Team test: on until 14 Nov · nothing is recorded unless you switch it on</p>
+  </div>
+</div></div><p class="cap"><b>2 · Set up in one screen</b>Camera preview behind. A title, who can watch (everyone, followers or subscribers), the stage choice you already have, a bell to followers, gifts on or off, and recording (everyone is told). Then Go live.</p></div>
+
+<!-- 3 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#000">
+  <div class="cam"></div><div class="face"></div><div class="body"></div>
+  <div style="position:absolute;top:12px;left:12px;right:12px;display:flex;gap:6px;align-items:center"><span class="live">LIVE</span><span class="pill">12:04</span><span class="pill">👁 248</span><span style="flex:1"></span><span class="pill" style="background:#E0123E">End</span></div>
+  <div class="seats"><div class="seat f"></div><div class="seat">+</div><div class="seat">+</div></div>
+  <div class="gift"><i>🍾</i><span><b>@ada</b> sent Cricova Champagne</span></div>
+  <div class="chat">
+    <p class="msg"><b>tunde</b> Greetings from Ibadan 👋</p>
+    <p class="msg"><b>chioma</b> When is the Android app coming?</p>
+    <p class="msg"><b>ada</b> 🍾 for the team!</p>
+    <p class="msg" style="opacity:.85">✋ <b>bisi</b> asked to come on stage · <u>Let up</u></p>
+  </div>
+  <div class="rail"><div class="rb">🎙</div><div class="rb">📷</div><div class="rb">✋<small></small></div><div class="rb">⚙️</div></div>
+  <div class="bar"><span class="input">Say something…</span><span class="rb" style="width:40px;height:40px">📤</span></div>
+</div></div><p class="cap"><b>3 · You're live (host)</b>LIVE, time and viewers at the top, End on the right. Stage seats down the side (+ invites someone). Gifts burst over the video. Raised hands show in the chat with Let up. Mic, camera and settings on the rail.</p></div>
+
+<!-- 4 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">na</span>NotesApp<span style="flex:1"></span>🔔<span style="background:#fff;color:var(--crimson);border-radius:999px;font-size:10px;padding:1px 5px">1</span></div>
+  <div style="padding:12px 14px">
+    <div class="card" style="display:flex;gap:10px;align-items:center;border-color:var(--crimson)"><span style="font-size:20px">🔴</span><div style="font-size:12.5px;line-height:1.35"><b>@emmanuel is live:</b> Sunday chat: building NotesApp in public<br><span style="color:var(--slate)">just now · tap to join</span></div></div>
+    <p class="lbl" style="margin-top:14px">Live now</p>
+    <div style="display:flex;gap:12px">
+      <div style="text-align:center"><div class="ring"><div></div><span class="live lv">LIVE</span></div><p style="font-size:11.5px;margin-top:10px;font-weight:600">emmanuel</p></div>
+      <div style="text-align:center;opacity:.55"><div class="ring" style="background:var(--rule)"><div style="background:radial-gradient(#d9b8a6,#8d6e60)"></div></div><p style="font-size:11.5px;margin-top:10px">ada</p></div>
+      <div style="text-align:center;opacity:.55"><div class="ring" style="background:var(--rule)"><div style="background:radial-gradient(#c9d6c0,#6c7f62)"></div></div><p style="font-size:11.5px;margin-top:10px">tunde</p></div>
+    </div>
+    <p class="lbl" style="margin-top:16px">On a profile</p>
+    <div class="card" style="text-align:center">
+      <div style="display:flex;justify-content:center"><div class="ring"><div></div><span class="live lv">LIVE</span></div></div>
+      <p style="font-family:Fraunces,serif;font-size:18px;margin-top:12px">Emmanuel Adams</p>
+      <span class="btn pri" style="margin-top:8px">▶ Join the live · 248 watching</span>
+    </div>
+  </div>
+</div></div><p class="cap"><b>4 · How people find it</b>Followers get a bell (if you left it on). A red LIVE ring on your picture in the Moments strip and on your profile, with Join the live. Public lives also show under Explore → Live now.</p></div>
+
+<!-- 5 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#000">
+  <div class="cam"></div><div class="face"></div><div class="body"></div>
+  <div style="position:absolute;top:12px;left:10px;right:10px;display:flex;gap:5px;align-items:center"><span class="pill" style="display:flex;gap:5px;align-items:center;white-space:nowrap"><span style="width:20px;height:20px;border-radius:50%;background:radial-gradient(#b7795a,#5b1426)"></span>@emmanuel</span><span class="btn pri" style="padding:5px 9px;font-size:11px;white-space:nowrap">+ Follow</span><span style="flex:1"></span><span class="live">LIVE</span><span class="pill" style="white-space:nowrap">👁 248</span></div>
+  <div class="seats"><div class="seat f"></div><div class="seat">+</div></div>
+  <div class="chat">
+    <p class="msg"><b>tunde</b> Greetings from Ibadan 👋</p>
+    <p class="msg"><b>chioma</b> When is the Android app coming?</p>
+    <p class="msg"><b>emmanuel</b> Before Christmas 🙌</p>
+  </div>
+  <div class="rail"><div class="rb">🎁</div><div class="rb">✋</div><div class="rb">↗︎</div><div class="rb">⚑</div></div>
+  <div class="bar"><span class="input">Say something…</span><span class="rb" style="width:40px;height:40px">❤️</span></div>
+</div></div><p class="cap"><b>5 · Watching (anyone, if it's public)</b>Follow from inside the live, chat, send a gift, ✋ ask to come on stage (or tap an empty seat if the host chose Open), share the link, or report. Signed-out visitors are asked to sign in to chat or gift.</p></div>
+
+<!-- 6 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">na</span>Live ended</div>
+  <div style="padding:16px">
+    <p style="font-family:Fraunces,serif;font-size:22px">Nice one, Emmanuel 👏</p>
+    <p style="font-size:12.5px;color:var(--slate);margin-top:2px">Sunday chat: building NotesApp in public · 42 min</p>
+    <div class="stat" style="margin-top:14px">
+      <div><b>612</b><span>people joined</span></div><div><b>248</b><span>at the peak</span></div>
+      <div><b>₦183,500</b><span>in gifts (18)</span></div><div><b>+37</b><span>new followers</span></div>
+    </div>
+    <div class="card" style="margin-top:12px;font-size:12.5px;line-height:1.45"><b>Replay</b><br>Recorded. Publish it to your Media (Lives &amp; replays), or keep it private.<div style="display:flex;gap:8px;margin-top:10px"><span class="btn pri">Publish replay</span><span class="btn sec">Keep private</span></div></div>
+    <div class="note" style="margin-top:12px">Gifts reach your earnings with the usual hold. Top gifters: @ada (₦150,000), @tunde (₦25,000).</div>
+    <span class="btn sec" style="width:100%;margin-top:12px">Back to my profile</span>
+  </div>
+</div></div><p class="cap"><b>6 · When you end</b>A summary: who joined, the peak, gifts and new followers. If you recorded, publish the replay to your Media or keep it private. Gifts follow the usual earnings hold.</p></div>
+
+</div>
+<p class="lede" style="margin-top:26px"><b>Not in this first version:</b> a live together with another creator (a split screen), live shopping, and scheduling a free live ahead. Each can come later.</p>
+</body></html>

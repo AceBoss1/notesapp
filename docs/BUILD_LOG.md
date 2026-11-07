@@ -3135,3 +3135,17 @@ with yield promises never run. The shop rule is enforced in firestore.rules: a c
 title says it's a guide, book or course. Whole-word matching had to be built without lookarounds (Firestore's RE2 has none), and
 "eth" and "token" were left out because they match ordinary words ("Ethiopian", "a token of love"). Adverts are flagged for the admin
 reviewing them, never refused by a pattern.
+
+**Go live links, Moment window, song list, stuck videos (v0.151.0, 7 Nov 2026)** — The owner reported four things from the live site:
+there was no place to start a live; three videos from 5 Nov still said Processing; and the Moment window couldn't be finished because the
+song list ran past the screen and the window didn't scroll. Lives: paid lives and community rooms already existed, but the only link was
+"Paid lives" in the footer. The owner chose "link now, build next": a 🔴 Go live button (profile Media tab, Media studio Lives & replays,
+account menu) opens /lives/start. The owner then asked that it be for the team only until they switch it on: it reuses the existing staff test
+pass (Admin → Limits, super admins, always with an end date). GET /api/lives?golive=1 answers hasStaffPass (pass on and a team account);
+everyone else sees no button and /lives/start says it's coming soon. The page lists the host's paid lives (Schedule a paid live) and every community they can host a room in
+(owner, admin or moderator: `communitiesIHost`, GET /api/community?host=1). Each opens the community with ?start=room, which opens and
+scrolls to the Start a room form. A free live from your own profile is the next build (mockups first). Moments: the window is capped at
+the screen height and scrolls. Songs: the list shows three at a time (owner's ask) with search kept; the grid now has a minmax(0,1fr)
+column, so long titles truncate instead of pushing ▶ Listen off a phone screen. Videos: refreshVideo only rejected a post when Stream had
+no record of it or reported an error; an upload that never arrived (state "pendingupload", likely the Stream-storage-full window on 5 Nov)
+stayed Processing for ever. Now anything not ready after a day is rejected with a reason and the week's slot given back (test:media-server).

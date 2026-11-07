@@ -7,7 +7,8 @@ import { soundPath, songLabel } from "@/lib/songs";
 import { useSong, useSongs } from "@/lib/sounds-client";
 
 // The sound on a Media post or a moment: Original sound, or a NotesApp Sounds song (lib/songs.ts: house songs and approved artist songs).
-// ▶ plays 15 seconds from the hook. With many songs, a search box and a scrolling list.
+// ▶ plays 15 seconds from the hook. With many songs, a search box and a list that shows three at a time and scrolls (owner, 7 Nov 2026:
+// the full list pushed the Share button off the Moment window).
 export default function SongPicker({ value, onChange, dark }: { value: string; onChange: (id: string) => void; dark?: boolean }) {
   const songs = useSongs();
   const [playing, setPlaying] = useState("");
@@ -32,7 +33,7 @@ export default function SongPicker({ value, onChange, dark }: { value: string; o
   const sub = dark ? "text-white/60" : "text-slate";
   const row = (on: boolean) => `flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-sm ${on ? "border-crimson bg-crimson/5" : dark ? "border-white/15" : "border-rule"} ${dark ? "text-white" : "text-ink"}`;
   return (
-    <div className="mt-1.5 grid gap-1.5" role="radiogroup" aria-label="Sound">
+    <div className="mt-1.5 grid grid-cols-1 gap-1.5" role="radiogroup" aria-label="Sound">
       <button type="button" role="radio" aria-checked={!value} onClick={() => { stop(); onChange(""); }} className={row(!value)}>
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${dark ? "bg-white/10" : "bg-field"}`} aria-hidden="true">♫</span>
         <span className="min-w-0 flex-1"><b className="block font-ui">{MEDIA_SOUND}</b><span className={`text-xs ${sub}`}>The sound you recorded, or none</span></span>
@@ -41,7 +42,7 @@ export default function SongPicker({ value, onChange, dark }: { value: string; o
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${songs.length} songs in NotesApp Sounds`} aria-label="Search songs"
           className={`rounded-2xl border px-3.5 py-2 text-sm outline-none focus:border-crimson ${dark ? "border-white/15 bg-transparent text-white placeholder:text-white/40" : "border-rule bg-card text-ink"}`} />
       )}
-      <div className="grid max-h-72 gap-1.5 overflow-y-auto pr-0.5">
+      <div className="grid max-h-[13.25rem] grid-cols-1 gap-1.5 overflow-y-auto overscroll-contain pr-0.5" aria-label="Songs (scroll for more)">
         {shown.map((s) => (
           <div key={s.id} className={row(value === s.id)}>
             <button type="button" role="radio" aria-checked={value === s.id} onClick={() => onChange(s.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
