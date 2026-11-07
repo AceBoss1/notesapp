@@ -1059,7 +1059,6 @@ async function notifyGift(p: PaymentRecord) {
       .catch((e) => console.error("[gifts] announcement failed", e));
   }
   const who = p.gift.anonymous ? "Someone" : p.gift.senderName || "A reader";
-  const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
   const about = p.gift.noteSlug ? " on one of your posts" : "";
   const qty = p.gift.quantity ?? 1;
   const what = p.gift.animId ? `${qty > 1 ? `${qty} × ${p.gift.animName || "gift"}` : `a ${p.gift.animName || "gift"}`} (${formatNaira(p.amountKobo)})` : `a gift of ${formatNaira(p.amountKobo)}`;
@@ -1072,14 +1071,8 @@ async function notifyGift(p: PaymentRecord) {
     createdAt: new Date().toISOString(),
     linkHref: p.gift.noteSlug ? `/journals/${p.gift.noteSlug}` : `/u/${p.gift.username}`,
   });
-  const pubEmail = await getUserEmail(p.publisherUid);
-  if (pubEmail) {
-    await sendEmail({
-      to: pubEmail,
-      subject: `You received a ${formatNaira(p.amountKobo)} gift`,
-      text: `${who} sent you ${what}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is ready to withdraw after a 7-day review: open Gifts on your profile and tap Withdraw.\nReference: ${p.reference}\n\n#NotesApp`,
-    });
-  }
+  // A bell only, never an email (owner, 7 Nov 2026: "every gift should trigger bell but not email"). The bell above is written for every
+  // gift, whatever it is and however it was paid; co-authors get theirs in notifyGiftShares.
 }
 
 // A gift to a community: the receipt to the giver (email and bell; it stays under My giving), and a bell for the community's owner.

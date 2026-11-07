@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.153.0",
+    bump: "minor",
+    date: "2026-11-07",
+    changes: [
+      { kind: "changed", text: "Gifts you receive now come to your bell only, with no email: every gift, of any kind and however it was paid. Your gifts and their totals are on Gifts on your profile, as before." },
+    ],
+  },
+  {
     version: "v0.149.0",
     bump: "minor",
     date: "2026-11-06",
