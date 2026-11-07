@@ -512,6 +512,17 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [liked, setLiked] = useState(false);
+  // The live's own link: a profile live's lobby, a paid live's page, or the community with ?room=.
+  const shareLive = async () => {
+    const path = room?.profile ? `/live/${id}` : room?.paid ? `/lives/${room.paid.eventId}` : room?.cid ? `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(id)}` : `/live/${id}`;
+    const url = `${window.location.origin}${path}`;
+    try {
+      if (navigator.share) await navigator.share({ title: room?.title ?? "Live on #NotesApp", url });
+      else { await navigator.clipboard.writeText(url); setNote("Link copied."); setTimeout(() => setNote(""), 2500); }
+    } catch { return; } // closed the share sheet
+    void act({ action: "event", kind: "share" });
+  };
   const act = async <T = unknown,>(body: Record<string, unknown>, tag = ""): Promise<T | null> => { setBusy(tag); try { return await capi<T>("/api/community/rooms", { id, ...body }); } catch (e) { setNote(e instanceof Error ? e.message : "Couldn't do that."); setTimeout(() => setNote(""), 3500); return null; } finally { setBusy(""); } };
   const role = room ? roomRole(room, me) : "listener";
   const stage = room ? stageOf(room) : [];
@@ -610,7 +621,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
           {room?.song && <p className="mt-2 flex items-center gap-2 text-xs font-semibold" role="status">Now playing: <SongTag songId={room.song.id} newTab /></p>}
           {/* A live from a profile (lib/profile-lives-server.ts): follow the host without leaving. */}
-          {role !== "host" && room?.profile && <div className="mt-2 inline-block rounded-full bg-white p-0.5"><FollowButton username={room.profile.hostUsername} /></div>}
+          {role !== "host" && (room?.profile?.hostUsername || room?.hostUsername) && <div className="mt-2 inline-block rounded-full bg-white p-0.5"><FollowButton username={(room.profile?.hostUsername || room.hostUsername)!} onFollow={() => void act({ action: "event", kind: "follow" })} /></div>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
@@ -754,6 +765,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           </>
         )}
         {relayRoom && !myCam && <button type="button" onClick={toggleAudioOnly} aria-pressed={audioOnly} title="Data saver: don't download video" className={`rounded-full px-4 py-3 font-ui text-sm ${audioOnly ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{audioOnly ? "🔈 Audio only" : "📺 Video when on"}</button>}
+        {/* ❤️ Like (once; the count is everyone's) and ↗ Share (the link): each puts a line in the chat (lib/room-events-server.ts). */}
+        {role !== "host" && <button type="button" disabled={liked} onClick={() => { setLiked(true); void act<{ likes?: number }>({ action: "event", kind: "like" }); }} aria-pressed={liked} aria-label="Like the live" className={`flex h-12 items-center gap-1.5 rounded-full px-4 font-ui text-sm font-semibold ${liked ? "bg-white text-[#E5383B]" : "bg-white/10 hover:bg-white/20"}`}>{liked ? "❤️" : "🤍"}{room?.likes ? <span>{room.likes.toLocaleString("en-GB")}</span> : null}</button>}
+        {role === "host" && !!room?.likes && <span className="flex h-12 items-center gap-1.5 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold" aria-label={`${room.likes} likes`}>❤️ {room.likes.toLocaleString("en-GB")}</span>}
+        <button type="button" onClick={() => void shareLive()} aria-label="Share the live" className="flex h-12 items-center rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20">↗ Share</button>
         <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
           💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
         </button>
@@ -779,15 +794,26 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
   const [pinText, setPinText] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
   const [fsMsgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
-  const msgs = live.on ? live.msgs : fsMsgs;
+  // Slow mode switching on or off shows as a line too, from the room's own signal (the same for everyone in the room).
+  const slowOn = relay && (live.status === "live" ? live.slow : room.chatSlow ?? 0) > 0;
+  const [slowLines, setSlowLines] = useState<(RoomChat & { id: string })[]>([]);
+  const prevSlow = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (prevSlow.current !== null && prevSlow.current !== slowOn) {
+      const at = new Date().toISOString();
+      setSlowLines((l) => [...l, { id: `slow_${at}`, from: "", name: "", avatar: "", text: slowOn ? "#Slow mode is on" : "#Slow mode is off", at, ev: "slow" }]);
+    }
+    prevSlow.current = slowOn;
+  }, [slowOn]);
+  const msgs = [...(live.on ? live.msgs : fsMsgs), ...slowLines].sort((a, b) => a.at.localeCompare(b.at));
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const seen = useRef<Set<string> | null>(null); // others' messages already counted (null until the first load, which isn't "new")
   const onNewRef = useRef(onNew); onNewRef.current = onNew;
-  const countNew = useCallback((list: { id: string; from: string }[]) => {
+  const countNew = useCallback((list: { id: string; from: string; ev?: string }[]) => {
     if (!seen.current && !list.length) return; // still loading: the first messages aren't "new"
-    const theirs = list.filter((m) => m.from !== me).map((m) => m.id);
+    const theirs = list.filter((m) => m.from !== me && !(m as { ev?: string }).ev).map((m) => m.id); // event lines don't count as unread
     if (seen.current) for (const mid of theirs) if (!seen.current.has(mid)) onNewRef.current();
     seen.current = new Set([...(seen.current ?? []), ...theirs]);
   }, [me]);
@@ -834,7 +860,14 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
         : <button type="button" onClick={() => setPinOpen(true)} className="border-b border-white/10 px-4 py-1.5 text-left text-[11px] text-white/50 hover:text-white">📌 Pin an announcement</button>)}
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {!msgs.length && <p className="pt-6 text-center text-sm text-white/45">Say hello, ask a question, or send an amen. Everyone in the room sees it while the room is on.</p>}
-        {msgs.map((m) => (
+        {msgs.map((m) => m.ev ? (
+          // What happened in the live (joined, gifted, liked, shared, followed, burst mode, slow mode): a divider, like the day lines in Messages.
+          <div key={m.id} className="flex items-center gap-3 py-0.5" role="note" data-room-event={m.ev}>
+            <span className="h-px flex-1 bg-white/15" />
+            <span className="max-w-[80%] text-center font-mono text-[10.5px] uppercase leading-snug tracking-[0.14em] text-white/55">{m.text}</span>
+            <span className="h-px flex-1 bg-white/15" />
+          </div>
+        ) : (
           <div key={m.id} className="group flex gap-2.5">
             <Avatar src={m.avatar} alt="" size={30} className="!h-[30px] !w-[30px] shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">

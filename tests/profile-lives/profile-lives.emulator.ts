@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { liveNow, profileLiveLobby, profileLiveOf, profileLiveSummary, resetLiveNowCache, startProfileLive } from "../../lib/profile-lives-server";
-import { endRoom, joinRoom } from "../../lib/rooms-server";
+import { beatRoom, endRoom, joinRoom, markRoomEvent } from "../../lib/rooms-server";
+import { joinLine, postRoomEvent } from "../../lib/room-events-server";
 import { resetStaffPassCache } from "../../lib/staff-pass-server";
 import { CommunityError } from "../../lib/community-server";
 
@@ -82,6 +83,43 @@ async function main() {
   // The pass going off stops new ones.
   await pass(false);
   await rejects(startProfileLive(db, "emma", { title: "One more" }, new Date(), undefined, tell), 403, /team/);
+
+  // ── What happens in the live, as lines in its chat (lib/room-events-server.ts) ──
+  assert.equal(joinLine(["@ada"], 0), "@ada joined");
+  assert.equal(joinLine(["@ada", "@tunde"], 0), "@ada and @tunde joined");
+  assert.equal(joinLine(["@ada", "@tunde"], 12), "@ada, @tunde and 12 others joined");
+  await pass(true);
+  await user("bisi"); await user("kemi");
+  const t0 = Date.now();
+  const e = await startProfileLive(db, "emma", { title: "Events live" }, new Date(t0), undefined, tell);
+  const lines = async () => (await db.collection(`communityRooms/${e.id}/chat`).orderBy("at").get()).docs.map((d) => d.data()).filter((m) => m.ev).map((m) => `${m.ev}: ${m.text}`);
+  await joinRoom(db, "ada", e.id, new Date(t0 + 1_000));
+  await joinRoom(db, "tunde", e.id, new Date(t0 + 2_000)); // a rush: kept for the grouped line
+  await joinRoom(db, "chidi", e.id, new Date(t0 + 3_000));
+  await joinRoom(db, "bisi", e.id, new Date(t0 + 4_000));
+  assert.deepEqual(await lines(), ["join: @ada joined"], "the first alone; the rush waits");
+  await beatRoom(db, "emma", e.id, new Date(t0 + 12_000)); // the host's heartbeat flushes it
+  assert.deepEqual((await lines()).slice(1), ["join: @tunde, @chidi and 1 other joined"]);
+  await joinRoom(db, "kemi", e.id, new Date(t0 + 30_000)); // quiet again: on its own
+  assert.equal((await lines()).at(-1), "join: @kemi joined");
+  // Like, share, follow: once each per person; a follow only when it's real; likes counted on the room.
+  assert.equal((await markRoomEvent(db, "ada", e.id, "like")).likes, 1);
+  assert.equal((await markRoomEvent(db, "ada", e.id, "like")).posted, false, "one like per person");
+  await markRoomEvent(db, "tunde", e.id, "like");
+  assert.equal((await db.doc(`communityRooms/${e.id}`).get()).data()!.likes, 2);
+  await markRoomEvent(db, "ada", e.id, "share");
+  assert.equal((await markRoomEvent(db, "chidi", e.id, "follow")).posted, false, "chidi doesn't follow emma");
+  await follow("chidi", "emma");
+  assert.equal((await markRoomEvent(db, "chidi", e.id, "follow")).posted, true);
+  await assert.rejects(markRoomEvent(db, "ada", e.id, "hack"), /Unknown event/);
+  await postRoomEvent(db, e.id, "gift", "@ada gifted @emma a Jollof Plate 🎁");
+  // (the joins above carry made-up later times, so check the set, not the order)
+  assert.deepEqual((await lines()).sort(), ["follow: @chidi followed @emma", "gift: @ada gifted @emma a Jollof Plate 🎁", "join: @ada joined", "join: @kemi joined", "join: @tunde, @chidi and 1 other joined", "like: @ada liked the live", "like: @tunde liked the live", "share: @ada shared the live"]);
+  const ev = (await db.collection(`communityRooms/${e.id}/chat`).where("ev", "==", "like").limit(1).get()).docs[0].data();
+  assert.deepEqual([ev.from, ev.name], ["", ""], "an event line has no sender");
+  await endRoom(db, e.id);
+  assert.equal(await postRoomEvent(db, e.id, "gift", "late"), false, "nothing after the live ends");
+  await pass(false);
 
   console.log("PROFILE LIVES OK");
   process.exit(0);

@@ -6,6 +6,7 @@ import {
 import type { UserProfile } from "./users";
 import { keptOffLists } from "./young";
 import { storedSnapshot } from "./stat-cache";
+import { postRoomEvent } from "./room-events-server";
 
 // Server side of animated gifts and daily gift targets (lib/gift-catalogue.ts). Collections, all server-only in firestore.rules:
 //   giftDaily/{day}_{uid}  one receiver's gifts on one Lagos day (totals, distinct senders, when the target was reached)
@@ -66,6 +67,8 @@ export async function announceGrandGift(db: Firestore, g: { reference: string; g
   }
   const burst: GiftBurst = { reference: g.reference, giftId: g.giftId, name: g.name || "", priceKobo: g.priceKobo, senderName: g.senderName, toName: u.displayName || g.toUsername, toUsername: g.toUsername, href, live, at: g.at ?? new Date().toISOString() };
   await db.doc("giftBursts/latest").set(burst);
+  // Burst mode in the live it came from: a line in its chat (owner, 7 Nov 2026).
+  if (live && g.liveId) await postRoomEvent(db, g.liveId, "burst", `🎆 Burst mode: ${g.senderName ? g.senderName + "'s " : ""}${g.name || "grand gift"} to ${burst.toName} is showing across #NotesApp`).catch(() => false);
   return burst;
 }
 

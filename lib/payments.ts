@@ -34,6 +34,7 @@ import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
 import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
+import { handleOf, postRoomEvent } from "./room-events-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -1051,6 +1052,13 @@ async function notifyGiftShares(p: PaymentRecord, shares: Share[]) {
 async function notifyGift(p: PaymentRecord) {
   if (!p.gift) return;
   const db = getAdminDb();
+  // Sent during a live: a line in its chat, "@ada gifted @emmanuel a Jollof Plate 🎁" (lib/room-events-server.ts). Anonymous stays so.
+  if (p.gift.liveId) {
+    const qtyN = p.gift.quantity ?? 1;
+    const giftName = p.gift.animName ? (qtyN > 1 ? `${qtyN} × ${p.gift.animName}` : `a ${p.gift.animName}`) : `a gift of ${formatNaira(p.amountKobo)}`;
+    const from = p.gift.anonymous ? "Someone" : await handleOf(db, p.uid).catch(() => p.gift!.senderName || "Someone");
+    await postRoomEvent(db, p.gift.liveId, "gift", `${from} gifted @${p.gift.username} ${giftName} 🎁`).catch((e) => console.error("[gifts] live event", e));
+  }
   // A grand gift: everyone on the app sees it announced, with a link to the live (lib/gifts-server.ts). Never blocks the rest.
   if (p.gift.animId) {
     await ensurePricing(); // the grand-gift price and the announce switch in force

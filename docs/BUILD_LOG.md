@@ -3170,3 +3170,18 @@ co-authors get theirs in notifyGiftShares); the giver's emailed receipt for a gi
 giver and the community's owner; the receipt stays under My giving); and the payout emails for gift earnings (`gift_payout`) and community
 gifts (`giving`) in lib/payouts.ts, which now ring the bell only. Wording that promised an email (Give, the giving confirmation, My giving,
 the help article) now points to My giving and the bell. Paystack may still send its own card receipt; that isn't ours to switch off.
+
+**Live chat events, Like and Share (v0.154.0, 7 Nov 2026)** — Owner: every notification about a live should appear in its chat "the same
+way the day shows in chats" (the YESTERDAY divider). Choices asked: add Like and Share (yes, both), "burst mode" = a grand gift's
+sitewide burst, joins grouped. `lib/room-events-server.ts` writes event lines into the room's chat with no sender (`ev` set: join, like,
+share, gift, follow, burst; nobody can fake one, since the client's chat writes must carry their own uid), and on the live-rooms worker
+sends them through the existing server "chat" op, so the worker needed no change. Joins: alone in a quiet moment, at once; within 6 s of
+another, kept in meta/events and written as one line ("@ada, @tunde and 12 others joined") by the host's next heartbeat or the next quiet
+join. Like, share and follow are once per person per live (marks/{kind}_{uid}); a like counts on the room (`likes`); a follow only when the
+follows doc exists (POST rooms action "event"). Gifts: notifyGift writes "@ada gifted @host a Jollof Plate 🎁" (anonymous stays
+"Someone") before the grand-gift announcement, which adds the burst line. Slow mode is drawn by each screen from the room's own signal
+(the worker's or chatSlow), not written. The chat draws event lines as dividers (mono, spaced capitals, a rule each side) and doesn't
+count them as unread. The room's bar gets ❤️ (viewers; the host sees the count) and ↗ Share (navigator.share or copy, then the line);
+Follow shows in every live with a known host username. Tests: test:profile-lives-server (joins grouped and flushed, once-per-person
+likes/shares/follows, a follow that isn't real, the like count, no line after the end), rooms-relay's chat count now leaves out event
+lines and checks the join line. Checked in the browser against emulators: join, like, share and gift lines on both screens.

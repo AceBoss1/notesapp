@@ -9,7 +9,7 @@ import { mintLiveToken } from "@/lib/live-rooms-server";
 import {
   answerInvite, askConsent, banFromLive, beatRoom, cameraOff, closeRoom, declineRequest, inviteToStage, joinRoom, leaveRoom, liveRoomFigures, liveRooms, liveVideoConfig, muteSpeaker,
   pinMessage, raiseHand, relayStep, removeChat, roomLiveStatus, roomModLog, roomPeople, roomStaff, sendRoomChat, setPoster, setRoomMods, setRoomSong, setSpeaker, setStageMode, setStageVideo, startRoom, takeSeat,
-} from "@/lib/rooms-server";
+ markRoomEvent } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
@@ -79,6 +79,12 @@ export async function POST(req: NextRequest) {
         const limited = await rateLimit(req, "room-chat", me.uid, 30, 60);
         if (limited) return limited;
         return NextResponse.json(await sendRoomChat(db, me.uid, body.id, body.text));
+      }
+      // ❤️ Like, ↗ Share, Follow: a line in the chat once per person (lib/rooms-server.ts markRoomEvent).
+      case "event": {
+        const limited = await rateLimit(req, "room-event", me.uid, 30, 600);
+        if (limited) return limited;
+        return NextResponse.json(await markRoomEvent(db, me.uid, body.id, body.kind));
       }
       case "poster": return NextResponse.json(await setPoster(db, me.uid, body.id, body.source, body.url));
       case "song": return NextResponse.json(await setRoomSong(db, me.uid, body.id, body.songId));
