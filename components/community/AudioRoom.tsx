@@ -22,6 +22,7 @@ import type { LiveHand } from "@/lib/live-rooms";
 import StageGifts from "@/components/gifts/StageGifts";
 import { useSongs } from "@/lib/sounds-client";
 import { SongTag } from "@/components/media/SongPicker";
+import FollowButton from "@/components/FollowButton";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -600,7 +601,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-start justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)_+_1rem)]">
         <div className="min-w-0">
-          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName || (room?.paid ? "Paid live" : "Audio room")} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
+          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName || (room?.profile ? `@${room.profile.hostUsername}` : room?.paid ? "Paid live" : "Audio room")} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
           <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
           {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}{room.paid?.record === "safety" ? " for safety review only (no replay)" : ""}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
@@ -608,6 +609,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
           {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</p>}
           {room?.song && <p className="mt-2 flex items-center gap-2 text-xs font-semibold" role="status">Now playing: <SongTag songId={room.song.id} newTab /></p>}
+          {/* A live from a profile (lib/profile-lives-server.ts): follow the host without leaving. */}
+          {role !== "host" && room?.profile && <div className="mt-2 inline-block rounded-full bg-white p-0.5"><FollowButton username={room.profile.hostUsername} /></div>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
@@ -676,7 +679,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           ))}
           {Array.from({ length: free }, (_, i) => <Seat key={`seat-${i}`} plus={seat !== "none" && !handUp} asked={handUp && i === 0} busy={busy === "seat"} onTap={() => void askSeat()} />)}
         </ul>
-        {room && <StageGifts roomId={id} hostUid={room.hostUid} stage={stage} me={me} joined={room.joined} />}
+        {room && room.profile?.gifts !== false && <StageGifts roomId={id} hostUid={room.hostUid} stage={stage} me={me} joined={room.joined} />}
         {room && may("approve") && hands.length > 0 && (
           <div className="mt-8 rounded-2xl bg-white/[0.06] p-4">
             <p className="font-ui text-sm font-bold">✋ Seat requests · {hands.length}</p>

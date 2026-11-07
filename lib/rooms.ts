@@ -83,10 +83,18 @@ export type RoomDoc = {
   // ticket holders, the host and the moderators the host named come in; the community's moderators have no powers here (isMemberLive).
   // record: the host's recording choice (a "safety" recording is never offered as a replay).
   paid?: { eventId: string; record: "off" | "safety" | "replay" }; // record: lib/live-tickets.ts LiveRecordChoice
+  // A free live from the member's own profile (v0.152.0, docs/GO_LIVE.md, lib/profile-lives-server.ts): no ticket and no community. Who can
+  // come in: everyone signed in, the host's followers, or their subscribers. gifts: whether gifts can be sent in it. notified: followers
+  // were sent a bell. Like a paid live, only the moderators the host names moderate.
+  profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean };
 };
+export const PROFILE_LIVE_AUDIENCES = ["everyone", "followers", "subscribers"] as const;
+export type ProfileLiveAudience = (typeof PROFILE_LIVE_AUDIENCES)[number];
+export const isProfileLiveAudience = (v: unknown): v is ProfileLiveAudience => (PROFILE_LIVE_AUDIENCES as readonly unknown[]).includes(v);
+export const PROFILE_AUDIENCE_LABEL: Record<ProfileLiveAudience, string> = { everyone: "Everyone", followers: "Followers", subscribers: "Subscribers" };
 // A member's own live (today: a paid live) rather than a community live. In it only the moderators the host names moderate (owner,
 // 5 Nov 2026); the community's own moderators get nothing.
-export const isMemberLive = (r: Pick<RoomDoc, "paid" | "cid">) => !!r.paid || !r.cid;
+export const isMemberLive = (r: Pick<RoomDoc, "paid" | "cid" | "profile">) => !!r.paid || !!r.profile || !r.cid;
 // ── Stage seats (owner, 4 Nov 2026) ──
 // The host picks a stage mode and can change it during the live (only the host does):
 // - "solo": nobody asks to come up: no raised hands, no + on the empty seats (the host and moderators can still invite someone).

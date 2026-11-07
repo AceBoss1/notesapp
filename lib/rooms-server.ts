@@ -87,10 +87,21 @@ async function roleIn(db: Firestore, cid: string, uid: string) {
 // Who may come into a room: a community live, the community's active members; a member's own paid live (lib/live-tickets.ts), the host,
 // the moderators the host named and ticket holders (the door: holdsLiveTicket), nobody else.
 async function mayEnter(db: Firestore, r: RoomDoc, uid: string): Promise<boolean> {
+  if (r.profile) return uid === r.hostUid || !!r.mods?.[uid] || (await mayWatchProfileLive(db, r.profile, uid));
   if (r.paid) return uid === r.hostUid || !!r.mods?.[uid] || (await holdsLiveTicket(db, r.paid.eventId, uid));
   return !!r.cid && !!(await roleIn(db, r.cid, uid));
 }
-export const NOT_IN_TEXT = (r: Pick<RoomDoc, "paid">) => (r.paid ? "This live is for ticket holders. Get a ticket in the lobby." : "Rooms are for the community's members.");
+export const NOT_IN_TEXT = (r: Pick<RoomDoc, "paid" | "profile">) => (r.profile
+  ? (r.profile.audience === "subscribers" ? `This live is for @${r.profile.hostUsername}'s subscribers.` : `This live is for @${r.profile.hostUsername}'s followers. Follow them to join.`)
+  : r.paid ? "This live is for ticket holders. Get a ticket in the lobby." : "Rooms are for the community's members.");
+// A free live from a profile (lib/profile-lives-server.ts): everyone signed in, the host's followers, or their subscribers (an active
+// subscription, as for replays).
+export async function mayWatchProfileLive(db: Firestore, p: NonNullable<RoomDoc["profile"]>, uid: string): Promise<boolean> {
+  if (p.audience === "everyone") return true;
+  if (p.audience === "followers") return (await db.doc(`follows/${uid}_${p.hostUsername}`).get()).exists;
+  const sub = (await db.doc(`subscriptions/${uid}_${p.hostUsername}`).get()).data();
+  return !!sub && (sub.status === "demo" || (!!sub.currentPeriodEnd && Date.parse(sub.currentPeriodEnd) > Date.now()));
+}
 export { mayEnter as mayEnterRoom };
 async function roomOf(db: Firestore, id: unknown) {
   const ref = db.doc(`communityRooms/${String(id ?? "")}`);
@@ -167,7 +178,12 @@ export async function startMemberLive(db: Firestore, uid: string, live: { eventI
   return openRoom(db, uid, { cid: "", communityName: "", paid: { eventId: live.eventId, record: live.record } }, cleanRoomTitle(live.title), live.poster, now, deps, { ...opts, record: live.record !== "off" });
 }
 
-async function openRoom(db: Firestore, uid: string, base: Pick<RoomDoc, "cid" | "communityName" | "paid">, t: string, posterUrl: string, now: Date, deps: RoomDeps, opts: { record?: unknown; stageMode?: unknown; mods?: unknown }): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
+// A free live from the member's own profile (lib/profile-lives-server.ts startProfileLive checks who may start one).
+export async function startProfileRoom(db: Firestore, uid: string, live: { title: string; poster: string; profile: NonNullable<RoomDoc["profile"]>; record: boolean }, now = new Date(), deps: RoomDeps = defaultDeps, opts: { stageMode?: unknown; mods?: unknown } = {}): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
+  return openRoom(db, uid, { cid: "", communityName: "", profile: live.profile }, cleanRoomTitle(live.title), live.poster, now, deps, { ...opts, record: live.record });
+}
+
+async function openRoom(db: Firestore, uid: string, base: Pick<RoomDoc, "cid" | "communityName" | "paid" | "profile">, t: string, posterUrl: string, now: Date, deps: RoomDeps, opts: { record?: unknown; stageMode?: unknown; mods?: unknown }): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
   // One live room per host: an old one they left open is closed first.
   const mine = await db.collection("communityRooms").where("hostUid", "==", uid).where("status", "==", "live").limit(5).get();
   for (const d of mine.docs) await endRoom(db, d.id, now, deps);
@@ -195,7 +211,7 @@ async function openRoom(db: Firestore, uid: string, base: Pick<RoomDoc, "cid" | 
   if (rec.note) note = note ? `${note} ${rec.note}` : rec.note;
   const r: RoomDoc = {
     ...(rec.state ? { recording: rec.state, consent: { [uid]: at } } : {}),
-    cid: base.cid, communityName: base.communityName, ...(base.paid ? { paid: base.paid } : {}), title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
+    cid: base.cid, communityName: base.communityName, ...(base.paid ? { paid: base.paid } : {}), ...(base.profile ? { profile: base.profile } : {}), title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
     stageMode, mods, invites: {}, micMuted: {},
     ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {}, videoOn: {}, stageVideo: false, ...(liveRoomsOn() ? { edge: true } : {}) } : {}), ...(note ? { note } : {}),
     ...(posterUrl ? { poster: posterUrl } : {}), ...host, ...(staffPass ? { staffPass: true } : {}),
@@ -361,7 +377,7 @@ async function communityModPerms(db: Firestore, r: RoomDoc, uid: string): Promis
 // Bans keep people off the stage: removed from this room (on the live-rooms worker: edge/state banned), or no longer an active member of
 // the community (banned or removed there since they came in).
 async function stageBarred(db: Firestore, r: RoomDoc, roomId: string, uid: string): Promise<string> {
-  if (!(await mayEnter(db, r, uid))) return r.paid ? "They don't hold a ticket to this live." : "They're no longer a member of this community.";
+  if (!(await mayEnter(db, r, uid))) return r.profile ? "They can't watch this live (it's for followers or subscribers)." : r.paid ? "They don't hold a ticket to this live." : "They're no longer a member of this community.";
   if ((await readEdgeState(db, roomId)).banned?.[uid]) return "They've been removed from this room.";
   return "";
 }

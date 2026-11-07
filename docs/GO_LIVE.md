@@ -2,7 +2,7 @@
 
 A free live straight from a member's profile: no ticket and no community. It runs on the rooms that community lives and paid lives already
 use (`lib/rooms-server.ts`): audio, video through the relay, the poster, chat, gifts, the stage (Solo / Approve / Open), recording and
-replays. This page holds the plan and the mockups; the build follows once the owner approves them.
+replays. The owner approved the six mockups as drawn (7 Nov 2026) and it was built in v0.152.0 (branch `push/golive-profile`).
 
 ## Who can start one, and who can join
 
@@ -66,7 +66,13 @@ A summary: people who joined, the peak, gifts (and the top gifters) and new foll
 
 A live together with another creator (split screen), live shopping, and scheduling a free live ahead. Each can come later.
 
-## Waiting on the owner
+## Built (v0.152.0)
 
-- Approval of the six screens (or changes).
-- What **Who can watch** starts on (Everyone is suggested) and whether **Record for a replay** starts off (suggested) or on.
+- Server: `lib/profile-lives-server.ts` (start, followers' bell, Live now, a profile's live, the lobby, the summary); rooms-server
+  `mayEnter` and `startProfileRoom`; `GET/POST /api/lives`. Tests: `test:profile-lives-server`.
+- Screens: the setup on `/lives/start` (screen 2, defaults Everyone and recording off, as drawn), the room (screen 3/5, with Follow), Live
+  now on the feed and Explore and Join the live on profiles (screen 4), `/live/[id]` (the lobby), the summary (screen 6).
+- Owner steps: deploy the Firestore indexes (`firebase deploy --only firestore:indexes`, for new followers in the summary); switch the staff
+  test pass on to try it.
+- Differences from the mockups: signed-out visitors are asked to sign in before joining (rooms are read by signed-in members only); the
+  LIVE ring sits in a Live now row just above the Moments strip rather than inside it.

@@ -126,6 +126,7 @@ jobs:
       - run: npm run test:giving-server
       - run: npm run test:gifts-server
       - run: npm run test:live-tickets-server
+      - run: npm run test:profile-lives-server
       - run: npm run test:ppm-server
       # Google and LinkedIn sign-in: the OpenID checks with a stand-in LinkedIn, then the Firestore and Auth emulators
       - run: npm run test:social-signin
