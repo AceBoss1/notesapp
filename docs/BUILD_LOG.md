@@ -3136,7 +3136,7 @@ title says it's a guide, book or course. Whole-word matching had to be built wit
 "eth" and "token" were left out because they match ordinary words ("Ethiopian", "a token of love"). Adverts are flagged for the admin
 reviewing them, never refused by a pattern.
 
-**Go live links, Moment window, song list, stuck videos (v0.150.0, 7 Nov 2026)** — The owner reported four things from the live site:
+**Go live links, Moment window, song list, stuck videos (v0.151.0, 7 Nov 2026)** — The owner reported four things from the live site:
 there was no place to start a live; three videos from 5 Nov still said Processing; and the Moment window couldn't be finished because the
 song list ran past the screen and the window didn't scroll. Lives: paid lives and community rooms already existed, but the only link was
 "Paid lives" in the footer. The owner chose "link now, build next": a 🔴 Go live button (profile Media tab, Media studio Lives & replays,
