@@ -136,7 +136,8 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
           : l.kind === "debt" ? { subject: "Money a customer paid you online is on its way", for: "that a customer paid towards what they owe (Business books)", short: "Business books payment", link: "/profile/books?tab=owed" }
           : { subject: "Your session payout is on its way", for: "for a completed session", short: "session", link: "/profile/publishing" };
         const bell = { uid: l.publisherUid, type: "booking" as const, linkHref: what.link, message: `Payout of ${formatNaira(l.netKobo)} for your ${what.short} is on its way.` };
-        if (!to) await notifyBell(bell);
+        // Gift money (gift earnings, and gifts to a community): a bell only, never an email (owner, 7 Nov 2026: "no gift email, to any party").
+        if (!to || l.kind === "gift_payout" || l.kind === "giving") await notifyBell(bell);
         else await sendEmail({
           to,
           subject: what.subject,

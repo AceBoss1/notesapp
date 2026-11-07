@@ -1059,7 +1059,6 @@ async function notifyGift(p: PaymentRecord) {
       .catch((e) => console.error("[gifts] announcement failed", e));
   }
   const who = p.gift.anonymous ? "Someone" : p.gift.senderName || "A reader";
-  const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
   const about = p.gift.noteSlug ? " on one of your posts" : "";
   const qty = p.gift.quantity ?? 1;
   const what = p.gift.animId ? `${qty > 1 ? `${qty} × ${p.gift.animName || "gift"}` : `a ${p.gift.animName || "gift"}`} (${formatNaira(p.amountKobo)})` : `a gift of ${formatNaira(p.amountKobo)}`;
@@ -1072,40 +1071,16 @@ async function notifyGift(p: PaymentRecord) {
     createdAt: new Date().toISOString(),
     linkHref: p.gift.noteSlug ? `/journals/${p.gift.noteSlug}` : `/u/${p.gift.username}`,
   });
-  const pubEmail = await getUserEmail(p.publisherUid);
-  if (pubEmail) {
-    await sendEmail({
-      to: pubEmail,
-      subject: `You received a ${formatNaira(p.amountKobo)} gift`,
-      text: `${who} sent you ${what}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is ready to withdraw after a 7-day review: open Gifts on your profile and tap Withdraw.\nReference: ${p.reference}\n\n#NotesApp`,
-    });
-  }
+  // A bell only, never an email (owner, 7 Nov 2026: "every gift should trigger bell but not email"). The bell above is written for every
+  // gift, whatever it is and however it was paid; co-authors get theirs in notifyGiftShares.
 }
 
-// A gift to a community: the receipt to the giver (email and bell; it stays under My giving), and a bell for the community's owner.
+// A gift to a community: a bell to the giver (the receipt stays under My giving) and to the community's owner.
 async function notifyGiving(p: PaymentRecord) {
   const g = p.giving!;
-  const lines = [
-    `Receipt for your gift to ${g.communityName}`,
-    "",
-    `Fund: ${g.fund}`,
-    `Gift: ${formatNaira(g.giftKobo)}`,
-    ...(g.cardChargeKobo ? [`Card charge (Paystack): ${formatNaira(g.cardChargeKobo)}`] : []),
-    `Charge: ${formatNaira(g.bandKobo)}`,
-    `You paid: ${formatNaira(p.amountKobo)}${p.payWith === "wallet" ? " (from your wallet)" : ""}`,
-    `${g.communityName} receives: ${formatNaira(g.netKobo)}${g.covered ? " (you covered the charges)" : " (the charges came out of the gift)"}`,
-    ...(g.note ? [`Your note: ${g.note}`] : []),
-    ...(g.anonymous ? ["Given anonymously: the community's admins don't see your name."] : []),
-    `Date: ${new Date(p.paidAt ?? Date.now()).toLocaleString("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" })} (Lagos time)`,
-    `Receipt number: ${p.reference}`,
-  ];
-  await sendEmail({
-    to: p.email,
-    subject: `Receipt: your gift to ${g.communityName}`,
-    bell: { uid: p.uid, type: "community", linkHref: "/giving", message: `Thank you: ${formatNaira(g.giftKobo)} to ${g.communityName} (${g.fund}). Your receipt is under My giving.` },
-    text: `${lines.join("\n")}\n\nAll your receipts are at ${SITE_URL}/giving.\n\n#NotesApp`,
-    action: { label: "My giving", url: `${SITE_URL}/giving` },
-  });
+  // A gift to a community: bells only, never an email, to either side (owner, 7 Nov 2026: "no gift email, to any party"). The full receipt
+  // (fund, charges, what the community receives, the receipt number) stays under My giving (/giving).
+  await notifyBell({ uid: p.uid, type: "community", linkHref: "/giving", message: `Thank you: ${formatNaira(g.giftKobo)} to ${g.communityName} (${g.fund}). Your receipt is under My giving.` }).catch(() => {});
   await notifyBell({ uid: p.publisherUid, type: "community", linkHref: `/c/${g.cid}?tab=admin`, message: `${g.anonymous ? "Someone" : g.giverName} gave ${formatNaira(g.giftKobo)} to ${g.fund} in ${g.communityName}.` }).catch(() => {});
 }
 

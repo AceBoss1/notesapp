@@ -3164,3 +3164,9 @@ links to /live/[id]. In the room, viewers get Follow under the title. Not done: 
 members only, so the lobby asks them to sign in), and the LIVE ring inside the Moments strip itself (Live now sits just above it).
 Found while testing: the poster defaulted to the profile picture and refused a host without one; it now goes on with no poster. Tests:
 `test:profile-lives-server` (new, in CI), rooms, rooms-server, live-tickets(-server), gifts(-server), help, host.
+**Gifts: bell, no email (v0.153.0, 7 Nov 2026)** — Owner: "every gift should trigger bell but not email", then "no gift email, to any
+party". Removed every gift email: the receiver's email in `notifyGift` (the bell stays, written for every gift however it was paid;
+co-authors get theirs in notifyGiftShares); the giver's emailed receipt for a gift to a community (`notifyGiving` now sends bells to the
+giver and the community's owner; the receipt stays under My giving); and the payout emails for gift earnings (`gift_payout`) and community
+gifts (`giving`) in lib/payouts.ts, which now ring the bell only. Wording that promised an email (Give, the giving confirmation, My giving,
+the help article) now points to My giving and the bell. Paystack may still send its own card receipt; that isn't ours to switch off.

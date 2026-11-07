@@ -75,7 +75,7 @@ function GiveForm({ cid, name, giving, onClose }: { cid: string; name: string; g
             <div className="flex justify-between text-xs text-slate"><dt>{name} receives</dt><dd>{formatNaira(q.netKobo)}</dd></div>
           </dl>
         )}
-        <p className="mt-3 text-xs text-slate">Charges are like a bank transfer: ₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above{method === "card" ? ", plus the card charge at cost" : ""}. No commission. You get a receipt by email and under My giving.</p>
+        <p className="mt-3 text-xs text-slate">Charges are like a bank transfer: ₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above{method === "card" ? ", plus the card charge at cost" : ""}. No commission. Your receipt is under My giving, with a note in your bell.</p>
         {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}
         <button className="btn-primary mt-4 w-full !py-2 text-sm" disabled={!q || busy} onClick={pay}>{busy ? "Starting…" : q ? `Give ${formatNaira(q.payKobo)}` : "Give"}</button>
       </div>
