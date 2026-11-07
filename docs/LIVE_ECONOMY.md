@@ -279,6 +279,7 @@ promotion. Budget: `tgifPoolNn` per Friday, set in Admin.
 ## December: public lives and the challenge
 
 - Lives open to the public, not only paid lives and pay-per-minute.
+  The free **Go live from your profile** is planned, with mockups, in [GO_LIVE.md](GO_LIVE.md); the team tries it first (staff test pass).
 - The **challenge dashboard** shows each creator whether they qualify for the #1MillionNairaNotesAppChallenge (from listening
   time, gifts and fan figures).
 - A qualified creator **applies**, then promotes their challenge-attempt event. They can pay for ads or boosts, or **apply for

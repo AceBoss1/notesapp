@@ -96,7 +96,7 @@ export default function CommunityView({ id }: { id: string }) {
         </nav>
       </div>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} />}
+        {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} startRoom={params.get("start") === "room"} />}
         {room && user && <RoomScreen id={room.id} title={room.title} me={user.uid} onDone={() => setRoom(null)} />}
         {shownTab === "general" && <Feed shareable={v.community.joinMode !== "invite"} cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
         {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} initial={params.get("space") ?? ""} />}
@@ -151,12 +151,12 @@ function JoinBox({ v, user, invite, onChange }: { v: View; user: User | null; in
   );
 }
 
-function Home({ v, as, me, go, onRoom }: { v: View; as: string; me: string | null; go: (t: Tab) => void; onRoom: (id: string, title?: string) => void }) {
+function Home({ v, as, me, go, onRoom, startRoom }: { v: View; as: string; me: string | null; go: (t: Tab) => void; onRoom: (id: string, title?: string) => void; startRoom?: boolean }) {
   const c = v.community;
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr,20rem]">
       <div className="space-y-6">
-        {!!v.role && !v.viewingAs && me && <RoomsCard cid={c.id} canHost={can(v.role, "rooms")} onOpen={onRoom} />}
+        {!!v.role && !v.viewingAs && me && <RoomsCard cid={c.id} canHost={can(v.role, "rooms")} onOpen={onRoom} startOpen={startRoom} />}
         {v.tabs.includes("general") ? (
           <>
             <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold text-ink">General · announcements</p><button className="text-xs text-crimson underline" onClick={() => go("general")}>See all</button></div>

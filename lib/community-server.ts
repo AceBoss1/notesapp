@@ -393,6 +393,18 @@ export async function communitiesIRun(db: Firestore, uid: string) {
   });
 }
 
+// The communities someone can start a room in (owner, admin or moderator: lib/community.ts rooms), for Go live (/lives/start).
+export async function communitiesIHost(db: Firestore, uid: string) {
+  const mine = await db.collection("communityMembers").where("uid", "==", uid).get();
+  const host = mine.docs.map((d) => d.data() as Member).filter((m) => m.status === "active" && can(m.role, "rooms"));
+  if (!host.length) return [];
+  const docs = await db.getAll(...host.map((m) => db.doc(`communities/${m.cid}`)));
+  return docs.filter((d) => d.exists).map((d) => {
+    const c = d.data() as Community;
+    return { id: d.id, name: c.name, avatar: c.avatar, memberCount: c.memberCount, role: host.find((m) => m.cid === d.id)!.role };
+  });
+}
+
 // ---- Insights (admins) ----
 export async function insights(db: Firestore, uid: string, cid: string, now = new Date()) {
   const { c, role } = await actor(db, cid, uid);
