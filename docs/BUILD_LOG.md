@@ -3149,3 +3149,18 @@ the screen height and scrolls. Songs: the list shows three at a time (owner's as
 column, so long titles truncate instead of pushing ▶ Listen off a phone screen. Videos: refreshVideo only rejected a post when Stream had
 no record of it or reported an error; an upload that never arrived (state "pendingupload", likely the Stream-storage-full window on 5 Nov)
 stayed Processing for ever. Now anything not ready after a day is rejected with a reason and the week's slot given back (test:media-server).
+
+**Go live from your profile (v0.152.0, 7 Nov 2026)** — Built from the six approved mockups (docs/GO_LIVE.md; owner: "nothing should
+change"; defaults as drawn: Everyone, recording off). A profile live is a room (`communityRooms`, cid "") with `profile: { audience,
+hostUsername, gifts, notified }`, opened by `startProfileRoom` → the shared openRoom, so video, chat, the stage, moderators, recording and the
+staff test pass all work as in community and paid lives. Starting (`startProfileLive`, POST /api/lives go_live) is for team accounts while
+the staff test pass is on (`mayStartProfileLive` = hasStaffPass); joining goes through rooms-server `mayEnter`: everyone signed in, the
+host's followers (`follows/{uid}_{username}`), or subscribers (an active subscription, as for replays). Followers get a bell and a push,
+at most 2,000 per live. Finding it: GET /api/lives?live_now=1 (public ones, cached 15 s; the feed above the moments and Explore),
+?profile=<username> (the profile's LIVE / Join the live, shown even to people who can't join yet), ?live=<id> (the /live/[id] lobby). The
+summary (?summary=<id>, host only) counts people/ plus the stage, the peak, gifts with that liveId, and new followers between start and end
+(a new follows index: username + followedAt; "—" until it's deployed). Gifts off is enforced at checkout; a grand gift in a profile live
+links to /live/[id]. In the room, viewers get Follow under the title. Not done: watching while signed out (rooms are read by signed-in
+members only, so the lobby asks them to sign in), and the LIVE ring inside the Moments strip itself (Live now sits just above it).
+Found while testing: the poster defaulted to the profile picture and refused a host without one; it now goes on with no poster. Tests:
+`test:profile-lives-server` (new, in CI), rooms, rooms-server, live-tickets(-server), gifts(-server), help, host.

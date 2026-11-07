@@ -871,6 +871,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Gifts must be between ${formatNaira(GIFT_MIN_KOBO)} and ${formatNaira(GIFT_MAX_KOBO)}.` }, { status: 400 });
       }
       const liveId = typeof body.liveId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(body.liveId) ? body.liveId : undefined;
+      // A profile live whose host switched gifts off (lib/profile-lives-server.ts): no gifts sent in it.
+      if (liveId && (await db.doc(`communityRooms/${liveId}`).get()).data()?.profile?.gifts === false) return NextResponse.json({ error: "Gifts are off in this live." }, { status: 409 });
       const message = typeof body.message === "string" ? body.message.trim().slice(0, GIFT_MESSAGE_MAX) : "";
       let noteSlug: string | undefined;
       let noteId: string | undefined;

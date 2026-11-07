@@ -42,6 +42,7 @@ import { getStoreItems, StoreItem } from "@/lib/store";
 import AdSlot from "@/components/AdSlot";
 import RecommendationsPanel from "@/components/RecommendationsPanel";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
+import { ProfileLiveBanner } from "@/components/lives/ProfileLive";
 
 const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
@@ -290,6 +291,7 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           )}
           <p className="mx-auto mt-2 max-w-lg break-words text-base text-slate sm:mx-0 sm:text-sm"><LinkedText text={profile.bio} /></p>
           {!suspended && <PlaysLife uid={profileUid} className="mt-2" />}
+          {!suspended && <div><ProfileLiveBanner username={profile.username} /></div>}
           {!suspended && badge === "gold" && goldKindOf(realProfile) && (
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}

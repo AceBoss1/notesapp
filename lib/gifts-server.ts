@@ -61,7 +61,8 @@ export async function announceGrandGift(db: Firestore, g: { reference: string; g
   let live = false;
   if (g.liveId) {
     const room = (await db.doc(`communityRooms/${g.liveId}`).get()).data();
-    if (room && room.status === "live" && typeof room.cid === "string") { href = `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(g.liveId)}`; live = true; }
+    if (room && room.status === "live" && room.profile) { href = `/live/${encodeURIComponent(g.liveId)}`; live = true; } // a live from a profile
+    else if (room && room.status === "live" && typeof room.cid === "string" && room.cid) { href = `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(g.liveId)}`; live = true; }
   }
   const burst: GiftBurst = { reference: g.reference, giftId: g.giftId, name: g.name || "", priceKobo: g.priceKobo, senderName: g.senderName, toName: u.displayName || g.toUsername, toUsername: g.toUsername, href, live, at: g.at ?? new Date().toISOString() };
   await db.doc("giftBursts/latest").set(burst);
