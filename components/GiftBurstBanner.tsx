@@ -39,7 +39,7 @@ export default function GiftBurstBanner() {
   const href = safeHref(b.href)!;
   if (path && href.split("?")[0] === path && !b.live) return null;
   return (
-    <div className="fixed inset-x-0 top-2 z-[66] flex justify-center px-3" role="status" aria-live="polite">
+    <div className="fixed inset-x-0 top-2 z-[155] flex justify-center px-3" role="status" aria-live="polite">
       <GiftArtStyles />
       <div className="gift-burst flex w-full max-w-lg items-center gap-3 rounded-2xl bg-ink px-3 py-2.5 text-white shadow-2xl ring-1 ring-[#E8B23A]/60">
         <GiftArt id={b.giftId} size={48} motion="loop" />

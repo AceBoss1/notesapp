@@ -53,8 +53,10 @@ export async function startCheckout(
     | { kind: "ticket"; eventId: string; typeId: string; quantity: number }
     | { kind: "live_ticket"; eventId: string }),
   // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
-  opts: { amountKobo?: number; payWith?: "wallet" | "card" } = {},
-): Promise<void> {
+  // stayIfPaid: paid from the wallet already, so don't leave the page (a gift during a live: leaving would drop the sender out of
+  // the room, and end it if they host). Returns { paid: true, reference } then; otherwise goes to the payment page as before.
+  opts: { amountKobo?: number; payWith?: "wallet" | "card"; stayIfPaid?: boolean } = {},
+): Promise<{ paid: true; reference: string } | void> {
   const how = opts.payWith ?? (await choosePayment(user, body.kind, opts.amountKobo));
   if (!how) throw new Error(""); // closed the chooser: nothing to show
   const sent: object = how === "wallet" ? { ...body, payWith: "wallet" } : body;
@@ -69,5 +71,6 @@ export async function startCheckout(
     ({ res, json } = await post(user, sent));
   }
   if (!res.ok) throw new Error(json.error || "Couldn't start payment.");
+  if (opts.stayIfPaid && json.paid === true) return { paid: true, reference: String(json.reference ?? "") };
   window.location.href = json.authorizationUrl;
 }

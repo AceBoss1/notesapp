@@ -22,7 +22,7 @@ export default function ReportDialog({ kind, targetId, messageId, extra, onClose
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Report">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Report">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 text-ink shadow-xl">
         <h2 className="font-display text-xl">Report this {kind === "moment" ? "moment" : kind === "person" ? "member" : messageId ? "message" : "conversation"}</h2>
         {done ? (
