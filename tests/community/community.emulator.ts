@@ -143,7 +143,8 @@ const user = (uid: string, tier = "basic", extra = {}) => db.doc(`users/${uid}`)
   await chat.add({ from: "m5", name: "m5", avatar: "", text: "Amen", at: now.toISOString() });
   await fails(R.removeChat(db, "m1", room.id, m.id), 403);
   await R.removeChat(db, "bisi", room.id, m.id);
-  assert.equal((await chat.get()).size, 1);
+  assert.equal((await chat.get()).docs.filter((d) => !d.data().ev).length, 1); // people's messages (event lines aside)
+  assert.ok((await chat.get()).docs.some((d) => d.data().ev === "join"), "joins are lines in the chat");
   await R.leaveRoom(db, "bisi", room.id);
   assert.equal((await chat.get()).size, 0, "the chat goes with the room");
   assert.equal((await db.doc(`communityRooms/${room.id}`).get()).data()!.status, "ended", "the host leaving ends the room");
