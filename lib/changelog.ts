@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.155.0",
+    bump: "minor",
+    date: "2026-11-08",
+    changes: [
+      { kind: "added", text: "Flamingos stickers in chat: six new stickers to celebrate Nigeria's Flamingos, U-17 Women's World Champions (Nigeria 2–1 Japan, 7 November 2026): Champions!, Flamingos!, the full-time score, Proudly Naija, Oshey Flamingos! and the World Champions badge. They're first in 🖼 Stickers, in Messages and group chats." },
+    ],
+  },
+  {
     version: "v0.154.0",
     bump: "minor",
     date: "2026-11-07",
