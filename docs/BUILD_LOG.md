@@ -3195,3 +3195,14 @@ count them as unread. The room's bar gets ❤️ (viewers; the host sees the cou
 Follow shows in every live with a known host username. Tests: test:profile-lives-server (joins grouped and flushed, once-per-person
 likes/shares/follows, a follow that isn't real, the like count, no line after the end), rooms-relay's chat count now leaves out event
 lines and checks the join line. Checked in the browser against emulators: join, like, share and gift lines on both screens.
+
+
+**The Nana tutor (v0.156.0, 9 Nov 2026)** — The owner asked for Nana to become "a small, intentional, tailored AI" and to build the
+education version first, for the USPF Changemaker Challenge (applications close 15 Nov). The tutor belongs to one course: it is given
+only that course's lessons and the teacher's notes, and the rules forbid general knowledge, so a learner gets the teacher's version of
+the subject and an honest "ask your teacher" when the course doesn't cover it. Graded quiz answers live in quizKeys/, which the tutor
+never reads, and the quiz questions are given without their options so it can't be used to look answers up. Low bandwidth decided the
+shape: text only, short replies, three quick buttons, and languages chosen once and remembered on the device. Learners pay from their
+own Nana allowance so a free course can't run up the teacher's costs. The sector kits we already have (clinics, solar, schools,
+churches and NGOs) can take the same pattern next.
+

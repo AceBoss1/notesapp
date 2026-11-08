@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TutorPanel } from "@/components/academy/TutorPanel";
 import Link from "next/link";
 import { AcademyIcon } from "@/components/shell/icons";
 import { remark } from "remark";
@@ -115,6 +116,9 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
               {next ? <Link href={lessonHref(slug, next.id)} className="rounded-xl border border-rule p-3 text-right hover:border-crimson"><span className="block text-xs text-slate">Next →</span><span className="mt-0.5 block truncate font-ui text-sm font-semibold text-ink">{next.title}</span></Link>
                 : <Link href={courseHref(course.slug)} className="rounded-xl border border-rule p-3 text-right hover:border-crimson"><span className="block text-xs text-slate">Finished?</span><span className="mt-0.5 block font-ui text-sm font-semibold text-ink">Back to the course</span></Link>}
             </nav>
+            {((inCourse && course.tutorOn) || mine) && (
+              <TutorPanel courseId={course.id} lessonId={lesson.id} teacher={course.madeByName || course.ownerName || "your teacher"} trying={mine && !inCourse} />
+            )}
           </div>
 
           <aside className="min-w-0">

@@ -288,6 +288,12 @@ test("suspension details are private; the member can only file an appeal", async
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
 });
 
+test("the Nana tutor's settings are server-only (lib/tutor-server.ts)", async () => {
+  await assertFails(getDoc(doc(as("pub"), "courseTutor/c1")));
+  await assertFails(setDoc(doc(as("pub"), "courseTutor/c1"), { on: true, notes: "x" }));
+  await assertFails(getDoc(doc(anon(), "courseTutor/c1")));
+});
+
 test("the shop refuses crypto and stablecoins themselves, not books or courses about them (CBN rules, lib/money-rules.ts)", async () => {
   const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 4 };
   let n = 0;

@@ -31,6 +31,7 @@ import { CARDTAP_FEE_CAP_KOBO, CARDTAP_FEE_RATE } from "./cardtap-topup";
 import { ORG_SEATS } from "./org";
 import { BELLS_PER_DAY, OPEN_DAYS_DEFAULT, OPEN_DAYS_MAX } from "./jobs";
 import { STORE_RULES } from "./money-rules";
+import { TUTOR_LANGUAGES_SOON } from "./tutor";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
 import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./community";
@@ -754,6 +755,12 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Coming next:** Enterprise courses for organisations with cohorts and bulk invites (see [Pricing](/pricing)). Questions learners often ask are in [Notes Academy: questions](/help/notes-academy-faq).
 `),
+    A("nana-tutor", "The Nana tutor: a tutor for every course", "Getting started", `
+**For learners:** when a teacher switches it on, every lesson of their course has **Ask your Nana tutor** underneath. Ask anything about the course, or tap **Explain this lesson** (in simple words, with an everyday example), **Quiz me** (one practice question at a time, with a short explanation after each answer) or **Summarise**. Choose **English**, **Pidgin** or **Kiswahili**, and the tutor answers in it whatever you type in; ${TUTOR_LANGUAGES_SOON.join(", ")} are coming. Answers are short and text only, so it works on a basic phone with little data.
+
+The tutor answers **only from this course's lessons** and the teacher's notes, never from the internet or general knowledge; if the course doesn't cover your question, it tells you and suggests asking the teacher. It never gives the answers to the course's graded quizzes. You need to be enrolled (a paid course: bought). Each question uses your [Nana](/nana) allowance like any question to Nana, and your conversation isn't saved.
+
+**For teachers:** open your course in [Teach](/academy/teach) and find **Nana tutor**. Switch it on, and if you like tell it what to keep in mind (who your learners are, words to use, what to stress). The tutor reads your reading lessons and your notes under videos; it can't see inside uploaded videos or PDFs, so add notes for those. You and your co-tutors can try it on any lesson before switching it on.`),
     A("notes-academy-faq", "Notes Academy: questions learners ask", "Getting started", `
 ${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),
     A("getting-around", "Getting around: the tab bar and the menu", "Getting started", `

@@ -13,6 +13,7 @@ import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
 import CoverMaker from "@/components/academy/CoverMaker";
+import { TutorSettingsCard } from "@/components/academy/TutorPanel";
 import { digitalCommissionRateFor } from "@/lib/tiers";
 import { useLivePricing } from "@/lib/useLivePricing";
 import type { AccountTier } from "@/lib/users";
@@ -319,6 +320,8 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
           </div>
         )}
       </section>
+
+      <TutorSettingsCard courseId={course.id} canEdit slug={course.slug} firstLessonId={lessons[0]?.id} />
 
       {/* 6. Publish */}
       <section className="card mt-6 p-5 sm:p-6">
