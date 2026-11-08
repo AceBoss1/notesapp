@@ -1,0 +1,90 @@
+name: Deploy room recorder
+# The room recorder (services/room-recorder; docs/RECORDER.md): records lives whose host switched "Record this live" on. Runs on Google
+# Cloud Run in Johannesburg (africa-south1). Runs by hand (Actions → Deploy room recorder → Run workflow) and on every push to main that
+# changes the service. Never redeploy while a live is being recorded: Cloud Run stops the old instance, which ends its recordings.
+#
+# Needs, in Settings → Secrets and variables → Actions (owner steps: docs/OWNER_SETUP.md, "Room recorder from GitHub"):
+#   secret   GCP_PROJECT_ID    the Google Cloud project ID (billing linked)
+#   secret   GCP_SA_KEY        a service-account key (JSON) with: Cloud Run Admin, Cloud Build Editor, Artifact Registry Administrator,
+#                              Service Account User, Secret Manager Admin, Service Usage Admin, Storage Admin
+#   secret   RECORDER_SECRET   the shared secret (64 hex characters); the very same value goes into Vercel as RECORDER_SECRET
+#   variable APP_ORIGIN        the site's own address, e.g. https://www.example.com (the recorder refuses any other origin)
+# Without them the job says which is missing and stops, green. At the end it prints the service's address: put it in Vercel as
+# RECORDER_URL (with RECORDER_SECRET) and redeploy the site.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "services/room-recorder/**"
+      - ".github/workflows/deploy-recorder.yml"
+
+concurrency: { group: deploy-recorder, cancel-in-progress: false }
+
+env:
+  REGION: africa-south1
+  SERVICE: room-recorder
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HAS_KEYS: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' && secrets.RECORDER_SECRET != '' && vars.APP_ORIGIN != '' }}
+    steps:
+      - name: Not set up yet
+        if: env.HAS_KEYS != 'true'
+        run: |
+          missing=""
+          [ -n "${{ secrets.GCP_PROJECT_ID != '' && 'y' || '' }}" ] || missing="$missing GCP_PROJECT_ID"
+          [ -n "${{ secrets.GCP_SA_KEY != '' && 'y' || '' }}" ] || missing="$missing GCP_SA_KEY"
+          [ -n "${{ secrets.RECORDER_SECRET != '' && 'y' || '' }}" ] || missing="$missing RECORDER_SECRET"
+          [ -n "${{ vars.APP_ORIGIN != '' && 'y' || '' }}" ] || missing="$missing APP_ORIGIN(variable)"
+          echo "::notice title=Recorder not deployed::Missing:$missing. Add them under Settings → Secrets and variables → Actions (docs/OWNER_SETUP.md), then run this workflow again. Nothing was deployed."
+      - uses: actions/checkout@v4
+        if: env.HAS_KEYS == 'true'
+      - name: Check the secret's shape
+        if: env.HAS_KEYS == 'true'
+        env: { RECORDER_SECRET: "${{ secrets.RECORDER_SECRET }}" }
+        run: |
+          if ! printf '%s' "$RECORDER_SECRET" | grep -Eq '^[0-9a-fA-F]{32,}$'; then
+            echo "::error title=RECORDER_SECRET looks wrong::Use a long random hex value (openssl rand -hex 32), with no spaces or new line."; exit 1; fi
+      - uses: google-github-actions/auth@v2
+        if: env.HAS_KEYS == 'true'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v2
+        if: env.HAS_KEYS == 'true'
+        with: { project_id: "${{ secrets.GCP_PROJECT_ID }}" }
+      - name: Turn on the Google services it needs (once; quick when already on)
+        if: env.HAS_KEYS == 'true'
+        run: gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com
+      - name: Keep the secret in Secret Manager (recorder-secret), and let the service read it
+        if: env.HAS_KEYS == 'true'
+        env: { RECORDER_SECRET: "${{ secrets.RECORDER_SECRET }}", PROJECT: "${{ secrets.GCP_PROJECT_ID }}" }
+        run: |
+          gcloud secrets describe recorder-secret >/dev/null 2>&1 || gcloud secrets create recorder-secret --replication-policy=automatic
+          # A new version only when the value changed, so re-runs don't pile up versions.
+          current="$(gcloud secrets versions access latest --secret=recorder-secret 2>/dev/null || true)"
+          if [ "$current" != "$RECORDER_SECRET" ]; then printf '%s' "$RECORDER_SECRET" | gcloud secrets versions add recorder-secret --data-file=-; fi
+          number="$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')"
+          gcloud secrets add-iam-policy-binding recorder-secret --member="serviceAccount:${number}-compute@developer.gserviceaccount.com" \
+            --role=roles/secretmanager.secretAccessor >/dev/null
+      - name: Deploy to Cloud Run
+        if: env.HAS_KEYS == 'true'
+        run: |
+          gcloud run deploy "$SERVICE" --source services/room-recorder --region "$REGION" \
+            --allow-unauthenticated \
+            --set-secrets RECORDER_SECRET=recorder-secret:latest \
+            --set-env-vars "APP_ORIGIN=${{ vars.APP_ORIGIN }},MAX_RECORDINGS=3" \
+            --cpu 2 --memory 2Gi --no-cpu-throttling \
+            --min-instances 0 --max-instances 3 --concurrency 10 --timeout 3600 --quiet
+      - name: Check it answers, and say where it is
+        if: env.HAS_KEYS == 'true'
+        run: |
+          url="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
+          health="$(curl -fsS --retry 5 --retry-delay 5 "$url/health" || echo 'no answer')"
+          { echo "### Room recorder deployed"; echo; echo "- Address: \`$url\`"; echo "- /health: \`$health\`"; echo;
+            echo "Next: Vercel → Settings → Environment Variables (Production): \`RECORDER_URL\` = the address above, \`RECORDER_SECRET\` = the same value as the GitHub secret. Then redeploy the site."; } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Recorder address::$url  (put it in Vercel as RECORDER_URL)"

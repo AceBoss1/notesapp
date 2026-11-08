@@ -63,7 +63,7 @@ manager to keep every secret in.
 ### Block 4: recording and replays (after counsel, about 1 hour)
 
 18. [ ] **Counsel** reviews the recording wording and privacy paragraph ([9](#9-legal-and-counsel-review)).
-19. [ ] **Google Cloud Run** recorder: services, secret, deploy, then `RECORDER_URL` and `RECORDER_SECRET` in Vercel ([4](#4-google-cloud-run-room-recorder)).
+19. [ ] **Google Cloud Run** recorder: easiest from GitHub (4.0: secret, service account, GitHub settings, run the workflow), then `RECORDER_URL` and `RECORDER_SECRET` in Vercel ([4](#4-google-cloud-run-room-recorder)).
 20. [ ] **Test** recording and replay ([10](#10-testing-checklist)), and optionally transcripts ([8](#8-optional-replay-transcripts-with-nkenneai)).
 
 ### Every time a branch with rules is merged
@@ -433,6 +433,50 @@ Note the address starts with **`wss://`**, not `https://`. Then **redeploy** (se
 
 The recorder is a small service that joins a live room as a silent listener and records it. Until it is set up, the **Record this
 live** switch is hidden from hosts and nothing is recorded. The full technical notes are in `docs/RECORDER.md`.
+
+### 4.0 The easy way: GitHub deploys it for you
+
+A GitHub Action (`.github/workflows/deploy-recorder.yml`) does sections 4.2 to 4.4 for you: it turns on the Google services, keeps the
+secret in Secret Manager, builds and deploys the recorder to Cloud Run in Johannesburg, checks it answers, and prints its address. You
+do these steps once, then section 4.5 (Vercel) and 4.6 (check). Read 4.1 first so the credits pay for it.
+
+**Step 1. Make the shared secret** (a long random password that only the site and the recorder know). Make it once and keep it in
+your password manager: the same value goes into GitHub **and** Vercel. Any of these works:
+
+- **Mac or Linux (Terminal):** `openssl rand -hex 32`
+- **Windows (PowerShell):** `-join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Maximum 256) })`
+- **Google Cloud Shell** (the `>_` button at the top of the Google Cloud console): `openssl rand -hex 32`
+
+It prints 64 letters and numbers (0–9, a–f), all on one line. Copy exactly that, with no spaces. If you ever lose it, just make a new
+one and put it in both places again (GitHub, then Vercel, then run the workflow and redeploy the site).
+
+**Step 2. A Google service account for GitHub** (Google Cloud console, in the project from 4.1):
+
+1. **IAM & Admin → Service Accounts → + Create service account.** Name: `github-recorder-deploy`. **Create and continue.**
+2. Give it these roles (one by one with **+ Add another role**): **Cloud Run Admin**, **Cloud Build Editor**, **Artifact Registry
+   Administrator**, **Service Account User**, **Secret Manager Admin**, **Service Usage Admin**, **Storage Admin**. **Continue → Done.**
+3. Open the new account → **Keys → Add key → Create new key → JSON → Create.** A `.json` file downloads. Keep it private: anyone
+   with it can deploy to your project. (If your organisation blocks key creation, tell me and we'll switch to keyless sign-in.)
+4. Note the **project ID** (top of the console, e.g. `notesapp-a1402`).
+
+**Step 3. GitHub settings** (github.com → AceBoss1/notesapp → **Settings → Secrets and variables → Actions**):
+
+- **Secrets** tab → **New repository secret**, three times:
+  - `GCP_PROJECT_ID` = the project ID
+  - `GCP_SA_KEY` = the **whole contents** of the downloaded `.json` file (open it in a text editor, select all, paste)
+  - `RECORDER_SECRET` = the secret from step 1
+- **Variables** tab → **New repository variable**: `APP_ORIGIN` = your site's address with `https://` and no slash at the end, the
+  same as `NEXT_PUBLIC_SITE_URL` in Vercel.
+
+**Step 4. Run it:** **Actions → Deploy room recorder → Run workflow → Run workflow.** It takes about 5 to 10 minutes the first time.
+When it's green, open the run: the summary shows the recorder's **address** (`https://room-recorder-….run.app`) and its health
+check. Delete the downloaded `.json` file from your computer once the secret is saved in GitHub.
+
+**Step 5. Vercel:** as in 4.5, `RECORDER_URL` = that address and `RECORDER_SECRET` = the same secret, then redeploy. Hosts then see
+**Record this live**.
+
+After that the workflow runs again by itself whenever the recorder's code changes on `main`. It never runs on its own otherwise, so
+nothing is redeployed during a live.
 
 ### 4.1 Credits first
 
