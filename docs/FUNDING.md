@@ -759,11 +759,51 @@ protection, payments and the Central Bank of Nigeria's rules.
 side meant she and her clients had to hop between one app after another to get anything done. That pain gave birth to NotesApp:
 one place where Africans can build their dream ventures without hopping from app to app, or losing hope on the way.
 
-Draft for her to confirm or change (it follows from what LWB does; she hasn't said these exact words): *"Running Living Without
-Borders meant a booking link for coaching calls, another site for my courses, bank transfers I had to chase, and WhatsApp groups
-for my clients. Every new idea meant another app, and every app lost someone along the way. On NotesApp, my coaching sessions,
-courses, payments and community live in one place, and my clients find them under one name."* `[Her own moment: when the
-hopping cost her or a client.]`
+**In her own words (Emmanuela, 8 November 2026).** Use these as they are; trim only for a word limit.
+
+*Story 1: The client I couldn't afford to lose*
+
+> In 2023, a woman in Lagos reached out to book a coaching session with me. She was ready for change, willing to invest in herself
+> and excited to begin her journey. But first, she had to book a call on one platform, make payment on another, access her course
+> somewhere else and join my WhatsApp community through a separate link.
+>
+> Somewhere between those steps, she disappeared.
+>
+> I remember asking myself: *How many people who genuinely need my help have I lost, not because they couldn't afford my services
+> or didn't believe in my work, but because I made it too difficult for them to get started?*
+>
+> That was when it became clear to me: people shouldn't have to navigate five different platforms just to experience the
+> transformation I offer.
+>
+> That was the day I decided my clients deserved something better.
+
+*Story 2: The payment I had to chase*
+
+> I once spent almost two days following up on a course payment that should have taken minutes to confirm. The client had already
+> started learning, but the payment was sitting somewhere separate from the course.
+>
+> I was spending time chasing transfers, checking notifications and reconciling payments instead of doing what I was actually
+> called to do: coaching, teaching and helping people transform their lives.
+>
+> And the real cost wasn't just the time. It was the unnecessary stress, the interruptions and the energy taken away from growing
+> my business and serving my clients.
+>
+> I realised that building a coaching business shouldn't mean becoming a full-time payment tracker, course administrator and
+> customer support agent.
+>
+> On NotesApp, my clients can discover my services, book coaching sessions, make payments, access courses and connect with my
+> community in one place.
+>
+> One platform. One seamless experience. More time for the work that truly matters: transformation.
+
+**Short version (for a "why this problem" field of about 60 words), from her stories:**
+
+> In 2023 a woman in Lagos was ready to start coaching with me, but had to book on one platform, pay on another, take her course
+> on a third and join WhatsApp on a fourth. Somewhere between them, she disappeared. Nobody should need five apps to start
+> changing their life. That's why we built NotesApp: one place to book, pay, learn and belong.
+
+**For the pitch video:** open with Story 1 (the client who disappeared), close with Story 2's last line ("One platform. One
+seamless experience. More time for the work that truly matters: transformation.").
 
 **Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
 safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
