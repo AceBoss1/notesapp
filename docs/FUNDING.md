@@ -302,7 +302,7 @@ layer so outside AI assistants can work on a member's account with permission. K
 2,150+ WAEC and NECO practice questions in 18 subjects; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
 **Team:** Emmanuel Adams, co-founder, CEO and CTO (Adams Consults), built the whole platform; Emmanuela Emmanuel, co-founder and
-Chief Legal Officer; Ifenyinwa Akujobi, co-founder and CCO; Ezurukam Ijeoma Pearl, co-founder and Head of Customer Service and
+Chief Legal Officer; Ifenyinwa Akujobi, co-founder and Chief Compliance Officer; Ezurukam Ijeoma Pearl, co-founder and Head of Customer Service and
 Community. `[background]`
 
 **Funding so far:** bootstrapped; no institutional money. Startup perks from Claude for Startups, Moda and Granola (credits).
@@ -567,7 +567,7 @@ at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translatio
 badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
 
 **Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with
-Emmanuela Emmanuel, co-founder and Chief Legal Officer, Ifenyinwa Akujobi, co-founder and CCO, Ezurukam Ijeoma Pearl,
+Emmanuela Emmanuel, co-founder and Chief Legal Officer, Ifenyinwa Akujobi, co-founder and Chief Compliance Officer, Ezurukam Ijeoma Pearl,
 co-founder and Head of Customer Service and Community, and staff across Nigeria.
 
 **Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
@@ -771,9 +771,10 @@ the export or a screenshot with the date as evidence, and use the figure for the
 
 **The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder and CEO of **Living Without Borders International (LWB)**. An author, speaker and coach, she helps people
 ready for change break through limiting beliefs, unlock their potential and turn their passion into profit, through coaching and
-courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
-protection, payments and the Central Bank of Nigeria's rules.
-**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. **Ifenyinwa Akujobi**, co-founder and CCO.
+courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal work: the company, contracts, our Terms and
+privacy and data protection.
+**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. **Ifenyinwa Akujobi**, co-founder and Chief Compliance Officer: payments and
+the Central Bank of Nigeria's rules, know-your-customer checks on sellers and organisations, and the licensed partners we work with.
 **Ezurukam Ijeoma Pearl**, co-founder and Head of Customer Service and Community: the first voice our members hear, and the one
 who runs our communities.
 
@@ -829,9 +830,10 @@ one place where Africans can build their dream ventures without hopping from app
 **For the pitch video:** open with Story 1 (the client who disappeared), close with Story 2's last line ("One platform. One
 seamless experience. More time for the work that truly matters: transformation.").
 
-**Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
-safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
-CBN's November 2026 framework. `[Her own words: why NotesApp, and what she wants for women earning online.]`
+**Why she leads this application:** she is the founder whose own business showed us the problem (above), and as Chief Legal
+Officer she keeps a platform that holds members' money and data trustworthy: our Terms, payouts held until delivery, and every
+member's right to export or delete their data. With Ifenyinwa on compliance (licensed payment partners only, and our crypto rules
+after the CBN's November 2026 framework), women who build on NotesApp can trust it with their income. `[Her own words: why NotesApp, and what she wants for women earning online.]`
 
 **Traction (as of 8 November 2026; update on the day):** 86 members, 75 of them joined in the last 30 days, 65% women; 7
 organisations and 38 Gold-verified accounts; ₦3.2 million processed through NotesApp, ₦3.0 million of it in the last 30 days; our
