@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.155.2",
+    bump: "patch",
+    date: "2026-11-08",
+    changes: [
+      { kind: "added", text: "Careers: we're hiring a Chief of Staff and Senior Executive Assistant, the CEO's right hand, leading the executive office and supporting the C-suite: remote across Nigeria, 20 hours a week, salary and stock options. See it on Careers and Explore → Jobs." },
+    ],
+  },
+  {
     version: "v0.156.0",
     bump: "minor",
     date: "2026-11-09",

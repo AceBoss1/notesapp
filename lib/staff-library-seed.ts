@@ -13,6 +13,7 @@ const TEMPLATES: Record<string, string> = {
   "template-grant": optionGrant(BLANK),
   "template-announcement": announcement(BLANK),
   // The Executive Assistant's offer, ready for review: the role's duties filled in, pay, dates and equity left as [open points].
+  "template-offer-chief-of-staff": offerLetter(cleanTerms({ ...presetTerms("chief-of-staff"), arrangement: "salary_options", hoursPerWeek: "20" })),
   "template-offer-executive-assistant": offerLetter(cleanTerms({ ...presetTerms("executive-assistant"), arrangement: "salary_options", hoursPerWeek: "20" })),
 };
 const textOf = (key: string) => STAFF_LIBRARY_TEXT[key] ?? TEMPLATES[key];
@@ -48,6 +49,7 @@ export const SEED_DOCS: SeedDoc[] = [
   { key: "template-offer", title: "Template: offer of employment", category: "template", description: "The offer letter Nana-HR drafts for a new employee, from the Chief of Staff's terms. For Legal's review before signing.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "template-grant", title: "Template: executive option grant", category: "template", description: "The NotesApp Inc. option grant Nana-HR drafts under the 2026 Equity Incentive Plan. For counsel and the Board.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "template-announcement", title: "Template: internal announcement of a new hire", category: "template", description: "The welcome announcement Nana-HR drafts; never with pay, equity or financial figures.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
+  { key: "template-offer-chief-of-staff", title: "Template: offer of employment, Chief of Staff and Senior Executive Assistant", category: "template", description: "The Chief of Staff and Senior Executive Assistant's offer, from the executive offer template: duties for the first 90 days filled in; pay, dates and stock options left for Legal and the CEO (options for the Board).", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "template-offer-executive-assistant", title: "Template: offer of employment, Executive Assistant", category: "template", description: "The Executive Assistant's offer, from the executive offer template: duties for the first 90 days filled in; pay, dates and stock options left for the Chief of Staff, Legal and the CEO.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "brief-community", title: "Community Strategist brief", category: "brief", description: "Why communities matter to NotesApp, who the Community Strategist serves, what they own, principles, the first 90 days and measures.", scope: "dept", depts: ["support"], requiresAck: true },
   { key: "sop-community", title: "SOP: Community Strategist", category: "sop", description: "Onboarding a new community, giving and tithes, events and lives, quiet communities, requests and conflicts, the monthly report.", scope: "dept", depts: ["support", "moderation"], requiresAck: true },

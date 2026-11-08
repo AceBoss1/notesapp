@@ -182,6 +182,30 @@ export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "upda
     ],
   },
   {
+    // Added 8 Nov 2026 (the owner): the Chief of Staff and Senior Executive Assistant is one role, and an open vacancy. It leads the
+    // executive office and, until there is an HR team, the people side. Terms follow the executive offer template (ROLE_PRESETS["chief-of-staff"]).
+    seedKey: "chief-of-staff", title: "Chief of Staff and Senior Executive Assistant", dept: "executive", reportsTo: "The CEO",
+    hours: LEADER.hours, location: LEADER.location, arrangement: "salary_options",
+    summary: "Be the CEO's right hand: turn the leadership's decisions into action across #NotesApp, run the executive office, and look after our people until we have an HR team.",
+    about: "The executive office turns the founder's decisions into action across the company. As Chief of Staff and Senior Executive Assistant you lead it, supporting the CEO and the C-suite: the leadership agenda and its follow-up, coordination between product, operations, finance and compliance, the 90-day plan, meeting packs, and board and investor paperwork with the Board Secretary. Until we hire a head of HR you also run the people side (hiring, onboarding, department assignments) with Nana-HR's help, and you lead the Executive Assistants. Everything happens in our own team hub, and everything you see stays confidential.",
+    responsibilities: [
+      "Run the leadership rhythm: the Monday leadership week, agendas with an owner and a decision for each item, and the CEO's Friday week in review",
+      "Put every leadership decision on a team hub task with an owner and a date, and follow it up until it's done",
+      "Keep the 90-day plan current with the C-suite, and coordinate product, operations, finance and compliance so nothing falls between departments",
+      "Prepare board and investor papers with the CFO and the Board Secretary, keeping pay, equity and funding figures with the people named",
+      "Act as HR until we hire one: post approved roles, run interviews and onboarding, draft offers with Nana-HR for Legal and the CEO, and assign departments in the team hub",
+      "Lead and train the Executive Assistants",
+    ],
+    requirements: [
+      "4+ years as a chief of staff, executive assistant to a CEO or founder, operations manager or in a similar senior support role",
+      "Has run a leadership team's agenda, decisions and follow-up, with results to show",
+      "Exceptionally organised and discreet: confidential pay, equity, funding and people matters are safe with you",
+      "Writes short, clear papers, minutes and summaries; confident with board and investor documents",
+      "Has hired or onboarded people, or is ready to learn the people side with Nana-HR",
+      ...SHARED_REQS,
+    ],
+  },
+  {
     // Added 8 Nov 2026 (the owner): the executive office is the Chief of Staff and Senior Executive Assistant (one person, one role),
     // with Executive Assistants under them. Terms follow the executive offer template (lib/hr-drafts.ts, ROLE_PRESETS["executive-assistant"]).
     seedKey: "executive-assistant", title: "Executive Assistant", dept: "executive", reportsTo: "The Chief of Staff and Senior Executive Assistant",
