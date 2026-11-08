@@ -284,7 +284,7 @@ layer so outside AI assistants can work on a member's account with permission. K
 2,150+ WAEC and NECO practice questions in 18 subjects; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
 **Team:** Emmanuel Adams, co-founder, CEO and CTO (Adams Consults), built the whole platform; Emmanuela Emmanuel, co-founder and
-Chief Legal Officer. `[other co-founders]` `[background]`
+Chief Legal Officer; co-founders Ifenyinwa Akujobi `[role]` and Ezurukam Ijeoma Pearl `[role]`. `[background]`
 
 **Funding so far:** bootstrapped; no institutional money. Startup perks from Claude for Startups, Moda and Granola (credits).
 Applying to the .tech No Excuses Fund (a grant).
@@ -548,7 +548,8 @@ at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translatio
 badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
 
 **Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with
-Emmanuela Emmanuel, co-founder and Chief Legal Officer, other co-founders `[names and roles]`, and staff across Nigeria.
+Emmanuela Emmanuel, co-founder and Chief Legal Officer, co-founders Ifenyinwa Akujobi `[role]` and Ezurukam Ijeoma Pearl
+`[role]`, and staff across Nigeria.
 
 **Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
 to say]`.
@@ -718,7 +719,7 @@ award is the free, non-dilutive one.
 
 | Rule (as reported) | NotesApp |
 |---|---|
-| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | Yes: **Emmanuela Emmanuel** is a co-founder, holds equity and leads as Chief Legal Officer. Check the site's exact wording: if it requires the **CEO** to be a woman, we don't qualify, and we don't retitle anyone to fit. |
+| Founded or co-founded **and led** by a woman (some listings: women's ownership or co-ownership) | **Yes (owner checked the site, 8 November 2026: a woman co-founder is accepted).** Emmanuela Emmanuel is a co-founder, holds equity and leads as Chief Legal Officer. |
 | A working product or prototype | Yes: live in Nigeria and Kenya |
 | Under 5 years old | Yes: NotesApp Technologies Ltd (RC 9825642) is recent |
 | Raised under USD 6M (some older listings: USD 4M) | Yes: bootstrapped, no institutional money |
@@ -746,14 +747,15 @@ get paid for it, in their own currency.
 NotesApp are women running knowledge and service businesses: tutors,
 coaches, stylists, bakers, consultants, church and community leaders. Today they stitch together WhatsApp, a booking link and bank
 transfers, and lose sales and trust in the gaps. NotesApp gives them one place to publish, take bookings, teach, sell and be paid in
-Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. `[Share of women among members and publishers,
-from /admin, if we can show it.]`
+Naira (shillings next), with communities, encrypted calls and Notes Jobs for hiring. **65% of our members are women** (from /admin, November 2026; keep
+the export or a screenshot with the date as evidence, and use the figure for the day you submit).
 
 **The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder and CEO of **Living Without Borders International (LWB)**. An author, speaker and coach, she helps people
 ready for change break through limiting beliefs, unlock their potential and turn their passion into profit, through coaching and
 courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
 protection, payments and the Central Bank of Nigeria's rules.
-**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. `[Other co-founders: names and roles.]`
+**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. Co-founders **Ifenyinwa Akujobi** `[role]` and
+**Ezurukam Ijeoma Pearl** `[role]`.
 
 **How NotesApp began (her story, the heart of this application):** Emmanuela had ideas she wanted to build, but the technical
 side meant she and her clients had to hop between one app after another to get anything done. That pain gave birth to NotesApp:
@@ -812,8 +814,17 @@ CBN's November 2026 framework. `[Her own words: why NotesApp, and what she wants
 **Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
 2,150+ WAEC and NECO practice questions; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
-**Use of the prize:** `[the owner's split]`, e.g. the Kenya launch with M-Pesa (January 2027), the iOS and Android apps, and
-growth among women-led businesses.
+**Use of the prize (suggested split, owner to approve; shares of whatever we win):**
+
+| Share | What | At USD 25,000 |
+|---|---|---|
+| 35% | **Women-led businesses on NotesApp:** onboarding workshops and one-to-one setup for women coaches, tutors, stylists and sellers in Lagos, Abuja and Nairobi, and their first months' fees waived | USD 8,750 |
+| 30% | **The Kenya launch:** M-Pesa through Flutterwave, the December pilot and launch marketing | USD 7,500 |
+| 20% | **The iOS and Android apps:** store accounts, test devices and review | USD 5,000 |
+| 15% | **Legal and compliance:** NotesApp Inc, data protection registration, payment-partner checks under the CBN's rules | USD 3,750 |
+
+Why this split: the biggest share goes where the award's purpose and our members meet (65% of them are women), and the rest
+removes the three things that hold that growth back (one country, no app, legal groundwork).
 
 **Funding so far:** bootstrapped; no institutional money (perks and credits only).
 
@@ -821,13 +832,18 @@ growth among women-led businesses.
 
 Apply alongside the award (check whether the site takes one form for both or a separate one). What to have ready, as for any
 pre-seed investor:
-- **The ask:** `[amount within the reported USD 180k–250k]` `[instrument: SAFE or shares; the cap or valuation]`. No numbers
-  until the owner sets them.
+- **The ask (suggested, owner to approve):** **USD 250,000 on a post-money SAFE with a USD 5M valuation cap** (about 5% of the
+  company). USD 250k is the top of their reported range and buys about 18 months of the plan below; a USD 5M cap sits just above
+  Alliance's fixed terms (USD 4M post-money, §5), which fits if Alliance closes first and we have more traction by the time
+  Aurora decides. If Alliance also invests, the founders give up about 15% across both; counsel adds it up before anything is
+  signed (`accel-legal-safe`). If they offer less, take a smaller cheque, not a lower cap.
 - **Entity:** whether they invest in NotesApp Technologies Ltd (Nigeria) or NotesApp Inc (Delaware, being incorporated); the same
   question as Alliance (§5).
 - **Cap table:** founders and their shares, the same on every application.
 - **Deck and video:** reuse the No Excuses Fund deck (`fund-deck-video`), presented by Emmanuela.
-- **Use of funds:** `[the owner's split]`: the Kenya launch (Flutterwave, M-Pesa, January 2027), the mobile apps, first hires.
+- **Use of funds (suggested, over about 18 months):** 40% product and engineering (two engineers, so the platform isn't one
+  person); 25% growth among women-led businesses in Nigeria and Kenya; 15% the Kenya and Ghana launches; 10% hosting, video and AI
+  costs as usage grows; 10% legal and compliance (NotesApp Inc, data protection, payment partners).
 
 Sources (coverage and listings; the official site wasn't readable from our tools):
 [auroratechaward.com](https://www.auroratechaward.com/),
