@@ -726,7 +726,7 @@ Don't: promise or imply returns, show a "your ₦100,000 could become…" figure
 
 ## 13. Aurora Tech Award and Aurora Ventures (inDrive): women-led startups
 
-> Status: **draft, not applied (6 November 2026).** The owner shared the "Get funding" link and decided: we apply for **both the
+> Status: **ready to apply when the cycle opens (January 2027); content complete 8 November 2026.** The owner shared the "Get funding" link and decided: we apply for **both the
 > award and Aurora Ventures**, with **Emmanuela Emmanuel, co-founder and Chief Legal Officer** (she holds equity) as the applicant. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
 > the end) and **must be checked on the site** before applying, especially dates, amounts and the "led by a woman" wording.
 
@@ -835,7 +835,16 @@ seamless experience. More time for the work that truly matters: transformation."
 **Why she leads this application:** she is the founder whose own business showed us the problem (above), and as Chief Legal
 Officer she keeps a platform that holds members' money and data trustworthy: our Terms, payouts held until delivery, and every
 member's right to export or delete their data. With Ifenyinwa on compliance (licensed payment partners only, and our crypto rules
-after the CBN's November 2026 framework), women who build on NotesApp can trust it with their income. `[Her own words: why NotesApp, and what she wants for women earning online.]`
+after the CBN's November 2026 framework), women who build on NotesApp can trust it with their income.
+
+**In her words (Emmanuela Emmanuel, 8 November 2026):**
+
+> I chose NotesApp because I believe women should be able to turn their knowledge, skills and passions into income without
+> needing multiple platforms, expensive tools or complicated technology. I want to see more women earning independently, owning
+> their businesses, monetising their expertise and building lasting wealth from what they know. For me, NotesApp is more than a
+> platform; it is an opportunity to make earning online simpler, more accessible and more rewarding for women.
+
+Use it for "why are you building this" or "your vision" fields, and as the closing words of the pitch video.
 
 **Traction (as of 8 November 2026; update on the day):** 86 members, 75 of them joined in the last 30 days, 65% women; 7
 organisations and 38 Gold-verified accounts; ₦3.2 million processed through NotesApp, ₦3.0 million of it in the last 30 days; our
