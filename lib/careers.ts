@@ -181,4 +181,26 @@ export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "upda
       ...SHARED_REQS,
     ],
   },
+  {
+    // Added 8 Nov 2026 (the owner): the executive office is the Chief of Staff and Senior Executive Assistant (one person, one role),
+    // with Executive Assistants under them. Terms follow the executive offer template (lib/hr-drafts.ts, ROLE_PRESETS["executive-assistant"]).
+    seedKey: "executive-assistant", title: "Executive Assistant", dept: "executive", reportsTo: "The Chief of Staff and Senior Executive Assistant",
+    hours: LEADER.hours, location: LEADER.location, arrangement: "salary_options",
+    summary: "Keep the leadership's diaries, meetings and follow-ups running on time, so every decision turns into action.",
+    about: "The executive office turns the founder's decisions into action across #NotesApp and, until we have an HR team, looks after our people. You'll work in it with the Chief of Staff and Senior Executive Assistant, supporting the CEO and the C-suite: diaries and meetings, agendas and minutes, follow-ups on every decision, board and investor paperwork, and the practical side of hiring and onboarding. Everything happens in our own team hub, and everything you see stays confidential.",
+    responsibilities: [
+      "Run the diaries and meetings of the leaders you support: agendas in the team hub 24 hours ahead, the right people invited",
+      "Take notes in every leadership meeting, and within 2 hours turn each decision and action into a team hub task with an owner and a due date",
+      "Chase follow-ups until they're done, and prepare the CEO's Friday week in review with the Chief of Staff",
+      "Format and file board and investor papers, and keep pay, equity and funding figures with the people named",
+      "Support hiring and onboarding: interviews booked, first-week checklists, logins ready before day one",
+    ],
+    requirements: [
+      "2+ years as an executive or personal assistant, office manager or in a similar role supporting senior leaders",
+      "Organised and reliable: diaries, deadlines and follow-ups never slip",
+      "Discreet with confidential information: pay, equity, funding and people matters",
+      "Takes clear notes and writes short, accurate minutes and summaries",
+      ...SHARED_REQS,
+    ],
+  },
 ];

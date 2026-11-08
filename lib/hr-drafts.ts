@@ -17,6 +17,41 @@ export type DraftTerms = {
   timePercent: string; timeMonths: string; cliffDays: string; milestonePercent: string;
 };
 
+// Starting points for a role's onboarding drafts, by the vacancy's seedKey (lib/careers.ts SEED_ROLES). The Chief of Staff still checks
+// every line; pay, dates and equity are never preset and stay [open points] until entered.
+export type RolePreset = { title: string; reportsTo: string; worksWith: string; duties: string[]; whatTheyDo: string[]; howToWork: string[] };
+export const ROLE_PRESETS: Record<string, RolePreset> = {
+  // Owner, 8 Nov 2026: the Chief of Staff and Senior Executive Assistant is one person; Executive Assistants work under them. Shaped on
+  // the executive offer the owner sent (Nora Bawa's), with every personal detail left out.
+  "executive-assistant": {
+    title: "Executive Assistant",
+    reportsTo: "the Chief of Staff and Senior Executive Assistant",
+    worksWith: "the Chief Executive Officer and the C-suite",
+    duties: [
+      "Weeks 1 to 2: read the handbook, the executive office brief and SOP in the team hub library and tick I have read this; set up your staff login with a passkey",
+      "Weeks 1 to 4: run the diaries and meeting agendas of the leaders you support in the team hub, with each agenda ready 24 hours before",
+      "From week 2: take notes in leadership meetings and turn every decision and action into a team hub task with an owner and a due date within 2 hours",
+      "From week 3: chase follow-ups until done, and prepare the CEO's Friday week in review with the Chief of Staff",
+      "Weeks 4 to 12: format and file board and investor papers, and support hiring and onboarding (interviews, first-week checklists, logins before day one)",
+    ],
+    whatTheyDo: [
+      "Runs the diaries, agendas and minutes for the leaders they support",
+      "Turns meeting decisions into team hub tasks and follows them up until they're done",
+      "Helps the Chief of Staff with board papers, hiring and onboarding",
+    ],
+    howToWork: [
+      "Send meeting and diary requests as a team hub task, with what's needed and a due date",
+      "Put agenda items in the meeting 24 hours before, each with an owner and the decision wanted",
+      "Keep pay, equity and funding figures on the task, with only the people named",
+    ],
+  },
+};
+// A role's preset filled into blank terms (for the library's ready-to-review letter, and the team hub's draft form).
+export const presetTerms = (key: string): Partial<Record<keyof DraftTerms, unknown>> => {
+  const p = ROLE_PRESETS[key];
+  return p ? { title: p.title, reportsTo: p.reportsTo, worksWith: p.worksWith, duties: p.duties, whatTheyDo: p.whatTheyDo, howToWork: p.howToWork } : {};
+};
+
 const s = (v: unknown, max = 200) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
 const lines = (v: unknown, n = 8) => (Array.isArray(v) ? v : typeof v === "string" ? v.split("\n") : []).map((x) => s(String(x).replace(/^[-*•]\s*/, ""), 240)).filter(Boolean).slice(0, n);
 // A blank becomes an open point the reviewer can't miss.
@@ -68,7 +103,7 @@ ${COMPANY_INFO.legalName}, RC ${COMPANY_INFO.rcNumber} ("the Company"), offers y
 
 ## 1. Role
 
-You will be ${or(t.title, "role")}. You report to ${t.reportsTo}${t.worksWith ? `, and work with ${t.worksWith}` : ""}. Your duties are set out in the appendix (the first 90 days) and may be adjusted in writing as the Company grows.
+You will join as ${or(t.title, "role")}. You report to ${t.reportsTo}${t.worksWith ? `, and work with ${t.worksWith}` : ""}. Your duties are set out in the appendix (the first 90 days) and may be adjusted in writing as the Company grows.
 
 ## 2. Start date, hours and place of work
 

@@ -19,6 +19,8 @@ Most questions should be answered before anyone writes to us. Keep the help arti
 
 ## Communities: the Community Strategist
 
+The Community Strategist has their own brief and SOP (the Community Strategist brief, and the SOP: Community Strategist). In short:
+
 Communities are where churches, mosques, NGOs, schools, creators and businesses gather their people on NotesApp (/c/name), hold lives and services, and collect giving. The **Community Strategist** sits in Customer care and helps them succeed: onboarding new communities and their admins, setting up healthy rules, roles and moderators, planning events, lives, audio rooms and series with hosts, and turning what communities ask for into requests for Product. They work with Trust & safety on community rules and safe giving, with Marketing on community campaigns and the challenge, and with Sales & partnerships when an organisation joins.
 
 - **First 90 days:** an onboarding checklist for new communities; a monthly call with the 20 most active community admins; the giving safety playbook, with Trust & safety.

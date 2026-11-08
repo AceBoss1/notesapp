@@ -35,7 +35,7 @@ Every staff member belongs to one or more departments, and each department has a
 
 | Department | What it does |
 | --- | --- |
-| Executive office | The founder, the Chief of Staff, the Senior Executive Assistant and Executive Assistants: priorities, the founder's diary, board and investor work, cross-team follow-up, and people matters until we hire a head of HR, whose office will sit under the Chief of Staff |
+| Executive office | The founder, the Chief of Staff and Senior Executive Assistant (one role) and the Executive Assistants under them: priorities, the founder's diary, board and investor work, cross-team follow-up, and people matters until we hire a head of HR, whose office will sit under the Chief of Staff |
 | Customer care | Looks up members, answers contact messages and leads, helps organisations, stores and orders |
 | Trust & safety | Reports, suspensions and appeals, and removing content |
 | Finance | Payments, revenue, payouts, ad share, merch and store orders, plans, payroll |
