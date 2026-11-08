@@ -1,5 +1,6 @@
 "use client";
 
+import { ROLE_PRESETS } from "@/lib/hr-drafts";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
@@ -180,7 +181,7 @@ export default function NanaHrPage() {
                             <button className={`${ghost} mt-3`} disabled={busy} onClick={() => run({ action: "summarise", id: a.id }, "Summary ready.")}>Summarise against the requirements</button>
                           )}
                           {a.status === "offer" || a.status === "hired" ? (
-                            <button className={`${btn} mt-3 ml-2`} onClick={() => setTerms({ ...blankTerms, applicationId: a.id, name: a.name, title: r.title, reportsTo: r.reportsTo, arrangement: r.arrangement })}>Draft onboarding documents</button>
+                            <button className={`${btn} mt-3 ml-2`} onClick={() => { const p = r.seedKey ? ROLE_PRESETS[r.seedKey] : undefined; setTerms({ ...blankTerms, applicationId: a.id, name: a.name, title: r.title, reportsTo: p?.reportsTo ?? r.reportsTo, worksWith: p?.worksWith ?? "", arrangement: r.arrangement, duties: (p?.duties ?? r.responsibilities).join("\n"), whatTheyDo: (p?.whatTheyDo ?? []).join("\n"), howToWork: (p?.howToWork ?? []).join("\n") }); }}>Draft onboarding documents</button>
                           ) : null}
                         </li>
                       ))}
