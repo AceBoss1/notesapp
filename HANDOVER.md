@@ -967,6 +967,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Firestore indexes (`firebase deploy --only firestore:indexes`) so the summary can count new followers. To open it to everyone later,
     change `mayStartProfileLive` in `lib/profile-lives-server.ts` (and the Go live button's check, `GET /api/lives?golive=1`, which uses it).
 
+128. **The Nana tutor (v0.156.0, branch `push/nana-tutor`; owner, 8 Nov 2026, for the USPF Changemaker education entry):** deploy
+    `firebase deploy --only firestore` (rules: `courseTutor` is server-only). A small, intentional AI per course: the lead or an
+    editing co-tutor switches it on (`courseTutor/{courseId}` holds the switch and the teacher's notes; the course carries `tutorOn`).
+    Enrolled learners (paid: buyers) ask under each lesson (`TutorPanel`, POST /api/academy/tutor); the course's tutors may try it
+    while it's off. It answers only from the course's material (`pickContext`: the current lesson first, then the best word matches,
+    24,000 characters at most; text lessons and video notes in full, quiz questions without options, uploads by title only), never
+    reads `quizKeys`, replies in English, Pidgin or Kiswahili (`TUTOR_LANGUAGES`; Igbo, Hausa and Yoruba listed as coming), and adds
+    the school-appropriate line for teen learners. Pearl through `runAi` with the learner's meter (their own AI account first), 100 a day
+    per person on our account; nothing is stored. Deleting a course deletes its `courseTutor`. Tests: `test:tutor` (new, pure +
+    emulator with a stand-in AI), rules 94/94. The same pattern (a sector kit + a grounded Nana with sector rules) is the plan for
+    healthcare, clean energy, agriculture and financial inclusion.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

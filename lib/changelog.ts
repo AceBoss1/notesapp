@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.156.0",
+    bump: "minor",
+    date: "2026-11-09",
+    changes: [
+      { kind: "added", text: "The Nana tutor on Notes Academy: a teacher switches it on for a course, and every lesson gets \"Ask your Nana tutor\". Learners ask about the course, or tap Explain this lesson, Quiz me or Summarise, in English, Pidgin or Kiswahili (Igbo, Hausa and Yoruba are coming). It answers only from that course's lessons and the teacher's notes, never gives away graded quiz answers, and keeps answers short for basic phones and little data." },
+      { kind: "added", text: "Teachers: the Nana tutor card in the course editor, with a switch and notes for the tutor (who your learners are, what to stress). You and your co-tutors can try it on any lesson first. Questions use each learner's own Nana allowance." },
+    ],
+  },
+  {
     version: "v0.155.1",
     bump: "patch",
     date: "2026-11-08",

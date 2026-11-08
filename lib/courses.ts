@@ -99,6 +99,7 @@ export type Course = {
   tutors?: Tutor[]; tutorUids?: string[]; // accepted co-tutors (the lead is the owner)
   isOrg?: boolean; createdByUid?: string; // published by an organisation; who on its team made it
   madeByName?: string; madeByUsername?: string; // an organisation's course: that team member, credited as its teacher
+  tutorOn?: boolean; // the Nana tutor is switched on for its learners (lib/tutor-server.ts; the teacher's notes are in courseTutor/)
 };
 export type LessonKind = "youtube" | "text" | "video" | "pdf" | "quiz";
 export const lessonKindLabel = (k: LessonKind) => (k === "text" ? "Reading" : k === "pdf" ? "PDF" : k === "quiz" ? "Quiz" : "Video");

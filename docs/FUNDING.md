@@ -18,6 +18,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 7 | **Capital Wings** (Bahrain): §7 | capital-wings.com | — | unknown ("fee arrangements" discussed later) | **not applying**: share no data, pay no fees |
 | 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
 | 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | **applying (both)**, led by Emmanuela Emmanuel, co-founder and CLO (§13) |
+| 10 | **USPF Changemaker Challenge 2026** (Universal Service Provision Fund, NCC): ₦5M / ₦3M / ₦2M and 4 weeks' incubation; five sectors: §14 | [uspfchangemaker.ng](https://www.uspfchangemaker.ng) (apply on InnoX) | **15 November 2026, 11:59 p.m. WAT** | nothing; we keep 100% of our IP | all five sectors, one team each (§14) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -891,3 +892,131 @@ Sources (coverage and listings; the official site wasn't readable from our tools
 [inDrive blog: the 2026 winner](https://blog.indrive.com/article/quipu-is-the-winner-of-the-2026-aurora-tech-award),
 [MSME Africa: Aurora Ventures](https://msmeafricaonline.com/indrive-backs-aurora-ventures-to-fund-emerging-market-female-tech-founders/),
 [Path Founders: Aurora Ventures](https://pathfounders.com/p/aurora-tech-award-launches-venture-fund).
+
+---
+
+## 14. USPF Changemaker Challenge 2026: all five sectors
+
+> Status: **drafts, not submitted (9 November 2026). Closes Sunday 15 November 2026, 11:59 p.m. WAT**, on InnoX (linked from
+> uspfchangemaker.ng). The owner decided to enter **all five sectors**. Facts below were read on [uspfchangemaker.ng](https://www.uspfchangemaker.ng)
+> on 9 November 2026. Fill the `[brackets]` (team names and state) before submitting.
+
+**The rules that shape the entry**
+
+| Rule (official site) | What it means for us |
+|---|---|
+| Teams of 2 to 5, everyone 18 or over | Five sectors = five teams |
+| Members must be Nigerian citizens or legal residents **living in Nigeria** | Only people who live here; answer the residence question truthfully for each |
+| "Each application responds to one problem statement in one Challenge Sector" | One application per sector |
+| "Each individual can only belong to one team… Teams found to have members participating in multiple applications may be disqualified" | **No one may be on two teams.** Five teams of different people: at least 10 people |
+| Business registration not required; idea, prototype, MVP or working system | NotesApp is live, which counts for more |
+| Regional places go by each team's **declared state of operation** (up to 37 by state and FCT, 13 more by score) | Declaring different states for different teams is only right where that team really operates |
+| National Demo Day in Abuja, 2 people per team; finalists get 4 weeks' incubation | |
+
+**Before submitting:** write to USPF support (Contact Support on the site) and ask, in writing, whether one company may enter one
+application in each sector through different teams. Each draft below builds on a different part of NotesApp, so each stands as its
+own solution; still, if they say no, enter **Education** only (the strongest: the Nana tutor, Exam Prep and Notes Academy are live).
+
+**Teams (owner fills in):**
+
+| Sector | Team members (2–5, all living in Nigeria) | State of operation |
+|---|---|---|
+| Education | `[names]` | `[state]` |
+| Healthcare | `[names]` | `[state]` |
+| Clean and affordable energy | `[names]` | `[state]` |
+| Agriculture | `[names]` | `[state]` |
+| Financial inclusion | `[names]` | `[state]` |
+
+**Common answers (all five).** *What we are:* NotesApp (naapp.tech) is a Nigerian platform where people who serve their community
+(teachers, clinics, installers, agro-dealers, cooperatives) publish what they know, take bookings, teach, sell and get paid in Naira,
+in one place that works on a basic phone with little data. Live since 2026: 86 members (75 in the last 30 days, 65% women),
+₦3.2 million processed (as of 8 November 2026; refresh on the day). *Our approach:* a small, intentional AI, **Nana**, set up for one
+service provider and answering only from their own material, in English, Pidgin and Kiswahili (Igbo, Hausa and Yoruba coming), by text
+for basic phones. *Live or planned:* say which, every time; reviewers reward honesty and the demo days will test it.
+
+### Education (our lead entry)
+
+**Problem statement:** "access quality learning, strengthen teaching, sustain learning during disruptions…" Angles 1 (affordable,
+inclusive access: low-bandwidth, offline, shared devices, local) and 2 (teaching quality and learner support).
+
+**Solution:** NotesApp for Education.
+- **The Nana tutor (live, v0.156.0):** a teacher switches it on for a course; learners ask about the lessons, get a lesson explained
+  simply with a local example, are quizzed one question at a time, or get a summary, in English, Pidgin or Kiswahili. It answers only
+  from that teacher's lessons and notes, never invents, and never gives away graded quiz answers. Text only, short, for basic phones.
+- **Naija Exam Prep (live):** 2,150+ WAEC and NECO practice questions in 18 subjects, with explanations and timed mocks; **packs work
+  offline** once downloaded, so one shared phone can serve several learners without data.
+- **Notes Academy (live):** any teacher can build a course (reading lessons, video, PDF, quizzes) and give certificates anyone can check.
+- **For disruption (flooding, displacement):** learning continues on the learner's own phone, offline packs keep working, and the
+  tutor keeps explaining when the teacher can't be there.
+**Who it helps and how it works in a community:** `[the school or community we pilot in, in our state]`: a teacher puts the term's
+lessons on Notes Academy, switches on the tutor, and learners use it on a family or shared phone after school.
+**What's next:** Igbo, Hausa and Yoruba; voice in and out for low-literacy learners; class progress for the teacher.
+
+### Healthcare
+
+**Problem statement:** "find and use appropriate healthcare, access trustworthy preventive information… coordination and
+continuity of care." Angles 1 (access, navigation, affordability) and 2 (preventive information and patient support).
+
+**Solution:** NotesApp for Clinics.
+- **Live:** the Healthcare and clinics kit gives a clinic, pharmacy or lab its own site in minutes: services and fees in plain view,
+  opening hours and directions, its doctors, and **booking an appointment** online; **encrypted voice and video calls** for remote
+  follow-up; communities for a clinic's patient groups (antenatal, diabetes) with announcements and reminders.
+- **Planned (the same pattern as the tutor):** a clinic's Nana that answers patients only from the clinic's own approved information
+  (services, prices, preparation for a test, when to come in), in local languages, **never diagnoses**, and sends any danger sign
+  straight to the clinic or emergency care.
+- **Not in scope:** patient records and cross-system referrals (we don't hold medical records).
+**How it works:** a primary health centre in `[community]` lists its services and fees, takes bookings, and reminds expectant
+mothers of antenatal days through its community.
+
+### Clean and affordable energy
+
+**Problem statement:** "identify and afford suitable clean-energy services, use them reliably…" Angles 1 (needs assessment,
+verified service discovery, transparent costs) and 2 (maintenance and qualified technicians).
+
+**Solution:** NotesApp for Solar.
+- **Live:** the Solar and energy kit gives an installer a site with packages and **transparent prices** for homes and businesses (what
+  each can power), past installations, booking a **site visit or a maintenance check**, and answers about warranties; verification
+  badges and CAC-verified organisations help households tell a qualified installer from a stranger.
+- **Planned:** an installer's Nana that walks a household through what they want to power and gives a sizing **estimate** from the
+  installer's own packages (always labelled an estimate and confirmed at the site visit); maintenance reminders.
+- **Not built:** pay-as-you-go or instalments (that would be through a licensed partner).
+**How it works:** `[installer in our state]` lists three packages with prices; a family compares them, books a site visit, and gets a
+reminder to service the batteries.
+
+### Agriculture
+
+**Problem statement:** "make better farming decisions, access genuine and affordable inputs… reduce post-harvest losses, and reach
+markets." Angles 1 (information) and 3 (genuine inputs and support services).
+
+**Solution:** NotesApp for Farmers.
+- **Live:** an extension worker or agro-dealer can publish advice (journals), teach short courses (Notes Academy) and run a
+  **community** for a cooperative with announcements; agro-dealers can sell inputs in **Notes Market** under a checked name, with
+  buyers' payments held until delivery; organisations are CAC-verified.
+- **Planned:** an agriculture kit (agro-dealers, extension workers, cooperatives), and an extension worker's Nana that answers farmers
+  only from that worker's own advice, in their language, by text.
+**How it works:** `[cooperative or agro-dealer in our state]` posts planting-season advice and genuine-seed listings; farmers ask the
+extension worker's Nana in Pidgin and buy seed with their money held until it arrives.
+
+### Financial inclusion
+
+**Problem statement:** "reliably use suitable financial services, make informed and safe financial decisions, build credit
+readiness…" Angles 2 (financial capability, trust and consumer protection; "records or evidence of business activity") and 3
+(household and small-business financial management).
+
+**Solution:** NotesApp for Small Businesses.
+- **Live:** **Business books**: a trader records walk-in sales, expenses and money owed (by typing or by telling Nana in plain words) and
+  sees profit; these records are the **evidence of business activity** the problem statement asks for, which a lender can be shown
+  with the owner's permission. Payments through licensed partners (Paystack, Paylony), held until delivery; a fraud and scam **Report**
+  on every listing, advert and message; no crypto (our rules after the CBN's November 2026 framework).
+- **Planned:** financial-literacy courses in local languages, and a "credit-ready" summary of a trader's books they can share with a
+  licensed lender. **We don't lend or hold deposits.**
+**How it works:** `[market traders' group in our state]` keep their books on NotesApp for three months and use the summary to apply
+for a microloan from a licensed partner.
+
+### Supporting documents (each team)
+
+1. A 2-minute video: the problem in one person's words, then the solution working on a phone (screen recording on a basic Android).
+2. Screenshots: Education (the tutor in Pidgin, Exam Prep offline), Healthcare (a clinic site and booking), Energy (a solar site with
+   prices), Agriculture (a community and a Market listing), Financial inclusion (Business books).
+3. Live links: naapp.tech, and a demo course or site for the sector.
+

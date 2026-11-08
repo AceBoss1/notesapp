@@ -53,6 +53,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     hasClassLink: d.hasClassLink === true, hasCommunityLink: d.hasCommunityLink === true, communityKind: String(d.communityKind ?? ""), hasGroup: d.hasGroup === true,
     tutors: Array.isArray(d.tutors) ? (d.tutors as Tutor[]) : [], tutorUids: strings(d.tutorUids),
     isOrg: d.isOrg === true, createdByUid: String(d.createdByUid ?? d.ownerUid ?? ""),
+    ...(d.tutorOn === true ? { tutorOn: true } : {}),
     ...(d.isOrg === true && d.madeByName ? { madeByName: String(d.madeByName), madeByUsername: String(d.madeByUsername ?? "") } : {}),
   };
 }
@@ -437,7 +438,7 @@ export async function deleteCourse(db: Firestore, uid: string, id: string, deps:
   const attempts = await db.collection("quizAttempts").where("courseId", "==", id).get();
   await Promise.all([...lessons.filter((l) => l.kind === "quiz").map((l) => db.doc(`quizKeys/${quizKeyId(id, l.id)}`).delete()), ...attempts.docs.map((d) => d.ref.delete())]);
   await db.recursiveDelete(ref); // the course and its lessons
-  await Promise.all([db.doc(`courseSlugs/${c.slug}`).delete().catch(() => {}), db.doc(`courseLinks/${id}`).delete().catch(() => {})]);
+  await Promise.all([db.doc(`courseSlugs/${c.slug}`).delete().catch(() => {}), db.doc(`courseLinks/${id}`).delete().catch(() => {}), db.doc(`courseTutor/${id}`).delete().catch(() => {})]);
   if (deps.dropUpload) for (const l of lessons) if (l.streamUid || l.fileKey) await deps.dropUpload(l).catch(() => {});
 }
 
