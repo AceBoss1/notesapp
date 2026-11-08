@@ -1,11 +1,11 @@
 // Careers and Nana-HR's drafts, the pure rules (lib/careers.ts, lib/hr-drafts.ts). Run: npm run test:hr → "ALL OK" (twice).
 import assert from "node:assert/strict";
 import { CareersError, SEED_ROLES, cleanApplication, cleanRole, nextStatusAllowed } from "../../lib/careers";
-import { announcement, cleanTerms, draftsFor, offerLetter, optionGrant } from "../../lib/hr-drafts";
+import { ROLE_PRESETS, announcement, cleanTerms, draftsFor, offerLetter, optionGrant, presetTerms } from "../../lib/hr-drafts";
 
 // The five seeded vacancies the owner asked for, each with requirements Nana-HR can check against.
-assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist"]);
-assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
+assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist", "executive-assistant"]);
+assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support", "executive"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
 for (const r of SEED_ROLES) assert.ok(r.requirements.length >= 4 && r.responsibilities.length >= 4, r.title);
 
 // Roles need a title, a department and requirements; lists are trimmed and bullets dropped.
@@ -43,5 +43,21 @@ const ann = announcement(t);
 assert.doesNotMatch(ann.split("> Edit note")[0], /₦|shares|salary/i, "no pay or equity in the announcement");
 // Nothing from the documents the templates came from leaks into a draft for someone else.
 for (const d of draftsFor(t)) assert.doesNotMatch(d.markdown, /Nora|Bawa|150,000 shares|₦50,000/);
+
+// The Executive Assistant (8 Nov 2026): reports to the Chief of Staff and Senior Executive Assistant, salary and options; its preset fills the
+// offer's first 90 days and the announcement, and never presets pay, dates or equity, or anything personal from the source letter.
+const ea = SEED_ROLES.find((r) => r.seedKey === "executive-assistant")!;
+assert.deepEqual([ea.reportsTo, ea.arrangement], ["The Chief of Staff and Senior Executive Assistant", "salary_options"]);
+assert.ok(ROLE_PRESETS["executive-assistant"]);
+const eaTerms = cleanTerms({ ...presetTerms("executive-assistant"), arrangement: "salary_options", hoursPerWeek: "20" });
+assert.equal(eaTerms.duties.length, 5);
+const eaOffer = offerLetter(eaTerms);
+assert.match(eaOffer, /You will join as Executive Assistant\. You report to the Chief of Staff and Senior Executive Assistant/);
+assert.match(eaOffer, /Weeks 1 to 2: read the handbook/);
+assert.match(eaOffer, /₦\[amount\]/, "pay stays an open point");
+assert.match(eaOffer, /\[name\]/);
+assert.doesNotMatch(eaOffer, /Nora|Bawa|150,000|₦50,000/);
+assert.match(announcement(eaTerms), /Turns meeting decisions into team hub tasks/);
+assert.deepEqual(presetTerms("no-such-role"), {});
 
 console.log("ALL OK");

@@ -43,8 +43,28 @@ get paid for it, in their own currency.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`.
-Take them from `/admin` on the day.
+**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **8 November 2026**):
+
+| | As of 8 Nov 2026 |
+|---|---|
+| Registered members | 86 (75 joined in the last 30 days); 65% women |
+| Publishers | 86 |
+| Sellers | 3, with 24 items listed |
+| Organisations | 7 |
+| Gold-verified accounts | 38 |
+| Paid transactions | 81, from 5 paying customers |
+| Money processed | ₦3,228,795 (₦3,021,298 in the last 30 days) |
+| Store orders, digital sales | 0, 0 |
+| Sessions booked | 1 (1 held) |
+| Merch pre-orders | 5 |
+| Paid out to sellers and publishers | ₦170 in 1 payout |
+| Held in escrow | ₦865,295.96 (21 entries) |
+| **Commission earned (our revenue)** | **₦95,968.80**, on sessions, subscriptions, gifts and the store |
+
+**How to say it honestly:** we're early. The strong numbers are growth (75 of 86 members joined in the last 30 days), money
+processed (₦3.2M, almost all in the last 30 days) and that 65% of members are women. Say "processed", never "revenue": our
+revenue is the commission we earned, **₦95,968.80** to 8 November. If an investor asks, 81 transactions came from 5 customers, so say so;
+don't present it as 81 customers. Store and digital sales haven't started yet.
 
 ---
 
@@ -285,7 +305,8 @@ layer so outside AI assistants can work on a member's account with permission. K
 2,150+ WAEC and NECO practice questions in 18 subjects; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
 
 **Team:** Emmanuel Adams, co-founder, CEO and CTO (Adams Consults), built the whole platform; Emmanuela Emmanuel, co-founder and
-Chief Legal Officer; co-founders Ifenyinwa Akujobi `[role]` and Ezurukam Ijeoma Pearl `[role]`. `[background]`
+Chief Legal Officer; Ifenyinwa Akujobi, co-founder and Chief Compliance Officer; Ezurukam Ijeoma Pearl, co-founder and Head of Customer Service and
+Community. `[background]`
 
 **Funding so far:** bootstrapped; no institutional money. Startup perks from Claude for Startups, Moda and Granola (credits).
 Applying to the .tech No Excuses Fund (a grant).
@@ -549,8 +570,8 @@ at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translatio
 badges (recurring); boosts and adverts; paid add-ons for businesses (team hub, finance tools). `[Revenue split from the books.]`
 
 **Team:** Emmanuel Adams, founder, CEO and CTO (built the platform end to end; runs Adams Consults), with
-Emmanuela Emmanuel, co-founder and Chief Legal Officer, co-founders Ifenyinwa Akujobi `[role]` and Ezurukam Ijeoma Pearl
-`[role]`, and staff across Nigeria.
+Emmanuela Emmanuel, co-founder and Chief Legal Officer, Ifenyinwa Akujobi, co-founder and Chief Compliance Officer, Ezurukam Ijeoma Pearl,
+co-founder and Head of Customer Service and Community, and staff across Nigeria.
 
 **Funding:** bootstrapped; no institutional money yet (perks and credits only). Raising a pre-seed round `[amount, if the owner wants
 to say]`.
@@ -706,7 +727,7 @@ Don't: promise or imply returns, show a "your ₦100,000 could become…" figure
 
 ## 13. Aurora Tech Award and Aurora Ventures (inDrive): women-led startups
 
-> Status: **draft, not applied (6 November 2026).** The owner shared the "Get funding" link and decided: we apply for **both the
+> Status: **ready to apply when the cycle opens (January 2027); content complete 8 November 2026.** The owner shared the "Get funding" link and decided: we apply for **both the
 > award and Aurora Ventures**, with **Emmanuela Emmanuel, co-founder and Chief Legal Officer** (she holds equity) as the applicant. auroratechaward.com couldn't be read from our tools, so everything below is from coverage and listings (sources at
 > the end) and **must be checked on the site** before applying, especially dates, amounts and the "led by a woman" wording.
 
@@ -753,10 +774,14 @@ the export or a screenshot with the date as evidence, and use the figure for the
 
 **The team:** **Emmanuela Emmanuel**, co-founder and Chief Legal Officer, and the founder and CEO of **Living Without Borders International (LWB)**. An author, speaker and coach, she helps people
 ready for change break through limiting beliefs, unlock their potential and turn their passion into profit, through coaching and
-courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal and regulatory work: company and contracts, privacy and data
-protection, payments and the Central Bank of Nigeria's rules.
-**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. Co-founders **Ifenyinwa Akujobi** `[role]` and
-**Ezurukam Ijeoma Pearl** `[role]`.
+courses (on NotesApp as @emmanuela, Gold-verified, and @lwb). She owns our legal work: the company, contracts, our Terms and
+privacy and data protection.
+**Emmanuel Adams**, co-founder, CEO and CTO, built the platform end to end. **Ifenyinwa Akujobi**, co-founder and Chief Compliance Officer: payments and
+the Central Bank of Nigeria's rules, know-your-customer checks on sellers and organisations, and the licensed partners we work with.
+**Ezurukam Ijeoma Pearl**, co-founder and Head of Customer Service and Community: the first voice our members hear, and the one
+who runs our communities.
+
+**Three of our four co-founders are women**, and 65% of our members are.
 
 **How NotesApp began (her story, the heart of this application):** Emmanuela had ideas she wanted to build, but the technical
 side meant she and her clients had to hop between one app after another to get anything done. That pain gave birth to NotesApp:
@@ -808,12 +833,25 @@ one place where Africans can build their dream ventures without hopping from app
 **For the pitch video:** open with Story 1 (the client who disappeared), close with Story 2's last line ("One platform. One
 seamless experience. More time for the work that truly matters: transformation.").
 
-**Why she leads this application:** as Chief Legal Officer she is the reason a platform that moves members' money can grow
-safely: payouts held until delivery, data export and deletion, licensed payment partners only, and our crypto rules after the
-CBN's November 2026 framework. `[Her own words: why NotesApp, and what she wants for women earning online.]`
+**Why she leads this application:** she is the founder whose own business showed us the problem (above), and as Chief Legal
+Officer she keeps a platform that holds members' money and data trustworthy: our Terms, payouts held until delivery, and every
+member's right to export or delete their data. With Ifenyinwa on compliance (licensed payment partners only, and our crypto rules
+after the CBN's November 2026 framework), women who build on NotesApp can trust it with their income.
 
-**Traction:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`, MRR `[ ]`;
-2,150+ WAEC and NECO practice questions; Special Recognition at the Build With NKENNEAi Hackathon (October 2026).
+**In her words (Emmanuela Emmanuel, 8 November 2026):**
+
+> I chose NotesApp because I believe women should be able to turn their knowledge, skills and passions into income without
+> needing multiple platforms, expensive tools or complicated technology. I want to see more women earning independently, owning
+> their businesses, monetising their expertise and building lasting wealth from what they know. For me, NotesApp is more than a
+> platform; it is an opportunity to make earning online simpler, more accessible and more rewarding for women.
+
+Use it for "why are you building this" or "your vision" fields, and as the closing words of the pitch video.
+
+**Traction (as of 8 November 2026; update on the day):** 86 members, 75 of them joined in the last 30 days, 65% women; 7
+organisations and 38 Gold-verified accounts; ₦3.2 million processed through NotesApp, ₦3.0 million of it in the last 30 days; our
+first coaching session booked and held, 3 sellers with 24 items listed, and 5 merch pre-orders. Also: 2,150+ WAEC and NECO practice
+questions, and a Special Recognition at the Build With NKENNEAi Hackathon (October 2026). If the form asks for revenue rather than volume:
+**₦95,968.80 commission earned** to 8 November 2026.
 
 **Use of the prize (suggested split, owner to approve; shares of whatever we win):**
 

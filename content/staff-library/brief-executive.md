@@ -1,6 +1,6 @@
 # Executive office brief
 
-**The executive office turns the founder's decisions into action across the company, and, until we have an HR team, looks after our people.** It is the Chief of Staff, the Senior Executive Assistant and the Executive Assistants, working for the CEO and the C-suite. When we hire a head of HR, the HR office sits inside the executive office, under the Chief of Staff.
+**The executive office turns the founder's decisions into action across the company, and, until we have an HR team, looks after our people.** It is the Chief of Staff and Senior Executive Assistant (one person, one role) and the Executive Assistants who work under them, for the CEO and the C-suite. When we hire a head of HR, the HR office sits inside the executive office, under the Chief of Staff.
 
 ## What it owns
 

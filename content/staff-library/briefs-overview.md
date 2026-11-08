@@ -8,13 +8,14 @@ Every department has a brief: why it exists, what it owns, what it believes, and
 
 | Department | Its brief | Its SOP |
 | --- | --- | --- |
-| Executive office | Executive office tab | Chief of Staff and EAs |
+| Executive office | Executive office tab | Chief of Staff and Senior Executive Assistant, and EAs |
 | Legal & compliance | Legal and compliance tab | Legal and compliance |
 | Product & tech | Product & tech tab | Product & tech |
 | Engineering | The Engineering Guide | Engineering |
 | Growth & partnerships: marketing | The Marketing Brief | Marketing and UA |
 | Growth & partnerships: sales | Sales and partnerships tab | Sales and partnerships |
-| Customer care (with the Community Strategist) and Trust & safety | Customer care and safety tab | Customer care and safety |
+| Customer care and Trust & safety | Customer care and safety tab | Customer care and safety |
+| Customer care: the Community Strategist | Community Strategist brief | Community Strategist |
 | Editorial | Editorial tab | Editorial |
 | Finance | Finance tab | Finance and payouts |
 

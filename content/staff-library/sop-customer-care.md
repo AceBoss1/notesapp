@@ -48,6 +48,8 @@ A member asking to see, correct, export or delete their data: confirm the accoun
 
 ### Communities (the Community Strategist)
 
+The full procedures are in the SOP: Community Strategist. In short:
+
 The Community Strategist works in Customer care and helps churches, mosques, NGOs, schools, creators and businesses run healthy communities on NotesApp (/c/name).
 
 1. **A new community:** within 2 working days, welcome its admins, share the onboarding checklist (rules, roles, moderators, a first event), and add it to the team hub work board.
