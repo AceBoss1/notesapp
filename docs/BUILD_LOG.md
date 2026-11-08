@@ -3206,3 +3206,13 @@ shape: text only, short replies, three quick buttons, and languages chosen once 
 own Nana allowance so a free course can't run up the teacher's costs. The sector kits we already have (clinics, solar, schools,
 churches and NGOs) can take the same pattern next.
 
+
+**Room recorder deployed from GitHub (7 Nov 2026)** — The owner asked why recording said it wasn't available: the recorder
+(services/room-recorder, Cloud Run) was never deployed, so RECORDER_URL and RECORDER_SECRET aren't set. They asked for a GitHub Action
+like the live-rooms one. `.github/workflows/deploy-recorder.yml` runs by hand or on pushes to main that change the service: it checks the
+secret's shape, signs in with a service-account key (GCP_SA_KEY, GCP_PROJECT_ID), turns on Run/Artifact Registry/Cloud Build/Secret
+Manager, keeps RECORDER_SECRET in Secret Manager as recorder-secret (a new version only when it changed) and lets the default compute
+account read it, deploys with the flags in docs/RECORDER.md (africa-south1, 2 vCPU/2 GiB, CPU always on, 0–3 instances, 3 recordings
+each, APP_ORIGIN from a repository variable so no address is hard-coded), checks /health and prints the address for Vercel's RECORDER_URL.
+Missing settings: a notice naming them, green, nothing deployed. Owner steps (making the secret on Mac, Windows or Cloud Shell, the
+service account and its roles, the GitHub settings): OWNER_SETUP.md 4.0.
