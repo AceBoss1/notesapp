@@ -56,11 +56,13 @@ get paid for it, in their own currency.
 | Store orders, digital sales | 0, 0 |
 | Sessions booked | 1 (1 held) |
 | Merch pre-orders | 5 |
-| Paid out to sellers and publishers | ₦170 in 1 payout; ₦865,296 held in escrow |
+| Paid out to sellers and publishers | ₦170 in 1 payout |
+| Held in escrow | ₦865,295.96 (21 entries) |
+| **Commission earned (our revenue)** | **₦95,968.80**, on sessions, subscriptions, gifts and the store |
 
 **How to say it honestly:** we're early. The strong numbers are growth (75 of 86 members joined in the last 30 days), money
 processed (₦3.2M, almost all in the last 30 days) and that 65% of members are women. Say "processed", never "revenue": our
-revenue is our share of it `[the figure from the books]`. If an investor asks, 81 transactions came from 5 customers, so say so;
+revenue is the commission we earned, **₦95,968.80** to 8 November. If an investor asks, 81 transactions came from 5 customers, so say so;
 don't present it as 81 customers. Store and digital sales haven't started yet.
 
 ---
@@ -838,8 +840,8 @@ after the CBN's November 2026 framework), women who build on NotesApp can trust 
 **Traction (as of 8 November 2026; update on the day):** 86 members, 75 of them joined in the last 30 days, 65% women; 7
 organisations and 38 Gold-verified accounts; ₦3.2 million processed through NotesApp, ₦3.0 million of it in the last 30 days; our
 first coaching session booked and held, 3 sellers with 24 items listed, and 5 merch pre-orders. Also: 2,150+ WAEC and NECO practice
-questions, and a Special Recognition at the Build With NKENNEAi Hackathon (October 2026). `[Our revenue, from the books, if the form
-asks for revenue rather than volume.]`
+questions, and a Special Recognition at the Build With NKENNEAi Hackathon (October 2026). If the form asks for revenue rather than volume:
+**₦95,968.80 commission earned** to 8 November 2026.
 
 **Use of the prize (suggested split, owner to approve; shares of whatever we win):**
 
