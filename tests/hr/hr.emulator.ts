@@ -58,16 +58,17 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
 
   // ── Careers ──
   const open = await openRoles(db);
-  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-care-lead", "seed-cmo", "seed-community-strategist", "seed-executive-assistant", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
+  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-care-lead", "seed-chief-of-staff", "seed-cmo", "seed-community-strategist", "seed-executive-assistant", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
   {
-    // A site seeded before the Community Strategist and the Executive Assistant were added gets each once; a seeded role someone deleted
+    // A site seeded before the Community Strategist, the Chief of Staff and the Executive Assistant were added gets each once; a seeded role someone deleted
     // never comes back.
     const { seedRoles } = await import("../../lib/careers-server");
     await db.doc("careerRoles/seed-community-strategist").delete();
     await db.doc("careerRoles/seed-executive-assistant").delete();
+    await db.doc("careerRoles/seed-chief-of-staff").delete();
     await db.doc("careerRoles/seed-safety-lead").delete();
     await db.doc("staffMeta/careersSeed").set({ roles: ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead"], marketingSplit: "x" });
-    assert.equal(await seedRoles(db), 2);
+    assert.equal(await seedRoles(db), 3);
     assert.equal((await db.doc("careerRoles/seed-community-strategist").get()).data()?.status, "open");
     const ea = (await db.doc("careerRoles/seed-executive-assistant").get()).data()!;
     assert.deepEqual([ea.status, ea.dept, ea.title], ["open", "executive", "Executive Assistant"]);

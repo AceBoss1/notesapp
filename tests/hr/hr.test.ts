@@ -4,8 +4,8 @@ import { CareersError, SEED_ROLES, cleanApplication, cleanRole, nextStatusAllowe
 import { ROLE_PRESETS, announcement, cleanTerms, draftsFor, offerLetter, optionGrant, presetTerms } from "../../lib/hr-drafts";
 
 // The five seeded vacancies the owner asked for, each with requirements Nana-HR can check against.
-assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist", "executive-assistant"]);
-assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support", "executive"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
+assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist", "chief-of-staff", "executive-assistant"]);
+assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support", "executive", "executive"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
 for (const r of SEED_ROLES) assert.ok(r.requirements.length >= 4 && r.responsibilities.length >= 4, r.title);
 
 // Roles need a title, a department and requirements; lists are trimmed and bullets dropped.
@@ -59,5 +59,12 @@ assert.match(eaOffer, /\[name\]/);
 assert.doesNotMatch(eaOffer, /Nora|Bawa|150,000|₦50,000/);
 assert.match(announcement(eaTerms), /Turns meeting decisions into team hub tasks/);
 assert.deepEqual(presetTerms("no-such-role"), {});
+// The Chief of Staff and Senior Executive Assistant: one role, reporting to the CEO, with its own preset.
+const cos = SEED_ROLES.find((r) => r.seedKey === "chief-of-staff")!;
+assert.deepEqual([cos.title, cos.reportsTo, cos.arrangement], ["Chief of Staff and Senior Executive Assistant", "The CEO", "salary_options"]);
+const cosOffer = offerLetter(cleanTerms({ ...presetTerms("chief-of-staff"), arrangement: "salary_options", hoursPerWeek: "20" }));
+assert.match(cosOffer, /You will join as Chief of Staff and Senior Executive Assistant\. You report to the Chief Executive Officer/);
+assert.match(cosOffer, /₦\[amount\]/);
+assert.doesNotMatch(cosOffer, /Nora|Bawa|150,000|₦50,000/);
 
 console.log("ALL OK");

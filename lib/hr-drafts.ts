@@ -21,6 +21,30 @@ export type DraftTerms = {
 // every line; pay, dates and equity are never preset and stay [open points] until entered.
 export type RolePreset = { title: string; reportsTo: string; worksWith: string; duties: string[]; whatTheyDo: string[]; howToWork: string[] };
 export const ROLE_PRESETS: Record<string, RolePreset> = {
+  // Owner, 8 Nov 2026: the Chief of Staff and Senior Executive Assistant is one role and an open vacancy, reporting to the CEO.
+  "chief-of-staff": {
+    title: "Chief of Staff and Senior Executive Assistant",
+    reportsTo: "the Chief Executive Officer",
+    worksWith: "the C-suite, the Board Secretary and the Executive Assistants",
+    duties: [
+      "Weeks 1 to 2: read the handbook, every department brief and the executive office SOP in the team hub library and tick I have read this; set up your staff login with a passkey; meet each C-suite member and team lead",
+      "Weeks 2 to 4: take over the leadership rhythm: the Monday leadership week, agendas in the team hub 24 hours before, and the CEO's Friday week in review",
+      "From week 3: put every leadership decision on a team hub task with an owner and a date, and report what slipped and why every Friday",
+      "Weeks 4 to 8: bring the 90-day plan up to date with the C-suite, and prepare the next board and investor papers with the CFO and the Board Secretary",
+      "Weeks 4 to 12: run hiring and onboarding with Nana-HR (approved roles posted, interviews, offers for Legal and the CEO, departments assigned before day one), and lead the Executive Assistants",
+    ],
+    whatTheyDo: [
+      "Runs the leadership agenda and makes sure every decision has an owner, a date and a follow-up",
+      "Keeps the 90-day plan, board and investor papers in order with the CEO, the CFO and the Board Secretary",
+      "Looks after our people until we have an HR team: hiring, onboarding and department assignments",
+      "Leads the Executive Assistants",
+    ],
+    howToWork: [
+      "Send anything that needs a leadership decision as a team hub task, with what's needed, the options and a due date",
+      "Ask for time with the CEO or the C-suite through them",
+      "Bring people questions to them after your team lead, until we have an HR team",
+    ],
+  },
   // Owner, 8 Nov 2026: the Chief of Staff and Senior Executive Assistant is one person; Executive Assistants work under them. Shaped on
   // the executive offer the owner sent (Nora Bawa's), with every personal detail left out.
   "executive-assistant": {
