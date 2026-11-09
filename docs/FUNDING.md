@@ -370,9 +370,19 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 - [ ] Any equity pledge (Pledge 1%, §18) and option pool are added in Carta with counsel, and counted with the SAFEs (§5, §13, §16)
       when adding up dilution.
 
+**4. Keeping the company in good standing (Delaware):**
+- [ ] File Delaware's **annual report and pay the franchise tax by 1 March** every year, the first by **1 March 2027**. Work the tax
+      out by the **assumed par value capital method**, not the authorised shares method (the default bill on many shares can look
+      like thousands of dollars; the other method is usually the $400 minimum). Switch on Atlas's tax-deadline reminders.
+- [ ] Keep the **registered agent** paid (Atlas's first year is included); a lapsed agent or unpaid tax loses good standing.
+- [ ] **Certificate of Good Standing: buy one only when someone asks for it** (a bank, an investor's counsel at a priced round, a
+      grant, another US state, or a Nigerian bank or the CAC, sometimes with an apostille). Most want one dated within 30 to 90 days,
+      so one bought early is wasted. Order it from the Delaware Division of Corporations ($50) rather than through a reseller (Legalinc
+      adds $29); the state's free entity search confirms the status meanwhile.
+
 **Who does what:** the CEO agrees the vesting start, acceleration and IP plan with the co-founders and counsel before signing; the
 Chief Compliance Officer keeps the checklist (each founder's signing, payment and 83(b) dates, and the UK 14-day date where it
-applies), outside this repository; each founder signs and pays promptly and takes local tax advice.
+applies, and the 1 March Delaware deadline), outside this repository; each founder signs and pays promptly and takes local tax advice.
 
 ---
 
