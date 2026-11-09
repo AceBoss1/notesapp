@@ -1001,6 +1001,21 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     application to Interview; `sendInterviewReminders` runs in the 15-minute cron (a day and an hour before, once each; index
     interviews(status, startAt)); Nana-HR's drafts get the booked link and may use no other. Tests: `test:interviews` (new). Next on the
     same scheduling: scheduled posts, moments and store-item announcements (not built).
+130. **Global subscriptions: pay and earn in any currency (v0.158.0, branch `claude/serene-cerf-lj67jf`; owner, 9 Nov 2026: "Stripe for
+    global, Paystack for Nigeria, Flutterwave for the rest of Africa; a US reader can subscribe to a Kenyan publisher and vice versa;
+    the system auto-balances"):** see `docs/PAYMENTS.md` §7. NotesApp is the seller; the creator's earning is fixed in their currency
+    at the sale (`earningOf`, from their own price) and held 7 days; the reader pays the home price, or it converted at Finance's rates
+    (`globalConfig/rates`, stale after 48 h) plus a margin, rounded up (`readerPrice`). One month per payment (no automatic charge;
+    `sendRenewReminders` in the reminders cron). Pools per currency (`treasuryPools`), suggested conversions, recorded conversions,
+    payouts (Flutterwave for African currencies other than the naira, decrypting `globalPayoutSecrets` with `ACCOUNT_DATA_KEY`;
+    recorded by Finance otherwise) and refunds on Admin → Treasury (finance). Webhooks: `/api/stripe/webhook`,
+    `/api/flutterwave/webhook`, and `gp_` references in the Paystack webhook. Deploy `firebase deploy --only firestore` (rules: nine
+    server-only collections; the globalEarnings(publisherUid, status) index). Settings: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+    `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH`. Not yet: Stripe Connect payouts for US/UK/EU creators, automatic renewals,
+    Stripe Tax, fan points on these payments, and the other payments (shop, courses, gifts) in other currencies. Before real money: the
+    intercompany agreement and tax set-up (FUNDING.md §5a step 5). A Flutterwave payout whose outcome is unknown leaves the
+    earnings `paying` and a `treasuryPayouts` record `unconfirmed`: check Flutterwave, then set them back to `held` or finish by hand
+    (no button yet). Tests: `test:global` (new), rules 96/96.
 
 ## 3. How the work is done (please keep these)
 

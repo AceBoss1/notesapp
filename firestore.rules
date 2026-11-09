@@ -403,6 +403,18 @@ service cloud.firestore {
 
     // Each agreement to a co-author or co-tutor invite's terms (the wording, the version and the browser), and the once-an-hour
     // "edited the draft" bell's marker: server-only (lib/invite-agreements-server.ts, lib/coauthors-server.ts).
+    // Global subscriptions (lib/global-pay-server.ts): exchange rates, a publisher's home currency and prices, payout details outside
+    // naira (and their encrypted numbers), payments in other currencies, earnings, the currency pools, conversions and payouts. All
+    // server-only: members and Finance reach them through /api/global, /api/publisher/global and /api/admin/treasury.
+    match /globalConfig/{id} { allow read, write: if false; }
+    match /publisherGlobal/{uid} { allow read, write: if false; }
+    match /globalPayoutAccounts/{uid} { allow read, write: if false; }
+    match /globalPayoutSecrets/{uid} { allow read, write: if false; }
+    match /globalPayments/{ref} { allow read, write: if false; }
+    match /globalEarnings/{ref} { allow read, write: if false; }
+    match /treasuryPools/{cur} { allow read, write: if false; }
+    match /treasuryConversions/{id} { allow read, write: if false; }
+    match /treasuryPayouts/{id} { allow read, write: if false; }
     match /inviteAgreements/{id} { allow read, write: if false; }
     match /coAuthorEditPings/{id} { allow read, write: if false; }
 

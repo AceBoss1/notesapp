@@ -54,6 +54,10 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | Setting | Secret | What it does |
 |---|---|---|
 | `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures). |
+| `STRIPE_SECRET_KEY` | **yes** | Stripe (NotesApp Inc): readers paying in USD, GBP, EUR and CAD (lib/stripe.ts). sk_test_… in the sandbox, sk_live_… once the account is activated. Never in code or chat. |
+| `STRIPE_WEBHOOK_SECRET` | **yes** | Stripe webhook signing secret (whsec_…) for https://<site>/api/stripe/webhook, events checkout.session.completed and charge.refunded. |
+| `FLUTTERWAVE_SECRET_KEY` | **yes** | Flutterwave (NotesApp Technologies Ltd): readers paying in African currencies other than the naira, and payouts in them (lib/flutterwave.ts). |
+| `FLUTTERWAVE_WEBHOOK_HASH` | **yes** | The secret hash set in Flutterwave → Settings → Webhooks for https://<site>/api/flutterwave/webhook; Flutterwave sends it in the verif-hash header. |
 | `PAYLONY_SECRET_KEY` | **yes** | Paylony (virtual accounts and payouts, being added): sk_test_… or sk_live_…. |
 | `PAYLONY_WEBHOOK_KEY` | **yes** | Paylony webhook key. |
 | `PAYLONY_ENCRYPTION_KEY` | **yes** | Paylony encryption key. |

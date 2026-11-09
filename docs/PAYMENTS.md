@@ -38,6 +38,9 @@ secret key alone can then move money.
 | Tap2Pay (CardTap) | Paylony | — |
 | A publisher payout | Paylony | Paystack transfer |
 | A payment from Ghana, Kenya or another African country, mobile money, or a non-Naira card | Flutterwave (once live) | Paystack card in Naira, at the day's rate |
+| A subscription paid in another currency (§7): USD, GBP, EUR, CAD | Stripe (NotesApp Inc) | the reader picks another currency |
+| A subscription paid in another African currency (§7): KES, GHS, ZAR, UGX, TZS, RWF, XAF, XOF, ZMW, MWK, EGP | Flutterwave | — |
+| A naira reader of a creator who earns in another currency (§7) | Paystack, one month at a time | — |
 
 ## 3. One payment layer (the engineering work)
 
@@ -90,4 +93,46 @@ The owner is incorporating **NotesApp Inc** in Delaware, due in about two weeks.
    - **Early December:** a quiet pilot with the Kenyan members already on #NotesApp: real money, small amounts.
    - **January 2027:** open to everyone in Kenya. Ghana four to six weeks later.
    - Until then, Kenyan members can pay by card in Naira through Paystack.
-4. Dollars: Flutterwave or Stripe for the Inc.
+4. Dollars: **Stripe for the Inc (decided, 9 November 2026):** Stripe for USD, GBP, EUR and the rest of the world; Paystack for the
+   naira; Flutterwave for the other African currencies. Built for subscriptions in §7.
+
+## 7. Global subscriptions (built, v0.158.0, 9 November 2026)
+
+The owner, 9 November 2026: "a US reader can subscribe to a Kenyan creator and vice versa; the system auto-balances, because we keep a
+balance in each currency." Code: `lib/currency.ts`, `lib/global-pay.ts` (rules), `lib/global-pay-server.ts`, `lib/stripe.ts`,
+`lib/flutterwave.ts`; routes `/api/global/*`, `/api/stripe/webhook`, `/api/flutterwave/webhook`, `/api/publisher/global`,
+`/api/admin/treasury`; pages: the Subscribe button's currency picker, Rates & payouts → "Readers in other currencies", Admin → Treasury.
+
+**The model: NotesApp is the seller.** The reader buys the subscription from NotesApp; the creator earns their share as earnings in
+their own currency. NotesApp never receives a reader's money "for" a creator and sends it on, which would be money transmission (state
+licences in the US, a payment licence from the Central Bank of Kenya, CBN approval). Each pool is NotesApp's own money; balancing them
+is treasury work.
+
+- **Prices:** a naira creator's usual tier prices are their home prices (they can switch readers abroad off). A creator who earns in
+  another currency sets their prices in it ($0.50 to about $500 a month). The reader pays the home price in the same currency, or it
+  converted at **Finance's exchange rates** plus a margin (3% by default), rounded up to a tidy price. Rates are set on Admin →
+  Treasury, never pulled from a live feed at checkout; older than 48 hours, cross-currency checkouts pause until Finance updates them.
+- **Earnings are fixed at the sale,** in the creator's currency, from their own price less the usual rate (a tier's share included):
+  the exchange rate never changes what they earn. Held 7 days for refunds and chargebacks, then due.
+- **One month per payment.** No automatic charge outside the Paystack plans: the reader gets a bell 3 days before the month ends and
+  renews (a renewal adds a month on top). Someone on a monthly Paystack plan cancels it before paying in another currency.
+- **Pools (`treasuryPools/{currency}`):** collected, paid out, converted in and out, and owed to creators. A pool is short when it
+  holds less than it owes plus the reserve (10% by default). Sales in opposite directions mostly cancel out; the Treasury page suggests
+  conversions from pools with money to spare, Finance converts through a licensed bank or provider and records what actually moved.
+- **Payouts:** Finance pays what's due per creator and currency, only when that pool has the cash. African currencies other than the
+  naira go through Flutterwave to the creator's bank or mobile money (their details: last 4 on show, the number encrypted with
+  `ACCOUNT_DATA_KEY` in `globalPayoutSecrets`); naira, dollars, pounds, euros and Canadian dollars are paid by Finance and recorded
+  with the bank's reference (Stripe Connect for creators in the US, UK and Europe is next).
+- **Refunds:** from the Treasury page, back through the provider; the month is taken off and the earning cancelled (an earning
+  already paid out is refunded by hand).
+- **Which company:** Stripe belongs to NotesApp Inc; Paystack and Flutterwave to NOTESAPP TECHNOLOGIES LTD. A dollar reader of a
+  Nigerian creator means the Inc collects and the Ltd pays, so the two need a written **intercompany agreement** (who sells what, how
+  revenue and costs are shared, transfer pricing) from counsel before real money moves (FUNDING.md §5a, step 5).
+- **Tax:** as the seller, NotesApp owes the tax on each sale: EU and UK VAT, US state sales tax on digital goods, Kenya's VAT on
+  digital services, Nigeria's VAT. Stripe Tax covers Stripe's side once switched on; the African taxes need the accountant.
+- **CBN:** naira conversions go only through licensed channels; Nigerian members' wallets stay in naira (FUNDING.md §5).
+
+**To switch it on:** Stripe activated (EIN, a US bank account) with `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (events
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`); Flutterwave live with `FLUTTERWAVE_SECRET_KEY` and
+`FLUTTERWAVE_WEBHOOK_HASH`; `ACCOUNT_DATA_KEY` set; rates entered on Admin → Treasury; `firebase deploy --only firestore`. Sandbox keys
+work for testing first.

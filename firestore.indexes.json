@@ -633,6 +633,14 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "globalEarnings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publisherUid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [
