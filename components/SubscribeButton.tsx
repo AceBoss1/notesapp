@@ -10,7 +10,7 @@ import { startCheckout } from "@/lib/checkout";
 import { formatNaira, PublisherSettings } from "@/lib/booking-time";
 import { SUB_TIERS, TIER_BADGE, TIER_NAME, openTiers, tierOf, tierOffers, type SubTier, type TierOffers } from "@/lib/fans";
 import { TierChip } from "@/components/fans/FanBadges";
-import { CURRENCIES, formatMoney, guessCurrency } from "@/lib/currency";
+import { CURRENCIES, formatMoney, guessCurrency, payMethodsLabel } from "@/lib/currency";
 
 // Paying in another currency (lib/global-pay.ts): a reader outside Nigeria, or any reader of a creator who earns in another currency,
 // pays in their own currency through Stripe or Flutterwave (or Paystack for naira). quote: GET /api/global/quote.
@@ -119,7 +119,7 @@ export default function SubscribeButton({ username, publisherUid, creatorName }:
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-2xl text-ink">Subscribe to {creatorName || `@${username}`}</p>
-                <p className="text-xs text-slate">{global ? "One month at a time · we remind you before it ends · paid by card" : "Monthly · cancel any time · paid with NotesApp Credit or card"}</p>
+                <p className="text-xs text-slate">{global ? `One month at a time · we remind you before it ends · paid by ${payMethodsLabel(cur)}` : "Monthly · cancel any time · paid with NotesApp Credit or card"}</p>
                 <label className="mt-2 inline-flex items-center gap-2 text-xs text-slate">Pay in
                   <select value={cur} onChange={(e) => pickCurrency(e.target.value)} className="rounded-full border border-rule bg-card px-2 py-1 text-xs text-ink" aria-label="Currency">
                     {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}

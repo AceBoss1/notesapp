@@ -38,7 +38,7 @@ secret key alone can then move money.
 | Tap2Pay (CardTap) | Paylony | — |
 | A publisher payout | Paylony | Paystack transfer |
 | A payment from Ghana, Kenya or another African country, mobile money, or a non-Naira card | Flutterwave (once live) | Paystack card in Naira, at the day's rate |
-| A subscription paid in another currency (§7): USD, GBP, EUR, CAD, JPY, AED, CNY (anywhere unlisted pays USD) | Stripe (NotesApp Inc) | the reader picks another currency |
+| A subscription paid in another currency (§7): USD, GBP, EUR, CAD, JPY, AED, CNY (card, Alipay, WeChat Pay), BWP (anywhere unlisted pays USD) | Stripe (NotesApp Inc) | the reader picks another currency |
 | A subscription paid in another African currency (§7): KES, GHS, ZAR, UGX, TZS, RWF, ZMW, EGP, MAD, DZD, TND, LYD, GMD by card or mobile money; XAF and XOF by mobile money once switched on in Flutterwave (Malawi pays USD) | Flutterwave | — |
 | A naira reader of a creator who earns in another currency (§7) | Paystack, one month at a time | — |
 
@@ -140,3 +140,52 @@ NotesApp. Recommended: "Charge me for this" on Flutterwave's transaction and int
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`); Flutterwave live with `FLUTTERWAVE_SECRET_KEY` and
 `FLUTTERWAVE_WEBHOOK_HASH`; `ACCOUNT_DATA_KEY` set; rates entered on Admin → Treasury; `firebase deploy --only firestore`. Sandbox keys
 work for testing first.
+
+## 8. Switching global subscriptions on: step by step (the owner, 9 November 2026)
+
+Do it all in **test mode first** (Stripe sandbox, Flutterwave test keys), pay yourself once, then repeat with live keys. The site's
+address below is `https://www.notesapp.name.ng` (whatever `NEXT_PUBLIC_ROOT_DOMAIN` is, with www).
+
+**A. Stripe (NotesApp Inc)**
+1. Wait for the EIN: Atlas emails it and shows it under Atlas → Company (the SS-4 on Atlas → Documents is the request, not the number).
+2. Open a US bank account for the Inc: Stripe Treasury (an Atlas perk, inside the same dashboard) or Mercury.
+3. Dashboard → **Activate your account**: NotesApp Inc, the EIN, the business address Atlas gave you, industry "software / digital
+   content", the website, a one-line description ("creator subscriptions and digital content"), the representative's details and ID
+   (a founder outside the US uses their passport), the payout bank account, statement descriptor `NOTESAPP`. Switch on two-step login.
+4. Settings → Payments → **Payment methods**: cards, Apple Pay and Google Pay on; **Alipay** and **WeChat Pay** on (Stripe may ask for a
+   short review). Checkout shows them by itself for yuan; the request lists no methods, so nothing in the code changes.
+5. Developers → **API keys**: copy the secret key (`sk_live_…`; `sk_test_…` in the sandbox). Never paste it in chat, email or code.
+6. Developers → **Webhooks** → Add endpoint: `https://www.notesapp.name.ng/api/stripe/webhook`, events
+   `checkout.session.completed` and `checkout.session.async_payment_succeeded` → Add → reveal the **signing secret** (`whsec_…`).
+7. Vercel → the project → Settings → Environment Variables (Production): `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` → Redeploy.
+8. Test: subscribe to a creator in USD with card `4242 4242 4242 4242` (sandbox), any future date and CVC. You come back to the
+   creator's page subscribed, and the webhook shows 200 in Stripe → Webhooks.
+
+**B. Flutterwave (NOTESAPP TECHNOLOGIES LTD)**
+1. Finish the compliance checks (the "test environment" banner → Learn more): CAC certificate and status report, MEMART, TIN, each
+   director's ID and BVN, proof of address, the website with terms, privacy and refund pages, the settlement bank account. Wait for
+   approval, then switch the dashboard to **Live**.
+2. Settings → Business preference → **Payment methods**: enable Momo Francophone **XOF** and **XAF** (cards don't take CFA francs);
+   Bank Transfer – Ghana if you want it.
+3. **Fee settings**: "Charge me for this" on transaction and international fees, so readers pay the price NotesApp shows.
+4. **Settlement / payout rules**: keep collections **in each currency's balance** (KES in KES, GHS in GHS…), not auto-converted to
+   naira and swept to the bank: payouts to creators come out of those balances, and the Treasury pools assume it.
+5. **Whitelisted IP addresses**: leave empty (Vercel's servers change address; a whitelist would block our transfers).
+6. **API keys** (Live): copy the secret key (`FLWSECK-…`).
+7. **Webhooks**: URL `https://www.notesapp.name.ng/api/flutterwave/webhook`; secret hash: a long random string you make
+   (`openssl rand -hex 32`); tick JSON responses and retries; save.
+8. Vercel: `FLUTTERWAVE_SECRET_KEY` and `FLUTTERWAVE_WEBHOOK_HASH` (the same random string) → Redeploy.
+9. Test: subscribe in KES with Flutterwave's test card or M-Pesa test number.
+
+**C. ACCOUNT_DATA_KEY** (encrypts creators' payout numbers). It's probably set already (Paylony payouts, Granola and social tokens use
+it): check Vercel. If it is, **don't change it** (every stored number would become unreadable). Only if it's missing: run
+`openssl rand -base64 32`, save the output as `ACCOUNT_DATA_KEY` (Production), keep a copy in the password manager, redeploy.
+
+**D. Firestore**: from the repository on your computer, `npm i -g firebase-tools`, `firebase login`, `firebase use <project id>`,
+`firebase deploy --only firestore` (rules and indexes). Firebase console → Firestore → Indexes: wait until the new one says Enabled.
+
+**E. Exchange rates**: Admin → **Treasury** → Exchange rates: for each currency, how many one US dollar buys (from your bank or a
+trusted rates site; for naira, the rate you can actually convert at), Margin 3, Reserve 10 → Save rates. Update them at least every
+48 hours, or paying in another currency pauses until you do.
+
+**F. Before real money**: the intercompany agreement and tax set-up (FUNDING.md §5a, step 5), then one small live payment each way.

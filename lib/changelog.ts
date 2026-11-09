@@ -17,6 +17,7 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "added", text: "Pay a subscription in more currencies: Japanese yen, UAE dirhams and Chinese yuan (by card through Stripe), and Moroccan, Algerian, Tunisian and Libyan currencies and the Gambian dalasi (by card through Flutterwave)." },
       { kind: "changed", text: "Readers in Malawi pay subscriptions in US dollars (our card provider doesn't offer the kwacha yet)." },
+      { kind: "added", text: "Readers in Botswana pay in pula, and readers paying in Chinese yuan can use Alipay or WeChat Pay as well as a card." },
     ],
   },
   {

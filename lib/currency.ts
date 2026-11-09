@@ -21,6 +21,8 @@ export const CURRENCIES: CurrencyInfo[] = [
   { code: "JPY", name: "Japanese yen", symbol: "¥", minor: 0, provider: "stripe", countries: ["JP"] },
   { code: "AED", name: "UAE dirham", symbol: "AED", minor: 2, provider: "stripe", countries: ["AE"] },
   { code: "CNY", name: "Chinese yuan (renminbi)", symbol: "CN¥", minor: 2, provider: "stripe", countries: ["CN"] },
+  // Botswana: Flutterwave doesn't take the pula, Stripe does, so readers there pay in pula by card (not dollars, which their bank converts).
+  { code: "BWP", name: "Botswana pula", symbol: "P", minor: 2, provider: "stripe", countries: ["BW"] },
   { code: "KES", name: "Kenyan shilling", symbol: "KSh", minor: 2, provider: "flutterwave", countries: ["KE"] },
   { code: "GHS", name: "Ghanaian cedi", symbol: "GH₵", minor: 2, provider: "flutterwave", countries: ["GH"] },
   { code: "ZAR", name: "South African rand", symbol: "R", minor: 2, provider: "flutterwave", countries: ["ZA"] },
@@ -68,11 +70,22 @@ const ZONES: Record<string, string> = {
   "Africa/Lagos": "NGN", "Africa/Nairobi": "KES", "Africa/Accra": "GHS", "Africa/Johannesburg": "ZAR", "Africa/Kampala": "UGX",
   "Africa/Dar_es_Salaam": "TZS", "Africa/Kigali": "RWF", "Africa/Douala": "XAF", "Africa/Abidjan": "XOF", "Africa/Dakar": "XOF",
   "Africa/Lusaka": "ZMW", "Africa/Casablanca": "MAD", "Africa/Algiers": "DZD", "Africa/Tunis": "TND",
-  "Africa/Tripoli": "LYD", "Africa/Banjul": "GMD", "Asia/Tokyo": "JPY", "Asia/Dubai": "AED", "Asia/Shanghai": "CNY", "Africa/Cairo": "EGP", "Europe/London": "GBP", "America/Toronto": "CAD",
+  "Africa/Tripoli": "LYD", "Africa/Banjul": "GMD", "Asia/Tokyo": "JPY", "Asia/Dubai": "AED", "Asia/Shanghai": "CNY", "Africa/Gaborone": "BWP", "Africa/Cairo": "EGP", "Europe/London": "GBP", "America/Toronto": "CAD",
 };
 export function guessCurrency(timeZone: string | undefined): string {
   if (!timeZone) return "USD";
   if (ZONES[timeZone]) return ZONES[timeZone];
   if (timeZone.startsWith("Europe/")) return "EUR";
   return "USD";
+}
+
+// How a reader can pay in a currency, for the Subscribe window. Stripe Checkout shows the methods switched on in the Stripe dashboard
+// that fit the currency (dynamic payment methods: we don't list them in the request), so Alipay and WeChat Pay appear for yuan once
+// they're switched on there (Settings → Payment methods). Flutterwave offers mobile money where it's switched on in its dashboard.
+const MOMO = ["KES", "GHS", "UGX", "RWF", "ZMW", "XOF", "XAF"];
+export function payMethodsLabel(code: string): string {
+  if (code === "CNY") return "card, Alipay or WeChat Pay";
+  if (code === "NGN") return "card, bank transfer or USSD";
+  if (MOMO.includes(code)) return code === "XOF" || code === "XAF" ? "mobile money" : "card or mobile money";
+  return "card";
 }
