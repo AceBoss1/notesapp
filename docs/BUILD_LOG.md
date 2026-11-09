@@ -3226,3 +3226,15 @@ seeker. "Sent by" stays with the team on HR and Nana-HR replies (the organisatio
 person. Nana-HR's summary for firms is the same requirement-by-requirement check as the team hub's, with no ranking, and the applicant
 never sees it. The Campus Ambassador is a contract role, so the onboarding drafts give an option grant and no employment offer.
 
+
+## v0.158.0: global subscriptions (9 November 2026)
+
+The owner wanted Stripe for dollars, pounds and euros, Paystack for the naira and Flutterwave for the rest of Africa, and readers and
+creators in different currencies to meet, with the system balancing the currencies. Built as **NotesApp sells, the creator earns**: a
+reader's money is NotesApp's revenue and the creator's share is an earning in their own currency, fixed at the sale, so NotesApp never
+transmits money for creators (which would need licences in the US, Kenya and Nigeria). Each currency has a pool; sales in opposite
+directions offset, and Finance converts only the difference through licensed channels, guided by the Treasury page. Exchange rates are
+Finance's own, never a live feed at checkout, and expire after 48 hours so a stale rate can't sell at a loss. A subscription paid this
+way is one month per payment: three providers' recurring billing would each need their own cancellation and failure handling, and a
+reminder covers it for now. Payouts outside the naira go through Flutterwave for African currencies; dollar, pound and euro creators
+are paid by Finance and recorded until Stripe Connect is added. The existing naira flows are untouched.

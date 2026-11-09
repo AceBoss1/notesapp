@@ -372,6 +372,21 @@ A publisher can offer paid monthly subscriptions in up to three tiers, each at a
 **Paid-live discount:** beside each tier's price you can give that tier's subscribers a discount on tickets to your [paid lives](/help/paid-lives), from 0% up to ${paid.discountMaxPct}%. It applies to every paid live you run, on top of whichever price applies (early bird, normal or late).
 
 **For the publisher:** subscription money is released to your verified bank account after a 7-day window, minus your plan's commission: ${SESSION_RATES()} on Premium (see [commission rates](/help/commission-rates)). On **VIP**, #NotesApp takes your rate plus ${fan.vipUpliftPct}% of it, and on **VVIP** your rate plus ${fan.vvipUpliftPct}% of it: with an 8% rate, ${+(8 * (1 + fan.vipUpliftPct / 100)).toFixed(2)}% and ${+(8 * (1 + fan.vvipUpliftPct / 100)).toFixed(2)}%. The rate is fixed on each payment.`),
+    A("global-subscriptions", "Subscribing and earning in other currencies (dollars, pounds, euros, shillings and more)", "Publishing and earning", `
+Readers anywhere can subscribe to a creator and **pay in their own currency**, and creators can **earn in theirs**: a reader in the United States can subscribe to a creator in Kenya in dollars, and a reader in Kenya to a creator in the US or Nigeria in shillings.
+
+**For readers:** on a creator's profile, tap **Subscribe**, then choose your currency under **Pay in** (we guess it from your time zone). You pay by card through **Stripe** (US dollars, pounds, euros, Canadian dollars), **Flutterwave** (Kenyan shillings, Ghanaian cedis, rand, Ugandan and Tanzanian shillings, Rwandan francs, CFA francs, kwacha, Egyptian pounds; M-Pesa and mobile money where Flutterwave offers them) or **Paystack** (naira). Paid this way, a subscription is **one month at a time**: we send you a reminder 3 days before it ends, and renewing adds a month on top. Naira readers of naira creators keep the usual monthly plan.
+
+**The price you see:** if the creator prices in your currency, you pay exactly that. Otherwise it's their price converted at our exchange rate, plus a small margin (about 3%) for the conversion, rounded up to a tidy amount. If our rates are being updated, paying in another currency pauses for a short while; you can pay in the creator's own currency meanwhile.
+
+**For creators:** on **Rates & payouts → Readers in other currencies**, choose the currency you earn in. In naira, your usual tier prices are used, and readers abroad pay them in their own currency (untick the box to keep subscriptions naira-only). In any other currency, set your monthly prices in it, and add where you're paid: a bank account or mobile money (M-Pesa, MTN, Airtel…).
+
+**What you earn never moves with the exchange rate.** Your earning is your own price less your plan's commission (and a tier's share), fixed in your currency the moment the reader pays. It's held for 7 days (for refunds and card disputes), then paid to you in your currency. You see what's waiting on the same card.
+
+**Who sells it:** #NotesApp sells the subscription to the reader and pays you your share as earnings, the way app stores and other creator platforms do. That's why we can take any currency and pay you in yours.
+
+Related: [Subscriptions: Premium, VIP and VVIP](/help/subscriptions) · [Getting paid](/help/payouts) · [How your money is kept safe](/help/payment-safety)
+`),
     A("fan-levels", "Fan levels, Top fans and live entrances", "Publishing and earning", `
 Every creator has a **Top fans** list (open it with **🏆 Top fans** on their profile). Your place on it comes from points you build with that creator, all-time:
 
@@ -815,9 +830,9 @@ When you type a title, Nana suggests things to go with it in a **Nana suggests**
 Suggestions marked **NEW** don't exist yet; they're created when you save. You can always ignore the box and choose from the full list below it.
 `),
     A("currency-and-exchange-rates", "Currency: naira, dollars and exchange rates", "Plans and pricing", `
-Everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank.
+Almost everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank. The exception is **subscriptions to creators**: readers can pay in their own currency (dollars, pounds, euros, shillings, cedis and more), and creators can earn in theirs. See [Subscribing and earning in other currencies](/help/global-subscriptions).
 
-**Exchange rates:** #NotesApp doesn't publish a dollar-to-naira (or any other) exchange rate, and Nana can't give a live rate. Rates change through the day, so check your bank, your card provider or a trusted rates site.
+**Exchange rates:** a subscription paid in another currency uses our own rate, shown as the price before you pay. Otherwise #NotesApp doesn't publish a dollar-to-naira (or any other) exchange rate, and Nana can't give a live rate. Rates change through the day, so check your bank, your card provider or a trusted rates site.
 
 **Paying with a foreign card:** your bank converts the naira amount to your card's currency at its own rate and may add a fee; your statement shows what you were charged. Refunds are made in naira, so the amount back on a foreign card can differ slightly because of the rate.
 

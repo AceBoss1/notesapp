@@ -3,6 +3,9 @@ import { isValidWebhookSignature } from "@/lib/paystack";
 import { fulfillPayment, fulfillRenewal, markSubscriptionCancelled } from "@/lib/payments";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { fulfillTierRenewal, markTierCancelled } from "@/lib/tier-billing";
+import { isGlobalRef } from "@/lib/global-pay";
+import { fulfilGlobal, liveDeps } from "@/lib/global-pay-server";
+import { SITE_URL } from "@/lib/host";
 
 // Backup for buyers who pay but close the tab, plus recurring
 // subscription charges, cancellations and payout (transfer) results.
@@ -17,7 +20,10 @@ export async function POST(req: NextRequest) {
     const { event, data } = JSON.parse(raw);
     const db = getAdminDb();
 
-    if (event === "charge.success" && data?.reference) {
+    if (event === "charge.success" && data?.reference && isGlobalRef(String(data.reference))) {
+      // A naira reader subscribing to a creator who earns in another currency (lib/global-pay-server.ts).
+      await fulfilGlobal(db, String(data.reference), liveDeps(SITE_URL).confirm);
+    } else if (event === "charge.success" && data?.reference) {
       const ours = await db.doc(`payments/${data.reference}`).get();
       if (ours.exists) await fulfillPayment(data.reference);
       else if (!(await fulfillTierRenewal(data))) await fulfillRenewal(data); // recurring plan charge

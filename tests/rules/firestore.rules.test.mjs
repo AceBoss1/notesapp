@@ -295,6 +295,13 @@ test("replies on job applications are server-only (lib/app-replies-server.ts)", 
   await assertFails(setDoc(doc(as("pub"), "interviews/i1"), { status: "scheduled" }));
 });
 
+test("global subscriptions are server-only: rates, prices, payout details, payments, earnings and pools (lib/global-pay-server.ts)", async () => {
+  for (const path of ["globalConfig/rates", "publisherGlobal/pub", "globalPayoutAccounts/pub", "globalPayoutSecrets/pub", "globalPayments/gp_1", "globalEarnings/gp_1", "treasuryPools/USD", "treasuryConversions/cv_1", "treasuryPayouts/po_1"]) {
+    await assertFails(getDoc(doc(as("pub"), path)));
+    await assertFails(setDoc(doc(as("pub"), path), { x: 1 }));
+  }
+});
+
 test("the Nana tutor's settings are server-only (lib/tutor-server.ts)", async () => {
   await assertFails(getDoc(doc(as("pub"), "courseTutor/c1")));
   await assertFails(setDoc(doc(as("pub"), "courseTutor/c1"), { on: true, notes: "x" }));
