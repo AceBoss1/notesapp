@@ -1486,6 +1486,12 @@ service cloud.firestore {
     // NotesApp Ventures (lib/ventures-server.ts): pitches to Rewrite the Playbook, kept confidential, server only. settings/ventures (the round)
     // is under settings above.
     match /ventureApplications/{id} { allow read, write: if false; }
+    // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
+    // settings/partners (tier terms) is under settings above.
+    match /partnerApplications/{id} { allow read, write: if false; }
+    match /partners/{id} { allow read, write: if false; }
+    match /partnerLeads/{id} { allow read, write: if false; }
+    match /partnerMembers/{id} { allow read, write: if false; }
     match /sounds/{id} { allow read, write: if false; }
     match /soundUploads/{id} { allow read, write: if false; }
     match /soundArtists/{uid} { allow read, write: if false; }

@@ -55,10 +55,11 @@ export const safeTarget = (to: unknown): string => {
 };
 
 export const planEarningKobo = (paidKobo: number) => Math.round(paidKobo * PLAN_SHARE);
-export function withinPlanWindow(firstPaidAt: string | undefined, now: Date): boolean {
+// `months`: PLAN_MONTHS for a member's referral; a partner's tier sets its own (lib/partner-network.ts).
+export function withinPlanWindow(firstPaidAt: string | undefined, now: Date, months = PLAN_MONTHS): boolean {
   if (!firstPaidAt) return true; // this is the first real payment
   const end = new Date(firstPaidAt);
-  end.setMonth(end.getMonth() + PLAN_MONTHS);
+  end.setMonth(end.getMonth() + months);
   return now < end;
 }
 

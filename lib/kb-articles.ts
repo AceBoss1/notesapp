@@ -48,6 +48,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
+import { CERTIFY_MEMBERS, CERTIFY_PAYING, DEFAULT_TERMS, LEADS_PER_DAY, TIERS as PARTNER_TIERS, TIER_LABEL as PARTNER_TIER_LABEL, TIER_NEED as PARTNER_TIER_NEED, TRACK, TRACKS, TRAINING, type Tier, type TierTerms } from "./partner-network";
 import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
@@ -71,7 +72,7 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // ticket commission share is a price (currentPricing().liveTicketUpliftPct).
 // Pay-per-minute sessions: the minimum and maximum minutes held, the grace, the wait for more minutes and the no-show minutes (Admin →
 // Limits → Pay-per-minute sessions); the commission share is a price (currentPricing().ppmUpliftPct).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures };
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures; partners?: Record<Tier, TierTerms> };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -89,6 +90,7 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const liveUplift = currentPricing().liveTicketUpliftPct;
   const ppm = live.ppm ?? DEFAULT_PPM_FIGURES;
   const ppmUplift = currentPricing().ppmUpliftPct;
+  const pterms = live.partners ?? DEFAULT_TERMS; // Partner Network tier shares (Admin → Limits)
   const secs = (x: number) => `${x} second${x === 1 ? "" : "s"}`;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
@@ -835,6 +837,72 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 **What happens next:** a person reads every pitch. You're told in your notifications when it's received, being read, shortlisted (we'd like to talk), and picked or not picked this quarter. Any advice from the team shows with your pitch. Your pitches and where they stand are listed on the Ventures page.
 
 **Perks:** everyone who pitches gets perks from #NotesApp, sent by the team once the pitch is read. The Ventures page lists them.
+`),
+    // The NotesApp Partner Network (lib/partner-network.ts). The tier shares are an admin setting (Admin → Limits → Partner Network), so
+    // they're quoted from live.partners, never as literal figures.
+    A("notesapp-partner-network", "The NotesApp Partner Network: tracks, tiers and how to apply", "Publishing and earning", `
+The **NotesApp Partner Network** is for organisations, and people who commit to more than sharing a link, who bring #NotesApp to the people they serve. Apply at [Partners](/partners). It's free.
+
+**How it differs from referrals and affiliates:** any member can share their [referral link](/help/referrals) or promote a product as an [affiliate](/affiliates). Partners go further: they set up and run NotesApp for members, verify their members, build integrations, bundle #NotesApp, run chapters or bring a catalogue. In return they get a listing in the [partner directory](/partners/directory), a badge, a partner portal and a bigger share as their tier rises.
+
+**The seven tracks:**
+${TRACKS.map((k) => `- **${TRACK[k].label}:** ${TRACK[k].who}`).join("\n")}
+
+**The three tiers** (share of the plan payments of members a partner brings, for the months shown from each member's first payment):
+${PARTNER_TIERS.map((k) => `- **${PARTNER_TIER_LABEL[k]}:** ${pterms[k].percent}% for ${pterms[k].months} months. ${PARTNER_TIER_NEED[k]}`).join("\n")}
+
+**How to apply:** sign in with a verified email (18 or over), open [Partners](/partners#apply), choose a track, and tell us your organisation's name, website, where you work, how many people you reach, about you and your plan for your first 90 days. Tick that you accept the partner terms. You can have up to three applications being reviewed, one per track.
+
+**What happens next:** a person on the partnerships team reviews every application and may contact you. You're told in your notifications when it's being reviewed, approved or not approved; any feedback shows with your application on the [Partners page](/partners#mine). Approved partners get a page, a directory listing and a [partner portal](/partners/portal).
+
+**The terms, briefly:** apply only for an organisation you may represent; either side can end a partnership; earnings follow the referral rules (the hold, cash or NotesApp Credit, and refunds take an earning back); members' privacy comes first; represent #NotesApp honestly. The full terms are on the [Partners page](/partners#terms).
+`),
+    A("partner-portal", "Your partner portal: link, earnings, listing and moving up a tier", "Publishing and earning", `
+Once you're approved, open your **[partner portal](/partners/portal)**. For each partner you run it shows:
+
+**Your share:** your tier's share of members' plan payments and for how many months (${PARTNER_TIERS.map((k) => `${PARTNER_TIER_LABEL[k]} ${pterms[k].percent}% for ${pterms[k].months} months`).join(", ")}), how many members you've brought and how many of them pay.
+
+**Your link and code:** your code is your NotesApp username, so your link is your usual referral link, /r/your-username. A member who joins through it, or types your username as the code at checkout, is yours. While your partnership is active, your tier's share applies instead of the ordinary referral share. Your earnings, and taking them out as cash or NotesApp Credit, are on [your Referrals page](/profile/referrals), with the same hold as referral earnings.
+
+**Your listing:** edit what the directory and your page say about you, where you work, your website and (solutions partners) the services you offer.
+
+**Moving up:** to become **Certified**, tick off the partner training in your portal (${TRAINING.map((x) => x.charAt(0).toLowerCase() + x.slice(1)).join("; ")}) and bring ${CERTIFY_PAYING} paying members (associations and chapters: or ${CERTIFY_MEMBERS} verified members). Then press **Ask to be Certified**; the partnerships team reviews it and tells you. **Premier** is by invitation.
+
+**If your partnership is paused:** you leave the directory, badges are hidden and new plan payments earn the ordinary referral share until it's active again. Earnings already made stay yours unless the payment is refunded.
+
+**By track:** solutions partners see requests from members; associations verify members; chapters see who joined; workplaces get their code, a staff count and their recommended practitioners. Each has its own help article: [Find an expert](/help/find-an-expert), [association verification](/help/association-verified-members), [workplace wellbeing](/help/workplace-wellbeing) and [chapters](/help/partner-chapters).
+`),
+    A("find-an-expert", "Find an expert: get help setting up your NotesApp", "Getting started", `
+Want someone to set up your NotesApp for you: your site, booking calendar, payments, shop, courses or custom domain? Open the **[partner directory](/partners/directory)** and choose **Find an expert**. Every expert listed is a solutions partner reviewed by the #NotesApp partnerships team. Filter by service, or search by name or place. **Certified** and **Premier** partners have done the partner training and delivered for members.
+
+**Asking for help:** open an expert's page, choose what you need and a budget, describe it, and press **Send request**. The expert gets it in their partner portal and replies in your NotesApp **messages**, usually within two working days. You can send up to ${LEADS_PER_DAY} requests a day, one open request per expert.
+
+**Prices:** each expert sets their own fees, and you agree them directly with them. #NotesApp isn't part of that agreement, so agree what's included before you pay, and never share your password: an expert can do their work as a member of your team (see [Teams and roles](/teams)). If something goes wrong, [contact us](/contact) and tell us which partner it was.
+
+**Run an agency or freelance?** [Become a solutions partner](/partners#apply).
+`),
+    A("association-verified-members", "Associations: verified member badges", "Teams and organisations", `
+Professional associations, councils, guilds and alumni networks can join the [Partner Network](/partners) and verify who their members are on #NotesApp.
+
+**For members:** open your association's page from the [partner directory](/partners/directory), choose **I'm a member** and enter your membership number. Your association checks its register and confirms you. Then a **"Verified member of …"** badge naming your association appears on your profile, and links to its page. You're told in your notifications either way. You can leave at any time from the association's page, which removes the badge.
+
+**For associations:** requests appear in your [partner portal](/partners/portal) under **Members to verify**, with each person's name, username and the membership number they gave. Check it against your register, then **Verify** or **Decline**. **Remove** anyone who leaves: their badge goes at once. Your page lists your verified members. You see only that someone asked to be verified, never what they book, buy or write.
+
+**Group terms:** associations agree any terms for their members (prices, events, training) with the partnerships team. Members who join through your code earn you your tier's share of their plan payments (see [your partner portal](/help/partner-portal)).
+`),
+    A("workplace-wellbeing", "Workplace wellbeing: coaching and therapy for your staff", "Teams and organisations", `
+Employers, HR teams and benefits providers can join the [Partner Network](/partners) as a **workplace partner**, so their staff reach coaches, therapists, mentors and courses on #NotesApp.
+
+**For staff:** your employer gives you a **workplace code**. Open their page on #NotesApp, choose **I work here** and enter the code. You'll see the practitioners your workplace recommends. **Your privacy:** your employer only ever sees *how many* staff have joined, never who, and never what anyone booked, bought or wrote. No badge shows on your profile. You can leave from the same page.
+
+**For workplaces:** your code and staff count are in your [partner portal](/partners/portal). Make a new code at any time (the old one stops working; staff who joined stay). List up to 30 practitioners by username to recommend to your staff; they show on your page. Budgets and invoicing for sessions are agreed with the partnerships team.
+`),
+    A("partner-chapters", "Campus and community chapters", "Getting started", `
+A **NotesApp chapter** is a campus club, student society, creator community or community group run by a chapter lead who's an approved partner. Find chapters in the [partner directory](/partners/directory).
+
+**Joining:** open the chapter's page and choose **Join this chapter** (you can say your course, year or role if you like). You join at once, and a **"Member of …"** badge shows on your profile. Leave at any time from the chapter's page. The lead can remove members.
+
+**Running a chapter:** apply as a [chapter lead](/partners#apply). You'll run at least one chapter event a quarter, welcome new members and keep the chapter friendly and safe. Your [partner portal](/partners/portal) lists your members, and members who join #NotesApp through your link earn you your tier's share of their plan payments. Active chapters get event support and merch, and a path to the [Campus Ambassador](/careers) role at #NotesApp.
 `),
     A("notesapp-sounds", "NotesApp Sounds: songs for your posts, moments and lives, and royalties for artists", "Publishing and earning", `
 **NotesApp Sounds** are songs made for #NotesApp that anyone can use for free here. The first ones are by Emmanuel Adams (@emmanuel), the founder: Leave Am, Nobody Clapped Until I Won, Never Giving Up, Life No Balance, Are You That Girl, You're All I'll Ever Need, My Spec, Onye Ose Photo (two versions) and Highlife Beats 1 and 2. Verified artists add more. See them all at [NotesApp Sounds](/sounds).

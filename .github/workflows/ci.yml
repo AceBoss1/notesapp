@@ -39,6 +39,7 @@ jobs:
       - run: npm run test:media
       - run: npm run test:sounds
       - run: npm run test:ventures
+      - run: npm run test:partners
       - run: npm run test:cart
       - run: npm run test:discounts
       - run: npm run test:referrals
