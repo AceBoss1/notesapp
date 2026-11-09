@@ -94,6 +94,15 @@ export async function apply(db: Firestore, me: { uid: string; email: string }, r
   return { id };
 }
 
+// The applicant's own applications to #NotesApp roles (Your job search, /profile/applications), without the team's notes or summary.
+export async function myCareerApplications(db: Firestore, uid: string): Promise<{ id: string; roleId: string; roleTitle: string; status: string; createdAt: string; lastReplyAt?: string }[]> {
+  const s = await db.collection(APPS).where("uid", "==", uid).get();
+  return s.docs.map((d) => {
+    const a = d.data();
+    return { id: d.id, roleId: String(a.roleId), roleTitle: String(a.roleTitle), status: String(a.status), createdAt: String(a.createdAt), ...(a.lastReplyAt ? { lastReplyAt: String(a.lastReplyAt) } : {}) };
+  }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
 // ── Team hub ──────────────────────────────────────────────────────────────────────────────────────────────
 
 export async function hiringBoard(db: Firestore, me: Staff) {
@@ -163,6 +172,7 @@ export async function deleteRole(db: Firestore, me: Staff, id: unknown, now = ne
       await notifyBell({ uid: String(d.uid), type: "team", linkHref: "/careers", message: `We've withdrawn the ${String(d.roleTitle || cur.title)} role at #NotesApp, so your application has closed. Thank you for applying; see /careers for other roles.` }).catch(() => {});
     }
     await a.ref.delete();
+    await (await import("./app-replies-server")).deleteRepliesFor(db, "career", [a.id]); // loaded here: app-replies-server imports this file
     removed++;
   }
   await ref.delete();

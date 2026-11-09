@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "interviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "ppmSessions",
       "queryScope": "COLLECTION",
       "fields": [
@@ -628,6 +636,12 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "appReplies",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
     {
       "collectionGroup": "adSeen",
       "fieldPath": "expireAt",

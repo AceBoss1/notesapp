@@ -58,7 +58,7 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
 
   // ── Careers ──
   const open = await openRoles(db);
-  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-care-lead", "seed-chief-of-staff", "seed-cmo", "seed-community-strategist", "seed-executive-assistant", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
+  assert.deepEqual(open.map((r) => r.id).sort(), ["seed-campus-ambassador", "seed-care-lead", "seed-chief-of-staff", "seed-cmo", "seed-community-strategist", "seed-executive-assistant", "seed-partnerships-lead", "seed-safety-lead", "seed-ua-lead"]);
   {
     // A site seeded before the Community Strategist, the Chief of Staff and the Executive Assistant were added gets each once; a seeded role someone deleted
     // never comes back.

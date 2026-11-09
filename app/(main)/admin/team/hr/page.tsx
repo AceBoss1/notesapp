@@ -1,6 +1,7 @@
 "use client";
 
 import { ROLE_PRESETS } from "@/lib/hr-drafts";
+import { ApplicationThread } from "@/components/ApplicationThread";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
@@ -183,6 +184,7 @@ export default function NanaHrPage() {
                           {a.status === "offer" || a.status === "hired" ? (
                             <button className={`${btn} mt-3 ml-2`} onClick={() => { const p = r.seedKey ? ROLE_PRESETS[r.seedKey] : undefined; setTerms({ ...blankTerms, applicationId: a.id, name: a.name, title: r.title, reportsTo: p?.reportsTo ?? r.reportsTo, worksWith: p?.worksWith ?? "", arrangement: r.arrangement, duties: (p?.duties ?? r.responsibilities).join("\n"), whatTheyDo: (p?.whatTheyDo ?? []).join("\n"), howToWork: (p?.howToWork ?? []).join("\n") }); }}>Draft onboarding documents</button>
                           ) : null}
+                          <ApplicationThread kind="career" applicationId={a.id} />
                         </li>
                       ))}
                     </ul>

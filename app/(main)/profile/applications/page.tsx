@@ -5,6 +5,8 @@ import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import { jobsApi, useAuthUser } from "@/components/jobs/useAuthUser";
 import { JOBS_BRAND, JOB_APP_STATUS_LABEL, type JobApplication } from "@/lib/jobs";
+import { APP_STATUS_LABEL, type AppStatus } from "@/lib/careers";
+import { ApplicationThread } from "@/components/ApplicationThread";
 
 // Your job search (Notes Jobs): "I need a job" and your city (private: used only to match jobs to you, never shown), and the jobs you
 // applied for, with where each one is.
@@ -13,11 +15,13 @@ export default function MyApplicationsPage() {
   const [seeker, setSeeker] = useState<{ openToWork: boolean; city: string } | null>(null);
   const [city, setCity] = useState("");
   const [apps, setApps] = useState<JobApplication[] | null>(null);
+  const [ours, setOurs] = useState<{ id: string; roleId: string; roleTitle: string; status: string; createdAt: string }[]>([]);
   const [msg, setMsg] = useState("");
   useEffect(() => {
     if (!user) return;
     jobsApi<{ openToWork: boolean; city: string }>(user, "/api/account/job-seeker").then((s) => { setSeeker(s); setCity(s.city); }).catch(() => setSeeker({ openToWork: false, city: "" }));
     jobsApi<{ applications: JobApplication[] }>(user, "/api/jobs/apply").then((d) => setApps(d.applications)).catch(() => setApps([]));
+    jobsApi<{ applications: typeof ours }>(user, "/api/careers/apply").then((d) => setOurs(d.applications)).catch(() => setOurs([]));
   }, [user]);
   async function save(b: Record<string, unknown>, done: string) {
     setMsg("");
@@ -53,12 +57,23 @@ export default function MyApplicationsPage() {
           <h2 className="font-display text-2xl text-ink">Job applications</h2>
           {apps === null ? <p className="mt-2 text-sm text-slate">Loading…</p> : apps.length === 0 ? <p className="mt-2 text-sm text-slate">None yet. <Link href="/explore?tab=jobs" className="text-crimson underline">Find a job</Link></p> : (
             <ul className="mt-3 space-y-3">{apps.map((a) => (
-              <li key={a.id} className="card flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+              <li key={a.id} className="card p-4 text-sm"><div className="flex flex-wrap items-center justify-between gap-2">
                 <div><Link href={`/jobs/${a.jobId}`} className="font-semibold text-crimson">{a.jobTitle}</Link><p className="text-xs text-slate">Applied {new Date(a.createdAt).toLocaleDateString("en-GB")} · {JOB_APP_STATUS_LABEL[a.status]}</p></div>
                 {a.status !== "withdrawn" && a.status !== "hired" && a.status !== "declined" && <button className="text-xs text-slate underline" onClick={async () => { if (!confirm("Withdraw this application?")) return; try { await jobsApi(user, "/api/jobs/apply", { withdraw: a.id }); setApps(apps.map((x) => (x.id === a.id ? { ...x, status: "withdrawn" } : x))); } catch (e) { setMsg(e instanceof Error ? e.message : "Couldn't withdraw"); } }}>Withdraw</button>}
-              </li>))}</ul>
+              </div><ApplicationThread kind="job" applicationId={a.id} /></li>))}</ul>
           )}
         </section>
+        {ours.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-2xl text-ink">Roles at #NotesApp</h2>
+            <ul className="mt-3 space-y-3">{ours.map((a) => (
+              <li key={a.id} className="card p-4 text-sm">
+                <Link href={`/careers/${a.roleId}`} className="font-semibold text-crimson">{a.roleTitle}</Link>
+                <p className="text-xs text-slate">Applied {new Date(a.createdAt).toLocaleDateString("en-GB")} · {APP_STATUS_LABEL[a.status as AppStatus] ?? a.status}</p>
+                <ApplicationThread kind="career" applicationId={a.id} />
+              </li>))}</ul>
+          </section>
+        )}
       </div>
     </>
   );

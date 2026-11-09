@@ -2,11 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { CareersError } from "@/lib/careers";
-import { apply } from "@/lib/careers-server";
+import { apply, myCareerApplications } from "@/lib/careers-server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+// GET → { applications }: the signed-in person's own applications to #NotesApp roles.
+export async function GET(req: NextRequest) {
+  try {
+    const me = await verifySignedInRequest(bearer(req));
+    return NextResponse.json({ applications: await myCareerApplications(getAdminDb(), me.uid) }, { headers: { "Cache-Control": "no-store" } });
+  } catch (err) {
+    const f = friendlyMessage(err, "Couldn't load your applications");
+    return NextResponse.json({ error: f.message }, { status: f.status });
+  }
+}
 
 // POST { roleId, coverNote, links?, phone?, city?, consent: true, futureRoles? } with the applicant's NotesApp sign-in.
 export async function POST(req: NextRequest) {

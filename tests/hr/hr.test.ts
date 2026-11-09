@@ -4,9 +4,19 @@ import { CareersError, SEED_ROLES, cleanApplication, cleanRole, nextStatusAllowe
 import { ROLE_PRESETS, announcement, cleanTerms, draftsFor, offerLetter, optionGrant, presetTerms } from "../../lib/hr-drafts";
 
 // The five seeded vacancies the owner asked for, each with requirements Nana-HR can check against.
-assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist", "chief-of-staff", "executive-assistant"]);
-assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support", "executive", "executive"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
+assert.deepEqual(SEED_ROLES.map((r) => r.seedKey), ["cmo", "ua-lead", "partnerships-lead", "care-lead", "safety-lead", "community-strategist", "chief-of-staff", "executive-assistant", "campus-ambassador"]);
+assert.deepEqual(SEED_ROLES.map((r) => r.dept), ["marketing", "marketing", "growth", "support", "moderation", "support", "executive", "executive", "marketing"]); // CMO and UA lead in Marketing; the partnerships lead in Sales & partnerships
 for (const r of SEED_ROLES) assert.ok(r.requirements.length >= 4 && r.responsibilities.length >= 4, r.title);
+
+// The Campus Ambassador (9 Nov 2026): affiliate rewards and employee stock options, a contract role: no employment offer letter, an
+// option grant, and a role form that keeps the arrangement.
+const amb = SEED_ROLES.find((r) => r.seedKey === "campus-ambassador")!;
+assert.equal(amb.arrangement, "affiliate_options");
+assert.ok(/affiliate rewards/i.test(amb.about) && /stock options/i.test(amb.about));
+assert.equal(cleanRole({ title: "Campus Ambassador", dept: "marketing", requirements: ["A student"], arrangement: "affiliate_options" }).arrangement, "affiliate_options");
+const ambDrafts = draftsFor(cleanTerms({ name: "Ada", arrangement: "affiliate_options" }));
+assert.deepEqual(ambDrafts.map((d) => d.kind), ["grant", "announcement"], "no employment offer for a contract role");
+assert.match(offerLetter(cleanTerms({ arrangement: "affiliate_options" })), /ambassador agreement/);
 
 // Roles need a title, a department and requirements; lists are trimmed and bullets dropped.
 assert.throws(() => cleanRole({ title: "", dept: "growth", requirements: ["x"] }), CareersError);

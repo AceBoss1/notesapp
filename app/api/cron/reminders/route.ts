@@ -27,6 +27,7 @@ import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
 import { sendEventReminders } from "@/lib/events-server";
+import { sendInterviewReminders } from "@/lib/interviews-server";
 import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
@@ -146,6 +147,7 @@ async function run() {
   await job("announcements", () => continueAnnouncements(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
   await job("eventReminders", () => sendEventReminders(db));
+  await job("interviewReminders", () => sendInterviewReminders(db)); // job interviews: a day and an hour before (lib/interviews-server.ts)
   // Paid lives (lib/live-tickets-server.ts): reminders to ticket holders a day and an hour before; a live the host never opened is
   // cancelled after Admin's no-show minutes and everyone refunded to NotesApp Credit.
   await job("paidLives", () => sweepPaidLives(db));

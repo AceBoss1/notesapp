@@ -35,6 +35,9 @@ export type Job = {
   payMinKobo?: number; payMaxKobo?: number; payPeriod?: PayPeriod;
   industry: string; topics: string[];
   status: JobStatus; createdAt: string; updatedAt: string; closesAt: string; postedByUid: string; applicationCount?: number;
+  // "Apply with NotesApp" (on unless the firm switched it off): applications come in on NotesApp, where the firm can reply as HR,
+  // Nana-HR or a person (lib/app-replies.ts). Off: the job links to the firm's own page (applyUrl) and takes no applications here.
+  applyWithNotesApp?: boolean; applyUrl?: string;
 };
 export type JobAppStatus = "new" | "reviewing" | "interview" | "offer" | "hired" | "declined" | "withdrawn";
 export const JOB_APP_STATUS_LABEL: Record<JobAppStatus, string> = {
@@ -45,6 +48,7 @@ export type JobApplication = {
   id: string; jobId: string; jobTitle: string; orgUid: string; uid: string; name: string; username: string;
   phone: string; city: string; coverNote: string; links: string[]; consentAt: string; status: JobAppStatus;
   createdAt: string; updatedAt: string; purgeAt?: string;
+  summary?: { text: string; at: string }; // Nana-HR's screening summary, for the firm's hiring team only (never sent to the applicant)
 };
 export type Seeker = { industry?: string; jobTitle?: string; interests?: string[]; city?: string };
 
@@ -65,7 +69,11 @@ const kobo = (v: unknown) => {
 };
 
 // What a firm sends when it posts or edits a job. Pay is optional; when given it is in naira and needs a period.
-export function cleanJob(b: Record<string, unknown>) {
+export function cleanJob(b: Record<string, unknown>): {
+  title: string; summary: string; about: string; responsibilities: string[]; requirements: string[]; type: JobType; mode: WorkMode;
+  city: string; state: string; industry: string; topics: string[]; payMinKobo?: number; payMaxKobo?: number; payPeriod?: PayPeriod;
+  applyWithNotesApp: boolean; applyUrl?: string; openDays: number;
+} {
   const title = line(b.title, 100);
   if (title.length < 3) throw new JobsError("Give the job a title.");
   const summary = line(b.summary, 200);
@@ -86,12 +94,16 @@ export function cleanJob(b: Record<string, unknown>) {
   if ((payMinKobo || payMaxKobo) && !payPeriod) throw new JobsError("Say whether the pay is a month, a year, an hour or for the project.");
   const industry = isIndustry(b.industry) ? String(b.industry) : "";
   const topics = cleanTopics(Array.isArray(b.topics) ? (b.topics as unknown[]).map(String) : [], MAX_TOPICS);
+  const applyWithNotesApp = b.applyWithNotesApp !== false;
+  const applyUrl = applyWithNotesApp ? "" : line(b.applyUrl, 300);
+  if (!applyWithNotesApp && !/^https:\/\/[^\s/]+\.[^\s]+$/i.test(applyUrl)) throw new JobsError("With Apply with NotesApp off, give the https:// address where people apply.");
   const days = Math.round(Number(b.openDays) || OPEN_DAYS_DEFAULT);
   if (days < 7 || days > OPEN_DAYS_MAX) throw new JobsError(`A job stays open for 7 to ${OPEN_DAYS_MAX} days.`);
   return {
     title, summary, about: para(b.about, 4000), responsibilities: list(b.responsibilities, 200, 12), requirements, type, mode,
     city, state, industry, topics,
     ...(payMinKobo ? { payMinKobo } : {}), ...(payMaxKobo ? { payMaxKobo } : {}), ...(payMinKobo || payMaxKobo ? { payPeriod } : {}),
+    applyWithNotesApp, ...(applyUrl ? { applyUrl } : {}),
     openDays: days,
   };
 }
@@ -153,7 +165,7 @@ const wordsOf = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) =>
 const SAME: Record<string, string> = { support: "customer", care: "customer", service: "customer", helpdesk: "customer", agent: "rep", representative: "rep", advisor: "rep", adviser: "rep", developer: "engineer", programmer: "engineer", coder: "engineer", writer: "content", copywriter: "content", editor: "content", sale: "sales", seller: "sales" };
 const keyWords = (s: string) => Array.from(new Set(wordsOf(s).filter((w) => !FILLER.has(w)).map((w) => SAME[w] ?? w)));
 
-// Open jobs ranked for what someone asked: words in the title count 3, in the summary, requirements or industry 1; asking for remote
+// Open jobs ranked for what someone asked: words in the title count 3, in the summary, requirements or industry 1 (2 needed); asking for remote
 // (or a city) counts for jobs that are remote (or there). Only jobs with a match on what the job is, or on remote alone when that's
 // all they said, are returned.
 export type Rankable = Pick<Job, "title" | "summary" | "requirements" | "industry" | "city" | "state" | "mode" | "createdAt">;
@@ -169,7 +181,8 @@ export function jobsForQuestion<T extends Rankable>(question: string, jobs: T[],
     return { j, what, where };
   });
   const askedWhat = ws.some((w) => !jobs.some((j) => wordsOf(`${j.city} ${j.state}`).includes(w)));
-  return scored.filter((x) => (askedWhat ? x.what > 0 : x.where > 0))
+  // A match on what the job is needs the title, or two words of the text: one common word in the requirements ("support") isn't one.
+  return scored.filter((x) => (askedWhat ? x.what >= 2 : x.where > 0))
     .sort((a, b) => b.what + b.where - (a.what + a.where) || (a.j.createdAt < b.j.createdAt ? 1 : -1)).slice(0, max).map((x) => x.j);
 }
 

@@ -172,6 +172,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    if (action === "set_hr_access") {
+      // Only the owner decides who works in HR: posting jobs on Notes Jobs, reading applications and replying (with Nana-HR).
+      if (role !== "owner") throw new Fail("Only the owner can give HR access.", 403);
+      const mref = db.doc(`orgMembers/${mid(orgUid, String(body.memberUid))}`);
+      if (!(await mref.get()).exists) throw new Fail("They're not on the team.", 404);
+      await mref.update({ hr: body.enabled === true });
+      return NextResponse.json({ ok: true });
+    }
+
     if (action === "remove" || action === "set_role") {
       const memberUid = String(body.memberUid);
       const mref = db.doc(`orgMembers/${mid(orgUid, memberUid)}`);
