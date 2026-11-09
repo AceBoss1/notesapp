@@ -99,13 +99,21 @@ const say = (from: string, to: string, text: string, at = new Date()) => sendMes
   assert.ok((await listProposals(db, "j_ada", now)).needs.some((p) => p.kind === "booking_confirm"), "waiting for the member");
 
   // ---- the Monday summary, once a week
-  const monday = new Date("2026-11-09T06:10:00Z"); // 07:10 Lagos
+  // The next Monday 07:10 Lagos strictly after today (Lagos): the test starts at the real time, so a fixed date would share a day
+  // with the first runs when CI happens to run on that Monday (Ent Co's one job a day already used), or fall in the past after it.
+  const monday = (() => {
+    const lagos = (d: Date) => new Date(d.getTime() + 3_600_000);
+    const today = lagos(now);
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 6, 10));
+    do d.setUTCDate(d.getUTCDate() + 1); while (d.getUTCDay() !== 1);
+    return d;
+  })();
   const r3 = await runAgentJobs(db, monday, { nana, alert: null });
   assert.equal(r3.summaries, 2, "Ada and Ent Co (enterprise's daily run is a new day)");
   const sum = (await listProposals(db, "j_ada", monday)).done.find((p) => p.kind === "weekly_summary")!;
   assert.match(sum.summary, /^Last week: \d+ sessions? \(₦[\d,]+\), \d+ download sales? \(₦0\), \d+ orders? \(₦[\d,]+\)\./);
-  assert.equal((await runAgentJobs(db, new Date("2026-11-09T09:00:00Z"), { nana, alert: null })).summaries, 0, "once a week");
-  assert.equal((await runAgentJobs(db, new Date("2026-11-10T06:10:00Z"), { nana, alert: null })).summaries, 0, "not on Tuesday");
+  assert.equal((await runAgentJobs(db, new Date(monday.getTime() + 170 * 60_000), { nana, alert: null })).summaries, 0, "once a week");
+  assert.equal((await runAgentJobs(db, new Date(monday.getTime() + 86_400_000), { nana, alert: null })).summaries, 0, "not on Tuesday");
 
   // ---- paused: nothing new, even with a fresh question
   await saveOps(db, "j_ada", { paused: true });
