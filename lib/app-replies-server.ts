@@ -10,6 +10,7 @@ import {
   INTENT_MAX, REPLIES_MAX, REPLY_DRAFT_SYSTEM, cleanReplyText, draftPrompt, isSendAs, senderLabel,
   type AppKind, type Reply, type ReplyFrom,
 } from "./app-replies";
+import type { Interview } from "./interviews";
 
 // Replies on job applications (lib/app-replies.ts has the rules). appReplies/{id} (server only; TTL on expireAt, 12 months): one message
 // in an application's thread. Reviewers: for #NotesApp's own roles, super admins and the Chief of Staff (canManageTeam); for a Notes Jobs
@@ -21,7 +22,7 @@ export class RepliesError extends Error {
 const COLL = "appReplies";
 const KEEP_DAYS = 365;
 export type Viewer = { uid: string; access?: Access | null };
-type Ctx = {
+export type Ctx = {
   kind: AppKind; appId: string; applicantUid: string; applicantName: string; org: string; orgUid: string | null; title: string; status: string;
   reviewer: boolean; bellType: "team" | "job"; reviewerUid: string | null;
 };
@@ -29,7 +30,7 @@ const safeId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-
 const isKind = (v: unknown): v is AppKind => v === "career" || v === "job";
 const standInAllowed = () => !!setting("NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST");
 
-async function context(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<Ctx> {
+export async function context(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<Ctx> {
   if (!isKind(kind) || !safeId(appId)) throw new RepliesError("Which application?");
   if (kind === "career") {
     const a = (await db.doc(`careerApplications/${appId}`).get()).data();
@@ -56,12 +57,13 @@ const toReply = (id: string, d: FirebaseFirestore.DocumentData, forReviewer: boo
   ...(d.byUsername && (forReviewer || d.from === "me") ? { byUsername: String(d.byUsername) } : {}),
 });
 
-export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string }> {
+export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] }> {
   const c = await context(db, v, kind, appId);
   const snap = await db.collection(COLL).where("kind", "==", c.kind).where("applicationId", "==", c.appId).get();
   const replies = snap.docs.map((d) => toReply(d.id, d.data(), c.reviewer)).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
   const me = c.reviewer ? (await db.doc(`users/${v.uid}`).get()).data() : null;
-  return { replies, reviewer: c.reviewer, org: c.org, username: String(me?.username ?? "") };
+  const interviews = await (await import("./interviews-server")).interviewsFor(db, c.kind, c.appId); // loaded here: it imports this file
+  return { replies, reviewer: c.reviewer, org: c.org, username: String(me?.username ?? ""), interviews };
 }
 
 export async function sendReply(db: Firestore, v: Viewer, input: { kind?: unknown; id?: unknown; as?: unknown; text?: unknown }, now = new Date()): Promise<Reply> {
@@ -103,7 +105,11 @@ export async function draftReply(db: Firestore, v: Viewer, input: { kind?: unkno
   if (!intent) throw new RepliesError("Tell Nana-HR what to say, like \"invite them to a 30-minute call on Tuesday at 10am\".");
   const snap = await db.collection(COLL).where("kind", "==", c.kind).where("applicationId", "==", c.appId).get();
   const thread = snap.docs.map((d) => d.data()).sort((a, b) => (String(a.createdAt) < String(b.createdAt) ? -1 : 1)).map((d) => ({ from: String(d.label), text: String(d.text) }));
-  const content = draftPrompt({ org: c.org, title: c.title, applicantName: c.applicantName, status: c.status, intent, thread });
+  const I = await import("./interviews-server");
+  const { interviewWhen } = await import("./interviews");
+  const interviews = (await I.interviewsFor(db, c.kind, c.appId)).filter((i) => i.status === "scheduled" && i.endAt > new Date().toISOString())
+    .map((i) => ({ when: interviewWhen(i), link: I.roomLink(i.roomId) }));
+  const content = draftPrompt({ org: c.org, title: c.title, applicantName: c.applicantName, status: c.status, intent, thread, interviews });
   const now = deps.now();
   // Our own roles: the team's allowance (like Nana-HR's summaries). A firm: the reviewer's own Nana allowance.
   const meter: Meter | undefined = c.kind === "job" ? { uid: v.uid, tier: await memberTier(db, v.uid), gem: "pearl", effort: "low" } : undefined;
@@ -122,6 +128,8 @@ export async function deleteRepliesFor(db: Firestore, kind: AppKind, appIds: str
   for (const id of appIds) {
     const snap = await db.collection(COLL).where("kind", "==", kind).where("applicationId", "==", id).get();
     for (const d of snap.docs) { await d.ref.delete(); n++; }
+    const ivs = await db.collection("interviews").where("applicationId", "==", id).get(); // its interview bookings too (the rooms stay in Messages)
+    for (const d of ivs.docs) if (d.data().kind === kind) await d.ref.delete();
   }
   return n;
 }

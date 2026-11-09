@@ -980,8 +980,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     healthcare, clean energy, agriculture and financial inclusion.
 
 129. **Replies on applications, Nana-HR for firms, the HR area, and the Campus Ambassador (v0.157.0, branch `push/ambassador-replies`;
-    owner, 9 Nov 2026):** deploy `firebase deploy --only firestore` (rules: `appReplies` server-only; TTL on `appReplies.expireAt`,
-    12 months). **Replies** (`lib/app-replies.ts`, `lib/app-replies-server.ts`, `/api/applications/replies`, `ApplicationThread`): a
+    owner, 9 Nov 2026):** deploy `firebase deploy --only firestore` (rules: `appReplies` and `interviews` server-only; TTL on
+    `appReplies.expireAt`, 12 months; the interviews(status, startAt) index). **Replies** (`lib/app-replies.ts`, `lib/app-replies-server.ts`, `/api/applications/replies`, `ApplicationThread`): a
     reviewer sends as `hr` ("HR, <org>"), `nana` ("Nana-HR for <org>": Nana-HR drafts from the reviewer's instruction, a person sends) or
     `me` ("@username, <org>"); the applicant sees who pressed send only on `me` replies, and replies as `applicant`. Reviewers: #NotesApp's
     roles, `canManageTeam` staff; Notes Jobs, the organisation or a member with **`orgMembers.hr`** (`hiringTeamFor`; `actingFor` now
@@ -994,6 +994,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Nana openings now need a title match or two body words (a single "support" in the Chief of Staff's requirements matched "customer
     service"). Tests: `test:replies` (new), `test:hr`, `test:jobs`, rules 95/95. Other areas the owner may assign (courses, journal,
     services, books, inventory) aren't per-member switches yet; only store and HR are.
+    **Interviews** (`lib/interviews.ts`, `lib/interviews-server.ts`; the owner: "use the booking's schedule engine for the interview
+    link, later for posts, moments and store items"): times are Lagos wall-clock through `booking-time.ts` (`sessionStart`); the room is a
+    group conversation `interview_<id>` the server creates (no follow check: applying is consent; blocks and suspensions still refuse),
+    with the group call as the meeting (3 interviewers on video, 5 on voice); the booking posts an HR reply with the link and moves the
+    application to Interview; `sendInterviewReminders` runs in the 15-minute cron (a day and an hour before, once each; index
+    interviews(status, startAt)); Nana-HR's drafts get the booked link and may use no other. Tests: `test:interviews` (new). Next on the
+    same scheduling: scheduled posts, moments and store-item announcements (not built).
 
 ## 3. How the work is done (please keep these)
 
