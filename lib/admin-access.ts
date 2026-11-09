@@ -96,6 +96,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/pricing", label: "Pricing", need: "super", group: "Money" },
   { href: "/admin/credits", label: "Credits", need: "super", group: "Money" },
   { href: "/admin/paylony", label: "Paylony", need: ["finance"], group: "Money" },
+  { href: "/admin/treasury", label: "Treasury", need: ["finance"], group: "Money" }, // global subscriptions: currency pools, rates, payouts
   { href: "/admin/api-access", label: "API & domains", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/domains", label: "Domain sales", need: ["product"], group: "Platform" },
   { href: "/admin/limits", label: "Limits", need: ["product", "engineering"], group: "Platform" },

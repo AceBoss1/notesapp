@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.158.0",
+    bump: "minor",
+    date: "2026-11-09",
+    changes: [
+      { kind: "added", text: "Subscribe in your own currency: readers anywhere can pay a creator's subscription in US dollars, pounds, euros, Canadian dollars, Kenyan shillings, cedis, rand and other African currencies, by card through Stripe or Flutterwave (or Paystack for naira). Choose it under Pay in on the Subscribe window; a month at a time, with a reminder before it ends." },
+      { kind: "added", text: "Earn in your own currency: on Rates & payouts → Readers in other currencies, choose the currency you earn in, set your prices in it, and add a bank account or mobile money (M-Pesa, MTN, Airtel) for payouts. Naira creators' readers abroad pay their usual prices in their own currency. Your earning is fixed in your currency when the reader pays, so exchange rates never change it." },
+      { kind: "added", text: "Admin → Treasury (Finance): a balance in each currency, what's owed to creators, suggested conversions to cover short balances, exchange rates, payouts and refunds." },
+    ],
+  },
+  {
     version: "v0.157.0",
     bump: "minor",
     date: "2026-11-09",

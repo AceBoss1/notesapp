@@ -349,8 +349,11 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 
 **1. Before Atlas sends the documents (agree together, with counsel):**
 - [ ] **Vesting start date:** the incorporation date, or earlier to credit work already done (the platform was built before the Inc).
-- [ ] **Hybrid vesting (time + milestones):** Atlas's standard documents are time-only (4 years, 1-year cliff), so counsel adds the
-      milestone terms to each founder's stock purchase agreement *before it's signed*. Write each milestone so anyone can check it
+- [ ] **Hybrid vesting (time + milestones):** Atlas confirmed (9 November 2026) that its stock purchase agreements take a vesting
+      schedule with a cliff but **no milestone conditions**, so our own counsel adds the milestone terms to each founder's agreement
+      *before it's signed* (the share documents weren't issued yet on 9 November; only the incorporation and EIN forms were). If
+      counsel isn't ready in time, sign Atlas's time-only terms and keep the milestones as board-approved goals in a founders' memo, or
+      amend later with US tax advice (a change after the shares are issued can touch the 83(b)). Write each milestone so anyone can check it
       (a number and a date, not "product-market fit"), say who confirms it was met (the board), and what happens to that tranche if
       it's missed (it falls back to time vesting, or it's forfeited). The 83(b) still applies and the 30-day clock is the same.
 - [ ] **Acceleration:** what happens to unvested shares if the company is sold (double trigger, a sale *and* being let go, is common).
@@ -387,6 +390,16 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
       grant, another US state, or a Nigerian bank or the CAC, sometimes with an apostille). Most want one dated within 30 to 90 days,
       so one bought early is wasted. Order it from the Delaware Division of Corporations ($50) rather than through a reseller (Legalinc
       adds $29); the state's free entity search confirms the status meanwhile.
+
+**5. Selling across currencies (global subscriptions, docs/PAYMENTS.md §7):**
+- [ ] **NotesApp is the seller** of a subscription paid in another currency, and pays the creator their share as earnings in their
+      own currency. Counsel confirms this framing in the terms, so neither company is transmitting money for creators.
+- [ ] An **intercompany agreement** between NotesApp Inc (Stripe: dollars, pounds, euros) and NOTESAPP TECHNOLOGIES LTD (Paystack and
+      Flutterwave: naira and other African currencies): which company sells to which readers, how revenue and costs are shared, and
+      transfer pricing, before real money moves across.
+- [ ] **Sales tax and VAT** as the seller: Stripe Tax for the US, UK and EU once Stripe is live; the accountant on Kenya's and other
+      African VAT on digital services, and Nigeria's VAT.
+- [ ] **Conversions** between the currency pools through licensed banks or providers only; naira through licensed channels (§5).
 
 **Who does what:** the CEO agrees the vesting start, acceleration and IP plan with the co-founders and counsel before signing; the
 Chief Compliance Officer keeps the checklist (each founder's signing, payment and 83(b) dates, and the UK 14-day date where it

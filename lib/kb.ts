@@ -98,6 +98,7 @@ const SYN: Record<string, string> = {
   crypto: "crypto", cryptocurrency: "crypto", bitcoin: "crypto", btc: "crypto", usdt: "crypto", usdc: "crypto", tether: "crypto", stablecoin: "crypto", stablecoins: "crypto", p2p: "crypto",
   job: "job", jobs: "job", vacancy: "job", vacancies: "job", hire: "job", hiring: "job", recruit: "job", recruiting: "job", recruitment: "job", employ: "job", employer: "job", employers: "job", employment: "job", candidate: "job", candidates: "job", applicant: "job", applicants: "job", cv: "job", resume: "job", career: "job", careers: "job",
   dollar: "currency", dollars: "currency", usd: "currency", forex: "currency", exchange: "currency", currencies: "currency",
+  gbp: "currency", eur: "currency", euro: "currency", euros: "currency", pound: "currency", pounds: "currency", kes: "currency", shilling: "currency", shillings: "currency", cedi: "currency", cedis: "currency", ghs: "currency", rand: "currency", abroad: "currency", international: "currency", foreign: "currency", stripe: "currency", flutterwave: "currency",
 };
 const tokens = (s: string) => s.toLowerCase().replace(/₦/g, " naira ").replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter((w) => w.length > 1);
 const stem = (w: string) => SYN[w] ?? (w.length > 5 && w.endsWith("ing") ? w.slice(0, -3) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);

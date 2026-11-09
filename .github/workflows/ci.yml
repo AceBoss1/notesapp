@@ -76,6 +76,7 @@ jobs:
       # audio rooms: rooms, the relay and Live mode (tests/community/rooms*.test.ts)
       - run: npm run test:rooms
       - run: npm run test:fans
+      - run: npm run test:global
       - run: npm run test:recording
       - run: npm run test:live-rooms
       - run: npm run test:giving

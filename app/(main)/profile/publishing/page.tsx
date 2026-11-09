@@ -18,6 +18,7 @@ import TierSettings, { type TierForm } from "@/components/fans/TierSettings";
 import { SUB_TIERS, tierOffers } from "@/lib/fans";
 import PpmOfferSettings, { PPM_FORM, type PpmForm } from "@/components/ppm/PpmOfferSettings";
 import type { PpmOfferDoc } from "@/lib/ppm";
+import GlobalPricingSettings from "@/components/GlobalPricingSettings";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -274,6 +275,8 @@ export default function PublishingSettingsPage() {
         </form>
         {payoutMsg && <p className={`mt-2 text-xs ${payoutMsg.ok ? "text-ink" : "text-crimson"}`}>{payoutMsg.text}</p>}
       </div>
+
+      {user && <GlobalPricingSettings user={user} />}
 
       <form onSubmit={saveRates} className="mt-8 grid gap-8">
         <div className="card p-6">
