@@ -6,6 +6,7 @@ import { toMillis } from "@/lib/dates";
 import { getAllNotes } from "@/lib/firestore-notes";
 import { getAllUsers } from "@/lib/users";
 import { ttlCache } from "@/lib/ttl-cache";
+import { viewBuckets } from "@/lib/page-view-buckets";
 import { friendlyMessage } from "@/lib/api-errors";
 import { topicsOf } from "@/lib/topics";
 import { getAcademy } from "@/lib/courses-server";
@@ -28,10 +29,10 @@ export async function GET(req: NextRequest) {
     const db = getAdminDb();
     const cutoff = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
-    // Notes and users come from the shared 5-minute caches; only the
-    // pageViews buckets (bounded by days × pages) are read fresh.
-    const [viewSnap, allNotes, allUsers, academy] = await Promise.all([
-      db.collection("pageViews").where("day", ">=", cutoff).get(),
+    // Notes and users come from the shared 5-minute caches, and the
+    // pageViews buckets from the shared 10-minute one (lib/page-view-buckets.ts).
+    const [buckets, allNotes, allUsers, academy] = await Promise.all([
+      viewBuckets(days),
       getAllNotes({ publishedOnly: true }),
       getAllUsers(),
       ACADEMY_LIVE ? getAcademy() : Promise.resolve([]),
@@ -41,8 +42,7 @@ export async function GET(req: NextRequest) {
     const profileViews = new Map<string, number>();
     const courseViews = new Map<string, number>();
     const eventViews = new Map<string, number>();
-    viewSnap.docs.forEach((d) => {
-      const b = d.data() as Bucket;
+    (buckets as Bucket[]).forEach((b) => {
       const m = b.kind === "note" ? noteViews : b.kind === "profile" ? profileViews : b.kind === "course" ? courseViews : b.kind === "event" ? eventViews : null;
       m?.set(b.id, (m.get(b.id) || 0) + (b.count || 0));
     });

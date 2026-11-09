@@ -458,6 +458,12 @@ one and put it in both places again (GitHub, then Vercel, then run the workflow 
 3. Open the new account → **Keys → Add key → Create new key → JSON → Create.** A `.json` file downloads. Keep it private: anyone
    with it can deploy to your project. (If your organisation blocks key creation, tell me and we'll switch to keyless sign-in.)
 4. Note the **project ID** (top of the console, e.g. `notesapp-a1402`).
+5. **Let the project build code.** Newer Google Cloud projects build with the project's *default compute account*, which starts with
+   no permissions (the deploy then fails with "PERMISSION_DENIED: Build failed because the default service account is missing required
+   IAM permissions"). **IAM & Admin → IAM → Grant access**: principal `PROJECT_NUMBER-compute@developer.gserviceaccount.com` (the project
+   number is on the console's Dashboard; the error message shows the full address), role **Cloud Run Builder**, **Save**. Or in Cloud
+   Shell: `gcloud projects add-iam-policy-binding $(gcloud config get-value project) --member=serviceAccount:$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')-compute@developer.gserviceaccount.com --role=roles/run.builder`.
+   Give it a minute before running the workflow.
 
 **Step 3. GitHub settings** (github.com → AceBoss1/notesapp → **Settings → Secrets and variables → Actions**):
 
@@ -465,8 +471,10 @@ one and put it in both places again (GitHub, then Vercel, then run the workflow 
   - `GCP_PROJECT_ID` = the project ID
   - `GCP_SA_KEY` = the **whole contents** of the downloaded `.json` file (open it in a text editor, select all, paste)
   - `RECORDER_SECRET` = the secret from step 1
-- **Variables** tab → **New repository variable**: `APP_ORIGIN` = your site's address with `https://` and no slash at the end, the
-  same as `NEXT_PUBLIC_SITE_URL` in Vercel.
+- **Variables** tab (next to Secrets) → **New repository variable**: `APP_ORIGIN` = `https://www.` followed by your main domain, with
+  no slash at the end. With the main domain `naapp.tech` that is exactly **`https://www.naapp.tech`**. It must have the `www.`: the live
+  site always gives the recorder its pages at `https://www.<main domain>`, and the recorder refuses any other address. (If you put it
+  under Secrets instead, that works too.)
 
 **Step 4. Run it:** **Actions → Deploy room recorder → Run workflow → Run workflow.** It takes about 5 to 10 minutes the first time.
 When it's green, open the run: the summary shows the recorder's **address** (`https://room-recorder-….run.app`) and its health

@@ -95,6 +95,11 @@ async function run() {
   const failed: string[] = [];
   const job = (name: string, fn: () => Promise<number>) =>
     fn().catch((e) => (console.error(`${name} failed`, e), failed.push(name), 0));
+  // This route runs every 15 minutes. Jobs that send at most one message a day per item read their whole list each run, so they run
+  // once an hour instead (the first run in each hour): a reminder can be up to an hour later, never twice (Query insights, 9 Nov 2026:
+  // the work board alone was ~7,800 reads a day).
+  const firstRunThisHour = new Date().getUTCMinutes() < 15;
+  const hourly = (name: string, fn: () => Promise<number>) => (firstRunThisHour ? job(name, fn) : Promise.resolve(0));
   const expired = await job("expireTiers", expireTiers);
   const released = await job("releaseDueOrders", releaseDueOrders);
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
@@ -120,11 +125,11 @@ async function run() {
   // From 07:00 Lagos time, once a day: the team's morning summary (their day, decisions, blockers, queues, milestones, meetings).
   await job("teamMorningSummary", () => sendMorningSummaries(db));
   // Grants and free-period plans: 30, 14, 7, 3, 1 and 0 days before they end, to finance and the owner.
-  await job("grantReminders", () => sendGrantReminders(db));
+  await hourly("grantReminders", () => sendGrantReminders(db));
   // Expenses due (bills and renewals entered by finance): 14, 7, 3, 1 and 0 days ahead, and once when overdue.
   await job("dueReminders", () => sendDueReminders(db));
   // Work board deadlines: to each item's owner 3 days and 1 day before, on the day, and once when overdue.
-  await job("workReminders", () => sendWorkReminders(db));
+  await hourly("workReminders", () => sendWorkReminders(db));
   // Team time: timers whose "still working?" went unanswered (or that ran to midnight) stop, the check-in bell goes out once per
   // check, and on Fridays from 4 PM Lagos, one reminder to submit the week's timesheet (lib/time-server.ts).
   await job("timeTimers", async () => { const r = await sweepTimers(db); return r.stopped + r.asked; });

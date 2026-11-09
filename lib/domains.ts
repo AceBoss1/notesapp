@@ -1,4 +1,5 @@
 import { getAdminDb } from "./firebase-admin";
+import { ttlCacheBy } from "./ttl-cache";
 import { DnsRecord, dnsInstructions, isApexDomain } from "./host";
 import { effectiveTier } from "./users";
 import { getTierConfig } from "./tiers";
@@ -97,14 +98,22 @@ export async function domainForUid(uid: string): Promise<(DomainDoc & { id: stri
   return snap.empty ? null : { id: snap.docs[0].id, ...(snap.docs[0].data() as DomainDoc) };
 }
 // The live custom domain of a member, by username — for places that link to "their site" (null → use /u/<username>).
+// Cached 5 minutes per username: the home page and the partner strips ask on every visit (Query insights, 9 Nov 2026: ~5,500 lookups a
+// day). A domain that goes live shows within 5 minutes.
+const hostByUsername = ttlCacheBy(5 * 60_000, async (username: string): Promise<string | null> => {
+  const snap = await getAdminDb().collection("customDomains").where("username", "==", username).where("status", "==", "active").limit(1).get();
+  return snap.empty ? null : (snap.docs[0].data() as DomainDoc).host;
+});
 export async function activeHostForUsername(username: string): Promise<string | null> {
   try {
-    const snap = await getAdminDb().collection("customDomains").where("username", "==", username).where("status", "==", "active").limit(1).get();
-    return snap.empty ? null : (snap.docs[0].data() as DomainDoc).host;
+    return await hostByUsername(username);
   } catch {
     return null;
   }
 }
+// A member's domain for their public site pages, cached a minute per member. The domain console uses domainForUid (always fresh).
+const domainByUid = ttlCacheBy(60_000, (uid: string) => domainForUid(uid));
+export const siteDomainForUid = (uid: string) => domainByUid(uid);
 export { isApexDomain };
 
 // The owner of an ACTIVE custom domain whose plan has full white label (Enterprise), or null. Sign-in, sign-up and the emails
