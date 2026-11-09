@@ -340,7 +340,7 @@ the owner sets them.
 ## 5a. Founders' equity checklist (NotesApp Inc)
 
 > Status: **to do after incorporation (expected 10–12 November 2026, through Stripe Atlas).** The founders' shares vest over **4 years
-> with a 1-year cliff from the incorporation date**. General information, not tax or legal advice: counsel and each founder's own tax
+> with a 1-year cliff from the incorporation date**, a **hybrid** schedule: time *and* milestones. General information, not tax or legal advice: counsel and each founder's own tax
 > adviser decide. Names, share numbers and prices stay out of this file (they're confidential; Carta holds them).
 
 **Why the order matters.** Vesting makes the shares "restricted" (the company can buy back unvested shares if someone leaves). Without
@@ -349,6 +349,10 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 
 **1. Before Atlas sends the documents (agree together, with counsel):**
 - [ ] **Vesting start date:** the incorporation date, or earlier to credit work already done (the platform was built before the Inc).
+- [ ] **Hybrid vesting (time + milestones):** Atlas's standard documents are time-only (4 years, 1-year cliff), so counsel adds the
+      milestone terms to each founder's stock purchase agreement *before it's signed*. Write each milestone so anyone can check it
+      (a number and a date, not "product-market fit"), say who confirms it was met (the board), and what happens to that tranche if
+      it's missed (it falls back to time vesting, or it's forfeited). The 83(b) still applies and the 30-day clock is the same.
 - [ ] **Acceleration:** what happens to unvested shares if the company is sold (double trigger, a sale *and* being let go, is common).
 - [ ] **Leaving:** the company buys back unvested shares at the price paid (the usual repurchase right); confirm it's in the agreements.
 - [ ] **IP:** how the platform's code, brand and domains move to NotesApp Inc from NotesApp Technologies Ltd and from the founders
@@ -367,6 +371,9 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 **3. Afterwards:**
 - [ ] Atlas sends the company to **Carta** once every founder has paid; check each founder's shares and vesting schedule there.
 - [ ] Note the **cliff date** (one year from the vesting start) and the monthly vesting after it in the team hub.
+- [ ] Enter the hybrid schedule in Carta: the time part as a custom vesting schedule, and each milestone as a tranche that vests
+      when an admin records it as met (after the board confirms it). Upload the signed agreements so Carta matches them; check with
+      Carta's support that the schedule shows correctly before the first milestone falls due.
 - [ ] Any equity pledge (Pledge 1%, §18) and option pool are added in Carta with counsel, and counted with the SAFEs (§5, §13, §16)
       when adding up dilution.
 
@@ -374,7 +381,8 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 - [ ] File Delaware's **annual report and pay the franchise tax by 1 March** every year, the first by **1 March 2027**. Work the tax
       out by the **assumed par value capital method**, not the authorised shares method (the default bill on many shares can look
       like thousands of dollars; the other method is usually the $400 minimum). Switch on Atlas's tax-deadline reminders.
-- [ ] Keep the **registered agent** paid (Atlas's first year is included); a lapsed agent or unpaid tax loses good standing.
+- [ ] Keep the **registered agent** paid: Atlas's first year is included, so the first renewal falls **12 months after incorporation
+      (about November 2027)**, separate from the 1 March tax. A lapsed agent or unpaid tax loses good standing.
 - [ ] **Certificate of Good Standing: buy one only when someone asks for it** (a bank, an investor's counsel at a priced round, a
       grant, another US state, or a Nigerian bank or the CAC, sometimes with an apostille). Most want one dated within 30 to 90 days,
       so one bought early is wasted. Order it from the Delaware Division of Corporations ($50) rather than through a reseller (Legalinc
