@@ -69,6 +69,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     jobApplications: await docs(db, "jobApplications", "uid", uid), // Notes Jobs: the jobs you applied for (lib/jobs-server.ts)
     jobSettings: (await db.doc(`jobSeekers/${uid}`).get()).data() ?? null, // "I need a job" and your city
     jobsPosted: await docs(db, "jobs", "orgUid", uid), // an organisation's jobs
+    applicationMessages: await docs(db, "appReplies", "applicantUid", uid), // the conversations on your job applications (lib/app-replies-server.ts)
     signInLog: await docs(db, "authAudit", "uid", uid), // when sign-in methods were linked or unlinked
     nanaChats: await docs(db, "nanaChats", "uid", uid), // your conversations with Nana AI
     aiConnection: await aiConnectionOf(db, uid), // whether you connected your own AI account (never the key)
@@ -237,6 +238,8 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await db.collection("jobInvites").where("uid", "==", uid).get()).docs.map((d) => d.ref),
     ...(await db.collection("jobApplications").where("orgUid", "==", uid).get()).docs.map((d) => d.ref),
     ...(await db.collection("jobs").where("orgUid", "==", uid).get()).docs.map((d) => d.ref),
+    ...(await db.collection("appReplies").where("applicantUid", "==", uid).get()).docs.map((d) => d.ref), // conversations on your applications
+    ...(await db.collection("appReplies").where("orgUid", "==", uid).get()).docs.map((d) => d.ref), // and on an organisation's
     db.doc(`jobSeekers/${uid}`),
   ];
   await deleteAll(db, jobRefs);

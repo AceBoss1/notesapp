@@ -44,7 +44,13 @@ export default async function JobPage({ params }: { params: { id: string } }) {
         </article>
         <aside className="card h-fit p-6">
           <h2 className="font-display text-2xl text-ink">Apply</h2>
-          {open ? <JobApplyForm jobId={j.id} jobTitle={j.title} consent={consentText(j.orgName)} /> : <p className="mt-3 text-sm text-slate">This job has closed. <Link href="/explore?tab=jobs" className="text-crimson underline">See open jobs</Link></p>}
+          {open && j.applyWithNotesApp === false && j.applyUrl ? (
+            <div className="mt-3 text-sm text-ink">
+              <p>{j.orgName} takes applications for this job on its own site.</p>
+              <a href={j.applyUrl} target="_blank" rel="noopener noreferrer nofollow" className="btn-primary mt-4 inline-block !px-6 !py-2">Apply on {j.orgName}&apos;s site</a>
+              <p className="mt-3 text-xs text-slate">You&apos;re leaving NotesApp. Never pay to apply.</p>
+            </div>
+          ) : open ? <JobApplyForm jobId={j.id} jobTitle={j.title} consent={consentText(j.orgName)} /> : <p className="mt-3 text-sm text-slate">This job has closed. <Link href="/explore?tab=jobs" className="text-crimson underline">See open jobs</Link></p>}
         </aside>
       </div>
     </>

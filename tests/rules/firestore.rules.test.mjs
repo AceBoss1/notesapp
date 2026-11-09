@@ -288,6 +288,11 @@ test("suspension details are private; the member can only file an appeal", async
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
 });
 
+test("replies on job applications are server-only (lib/app-replies-server.ts)", async () => {
+  await assertFails(getDoc(doc(as("pub"), "appReplies/r1")));
+  await assertFails(setDoc(doc(as("pub"), "appReplies/r1"), { kind: "job", applicationId: "a", text: "x" }));
+});
+
 test("the Nana tutor's settings are server-only (lib/tutor-server.ts)", async () => {
   await assertFails(getDoc(doc(as("pub"), "courseTutor/c1")));
   await assertFails(setDoc(doc(as("pub"), "courseTutor/c1"), { on: true, notes: "x" }));

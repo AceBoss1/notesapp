@@ -1,16 +1,21 @@
 import { isDept, type Dept } from "./admin-access";
+import { PLAN_MONTHS, PLAN_SHARE } from "./referrals";
 
 // Careers and hiring (owner, 3 Nov 2026: "Nana-HR Spec is OK, build into team hub"). Roles are written in the team hub, opened by a
 // super admin, and listed on the public careers page (/careers); people apply with their NotesApp account; Nana-HR summarises each
 // application against the role's stated requirements. People make every decision: Nana-HR never ranks, scores or rejects anyone.
 
 export type RoleStatus = "draft" | "open" | "closed";
-export type Arrangement = "salary" | "salary_options" | "options_only";
+export type Arrangement = "salary" | "salary_options" | "options_only" | "affiliate_options";
 export const ARRANGEMENT_LABEL: Record<Arrangement, string> = {
   salary: "Salary",
   salary_options: "Salary and stock options",
   options_only: "Stock options only (contract role)",
+  affiliate_options: "Affiliate rewards and employee stock options",
 };
+export const isArrangement = (v: unknown): v is Arrangement => typeof v === "string" && v in ARRANGEMENT_LABEL;
+// Contract roles: no employment offer letter (a contractor or ambassador agreement instead), still an option grant.
+export const isContractArrangement = (a: Arrangement) => a === "options_only" || a === "affiliate_options";
 export type CareerRole = {
   id: string; title: string; dept: Dept; reportsTo: string; summary: string; about: string;
   responsibilities: string[]; requirements: string[]; hours: string; location: string; arrangement: Arrangement;
@@ -45,7 +50,7 @@ export function cleanRole(b: Record<string, unknown>): Omit<CareerRole, "id" | "
   const title = line(b.title, 100);
   if (!title) throw new CareersError("Give the role a title.");
   if (!isDept(b.dept)) throw new CareersError("Choose the role's department.");
-  const arrangement = b.arrangement === "salary" || b.arrangement === "options_only" ? b.arrangement : "salary_options";
+  const arrangement: Arrangement = isArrangement(b.arrangement) ? b.arrangement : "salary_options";
   const requirements = list(b.requirements, 200, 12);
   if (!requirements.length) throw new CareersError("List the requirements: Nana-HR summarises applications against them.");
   return {
@@ -225,6 +230,28 @@ export const SEED_ROLES: (Omit<CareerRole, "id" | "status" | "createdAt" | "upda
       "Discreet with confidential information: pay, equity, funding and people matters",
       "Takes clear notes and writes short, accurate minutes and summaries",
       ...SHARED_REQS,
+    ],
+  },
+  {
+    // Added 9 Nov 2026 (the owner): students who bring NotesApp to their campus. Rewarded with affiliate earnings (lib/referrals.ts) and
+    // employee stock options; a contract role (an ambassador agreement and an option grant, no employment offer letter).
+    seedKey: "campus-ambassador", title: "Campus Ambassador", dept: "marketing", reportsTo: "The User Acquisition Lead",
+    hours: "About 5 hours a week, around your lectures", location: "Your campus: any university, polytechnic or college of education in Nigeria",
+    arrangement: "affiliate_options",
+    summary: "Bring NotesApp to your campus: help students, lecturers, clubs and student businesses publish, teach, sell and get paid, and earn as they join.",
+    about: `You'll be NotesApp on your campus. Students and lecturers share notes, run tutorials and study groups, sell what they make and earn from what they know, and NotesApp puts all of that in one place. You'll introduce it to departments, clubs, fellowships, student businesses and lecturers, help them set up, and grow a NotesApp community for your campus. You earn affiliate rewards through your own link (${Math.round(PLAN_SHARE * 100)}% of each person's plan payments for ${PLAN_MONTHS} months, plus a share of course and product sales you refer where the seller offers one) and employee stock options in NotesApp, vesting as the platform grows.`,
+    responsibilities: [
+      "Introduce NotesApp to departments, clubs, fellowships, student businesses and lecturers on your campus, and help each one set up",
+      "Run your campus's NotesApp community: announcements, study groups, events and lives",
+      "Hold at least one short workshop or demo a month (in person or as a live), and share what students ask for with the team",
+      "Report each month on who joined, who started publishing or teaching, and what's working",
+    ],
+    requirements: [
+      "A current student (18 or over) at a university, polytechnic or college of education in Nigeria",
+      "Well connected on campus: in clubs, a fellowship, a student union or a student business",
+      "Confident talking to groups and in group chats, and active on social media",
+      "Honest with people about what NotesApp does: never promises earnings, and never pushes anyone to pay",
+      "Has a NotesApp account in good standing",
     ],
   },
 ];

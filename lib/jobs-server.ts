@@ -27,6 +27,22 @@ const isOpen = (j: Pick<Job, "status" | "closesAt">, now: Date) => j.status === 
 
 // Who may post and manage jobs for an organisation: the organisation account itself, or one of its admins (not writers). The
 // organisation must be CAC-verified and not suspended (the owner's rule: verified organisations only, to keep job scams out).
+// The organisation's hiring team (the owner, 9 Nov 2026): the organisation account, and the team members its owner gave the HR area
+// (orgMembers.hr, set on the organisation's team page), whether admins or writers. They post and manage jobs, read the applications,
+// move them on and reply to applicants (as HR, Nana-HR or themselves: lib/app-replies-server.ts), without the team hub.
+export async function hiringTeamFor(db: Firestore, me: Me, orgUid: unknown): Promise<{ orgUid: string; org: UserProfile; role: "owner" | "hr" }> {
+  const id = String(orgUid ?? "");
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new JobsError("Choose the organisation.");
+  const org = (await db.doc(`users/${id}`).get()).data() as UserProfile | undefined;
+  if (!org || org.accountKind !== "organisation") throw new JobsError("That isn't an organisation.", 404);
+  if (id !== me.uid) {
+    const m = (await db.doc(`orgMembers/${id}_${me.uid}`).get()).data();
+    if (m?.hr !== true) throw new JobsError("Only the organisation and the team members its owner put in HR can handle its jobs and applicants.", 403);
+  }
+  if (org.suspended === true) throw new JobsError("This organisation's jobs are paused right now.", 403);
+  return { orgUid: id, org, role: id === me.uid ? "owner" : "hr" };
+}
+
 export async function actingFor(db: Firestore, me: Me, orgUid: unknown): Promise<{ orgUid: string; org: UserProfile }> {
   const id = String(orgUid ?? "");
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new JobsError("Choose the organisation.");
@@ -34,7 +50,7 @@ export async function actingFor(db: Firestore, me: Me, orgUid: unknown): Promise
   if (!org || org.accountKind !== "organisation") throw new JobsError("Only an organisation account can post jobs.", 403);
   if (id !== me.uid) {
     const m = (await db.doc(`orgMembers/${id}_${me.uid}`).get()).data();
-    if (m?.role !== "admin") throw new JobsError("Only the organisation or one of its admins can manage its jobs.", 403);
+    if (m?.hr !== true) throw new JobsError("Only the organisation and the team members its owner put in HR can manage its jobs.", 403);
   }
   if (org.suspended === true) throw new JobsError("This organisation can't post jobs right now.", 403);
   if (!orgVerified(org)) throw new JobsError(`Only CAC-verified organisations can post on ${JOBS_BRAND}. Verify the organisation first (Account → Organisation).`, 403);
@@ -70,8 +86,9 @@ export async function updateJob(db: Firestore, me: Me, jobId: unknown, body: Rec
   if (cur.status === "removed") throw new JobsError("This job was taken down after a report; contact us if you think that's wrong.", 403);
   const { openDays, ...clean } = cleanJob(body);
   const closesAt = new Date(Date.parse(cur.createdAt) + openDays * 86_400_000).toISOString();
-  await ref.update({ ...clean, closesAt, updatedAt: now.toISOString() });
-  return toJob(ref.id, { ...cur, ...clean, closesAt });
+  await ref.update({ ...clean, ...(clean.applyUrl ? {} : { applyUrl: FieldValue.delete() }), closesAt, updatedAt: now.toISOString() });
+  const { applyUrl: _old, ...rest } = cur ?? {};
+  return toJob(ref.id, { ...(clean.applyUrl ? cur : rest), ...clean, closesAt });
 }
 
 // Closing stops applications and starts the 6-month clock on them. Deleting removes the job and its applications; anyone still in the
@@ -104,6 +121,7 @@ export async function deleteJob(db: Firestore, me: Me, jobId: unknown): Promise<
       await notifyBell({ uid: String(d.uid), type: "job", linkHref: "/explore?tab=jobs", message: `${cur.orgName} has withdrawn the ${cur.title} job, so your application has closed. See ${JOBS_BRAND} for other jobs.` }).catch(() => {});
     }
     await a.ref.delete();
+    await (await import("./app-replies-server")).deleteRepliesFor(db, "job", [a.id]); // loaded here: app-replies-server imports this file
     removed++;
   }
   await ref.delete();
@@ -136,6 +154,7 @@ export async function listJobs(db: Firestore, uid: string | null, now = new Date
 export async function applyToJob(db: Firestore, me: { uid: string }, jobId: unknown, body: Record<string, unknown>, now = new Date()): Promise<{ id: string }> {
   const job = await getJob(db, String(jobId ?? ""));
   if (!job || !isOpen(job, now)) throw new JobsError("This job isn't taking applications.", 404);
+  if (job.applyWithNotesApp === false) throw new JobsError(`${job.orgName} takes applications on its own site for this job.`, 409);
   if (job.orgUid === me.uid) throw new JobsError("That's your own organisation's job.");
   const clean = cleanJobApplication(body);
   const user = (await db.doc(`users/${me.uid}`).get()).data();
@@ -156,7 +175,8 @@ export async function applyToJob(db: Firestore, me: { uid: string }, jobId: unkn
 
 export async function myApplications(db: Firestore, uid: string): Promise<JobApplication[]> {
   const snap = await db.collection(APPS).where("uid", "==", uid).get();
-  return snap.docs.map((d) => toApp(d.id, d.data())).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  // The applicant's own list: without the hiring team's Nana-HR summary.
+  return snap.docs.map((d) => { const { summary: _s, ...a } = toApp(d.id, d.data()); return a as JobApplication; }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 export async function withdrawApplication(db: Firestore, uid: string, appId: unknown, now = new Date()): Promise<void> {
@@ -168,8 +188,8 @@ export async function withdrawApplication(db: Firestore, uid: string, appId: unk
 
 // ---- the firm's side ----
 
-export async function firmBoard(db: Firestore, me: Me, orgUid: unknown): Promise<{ jobs: Job[]; applications: (JobApplication & { headline: string; avatar: string })[]; matching: boolean }> {
-  const { orgUid: id, org } = await actingFor(db, me, orgUid);
+export async function firmBoard(db: Firestore, me: Me, orgUid: unknown): Promise<{ jobs: Job[]; applications: (JobApplication & { headline: string; avatar: string })[]; matching: boolean; canManage: boolean }> {
+  const { orgUid: id, org } = await hiringTeamFor(db, me, orgUid);
   const [jobs, apps] = await Promise.all([db.collection(JOBS).where("orgUid", "==", id).get(), db.collection(APPS).where("orgUid", "==", id).get()]);
   const applications = await Promise.all(apps.docs.map(async (d) => {
     const a = toApp(d.id, d.data());
@@ -180,6 +200,7 @@ export async function firmBoard(db: Firestore, me: Me, orgUid: unknown): Promise
     jobs: jobs.docs.map((d) => toJob(d.id, d.data())).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
     applications: applications.filter((a) => a.status !== "withdrawn").sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)),
     matching: matchingTier(effectiveTier(org)),
+    canManage: orgVerified(org),
   };
 }
 

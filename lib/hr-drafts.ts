@@ -1,5 +1,5 @@
 import { COMPANY_INFO } from "./site";
-import type { Arrangement } from "./careers";
+import { isArrangement, isContractArrangement, type Arrangement } from "./careers";
 
 // Nana-HR's onboarding drafts (owner, 3 Nov 2026: "using the documents I sent for Nora Bawa, Nana-HR could be drafting such for new
 // hires"). Three templates taken from those documents with every personal detail removed: the offer of employment (NOTESAPP
@@ -83,7 +83,7 @@ const or = (v: string, open: string) => v || `[${open}]`;
 
 export function cleanTerms(b: Record<string, unknown>): DraftTerms {
   const name = s(b.name, 100);
-  const arrangement: Arrangement = b.arrangement === "salary" || b.arrangement === "options_only" ? b.arrangement : "salary_options";
+  const arrangement: Arrangement = isArrangement(b.arrangement) ? b.arrangement : "salary_options";
   return {
     name, firstName: s(b.firstName, 60) || name.split(" ")[0] || "", title: s(b.title, 120), reportsTo: s(b.reportsTo, 100) || "the Chief Executive Officer",
     worksWith: s(b.worksWith, 200), offerDate: s(b.offerDate, 40), startDate: s(b.startDate, 40), hoursPerWeek: s(b.hoursPerWeek, 10) || "20",
@@ -102,7 +102,9 @@ const OPCO = `${COMPANY_INFO.legalName}\n\nRC ${COMPANY_INFO.rcNumber} · TIN ${
 
 export function offerLetter(t: DraftTerms): string {
   const pay: string[] = [];
-  if (t.arrangement === "options_only") {
+  if (t.arrangement === "affiliate_options") {
+    pay.push("This role is a contract engagement rewarded with affiliate rewards (the NotesApp affiliate and referral programme, paid as members it brings in pay) and employee stock options, so this offer of employment does not apply. Use Legal's campus ambassador agreement with the option grant. [Legal: ambassador agreement template]");
+  } else if (t.arrangement === "options_only") {
     pay.push("This role is a contract engagement rewarded with stock options only, so this offer of employment does not apply. Use Legal's contractor agreement with the option grant. [Legal: contractor agreement template]");
   } else {
     pay.push("| Item | Amount | When |", "| --- | --- | --- |", `| Monthly salary | ₦${or(t.monthlySalary, "amount")} | Paid monthly in arrears, from your start date |`);
@@ -186,7 +188,7 @@ This agreement is made on ${or(t.grantDate, "grant date")} between NotesApp Inc.
 | Grant Date | ${or(t.grantDate, "date the Board approves the grant")} |
 | Exercise price | US$${or(t.exercisePrice, "price")} per share, not less than fair market value on the Grant Date, [method] |
 | Expiry | Ten years from the Grant Date, or earlier as this agreement says |
-| Service | ${t.arrangement === "options_only" ? "Your services under your consulting agreement count as service to the Company" : `Your employment with ${COMPANY_INFO.legalName} (a subsidiary) counts as service to the Company`} |
+| Service | ${isContractArrangement(t.arrangement) ? "Your services under your consulting agreement count as service to the Company" : `Your employment with ${COMPANY_INFO.legalName} (a subsidiary) counts as service to the Company`} |
 
 ## 2. Vesting
 
@@ -246,7 +248,7 @@ Emmanuel Adams, Chief Executive Officer, ${COMPANY_INFO.legalName}
 
 export function draftsFor(t: DraftTerms): { kind: "offer" | "grant" | "announcement"; title: string; markdown: string }[] {
   const out: { kind: "offer" | "grant" | "announcement"; title: string; markdown: string }[] = [];
-  if (t.arrangement !== "options_only") out.push({ kind: "offer", title: `Offer letter: ${t.name || "new hire"}`, markdown: offerLetter(t) });
+  if (!isContractArrangement(t.arrangement)) out.push({ kind: "offer", title: `Offer letter: ${t.name || "new hire"}`, markdown: offerLetter(t) });
   if (t.arrangement !== "salary") out.push({ kind: "grant", title: `Option grant: ${t.name || "new hire"}`, markdown: optionGrant(t) });
   out.push({ kind: "announcement", title: `Internal announcement: ${t.name || "new hire"}`, markdown: announcement(t) });
   return out;

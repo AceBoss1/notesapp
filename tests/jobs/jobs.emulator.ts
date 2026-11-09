@@ -20,7 +20,7 @@ const db = getFirestore();
   await db.doc("users/org_unverified").set({ username: "shady", displayName: "Shady Ltd", accountTier: "business", accountKind: "organisation", org: { rcStatus: "unverified" } });
   await db.doc("users/u_admin").set({ username: "ada", displayName: "Ada" });
   await db.doc("users/u_writer").set({ username: "wole", displayName: "Wole" });
-  await db.doc("orgMembers/org_biz_u_admin").set({ orgUid: "org_biz", memberUid: "u_admin", role: "admin" });
+  await db.doc("orgMembers/org_biz_u_admin").set({ orgUid: "org_biz", memberUid: "u_admin", role: "admin", hr: true }); // the owner put them in HR
   await db.doc("orgMembers/org_biz_u_writer").set({ orgUid: "org_biz", memberUid: "u_writer", role: "writer" });
   // members
   await db.doc("users/u_bola").set({ username: "bola", displayName: "Bola", industry: "media", jobTitle: "Community lead", interests: ["marketing", "socialmedia"] });

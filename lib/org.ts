@@ -44,7 +44,9 @@ export const UNVERIFIED_ORG_NOTICE =
 // account itself and has no row). orgInvites/{id}: pending/closed invitations.
 // Both are server-written (/api/org/team). Team publishing needs Business/Enterprise.
 export type OrgRole = "owner" | "admin" | "writer";
-export type OrgMember = { orgUid: string; memberUid: string; memberUsername: string; memberName: string; role: "admin" | "writer"; joinedAt: string; store?: boolean };
+export type OrgMember = { orgUid: string; memberUid: string; memberUsername: string; memberName: string; role: "admin" | "writer"; joinedAt: string; store?: boolean;
+  hr?: boolean; // the HR area (the owner, 9 Nov 2026): Notes Jobs hiring, applications, replies and Nana-HR (lib/jobs-server.ts hiringTeamFor)
+};
 export type OrgInvite = {
   id: string;
   orgUid: string;

@@ -629,6 +629,12 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "appReplies",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "adSeen",
       "fieldPath": "expireAt",
       "ttl": true,

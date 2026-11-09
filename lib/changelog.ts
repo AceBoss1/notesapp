@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.157.0",
+    bump: "minor",
+    date: "2026-11-09",
+    changes: [
+      { kind: "added", text: "Replies on job applications: on Notes Jobs and on roles at #NotesApp, the hiring team writes to an applicant on NotesApp and chooses who it's from: HR, Nana-HR (she drafts what you ask, you read, edit and send) or yourself by @username. Applicants read the conversation on Your job search and reply, with a bell either way." },
+      { kind: "added", text: "Nana-HR for organisations on Notes Jobs: check each application against the requirements you listed (met, not met or unclear, in the applicant's own words; never a ranking or a rejection), and draft replies, without the team hub." },
+      { kind: "changed", text: "Organisations: the owner puts team members in HR on the team page, whatever their role. HR members post and manage the organisation's jobs, read applications and reply; admins outside HR no longer do." },
+      { kind: "added", text: "Apply with NotesApp: on for every job unless the organisation switches it off and gives its own application page instead." },
+      { kind: "added", text: "A new opening at /careers: Campus Ambassador, bringing NotesApp to your university, polytechnic or college, rewarded with affiliate earnings and employee stock options." },
+    ],
+  },
+  {
     version: "v0.155.2",
     bump: "patch",
     date: "2026-11-08",

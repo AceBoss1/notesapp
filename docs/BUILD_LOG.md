@@ -3216,3 +3216,13 @@ account read it, deploys with the flags in docs/RECORDER.md (africa-south1, 2 vC
 each, APP_ORIGIN from a repository variable so no address is hard-coded), checks /health and prints the address for Vercel's RECORDER_URL.
 Missing settings: a notice naming them, green, nothing deployed. Owner steps (making the secret on Mac, Windows or Cloud Shell, the
 service account and its roles, the GitHub settings): OWNER_SETUP.md 4.0.
+
+**Replies on applications, Nana-HR for firms and the HR area (v0.157.0, 9 Nov 2026)** — The owner asked for a Campus Ambassador vacancy
+(affiliate rewards and employee stock options), for reviewers to reply to applicants as HR, Nana-HR or themselves on every internal
+application, including Notes Jobs applications where the firm uses "Apply with NotesApp", for Nana-HR to be available to organisations
+before the team hub is public, and then corrected the access model: the owner assigns each team member the areas they work in, so HR is
+a per-member switch, not admin versus writer. Nana-HR only drafts; a person sends, so a reply is never an unreviewed AI message to a job
+seeker. "Sent by" stays with the team on HR and Nana-HR replies (the organisation speaks as one), and is shown on a reply sent as a
+person. Nana-HR's summary for firms is the same requirement-by-requirement check as the team hub's, with no ranking, and the applicant
+never sees it. The Campus Ambassador is a contract role, so the onboarding drafts give an option grant and no employment offer.
+

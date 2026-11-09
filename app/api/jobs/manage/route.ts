@@ -7,16 +7,16 @@ import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-// The organisations a member can post jobs for: their own organisation account, and those they're an admin of.
+// The organisations a member handles jobs for: their own organisation account, and those whose owner put them in HR (orgMembers.hr).
 async function firmsOf(uid: string) {
   const db = getAdminDb();
-  const out: { uid: string; name: string; username: string; verified: boolean }[] = [];
+  const out: { uid: string; name: string; username: string; verified: boolean; role: "owner" | "hr" }[] = [];
   const me = (await db.doc(`users/${uid}`).get()).data();
-  if (me?.accountKind === "organisation") out.push({ uid, name: String(me.displayName || me.username), username: String(me.username), verified: me.org?.rcStatus === "verified" });
+  if (me?.accountKind === "organisation") out.push({ uid, name: String(me.displayName || me.username), username: String(me.username), verified: me.org?.rcStatus === "verified", role: "owner" });
   const rows = await db.collection("orgMembers").where("memberUid", "==", uid).get();
-  for (const r of rows.docs.filter((d) => d.data().role === "admin")) {
+  for (const r of rows.docs.filter((d) => d.data().hr === true)) {
     const o = (await db.doc(`users/${r.data().orgUid}`).get()).data();
-    if (o) out.push({ uid: String(r.data().orgUid), name: String(o.displayName || o.username), username: String(o.username), verified: o.org?.rcStatus === "verified" });
+    if (o) out.push({ uid: String(r.data().orgUid), name: String(o.displayName || o.username), username: String(o.username), verified: o.org?.rcStatus === "verified", role: "hr" });
   }
   return out;
 }

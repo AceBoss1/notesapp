@@ -979,6 +979,22 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     emulator with a stand-in AI), rules 94/94. The same pattern (a sector kit + a grounded Nana with sector rules) is the plan for
     healthcare, clean energy, agriculture and financial inclusion.
 
+129. **Replies on applications, Nana-HR for firms, the HR area, and the Campus Ambassador (v0.157.0, branch `push/ambassador-replies`;
+    owner, 9 Nov 2026):** deploy `firebase deploy --only firestore` (rules: `appReplies` server-only; TTL on `appReplies.expireAt`,
+    12 months). **Replies** (`lib/app-replies.ts`, `lib/app-replies-server.ts`, `/api/applications/replies`, `ApplicationThread`): a
+    reviewer sends as `hr` ("HR, <org>"), `nana` ("Nana-HR for <org>": Nana-HR drafts from the reviewer's instruction, a person sends) or
+    `me` ("@username, <org>"); the applicant sees who pressed send only on `me` replies, and replies as `applicant`. Reviewers: #NotesApp's
+    roles, `canManageTeam` staff; Notes Jobs, the organisation or a member with **`orgMembers.hr`** (`hiringTeamFor`; `actingFor` now
+    uses the same HR flag instead of the admin role; the owner sets it on /organisation/team, `set_hr_access`). Nana-HR's screening
+    summary for firms (`summariseJobApplication`, careers' SCREEN_SYSTEM) is stored on the application and stripped from the applicant's
+    own list. Deleting a role, a job or an account deletes the conversations. Applicants see careers applications on /profile/applications
+    too (GET /api/careers/apply). **Apply with NotesApp** (`Job.applyWithNotesApp`, default on; off needs `applyUrl`, refuses applications
+    here). **Campus Ambassador**: seeded role, arrangement `affiliate_options` (a contract role: `isContractArrangement`, no employment
+    offer letter, an option grant). jobs-server and careers-server import app-replies-server lazily (it imports both). Notes Jobs'
+    Nana openings now need a title match or two body words (a single "support" in the Chief of Staff's requirements matched "customer
+    service"). Tests: `test:replies` (new), `test:hr`, `test:jobs`, rules 95/95. Other areas the owner may assign (courses, journal,
+    services, books, inventory) aren't per-member switches yet; only store and HR are.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
