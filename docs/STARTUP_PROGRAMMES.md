@@ -22,7 +22,7 @@ Most programmes decide on five facts. These are ours today, and the one that cha
 | --- | --- |
 | Funding | Bootstrapped. No institutional money, no VC, no accelerator investment. Perks are credits, not investment. |
 | Company | NotesApp Technologies Ltd, Nigeria (RC 9825642), runs the live product. |
-| US company | NotesApp Inc (Delaware C-corp) is being incorporated, not done yet. Many US programmes and banks need it. |
+| US company | NotesApp Inc (Delaware C-corp) through **Stripe Atlas**: application approved; incorporation expected 10–12 November 2026, then the EIN (1–7 weeks) and the 83(b) election (within 10 working days). See "Stripe Atlas perks" below. |
 | Founders and where they live | Emmanuel Adams (Nigeria), with co-founders in the USA (2), the UK, South Africa and China. US banks ask where every owner of 25% or more lives, and want a control person in the US. |
 | Product and traction | Live, with members in Nigeria and Kenya, small revenue, and an AI assistant (Nana) built on Claude. Special Recognition at the Build With NKENNEAi Hackathon (October 2026). |
 | Website and email | naapp.tech, with company email on it. Several programmes reject applications from free email addresses. |
@@ -76,6 +76,45 @@ The biggest value is in analytics (PostHog), voice (ElevenLabs) and the company 
 
 Analytics alternatives: Mixpanel (first year free, raised up to $8M) and Amplitude (a year of Growth, under 20 staff) both fit too. Pick one analytics tool; PostHog covers the most.
 
+## Stripe Atlas perks (Atlas application approved, 9 November 2026)
+
+NotesApp Inc is being formed through Stripe Atlas: the application review is complete, incorporation (formation and ownership
+documents) is expected **10–12 November 2026**, the EIN from the IRS follows in 1–7 weeks, and Atlas files the **83(b) election**
+within 10 working days of the founders' share purchase. Atlas's perks bundle beats several of the direct programmes above, so claim
+these through Atlas instead (from the Atlas dashboard → Perks, with the Atlas account's email). Perk terms are as listed on Atlas on
+9 November 2026; check each when claiming.
+
+**Claim first (we use these, or they're far bigger through Atlas):**
+
+| Perk | Through Atlas | Compared with | Why |
+|---|---|---|---|
+| Cloudflare | **US$100,000** in credits (select "Atlas" on the Cloudflare Startup Program) | US$10,000 on the bootstrapped tier | R2 storage, Stream video, the calls relay: our largest bills |
+| PostHog | US$50,000 in credits | the same directly | product analytics and session replay |
+| ElevenLabs | 12 months, 44M characters (code `11stripe302`) | about 33M characters directly | Nana's voice, voice notes, Pidgin and Kiswahili speech |
+| AWS Activate | US$5,000 (Portfolio Package, Org ID `1gFg3`, the Atlas email) | US$1,000 Founders tier | later infrastructure |
+| Stripe Payment Links and Invoicing | US$2,500 in Stripe product credits | — | dollar payments through NotesApp Inc |
+| Stripe Treasury | a US bank account for the Inc; US$500 if opened within 7 days, US$1,500 after US$5K spend in 90 days | Mercury or Brex (may refuse a Nigerian control person) | somewhere to receive SAFE money (Alliance, Aurora Ventures, Deel) |
+| Carta | cap table and SAFEs free; 20% off a paid plan. Atlas sends the company to Carta once all founders have bought their shares | Carta Launch directly | the cap table every SAFE and option grant needs |
+
+**Claim when needed:**
+
+| Perk | Through Atlas | When |
+|---|---|---|
+| Ellis (immigration law) | 30-minute consult, US$2,000 off an O-1 | if Alliance (New York) admits us |
+| Deel / Remote | US$1,500 credits / 20% off | paying the team across countries |
+| Fondo or Every | 50% off the first year | the Inc's Delaware franchise tax and federal corporate tax: due every year **even with no revenue** |
+| Microsoft for Startups Founders Hub | US$5,000+ Azure | only if we use Azure |
+| Notion | up to 6 months free with unlimited AI | team docs (3 months directly) |
+| Linear, 1Password, Google Workspace, Common Paper, Granola Business | free months or discounts | as the team grows (Granola: we already have a perk; Atlas offers 12 months of Business for 30 seats) |
+| Vanta | 25% off | when an Enterprise customer asks for security compliance |
+
+**Skip:** website and app builders (Lovable, Replit, Bubble, Squarespace: we build our own), other back ends (Supabase, Clerk: we're
+on Firebase), and the other accounting tools until the Inc trades (Pilot, QuickBooks, Xero).
+
+**Deadlines this creates:** the Stripe Treasury bonus window (7 days); the 83(b) election (Atlas files it, but only after the founders
+pay for their shares, so do that as soon as Atlas asks); and each year, the Delaware annual report and franchise tax and the federal
+corporate income tax return (set the Atlas tax-deadline reminders).
+
 ## Competitions and accelerators
 
 The Pitch by Deel is the one to act on now: we qualify, and the 2027 waitlist is open. Its prizes are investments on SAFEs, not grants, so winning means giving up equity.
@@ -117,7 +156,7 @@ Apply this week to the seven that need no investor and no US company, then form 
 
 **This week (no investor, no US company needed)**
 
-- [ ] Cloudflare for Startups, bootstrapped tier ($10,000)
+- [ ] Cloudflare: claim through Atlas instead (US$100,000), not the bootstrapped tier
 - [ ] Google for Startups Cloud Program, Start tier ($2,000), from an @naapp.tech address that owns the billing account
 - [ ] Paystack Small Business Programme Bundle, once we've had 10 transactions in 30 days
 - [ ] PostHog for Startups ($50,000)
@@ -128,7 +167,8 @@ Apply this week to the seven that need no investor and no US company, then form 
 
 **After NotesApp Inc exists**
 
-- [ ] Ask atlas@stripe.com whether Nigerian founders can use Stripe Atlas, then form the Inc through it and claim its perks
+- [x] Stripe Atlas: application approved (9 Nov 2026); incorporation expected 10–12 Nov
+- [ ] After incorporation: pay for founder shares (for the 83(b)), open Stripe Treasury within 7 days, claim Cloudflare (US$100k), PostHog, ElevenLabs, AWS and the Stripe credits through Atlas
 - [ ] Carta Launch for the cap table and options
 - [ ] Brex, once there's a US address and some cash in the account
 - [ ] Apple Small Business Program, when we join the Apple Developer Program

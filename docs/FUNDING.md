@@ -57,7 +57,7 @@ get paid for it, in their own currency.
 > shop with delivery, communities, encrypted calls and payouts in Naira, with M-Pesa in Kenya next. It is live, with members in
 > Nigeria and Kenya; its Exam Prep has 2,150+ WAEC and NECO practice questions in 18 subjects (some free, the rest ₦1,000 for a year), and its Swahili translation and
 > speech work earned a Special Recognition at the Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd
-> (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware) is being incorporated for the iOS and Android apps. Founder: Emmanuel
+> (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware) is being incorporated through Stripe Atlas (expected 10–12 November 2026) for the iOS and Android apps. Founder: Emmanuel
 > Adams, Adams Consults.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
