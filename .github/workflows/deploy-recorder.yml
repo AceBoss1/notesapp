@@ -7,6 +7,8 @@ name: Deploy room recorder
 #   secret   GCP_PROJECT_ID    the Google Cloud project ID (billing linked)
 #   secret   GCP_SA_KEY        a service-account key (JSON) with: Cloud Run Admin, Cloud Build Editor, Artifact Registry Administrator,
 #                              Service Account User, Secret Manager Admin, Service Usage Admin, Storage Admin
+#   once, in the project:      the default compute account (PROJECT_NUMBER-compute@developer.gserviceaccount.com) needs the
+#                              Cloud Run Builder role, or the build fails with PERMISSION_DENIED (OWNER_SETUP.md 4.0, step 2.5)
 #   secret   RECORDER_SECRET   the shared secret (64 hex characters); the very same value goes into Vercel as RECORDER_SECRET
 #   variable APP_ORIGIN        the site's own address: https://www. + the main domain (lib/host.ts SITE_URL), no slash at the end.
 #                              The recorder refuses any other origin. Read from Variables, or from Secrets if it was added there.
