@@ -1,4 +1,5 @@
 import { getAdminDb } from "./firebase-admin";
+import { viewsByKind } from "./page-view-buckets";
 import { ttlCache } from "./ttl-cache";
 import { CATEGORY_TOPICS, categoryOf } from "./store-meta";
 import { cleanTopics } from "./topics";
@@ -94,9 +95,8 @@ async function buildAll(includeHidden: boolean): Promise<{ shops: DirectoryShop[
   if (market.length) {
     const stats = await db.getAll(...market.map((m) => db.doc(`storeStats/${m.id}`)));
     stats.forEach((st, i) => { market[i].views = Number(st.data()?.views) || 0; market[i].favs = Number(st.data()?.favs) || 0; });
-    const week = await db.collection("pageViews").where("day", ">=", new Date(now - 7 * 86_400_000).toISOString().slice(0, 10)).get();
-    const byId = new Map(market.map((m) => [m.id, m]));
-    week.docs.forEach((d) => { const b = d.data(); if (b.kind === "item") { const m = byId.get(String(b.id)); if (m) m.viewsWeek += Number(b.count) || 0; } });
+    const week = await viewsByKind("item", 7); // the shared 10-minute read of the day buckets (lib/page-view-buckets.ts)
+    for (const m of market) m.viewsWeek = week.get(m.id) ?? 0;
   }
   return { shops: shops.sort((a, b) => Number(b.boosted) - Number(a.boosted) || b.newestAt.localeCompare(a.newestAt)), items: market };
 }

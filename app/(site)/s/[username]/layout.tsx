@@ -7,7 +7,7 @@ import Image from "next/image";
 import { effectiveTier, getUserByUsername } from "@/lib/users";
 import { getTierConfig } from "@/lib/tiers";
 import { isMainHost, mainSiteUrl } from "@/lib/host";
-import { domainForUid } from "@/lib/domains";
+import { siteDomainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteBasketButton from "@/components/site/SiteBasketButton";
 import SocialLinksRow from "@/components/SocialLinksRow";
@@ -68,7 +68,7 @@ export default async function SiteLayout({ children, params }: Props) {
   const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
   const tier = effectiveTier(p);
   const [domain, site, booking] = await Promise.all([
-    domainForUid(p.uid).catch(() => null), readSite(getAdminDb(), p.uid).catch(() => null), bookingOf(getAdminDb(), p.uid).catch(() => ({ offered: false, hours: "" })),
+    siteDomainForUid(p.uid).catch(() => null), readSite(getAdminDb(), p.uid).catch(() => null), bookingOf(getAdminDb(), p.uid).catch(() => ({ offered: false, hours: "" })),
   ]);
   const sections = siteSectionsShown(p);
   // A look the plan no longer covers (after a downgrade) falls back to Legacy.

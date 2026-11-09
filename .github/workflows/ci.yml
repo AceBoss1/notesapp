@@ -26,6 +26,7 @@ jobs:
       - run: npm run test:digest
       - run: npm run test:authors
       - run: npm run test:shared
+      - run: npm run test:cache
       - run: npm run test:topics
       - run: npm run test:nana
       - run: npm run test:certificates
