@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ProfileBadge } from "@/lib/partner-network";
+import { ShieldCheck } from "./TierBadge";
 
 // A member's Partner Network badges on their profile: "Verified member of <association>", "Member of <chapter>", and "<Tier> NotesApp
 // partner" for people who run a partner. Each links to the partner's page. Workplace staff are never shown.
@@ -20,7 +21,7 @@ export default function PartnerBadges({ uid, className = "" }: { uid?: string; c
       {badges.map((b) => (
         <li key={b.href + b.label}>
           <Link href={b.href} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${b.kind === "partner" ? "bg-crimson-deep text-[#F4B860]" : "bg-field text-ink ring-1 ring-inset ring-rule"}`}>
-            <span aria-hidden="true">{b.kind === "partner" ? "🤝" : "✔"}</span>{b.label}
+            {b.kind === "partner" && b.tier && b.tier !== "registered" ? <ShieldCheck /> : <span aria-hidden="true">{b.kind === "partner" ? "🤝" : "✔"}</span>}{b.label}
           </Link>
         </li>
       ))}

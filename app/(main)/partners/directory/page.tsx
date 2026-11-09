@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import TierBadge from "@/components/partners/TierBadge";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { directory } from "@/lib/partner-network-server";
 import {
-  NETWORK_NAME, PARTNERS_PATH, SERVICES, SERVICE_LABEL, TIER_LABEL, TRACK, TRACKS, isService, isTrack, partnerPath,
+  NETWORK_NAME, PARTNERS_PATH, SERVICES, SERVICE_LABEL, TRACK, TRACKS, isService, isTrack, partnerPath,
   type PublicPartner,
 } from "@/lib/partner-network";
 
@@ -70,7 +71,7 @@ export default async function PartnerDirectory({ searchParams }: { searchParams:
                 <Link href={partnerPath(p.id)} className="flex h-full flex-col rounded-[22px] border border-rule bg-card p-5 hover:border-crimson">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-display text-lg text-ink">{p.name}</p>
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${p.tier === "premier" ? "bg-crimson-deep text-[#F4B860]" : p.tier === "certified" ? "bg-crimson text-paper" : "bg-field text-ink"}`}>{TIER_LABEL[p.tier]}</span>
+                    <TierBadge tier={p.tier} className="px-2.5 py-0.5 text-[11px]" />
                   </div>
                   <p className="mt-1 text-xs text-slate">{p.countries}{p.members ? ` · ${p.members} member${p.members === 1 ? "" : "s"}` : ""}</p>
                   <p className="mt-3 line-clamp-3 text-sm text-ink">{p.blurb}</p>

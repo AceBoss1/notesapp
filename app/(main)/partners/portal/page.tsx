@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { CopyLink } from "@/components/ReferralsPanel";
 import { partnersCall } from "@/components/partners/partners-client";
+import TierBadge from "@/components/partners/TierBadge";
 import { referralLink } from "@/lib/referrals";
 import {
   BUDGET_LABEL, CERTIFY_MEMBERS, CERTIFY_PAYING, LEAD_STATUSES, LEAD_STATUS_LABEL, LIMITS, NETWORK_NAME, PARTNERS_PATH, SERVICES, SERVICE_LABEL,
@@ -69,7 +70,7 @@ function PartnerCard({ p, terms, user, reload }: { p: PortalPartner; terms: Reco
     <article className="mt-8 rounded-[26px] border border-rule bg-card p-6 sm:p-8">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="font-display text-3xl text-ink">{p.name}</h2>
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${p.tier === "premier" ? "bg-crimson-deep text-[#F4B860]" : p.tier === "certified" ? "bg-crimson text-paper" : "bg-field text-ink"}`}>{TIER_LABEL[p.tier]}</span>
+        <TierBadge tier={p.tier} className="px-3 py-1 text-xs" />
         {p.status === "suspended" && <span className="rounded-full bg-crimson/10 px-3 py-1 text-xs font-bold text-crimson">Paused by the partnerships team</span>}
         <Link href={partnerPath(p.id)} className="ml-auto text-sm font-semibold text-crimson underline">See your page</Link>
       </div>

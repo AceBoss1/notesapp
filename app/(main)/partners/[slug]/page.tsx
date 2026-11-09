@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { publicPartner } from "@/lib/partner-network-server";
-import { DIRECTORY_PATH, NETWORK_NAME, SERVICE_LABEL, TIER_LABEL, TRACK } from "@/lib/partner-network";
+import { DIRECTORY_PATH, NETWORK_NAME, SERVICE_LABEL, TRACK } from "@/lib/partner-network";
 import PartnerActions from "@/components/partners/PartnerActions";
+import TierBadge from "@/components/partners/TierBadge";
 
 export const revalidate = 60;
 
@@ -33,7 +34,7 @@ export default async function PartnerPage({ params }: { params: { slug: string }
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-display text-4xl text-ink">{p.name}</h1>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${p.tier === "premier" ? "bg-crimson-deep text-[#F4B860]" : p.tier === "certified" ? "bg-crimson text-paper" : "bg-field text-ink"}`}>{TIER_LABEL[p.tier]} partner</span>
+            <TierBadge tier={p.tier} suffix=" partner" className="px-3 py-1 text-xs" />
           </div>
           <p className="mt-2 text-sm text-slate">{t.emoji} {t.label} · {p.countries}{p.members ? ` · ${p.members} member${p.members === 1 ? "" : "s"} on #NotesApp` : ""}</p>
           <p className="mt-5 whitespace-pre-wrap text-ink">{p.blurb}</p>

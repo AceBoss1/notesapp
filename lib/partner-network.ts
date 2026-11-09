@@ -207,9 +207,9 @@ export type Membership = {
   uid: string; username: string; name: string; ref: string; status: MemberStatus; createdAt: string; decidedAt?: string;
 };
 // A badge on a member's profile: a verified association membership, a chapter, or being a NotesApp partner.
-export type ProfileBadge = { label: string; href: string; kind: "member" | "partner" };
+export type ProfileBadge = { label: string; href: string; kind: "member" | "partner"; tier?: Tier };
 export const partnerBadge = (p: Pick<Partner, "tier" | "track" | "id">): ProfileBadge => ({
-  label: `${TIER_LABEL[p.tier]} NotesApp partner · ${TRACK[p.track].short}`, href: partnerPath(p.id), kind: "partner",
+  label: `${TIER_LABEL[p.tier]} NotesApp partner · ${TRACK[p.track].short}`, href: partnerPath(p.id), kind: "partner", tier: p.tier,
 });
 
 // The terms an applicant agrees to (shown beside the form).
