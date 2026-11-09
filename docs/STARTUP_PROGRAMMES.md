@@ -108,6 +108,8 @@ these through Atlas instead (from the Atlas dashboard → Perks, with the Atlas 
 | Linear, 1Password, Google Workspace, Common Paper, Granola Business | free months or discounts | as the team grows (Granola: we already have a perk; Atlas offers 12 months of Business for 30 seats) |
 | Vanta | 25% off | when an Enterprise customer asks for security compliance |
 
+**Join now:** **Pledge 1%** (free through Atlas): pledge product and time now, and equity after the cap table is in Carta (`docs/FUNDING.md` §18).
+
 **Skip:** website and app builders (Lovable, Replit, Bubble, Squarespace: we build our own), other back ends (Supabase, Clerk: we're
 on Firebase), and the other accounting tools until the Inc trades (Pilot, QuickBooks, Xero).
 

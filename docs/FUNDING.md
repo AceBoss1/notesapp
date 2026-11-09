@@ -22,6 +22,7 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 11 | **Awesome Foundation** microgrant: USD 1,000, no equity, no repayment; chapters decide monthly: §15 | [awesomefoundation.org](https://www.awesomefoundation.org) | rolling (apply any time; most chapters decide monthly) | nothing | apply this month, for the Nana tutor in rural classrooms (§15) |
 | 12 | **The Pitch by Deel 2027**: up to 100 regional winners at USD 50,000, 10 global champions at USD 1M, **as SAFE investments, not grants**: §16 | [deel.com/the-pitch-by-deel](https://www.deel.com/the-pitch-by-deel/) | 2027 advance applications and waitlist open now; 2027 dates not published | equity (SAFE) | pre-apply now; counsel before any SAFE (§16) |
 | 13 | **AngelSpark** live angel pitch at **Expand North Star by GITEX, Dubai, 8–10 December 2026**: pre-seed and seed; a yes or no on the spot: §17 | [angelspark.net/apply-for-funding](https://angelspark.net/apply-for-funding) | not published: apply now (the event is in 4 weeks, and a UAE visa takes time) | equity; travel to Dubai | only if someone can travel; counsel before signing (§17) |
+| 14 | **Pledge 1%**: commit 1% of product, time, equity or profit to the community; free, through the Stripe Atlas perk: §18 | [pledge1percent.org](https://pledge1percent.org) | none | nothing (an equity pledge is 1% of the Inc, set aside) | join now with product and time; equity after Carta (§18) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
@@ -333,6 +334,45 @@ Applying to the .tech No Excuses Fund (a grant).
 **What would you do with the money?** `[the owner's split]` across: the Kenya launch (Flutterwave, M-Pesa, January 2027) and Ghana
 after it; the iOS and Android apps under NotesApp Inc; paid hosting before the agent-layer pilot; `[first hires]`. No amounts until
 the owner sets them.
+
+---
+
+## 5a. Founders' equity checklist (NotesApp Inc)
+
+> Status: **to do after incorporation (expected 10–12 November 2026, through Stripe Atlas).** The founders' shares vest over **4 years
+> with a 1-year cliff from the incorporation date**. General information, not tax or legal advice: counsel and each founder's own tax
+> adviser decide. Names, share numbers and prices stay out of this file (they're confidential; Carta holds them).
+
+**Why the order matters.** Vesting makes the shares "restricted" (the company can buy back unvested shares if someone leaves). Without
+an **83(b) election**, US tax treats each tranche as income *when it vests*, at its value then; with it, each founder is taxed once, now,
+on today's value (about nothing). The 83(b) deadline is **30 days from the day the shares are issued, with no extensions**.
+
+**1. Before Atlas sends the documents (agree together, with counsel):**
+- [ ] **Vesting start date:** the incorporation date, or earlier to credit work already done (the platform was built before the Inc).
+- [ ] **Acceleration:** what happens to unvested shares if the company is sold (double trigger, a sale *and* being let go, is common).
+- [ ] **Leaving:** the company buys back unvested shares at the price paid (the usual repurchase right); confirm it's in the agreements.
+- [ ] **IP:** how the platform's code, brand and domains move to NotesApp Inc from NotesApp Technologies Ltd and from the founders
+      (Atlas's IP assignment covers each founder's own work; the Ltd's needs an assignment or licence agreed with counsel).
+- [ ] **Founders outside the US:** each asks a local tax adviser about shares that vest, before the shares are issued. **UK:** a
+      section 431 election must be signed within **14 days** of acquiring the shares, if it applies. South Africa, China and Nigeria
+      have their own rules.
+
+**2. After incorporation, when Atlas asks (each founder):**
+- [ ] Sign the stock purchase agreement and **pay** the purchase price (small, at par value) straight away.
+- [ ] Sign the IP assignment.
+- [ ] Sign the **83(b)** the day it arrives (Atlas files it). US co-founders married in a community-property state (for example
+      California or Texas) may need their spouse to sign too.
+- [ ] Keep a copy of the signed 83(b) and the proof of filing for good.
+
+**3. Afterwards:**
+- [ ] Atlas sends the company to **Carta** once every founder has paid; check each founder's shares and vesting schedule there.
+- [ ] Note the **cliff date** (one year from the vesting start) and the monthly vesting after it in the team hub.
+- [ ] Any equity pledge (Pledge 1%, §18) and option pool are added in Carta with counsel, and counted with the SAFEs (§5, §13, §16)
+      when adding up dilution.
+
+**Who does what:** the CEO agrees the vesting start, acceleration and IP plan with the co-founders and counsel before signing; the
+Chief Compliance Officer keeps the checklist (each founder's signing, payment and 83(b) dates, and the UK 14-day date where it
+applies), outside this repository; each founder signs and pays promptly and takes local tax advice.
 
 ---
 
@@ -1125,4 +1165,26 @@ Sources: [Expand North Star 2026 (Invest in Dubai)](https://www.investindubai.go
 [Expand North Star guide](https://www.husbar.com/blog/expand-north-star-2026-step-dubai-2027),
 [The Pitch by Deel: apply](https://www.deel.com/the-pitch-by-deel/apply/),
 [Awesome Foundation: about](https://www.awesomefoundation.org/en/about_us).
+
+---
+
+## 18. Pledge 1%
+
+> Status: **to join (9 November 2026; the owner: "we need to join the Pledge 1% movement").** Free, through the Stripe Atlas perk
+> ("Join Pledge 1% today for free"). Check the pledge form's options on the day.
+
+**What it is.** A pledge to give 1% of one or more of: **product**, **time**, **equity** or **profit**, with a framework, resources and a
+community of founders doing the same. It tells investors, staff and members that giving back is built in from the start.
+
+**Our pledge (suggested):**
+
+| Pledge | What it means for NotesApp | When |
+|---|---|---|
+| **Product** | Free or discounted plans for NGOs, churches, mosques and schools (communities, giving and the Nana tutor already serve them) | Now |
+| **Time** | 1% of team time on free workshops: schools (the Nana tutor), rural clinics, cooperatives and campus groups | Now |
+| **Equity** | 1% of NotesApp Inc set aside for charitable giving when the company has value | After incorporation, once the cap table is in Carta, with counsel (§5a) |
+| **Profit** | 1% of profit | When there's profit |
+
+**Use it:** mention it in the Aurora (§13) and USPF (§14) applications and the Awesome Foundation project (§15), where it strengthens
+the community story; and once we've joined, a line on the About page.
 
