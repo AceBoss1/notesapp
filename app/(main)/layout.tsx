@@ -65,6 +65,8 @@ const PRODUCT = [
   { href: "/ppm", label: "Pay-per-minute sessions" },
   { href: "/store-selling", label: "Store selling" },
   { href: "/affiliates", label: "Affiliates" },
+  { href: "/partners", label: "Partner Network" },
+  { href: "/partners/directory", label: "Find a partner" },
   { href: "/help/discount-codes", label: "Discount codes & coupons" },
   { href: "/logistics", label: "Logistics" },
   { href: "/logistics/network", label: "Logistics network" },

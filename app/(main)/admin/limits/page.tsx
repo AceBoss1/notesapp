@@ -12,6 +12,7 @@ import StaffPassPanel from "@/components/admin/StaffPassPanel";
 import { isSuper } from "@/lib/admin-access";
 import FanSettingsPanel from "@/components/admin/FanSettingsPanel";
 import VenturesPicksPanel from "@/components/admin/VenturesPicksPanel";
+import PartnerTermsPanel from "@/components/admin/PartnerTermsPanel";
 
 // Size and count limits by plan (message files, moments, courses), the plan switches for Notes Academy (free courses, paid courses,
 // uploaded video) and for Nana's operator and connected agents, shown as tick boxes, and the numbers behind Nana's jobs and agents
@@ -155,6 +156,7 @@ export default function AdminLimitsPage() {
       {/* The staff test pass (lib/staff-pass.ts): super admins only. */}
       {user && isSuper(access) && <div id="staff-pass"><StaffPassPanel user={user} /></div>}
       {user && isSuper(access) && <div id="ventures" className="scroll-mt-24"><VenturesPicksPanel user={user} /></div>}
+      {user && isSuper(access) && <div id="partners" className="scroll-mt-24"><PartnerTermsPanel user={user} /></div>}
       {user && <FanSettingsPanel user={user} />}
     </div>
   );
