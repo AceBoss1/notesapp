@@ -99,13 +99,17 @@ const say = (from: string, to: string, text: string, at = new Date()) => sendMes
   assert.ok((await listProposals(db, "j_ada", now)).needs.some((p) => p.kind === "booking_confirm"), "waiting for the member");
 
   // ---- the Monday summary, once a week
-  const monday = new Date("2026-11-09T06:10:00Z"); // 07:10 Lagos
+  // The Monday after today (07:10 Lagos), so the test doesn't depend on the date it runs: a fixed Monday broke on that Monday itself
+  // (the daily run had already happened that Lagos day) and would be in the past after it.
+  // Counted in Lagos days (UTC+1), so a Lagos Monday that is still Sunday in UTC doesn't pick the same day.
+  const monday = new Date(now.getTime() + 3_600_000); monday.setUTCHours(6, 10, 0, 0); // today's Lagos date, at 07:10 Lagos
+  do monday.setUTCDate(monday.getUTCDate() + 1); while (monday.getUTCDay() !== 1);
   const r3 = await runAgentJobs(db, monday, { nana, alert: null });
   assert.equal(r3.summaries, 2, "Ada and Ent Co (enterprise's daily run is a new day)");
   const sum = (await listProposals(db, "j_ada", monday)).done.find((p) => p.kind === "weekly_summary")!;
   assert.match(sum.summary, /^Last week: \d+ sessions? \(₦[\d,]+\), \d+ download sales? \(₦0\), \d+ orders? \(₦[\d,]+\)\./);
-  assert.equal((await runAgentJobs(db, new Date("2026-11-09T09:00:00Z"), { nana, alert: null })).summaries, 0, "once a week");
-  assert.equal((await runAgentJobs(db, new Date("2026-11-10T06:10:00Z"), { nana, alert: null })).summaries, 0, "not on Tuesday");
+  assert.equal((await runAgentJobs(db, new Date(monday.getTime() + 3 * 3_600_000), { nana, alert: null })).summaries, 0, "once a week");
+  assert.equal((await runAgentJobs(db, new Date(monday.getTime() + 24 * 3_600_000), { nana, alert: null })).summaries, 0, "not on Tuesday");
 
   // ---- paused: nothing new, even with a fresh question
   await saveOps(db, "j_ada", { paused: true });
