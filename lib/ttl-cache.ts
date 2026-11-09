@@ -29,3 +29,19 @@ export function ttlCache<T>(ttlMs: number, loader: () => Promise<T>) {
   };
   return get;
 }
+
+// The same, one cache per key (a username, a number of days…). Keeps at most `max` keys; the oldest goes first.
+export function ttlCacheBy<K, T>(ttlMs: number, loader: (key: K) => Promise<T>, max = 500) {
+  const caches = new Map<K, ReturnType<typeof ttlCache<T>>>();
+  const get = (key: K): Promise<T> => {
+    let c = caches.get(key);
+    if (!c) {
+      if (caches.size >= max) caches.delete(caches.keys().next().value as K);
+      c = ttlCache(ttlMs, () => loader(key));
+      caches.set(key, c);
+    }
+    return c();
+  };
+  get.invalidate = (key?: K) => { if (key === undefined) caches.clear(); else caches.delete(key); };
+  return get;
+}

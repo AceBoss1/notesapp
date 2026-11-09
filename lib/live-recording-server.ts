@@ -1,4 +1,5 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { viewsByKind } from "./page-view-buckets";
 import { randomBytes } from "crypto";
 import { setting } from "@/lib/config";
 import { SITE_URL } from "./host";
@@ -583,10 +584,7 @@ export async function listedReplays(db: Firestore, o: { sort: "new" | "trending"
   const snap = await db.collection("replays").where("listed", "==", true).limit(300).get();
   const rows = snap.docs.map((d) => card(d.id, d.data() as ReplayDoc)).filter((x) => x.status === "ready");
   if (o.sort === "new") return rows.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 40);
-  const cutoff = new Date(Date.now() - Math.min(30, Math.max(1, o.days ?? 7)) * 86_400_000).toISOString().slice(0, 10);
-  const views = await db.collection("pageViews").where("day", ">=", cutoff).get();
-  const count = new Map<string, number>();
-  views.docs.forEach((d) => { const b = d.data(); if (b.kind === "replay") count.set(String(b.id), (count.get(String(b.id)) ?? 0) + (Number(b.count) || 0)); });
+  const count = await viewsByKind("replay", o.days ?? 7); // the shared 10-minute read of the day buckets (lib/page-view-buckets.ts)
   return rows.map((x) => ({ ...x, views: count.get(x.id) ?? 0 })).filter((x) => x.views > 0).sort((a, b) => b.views - a.views).slice(0, 20);
 }
 
