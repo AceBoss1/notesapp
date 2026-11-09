@@ -19,9 +19,28 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 8 | **Global Startup Awards**, Edition 12, Africa (investor-judged competition; we apply as Media, Entertainment & Creator Economy → Creator Economy Tools): §9 | [globalstartupawards.com](https://www.globalstartupawards.com/faq), [competition portal](https://competition-system.globalstartupawards.com/), [form](https://docs.google.com/forms/d/e/1FAIpQLSfvktqgJWJMS1iAh2aUvZPuVOwWXOjzlsG7gtZTIWgfyRmbqQ/viewform) | `[check the portal]` | nothing found (the 2024 Africa round was free) | after the deck is ready |
 | 9 | **Aurora Tech Award** (inDrive; non-dilutive prizes for women-led startups in emerging markets) and **Aurora Ventures** (its early-stage fund): §13 | [auroratechaward.com](https://www.auroratechaward.com/get-funding) | next cycle "Apply Jan 2027" (date not confirmed) | nothing (the award is free and takes no equity; the fund invests for equity) | **applying (both)**, led by Emmanuela Emmanuel, co-founder and CLO (§13) |
 | 10 | **USPF Changemaker Challenge 2026** (Universal Service Provision Fund, NCC): ₦5M / ₦3M / ₦2M and 4 weeks' incubation; five sectors: §14 | [uspfchangemaker.ng](https://www.uspfchangemaker.ng) (apply on InnoX) | **15 November 2026, 11:59 p.m. WAT** | nothing; we keep 100% of our IP | all five sectors, one team each (§14) |
+| 11 | **Awesome Foundation** microgrant: USD 1,000, no equity, no repayment; chapters decide monthly: §15 | [awesomefoundation.org](https://www.awesomefoundation.org) | rolling (apply any time; most chapters decide monthly) | nothing | apply this month, for the Nana tutor in rural classrooms (§15) |
+| 12 | **The Pitch by Deel 2027**: up to 100 regional winners at USD 50,000, 10 global champions at USD 1M, **as SAFE investments, not grants**: §16 | [deel.com/the-pitch-by-deel](https://www.deel.com/the-pitch-by-deel/) | 2027 advance applications and waitlist open now; 2027 dates not published | equity (SAFE) | pre-apply now; counsel before any SAFE (§16) |
+| 13 | **AngelSpark** live angel pitch at **Expand North Star by GITEX, Dubai, 8–10 December 2026**: pre-seed and seed; a yes or no on the spot: §17 | [angelspark.net/apply-for-funding](https://angelspark.net/apply-for-funding) | not published: apply now (the event is in 4 weeks, and a UAE visa takes time) | equity; travel to Dubai | only if someone can travel; counsel before signing (§17) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
+
+---
+
+### Deadlines at a glance (as of 9 November 2026)
+
+| When | What | § |
+|---|---|---|
+| **Sun 15 Nov 2026, 11:59 p.m. WAT** | USPF Changemaker Challenge (all five sectors) | §14 |
+| **Wed 18 Nov 2026** | Alliance accelerator, ALL19 (Regular Admission) | §5 |
+| **Fri 20 Nov 2026** | .tech pitch competition | §3 |
+| As soon as possible (deadline not published; event 8–10 Dec, Dubai) | AngelSpark at Expand North Star | §17 |
+| **Tue 15 Dec 2026, 23:59 US Pacific** | .tech No Excuses Fund | `docs/NO_EXCUSES_APPLICATION.md` |
+| January 2027 (date not confirmed) | Aurora Tech Award and Aurora Ventures | §13 |
+| Rolling (apply this month) | Awesome Foundation microgrant | §15 |
+| Rolling | The Pitch by Deel 2027 (pre-apply), Village Global Velocity, Emergent Ventures, the .tech domain programme | §16, §6, §4, §2 |
+| Check the portal | Global Startup Awards, Edition 12 | §9 |
 
 ---
 
@@ -1019,4 +1038,91 @@ for a microloan from a licensed partner.
 2. Screenshots: Education (the tutor in Pidgin, Exam Prep offline), Healthcare (a clinic site and booking), Energy (a solar site with
    prices), Agriculture (a community and a Market listing), Financial inclusion (Business books).
 3. Live links: naapp.tech, and a demo course or site for the sector.
+
+---
+
+## 15. Awesome Foundation: a USD 1,000 microgrant
+
+> Status: **draft, not applied (9 November 2026).** From the post the owner shared (Startup Networks, LinkedIn, November 2026) and
+> search results; awesomefoundation.org couldn't be opened from our tools, so check the form and chapters on the day.
+
+**What it is.** Independent local chapters ("trustees") each give USD 1,000 (or the local equivalent) a month to an "awesome" idea:
+creative, community or innovative projects. No equity, no repayment, no strings; free to apply; no registered company needed. We
+found **no chapter in Lagos or Abuja**; apply to **"Any"** (open to all), or to a themed chapter whose focus fits (education or
+technology for good) if the form lists one.
+
+**What to ask for.** Awesome funds a project, not a company. The project: **the Nana tutor in rural classrooms**, which pairs with the
+USPF education entry (§14) and shows it working in a real community.
+
+**Draft answers (fit them to the form):**
+
+*Project title:* Nana tutor for rural classrooms: an AI tutor that speaks Pidgin, for `[number]` JSS learners in `[community, state]`
+
+*About the project:* In many rural schools in `[state]`, one teacher has a crowded class, few textbooks and no time for the learner who
+didn't follow. NotesApp's Nana tutor lets a teacher put the term's lessons online and switch on a tutor that answers learners' questions
+**only from that teacher's lessons**, in English, Pidgin or Kiswahili, explains a lesson simply with a local example, and quizzes them
+one question at a time. It works by text on a basic phone with little data. With this grant we will set it up with `[number]` teachers
+at `[school]` and run it for one term.
+
+*How we'll use the USD 1,000:*
+
+| What | USD |
+|---|---|
+| 2 shared Android phones for the school, so learners without a phone can use the tutor and the offline Exam Prep packs | 300 |
+| Data for the shared phones and the teachers for one term | 250 |
+| A one-day workshop for `[number]` teachers: putting their lessons online and switching on the tutor (venue, transport, lunch) | 300 |
+| A closing session to hear what worked, and a short write-up we publish | 150 |
+
+*About us:* NotesApp (naapp.tech) is a Nigerian platform where people who serve their community publish, teach and get paid in one
+place. Three of our four co-founders are women; `[who on the team runs this project, living in the community or state]`.
+
+*Link:* naapp.tech `[a demo course with the tutor switched on]`
+
+**Be clear in the application** that the learners and the school pay nothing. The tutor uses each learner's free weekly Nana
+allowance (`[check it covers a term's use; if not, say the shared phones run on an account we fund]`).
+
+---
+
+## 16. The Pitch by Deel 2027: pre-apply
+
+> Status: **to pre-apply (9 November 2026).** From the post the owner shared (Global Grants and Opportunities for Africa, LinkedIn,
+> November 2026) and search results; deel.com couldn't be opened from our tools.
+
+**What it is.** A global startup competition with regional events: up to **100 regional winners at USD 50,000** and **10 global
+champions at USD 1 million** (at most USD 1.05M each), plus investors, mentors and growth support. **The money is a SAFE investment,
+not a grant.** The 2026 round is over; 2027 advance applications and a waitlist are open now, free. The 2026 regional deadlines were
+10 or 8 days before each event (rolling review), so expect the same: pre-applying now puts us first in line.
+
+**Eligibility as posted:** pre-seed to Series A; full-time founders; a scalable product ready to present; a registered company (or a
+commitment to incorporate); English. Judged on product, market, team, traction and scalability.
+
+**What to send:** reuse §1 (company summary), §5's draft answers (what we're building, traction, team, use of funds) and the 8 November
+snapshot. Regional event: `[the nearest 2027 city, when Deel publishes them]`.
+
+**Before any SAFE:** counsel reads it, the dilution is added up with Alliance (§5) and Aurora Ventures (§13), and it goes into the
+company that will hold the shares (NotesApp Inc or Ltd; `accel-legal-safe`).
+
+---
+
+## 17. AngelSpark at Expand North Star (GITEX, Dubai)
+
+> Status: **decide this week (9 November 2026).** From AngelSpark's LinkedIn post (November 2026) and search results; angelspark.net
+> couldn't be opened from our tools.
+
+**What it is.** An angel group (50+ angels) that runs a live pitch at **Expand North Star by GITEX, 8–10 December 2026, Dubai
+Exhibition Centre**: founders apply, a selection committee shortlists, and the shortlisted pitch on stage and get **a yes or a no in
+the room**. They invest as one line on the cap table (no SPVs). For pre-seed and seed founders. Apply at
+[angelspark.net/apply-for-funding](https://angelspark.net/apply-for-funding). The 2026 application deadline isn't published: apply now.
+
+**Before applying, decide:**
+1. **Who pitches in Dubai.** It's on stage, in person. A Nigerian passport needs a UAE visa, which can take weeks; the pitcher must
+   be able to travel by 8 December, and travel and the stay are our cost.
+2. **The terms we'd accept** (how much, at what valuation or cap), in line with Alliance (§5) and Aurora Ventures (§13). An on-the-spot
+   yes is a term sheet, not money: nothing is signed until counsel has read it (`accel-legal-safe`).
+3. **The deck:** reuse the No Excuses Fund deck (`fund-deck-video`), 5 minutes.
+
+Sources: [Expand North Star 2026 (Invest in Dubai)](https://www.investindubai.gov.ae/en/events-calendar/expand-north-star),
+[Expand North Star guide](https://www.husbar.com/blog/expand-north-star-2026-step-dubai-2027),
+[The Pitch by Deel: apply](https://www.deel.com/the-pitch-by-deel/apply/),
+[Awesome Foundation: about](https://www.awesomefoundation.org/en/about_us).
 
