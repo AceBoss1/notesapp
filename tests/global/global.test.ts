@@ -79,4 +79,10 @@ assert.ok(!isValidStripeSignature(body, `t=${t},v1=${sig}`, "whsec_test", now.ge
 assert.ok(!isValidStripeSignature(body, `t=${t},v1=${sig}`, "", now.getTime()));
 assert.ok(isValidFlutterwaveHash("abc123", "abc123")); assert.ok(!isValidFlutterwaveHash("abc124", "abc123")); assert.ok(!isValidFlutterwaveHash(null, "abc123"));
 
+// more currencies (9 Nov): yen has no minor unit, Tunisian dinars three; Malawi pays dollars; Japan, the UAE and China go to Stripe
+assert.equal(providerFor("JPY"), "stripe"); assert.equal(providerFor("AED"), "stripe"); assert.equal(providerFor("CNY"), "stripe");
+assert.equal(providerFor("MAD"), "flutterwave"); assert.equal(currencyForCountry("MW"), "USD"); assert.equal(currencyForCountry("JP"), "JPY");
+assert.equal(formatMoney(1500, "JPY"), "¥1,500"); assert.equal(toMinor(12.5, "TND"), 12500); assert.equal(formatMoney(1999, "AED"), "AED 19.99");
+assert.equal(guessCurrency("Asia/Dubai"), "AED"); assert.equal(guessCurrency("Africa/Blantyre"), "USD");
+
 console.log("GLOBAL OK");

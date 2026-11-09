@@ -38,8 +38,8 @@ secret key alone can then move money.
 | Tap2Pay (CardTap) | Paylony | — |
 | A publisher payout | Paylony | Paystack transfer |
 | A payment from Ghana, Kenya or another African country, mobile money, or a non-Naira card | Flutterwave (once live) | Paystack card in Naira, at the day's rate |
-| A subscription paid in another currency (§7): USD, GBP, EUR, CAD | Stripe (NotesApp Inc) | the reader picks another currency |
-| A subscription paid in another African currency (§7): KES, GHS, ZAR, UGX, TZS, RWF, XAF, XOF, ZMW, MWK, EGP | Flutterwave | — |
+| A subscription paid in another currency (§7): USD, GBP, EUR, CAD, JPY, AED, CNY (anywhere unlisted pays USD) | Stripe (NotesApp Inc) | the reader picks another currency |
+| A subscription paid in another African currency (§7): KES, GHS, ZAR, UGX, TZS, RWF, ZMW, EGP, MAD, DZD, TND, LYD, GMD by card or mobile money; XAF and XOF by mobile money once switched on in Flutterwave (Malawi pays USD) | Flutterwave | — |
 | A naira reader of a creator who earns in another currency (§7) | Paystack, one month at a time | — |
 
 ## 3. One payment layer (the engineering work)
@@ -131,6 +131,10 @@ is treasury work.
 - **Tax:** as the seller, NotesApp owes the tax on each sale: EU and UK VAT, US state sales tax on digital goods, Kenya's VAT on
   digital services, Nigeria's VAT. Stripe Tax covers Stripe's side once switched on; the African taxes need the accountant.
 - **CBN:** naira conversions go only through licensed channels; Nigerian members' wallets stay in naira (FUNDING.md §5).
+
+**Provider fees:** we confirm the amount we asked for (Flutterwave's `amount`, not `charged_amount`; Paystack's `requested_amount`), so
+"Charge my customers" in either dashboard can't break confirmation, but it makes the reader pay more than the price shown on
+NotesApp. Recommended: "Charge me for this" on Flutterwave's transaction and international fees (the conversion margin covers them).
 
 **To switch it on:** Stripe activated (EIN, a US bank account) with `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (events
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`); Flutterwave live with `FLUTTERWAVE_SECRET_KEY` and
