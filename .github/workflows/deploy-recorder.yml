@@ -7,8 +7,11 @@ name: Deploy room recorder
 #   secret   GCP_PROJECT_ID    the Google Cloud project ID (billing linked)
 #   secret   GCP_SA_KEY        a service-account key (JSON) with: Cloud Run Admin, Cloud Build Editor, Artifact Registry Administrator,
 #                              Service Account User, Secret Manager Admin, Service Usage Admin, Storage Admin
+#   once, in the project:      the default compute account (PROJECT_NUMBER-compute@developer.gserviceaccount.com) needs the
+#                              Cloud Run Builder role, or the build fails with PERMISSION_DENIED (OWNER_SETUP.md 4.0, step 2.5)
 #   secret   RECORDER_SECRET   the shared secret (64 hex characters); the very same value goes into Vercel as RECORDER_SECRET
-#   variable APP_ORIGIN        the site's own address, e.g. https://www.example.com (the recorder refuses any other origin)
+#   variable APP_ORIGIN        the site's own address: https://www. + the main domain (lib/host.ts SITE_URL), no slash at the end.
+#                              The recorder refuses any other origin. Read from Variables, or from Secrets if it was added there.
 # Without them the job says which is missing and stops, green. At the end it prints the service's address: put it in Vercel as
 # RECORDER_URL (with RECORDER_SECRET) and redeploy the site.
 on:
@@ -30,7 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      HAS_KEYS: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' && secrets.RECORDER_SECRET != '' && vars.APP_ORIGIN != '' }}
+      APP_ORIGIN: ${{ vars.APP_ORIGIN || secrets.APP_ORIGIN }}
+      HAS_KEYS: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' && secrets.RECORDER_SECRET != '' && (vars.APP_ORIGIN != '' || secrets.APP_ORIGIN != '') }}
     steps:
       - name: Not set up yet
         if: env.HAS_KEYS != 'true'
@@ -39,7 +43,7 @@ jobs:
           [ -n "${{ secrets.GCP_PROJECT_ID != '' && 'y' || '' }}" ] || missing="$missing GCP_PROJECT_ID"
           [ -n "${{ secrets.GCP_SA_KEY != '' && 'y' || '' }}" ] || missing="$missing GCP_SA_KEY"
           [ -n "${{ secrets.RECORDER_SECRET != '' && 'y' || '' }}" ] || missing="$missing RECORDER_SECRET"
-          [ -n "${{ vars.APP_ORIGIN != '' && 'y' || '' }}" ] || missing="$missing APP_ORIGIN(variable)"
+          [ -n "${{ (vars.APP_ORIGIN != '' || secrets.APP_ORIGIN != '') && 'y' || '' }}" ] || missing="$missing APP_ORIGIN (Variables tab: https://www. + your main domain)"
           echo "::notice title=Recorder not deployed::Missing:$missing. Add them under Settings → Secrets and variables → Actions (docs/OWNER_SETUP.md), then run this workflow again. Nothing was deployed."
       - uses: actions/checkout@v4
         if: env.HAS_KEYS == 'true'
@@ -49,6 +53,11 @@ jobs:
         run: |
           if ! printf '%s' "$RECORDER_SECRET" | grep -Eq '^[0-9a-fA-F]{32,}$'; then
             echo "::error title=RECORDER_SECRET looks wrong::Use a long random hex value (openssl rand -hex 32), with no spaces or new line."; exit 1; fi
+      - name: Check APP_ORIGIN's shape
+        if: env.HAS_KEYS == 'true'
+        run: |
+          if ! printf '%s' "$APP_ORIGIN" | grep -Eq '^https://www\.[a-z0-9.-]+\.[a-z]{2,}$'; then
+            echo "::error title=APP_ORIGIN looks wrong::It must be exactly https://www. + your main domain, with no slash or path (e.g. https://www.example.com). The live site sends the recorder pages on that address only, so anything else is refused."; exit 1; fi
       - uses: google-github-actions/auth@v2
         if: env.HAS_KEYS == 'true'
         with:
@@ -77,7 +86,7 @@ jobs:
           gcloud run deploy "$SERVICE" --source services/room-recorder --region "$REGION" \
             --allow-unauthenticated \
             --set-secrets RECORDER_SECRET=recorder-secret:latest \
-            --set-env-vars "APP_ORIGIN=${{ vars.APP_ORIGIN }},MAX_RECORDINGS=3" \
+            --set-env-vars "APP_ORIGIN=${APP_ORIGIN},MAX_RECORDINGS=3" \
             --cpu 2 --memory 2Gi --no-cpu-throttling \
             --min-instances 0 --max-instances 3 --concurrency 10 --timeout 3600 --quiet
       - name: Check it answers, and say where it is
