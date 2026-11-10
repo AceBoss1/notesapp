@@ -829,6 +829,21 @@ When you type a title, Nana suggests things to go with it in a **Nana suggests**
 
 Suggestions marked **NEW** don't exist yet; they're created when you save. You can always ignore the box and choose from the full list below it.
 `),
+    A("sell-in-your-currency", "Selling in your own currency: shop items, downloads, courses and sessions", "Selling", `
+Sellers outside Nigeria can price what they sell in **their own currency** (shillings, cedis, rand, CFA francs, dollars, pounds and more), and buyers anywhere pay in **theirs**.
+
+**Choosing your currency:** on **Rates & payouts → Readers in other currencies**, choose the currency you earn in (the one for your country is suggested). From then on, the price fields for new shop items and downloads, your courses and your session price are in that currency. Things you priced before keep the currency they were priced in.
+
+**How buyers pay:** a buyer sees your price in your currency, and under it about what they'll pay in theirs (their country's currency is picked for them; they can change it at the bottom of any page). In Nigeria they pay in naira through Paystack; elsewhere in Africa through Flutterwave (card or mobile money where it's offered); everywhere else by card through Stripe. When the currencies differ, the price is converted at our rate with a small margin for the conversion, and the exact amount shows before they pay.
+
+**What you earn:** your share is worked out from **your own price**, in your currency, so the exchange rate never changes what you earn. It's held for at least 7 days (longer when the sale's usual hold is longer, like a session until it's taken place), then paid to the payout details you added for that currency.
+
+**Delivery:** our delivery partners work in Nigeria. If you sell physical items in another currency, you deliver them yourself and set your own delivery fee. Buyers give an address anywhere: a phone number with its country code, and their region and country.
+
+**For now:** discount codes and affiliate shares work on naira prices only. A basket holds items priced in one currency. Refunds of a payment made in another currency go back the way it was paid; part refunds and single items from a basket are refunded by our team.
+
+See [Subscribing and earning in other currencies](/help/global-subscriptions) for subscriptions, and [Your currency](/help/currency-and-exchange-rates) for how your currency is picked.
+`),
     A("currency-and-exchange-rates", "Your currency: local currency, naira, dollars and exchange rates", "Plans and pricing", `
 Almost everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank. The exception is **subscriptions to creators**: readers can pay in their own currency (dollars, pounds, euros, shillings, cedis and more), and creators can earn in theirs. See [Subscribing and earning in other currencies](/help/global-subscriptions).
 

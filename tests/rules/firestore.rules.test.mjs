@@ -327,6 +327,12 @@ test("publishers manage only their own valid store items", async () => {
   await assertFails(setDoc(doc(as("pub"), "storeItems/i3"), { ...item, ownerUid: "alice" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i4"), { ...item, link: "javascript:alert(1)" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i5"), { ...item, extra: "x" }));
+  // Priced in the seller's own currency (lib/global-sales.ts): a known currency, from its smallest unit; naira keeps its ₦100 floor.
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/k1"), { ...item, currency: "USD", price: "$5", priceKobo: 500 }));
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/k2"), { ...item, currency: "KES", price: "KSh 650", priceKobo: 65000 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/k3"), { ...item, currency: "BTC", priceKobo: 500 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/k4"), { ...item, priceKobo: 500 })); // ₦5 in naira: below the floor
+  await assertFails(setDoc(doc(as("pub"), "storeItems/k5"), { ...item, currency: "USD", priceKobo: 0 }));
   await assertSucceeds(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: true })); // the owner features an item
   await assertFails(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: "yes" }));
   await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { featured: true })); // not someone else

@@ -2,6 +2,7 @@ import { FieldValue, type DocumentReference, type Firestore, type Transaction } 
 import { getAdminDb } from "./firebase-admin";
 import { ensureMany } from "./subtopics-server";
 import { ttlCache } from "./ttl-cache";
+import { sellerCurrency } from "./global-sales-server";
 import type { Subtopic } from "./subtopics";
 import { weeklyViews } from "./discovery-server";
 import { canPublish, effectiveTier, type AccountTier, type UserProfile } from "./users";
@@ -15,7 +16,7 @@ import { InviteTermsError, checkAgreement, recordAgreement, tellMember, termsOnO
 import { CommunityError, communitiesIRun, createCommunity, memberOf, readCommunity } from "./community-server";
 import { SPACES_MAX, cleanSlug, cleanSpaceName, type Community, type Space } from "./community";
 import {
-  MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canMakeCourses, canSellCourses, canTeachFreeCourses, canUploadVideo, courseCap, onPlans, uploadRoomProblem, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
+  MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canMakeCourses, canSellCourses, canTeachFreeCourses, canUploadVideo, courseCap, onPlans, uploadRoomProblem, cleanCourseFields, cleanLesson, cleanLink, cleanPrice, cleanPriceIn,
   cleanVideoCredit, communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
   QUIZ_PASS_DEFAULT,
   type UploadUse, type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type VideoCredit, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite, type CourseGroup, type CourseGroupRef,
@@ -45,7 +46,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     createdAt: String(d.createdAt ?? ""), updatedAt: String(d.updatedAt ?? ""), publishedAt: d.publishedAt ? String(d.publishedAt) : null,
     likeCount: Number(d.likeCount) || 0, ratingSum: Number(d.ratingSum) || 0, ratingCount: Number(d.ratingCount) || 0,
     subtopics: Array.isArray(d.subtopics) ? (d.subtopics as Subtopic[]).map((x) => ({ parent: String(x.parent), slug: String(x.slug), label: String(x.label) })) : [],
-    priceKobo, certificateIncluded: d.certificateIncluded === true,
+    priceKobo, certificateIncluded: d.certificateIncluded === true, ...(typeof d.currency === "string" && d.currency !== "NGN" ? { currency: d.currency } : {}),
     level: typeof d.level === "string" ? (d.level as Course["level"]) : "", language: String(d.language || "English"), format: d.format === "live" ? "live" : "self",
     outcomes: strings(d.outcomes), requirements: strings(d.requirements), runsFor: String(d.runsFor ?? ""), schedule: String(d.schedule ?? ""),
     modules: Array.isArray(d.modules) ? (d.modules as CourseModule[]).map((m) => ({ id: String(m.id), title: String(m.title) })) : [],
@@ -311,8 +312,11 @@ export async function updateCourse(db: Firestore, uid: string, id: string, body:
     if (access !== "lead") throw new CourseError("Only the lead tutor sets the price.", 403);
   }
   if (body.priceKobo !== undefined || body.priceNaira !== undefined) {
-    const price = cleanPrice(body as { priceKobo?: unknown; priceNaira?: unknown });
+    // In the lead tutor's own currency (Rates & payouts → the currency you earn in; lib/global-sales.ts), naira until they choose.
+    const cur = await sellerCurrency(db, c.ownerUid);
+    const price = cur === "NGN" ? cleanPrice(body as { priceKobo?: unknown; priceNaira?: unknown }) : cleanPriceIn(body as { priceKobo?: unknown; priceNaira?: unknown }, cur);
     if (typeof price === "string") throw new CourseError(price);
+    patch.currency = cur === "NGN" ? FieldValue.delete() : cur;
     const o = await getLimitOverrides(db);
     if (price > 0 && !canSellCourses(tierOf(owner), o)) throw new CourseError(`Paid courses are ${onPlans("paidCourses", o)}. Upgrade to sell this course, or keep it free.`, 403);
     if (price === 0 && isPaid(c)) {

@@ -1,5 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { refundTransaction } from "./paystack";
+import { refundSale } from "./global-sales-server";
+import type { PaymentRecord } from "./payments";
 import { refundToWallet, restoreTopup, reverseTopup } from "./wallet-server";
 import { revokeForPayment } from "./certificates-server";
 import { reverseEarningsFor } from "./referrals-server";
@@ -32,6 +34,8 @@ async function moveRefund(reference: string, amountKobo?: number): Promise<void>
   // A refunded certificate (or a refunded course whose certificate came with it) stops being valid; its verification page says it was revoked and why.
   if (p?.kind === "certificate" || p?.kind === "course") await revokeForPayment(db, reference);
   if (p?.payWith === "wallet") { await refundToWallet(db, reference, amountKobo); return; }
+  // Paid in another currency (lib/global-sales-server.ts): back through Stripe, Flutterwave or Paystack, whole payments only.
+  if (p?.payWith === "global") { await refundSale(db, p as PaymentRecord, amountKobo); return; }
   // CardTap top-ups: Paylony returns the money (they handle settlement and refunds), so here we only take the credit back and mark
   // the payment for Paylony; finance asks Paylony to refund it with the payment's reference.
   if (p?.kind === "wallet_topup" && p.payWith === "cardtap") {

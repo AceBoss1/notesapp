@@ -36,9 +36,10 @@ export type PublisherSettings = {
   username: string;
   session: {
     enabled: boolean;
-    priceKobo: number;
+    priceKobo: number; // minor units of `currency` (kobo for naira)
     minutes: number;
     availability: Availability;
+    currency?: string; // the publisher's own currency when it isn't naira (lib/global-sales.ts)
   };
   // enabled/priceKobo/planCode: Premium, kept for older readers. tiers: Premium, VIP and VVIP (lib/fans.ts tierOffers).
   subscription: {

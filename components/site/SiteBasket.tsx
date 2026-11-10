@@ -5,7 +5,9 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
-import { formatNaira } from "@/lib/booking-time";
+import { formatNaira as nairaText } from "@/lib/booking-time";
+import { moneyIn, validateWorldAddress } from "@/lib/global-sales";
+import PayPreview from "@/components/PayPreview";
 import { NIGERIAN_STATES, validateAddress, type DeliveryAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
 import { lineKey } from "@/lib/cart";
@@ -39,6 +41,9 @@ export default function SiteBasket() {
     return () => { gone = true; window.clearTimeout(t); };
   }, [items, addr.city, addr.state]);
 
+  // The shop's currency (lib/global-sales.ts): naira, or the seller's own, who then delivers it themselves to an address anywhere.
+  const cur = lines[0]?.currency ?? "NGN";
+  const formatNaira = (minor: number) => moneyIn(minor, cur, nairaText);
   const delivery = ship?.deliveryKobo ?? 0;
   const total = subtotalKobo + delivery;
   const toPay = Math.max(0, total - (disc?.discountKobo ?? 0));
@@ -48,11 +53,11 @@ export default function SiteBasket() {
     e.preventDefault();
     setError("");
     if (!user) return;
-    const problem = validateAddress(addr);
+    const problem = cur === "NGN" ? validateAddress(addr) : validateWorldAddress(addr);
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store_cart", lines: lines.map(({ itemId, quantity, variant }) => ({ itemId, quantity, ...(variant ? { variant } : {}) })), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: toPay, payWith: "card" });
+      await startCheckout(user, { kind: "store_cart", lines: lines.map(({ itemId, quantity, variant }) => ({ itemId, quantity, ...(variant ? { variant } : {}) })), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: toPay, payWith: "card", currency: cur });
       clear(); // on its way to the payment page: the orders are made, with the stock held for 30 minutes
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
@@ -104,20 +109,27 @@ export default function SiteBasket() {
             <p className="mt-3 flex justify-between border-t border-rule pt-3 font-ui text-base font-bold text-ink"><span>Total</span><span>{formatNaira(total)}</span></p>
             <p className="mt-5 font-ui text-sm font-bold text-ink">Deliver to</p>
             <label className="mt-2 block text-xs text-slate">Full name<input value={addr.fullName} onChange={set("fullName")} className={field} /></label>
-            <label className="mt-2 block text-xs text-slate">Phone<input value={addr.phone} onChange={set("phone")} placeholder="08012345678" className={field} /></label>
+            <label className="mt-2 block text-xs text-slate">Phone<input value={addr.phone} onChange={set("phone")} placeholder={cur === "NGN" ? "08012345678" : "+254712345678"} className={field} /></label>
             <label className="mt-2 block text-xs text-slate">Street address<input value={addr.street} onChange={set("street")} className={field} /></label>
             <div className="grid grid-cols-2 gap-2">
               <label className="mt-2 block text-xs text-slate">City / town<input value={addr.city} onChange={set("city")} className={field} /></label>
-              <label className="mt-2 block text-xs text-slate">State
-                <select value={addr.state} onChange={set("state")} className={field}><option value="">Choose…</option>{NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
-              </label>
+              {cur === "NGN" ? (
+                <label className="mt-2 block text-xs text-slate">State
+                  <select value={addr.state} onChange={set("state")} className={field}><option value="">Choose…</option>{NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+                </label>
+              ) : (
+                <label className="mt-2 block text-xs text-slate">Region and country<input value={addr.state} onChange={set("state")} placeholder="Nairobi County, Kenya" className={field} /></label>
+              )}
             </div>
-            {user && <DiscountCodeField target="store" seller={username} itemIds={lines.map((l) => l.itemId)} subtotalKobo={subtotalKobo} extraKobo={delivery} onChange={setDisc} className="mt-3" />}
+            {user && cur === "NGN" && <DiscountCodeField target="store" seller={username} itemIds={lines.map((l) => l.itemId)} subtotalKobo={subtotalKobo} extraKobo={delivery} onChange={setDisc} className="mt-3" />}
             {error && <p className="mt-3 text-sm text-crimson" role="alert">{error}</p>}
             {user === null ? (
               <Link href={`/login?next=${encodeURIComponent(`${base}/cart`)}`} className="btn-primary mt-4 block text-center">Sign in to pay</Link>
             ) : (
-              <button disabled={busy || user === undefined} className="btn-primary mt-4 w-full">{busy ? "Please wait…" : `Pay ${formatNaira(toPay)}`}</button>
+              <>
+                <button disabled={busy || user === undefined} className="btn-primary mt-4 w-full">{busy ? "Please wait…" : `Pay ${formatNaira(toPay)}`}</button>
+                <PayPreview minor={toPay} currency={cur} className="mt-2" />
+              </>
             )}
             <p className="mt-3 text-xs text-slate">One payment by card or bank for the whole basket, with one delivery. Your money is held by #NotesApp until you confirm each item arrived. Each item becomes its own order you can follow on My orders.</p>
           </form>

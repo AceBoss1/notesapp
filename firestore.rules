@@ -652,7 +652,7 @@ service cloud.firestore {
         || t.matches('(^|.*[^a-z0-9])(guide|course|book|ebook|class|lesson|training|explained|basics|beginners?|masterclass|tutorial|webinar|handbook)([^a-z0-9].*|$)');
     }
     function validStoreItem(d) {
-      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'subcategory', 'shipsFrom', 'featured', 'weightKg'])
+      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'currency', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'subcategory', 'shipsFrom', 'featured', 'weightKg'])
         && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta', 'sellable', 'priceKobo', 'deliveryKobo', 'stock'])
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
         && notCryptoListing(d.title.lower())
@@ -663,7 +663,9 @@ service cloud.firestore {
         && d.image is string && d.image.size() <= 500
         && d.cta is string && d.cta.size() > 0 && d.cta.size() <= 30
         && d.sellable == true
-        && d.priceKobo is int && d.priceKobo >= 10000 && d.priceKobo <= 500000000
+        // Naira prices from ₦100; a price in the seller's own currency (lib/global-sales.ts) is in its minor units, from 1.
+        && (!('currency' in d) || d.currency in ['USD', 'GBP', 'EUR', 'CAD', 'JPY', 'AED', 'CNY', 'BWP', 'KES', 'GHS', 'ZAR', 'UGX', 'TZS', 'RWF', 'XAF', 'XOF', 'ZMW', 'EGP', 'MAD', 'DZD', 'TND', 'LYD', 'GMD'])
+        && d.priceKobo is int && d.priceKobo >= ('currency' in d ? 1 : 10000) && d.priceKobo <= 500000000
         && d.deliveryKobo is int && d.deliveryKobo >= 0 && d.deliveryKobo <= 5000000
         && d.stock is int && d.stock >= 0 && d.stock <= 100000
         // Extra photos (up to 5), and for physical items up to two options (e.g. Size, Colour) of up to twenty choices each,

@@ -1,6 +1,7 @@
 // Notes Academy (docs/COURSES.md): free and paid courses, their lessons (YouTube, text, uploaded video and PDFs), enrolment and progress. Pure and
 // client-safe: the shapes, the limits, and the checks both the course editor and the server run. Everything is written by the
 // server (lib/courses-server.ts); browsers only read published courses, their lessons and their own enrolments.
+import { currencyInfo, formatMoney } from "./currency";
 import { setting } from "@/lib/config";
 import { MAX_NOTE_TOPICS, cleanTopics } from "./topics";
 import { heldPercent, type InviteAccess, type InviteAgreementFields } from "./invite-terms";
@@ -92,6 +93,7 @@ export type Course = {
   likeCount?: number; ratingSum?: number; ratingCount?: number; // kept by lib/course-social-server.ts
   subtopics?: { parent: string; slug: string; label: string }[]; // under its topics (lib/subtopics.ts), shown as #Topic › #Subtopic
   priceKobo?: number; certificateIncluded?: boolean;
+  currency?: string; // the lead tutor's currency when it isn't naira (lib/global-sales.ts): priceKobo is its minor units
   level?: CourseLevel | ""; language?: string; format?: CourseFormat; outcomes?: string[]; requirements?: string[]; runsFor?: string; schedule?: string;
   modules?: CourseModule[]; outline?: OutlineItem[];
   hasClassLink?: boolean; hasCommunityLink?: boolean; communityKind?: string; // the links themselves are private (courseLinks/{id})
@@ -127,7 +129,7 @@ export type Enrolment = {
 
 export const isPaid = (c: { priceKobo?: number } | null | undefined) => (Number(c?.priceKobo) || 0) > 0;
 export const nairaLabel = (kobo: number) => `₦${Math.round(kobo / 100).toLocaleString("en-GB")}`;
-export const priceLabel = (c: { priceKobo?: number }) => (isPaid(c) ? nairaLabel(c.priceKobo!) : "Free");
+export const priceLabel = (c: { priceKobo?: number; currency?: string }) => (isPaid(c) ? (c.currency && c.currency !== "NGN" ? formatMoney(c.priceKobo!, c.currency) : nairaLabel(c.priceKobo!)) : "Free");
 // The lessons in the order the Curriculum tab shows them: by module (in the course's module order; lessons in no module first),
 // then by their own order. Progress and "next lesson" follow the same order.
 export function orderedLessons<T extends { order?: number; moduleId?: string }>(lessons: T[], modules: CourseModule[] = []): T[] {
@@ -348,6 +350,14 @@ export function cleanCourseFields(b: Record<string, unknown>): CourseFields | st
   return out;
 }
 
+// A price in a tutor's own currency (not naira), sent as a number in that currency: its minor units, or an error. 0 makes it free.
+export function cleanPriceIn(b: { priceKobo?: unknown; priceNaira?: unknown }, currency: string): number | string {
+  const unit = 10 ** currencyInfo(currency).minor;
+  const minor = b.priceNaira !== undefined ? Math.round(Number(String(b.priceNaira).replace(/[,\s]/g, "")) * unit) : Math.round(Number(b.priceKobo));
+  if (!Number.isFinite(minor) || minor < 0) return `Type the price in ${currency}, or 0 for a free course.`;
+  if (minor > COURSE_PRICE_MAX_KOBO) return "That price is too high.";
+  return minor;
+}
 // The course's price as sent by the editor (naira or kobo), or an error. 0 makes it free.
 export function cleanPrice(b: { priceKobo?: unknown; priceNaira?: unknown }): number | string {
   const kobo = b.priceNaira !== undefined ? Math.round(Number(String(b.priceNaira).replace(/[,\s₦]/g, "")) * 100) : Math.round(Number(b.priceKobo));

@@ -1,5 +1,7 @@
 import { User } from "firebase/auth";
 import { PAY_EVENT, WALLET_LIVE, isWalletKind, type PayAsk } from "./wallet";
+import { isSaleKind } from "./global-sales";
+import { preferredCurrency } from "./local-currency";
 
 // Ask "wallet or card?" when the member has anything in their wallet and this can be paid from it; card otherwise.
 async function choosePayment(user: User, kind: string, amountKobo?: number): Promise<"wallet" | "card" | null> {
@@ -55,11 +57,16 @@ export async function startCheckout(
   // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
   // stayIfPaid: paid from the wallet already, so don't leave the page (a gift during a live: leaving would drop the sender out of
   // the room, and end it if they host). Returns { paid: true, reference } then; otherwise goes to the payment page as before.
-  opts: { amountKobo?: number; payWith?: "wallet" | "card"; stayIfPaid?: boolean } = {},
+  // currency: what the price is in (an item priced in the seller's own currency, lib/global-sales.ts); the wallet holds naira only.
+  opts: { amountKobo?: number; payWith?: "wallet" | "card"; stayIfPaid?: boolean; currency?: string } = {},
 ): Promise<{ paid: true; reference: string } | void> {
-  const how = opts.payWith ?? (await choosePayment(user, body.kind, opts.amountKobo));
+  const foreign = !!opts.currency && opts.currency !== "NGN";
+  const how = opts.payWith ?? (foreign ? "card" : await choosePayment(user, body.kind, opts.amountKobo));
   if (!how) throw new Error(""); // closed the chooser: nothing to show
-  const sent: object = how === "wallet" ? { ...body, payWith: "wallet" } : body;
+  // Downloads, shop items, baskets, courses and sessions are paid in the buyer's currency (their pick in the footer, else where they
+  // are; lib/local-currency.ts): the server sends anything but naira-for-naira to Stripe, Flutterwave or Paystack in that currency.
+  const withCurrency = isSaleKind(body.kind) ? { ...body, payCurrency: preferredCurrency().currency } : body;
+  const sent: object = how === "wallet" ? { ...withCurrency, payWith: "wallet" } : withCurrency;
   let { res, json } = await post(user, sent);
   if (res.status === 403 && json.code === "consent_required") {
     const ok = window.confirm(

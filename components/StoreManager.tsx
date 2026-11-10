@@ -17,6 +17,9 @@ import { canSellViewOnly } from "@/lib/tiers";
 import { effectiveTier } from "@/lib/users";
 import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-config";
 import { STORE_CATEGORIES, SHIPS_FROM_MAX, cleanShipsFrom, shipsFromOk } from "@/lib/store-meta";
+import { currencyInfo, formatMoney } from "@/lib/currency";
+import { priceCurrency } from "@/lib/global-sales";
+import { useHomeCurrency } from "@/lib/home-currency-client";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
 const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "", category: "", subcategory: "", shipsFrom: "", weightKg: "" };
@@ -40,6 +43,9 @@ export default function StoreManager({
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StoreItem | null>(null);
+  // The currency the seller prices in (Rates & payouts → the currency you earn in); an item keeps the currency it was priced in.
+  const home = useHomeCurrency();
+  const cur = editing ? priceCurrency(editing) : home;
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -110,7 +116,7 @@ export default function StoreManager({
     }
     setForm(
       item
-        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0), category: item.category ?? "", subcategory: item.subcategory ?? "", shipsFrom: item.shipsFrom ?? "", weightKg: item.weightKg ? String(item.weightKg) : "" }
+        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 10 ** currencyInfo(priceCurrency(item)).minor), deliveryNaira: String((item.deliveryKobo ?? 0) / 10 ** currencyInfo(priceCurrency(item)).minor), stock: String(item.stock ?? 0), category: item.category ?? "", subcategory: item.subcategory ?? "", shipsFrom: item.shipsFrom ?? "", weightKg: item.weightKg ? String(item.weightKg) : "" }
         : EMPTY
     );
     setError("");
@@ -143,8 +149,9 @@ export default function StoreManager({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const priceKobo = Math.round(Number(form.priceNaira) * 100);
-    const deliveryKobo = Math.round(Number(form.deliveryNaira || 0) * 100);
+    const unit = 10 ** currencyInfo(cur).minor;
+    const priceKobo = Math.round(Number(form.priceNaira) * unit);
+    const deliveryKobo = Math.round(Number(form.deliveryNaira || 0) * unit);
     const digital = kind === "digital";
     const withOptions = !digital && rows.length > 0;
     const stock = digital ? 0 : withOptions ? totalPieces : Number(form.stock);
@@ -152,8 +159,10 @@ export default function StoreManager({
     if (cryptoListing(form.title)) return setError(CRYPTO_LISTING_MESSAGE);
     if (!form.category) return setError("Choose a category so buyers can find the item.");
     if (!digital && !shipsFromOk(form.shipsFrom)) return setError("Say where this item ships from (for example Lekki, Lagos). Buyers see it before they pay.");
-    if (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO) return setError("Price must be between ₦100 and ₦5,000,000.");
-    if (!digital && (!Number.isFinite(deliveryKobo) || deliveryKobo < 0 || deliveryKobo > STORE_DELIVERY_MAX_KOBO)) return setError("Delivery fee must be between ₦0 and ₦50,000.");
+    if (cur === "NGN" && (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO)) return setError("Price must be between ₦100 and ₦5,000,000.");
+    // In the seller's own currency (Rates & payouts): any price from its smallest unit, within the same limits on the numbers.
+    if (cur !== "NGN" && (!Number.isInteger(priceKobo) || priceKobo < 1 || priceKobo > STORE_ITEM_MAX_KOBO)) return setError(`Enter a price in ${cur}.`);
+    if (!digital && (!Number.isFinite(deliveryKobo) || deliveryKobo < 0 || deliveryKobo > STORE_DELIVERY_MAX_KOBO)) return setError(cur === "NGN" ? "Delivery fee must be between ₦0 and ₦50,000." : `Enter a delivery fee in ${cur} (0 for free delivery).`);
     if (!withOptions && !digital && (form.stock.trim() === "" || !Number.isInteger(stock) || stock < 0 || stock > 100000)) return setError("Enter how many you have in stock (a whole number; 0 means sold out).");
     if (!digital && draftHasText) return setError("Tick ✔ to save the size you are typing, or clear it, before saving the item.");
     if (images.length > MAX_IMAGES) return setError(`Up to ${MAX_IMAGES} photos.`);
@@ -170,7 +179,8 @@ export default function StoreManager({
     const input = {
       title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images, category: form.category, ...(subcategory ? { subcategory } : {}), ...(digital ? {} : { shipsFrom: cleanShipsFrom(form.shipsFrom), ...(Number(form.weightKg) > 0 ? { weightKg: Number(form.weightKg) } : {}) }),
       ...(withOptions ? { options, variantStock: Object.fromEntries(rows.map((r) => [variantKey(r.values), r.qty])) } : {}),
-      price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
+      price: cur === "NGN" ? `₦${(priceKobo / 100).toLocaleString("en-NG")}` : formatMoney(priceKobo, cur), link: "",
+      ...(cur !== "NGN" ? { currency: cur } : {}), cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
       ...(digital ? { kind: "digital" as const, ...(viewOnly ? { access: "view" as const } : {}) } : {}),
     };
@@ -341,13 +351,13 @@ export default function StoreManager({
             <textarea value={form.subtitle} onChange={set("subtitle")} maxLength={SUBTITLE_MAX} rows={6} className={field} />
             <span className="mt-1 block text-right text-[11px] text-slate">{form.subtitle.length}/{SUBTITLE_MAX}</span>
           </label>
-          <label className="text-xs text-slate">Price (₦)
-            <input type="number" min={100} step={50} value={form.priceNaira} onChange={set("priceNaira")} className={field} required />
+          <label className="text-xs text-slate">Price ({cur === "NGN" ? "₦" : `${currencyInfo(cur).symbol} ${cur}`})
+            <input type="number" min={cur === "NGN" ? 100 : 0} step="any" value={form.priceNaira} onChange={set("priceNaira")} className={field} required />
           </label>
           {kind === "physical" ? (
             <>
-              <label className="text-xs text-slate">Delivery fee (₦, yours)
-                <input type="number" min={0} step={50} value={form.deliveryNaira} onChange={set("deliveryNaira")} className={field} />
+              <label className="text-xs text-slate">Delivery fee ({cur === "NGN" ? "₦" : cur}, yours{cur === "NGN" ? "" : "; you deliver it"})
+                <input type="number" min={0} step="any" value={form.deliveryNaira} onChange={set("deliveryNaira")} className={field} />
                 <span className="mt-0.5 block text-[11px]">With a <a href="/logistics/network" className="text-crimson underline">delivery partner</a>, buyers pay the partner&apos;s price instead (yours applies where they don&apos;t deliver).</span>
               </label>
               <label className="text-xs text-slate">Weight of one, kg (for your delivery partner&apos;s prices)

@@ -9,7 +9,9 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, getDocs, getDoc, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
-import { formatNaira } from "@/lib/booking-time";
+import { formatNaira as nairaText } from "@/lib/booking-time";
+import { moneyIn, priceCurrency, validateWorldAddress } from "@/lib/global-sales";
+import PayPreview from "@/components/PayPreview";
 import { NIGERIAN_STATES, validateAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
 import { digitalReady, isViewOnly, variantCombos, variantKey, type StoreItem } from "@/lib/store";
@@ -102,7 +104,7 @@ export default function ShopItemPage() {
   // Ask for the delivery partner's price once the buyer has said where it's going (and again when the quantity changes the weight).
   const physical = !!item && item.kind !== "digital";
   useEffect(() => {
-    if (!physical) return;
+    if (!physical || priceCurrency(item) !== "NGN") return; // our delivery partners work in Nigeria; elsewhere the seller delivers
     let gone = false;
     const t = window.setTimeout(() => {
       const q = new URLSearchParams({ view: "quote", itemId, qty: String(quantity), city: addr.city, state: addr.state });
@@ -133,6 +135,10 @@ export default function ShopItemPage() {
   const total = unit * qty + delivery;
   const off = disc?.discountKobo ?? 0;
   const partnerName = ship?.partner?.name;
+  // Priced in the seller's own currency (lib/global-sales.ts), naira for most: every amount on the page is shown in it, the buyer pays
+  // in theirs (PayPreview), and outside naira the seller delivers it themselves to an address anywhere.
+  const cur = priceCurrency(item);
+  const formatNaira = (minor: number) => moneyIn(minor, cur, nairaText);
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   async function payDigital() {
@@ -141,7 +147,7 @@ export default function ShopItemPage() {
     if (!agreed) return setError("Tick the box to confirm you understand a download is final.");
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true, ...(disc ? { code: disc.code } : {}) }, { amountKobo: item?.priceKobo != null ? Math.max(0, item.priceKobo - off) : undefined });
+      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true, ...(disc ? { code: disc.code } : {}) }, { amountKobo: item?.priceKobo != null ? Math.max(0, item.priceKobo - off) : undefined, currency: cur });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -155,7 +161,7 @@ export default function ShopItemPage() {
     if (selectedStock !== null && selectedStock <= 0) return setError("That option is sold out — pick another.");
     const ok = basket.add({
       itemId, quantity: qty, ...(options.length ? { variant: selection, variantLabel: options.map((o, i) => `${o.name}: ${selection[i]}`).join(", ") } : {}),
-      title: item!.title, price: item!.price, priceKobo: unit, image: item!.image,
+      title: item!.title, price: item!.price, priceKobo: unit, image: item!.image, ...(cur !== "NGN" ? { currency: cur } : {}),
     });
     if (!ok) return setError("Your basket is full. Pay for it first, then add more.");
     setAdded(true);
@@ -167,11 +173,11 @@ export default function ShopItemPage() {
     if (!user) return push("/login");
     if (options.length && !chosen) return setError(`Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.`);
     if (selectedStock !== null && selectedStock <= 0) return setError("That option is sold out — pick another.");
-    const problem = validateAddress(addr);
+    const problem = cur === "NGN" ? validateAddress(addr) : validateWorldAddress(addr);
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: Math.max(0, unit * qty + delivery - off) });
+      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: Math.max(0, unit * qty + delivery - off), currency: cur });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -293,9 +299,10 @@ export default function ShopItemPage() {
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
               <span>{viewOnly ? "I understand this is view-only, works on 2 devices, and once I open it the purchase is final and can't be refunded." : "I understand this is a digital download: once I download it the purchase is final and can't be refunded."} See <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.</span>
             </label>
-            {user && <DiscountCodeField target="digital" seller={seller?.username} itemId={itemId} subtotalKobo={unit} onChange={setDisc} className="mt-3" />}
+            {user && cur === "NGN" && <DiscountCodeField target="digital" seller={seller?.username} itemId={itemId} subtotalKobo={unit} onChange={setDisc} className="mt-3" />}
             {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
             <button onClick={payDigital} disabled={busy} className="btn-primary mt-4">{busy ? "Please wait…" : user ? `Pay ${formatNaira(Math.max(0, unit - off))}` : "Sign in to buy"}</button>
+            <PayPreview minor={Math.max(0, unit - off)} currency={cur} className="mt-2" />
           </div>
         )
       ) : inStock <= 0 ? (
@@ -321,22 +328,27 @@ export default function ShopItemPage() {
         </div>
         <p className="sm:col-span-2 mt-2 font-ui text-sm font-bold text-ink">Deliver to</p>
         <label className="text-xs text-slate">Full name<input value={addr.fullName} onChange={set("fullName")} className={field} /></label>
-        <label className="text-xs text-slate">Phone (the seller and carriers may call this)<input value={addr.phone} onChange={set("phone")} placeholder="08012345678" className={field} /></label>
+        <label className="text-xs text-slate">Phone (the seller and carriers may call this)<input value={addr.phone} onChange={set("phone")} placeholder={cur === "NGN" ? "08012345678" : "+254712345678"} className={field} /></label>
         <label className="text-xs text-slate sm:col-span-2">Street address<input value={addr.street} onChange={set("street")} className={field} /></label>
         <label className="text-xs text-slate">City / town<input value={addr.city} onChange={set("city")} className={field} /></label>
-        <label className="text-xs text-slate">State
-          <select value={addr.state} onChange={set("state")} className={field}>
-            <option value="">Choose…</option>
-            {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
+        {cur === "NGN" ? (
+          <label className="text-xs text-slate">State
+            <select value={addr.state} onChange={set("state")} className={field}>
+              <option value="">Choose…</option>
+              {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+        ) : (
+          <label className="text-xs text-slate">Region and country<input value={addr.state} onChange={set("state")} placeholder="Nairobi County, Kenya" className={field} /></label>
+        )}
         <p className="sm:col-span-2 text-xs text-slate">
           {unitsLeft <= 5 && <>Only {unitsLeft} left{selectedStock !== null ? " in that option" : ""} — we reserve your quantity for 30 minutes while you pay. </>}Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
           #NotesApp is not the seller or the carrier — see <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
         </p>
-        {user && <div className="sm:col-span-2"><DiscountCodeField target="store" seller={seller?.username} itemId={itemId} subtotalKobo={unit * qty} extraKobo={delivery} onChange={setDisc} className="mt-3" /></div>}
+        {user && cur === "NGN" && <div className="sm:col-span-2"><DiscountCodeField target="store" seller={seller?.username} itemId={itemId} subtotalKobo={unit * qty} extraKobo={delivery} onChange={setDisc} className="mt-3" /></div>}
         {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}
         <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `${site ? "Buy now: pay" : "Pay"} ${formatNaira(Math.max(0, total - off))}` : "Sign in to buy"}</button>
+        <PayPreview minor={Math.max(0, total - off)} currency={cur} className="sm:col-span-2" />
       </form>
       )}
         </div>

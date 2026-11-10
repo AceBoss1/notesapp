@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CART_MAX_LINES } from "@/lib/cart";
 import { basketDelivery } from "@/lib/cart-server";
+import { priceCurrency } from "@/lib/global-sales";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -56,7 +57,9 @@ export async function GET(req: NextRequest) {
       const state = String(q.get("state") || ""), city = String(q.get("city") || "").trim();
       if (!lines.length || lines.some((l) => l.owner !== lines[0].owner)) return NextResponse.json({ deliveryKobo: 0, carrier: null });
       const covered = NIGERIAN_STATES.includes(state);
-      const { deliveryKobo, carrier } = await basketDelivery(db, lines[0].owner!, lines, covered ? { city, state } : { city: "", state: "" });
+      // A shop priced outside naira (lib/global-sales.ts) delivers itself: its own fees only (our partners work in Nigeria).
+      const own = lines.some((l) => priceCurrency(l.item) !== "NGN");
+      const { deliveryKobo, carrier } = await basketDelivery(db, lines[0].owner!, lines, covered ? { city, state } : { city: "", state: "" }, own);
       return NextResponse.json({ deliveryKobo, carrier: carrier && covered ? { name: carrier.name, username: carrier.username, feeKobo: carrier.feeKobo } : null });
     }
     const me = await verifySignedInRequest(bearer(req)).catch(() => null);
