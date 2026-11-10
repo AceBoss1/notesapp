@@ -41,6 +41,18 @@ export function cleanRates(b: Record<string, unknown>, now = new Date()): Omit<R
   return { perUsd, marginPct: pct(b.marginPct, DEFAULT_MARGIN_PCT, 20), reservePct: pct(b.reservePct, DEFAULT_RESERVE_PCT, 100), updatedAt: now.toISOString() };
 }
 
+export const RATES_REMIND_HOURS = 36; // Finance gets a bell this old, 12 hours before the pause
+
+// The rates reminder due now: "soon" from 36 hours (once per set of rates), "paused" from 48 hours (once). sent: what was already sent for
+// these rates (saving new rates replaces the document, so the reminders start again).
+export function ratesReminderDue(r: Pick<Rates, "updatedAt"> | null | undefined, sent: string | undefined, now = new Date()): "soon" | "paused" | null {
+  if (!r) return null;
+  const hours = (now.getTime() - Date.parse(r.updatedAt)) / 3_600_000;
+  if (hours >= RATES_MAX_AGE_HOURS) return sent === "paused" ? null : "paused";
+  if (hours >= RATES_REMIND_HOURS) return sent === "soon" || sent === "paused" ? null : "soon";
+  return null;
+}
+
 export const ratesFresh = (r: Rates | null | undefined, now = new Date()) =>
   !!r && now.getTime() - Date.parse(r.updatedAt) <= RATES_MAX_AGE_HOURS * 3_600_000;
 

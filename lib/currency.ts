@@ -72,6 +72,8 @@ const ZONES: Record<string, string> = {
   "Africa/Lusaka": "ZMW", "Africa/Casablanca": "MAD", "Africa/Algiers": "DZD", "Africa/Tunis": "TND",
   "Africa/Tripoli": "LYD", "Africa/Banjul": "GMD", "Asia/Tokyo": "JPY", "Asia/Dubai": "AED", "Asia/Shanghai": "CNY", "Africa/Gaborone": "BWP", "Africa/Cairo": "EGP", "Europe/London": "GBP", "America/Toronto": "CAD",
 };
+// Only an exact time-zone match (no "anywhere in Europe is euros" guess): used to overrule a connection located on another continent.
+export const zoneCurrency = (timeZone: string | null | undefined): string | null => (timeZone && ZONES[timeZone]) || null;
 export function guessCurrency(timeZone: string | undefined): string {
   if (!timeZone) return "USD";
   if (ZONES[timeZone]) return ZONES[timeZone];

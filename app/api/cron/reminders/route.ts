@@ -28,7 +28,7 @@ import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
 import { sendEventReminders } from "@/lib/events-server";
 import { sendInterviewReminders } from "@/lib/interviews-server";
-import { sendRenewReminders } from "@/lib/global-pay-server";
+import { sendRatesReminder, sendRenewReminders } from "@/lib/global-pay-server";
 import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
@@ -150,6 +150,7 @@ async function run() {
   await job("eventReminders", () => sendEventReminders(db));
   await job("interviewReminders", () => sendInterviewReminders(db)); // job interviews: a day and an hour before (lib/interviews-server.ts)
   await job("globalRenewals", () => sendRenewReminders(db)); // subscriptions paid in another currency: a bell 3 days before the month ends
+  await job("ratesReminder", async () => ((await sendRatesReminder(db)) ? 1 : 0)); // Finance: exchange rates 36 hours old (and 48, when paying in other currencies pauses)
   // Paid lives (lib/live-tickets-server.ts): reminders to ticket holders a day and an hour before; a live the host never opened is
   // cancelled after Admin's no-show minutes and everyone refunded to NotesApp Credit.
   await job("paidLives", () => sweepPaidLives(db));

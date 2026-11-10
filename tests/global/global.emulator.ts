@@ -129,6 +129,20 @@ process.env.ACCOUNT_DATA_KEY = Buffer.alloc(32, 7).toString("base64");
   // a price under 50 cents is refused
   await refused(S.saveGlobal(db, "p_ke", { currency: "KES", tiers: { premium: { enabled: true, price: 20 } } }), 400, /under \$0\.50/);
 
+  // Finance's nudge: 36 hours after the rates were saved, once; at 48, the pause notice, once; saving new rates starts again
+  const told: string[] = [];
+  const nudge = { recipients: async () => [{ uid: "fin_1", email: "fin@x.test" }], bell: async (_u: string, m: string) => { told.push(`bell:${m}`); }, email: async (_t: string, subj: string) => { told.push(`mail:${subj}`); } };
+  const saved = Date.parse(String((await db.doc("globalConfig/rates").get()).data()!.updatedAt));
+  const h = (n: number) => new Date(saved + n * 3_600_000);
+  assert.equal(await S.sendRatesReminder(db, h(30), nudge), null);
+  assert.equal(await S.sendRatesReminder(db, h(37), nudge), "soon");
+  assert.equal(await S.sendRatesReminder(db, h(38), nudge), null, "once");
+  assert.equal(await S.sendRatesReminder(db, h(49), nudge), "paused");
+  assert.equal(await S.sendRatesReminder(db, h(50), nudge), null);
+  assert.ok(told.some((m) => m.startsWith("bell:Exchange rates are 36 hours old")) && told.includes("mail:Paying in other currencies is paused"));
+  await S.setRates(db, "fin", { perUsd: { NGN: 1500 } }, h(50));
+  assert.equal(await S.sendRatesReminder(db, h(50 + 37), nudge), "soon", "new rates, new reminders");
+
   console.log("GLOBAL SERVER OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

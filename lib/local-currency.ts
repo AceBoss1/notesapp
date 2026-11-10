@@ -5,7 +5,8 @@
 //      x-vercel-ip-country header, which middleware.ts copies into the na_cc cookie);
 //   3. a guess from their browser's time zone (lib/currency.ts guessCurrency).
 // Anyone can change it at any time; nothing is charged in a currency without them seeing it first.
-import { CURRENCIES, currencyForCountry, guessCurrency } from "./currency";
+import { CURRENCIES, currencyForCountry, guessCurrency, zoneCurrency } from "./currency";
+import { AFRICAN_CODES } from "./countries";
 
 export const COUNTRY_COOKIE = "na_cc"; // two-letter country code, set by middleware.ts
 export const CURRENCY_KEY = "notesapp:pay-currency"; // the visitor's own pick (localStorage), shared with the Subscribe window
@@ -22,6 +23,11 @@ export function countryFromHeaders(get: (name: string) => string | null | undefi
 // Pure: the currency for a visitor, from what we know.
 export function pickCurrency(o: { saved?: string | null; country?: string | null; timeZone?: string | null }): { currency: string; source: "saved" | "country" | "timezone" } {
   if (o.saved && CURRENCIES.some((c) => c.code === o.saved)) return { currency: o.saved, source: "saved" };
+  // A connection located outside Africa while the computer's clock is on an African time zone is almost always a VPN, a browser's
+  // privacy relay or an operator routing traffic through Europe (members in Lagos were shown euros because their connection came out in
+  // the Netherlands, 10 Nov 2026): the time zone wins then.
+  const zone = zoneCurrency(o.timeZone);
+  if (zone && o.timeZone?.startsWith("Africa/") && o.country && isCountryCode(o.country) && !AFRICAN_CODES.has(o.country)) return { currency: zone, source: "timezone" };
   if (o.country && isCountryCode(o.country)) return { currency: currencyForCountry(o.country), source: "country" };
   return { currency: guessCurrency(o.timeZone || undefined), source: "timezone" };
 }

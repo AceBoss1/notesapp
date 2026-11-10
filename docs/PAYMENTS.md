@@ -186,6 +186,7 @@ it): check Vercel. If it is, **don't change it** (every stored number would beco
 
 **E. Exchange rates**: Admin → **Treasury** → Exchange rates: for each currency, how many one US dollar buys (from your bank or a
 trusted rates site; for naira, the rate you can actually convert at), Margin 3, Reserve 10 → Save rates. Update them at least every
-48 hours, or paying in another currency pauses until you do.
+48 hours, or paying in another currency pauses until you do. Finance, super admins and the owner get a bell and an email when the
+rates are 36 hours old, and again if they reach 48 (`sendRatesReminder`, in the reminders cron).
 
 **F. Before real money**: the intercompany agreement and tax set-up (FUNDING.md §5a, step 5), then one small live payment each way.

@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.161.1",
+    bump: "patch",
+    date: "2026-11-10",
+    changes: [
+      { kind: "fixed", text: "Prices no longer show in euros for members in Africa whose connection is routed through Europe (a VPN, a browser's privacy relay or their network): when the connection appears outside Africa but your device's clock is on an African time zone, we use your time zone's currency. You can still pick any currency yourself." },
+      { kind: "added", text: "Finance gets a reminder when the exchange rates are 36 hours old, so paying in other currencies never pauses unexpectedly." },
+    ],
+  },
+  {
     version: "v0.161.0",
     bump: "minor",
     date: "2026-11-10",
