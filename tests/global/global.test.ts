@@ -2,9 +2,10 @@
 import assert from "node:assert/strict";
 import { createHmac } from "crypto";
 import { currencyForCountry, formatMoney, guessCurrency, payMethodsLabel, providerFor, toMajor, toMinor } from "../../lib/currency";
-import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
+import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, ratesReminderDue, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
 import { formEncode, isValidStripeSignature } from "../../lib/stripe";
 import { countryFromHeaders, isCountryCode, pickCurrency } from "../../lib/local-currency";
+import { AFRICAN_CODES } from "../../lib/countries";
 import { isGlobalSale, isSaleKind, moneyIn, priceCurrency, validateWorldAddress } from "../../lib/global-sales";
 import { isValidFlutterwaveHash } from "../../lib/flutterwave";
 
@@ -105,6 +106,18 @@ assert.deepEqual(pickCurrency({ country: "SN" }), { currency: "XOF", source: "co
 assert.deepEqual(pickCurrency({ country: "BR" }), { currency: "USD", source: "country" }, "a country we don't list pays in dollars");
 assert.deepEqual(pickCurrency({ timeZone: "Africa/Accra" }), { currency: "GHS", source: "timezone" });
 assert.deepEqual(pickCurrency({}), { currency: "USD", source: "timezone" });
+// a Lagos computer whose connection comes out in the Netherlands (VPN, relay, routing) gets naira, not euros
+assert.deepEqual(pickCurrency({ country: "NL", timeZone: "Africa/Lagos" }), { currency: "NGN", source: "timezone" });
+assert.deepEqual(pickCurrency({ country: "BJ", timeZone: "Africa/Lagos" }), { currency: "XOF", source: "country" }, "inside Africa the country still wins");
+assert.deepEqual(pickCurrency({ country: "NL", timeZone: "Europe/Amsterdam" }), { currency: "EUR", source: "country" });
+assert.deepEqual(pickCurrency({ country: "GB", timeZone: "Asia/Dubai" }), { currency: "GBP", source: "country" }, "only an African clock overrules");
+assert.ok(AFRICAN_CODES.has("NG") && AFRICAN_CODES.has("ZW") && !AFRICAN_CODES.has("GB") && AFRICAN_CODES.size === 54);
+// the 36-hour nudge to Finance, once, then the 48-hour pause notice, once
+const rr = { updatedAt: "2026-11-10T00:00:00Z" };
+const at = (h: number) => new Date(Date.parse(rr.updatedAt) + h * 3_600_000);
+assert.equal(ratesReminderDue(rr, undefined, at(35)), null); assert.equal(ratesReminderDue(rr, undefined, at(36)), "soon");
+assert.equal(ratesReminderDue(rr, "soon", at(40)), null); assert.equal(ratesReminderDue(rr, "soon", at(48)), "paused");
+assert.equal(ratesReminderDue(rr, "paused", at(60)), null); assert.equal(ratesReminderDue(null, undefined, at(60)), null);
 
 // Selling in your local currency (lib/global-sales.ts): which sales go the global way, an item's currency, the address outside Nigeria.
 assert.equal(isGlobalSale("NGN", "NGN"), false, "naira for naira: the usual Paystack checkout");

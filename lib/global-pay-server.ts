@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { currencyInfo, formatMoney, isCurrency, providerFor, toMajor, toMinor, type Provider } from "./currency";
 import {
   GLOBAL_HOLD_DAYS, GLOBAL_PERIOD_DAYS, GlobalPayError, canPayFrom, checkHomePrice, cleanRates, convert, earningOf, emptyPool, homeOffers,
-  poolLine, ratesFresh, readerPrice, renewReminderDue, suggestConversions, type GlobalSettings, type Pool, type Rates,
+  poolLine, ratesFresh, ratesReminderDue, readerPrice, renewReminderDue, RATES_MAX_AGE_HOURS, suggestConversions, type GlobalSettings, type Pool, type Rates,
 } from "./global-pay";
 import { SUB_TIERS, TIER_NAME, isSubTier, tierOffers, tierRate, type SubTier } from "./fans";
 import { commissionRateFor } from "./tiers";
@@ -340,6 +340,35 @@ export async function sendRenewReminders(db: Firestore, now = new Date()): Promi
     n++;
   }
   return n;
+}
+
+// The reminders cron: a bell (and an email) to Finance, super admins and the owner when the exchange rates are 36 hours old, and again
+// if they reach 48 and paying in another currency pauses. Once each per set of rates.
+export type RatesNudgeDeps = { recipients: () => Promise<{ uid: string; email: string }[]>; bell: (uid: string, message: string) => Promise<void>; email: (to: string, subject: string, text: string) => Promise<void> };
+export async function sendRatesReminder(db: Firestore, now = new Date(), deps?: RatesNudgeDeps): Promise<"soon" | "paused" | null> {
+  const ref = db.doc("globalConfig/rates");
+  const r = (await ref.get()).data() as (Rates & { reminded?: string }) | undefined;
+  const due = ratesReminderDue(r, r?.reminded, now);
+  if (!r || !due) return null;
+  await ref.update({ reminded: due });
+  const pauseAt = new Date(Date.parse(r.updatedAt) + RATES_MAX_AGE_HOURS * 3_600_000).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" });
+  const message = due === "soon"
+    ? `Exchange rates are 36 hours old. Update them on Admin → Treasury before ${pauseAt} (Lagos), or paying in other currencies pauses.`
+    : "Exchange rates are 48 hours old: paying in other currencies is paused. Update them on Admin → Treasury to restart it.";
+  const d = deps ?? (await defaultRatesDeps(db));
+  for (const p of await d.recipients()) {
+    await d.bell(p.uid, message).catch((e) => console.error("rates bell", e));
+    if (p.email) await d.email(p.email, due === "soon" ? "Update the exchange rates today" : "Paying in other currencies is paused", message).catch((e) => console.error("rates email", e));
+  }
+  return due;
+}
+async function defaultRatesDeps(db: Firestore): Promise<RatesNudgeDeps> {
+  const [{ listStaff }, { notifyBell, sendEmail }, { SITE_URL }] = await Promise.all([import("./admin-access-server"), import("./email"), import("./host")]);
+  return {
+    recipients: async () => (await listStaff(db)).filter((p) => p.owner || p.role === "super" || p.depts.includes("finance")).map((p) => ({ uid: p.uid, email: p.email })),
+    bell: (uid, message) => notifyBell({ uid, type: "team", linkHref: "/admin/treasury", message }),
+    email: async (to, subject, text) => { await sendEmail({ to, subject, text, action: { label: "Open Treasury", url: `${SITE_URL}/admin/treasury` } }); },
+  };
 }
 
 // The provider for a payment, wired to the real clients (the routes use this; tests pass their own).

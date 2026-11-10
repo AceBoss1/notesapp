@@ -26,6 +26,8 @@ const ROWS: [string, string, string, string[]?][] = [
   ["CO", "COL", "Colombia"], ["JM", "JAM", "Jamaica"], ["TT", "TTO", "Trinidad and Tobago"], ["BB", "BRB", "Barbados"], ["HT", "HTI", "Haiti"], ["CU", "CUB", "Cuba"],
 ];
 
+// The 54 African countries (the first rows above).
+export const AFRICAN_CODES: ReadonlySet<string> = new Set(ROWS.slice(0, ROWS.findIndex((r) => r[0] === "GB")).map((r) => r[0]));
 export const COUNTRIES: Country[] = ROWS.map(([code, code3, name, aka]) => ({ code, code3, name, aka: aka ?? [] }));
 
 // A flag is two "regional indicator" letters; Noto Color Emoji draws them on every device (Windows shows only the letters otherwise).
