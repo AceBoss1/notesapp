@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.159.0",
+    bump: "minor",
+    date: "2026-11-09",
+    changes: [
+      { kind: "added", text: "The NotesApp Partner Network at /partners: seven tracks (solutions partners, associations, workplace wellbeing, technology, channel and resellers, media and music, campus and community chapters) and three tiers, Registered, Certified and Premier. Apply free; the partnerships team reviews every application." },
+      { kind: "added", text: "Partner shares: members a partner brings earn the partner their tier's share of plan payments, for longer as the tier rises, paid like referral earnings. Super admins set the shares in Admin → Limits → Partner Network." },
+      { kind: "added", text: "The partner directory and Find an expert: browse approved partners by track, service or place, and ask an expert to set up your NotesApp. They reply in your messages." },
+      { kind: "added", text: "Certified and Premier partners carry a shield with a tick (⛨ ✔) on their badge, in the directory, on their page and on their profile." },
+      { kind: "added", text: "Verified member badges: ask your association to verify you, or join a chapter, and the badge shows on your profile. Workplaces share a code with staff and only ever see how many joined, never who or what they booked." },
+      { kind: "added", text: "The partner portal: your link and code, share and progress, listing, partner training and Ask to be Certified, requests from members, members to verify, and the workplace code and recommended practitioners. Admin → Partners reviews applications and manages tiers." },
+      { kind: "added", text: "Help articles on the Partner Network, the portal, Find an expert, association badges, workplace wellbeing and chapters, so Nana can answer partner questions." },
+    ],
+  },
+  {
     version: "v0.158.1",
     bump: "patch",
     date: "2026-11-09",

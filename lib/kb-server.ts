@@ -2,6 +2,7 @@ import { getFanSettings } from "./fans-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { KbError, cleanArticle, type KbArticle } from "./kb";
 import { builtInArticles, type KbLive } from "./kb-articles";
+import { tierTerms } from "./partner-network-server";
 import { currentPricing } from "./pricing";
 import { ensurePricing } from "./pricing-server";
 import { getLimitOverrides } from "./limits-server";
@@ -45,7 +46,9 @@ export async function loadKbLive(db: Firestore): Promise<KbLive> {
   const paid = roomSettings ? paidLiveFigures(roomSettings) : undefined;
   // Pay-per-minute sessions (Admin → Limits → Pay-per-minute sessions): the minutes, the grace, the wait and the no-show minutes.
   const ppm = roomSettings ? ppmFigures(roomSettings) : undefined;
-  return { limits, agents, rooms, recording, fans, paid, ppm };
+  // The Partner Network's tier shares (Admin → Limits → Partner Network).
+  const partners = await tierTerms(db).catch(() => undefined);
+  return { limits, agents, rooms, recording, fans, paid, ppm, partners };
 }
 
 // Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles

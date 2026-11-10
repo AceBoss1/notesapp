@@ -2,6 +2,7 @@ import type { Firestore, Transaction } from "firebase-admin/firestore";
 
 import { getAuth } from "firebase-admin/auth";
 import { createSubscription, refundTransaction } from "./paystack";
+import { partnerTermsFor } from "./partner-network-server";
 import {
   HOLD_DAYS, MIN_CASH_KOBO, PLAN_SHARE, affiliateKobo, cleanAffiliatePercent, creditWithBonus, isAvailable, jumpAlert, planEarningKobo, withinPlanWindow,
   type Earning, type EarningSource,
@@ -83,16 +84,18 @@ const createIfNew = async (db: Firestore, e: Earning) => {
 };
 
 // After a real plan payment (the first one, or a renewal): PLAN_SHARE to whoever brought the payer, for PLAN_MONTHS from the
-// payer's first real plan payment. The free month's card check is not a real payment and never reaches here.
+// payer's first real plan payment. The free month's card check is not a real payment and never reaches here. When whoever brought
+// them is an active NotesApp partner, the partner's tier sets the share and the months instead (lib/partner-network-server.ts).
 export async function recordPlanEarning(db: Firestore, payerUid: string, reference: string, paidKobo: number, title: string, now = new Date()): Promise<Earning | null> {
   const refDoc = db.doc(`referrals/${payerUid}`);
   const u = (await refDoc.get()).data();
   if (!u?.referredBy || paidKobo <= 0) return null;
-  if (!withinPlanWindow(u.paidSince, now)) return null;
+  const partner = await partnerTermsFor(db, String(u.referredBy)).catch(() => null);
+  if (!withinPlanWindow(u.paidSince, now, partner?.months)) return null;
   if (!u.paidSince) await refDoc.update({ paidSince: now.toISOString() });
   const e: Earning = {
     id: `plan_${reference}`, uid: String(u.referredBy), source: "plan", paymentReference: reference, buyerUid: payerUid, title,
-    baseKobo: paidKobo, percent: Math.round(PLAN_SHARE * 100), kobo: planEarningKobo(paidKobo), status: "held",
+    baseKobo: paidKobo, percent: partner?.percent ?? Math.round(PLAN_SHARE * 100), kobo: partner ? Math.round((paidKobo * partner.percent) / 100) : planEarningKobo(paidKobo), status: "held",
     releaseAfter: new Date(now.getTime() + HOLD_DAYS.plan * 86_400_000).toISOString(), createdAt: now.toISOString(),
   };
   if (!(await createIfNew(db, e))) return null;
