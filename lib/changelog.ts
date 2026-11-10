@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.160.0",
+    bump: "minor",
+    date: "2026-11-10",
+    changes: [
+      { kind: "changed", text: "Get paid in your local currency: the home page, footer, sign-in, About and Careers pages, and Nana now say so, in place of \"in Naira\"." },
+      { kind: "added", text: "Your country and currency are detected for you: from your connection (or your device's time zone), #NotesApp picks your country's currency and shows it with your flag at the bottom of every page. Change it there at any time, or choose Automatic to go back." },
+      { kind: "changed", text: "The Subscribe window opens in your detected or chosen currency, and a creator who hasn't chosen an earning currency yet is offered the one for their country." },
+    ],
+  },
+  {
     version: "v0.159.0",
     bump: "minor",
     date: "2026-11-09",

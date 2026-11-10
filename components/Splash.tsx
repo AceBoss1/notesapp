@@ -82,7 +82,7 @@ export default function Splash() {
             {top}
             <div className="my-auto px-10 text-center">
               <p className="font-display text-5xl">Publish. Book. Get paid.</p>
-              <p className="mx-auto mt-4 max-w-sm text-lg text-paper/85">A home for African creators, professionals and businesses, in Naira.</p>
+              <p className="mx-auto mt-4 max-w-sm text-lg text-paper/85">A home for African creators, professionals and businesses, paid in your local currency.</p>
             </div>
             {legal}
           </div>
@@ -92,7 +92,7 @@ export default function Splash() {
         <div className={`card w-full p-8 md:my-auto md:shadow-[0_30px_60px_-30px_rgba(122,3,40,0.35)] ${view === "signup" ? "max-w-md" : "max-w-sm"}`}>
           <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={72} height={72} priority className="mx-auto h-[72px] w-[72px] rounded-2xl" />
           <h1 className="mt-5 font-display text-3xl text-ink">Welcome to <span className="text-crimson">NotesApp</span></h1>
-          <p className="mt-2 text-sm text-slate">Publish a note, take a booking, get paid in Naira.</p>
+          <p className="mt-2 text-sm text-slate">Publish a note, take a booking, get paid in your local currency.</p>
           <div className="mt-6 min-h-[7rem] w-full">
             {signedOut && (
               <>

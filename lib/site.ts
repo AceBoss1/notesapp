@@ -36,7 +36,7 @@ export const DISCORD_LABEL = SITE.discord.replace(/^https?:\/\//, "");
 // The standard "what is #NotesApp" description: the site's meta description, the app manifest, the About intro,
 // the help centre's "What is #NotesApp?" article and Nana's answer all use these words. Change them here.
 export const WHAT_IS_INTRO =
-  "#NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in Naira, all in one place.";
+  "#NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in your local currency, all in one place.";
 export const WHAT_YOU_CAN_DO = [
   "Write journals and share them with readers who follow you and the topics they care about",
   "Take bookings for private 1:1 sessions",
@@ -58,7 +58,7 @@ export const MISSION =
 export const MISSION_PILLARS = [
   { title: "Share", copy: "Journals, communities, messages and calls take what people know to the people who need it." },
   { title: "Learn", copy: "Notes Academy, Naija Exam Prep and certificates anyone can check turn knowledge into qualifications." },
-  { title: "Earn", copy: "Bookings, subscriptions, gifts, Notes Market and course sales pay out in Naira, with our commissions set out in the open." },
+  { title: "Earn", copy: "Bookings, subscriptions, gifts, Notes Market and course sales pay you out, with subscriptions in your local currency wherever you are, and our commissions set out in the open." },
   { title: "Belong", copy: "Everyone is welcome as family: readers become buyers, learners become teachers, customers become creators." },
   { title: "Include", copy: "Built for African realities: phone-first, light on data, local payments, and African languages, starting with Kiswahili." },
 ];

@@ -19,7 +19,7 @@ export default async function CareersPage() {
   return (
     <>
       <PageHero eyebrow="Company / Careers" title={<>Work at #NotesApp</>}>
-        <p>We&apos;re building one home for Africa&apos;s creators, teachers, professionals and businesses to share what they know and get paid for it, in naira. We work remotely across Nigeria, on our own tools, and we write things down.</p>
+        <p>We&apos;re building one home for Africa&apos;s creators, teachers, professionals and businesses to share what they know and get paid for it, in their local currency. We work remotely across Nigeria, on our own tools, and we write things down.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
         <h2 className="font-display text-3xl text-ink">Open roles</h2>

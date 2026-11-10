@@ -137,7 +137,7 @@ export default async function AboutPage() {
           <p className="eyebrow">The pain we started with</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">Five tools to do one job</h2>
           <p className="mt-4 text-lg text-slate">
-            We started #NotesApp to fix our own problem. To publish, take a booking, sell and get paid in Naira, an African
+            We started #NotesApp to fix our own problem. To publish, take a booking, sell and get paid in their local currency, an African
             creator, professional or business stitches together a blog, a booking link, a WhatsApp catalogue, a payment page and
             a spreadsheet. The best of those tools were built for somewhere else: Substack takes paid subscriptions only
             through Stripe and Calendly only through Stripe or PayPal, so neither has a Naira checkout. Every handoff between them loses a reader, a booking or a sale.
@@ -159,7 +159,7 @@ export default async function AboutPage() {
           <p className="eyebrow">What we built</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">One account, the whole loop</h2>
           <p className="mt-4 text-lg text-slate">
-            Publish a journal, get booked from it and get paid in Naira through Paystack{WALLET_LIVE ? " or a NotesApp Credit wallet" : ""}.
+            Publish a journal, get booked from it and get paid in your local currency: naira through Paystack, and subscriptions in other currencies by card or mobile money{WALLET_LIVE ? " or a NotesApp Credit wallet" : ""}.
             Sell physical goods and downloads in Notes Market, and teach courses in Notes Academy with certificates anyone can
             check. Keep in touch by email{MESSAGES_LIVE ? ", messages and group chats" : ""}{CALLS_LIVE ? ", and free calls that are end-to-end encrypted" : ""}.
             Businesses run it on their own domain; Enterprises plug in with our API. Reading, commenting, booking and buying are

@@ -12,7 +12,7 @@ Publish. Book. Sell. Connect. Get paid.
 #NotesApp is where African creators, coaches, consultants and businesses publish, teach, sell and get paid, all in one place.
 
 - Write journals and grow followers, with a feed made for your interests.
-- Take bookings with your own rates, and get paid in Naira.
+- Take bookings with your own rates, and get paid in your local currency.
 - Teach free and paid courses in Notes Academy, with certificates.
 - Open a shop, take orders and track parcels.
 - Message and call the people you follow, free, end to end encrypted.

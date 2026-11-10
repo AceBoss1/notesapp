@@ -25,7 +25,7 @@ The mission has five pillars. Every campaign should serve at least one, and say 
 | --- | --- | --- |
 | Share | Journals, communities, messages and calls take what people know to the people who need it | Reach: readers, followers, listeners |
 | Learn | Notes Academy, Naija Exam Prep and certificates anyone can check turn knowledge into qualifications | Outcomes: scores, certificates, jobs |
-| Earn | Bookings, subscriptions, gifts, Notes Market and course sales pay out in naira, with commissions in the open | Money: real payouts to real members |
+| Earn | Bookings, subscriptions, gifts, Notes Market and course sales pay out, with subscriptions in each member's local currency and commissions in the open | Money: real payouts to real members |
 | Belong | Everyone is welcome as family: readers become buyers, learners become teachers, customers become creators | Movement between roles |
 | Include | Phone-first, light on data, local payments, African languages: Nana translates between English, Pidgin, Igbo, Hausa and Yoruba in text, and into Kiswahili in audio | Access: works on a mid-range Android on a slow connection |
 
@@ -169,7 +169,7 @@ This is our long game, and it stays inside the team: we earn the next generation
 
 **Store line:** Publish. Book. Sell. Connect. Get paid.
 
-**The standard description** (use it word for word in bios, press notes and directories): #NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in Naira, all in one place.
+**The standard description** (use it word for word in bios, press notes and directories): #NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in your local currency, all in one place.
 
 ### Message pillars
 
@@ -198,7 +198,7 @@ This is our long game, and it stays inside the team: we earn the next generation
 | --- | --- |
 | Members, family, publishers, readers, learners, players | Users, customers (in member-facing copy) |
 | Journals, notes, Moments, Media | Blog posts, stories, reels |
-| Get paid in naira; commission; held until | Passive income; guaranteed earnings; free money |
+| Get paid in your local currency; commission; held until | Passive income; guaranteed earnings; free money |
 | Our own tools: Community, Spaces, Circles, Booking, Store, Events, Notes Academy | "Join our WhatsApp/Telegram group", "book on Calendly", "pay on Selar" |
 | Nana, our AI helper | ChatGPT-style claims about what AI can do for your income |
 
