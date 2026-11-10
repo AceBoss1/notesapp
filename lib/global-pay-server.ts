@@ -166,7 +166,8 @@ export async function myGlobal(db: Firestore, uid: string) {
   const due = await db.collection("globalEarnings").where("publisherUid", "==", uid).where("status", "==", "held").get();
   const owed: Record<string, number> = {};
   for (const d of due.docs) { const e = d.data() as GlobalEarning; owed[e.currency] = (owed[e.currency] ?? 0) + e.minor; }
-  return { settings: (g.data() as GlobalSettings | undefined) ?? { currency: "NGN", acceptGlobal: true }, payout: a.data() ?? null, owed, ratesReady: ratesFresh(rates) };
+  // saved: false until the publisher saves a currency, so the page can suggest the one for the country they're in.
+  return { settings: (g.data() as GlobalSettings | undefined) ?? { currency: "NGN", acceptGlobal: true }, saved: g.exists, payout: a.data() ?? null, owed, ratesReady: ratesFresh(rates) };
 }
 
 export async function saveGlobal(db: Firestore, uid: string, b: Record<string, unknown>, now = new Date()): Promise<GlobalSettings> {

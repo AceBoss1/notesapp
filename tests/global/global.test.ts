@@ -4,6 +4,7 @@ import { createHmac } from "crypto";
 import { currencyForCountry, formatMoney, guessCurrency, payMethodsLabel, providerFor, toMajor, toMinor } from "../../lib/currency";
 import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
 import { formEncode, isValidStripeSignature } from "../../lib/stripe";
+import { countryFromHeaders, isCountryCode, pickCurrency } from "../../lib/local-currency";
 import { isValidFlutterwaveHash } from "../../lib/flutterwave";
 
 // currencies and providers: Stripe for USD/GBP/EUR, Paystack for naira, Flutterwave for the rest of Africa; anywhere else pays USD
@@ -89,5 +90,19 @@ assert.equal(guessCurrency("Asia/Dubai"), "AED"); assert.equal(guessCurrency("Af
 assert.equal(currencyForCountry("BW"), "BWP"); assert.equal(providerFor("BWP"), "stripe"); assert.equal(formatMoney(4500, "BWP"), "P45");
 assert.equal(guessCurrency("Africa/Gaborone"), "BWP");
 assert.equal(payMethodsLabel("CNY"), "card, Alipay or WeChat Pay"); assert.equal(payMethodsLabel("KES"), "card or mobile money"); assert.equal(payMethodsLabel("XOF"), "mobile money"); assert.equal(payMethodsLabel("BWP"), "card");
+
+// Detecting a visitor's country and currency (lib/local-currency.ts): their own pick, then their country, then their time zone.
+const hdr = (h: Record<string, string>) => (n: string) => h[n];
+assert.equal(countryFromHeaders(hdr({ "x-vercel-ip-country": "ke" })), "KE");
+assert.equal(countryFromHeaders(hdr({}), "gh"), "GH", "the cookie when there's no header");
+assert.equal(countryFromHeaders(hdr({ "x-vercel-ip-country": "XX" })), null, "unknown");
+assert.equal(countryFromHeaders(hdr({ "x-vercel-ip-country": "T1" })), null, "Tor");
+assert.ok(!isCountryCode("ken"));
+assert.deepEqual(pickCurrency({ saved: "GBP", country: "KE", timeZone: "Africa/Lagos" }), { currency: "GBP", source: "saved" });
+assert.deepEqual(pickCurrency({ saved: "BTC", country: "KE" }), { currency: "KES", source: "country" }, "an unknown pick is ignored");
+assert.deepEqual(pickCurrency({ country: "SN" }), { currency: "XOF", source: "country" });
+assert.deepEqual(pickCurrency({ country: "BR" }), { currency: "USD", source: "country" }, "a country we don't list pays in dollars");
+assert.deepEqual(pickCurrency({ timeZone: "Africa/Accra" }), { currency: "GHS", source: "timezone" });
+assert.deepEqual(pickCurrency({}), { currency: "USD", source: "timezone" });
 
 console.log("GLOBAL OK");

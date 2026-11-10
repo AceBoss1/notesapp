@@ -10,16 +10,14 @@ import { startCheckout } from "@/lib/checkout";
 import { formatNaira, PublisherSettings } from "@/lib/booking-time";
 import { SUB_TIERS, TIER_BADGE, TIER_NAME, openTiers, tierOf, tierOffers, type SubTier, type TierOffers } from "@/lib/fans";
 import { TierChip } from "@/components/fans/FanBadges";
-import { CURRENCIES, formatMoney, guessCurrency, payMethodsLabel } from "@/lib/currency";
+import { CURRENCIES, formatMoney, payMethodsLabel } from "@/lib/currency";
+import { CURRENCY_EVENT, preferredCurrency, setPreferredCurrency } from "@/lib/local-currency";
 
 // Paying in another currency (lib/global-pay.ts): a reader outside Nigeria, or any reader of a creator who earns in another currency,
 // pays in their own currency through Stripe or Flutterwave (or Paystack for naira). quote: GET /api/global/quote.
 type Quote = { home: string; payCurrency: string; domestic: boolean; ready: boolean; tiers: { tier: SubTier; homeMinor: number; payMinor: number | null }[] };
-const CUR_KEY = "notesapp:pay-currency";
-function startCurrency(): string {
-  try { const saved = localStorage.getItem(CUR_KEY); if (saved && CURRENCIES.some((c) => c.code === saved)) return saved; } catch { /* private window */ }
-  try { return guessCurrency(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch { return "USD"; }
-}
+// The reader's own pick, else the currency of the country they're in, else their time zone's (lib/local-currency.ts).
+const startCurrency = (): string => preferredCurrency().currency;
 
 // Subscribing to a creator (lib/fans.ts): Premium, VIP and VVIP, whichever they offer, each at the creator's monthly price. A subscriber
 // sees their tier and can change it: the new tier starts now and the days left on the old one are added on (lib/payments.ts).
@@ -48,12 +46,18 @@ export default function SubscribeButton({ username, publisherUid, creatorName }:
   const [quote, setQuote] = useState<Quote | null | undefined>(undefined);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-  useEffect(() => { setCur(startCurrency()); }, []);
+  useEffect(() => {
+    setCur(startCurrency());
+    // The footer's currency picker changes it everywhere on the page.
+    const follow = () => setCur(startCurrency());
+    window.addEventListener(CURRENCY_EVENT, follow);
+    return () => window.removeEventListener(CURRENCY_EVENT, follow);
+  }, []);
   useEffect(() => {
     setQuote(undefined);
     fetch(`/api/global/quote?username=${encodeURIComponent(username)}&currency=${cur}`).then((r) => (r.ok ? r.json() : null)).then(setQuote).catch(() => setQuote(null));
   }, [username, cur]);
-  function pickCurrency(c: string) { setCur(c); try { localStorage.setItem(CUR_KEY, c); } catch { /* fine */ } }
+  function pickCurrency(c: string) { setCur(c); setPreferredCurrency(c); }
   useEffect(() => {
     // Without the creator's id (a premium entry's gate), look it up from their username.
     const uidOf = publisherUid ? Promise.resolve(publisherUid) : getDoc(doc(db, "usernames", username)).then((u) => String(u.data()?.uid ?? ""));

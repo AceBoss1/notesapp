@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { CURRENCIES, formatMoney, toMajor } from "@/lib/currency";
+import { preferredCurrency } from "@/lib/local-currency";
 import { SUB_TIERS, TIER_NAME, type SubTier } from "@/lib/fans";
 
 // Rates & payouts → "Readers in other currencies" (lib/global-pay.ts). A creator chooses the currency they earn in. In naira, their usual
@@ -10,7 +11,7 @@ import { SUB_TIERS, TIER_NAME, type SubTier } from "@/lib/fans";
 // In any other currency, they set their prices in it here, and add where they're paid in it (a bank account or mobile money).
 type Settings = { currency: string; acceptGlobal?: boolean; tiers?: Partial<Record<SubTier, { enabled?: boolean; minor?: number }>> };
 type Payout = { currency: string; method: "bank" | "mobile_money"; accountBank: string; accountName: string; last4: string } | null;
-type Data = { settings: Settings; payout: Payout; owed: Record<string, number>; ratesReady: boolean };
+type Data = { settings: Settings; saved?: boolean; payout: Payout; owed: Record<string, number>; ratesReady: boolean };
 
 export default function GlobalPricingSettings({ user }: { user: User }) {
   const [data, setData] = useState<Data | null>(null);
@@ -29,7 +30,8 @@ export default function GlobalPricingSettings({ user }: { user: User }) {
   };
   useEffect(() => {
     call("GET").then((d: Data) => {
-      setData(d); setCur(d.settings.currency || "NGN"); setAccept(d.settings.acceptGlobal !== false);
+      // Not saved yet: suggest the currency of the country they're in (lib/local-currency.ts); they still choose and save it.
+      setData(d); setCur(d.saved === false ? preferredCurrency().auto : d.settings.currency || "NGN"); setAccept(d.settings.acceptGlobal !== false);
       const t = d.settings.tiers ?? {};
       setPrices(Object.fromEntries(SUB_TIERS.map((k) => [k, { on: !!t[k]?.enabled, price: t[k]?.minor ? String(toMajor(t[k]!.minor!, d.settings.currency)) : "" }])) as typeof prices);
     }).catch((e) => setMsg({ ok: false, text: e instanceof Error ? e.message : "Couldn't load." }));

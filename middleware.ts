@@ -117,7 +117,18 @@ function route(req: NextRequest, host: string, fam: Family) {
   return NextResponse.next();
 }
 
+// The visitor's country (Vercel's geolocation of their connection) is kept in the na_cc cookie, so pages can preselect their currency
+// (lib/local-currency.ts). Set only when it's missing or changed, never on API calls.
 export async function middleware(req: NextRequest) {
+  const res = await handle(req);
+  const country = (req.headers.get("x-vercel-ip-country") || "").toUpperCase();
+  if (/^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1" && req.cookies.get("na_cc")?.value !== country && !req.nextUrl.pathname.startsWith("/api/")) {
+    res.cookies.set("na_cc", country, { path: "/", maxAge: 30 * 86_400, sameSite: "lax", secure: true });
+  }
+  return res;
+}
+
+async function handle(req: NextRequest): Promise<NextResponse> {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
   if (!host) return NextResponse.next();
   // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.

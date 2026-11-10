@@ -1,6 +1,6 @@
 # #NotesApp
 
-Where African creators, professionals and businesses publish, take bookings, sell and get paid in Naira. Next.js 14 (App
+Where African creators, professionals and businesses publish, take bookings, sell and get paid in their local currency. Next.js 14 (App
 Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystack, Resend, Anthropic (Nana).
 
 **New here? Read `HANDOVER.md` first** (how the work is done, what's waiting, the map of the code), then this page. The owner's

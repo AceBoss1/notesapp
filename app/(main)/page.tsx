@@ -27,7 +27,7 @@ const SHOP_REFERENCE_USERNAME = "apexglitz";
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
   { step: "Book", copy: "Readers book a session straight from what they just read. No Calendly redirect, no third‑party login." },
-  { step: "Get Paid", copy: "Readers pay through Paystack in Naira. Your earnings are released to your bank after the session takes place." },
+  { step: "Get Paid", copy: "Readers pay through Paystack in naira, and subscribers anywhere pay in their local currency: cedis, shillings, rand, dollars, pounds and more. Session earnings are released after the session takes place." },
   { step: "Follow Up", copy: "Confirmation and reminder emails go to you and your client — 24 hours and 1 hour before. WhatsApp is next." },
 ];
 
@@ -38,7 +38,7 @@ const FEATURES = [
   { title: "Notes Academy: free and paid courses", copy: `Teach free courses with lessons from your own YouTube, or sell paid ones on Pro and above with text lessons and PDFs, plus your own uploaded videos on Business and Enterprise, which never download and carry each viewer's name. Add quizzes with a pass mark, marked on the spot. Teach alone, with up to 4 co-tutors who each get their share of a sale, or as your organisation. Learners keep their progress, like, save and review courses, and get certificates anyone can check at ${ROOT_DOMAIN}/certificates.` },
   { title: "The Weekly Digest", copy: "On Sunday evenings, up to ten journals from the week, your interests first with people you follow mixed in, plus four items from Notes Market and four courses from Notes Academy. One click to unsubscribe." },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
-  { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
+  { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price, and choose the currency your subscriptions pay you in while readers abroad pay in theirs. Earnings go to your verified bank or mobile money account." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
   { title: "Discount codes, coupons and Nana's pick", copy: "On every plan, make discount codes for your shop, downloads, courses and sessions, show them as coupons in your shop and share them as cards. Shoppers save coupons to My coupons, get a reminder before one ends, and at every checkout Nana applies the one that saves them the most." },
   { title: "Referrals and affiliates", copy: "Share your link or your code: friends get their first month of a plan free and you earn 20% of their plan payments for a year. Or pick products from the affiliate marketplace, promote them to your audience and earn the publisher's share of each sale, as cash or as Credit with 10% more." },
@@ -84,16 +84,16 @@ export default async function Home() {
               <br />
               Get <span className="italic text-crimson">booked</span> for it.
               <br />
-              Get paid, in Naira.
+              Get paid, in your local currency.
             </h1>
             <p className="mt-6 max-w-xl font-body text-lg text-slate">
               We started #NotesApp to fix our own pain: publishing, taking
-              bookings and getting paid in Naira meant stitching five tools
+              bookings and getting paid at home meant stitching five tools
               together. Along the way we saw that our clients and their
               customers aren&apos;t two markets, they&apos;re one family. So we
               built one home where everyone is welcome: write journals, take
               bookings, sell in Notes Market, teach in Notes Academy, message
-              and call each other free, and get paid in Naira, under your own
+              and call each other free, and get paid in your local currency, under your own
               name or your own domain.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -193,7 +193,7 @@ export default async function Home() {
         <span className="eyebrow">Why we're different</span>
         <h2 className="mt-4 max-w-2xl font-display text-3xl text-ink sm:text-4xl">
           Substack and Calendly get paid through Stripe or PayPal.
-          We get you paid in Naira.
+          We get you paid in your local currency.
         </h2>
         <FeatureMosaic className="mt-14" items={FEATURES.map((f) => ({ title: f.title, copy: f.copy, href: "href" in f ? f.href : undefined }))} />
       </section>

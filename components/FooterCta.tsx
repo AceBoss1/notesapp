@@ -13,7 +13,7 @@ export default function FooterCta() {
     <div className="border-b border-paper/10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
         <div>
-          <h2 className="font-display text-3xl text-paper sm:text-4xl">Publish, connect and get paid in Naira.</h2>
+          <h2 className="font-display text-3xl text-paper sm:text-4xl">Publish, connect and get paid in your local currency.</h2>
           <p className="mt-2 text-sm text-paper/75">Start free, move up when the numbers say so. Nana AI is there on every page.</p>
         </div>
         <div className="flex flex-wrap gap-3">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CurrencyPicker from "@/components/CurrencyPicker";
 import Image from "next/image";
 import Masthead from "@/components/shell/Masthead";
 import BottomTabs from "@/components/shell/BottomTabs";
@@ -172,7 +173,7 @@ const site = await getSiteSettingsCached();
                 </span>
               </div>
               <p className="mt-4 max-w-xs text-sm text-paper/65">
-                Publish, connect and get paid in Naira — one home for
+                Publish, connect and get paid in your local currency — one home for
                 African creators, professionals and businesses.
               </p>
               <p className="mt-6 max-w-xs text-sm text-paper/50">
@@ -237,6 +238,7 @@ const site = await getSiteSettingsCached();
           </div>
 
           <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
+            <p className="mb-3"><CurrencyPicker /></p>
             <p>
               © {new Date().getFullYear()} #NotesApp. All rights reserved.
               <span className="mx-2 hidden text-paper/30 sm:inline" aria-hidden>·</span>

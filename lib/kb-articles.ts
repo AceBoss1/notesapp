@@ -829,8 +829,12 @@ When you type a title, Nana suggests things to go with it in a **Nana suggests**
 
 Suggestions marked **NEW** don't exist yet; they're created when you save. You can always ignore the box and choose from the full list below it.
 `),
-    A("currency-and-exchange-rates", "Currency: naira, dollars and exchange rates", "Plans and pricing", `
+    A("currency-and-exchange-rates", "Your currency: local currency, naira, dollars and exchange rates", "Plans and pricing", `
 Almost everything on #NotesApp is priced and paid in **naira (₦)**: plans, badges, shop items, sessions, tickets, gifts, the wallet and payouts to your bank. The exception is **subscriptions to creators**: readers can pay in their own currency (dollars, pounds, euros, shillings, cedis and more), and creators can earn in theirs. See [Subscribing and earning in other currencies](/help/global-subscriptions).
+
+**Your country and currency are picked for you:** #NotesApp detects the country you're in from your connection (or, failing that, your device's time zone) and picks its currency: naira in Nigeria, cedis in Ghana, shillings in Kenya, rand in South Africa, CFA francs in Senegal and Côte d'Ivoire, pounds in the UK, and so on; anywhere else gets US dollars. You'll see it at the bottom of every page, next to your country's flag. To change it, choose another currency there; choose **Automatic** to go back to the detected one. Your choice is kept on that device, and the Subscribe window opens in it. You always see the price in that currency before you pay.
+
+**Getting paid in your local currency:** creators choose the currency their subscriptions pay them in (Rates & payouts → Readers in other currencies). If you haven't chosen yet, the one for your country is suggested. Bookings, gifts, shop items, courses and the wallet still pay out in naira to a Nigerian bank account for now.
 
 **Exchange rates:** a subscription paid in another currency uses our own rate, shown as the price before you pay. Otherwise #NotesApp doesn't publish a dollar-to-naira (or any other) exchange rate, and Nana can't give a live rate. Rates change through the day, so check your bank, your card provider or a trusted rates site.
 
