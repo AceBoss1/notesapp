@@ -1,4 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
+import type { SaleGlobal } from "./global-sales";
+import { confirmSale, settleSale } from "./global-sales-server";
 import { verifyCheckoutPayment } from "./paylony";
 import { readVerify } from "./cardtap-topup";
 import { emitWebhook } from "./webhooks";
@@ -7,6 +9,8 @@ import { slotLockId, verifyTransaction, pricePaidKobo, disableSubscription } fro
 import { commissionRateFor } from "./tiers";
 import { ensurePricing } from "./pricing-server";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
+import { formatNaira as nairaText } from "./booking-time";
+import { moneyIn } from "./global-sales";
 import { notifyBell, sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
@@ -113,7 +117,12 @@ export type PaymentRecord = {
   paidAt?: string;
   // Paid from the NotesApp Credit wallet instead of Paystack (lib/wallet-server.ts): what was taken, and how much has gone back.
   // "cardtap": a wallet top-up paid with Paylony CardTap (lib/cardtap-topup-server.ts), confirmed with Paylony instead of Paystack.
-  payWith?: "wallet" | "cardtap";
+  // "global": paid through Stripe, Flutterwave or Paystack in the buyer's currency, for something priced in the seller's own currency
+  // (lib/global-sales-server.ts). Then `currency` is the seller's currency (every amount on this record is in its minor units, despite
+  // the "Kobo" names; NGN when absent) and `global` is what the buyer paid and through whom.
+  payWith?: "wallet" | "cardtap" | "global";
+  currency?: string;
+  global?: SaleGlobal;
   // CardTap: Paylony's fee (1%, at most ₦1,000), whether we paid it (the launch offer), what the member pays, the code for the app,
   // and Paylony's last answer about it (kept so a reply we don't recognise can be seen).
   cardtap?: { feeKobo: number; waived: boolean; payKobo: number; initiationRef?: string; lastVerify?: { at: string; state: string; body: string } };
@@ -154,9 +163,12 @@ export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: st
 // refunded  = returned to the payer
 // withdrawn = a gift's share the receiver withdrew: it is paid through the "gift_payout" entry named in withdrawalId
 //             (lib/gift-earnings-server.ts), so it is never paid or refunded on its own
-export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "refunded" | "withdrawn";
+// global    = a sale paid in another currency (lib/global-sales-server.ts): kept for the seller's history and reports, never paid by the
+//             naira payout run; its money is owed in globalEarnings (the seller's currency) and paid from the treasury.
+export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "refunded" | "withdrawn" | "global";
 
 export type LedgerEntry = {
+  currency?: string; // a global sale's seller currency (the amounts are its minor units); naira when absent
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
@@ -282,7 +294,9 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
   // A CardTap top-up is asked of Paylony instead, and stays pending (CardtapNotPaid) until Paylony clearly says it's paid.
   if (payment.payWith === "cardtap") await confirmCardtap(payRef, payment);
   if (paidWith && payment.cartRef !== paidWith.cartRef) throw new Error("That order isn't part of this basket.");
-  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" || paidWith ? null : await verifyTransaction(reference);
+  // A payment in another currency (lib/global-sales-server.ts) is asked of the provider that took it (a basket's orders: their basket was).
+  if (payment.payWith === "global" && !paidWith) await confirmSale(db, payment);
+  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" || payment.payWith === "global" || paidWith ? null : await verifyTransaction(reference);
   if (tx && tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
   if (tx && (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN")) {
     // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
@@ -661,6 +675,8 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     return { payment: { ...current, status: "paid" as const, paidAt: now }, fresh: true };
   });
 
+  // Paid in another currency: the sale's earnings leave the naira payout run and are owed in the seller's currency (idempotent).
+  if (result.payment.payWith === "global") await settleSale(db, reference).catch((e) => console.error("settle global sale", reference, e));
   // A paid-live ticket that couldn't be issued (the live was cancelled meanwhile, or they already hold one): back to their NotesApp Credit.
   if (result.fresh && result.payment.status === "paid_slot_conflict" && result.payment.kind === "live_ticket") {
     await refundLiveTicketToCredit(db, reference, "The live couldn't take this ticket").catch((e) => console.error("live ticket conflict refund", reference, e));
@@ -795,6 +811,8 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
 }
 
 async function notifyPaid(p: PaymentRecord) {
+  // Amounts in the sale's own currency (a global sale priced in shillings says "KSh 650", not naira).
+  const formatNaira = (kobo: number) => moneyIn(kobo, p.currency, nairaText);
   if (p.kind === "debt" && p.debt) return notifyDebtPaid(p);
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);

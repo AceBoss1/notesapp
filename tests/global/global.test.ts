@@ -5,6 +5,7 @@ import { currencyForCountry, formatMoney, guessCurrency, payMethodsLabel, provid
 import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
 import { formEncode, isValidStripeSignature } from "../../lib/stripe";
 import { countryFromHeaders, isCountryCode, pickCurrency } from "../../lib/local-currency";
+import { isGlobalSale, isSaleKind, moneyIn, priceCurrency, validateWorldAddress } from "../../lib/global-sales";
 import { isValidFlutterwaveHash } from "../../lib/flutterwave";
 
 // currencies and providers: Stripe for USD/GBP/EUR, Paystack for naira, Flutterwave for the rest of Africa; anywhere else pays USD
@@ -104,5 +105,17 @@ assert.deepEqual(pickCurrency({ country: "SN" }), { currency: "XOF", source: "co
 assert.deepEqual(pickCurrency({ country: "BR" }), { currency: "USD", source: "country" }, "a country we don't list pays in dollars");
 assert.deepEqual(pickCurrency({ timeZone: "Africa/Accra" }), { currency: "GHS", source: "timezone" });
 assert.deepEqual(pickCurrency({}), { currency: "USD", source: "timezone" });
+
+// Selling in your local currency (lib/global-sales.ts): which sales go the global way, an item's currency, the address outside Nigeria.
+assert.equal(isGlobalSale("NGN", "NGN"), false, "naira for naira: the usual Paystack checkout");
+assert.ok(isGlobalSale("NGN", "USD") && isGlobalSale("KES", "KES") && isGlobalSale("KES", "NGN"));
+assert.ok(isSaleKind("store_cart") && isSaleKind("booking") && !isSaleKind("gift") && !isSaleKind("subscription"));
+assert.equal(priceCurrency({ currency: "KES" }), "KES"); assert.equal(priceCurrency({}), "NGN"); assert.equal(priceCurrency({ currency: "BTC" }), "NGN"); assert.equal(priceCurrency(null), "NGN");
+const nairaFmt = (k: number) => `₦${k / 100}`;
+assert.equal(moneyIn(650_00, "KES", nairaFmt), "KSh 650"); assert.equal(moneyIn(5_000_00, undefined, nairaFmt), "₦5000"); assert.equal(moneyIn(1250, "USD", nairaFmt), "$12.50");
+const addr = { fullName: "Wanjiku Kamau", phone: "+254 712 345 678", street: "12 Moi Avenue", city: "Nairobi", state: "Nairobi County, Kenya" };
+assert.equal(validateWorldAddress(addr), null);
+assert.match(String(validateWorldAddress({ ...addr, phone: "712" })), /country code/);
+assert.match(String(validateWorldAddress({ ...addr, state: "" })), /region and country/);
 
 console.log("GLOBAL OK");

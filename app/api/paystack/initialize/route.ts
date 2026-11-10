@@ -4,6 +4,12 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { isKidUid } from "@/lib/kids";
 import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
+import { isCurrency } from "@/lib/currency";
+import { isGlobalSale, isSaleKind, priceCurrency, validateWorldAddress, type SaleGlobal } from "@/lib/global-sales";
+import { SaleError, saleQuote, startSaleCheckout } from "@/lib/global-sales-server";
+import { ratesFresh } from "@/lib/global-pay";
+import { getRates } from "@/lib/global-pay-server";
+import { SITE_URL } from "@/lib/host";
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
 import { formatNaira, weekdayOf } from "@/lib/booking-time";
@@ -91,10 +97,39 @@ export async function POST(req: NextRequest) {
     if (payWith === "wallet" && (!WALLET_LIVE || !isWalletKind(kind))) {
       return NextResponse.json({ error: "This can't be paid from your wallet yet. Pay by card instead." }, { status: 400 });
     }
-    const initTx: typeof initializeTransaction = payWith === "wallet"
+    const baseTx: typeof initializeTransaction = payWith === "wallet"
       ? async (a) => ({ authorization_url: `${a.callbackUrl}?reference=${encodeURIComponent(a.reference)}&wallet=1`, reference: a.reference })
       : initializeTransaction;
+    // Selling in your local currency (lib/global-sales.ts): a download, shop item, basket, course or session priced in the seller's
+    // currency (saleCurrency, set by each block below before it starts the payment) and paid in the buyer's (payCurrency, from the
+    // browser: their pick or where they are). Anything but naira-for-naira is paid through Stripe, Flutterwave or Paystack in the buyer's
+    // currency; every check and the order itself stay exactly the same.
+    let payCurrency = isCurrency(body.payCurrency) ? body.payCurrency : "NGN";
+    let saleCurrency = "NGN";
+    let saleTitle = "Your order";
+    let sale: { reference: string; global: SaleGlobal } | null = null;
+    const globalSaleNow = () => isSaleKind(kind) && isGlobalSale(saleCurrency, payCurrency) && !(payWith === "wallet" && saleCurrency === "NGN");
+    const initTx: typeof initializeTransaction = async (a) => {
+      if (!globalSaleNow()) return baseTx(a);
+      if (payWith === "wallet") throw new SaleError(`This is priced in ${saleCurrency}: pay by card instead.`, 400);
+      // No fresh exchange rates (Finance updates them): charge in the seller's currency instead of refusing (a naira price goes back to
+      // the usual Paystack checkout); the buyer's card or bank converts it.
+      if (saleCurrency !== payCurrency && !ratesFresh(await getRates(db))) {
+        payCurrency = saleCurrency;
+        if (!globalSaleNow()) return baseTx(a);
+      }
+      const q = await saleQuote(db, saleCurrency, payCurrency, a.amountKobo);
+      const out = await startSaleCheckout(SITE_URL, { reference: a.reference, email: a.email, title: saleTitle, cancelUrl: a.callbackUrl.replace(/\/booking\/confirm$/, "/"), global: q });
+      sale = { reference: a.reference, global: { ...q, backUrl: a.callbackUrl, ...(out.providerRef ? { providerRef: out.providerRef } : {}) } };
+      return { authorization_url: out.url, reference: a.reference } as Awaited<ReturnType<typeof initializeTransaction>>;
+    };
+    // What a global payment adds to its record (and to a basket's orders).
+    const saleFields = (): Partial<PaymentRecord> => (sale ? { payWith: "global", global: sale.global, ...(saleCurrency !== "NGN" ? { currency: saleCurrency } : {}) } : {});
+    // Sellers outside naira are paid from the treasury in their currency, so they don't need a Nigerian payout account; codes and
+    // affiliate shares (in naira) apply to naira prices only, for now.
+    const nairaOnly = () => saleCurrency === "NGN";
     const savePayment = async (record: PaymentRecord) => {
+      if (sale && sale.reference === record.reference) { await db.doc(`payments/${record.reference}`).set({ ...record, ...saleFields() }); return; }
       if (payWith !== "wallet") { await db.doc(`payments/${record.reference}`).set(record); return; }
       await payFromWallet(db, record);
       // If this fails for a moment, the confirmation page the buyer lands on finishes it (the money is already set aside).
@@ -108,11 +143,13 @@ export async function POST(req: NextRequest) {
     let referrer: Referrer | null | undefined;
     const codeFor = async (owner: string, target: DiscountTarget, subtotalKobo: number, more: { itemId?: string; itemIds?: string[]; extraKobo?: number } = {}) => {
       if (!wantsCode) return null;
+      if (!nairaOnly()) throw new DiscountError(400, `Discount codes work on naira prices for now, and this is priced in ${saleCurrency}.`);
       const r = await applyCode(db, owner, body.code, user.uid, { target, subtotalKobo, ...more });
       if (r.affiliate && r.affiliate.uid !== user.uid) referrer = r.affiliate;
       return r;
     };
     const affiliate = async (sellerUid: string, offerId: string, paidKobo: number) => {
+      if (!nairaOnly()) return null;
       const percent = await offerPercent(db, offerId, sellerUid);
       if (!(percent > 0)) return null;
       if (referrer === undefined) referrer = await referrerByUsername(db, req.cookies.get(REFERRAL_COOKIE)?.value, user.uid);
@@ -167,6 +204,7 @@ export async function POST(req: NextRequest) {
       try { co = await courseCheckout(db, user.uid, body.courseId); }
       catch (e) { if (e instanceof CourseError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
       const fullKobo = co.course.priceKobo!;
+      saleCurrency = priceCurrency(co.course); saleTitle = co.course.title;
       const code = await codeFor(co.course.ownerUid, "course", fullKobo, { itemId: co.course.id });
       const amountKobo = fullKobo - (code?.discountKobo ?? 0);
       const reference = newReference();
@@ -398,18 +436,20 @@ export async function POST(req: NextRequest) {
       }
       const sellerUid = String(lines[0].item.ownerUid);
       if (lines.some((l) => l.item.ownerUid !== sellerUid)) return NextResponse.json({ error: "A basket holds items from one shop." }, { status: 400 });
-      const addrProblem = validateAddress(body.address);
+      saleCurrency = priceCurrency(lines[0].item); saleTitle = `Your basket from @${String((await db.doc(`users/${sellerUid}`).get()).data()?.username ?? "")}`;
+      if (lines.some((l) => priceCurrency(l.item) !== saleCurrency)) return NextResponse.json({ error: "This basket mixes prices in different currencies. Buy those items separately." }, { status: 400 });
+      const addrProblem = nairaOnly() ? validateAddress(body.address) : validateWorldAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const seller = (await db.doc(`users/${sellerUid}`).get()).data();
       if (!seller || seller.suspended === true || (seller.accountTier === "standard" && !["staff", "volunteer", "admin"].includes(seller.role))) {
         return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
       }
       const payout = (await db.doc(`payoutAccounts/${sellerUid}`).get()).data();
-      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      if (nairaOnly() && !payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const a = body.address;
       const address = { fullName: String(a.fullName).trim(), phone: String(a.phone).replace(/[\s-]/g, ""), street: String(a.street).trim(), city: String(a.city).trim(), state: String(a.state) };
       // One delivery for the whole basket (lib/cart-server.ts).
-      const { carrier, deliveryKobo } = await basketDelivery(db, sellerUid, lines, address);
+      const { carrier, deliveryKobo } = await basketDelivery(db, sellerUid, lines, address, !nairaOnly());
       const goods = lines.map((l) => l.item.priceKobo * l.quantity);
       const fullAmounts = cartAmounts(lines.map((l) => ({ unitKobo: l.item.priceKobo, quantity: l.quantity })), deliveryKobo);
       const fullKobo = fullAmounts.reduce((x, y) => x + y, 0);
@@ -459,8 +499,9 @@ export async function POST(req: NextRequest) {
       }
       try {
         const batch = db.batch();
-        for (const c of children) batch.set(db.doc(`payments/${c.reference}`), c);
+        for (const c of children) batch.set(db.doc(`payments/${c.reference}`), { ...c, ...saleFields() });
         batch.set(db.doc(`payments/${reference}`), {
+          ...saleFields(),
           reference, kind: "store_cart", uid: user.uid, email: user.email, amountKobo, status: "pending", publisherUid: sellerUid, publisherUsername: seller.username || "",
           commissionRate, cart: { orders: children.map((c) => c.reference) }, ...(code ? { discount: paymentDiscount(code, fullKobo) } : {}), createdAt: now,
         } satisfies PaymentRecord);
@@ -476,14 +517,15 @@ export async function POST(req: NextRequest) {
       const line = await storeLine(db, user.uid, body.itemId, body.quantity, body.variant);
       if ("error" in line) return NextResponse.json({ error: line.error }, { status: line.status });
       const { itemSnap, item, quantity, variant, variantLabel } = line;
-      const addrProblem = validateAddress(body.address);
+      saleCurrency = priceCurrency(item); saleTitle = String(item.title);
+      const addrProblem = nairaOnly() ? validateAddress(body.address) : validateWorldAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
       if (!seller || seller.suspended === true || (seller.accountTier === "standard" && !["staff", "volunteer", "admin"].includes(seller.role))) {
         return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
       }
       const payout = (await db.doc(`payoutAccounts/${item.ownerUid}`).get()).data();
-      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      if (nairaOnly() && !payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const a = body.address;
       const address = {
         fullName: String(a.fullName).trim(),
@@ -494,7 +536,7 @@ export async function POST(req: NextRequest) {
       };
       // The store's delivery partner prices the delivery from its rate card for this address and weight; with no partner, or one that
       // doesn't cover the address, the item's own delivery fee applies as before.
-      const carrier = await partnerQuote(db, item.ownerUid, address, itemKg(item.weightKg) * quantity);
+      const carrier = nairaOnly() ? await partnerQuote(db, item.ownerUid, address, itemKg(item.weightKg) * quantity) : null;
       const deliveryKobo = carrier ? carrier.feeKobo : Number(item.deliveryKobo) || 0;
       const goodsKobo = item.priceKobo * quantity;
       const code = await codeFor(String(item.ownerUid), "store", goodsKobo, { itemId: itemSnap.id, extraKobo: deliveryKobo });
@@ -555,6 +597,7 @@ export async function POST(req: NextRequest) {
       const ready = item.access === "view" ? sf?.access === "view" && Array.isArray(sf.lessons) && sf.lessons.length > 0 : !!item.fileName && !!sf;
       if (!ready) return NextResponse.json({ error: "The seller hasn't finished setting this download up yet." }, { status: 409 });
       if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
+      saleCurrency = priceCurrency(item); saleTitle = String(item.title);
       const owned = await db.collection("digitalPurchases").where("buyerUid", "==", user.uid).where("itemId", "==", itemSnap.id).limit(1).get();
       if (!owned.empty) return NextResponse.json({ error: "You already own this download — find it under My orders." }, { status: 409 });
       const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
@@ -562,7 +605,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
       }
       const payout = (await db.doc(`payoutAccounts/${item.ownerUid}`).get()).data();
-      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      if (nairaOnly() && !payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const code = await codeFor(String(item.ownerUid), "digital", item.priceKobo, { itemId: itemSnap.id });
@@ -788,7 +831,8 @@ export async function POST(req: NextRequest) {
     }
     const pub = await loadPublisher(username);
     if (pub.uid === user.uid) return NextResponse.json({ error: "You can't pay yourself." }, { status: 400 });
-    if (!pub.hasPayoutAccount) {
+    if (kind === "booking") { saleCurrency = priceCurrency(pub.settings?.session); saleTitle = `A session with @${username}`; }
+    if (!pub.hasPayoutAccount && nairaOnly()) {
       return NextResponse.json({ error: "This publisher hasn't set up payouts yet." }, { status: 409 });
     }
 
@@ -915,6 +959,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof WalletError) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err instanceof GiftError) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err instanceof DiscountError) return NextResponse.json({ error: err.message, code: "discount" }, { status: err.status });
+    if (err instanceof SaleError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("Paystack initialize failed:", err);
     { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currencyInfo } from "@/lib/currency";
+import { sellerCurrency } from "@/lib/global-sales-server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createPlan } from "@/lib/paystack";
@@ -32,7 +34,9 @@ export async function POST(req: NextRequest) {
 
     // ---- session ----
     const sIn = body.session || {};
-    const sessionPriceKobo = Math.round(Number(sIn.priceNaira) * 100);
+    // Priced in the publisher's own currency (Rates & payouts; lib/global-sales.ts), naira until they choose another.
+    const sessionCur = await sellerCurrency(db, uid);
+    const sessionPriceKobo = Math.round(Number(sIn.priceNaira) * 10 ** currencyInfo(sessionCur).minor);
     const minutes = Number(sIn.minutes);
     const availability: Record<string, string[]> = {};
     for (let d = 0; d < 7; d++) {
@@ -52,8 +56,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pay-per-minute sessions: add at least one available time." }, { status: 400 });
     }
     if (sessionEnabled) {
-      if (!(sessionPriceKobo >= LIMITS.sessionMinKobo && sessionPriceKobo <= LIMITS.sessionMaxKobo)) {
+      if (sessionCur === "NGN" && !(sessionPriceKobo >= LIMITS.sessionMinKobo && sessionPriceKobo <= LIMITS.sessionMaxKobo)) {
         return NextResponse.json({ error: "Session price must be between ₦5,000 and ₦500,000." }, { status: 400 });
+      }
+      if (sessionCur !== "NGN" && !(Number.isInteger(sessionPriceKobo) && sessionPriceKobo >= 1 && sessionPriceKobo <= LIMITS.sessionMaxKobo)) {
+        return NextResponse.json({ error: `Enter the session price in ${sessionCur}.` }, { status: 400 });
       }
       if (!LIMITS.sessionMinutes.includes(minutes)) {
         return NextResponse.json({ error: "Invalid session length." }, { status: 400 });
@@ -107,6 +114,7 @@ export async function POST(req: NextRequest) {
         priceKobo: sessionEnabled ? sessionPriceKobo : existing?.session?.priceKobo ?? LIMITS.sessionMinKobo,
         minutes: sessionEnabled ? minutes : existing?.session?.minutes ?? 45,
         availability,
+        ...((sessionEnabled ? sessionCur : existing?.session?.currency ?? "NGN") !== "NGN" ? { currency: sessionEnabled ? sessionCur : existing!.session!.currency } : {}),
       },
       // enabled/priceKobo/planCode mirror Premium for older readers; tiers is the source of truth.
       subscription: {

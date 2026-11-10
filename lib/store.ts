@@ -23,8 +23,10 @@ export type StoreItem = {
   cta: string; // button label
   // Physical goods sold on-platform (buyer pays through #NotesApp, money held until delivery).
   sellable?: boolean;
-  priceKobo?: number;
+  priceKobo?: number; // minor units of `currency` (kobo for naira)
   deliveryKobo?: number;
+  // The seller's currency when it isn't naira (lib/global-sales.ts): priceKobo and deliveryKobo are its minor units (cents, …).
+  currency?: string;
   stock?: number; // optional; counts down per sale (for an item with options: the total across all combinations)
   // Which shelf the item is filed under (see lib/store-meta.ts), and for physical items where it is sent from.
   category?: string;
@@ -198,6 +200,7 @@ function clean(input: StoreItemInput) {
     sellable: true as const,
     ...(digital ? { kind: "digital" as const, ...(input.access === "view" ? { access: "view" as const } : {}), ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
     priceKobo: Math.round(Number(input.priceKobo)),
+    ...(input.currency && input.currency !== "NGN" ? { currency: input.currency } : {}),
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
     stock,
     ...(isStoreCategory(input.category) ? { category: input.category } : {}),

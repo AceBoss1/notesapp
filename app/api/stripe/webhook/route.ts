@@ -4,6 +4,7 @@ import { isGlobalRef } from "@/lib/global-pay";
 import { fulfilGlobal, liveDeps } from "@/lib/global-pay-server";
 import { isValidStripeSignature } from "@/lib/stripe";
 import { SITE_URL } from "@/lib/host";
+import { fulfillPayment } from "@/lib/payments";
 
 // Stripe → Developers → Webhooks → https://<site>/api/stripe/webhook, event checkout.session.completed (and
 // checkout.session.async_payment_succeeded). Finishes a global subscription for a reader who closed the tab before coming back.
@@ -19,6 +20,9 @@ export async function POST(req: NextRequest) {
         const p = (await db.doc(`globalPayments/${ref}`).get()).data();
         if (p && !p.providerRef) await db.doc(`globalPayments/${ref}`).update({ providerRef: String(ev.data.object.id) });
         await fulfilGlobal(db, ref, liveDeps(SITE_URL).confirm).catch((e) => console.error("stripe fulfil", ref, e));
+      } else if (/^na_[0-9]+_[0-9a-f]{12}$/.test(ref) && (await getAdminDb().doc(`payments/${ref}`).get()).data()?.payWith === "global") {
+        // A sale paid in another currency (lib/global-sales-server.ts).
+        await fulfillPayment(ref).catch((e) => console.error("stripe sale fulfil", ref, e));
       }
     }
     return NextResponse.json({ received: true });

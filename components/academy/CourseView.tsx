@@ -14,6 +14,7 @@ import { api } from "@/lib/moments-client";
 import { mainHref } from "@/components/community/place";
 import { startCheckout } from "@/lib/checkout";
 import DiscountCodeField from "@/components/DiscountCodeField";
+import PayPreview from "@/components/PayPreview";
 import { naira } from "@/lib/discounts";
 import AcademyFaq from "./AcademyFaq";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
@@ -78,7 +79,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
     if (!user || !course) return;
     setBusy(true);
     setError("");
-    try { await startCheckout(user, { kind: "course", courseId: course.id, ...(disc ? { code: disc.code } : {}) }, { amountKobo: course.priceKobo != null ? Math.max(0, course.priceKobo - (disc?.discountKobo ?? 0)) : undefined }); }
+    try { await startCheckout(user, { kind: "course", courseId: course.id, ...(disc ? { code: disc.code } : {}) }, { amountKobo: course.priceKobo != null ? Math.max(0, course.priceKobo - (disc?.discountKobo ?? 0)) : undefined, currency: course.currency ?? "NGN" }); }
     catch (e) { if (e instanceof Error && e.message) setError(e.message); setBusy(false); }
   }
   async function askRefund() {
@@ -208,7 +209,8 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                 <p className="mt-4 text-sm text-slate">Checking your progress…</p>
               ) : (
                 <>
-                  {paid && user && !mine && !preview && <DiscountCodeField target="course" seller={course.ownerUsername} itemId={course.id} subtotalKobo={course.priceKobo ?? 0} onChange={setDisc} className="mt-3" />}
+                  {paid && !mine && !preview && <PayPreview minor={course.priceKobo ?? 0} currency={course.currency ?? "NGN"} className="mt-2" />}
+                  {paid && user && !mine && !preview && !course.currency && <DiscountCodeField target="course" seller={course.ownerUsername} itemId={course.id} subtotalKobo={course.priceKobo ?? 0} onChange={setDisc} className="mt-3" />}
                   {disc && <p className="mt-2 text-sm text-ink">You pay <strong>{naira(Math.max(0, (course.priceKobo ?? 0) - disc.discountKobo))}</strong></p>}
                   <div className="mt-4">{mainAction}</div>
                   {firstPreview && <Link href={lessonHref(slug, firstPreview.id)} className="btn-ghost mt-2 w-full !py-2.5">{paid ? "Watch the free preview" : "Watch the first lesson"}</Link>}

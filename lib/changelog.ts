@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.161.0",
+    bump: "minor",
+    date: "2026-11-10",
+    changes: [
+      { kind: "added", text: "Sell in your own currency: sellers outside Nigeria price shop items, downloads, courses and sessions in their currency (shillings, cedis, rand, CFA francs, dollars, pounds and more), chosen under Rates & payouts. What you earn is fixed from your own price, never moved by the exchange rate." },
+      { kind: "added", text: "Buyers anywhere pay in their own currency: naira through Paystack, the rest of Africa through Flutterwave (card or mobile money), everywhere else by card through Stripe. Each price shows about what you'll pay in yours, and the exact amount before you pay." },
+      { kind: "changed", text: "Sellers outside Nigeria deliver physical items themselves, to an address anywhere (a phone number with its country code, and the region and country). Our delivery partners stay in Nigeria." },
+    ],
+  },
+  {
     version: "v0.160.0",
     bump: "minor",
     date: "2026-11-10",

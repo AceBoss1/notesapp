@@ -1,3 +1,4 @@
+import { moneyIn } from "./global-sales";
 // "Share to Moments" and "Share to Journals" (owner, 1 Nov 2026: "Also add to share options: 1. Share to moments 2. Share to journals").
 // Pure and client-safe: what can be shared, the card that stands for it, and what each share puts on the page.
 //   - Share to Moments: a moment (kind "link") carrying the item's card: title, cover, its link, and "by @creator". It follows every
@@ -88,7 +89,7 @@ const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG")}`;
 export function itemCard(id: string, i: { title?: string; sellable?: boolean; priceKobo?: number; image?: string; images?: string[]; kind?: string; access?: string } | undefined, seller: { username?: string; displayName?: string; suspended?: boolean; shopHidden?: boolean } | undefined): ShareCard | null {
   if (!i || i.sellable !== true || !i.title || !seller || seller.suspended === true || seller.shopHidden === true) return null;
   const label = i.kind === "digital" ? (i.access === "view" ? "Video and PDF lessons" : "Digital download") : SHARE_LABEL.item;
-  return { kind: "item", id, title: clean(i.title, SHARE_TITLE_MAX), path: `/shop/${id}`, image: safeImage(i.image || i.images?.[0]), creatorUsername: handle(seller.username), creatorName: clean(seller.displayName, 80) || undefined, label, ...(typeof i.priceKobo === "number" && i.priceKobo > 0 ? { price: naira(i.priceKobo) } : {}) };
+  return { kind: "item", id, title: clean(i.title, SHARE_TITLE_MAX), path: `/shop/${id}`, image: safeImage(i.image || i.images?.[0]), creatorUsername: handle(seller.username), creatorName: clean(seller.displayName, 80) || undefined, label, ...(typeof i.priceKobo === "number" && i.priceKobo > 0 ? { price: moneyIn(i.priceKobo, (i as { currency?: string }).currency, naira) } : {}) };
 }
 
 // A member's 1:1 sessions (switched on in Rates & payouts): the price and length from their settings.

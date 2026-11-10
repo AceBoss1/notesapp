@@ -4,6 +4,7 @@ import { isGlobalRef } from "@/lib/global-pay";
 import { fulfilGlobal, liveDeps } from "@/lib/global-pay-server";
 import { isValidFlutterwaveHash } from "@/lib/flutterwave";
 import { SITE_URL } from "@/lib/host";
+import { fulfillPayment } from "@/lib/payments";
 
 // Flutterwave → Settings → Webhooks → https://<site>/api/flutterwave/webhook, with the secret hash in FLUTTERWAVE_WEBHOOK_HASH.
 // charge.completed finishes a global subscription (we confirm it with Flutterwave ourselves); transfer.completed is a payout's result.
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     if (ev.event === "charge.completed") {
       const ref = String(ev.data?.tx_ref ?? "");
       if (isGlobalRef(ref)) await fulfilGlobal(db, ref, liveDeps(SITE_URL).confirm).catch((e) => console.error("flutterwave fulfil", ref, e));
+      // A sale paid in another currency (lib/global-sales-server.ts).
+      else if (/^na_[0-9]+_[0-9a-f]{12}$/.test(ref) && (await db.doc(`payments/${ref}`).get()).data()?.payWith === "global") await fulfillPayment(ref).catch((e) => console.error("flutterwave sale fulfil", ref, e));
     } else if (ev.event === "transfer.completed") {
       const id = String(ev.data?.reference ?? "");
       if (/^po_[A-Za-z0-9_]+$/.test(id) && (await db.doc(`treasuryPayouts/${id}`).get()).exists) {

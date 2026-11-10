@@ -6,7 +6,7 @@ import { CART_MAX_LINES, lineKey, type CartLine } from "./cart";
 
 // The basket in the browser (lib/cart.ts): one per shop, kept on this device (it survives a refresh, not a change of phone). What it
 // shows (title, price, picture) is a copy for display only; the checkout prices everything again from the listings.
-export type BasketLine = CartLine & { title: string; price: string; priceKobo: number; image: string; variantLabel?: string };
+export type BasketLine = CartLine & { title: string; price: string; priceKobo: number; image: string; variantLabel?: string; currency?: string };
 const KEY = (sellerUid: string) => `na-basket:${sellerUid}`;
 const EVENT = "na-basket";
 

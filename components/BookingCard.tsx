@@ -8,7 +8,9 @@ import { startCheckout } from "@/lib/checkout";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import DiscountCodeField from "@/components/DiscountCodeField";
 import { ShareButton } from "@/components/share/ShareToNotesApp";
-import { formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
+import { formatNaira as nairaText, formatSlot, PublisherSettings } from "@/lib/booking-time";
+import { moneyIn } from "@/lib/global-sales";
+import PayPreview from "@/components/PayPreview";
 
 type Slots = { bookable: boolean; slots: string[]; priceKobo?: number; minutes?: number };
 
@@ -65,6 +67,8 @@ export default function BookingCard({
   }, [date, username]);
 
   if (!offered || viewer?.uid === publisherUid) return null;
+  // In the publisher's own currency when it isn't naira (lib/global-sales.ts); clients anywhere pay in theirs.
+  const formatNaira = (minor: number) => moneyIn(minor, offered.currency, nairaText);
 
   async function pay() {
     setError(null);
@@ -75,7 +79,7 @@ export default function BookingCard({
     if (!date || !slot) return setError("Pick a date and a time.");
     setBusy(true);
     try {
-      await startCheckout(viewer, { kind: "booking", username, date, slot, ...(disc ? { code: disc.code } : {}) }, { amountKobo: offered ? Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0)) : undefined });
+      await startCheckout(viewer, { kind: "booking", username, date, slot, ...(disc ? { code: disc.code } : {}) }, { amountKobo: offered ? Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0)) : undefined, currency: offered?.currency ?? "NGN" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
@@ -124,14 +128,15 @@ export default function BookingCard({
         </div>
       )}
       <p className="mt-4 text-xs text-slate">{POLICY_TEXT}</p>
-      {slot && viewer && <DiscountCodeField target="booking" seller={username} subtotalKobo={offered.priceKobo} onChange={setDisc} className="mt-3" />}
+      {slot && viewer && !offered.currency && <DiscountCodeField target="booking" seller={username} subtotalKobo={offered.priceKobo} onChange={setDisc} className="mt-3" />}
       {slot && (
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl2 border border-rule bg-paper p-5 sm:flex-row sm:items-center">
           <div>
             <p className="font-ui text-sm font-semibold text-ink">
               {date} · {formatSlot(slot)} · {offered.minutes} min
             </p>
-            <p className="font-mono text-xs text-slate">{disc ? `You pay ${formatNaira(Math.max(0, offered.priceKobo - disc.discountKobo))}` : formatNaira(offered.priceKobo)} · secure checkout via Paystack</p>
+            <p className="font-mono text-xs text-slate">{disc ? `You pay ${formatNaira(Math.max(0, offered.priceKobo - disc.discountKobo))}` : formatNaira(offered.priceKobo)} · secure checkout</p>
+            <PayPreview minor={Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0))} currency={offered.currency ?? "NGN"} />
             {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
           </div>
           <button onClick={pay} disabled={busy} className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50">

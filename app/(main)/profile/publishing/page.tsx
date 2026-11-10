@@ -1,5 +1,7 @@
 "use client";
 
+import { currencyInfo } from "@/lib/currency";
+import { useHomeCurrency } from "@/lib/home-currency-client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -36,6 +38,8 @@ export default function PublishingSettingsPage() {
 
   const [sessionOn, setSessionOn] = useState(false);
   const [price, setPrice] = useState("15000");
+  // Sessions are priced in the publisher's own currency (Rates & payouts → Readers in other currencies; lib/global-sales.ts).
+  const homeCur = useHomeCurrency();
   const [minutes, setMinutes] = useState(45);
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
@@ -102,7 +106,7 @@ export default function PublishingSettingsPage() {
         if (s) {
           setSessionOn(!!s.session?.enabled);
           if (s.session) {
-            setPrice(String(s.session.priceKobo / 100));
+            setPrice(String(s.session.priceKobo / 10 ** currencyInfo(s.session.currency ?? "NGN").minor));
             setMinutes(s.session.minutes);
             setAvail(s.session.availability);
           }
@@ -288,8 +292,8 @@ export default function PublishingSettingsPage() {
             <div className="mt-5 grid gap-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs text-slate">
-                  Price per session ({formatNaira(LIMITS.sessionMinKobo)} – {formatNaira(LIMITS.sessionMaxKobo)})
-                  <input type="number" min={LIMITS.sessionMinKobo / 100} max={LIMITS.sessionMaxKobo / 100} step={500} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
+                  {homeCur === "NGN" ? <>Price per session ({formatNaira(LIMITS.sessionMinKobo)} – {formatNaira(LIMITS.sessionMaxKobo)})</> : <>Price per session, in {homeCur} (clients anywhere pay in their own currency)</>}
+                  <input type="number" min={homeCur === "NGN" ? LIMITS.sessionMinKobo / 100 : 0} max={homeCur === "NGN" ? LIMITS.sessionMaxKobo / 100 : undefined} step={homeCur === "NGN" ? 500 : "any"} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
                 </label>
                 <label className="block text-xs text-slate">
                   Length

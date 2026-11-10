@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { moneyIn } from "./global-sales";
 import { getAdminDb } from "./firebase-admin";
 import { getNoteBySlug } from "./firestore-notes";
 
@@ -51,7 +52,7 @@ export async function storeItemMetadata(itemId: string): Promise<Metadata> {
     const item = (await db.doc(`storeItems/${itemId}`).get()).data();
     if (!item) return { title: "Store item" };
     const owner = (await db.doc(`users/${item.ownerUid}`).get()).data();
-    const price = typeof item.priceKobo === "number" ? ` · ${naira(item.priceKobo)}` : "";
+    const price = typeof item.priceKobo === "number" ? ` · ${moneyIn(item.priceKobo, (item as { currency?: string }).currency, naira)}` : "";
     const description = `${item.subtitle ? `${item.subtitle} — ` : ""}${item.kind === "digital" ? "Digital download" : "Sold"} by ${owner?.displayName ?? "a #NotesApp seller"}${price}`.slice(0, 280);
     const meta = cardFor(String(item.title), description, item.image || owner?.avatar || OG_DEFAULT, String(item.title), { type: "website", url: `/shop/${itemId}` });
     return { ...meta, alternates: { canonical: `/shop/${itemId}` } };

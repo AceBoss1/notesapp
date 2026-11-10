@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { CURRENCIES, formatMoney, toMajor } from "@/lib/currency";
 import { preferredCurrency } from "@/lib/local-currency";
+import { forgetHomeCurrency } from "@/lib/home-currency-client";
 import { SUB_TIERS, TIER_NAME, type SubTier } from "@/lib/fans";
 
 // Rates & payouts → "Readers in other currencies" (lib/global-pay.ts). A creator chooses the currency they earn in. In naira, their usual
@@ -41,6 +42,7 @@ export default function GlobalPricingSettings({ user }: { user: User }) {
   async function save(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setMsg(null);
     try {
+      forgetHomeCurrency();
       await call("POST", { action: "settings", currency: cur, acceptGlobal: accept, tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: prices[t].on, price: Number(prices[t].price) }])) });
       setMsg({ ok: true, text: "Saved." });
     } catch (err) { setMsg({ ok: false, text: err instanceof Error ? err.message : "Couldn't save." }); } finally { setBusy(false); }

@@ -1,5 +1,7 @@
 "use client";
 
+import { currencyInfo, formatMoney } from "@/lib/currency";
+import { useHomeCurrency } from "@/lib/home-currency-client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -439,18 +441,24 @@ function SaveRow({ onSave, dirty, busy, disabled }: { onSave: () => void; dirty:
 // Free or paid, the price, and whether the certificate is included. Paid courses are for Pro and up (the owner's plan: the member's
 // own, or the organisation's); the commission is the plan's digital-sales rate.
 function PriceSection({ course, plan, lead, busy, onSave }: { course: Course; plan: Plan; lead: boolean; busy: string | null; onSave: (b: Record<string, unknown>) => void }) {
+  // The lead tutor's own currency (lib/global-sales.ts; Rates & payouts), naira until they choose; a course keeps the one it was priced in.
+  const home = useHomeCurrency();
+  const cur = course.currency ?? home;
+  const unit = 10 ** currencyInfo(cur).minor;
+  const money = (minor: number) => (cur === "NGN" ? nairaLabel(minor) : formatMoney(minor, cur));
   const [paid, setPaid] = useState(isPaid(course));
-  const [naira, setNaira] = useState(isPaid(course) ? String(Math.round(course.priceKobo! / 100)) : "");
+  const [naira, setNaira] = useState(isPaid(course) ? String(Math.round(course.priceKobo! / unit)) : "");
   const [incl, setIncl] = useState(course.certificateIncluded !== false);
-  useEffect(() => { setPaid(isPaid(course)); setNaira(isPaid(course) ? String(Math.round(course.priceKobo! / 100)) : ""); setIncl(isPaid(course) ? !!course.certificateIncluded : true); }, [course]);
-  const kobo = Math.round(Number(naira.replace(/[^\d]/g, "")) * 100) || 0;
+  useEffect(() => { setPaid(isPaid(course)); setNaira(isPaid(course) ? String(Math.round(course.priceKobo! / unit)) : ""); setIncl(isPaid(course) ? !!course.certificateIncluded : true); }, [course, unit]);
+  const kobo = Math.round(Number(naira.replace(/[^\d]/g, "")) * unit) || 0;
+  const minPrice = cur === "NGN" ? COURSE_PRICE_MIN_KOBO : 1;
   const rate = digitalCommissionRateFor(plan.tier);
   const changed = paid !== isPaid(course) || (paid && (kobo !== course.priceKobo || incl !== !!course.certificateIncluded));
   const radio = (on: boolean) => `flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left ${on ? "border-2 border-crimson" : "border border-rule"}`;
   return (
     <section className="card mt-6 p-5 sm:p-6">
       <h2 className="font-display text-2xl text-ink">3. Price</h2>
-      {!lead ? <p className="mt-2 text-sm text-slate">{isPaid(course) ? `${nairaLabel(course.priceKobo!)}${course.certificateIncluded ? ", certificate included" : ""}.` : "Free."} The lead tutor sets the price.</p> : (
+      {!lead ? <p className="mt-2 text-sm text-slate">{isPaid(course) ? `${money(course.priceKobo!)}${course.certificateIncluded ? ", certificate included" : ""}.` : "Free."} The lead tutor sets the price.</p> : (
         <>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => setPaid(false)} className={radio(!paid)}><span className={`h-4 w-4 shrink-0 rounded-full ${!paid ? "border-[5px] border-crimson" : "border border-slate"}`} /><span><b className="font-ui">Free</b><span className="block text-xs text-slate">Lessons from your YouTube; learners pay only for a certificate</span></span></button>
@@ -459,10 +467,10 @@ function PriceSection({ course, plan, lead, busy, onSave }: { course: Course; pl
           {!plan.canSell && <p className="mt-2 text-xs text-slate">Paid courses are {plan.paidPlans} (text, PDFs and YouTube); uploaded video is {plan.videoPlans}. <Link href="/pricing" className="font-semibold text-crimson">See the plans</Link></p>}
           {paid && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:items-end">
-              <label className="block"><span className={label}>Course price (₦)</span>
+              <label className="block"><span className={label}>Course price ({cur === "NGN" ? "₦" : `${currencyInfo(cur).symbol} ${cur}`})</span>
                 <input value={naira} onChange={(e) => setNaira(e.target.value.replace(/[^\d,]/g, ""))} inputMode="numeric" className={`${input} !text-lg font-bold`} placeholder="e.g. 40,000" />
               </label>
-              <p className="rounded-xl bg-paper p-3 text-xs text-slate">{kobo >= COURSE_PRICE_MIN_KOBO ? <>You get <b className="text-ink">{nairaLabel(kobo - Math.round(kobo * rate))}</b> per sale after our {Math.round(rate * 1000) / 10}% commission{course.tutors?.length ? " (shared with your co-tutors as agreed)" : ""}. Paid to your bank 7 days after each sale.</> : `At least ${nairaLabel(COURSE_PRICE_MIN_KOBO)}.`}</p>
+              <p className="rounded-xl bg-paper p-3 text-xs text-slate">{kobo >= minPrice ? <>You get <b className="text-ink">{money(kobo - Math.round(kobo * rate))}</b> per sale after our {Math.round(rate * 1000) / 10}% commission{course.tutors?.length ? " (shared with your co-tutors as agreed)" : ""}. {cur === "NGN" ? "Paid to your bank 7 days after each sale." : `Learners anywhere pay in their own currency; you're paid in ${cur}.`}</> : `At least ${money(minPrice)}.`}</p>
               <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={incl} onChange={(e) => setIncl(e.target.checked)} className="h-4 w-4 accent-crimson" /> Certificate included in the price</label>
               <p className="text-xs text-slate sm:col-span-2">Learners can get a refund within 7 days of buying, only if they haven&apos;t started the course.</p>
             </div>
