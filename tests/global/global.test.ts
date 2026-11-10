@@ -1,7 +1,7 @@
 // Global subscriptions, the pure rules (lib/currency.ts, lib/global-pay.ts, lib/stripe.ts signatures). Run: npx -y tsx tests/global/global.test.ts
 import assert from "node:assert/strict";
 import { createHmac } from "crypto";
-import { currencyForCountry, formatMoney, guessCurrency, providerFor, toMajor, toMinor } from "../../lib/currency";
+import { currencyForCountry, formatMoney, guessCurrency, payMethodsLabel, providerFor, toMajor, toMinor } from "../../lib/currency";
 import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
 import { formEncode, isValidStripeSignature } from "../../lib/stripe";
 import { isValidFlutterwaveHash } from "../../lib/flutterwave";
@@ -78,5 +78,16 @@ assert.ok(!isValidStripeSignature(body + " ", `t=${t},v1=${sig}`, "whsec_test", 
 assert.ok(!isValidStripeSignature(body, `t=${t},v1=${sig}`, "whsec_test", now.getTime() + 301_000));
 assert.ok(!isValidStripeSignature(body, `t=${t},v1=${sig}`, "", now.getTime()));
 assert.ok(isValidFlutterwaveHash("abc123", "abc123")); assert.ok(!isValidFlutterwaveHash("abc124", "abc123")); assert.ok(!isValidFlutterwaveHash(null, "abc123"));
+
+// more currencies (9 Nov): yen has no minor unit, Tunisian dinars three; Malawi pays dollars; Japan, the UAE and China go to Stripe
+assert.equal(providerFor("JPY"), "stripe"); assert.equal(providerFor("AED"), "stripe"); assert.equal(providerFor("CNY"), "stripe");
+assert.equal(providerFor("MAD"), "flutterwave"); assert.equal(currencyForCountry("MW"), "USD"); assert.equal(currencyForCountry("JP"), "JPY");
+assert.equal(formatMoney(1500, "JPY"), "¥1,500"); assert.equal(toMinor(12.5, "TND"), 12500); assert.equal(formatMoney(1999, "AED"), "AED 19.99");
+assert.equal(guessCurrency("Asia/Dubai"), "AED"); assert.equal(guessCurrency("Africa/Blantyre"), "USD");
+
+// Botswana pays in pula through Stripe; yuan shows Alipay and WeChat Pay
+assert.equal(currencyForCountry("BW"), "BWP"); assert.equal(providerFor("BWP"), "stripe"); assert.equal(formatMoney(4500, "BWP"), "P45");
+assert.equal(guessCurrency("Africa/Gaborone"), "BWP");
+assert.equal(payMethodsLabel("CNY"), "card, Alipay or WeChat Pay"); assert.equal(payMethodsLabel("KES"), "card or mobile money"); assert.equal(payMethodsLabel("XOF"), "mobile money"); assert.equal(payMethodsLabel("BWP"), "card");
 
 console.log("GLOBAL OK");

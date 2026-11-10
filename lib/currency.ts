@@ -4,6 +4,9 @@
 // Who holds each account: Stripe belongs to NotesApp Inc (US); Paystack and Flutterwave to NotesApp Technologies Ltd (Nigeria). A
 // Paystack account only charges in its own country's currency, so it takes NGN; GHS, KES and ZAR move to Paystack only once there's a
 // registered business in Ghana, Kenya or South Africa, and until then go through Flutterwave.
+// Flutterwave (checked on our dashboard, 9 Nov 2026): international cards in the African currencies below; mobile money switched on for
+// Ghana, Rwanda, Uganda, Zambia and Kenya; Francophone XOF and XAF mobile money must be switched on there (cards don't take them).
+// Malawi isn't offered, so it pays in US dollars. Japan, the UAE and China pay through Stripe (NotesApp Inc), with the rest of the world.
 
 export type Provider = "stripe" | "paystack" | "flutterwave";
 export type CurrencyInfo = { code: string; name: string; symbol: string; minor: number; provider: Provider; countries: string[] };
@@ -15,6 +18,11 @@ export const CURRENCIES: CurrencyInfo[] = [
   { code: "GBP", name: "British pound", symbol: "£", minor: 2, provider: "stripe", countries: ["GB"] },
   { code: "EUR", name: "Euro", symbol: "€", minor: 2, provider: "stripe", countries: ["IE", "FR", "DE", "NL", "BE", "ES", "PT", "IT", "FI", "AT", "GR", "LU"] },
   { code: "CAD", name: "Canadian dollar", symbol: "CA$", minor: 2, provider: "stripe", countries: ["CA"] },
+  { code: "JPY", name: "Japanese yen", symbol: "¥", minor: 0, provider: "stripe", countries: ["JP"] },
+  { code: "AED", name: "UAE dirham", symbol: "AED", minor: 2, provider: "stripe", countries: ["AE"] },
+  { code: "CNY", name: "Chinese yuan (renminbi)", symbol: "CN¥", minor: 2, provider: "stripe", countries: ["CN"] },
+  // Botswana: Flutterwave doesn't take the pula, Stripe does, so readers there pay in pula by card (not dollars, which their bank converts).
+  { code: "BWP", name: "Botswana pula", symbol: "P", minor: 2, provider: "stripe", countries: ["BW"] },
   { code: "KES", name: "Kenyan shilling", symbol: "KSh", minor: 2, provider: "flutterwave", countries: ["KE"] },
   { code: "GHS", name: "Ghanaian cedi", symbol: "GH₵", minor: 2, provider: "flutterwave", countries: ["GH"] },
   { code: "ZAR", name: "South African rand", symbol: "R", minor: 2, provider: "flutterwave", countries: ["ZA"] },
@@ -24,8 +32,12 @@ export const CURRENCIES: CurrencyInfo[] = [
   { code: "XAF", name: "Central African CFA franc", symbol: "FCFA", minor: 0, provider: "flutterwave", countries: ["CM", "GA", "CG", "TD", "CF", "GQ"] },
   { code: "XOF", name: "West African CFA franc", symbol: "CFA", minor: 0, provider: "flutterwave", countries: ["CI", "SN", "BJ", "BF", "ML", "NE", "TG", "GW"] },
   { code: "ZMW", name: "Zambian kwacha", symbol: "ZK", minor: 2, provider: "flutterwave", countries: ["ZM"] },
-  { code: "MWK", name: "Malawian kwacha", symbol: "MK", minor: 2, provider: "flutterwave", countries: ["MW"] },
   { code: "EGP", name: "Egyptian pound", symbol: "E£", minor: 2, provider: "flutterwave", countries: ["EG"] },
+  { code: "MAD", name: "Moroccan dirham", symbol: "MAD", minor: 2, provider: "flutterwave", countries: ["MA"] },
+  { code: "DZD", name: "Algerian dinar", symbol: "DA", minor: 2, provider: "flutterwave", countries: ["DZ"] },
+  { code: "TND", name: "Tunisian dinar", symbol: "DT", minor: 3, provider: "flutterwave", countries: ["TN"] },
+  { code: "LYD", name: "Libyan dinar", symbol: "LD", minor: 3, provider: "flutterwave", countries: ["LY"] },
+  { code: "GMD", name: "Gambian dalasi", symbol: "D", minor: 2, provider: "flutterwave", countries: ["GM"] },
 ];
 export const CURRENCY_CODES = CURRENCIES.map((c) => c.code);
 const BY_CODE = new Map(CURRENCIES.map((c) => [c.code, c]));
@@ -57,11 +69,23 @@ export function formatMoney(minor: number, code: string): string {
 const ZONES: Record<string, string> = {
   "Africa/Lagos": "NGN", "Africa/Nairobi": "KES", "Africa/Accra": "GHS", "Africa/Johannesburg": "ZAR", "Africa/Kampala": "UGX",
   "Africa/Dar_es_Salaam": "TZS", "Africa/Kigali": "RWF", "Africa/Douala": "XAF", "Africa/Abidjan": "XOF", "Africa/Dakar": "XOF",
-  "Africa/Lusaka": "ZMW", "Africa/Blantyre": "MWK", "Africa/Cairo": "EGP", "Europe/London": "GBP", "America/Toronto": "CAD",
+  "Africa/Lusaka": "ZMW", "Africa/Casablanca": "MAD", "Africa/Algiers": "DZD", "Africa/Tunis": "TND",
+  "Africa/Tripoli": "LYD", "Africa/Banjul": "GMD", "Asia/Tokyo": "JPY", "Asia/Dubai": "AED", "Asia/Shanghai": "CNY", "Africa/Gaborone": "BWP", "Africa/Cairo": "EGP", "Europe/London": "GBP", "America/Toronto": "CAD",
 };
 export function guessCurrency(timeZone: string | undefined): string {
   if (!timeZone) return "USD";
   if (ZONES[timeZone]) return ZONES[timeZone];
   if (timeZone.startsWith("Europe/")) return "EUR";
   return "USD";
+}
+
+// How a reader can pay in a currency, for the Subscribe window. Stripe Checkout shows the methods switched on in the Stripe dashboard
+// that fit the currency (dynamic payment methods: we don't list them in the request), so Alipay and WeChat Pay appear for yuan once
+// they're switched on there (Settings → Payment methods). Flutterwave offers mobile money where it's switched on in its dashboard.
+const MOMO = ["KES", "GHS", "UGX", "RWF", "ZMW", "XOF", "XAF"];
+export function payMethodsLabel(code: string): string {
+  if (code === "CNY") return "card, Alipay or WeChat Pay";
+  if (code === "NGN") return "card, bank transfer or USSD";
+  if (MOMO.includes(code)) return code === "XOF" || code === "XAF" ? "mobile money" : "card or mobile money";
+  return "card";
 }
