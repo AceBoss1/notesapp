@@ -78,6 +78,7 @@ jobs:
       - run: npm run test:rooms
       - run: npm run test:fans
       - run: npm run test:global
+      - run: npm run test:nana-jobs
       - run: npm run test:recording
       - run: npm run test:live-rooms
       - run: npm run test:giving
@@ -105,6 +106,7 @@ jobs:
       - run: npm run test:invoices-server
       - run: npm run test:certificates-server
       - run: npm run test:nana-server
+      - run: npm run test:nana-jobs-server
       - run: npm run test:mcp-server
       - run: npm run test:agents-server
       - run: npm run test:shipments-server

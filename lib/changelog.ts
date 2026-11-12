@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.162.0",
+    version: "v0.163.0",
     bump: "minor",
     date: "2026-11-12",
     changes: [
@@ -22,6 +22,17 @@ export const CHANGELOG: Release[] = [
       { kind: "changed", text: "Explore → Topics: each main category is a dropdown of its topics." },
       { kind: "added", text: "The country and currency picker is on members' own sites too (Business and Enterprise, and /s/ pages), at the bottom of every page." },
       { kind: "fixed", text: "The country beside your currency follows the same rule as the currency: members in Nigeria whose connection comes out abroad see Nigeria." },
+    ],
+  },
+  {
+    version: "v0.162.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "Nana Jobs: a new tab in Jobs. Connect your own AI and get a short ranked list of jobs every morning from Notes Jobs, RemoteOK, Remotive, Himalayas, Arbeitnow and the job boards of companies you watch, each with why it fits and the strongest reason you might not get it. It finds and ranks; it never applies for you. Free on every plan, for members 18 and up." },
+      { kind: "added", text: "Start from your CV: upload a PDF or Word file, or paste it, and your AI gives you an honest review (what's strong, the gaps and quick fixes), the roles that fit, and a profile to start from. Your CV is kept encrypted, never shown to firms, and you can delete it any time." },
+      { kind: "added", text: "Connect Gemini, Groq or any OpenAI-compatible AI as well as Claude. Keys are checked with a free call, kept encrypted, and only their last 4 characters are shown. A paid AI is never used unless you choose it." },
+      { kind: "added", text: "Mark jobs Interested, Applied or Not for me, get a bell when your list is ready (email if you want it), and ask for a cover note written only from what you've actually shipped." },
     ],
   },
   {

@@ -7,6 +7,7 @@ import { jobsApi, useAuthUser } from "@/components/jobs/useAuthUser";
 import { JOBS_BRAND, JOB_APP_STATUS_LABEL, type JobApplication } from "@/lib/jobs";
 import { APP_STATUS_LABEL, type AppStatus } from "@/lib/careers";
 import { ApplicationThread } from "@/components/ApplicationThread";
+import JobsSubTabs from "@/components/jobs/JobsSubTabs";
 
 // Your job search (Notes Jobs): "I need a job" and your city (private: used only to match jobs to you, never shown), and the jobs you
 // applied for, with where each one is.
@@ -36,6 +37,7 @@ export default function MyApplicationsPage() {
         <p>Find jobs on <Link href="/explore?tab=jobs">Explore → Jobs</Link>, apply with your NotesApp account, and follow every application here.</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+        <div className="mb-6"><JobsSubTabs active="applied" /></div>
         <section className="card p-6">
           <h2 className="font-display text-2xl text-ink">I need a job</h2>
           {seeker === null ? <p className="mt-2 text-sm text-slate">Loading…</p> : (

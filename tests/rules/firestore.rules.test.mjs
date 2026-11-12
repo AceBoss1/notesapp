@@ -1010,7 +1010,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1593,6 +1593,19 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
     await assertFails(setDoc(doc(db, "careerApplications/r1_bob"), { uid: "bob" }));
     await assertFails(getDoc(doc(db, "hrDrafts/d1")));
     await assertFails(getDoc(doc(db, "staffMeta/librarySeed")));
+  }
+});
+
+test("Nana Jobs: the profile, shortlist, statuses, CV, pool and AI keys are server-only, even for the member they're about", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) await setDoc(doc(db, p), { uid: "alice" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice", x: 1 }));
+    }
   }
 });
 
