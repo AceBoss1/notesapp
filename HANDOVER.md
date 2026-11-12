@@ -1016,6 +1016,22 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     intercompany agreement and tax set-up (FUNDING.md §5a step 5). A Flutterwave payout whose outcome is unknown leaves the
     earnings `paying` and a `treasuryPayouts` record `unconfirmed`: check Flutterwave, then set them back to `held` or finish by hand
     (no button yet). Tests: `test:global` (new), rules 96/96.
+131. **Nana Jobs: your own AI, a daily shortlist (v0.163.0, branch `push/nana-jobs`; owner, 12 Nov 2026, adopting Shortlist; the CV
+    review added by the owner when approving):** see `docs/NANA_JOBS.md`. `/jobs/nana` (a third tab beside the job board and Applied,
+    `components/jobs/JobsSubTabs.tsx`), public explainer `/nana-jobs` (footer), help article `nana-jobs`. Members 18+ with personal
+    accounts only (`whyNotAllowed`), free on every plan. `lib/ai-connect.ts` now holds Gemini, Groq and OpenAI-compatible keys too
+    (`aiProviderKeys/{uid}_{provider}`, encrypted with `ACCOUNT_DATA_KEY`); the Anthropic key stays in `aiConnections` and Nana's callers
+    (`aiStatus`, `ownKey`) are unchanged. Calls, key checks and pacing: `lib/ai-providers.ts` (`pickProvider` never picks a paid one
+    unless chosen). The funnel, link check, CV and cover-note guards: `lib/nana-jobs-funnel.ts`; sources: `lib/nana-jobs-sources.ts`;
+    Firestore: `lib/nana-jobs-server.ts` (collections listed at its top, all server-only). The shared pool is collected once a day by
+    `/api/cron/nana-jobs` (Vercel Cron, 03:20 UTC); members' runs at their own hour come from the `nanaJobs` job in the 15-minute
+    reminders cron (3 a tick, within a time budget). Code adapted from Shortlist (MIT, © 2026 Victor Dickson) keeps the notice in its
+    header; the full notice is in `THIRD_PARTY_NOTICES`. **Owner:** deploy the rules (`firebase deploy --only firestore:rules`; eight
+    new server-only collections); `ACCOUNT_DATA_KEY` and `CRON_SECRET` must be set (they already are for other features). No new
+    composite index. **Not built (phase 2):** forwarding LinkedIn job-alert emails to a personal Nana Jobs address (needs inbound email).
+    Known limits: a free tier that's slow means the rest of a run keeps the keyword score; the cover note on the live site needs the
+    member's AI to answer; the CV reader handles PDF with text and .docx (not scans or old .doc). Tests: `test:nana-jobs` (new, pure),
+    `test:nana-jobs-server` (new, emulator), rules (one new test).
 
 ## 3. How the work is done (please keep these)
 
@@ -1089,6 +1105,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Partner API | `app/api/v1/*` behind `v1()` in `lib/api-v1.ts` (key, API access, plan, rate limit), keys `lib/api-keys.ts`, docs `lib/api-docs.ts` (the /docs page), webhooks `lib/webhooks.ts`; image uploads `app/api/v1/uploads` (presigned R2, `api/<uid>/`, v0.125.0) |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
+| Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
@@ -1108,6 +1125,8 @@ npm run test:shared            # shared rate limits and cache (a stand-in Upstas
 npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
+npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards (no network)
+npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

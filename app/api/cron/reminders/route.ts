@@ -38,6 +38,8 @@ import { settleEndedPromotions } from "@/lib/promo-settle-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
 import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
+import { runDue as nanaJobsDue } from "@/lib/nana-jobs-server";
+import { liveDeps as nanaJobsDeps } from "@/lib/nana-jobs-api";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -164,6 +166,9 @@ async function run() {
   await job("booksReports", () => monthlyBooksReports(db));
   // Researchers who linked ORCID with sync on: their new works are added to their site's Publications (lib/publications-server.ts).
   await job("syncOrcidSites", () => syncOrcidSites(db));
+  // Nana Jobs: members' daily shortlists at the hour each chose, a few per run within a time limit (lib/nana-jobs-server.ts). The shared
+  // pool they read is collected once a day by /api/cron/nana-jobs.
+  await job("nanaJobs", () => nanaJobsDue(db, nanaJobsDeps(), { max: 3, budgetMs: 60_000 }));
   await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.

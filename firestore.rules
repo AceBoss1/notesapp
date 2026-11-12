@@ -928,6 +928,17 @@ service cloud.firestore {
     match /jobs/{id} { allow read, write: if false; }
     match /jobApplications/{id} { allow read, write: if false; }
     match /jobSeekers/{id} { allow read, write: if false; }
+    // Nana Jobs (lib/nana-jobs-server.ts): the scoring profile, the shortlist and statuses, the CV (encrypted), the watched company
+    // boards and the shared pool of openings are written and read only by the server. Firms never see any of it.
+    match /nanaJobsProfiles/{id} { allow read, write: if false; }
+    match /nanaJobsRuns/{id} { allow read, write: if false; }
+    match /nanaJobsStatuses/{id} { allow read, write: if false; }
+    match /nanaJobsCv/{id} { allow read, write: if false; }
+    match /nanaJobsBoards/{id} { allow read, write: if false; }
+    match /nanaJobsMeta/{id} { allow read, write: if false; }
+    match /jobPool/{id} { allow read, write: if false; }
+    // Members' own AI keys other than Anthropic (lib/ai-connect.ts), encrypted; like aiConnections, never readable from a browser.
+    match /aiProviderKeys/{id} { allow read, write: if false; }
     match /jobInvites/{id} { allow read, write: if false; }
     match /jobBells/{id} { allow read, write: if false; }
     match /hrDrafts/{id} { allow read, write: if false; } // Nana-HR's onboarding drafts (server only)
