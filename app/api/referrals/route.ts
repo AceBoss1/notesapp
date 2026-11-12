@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { REFERRAL_COOKIE } from "@/lib/referrals";
 import { ReferralError, claimReferral, referralOfferFor, summary, withdraw } from "@/lib/referrals-server";
+import { MilestoneError, claimMilestone, myMilestones } from "@/lib/referral-milestones-server";
 import { creditEarnings } from "@/lib/wallet-server";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { rateLimit } from "@/lib/rate-limit";
@@ -18,6 +19,7 @@ async function me(req: NextRequest) {
 }
 const fail = (e: unknown) => {
   if (e instanceof ReferralError) return NextResponse.json({ error: e.message }, { status: e.status });
+  if (e instanceof MilestoneError) return NextResponse.json({ error: e.message }, { status: e.status });
   console.error("referrals", e);
   return NextResponse.json({ error: "Couldn't do that. Try again." }, { status: 500 });
 };
@@ -26,12 +28,13 @@ export async function GET(req: NextRequest) {
   try {
     const u = await me(req);
     const db = getAdminDb();
-    const [s, offer, username, bank] = await Promise.all([
+    const [s, offer, username, bank, ms] = await Promise.all([
       summary(db, u.uid), referralOfferFor(db, u.uid), db.doc(`users/${u.uid}`).get().then((d) => String(d.data()?.username ?? "")),
       db.doc(`payoutAccounts/${u.uid}`).get().then((d) => d.data()),
+      myMilestones(db, u.uid).catch(() => null),
     ]);
     const payout = bank?.recipientCode ? { bankName: String(bank.bankName ?? ""), accountLast4: String(bank.accountLast4 ?? "") } : null;
-    return NextResponse.json({ ...s, username, verified: u.emailVerified, walletLive: WALLET_LIVE, payout, offer: offer ? { from: offer.referrerUsername } : null }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ ...s, username, verified: u.emailVerified, walletLive: WALLET_LIVE, payout, offer: offer ? { from: offer.referrerUsername } : null, ...(ms ? { milestones: ms.milestones, qualified: ms.qualified } : {}) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return fail(e); }
 }
 
@@ -46,6 +49,8 @@ export async function POST(req: NextRequest) {
       const r = await claimReferral(db, u.uid, req.cookies.get(REFERRAL_COOKIE)?.value);
       return NextResponse.json(r);
     }
+    // A referral milestone's Bonus Credits (lib/referral-milestones.ts).
+    if (body.action === "milestone") return NextResponse.json(await claimMilestone(db, u, body.id, { walletLive: WALLET_LIVE }));
     if (body.action === "withdraw") {
       if (!u.emailVerified) throw new ReferralError(403, "Verify your email first.");
       const method = body.method === "credit" ? "credit" : "cash";

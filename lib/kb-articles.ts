@@ -48,6 +48,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
+import { MILESTONES as REF_MILESTONES } from "./referral-milestones";
 import { CERTIFY_MEMBERS, CERTIFY_PAYING, DEFAULT_TERMS, LEADS_PER_DAY, TIERS as PARTNER_TIERS, TIER_LABEL as PARTNER_TIER_LABEL, TIER_NEED as PARTNER_TIER_NEED, TRACK, TRACKS, TRAINING, type Tier, type TierTerms } from "./partner-network";
 import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
@@ -136,6 +137,26 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 **Emoji packs:** open 😊 in a chat. **Everyday** has the usual emojis and ours (:na:). **Afro culture** has our own drawings (the drums, gongs, bronzes and maps), **Faces** has everyday faces in one colour, and **Flags** has every African country's flag and many more. These are free on every plan. **Summer**, **Spooky** and **Celebrate** come with Pro, Business and Enterprise: they show a 🔒 and **Unlock**, which opens [Plans and prices](/pricing). Pack emojis are maroon crimson by Day and warm ivory by Night (flags keep their own colours), and white inside your own crimson bubbles. Anywhere that only shows words, like the inbox or an email, they read as their name.
 
 **Flags and maps as you type:** type a country's name ("Nigeria", or just "Nig") or its code in capitals ("NG", "GHA") and a row above the box offers its flag, and its map when there is one. Tap to put it in: a code turns into the flag, and a name keeps its word (finished for you if you cut it short). Codes only count in capitals, so words like "in" or "us" never set it off.`),
+    A("referral-milestones", "Referral milestones: Bonus Credits for bringing friends", "Publishing and earning", `
+On top of what you earn from friends' plans, bringing friends to #NotesApp unlocks **milestones**, each paying **Bonus Credits** into your NotesApp wallet once:
+
+${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
+
+**Who counts:** a friend who joined through your link or code, verified their email and chose a username. Child profiles and suspended accounts don't count.
+
+**Claiming:** open [your Referrals page](/profile/referrals). Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
+
+**Spending them:** Bonus Credits pay for things on #NotesApp (boosts, badges, gifts, shop items and more). They can't be withdrawn as cash, and they last like any Bonus Credits.
+`),
+    A("media-remix", "Remix: make your own take on a Media post", "Publishing and earning", `
+**Remix** lets you make a new Media post from someone else's: their sound is chosen for you, your caption credits them, and your post links back to theirs ("Remix of @creator"). They get a bell when you post it.
+
+**How:** open a video or picture post on someone's Media and press **Remix**. Your Media studio opens with their sound picked (when they used a NotesApp Sound) and "Remix of @creator" in your caption. Add your own video or pictures, and post. Press **Not a remix** to make an ordinary post instead.
+
+**Which posts can be remixed:** posts for everyone whose creator allows shares (the same switch, "Allow shares", covers remixes). Posts by members in teen mode or child profiles can't be remixed. The original shows how many remixes it has.
+
+**Sharing:** the **Share** button on a Media post offers Moments and Journals first, then other apps and the link.
+`),
     A("referrals", "Referrals and affiliates", "Publishing and earning", `
 **Your link:** go to **Account → Referrals** ([/profile/referrals](/profile/referrals)) and copy your link (it looks like \`/r/yourname\`). Verify your email first: links only earn for verified members.
 

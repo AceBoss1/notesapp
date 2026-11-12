@@ -121,7 +121,8 @@ function route(req: NextRequest, host: string, fam: Family) {
 // (lib/local-currency.ts). Set only when it's missing or changed, never on API calls.
 export async function middleware(req: NextRequest) {
   const res = await handle(req);
-  const country = (req.headers.get("x-vercel-ip-country") || "").toUpperCase();
+  // Vercel's geolocation: the header, or req.geo where the header isn't passed to middleware.
+  const country = (req.headers.get("x-vercel-ip-country") || (req as NextRequest & { geo?: { country?: string } }).geo?.country || "").toUpperCase();
   if (/^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1" && req.cookies.get("na_cc")?.value !== country && !req.nextUrl.pathname.startsWith("/api/")) {
     res.cookies.set("na_cc", country, { path: "/", maxAge: 30 * 86_400, sameSite: "lax", secure: true });
   }

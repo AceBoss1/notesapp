@@ -1,5 +1,6 @@
 "use client";
 
+import TabsMore from "@/components/TabsMore";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
@@ -88,9 +89,7 @@ export default function TrendingPage() {
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
         {/* Creators who reached today's gift target stay pinned here until midnight in Lagos (lib/gifts-server.ts). */}
         <TopGiftedShelf className="mb-6" />
-        <div role="tablist" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-          {TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={pill(tab === t.id)}>{t.label}</button>)}
-        </div>
+        <TabsMore label="Trending" mobile={2} tabs={TABS} active={tab} onSelect={(id) => setTab(id as Tab)} tabClass={pill} className="pb-1" />
         <div className="mt-4"><AdSlot placement="trending" /></div>
         {error && <p className="mt-8 text-sm text-crimson">{error}</p>}
         {!data && !error && <p className="mt-8 text-sm text-slate">Loading…</p>}

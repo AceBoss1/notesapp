@@ -8,7 +8,7 @@ import { moneyIn } from "./global-sales";
 // The card is always built on the server from the item as it is now (lib/share-targets-server.ts): drafts, private and members-only
 // things, revoked certificates and ended coupons have no card, so they can't be shared this way.
 
-export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post", "item", "service", "event", "replay"] as const;
+export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post", "item", "service", "event", "replay", "media"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 export const isShareKind = (v: unknown): v is ShareKind => SHARE_KINDS.includes(v as ShareKind);
 
@@ -28,7 +28,7 @@ export type ShareCard = {
   price?: string; // shop items and services: "₦15,000" (a session also says how long)
 };
 
-export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post", item: "Shop item", service: "Service", event: "Event", replay: "Replay" };
+export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post", item: "Shop item", service: "Service", event: "Event", replay: "Replay", media: "Media post" };
 export const SHARE_TITLE_MAX = 140;
 
 const clean = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -120,6 +120,16 @@ export function eventCard(id: string, e: { title?: string; visibility?: string; 
 export function replayCard(id: string, r: { title?: string; audience?: string; status?: string; hostUsername?: string; hostName?: string; hostAvatar?: string } | undefined): ShareCard | null {
   if (!r || !r.title || (r.audience !== "public" && r.audience !== "subscribers")) return null;
   return { kind: "replay", id, title: clean(r.title, SHARE_TITLE_MAX), path: `/replays/${id}`, image: safeImage(r.hostAvatar), creatorUsername: handle(r.hostUsername), creatorName: clean(r.hostName, 80) || undefined, label: r.audience === "subscribers" ? "Replay · subscribers" : SHARE_LABEL.replay };
+}
+
+// A Media post (lib/media-rules.ts): only a ready post for everyone whose creator allows shares, by a creator who isn't a child or in teen
+// mode. It opens on the creator's Media (/u/<username>/media?post=<id>).
+export function mediaCard(id: string, p: { ownerUsername?: string; kind?: string; caption?: string; status?: string; audience?: string; allowShares?: boolean } | undefined, owner: { displayName?: string; avatar?: string; teen?: boolean; kid?: boolean } | undefined, poster?: string): ShareCard | null {
+  if (!p || p.status !== "ready" || p.audience !== "everyone" || p.allowShares === false || !owner || owner.teen === true || owner.kid === true) return null;
+  const username = handle(p.ownerUsername);
+  if (!username) return null;
+  const title = clean(p.caption, SHARE_TITLE_MAX) || `${p.kind === "video" ? "A video" : "Pictures"} by @${username}`;
+  return { kind: "media", id, title, path: `/u/${username}/media?post=${id}`, image: safeImage(poster || owner.avatar), creatorUsername: username, creatorName: clean(owner.displayName, 80) || undefined, label: p.kind === "video" ? "Video" : SHARE_LABEL.media };
 }
 
 // ---- What each share makes.

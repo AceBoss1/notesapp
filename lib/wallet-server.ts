@@ -186,13 +186,14 @@ export function settleHold(t: Transaction, db: Firestore, a: { wallet: FirebaseF
 }
 
 // Adds Bonus Credits to a wallet inside the caller's transaction (Notes Life invites). Pass the wallet as read in that transaction.
-export function grantBonus(t: Transaction, db: Firestore, uid: string, walletData: FirebaseFirestore.DocumentData | undefined, kobo: number, label: string, id: string, now = new Date()) {
+// kind: what it's for in the wallet's history ("life_referral" for Notes Life invites, "referral_milestone" for referral milestones).
+export function grantBonus(t: Transaction, db: Firestore, uid: string, walletData: FirebaseFirestore.DocumentData | undefined, kobo: number, label: string, id: string, now = new Date(), kind = "life_referral") {
   const w = walletOf(walletData);
   expiredLine(t, db, uid, w, now);
   const lots = liveLots(w, now);
   lots.push({ id, kobo, expiresAt: new Date(now.getTime() + BONUS_DAYS * 86_400_000).toISOString(), source: "adjust" });
   t.set(walletDoc(db, uid), { creditKobo: w.creditKobo, bonusLots: lots, updatedAt: now.toISOString() });
-  t.set(db.doc(`walletTx/${id}`), { uid, type: "bonus", creditKobo: 0, bonusKobo: kobo, label, kind: "life_referral", at: now.toISOString() } satisfies WalletTx);
+  t.set(db.doc(`walletTx/${id}`), { uid, type: "bonus", creditKobo: 0, bonusKobo: kobo, label, kind, at: now.toISOString() } satisfies WalletTx);
 }
 
 // Taking a top-up back out (an admin refunding it to the card): only the unspent part of it, and its bonus goes with it.

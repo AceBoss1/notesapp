@@ -1,5 +1,6 @@
 "use client";
 
+import TabsMore from "@/components/TabsMore";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import FeedPost from "@/components/feed/FeedPost";
@@ -67,6 +68,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
     return sort === "viewed" ? byMostViewed(shelf) : byRecent(shelf);
   }, [notes, topic, sort, weekly]);
   const chip = (on: boolean) => `flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${on ? "bg-ink text-paper" : "bg-card text-slate ring-1 ring-rule hover:text-ink"}`;
+  const tabText = (label: string, count?: number) => `${label}${count !== undefined ? ` · ${count}` : ""}`;
   const tabBtn = (t: Tab, label: string, count?: number) => (
     <button role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
       className={`flex-shrink-0 border-b-2 px-1 py-3 font-ui text-sm font-semibold ${tab === t ? "border-crimson text-crimson" : "border-transparent text-slate hover:text-ink"}`}>
@@ -77,13 +79,16 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
   return (
     <div className="mt-10">
       <div className="-mx-4 border-b border-rule px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-6 overflow-x-auto" role="tablist">
-          {tabBtn("notes", "Notes", noteCount)}
-          {mediaOn && tabBtn("media", "Media", media.data?.counts.all ?? (media.data === undefined ? undefined : 0))}
-          {giftsOn && tabBtn("gifts", "Gifts")}
-          {tabBtn("store", "Store", storeItems.length)}
-          {tabBtn("courses", "Courses", courses?.length ?? 0)}
-        </div>
+        {/* On a phone: three tabs and More (TabsMore); all of them from the sm breakpoint up. */}
+        <TabsMore label="Profile" active={tab} onSelect={(t) => setTab(t as Tab)} mobile={3}
+          tabClass={(on) => `flex-shrink-0 border-b-2 px-1 py-3 font-ui text-sm font-semibold sm:mr-4 ${on ? "border-crimson text-crimson" : "border-transparent text-slate hover:text-ink"}`}
+          tabs={[
+            { id: "notes", label: tabText("Notes", noteCount) },
+            ...(mediaOn ? [{ id: "media", label: tabText("Media", media.data?.counts.all ?? (media.data === undefined ? undefined : 0)) }] : []),
+            ...(giftsOn ? [{ id: "gifts", label: "Gifts" }] : []),
+            { id: "store", label: tabText("Store", storeItems.length) },
+            { id: "courses", label: tabText("Courses", courses?.length ?? 0) },
+          ]} />
       </div>
 
       {tab === "notes" && (
