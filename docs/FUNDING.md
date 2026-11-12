@@ -23,19 +23,26 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 12 | **The Pitch by Deel 2027**: up to 100 regional winners at USD 50,000, 10 global champions at USD 1M, **as SAFE investments, not grants**: §16 | [deel.com/the-pitch-by-deel](https://www.deel.com/the-pitch-by-deel/) | 2027 advance applications and waitlist open now; 2027 dates not published | equity (SAFE) | pre-apply now; counsel before any SAFE (§16) |
 | 13 | **AngelSpark** live angel pitch at **Expand North Star by GITEX, Dubai, 8–10 December 2026**: pre-seed and seed; a yes or no on the spot: §17 | [angelspark.net/apply-for-funding](https://angelspark.net/apply-for-funding) | not published: apply now (the event is in 4 weeks, and a UAE visa takes time) | equity; travel to Dubai | only if someone can travel; counsel before signing (§17) |
 | 14 | **Pledge 1%**: commit 1% of product, time, equity or profit to the community; free, through the Stripe Atlas perk: §18 | [pledge1percent.org](https://pledge1percent.org) | none | nothing (an equity pledge is 1% of the Inc, set aside) | join now with product and time; equity after Carta (§18) |
+| 15 | **HBS Africa Business Club, Africa New Venture Competition 2027** (Harvard Business School; prizes reported as USD 30k / 15k / 10k; finals at the Africa Business Conference, Boston, 5–6 Feb 2027): §19 | [africa-hbsclub.com](https://www.africa-hbsclub.com/conference/new-venture-competition) (the form is a Google Form linked from the club's post) | **12 November 2026** | nothing; equity not mentioned | **today** |
+| 16 | **Obama Foundation Leaders Africa 2027–2028** (free leadership programme for a person, not a company): §20 | [obama.org/programs/leaders](https://www.obama.org/programs/leaders/) | priority **23 November 2026**; final 4 December 2026 (noon US Central, reported) | nothing | the CEO applies, if eligible |
+| 17 | **3MTT Nigeria Delivery Network, Cohort 5** (about ₦4bn, paid per verified Fellow outcome; Federal Ministry of Communications, Innovation and Digital Economy): §21 | [delivery.3mtt.gov.ng](https://delivery.3mtt.gov.ng/) | **30 November 2026** (funding, reported); membership reviewed quarterly | nothing; paid in stages on results | apply as a Funded Delivery Partner (consortium) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
 
 ---
 
-### Deadlines at a glance (as of 9 November 2026)
+### Deadlines at a glance (as of 12 November 2026)
 
 | When | What | § |
 |---|---|---|
+| **Thu 12 Nov 2026 (today)** | HBS Africa New Venture Competition 2027 | §19 |
 | **Sun 15 Nov 2026, 11:59 p.m. WAT** | USPF Changemaker Challenge (all five sectors) | §14 |
 | **Wed 18 Nov 2026** | Alliance accelerator, ALL19 (Regular Admission) | §5 |
 | **Fri 20 Nov 2026** | .tech pitch competition | §3 |
+| **Mon 23 Nov 2026** (priority; final 4 Dec) | Obama Foundation Leaders Africa (the CEO, as a person) | §20 |
+| **Wed 25 Nov 2026** | Atlas: the 83(b) postmarked (Atlas files; save the tracking number when it appears) | §5a |
+| **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | §21 |
 | As soon as possible (deadline not published; event 8–10 Dec, Dubai) | AngelSpark at Expand North Star | §17 |
 | **Tue 15 Dec 2026, 23:59 US Pacific** | .tech No Excuses Fund | `docs/NO_EXCUSES_APPLICATION.md` |
 | January 2027 (date not confirmed) | Aurora Tech Award and Aurora Ventures | §13 |
@@ -343,6 +350,20 @@ the owner sets them.
 > with a 1-year cliff from the incorporation date**, a **hybrid** schedule: time *and* milestones. General information, not tax or legal advice: counsel and each founder's own tax
 > adviser decide. Names, share numbers and prices stay out of this file (they're confidential; Carta holds them).
 
+**Where Atlas is (12 November 2026):** application reviewed; **NotesApp Inc incorporated on 9 November 2026**; the EIN expected
+between 18 November 2026 and 4 January 2027; the **83(b) expected to be postmarked by 25 November** (Atlas files it). The founders'
+shares are therefore issued on Atlas's standard terms, which have **time-only vesting** (4 years, 1-year cliff from the vesting start):
+the milestones of the hybrid plan are now goals in a board-approved founders' memo, unless counsel drafts an amendment with US tax
+advice (below). Atlas's open next steps, in order:
+- [ ] **Now:** open the business account (Stripe Treasury, or Mercury), switch on Atlas's tax-deadline reminders, claim the perks
+      (`docs/STARTUP_PROGRAMMES.md`), and keep "Start accepting payments" in the sandbox until the EIN arrives (`docs/PAYMENTS.md` §8).
+- [ ] **"Register in states where you have founders or employees":** only for founders or staff living in a US state; none today, so
+      nothing to file (Delaware is already done). Revisit when someone in the US joins.
+- [ ] **When the 83(b) is postmarked:** save its tracking information in Atlas, and a copy for each founder.
+- [ ] **After the EIN:** accounting (Atlas's partners, or the accountant who does the Ltd), payroll only once someone is paid by the
+      Inc in the US (founders outside the US aren't on US payroll), business insurance when a customer or investor asks for it.
+- [ ] **"Start fundraising"** is open: the SAFEs (§5) can be signed by the Inc now; money can only land once the bank account exists.
+
 **Why the order matters.** Vesting makes the shares "restricted" (the company can buy back unvested shares if someone leaves). Without
 an **83(b) election**, US tax treats each tranche as income *when it vests*, at its value then; with it, each founder is taxed once, now,
 on today's value (about nothing). The 83(b) deadline is **30 days from the day the shares are issued, with no extensions**.
@@ -351,9 +372,9 @@ on today's value (about nothing). The 83(b) deadline is **30 days from the day t
 - [ ] **Vesting start date:** the incorporation date, or earlier to credit work already done (the platform was built before the Inc).
 - [ ] **Hybrid vesting (time + milestones):** Atlas confirmed (9 November 2026) that its stock purchase agreements take a vesting
       schedule with a cliff but **no milestone conditions**, so our own counsel adds the milestone terms to each founder's agreement
-      *before it's signed* (the share documents weren't issued yet on 9 November; only the incorporation and EIN forms were). If
-      counsel isn't ready in time, sign Atlas's time-only terms and keep the milestones as board-approved goals in a founders' memo, or
-      amend later with US tax advice (a change after the shares are issued can touch the 83(b)). Write each milestone so anyone can check it
+      *before it's signed*. Update, 12 November: the shares were issued on Atlas's time-only terms (the 83(b) is on its way), so the
+      milestones are board-approved goals in a founders' memo, or an amendment drafted by counsel with US tax advice (a change after
+      the shares are issued can touch the 83(b)). Write each milestone so anyone can check it
       (a number and a date, not "product-market fit"), say who confirms it was met (the board), and what happens to that tranche if
       it's missed (it falls back to time vesting, or it's forfeited). The 83(b) still applies and the 30-day clock is the same.
 - [ ] **Acceleration:** what happens to unvested shares if the company is sold (double trigger, a sale *and* being let go, is common).
@@ -1218,4 +1239,93 @@ community of founders doing the same. It tells investors, staff and members that
 
 **Use it:** mention it in the Aurora (§13) and USPF (§14) applications and the Awesome Foundation project (§15), where it strengthens
 the community story; and once we've joined, a line on the About page.
+
+---
+
+## 19. HBS Africa Business Club: Africa New Venture Competition 2027
+
+> Status: **apply today (12 November 2026, the closing date).** From Adewale O.'s LinkedIn post (November 2026) and the club's page and
+> listings: the application is a Google Form linked from the post (our browser can't open Google Forms, so the questions below are the
+> usual ones; paste from here and adjust). Check the form for the closing hour; if it says nothing, assume 11:59 p.m. US Eastern.
+
+**Who can apply (we qualify):** a startup serving the African market, with most or all operations in Africa; a prototype or MVP (no
+minimum revenue); under five years old; under USD 1 million raised; never funded by the competition or its sponsors before. We're
+live, NotesApp Technologies Ltd is Nigerian and NotesApp Inc was incorporated on 9 November 2026, and we've raised nothing.
+
+**The prize and the event:** listings report USD 30,000 / 15,000 / 10,000 for the top three (some say "up to USD 50,000"); finalists
+pitch at the Africa Business Conference at Harvard Business School, **5–6 February 2027**. Finalists may need to travel to Boston (a
+US visa takes time from Lagos: start the appointment as soon as we're shortlisted); ask the club whether remote pitching is allowed.
+
+**Answers (paste and adjust):**
+- **Company:** NotesApp (NotesApp Technologies Ltd, Nigeria; NotesApp Inc, Delaware). Website https://www.notesapp.name.ng.
+- **One line:** §1. **Sector:** creator economy and education (EdTech, FinTech payouts).
+- **Problem, solution, model:** §1 one paragraph; business model as in §9 (plans; commission on sales, bookings and courses).
+- **Traction (as of 8 November 2026):** 86 members, 75 of them in the last 30 days, 65% women; ₦3.2M processed (₦3.0M in the last 30
+  days); ₦95,968.80 commission earned. Say "processed", never "revenue" for the ₦3.2M (§1).
+- **Funding raised:** none. **Founders:** as in §13 (the co-founders and their roles; Emmanuela as Chief Legal Officer and
+  co-founder; don't mention where anyone lives).
+- **Why now:** §11's "why now" line (local-currency payouts, M-Pesa next, global subscriptions in any currency since November 2026).
+- **Use of the prize:** M-Pesa and Ghana launch, the Nana tutor for schools, and creator payouts in more currencies.
+- **Pitch deck / video:** the pitch.tech deck (§3) if ready; otherwise the one-pager.
+
+---
+
+## 20. Obama Foundation Leaders Africa 2027–2028
+
+> Status: **for the CEO to decide and apply (12 November 2026).** From Pabure's LinkedIn post and the Foundation's page: free, virtual
+> (reported as six to eight months), leadership sessions, one-to-one coaching, peer groups, and the Obama Leaders network afterwards.
+> It's for **a person**, not the company: there's no money for NotesApp, but the network and the credibility help every other
+> application here.
+
+**Who can apply (check each):** aged **24 to 45 on 1 September 2027**; living in Africa and staying in the region for the whole
+programme; at least **three years** of leadership in public, civil-society or private-sector work with community impact; professional
+English; not running for elected office through May 2028 (reported). The applicant is the CEO (or another co-founder who meets all of
+these; only the person applying is named).
+
+**Deadlines:** priority **23 November 2026** (apply by then), final **4 December 2026**, noon US Central (reported).
+
+**What to tell them (the story, in the applicant's own words):** the community they lead (creators, teachers and small businesses who
+earn through NotesApp; 65% women), the change it makes (people paid in their own currency for what they know), a moment that shows
+it, what they'd do with the training (lead the team across Nigeria, Kenya and Ghana), and three years of evidence. Draft it in the
+applicant's own voice; don't invent stories: use real ones, as for Aurora (§13).
+
+---
+
+## 21. 3MTT Nigeria Delivery Network: Cohort 5
+
+> Status: **apply by 30 November 2026 (reported; check the portal).** From the Minister's announcement (Dr 'Bosun Tijani, LinkedIn,
+> November 2026) and press: about ₦4 billion for Cohort 5, funded by the EU and Denmark through GIZ, HAUS and ESTDEV, and a MacArthur
+> Foundation grant. Portal: delivery.3mtt.gov.ng (our browser can't reach it; read it before applying).
+
+**Two ways in:**
+- **Funded Delivery Partner:** an organisation that can bring Fellows **verified opportunities** (jobs, contracts, income), or a clear
+  path to them, alone or as a **consortium**. It must be a training organisation, and the **lead applicant must be registered and
+  operating in Nigeria**. Paid a rate per successful Fellow (within a regional benchmark), in stages as four results are verified.
+- **Enabled Delivery Partner:** organisations and individual experts who can train people (with or without a space). No funding;
+  access to the 3MTT Talent Operating System, the National Talent Registry, demand data and device financing (subject to
+  eligibility). Twelve months' membership; assess at least one cohort a year; meet the quality, safeguarding and data-protection
+  rules; report learner outcomes quarterly.
+
+**Where NotesApp fits:** we train (Notes Academy courses, with certificates and the Nana tutor) **and** we create verified
+opportunities on the same platform: **Notes Jobs** (firms hiring, with applications and interviews), **creators and teachers earning**
+(sessions, courses, the store, subscriptions in any currency), and **NotesApp Logistics** (the delivery network: dispatch riders,
+pick-up points and couriers paid through Shipments). A Fellow can be trained, certified, matched and paid in one place, and every
+outcome is recorded, which is what "verified" needs.
+
+**Does NotesApp Logistics need a partner in Botswana?** No. 3MTT is a Nigerian programme for Nigerian Fellows, and the lead applicant
+must be registered and operating in Nigeria: NotesApp Technologies Ltd already is. A Botswana company couldn't lead, and becoming
+someone's Nigerian hub wouldn't add anything 3MTT scores. What does help is a **consortium of Nigerian partners** who will hire or pay
+Fellows: the logistics providers already on our network, two or three firms on Notes Jobs, and a training partner for the hands-on
+parts (riders' safety, vehicle checks). Get a short letter from each saying how many Fellows they'd take and in what roles.
+
+**The application (draft):**
+- **Lead:** NotesApp Technologies Ltd (RC and TIN in `lib/site.ts`). **Route:** Funded Delivery Partner, as a consortium; also join
+  as an Enabled Delivery Partner for the training side.
+- **Tracks:** (1) digital creator and online-teaching skills, ending in a paying page on NotesApp; (2) logistics and last-mile
+  delivery, ending in paid deliveries on the network; (3) customer service and community management, ending in roles through Notes
+  Jobs.
+- **Outcome evidence:** course completion and certificates (Notes Academy); first earnings or first paid delivery (payments ledger);
+  a job or contract (Notes Jobs application status). Fellows' data stays theirs; we share only what each Fellow agrees to.
+- **Numbers to set:** how many Fellows per track `[ ]`, the rate per successful Fellow we ask for `[ ]` (within their benchmark),
+  partners' letters `[ ]`, states covered `[ ]`.
 

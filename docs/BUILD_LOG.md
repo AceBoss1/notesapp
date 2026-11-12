@@ -3238,3 +3238,14 @@ Finance's own, never a live feed at checkout, and expire after 48 hours so a sta
 way is one month per payment: three providers' recurring billing would each need their own cancellation and failure handling, and a
 reminder covers it for now. Payouts outside the naira go through Flutterwave for African currencies; dollar, pound and euro creators
 are paid by Finance and recorded until Stripe Connect is added. The existing naira flows are untouched.
+
+## Plans: My Cycle, Hotel kit and Nana Jobs (mockups for approval, 12 Nov 2026)
+
+Three plans with mockups, from the owner's request to bring three of github.com/vicintel's projects into NotesApp's own web app (not
+Flutter). **My Cycle** (`docs/MY_CYCLE.md`, from bloom-app): a cycle companion for women and girls. It is set up once in private (no
+gender on profiles), teens get periods only with no fertility, data is encrypted on the server, and it is locked behind a passkey
+(fingerprint or face) with a privacy shield. **Hotel kit** (`docs/HOTEL_KIT.md`, from hotel-ops): Starter, Standard and Grand on Pro,
+Business and Enterprise, plus add-ons priced in Admin. **Nana Jobs** (`docs/NANA_JOBS.md`, from shortlist-engine): a daily shortlist
+scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licence, so only their ideas are used. shortlist-engine is MIT
+and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
+mockups are approved.
