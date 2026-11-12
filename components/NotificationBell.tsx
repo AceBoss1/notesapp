@@ -45,6 +45,7 @@ const ICON: Record<NotificationType, string> = {
   announcement: "📢",
   volunteer: "🙌",
   books: "🧾",
+  hotel: "🏨",
   referral: "📈",
   nana: "✨",
   reminder: "🔔",

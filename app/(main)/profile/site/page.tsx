@@ -187,6 +187,14 @@ export default function YourSitePage() {
             onLinked={async (cid) => { const d = await call(user, "/api/site/community", { cid }); setSite(d.site); }} />
         )}
 
+        {site?.kit === "hotel" && (
+          <div className="card mt-6 border-crimson/30 p-5">
+            <p className="font-ui text-sm font-bold text-ink">🏨 Your hotel</p>
+            <p className="mt-1 text-sm text-slate">Rooms, prices, departments, menus, bookings and orders live in Your hotel. Your site shows them at /hotel, with Book a room and Order food on the banner.</p>
+            <Link href="/profile/hotel" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">Open Your hotel</Link>
+          </div>
+        )}
+
         <SiteThemePicker key={theme} current={theme} username={profile.username} tier={tier} title="2. Choose its look and colours" onChange={setTheme}>
           {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}${site.palette.bg ?? ""}${theme}`} tier={tier} theme={theme} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
           {site && (

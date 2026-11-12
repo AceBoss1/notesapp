@@ -228,6 +228,11 @@ const ROWS: Row[] = [
     render: (t) => (!t.canPublish ? "—" : t.tier === "business" || t.tier === "enterprise" ? "Included: stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change, spreadsheet in and out" : `Add-on: ${inventoryAddonPrice()}/month after a free ${inventoryTrialDays()}-day trial`),
   },
   {
+    label: "Hotel kit",
+    href: "/hotels",
+    render: (t) => (!t.canPublish || t.tier === "basic" ? "—" : t.tier === "pro" ? "Hotel Starter: the hotel's website, rooms and online booking, one department's menu and orders, pay online, Business books" : t.tier === "business" ? "Hotel Standard: Starter, plus several departments, the live staff board, the kitchen screen, tills and cash-up, stock, the room bill and staff roles" : "Hotel Grand: Standard, plus several branches in one view, Nana chat ordering, Conversations and monthly reports"),
+  },
+  {
     label: "Shipments for logistics businesses",
     href: "/logistics",
     render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · list your business in the logistics network so stores can choose you · deliveries are paid by the customer" : `The logistics add-on: ${logisticsAddonPrice()}/month, with a ${logisticsTrialDays()}-day free trial and no card · shipments, rider hand-off links and a listing in the logistics network`),

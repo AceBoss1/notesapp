@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.164.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "The Hotel kit: a whole hotel on #NotesApp. The hotel's own website with rooms, live availability and online booking, and food and drink orders from every department to a room, a table or for pick-up. Run it all from Your hotel, and choose the new Hotels, guest houses and resorts kit on Your site." },
+      { kind: "added", text: "Three tiers on the plans you already have: Hotel Starter on Pro, Hotel Standard on Business (several departments, a live staff board, a kitchen screen with sound and spoken alerts, tills with PINs and cash-up, stock from Inventory, the room bill, staff roles by department) and Hotel Grand on Enterprise (several branches with one owner view, ordering by chatting with Nana in English, Pidgin, Yorùbá, Igbo and Hausa, Conversations and monthly reports)." },
+      { kind: "added", text: "Money that stays right: rooms and orders are held while the guest pays and go back on sale when the hold runs out; only a payment the provider confirms marks anything paid; money that lands late is kept and flagged to rebook or refund; the room bill is settled at checkout; and every sale goes into Business books, with stock taken off Inventory." },
+      { kind: "added", text: "Add-ons on any tier: an account number for each order (it turns paid by itself when the transfer lands), Housekeeping (rooms dirty, cleaning or ready, maintenance and lost and found), and Set it up for me, where our team fills in your kit. WhatsApp ordering and the Moniepoint card-machine link are ready and show as not set up yet until they're switched on." },
+    ],
+  },
+  {
     version: "v0.163.0",
     bump: "minor",
     date: "2026-11-12",
