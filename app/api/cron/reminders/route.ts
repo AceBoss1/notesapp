@@ -36,6 +36,7 @@ import { birthdayBells } from "@/lib/young-server";
 import { trackJob } from "@/lib/ops-metrics-server";
 import { settleEndedPromotions } from "@/lib/promo-settle-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
+import { sweepHolds } from "@/lib/hotel-server";
 import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
 
@@ -105,6 +106,7 @@ async function run() {
   const expired = await job("expireTiers", expireTiers);
   const released = await job("releaseDueOrders", releaseDueOrders);
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
+  await job("hotelHolds", () => sweepHolds(db)); // Hotel kit: unpaid bookings and orders past their hold are released (lib/hotel-server.ts)
   // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
   const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
   // Ended boosts and adverts: the undelivered share refunded pro rata, the way the member paid, as the help and Terms promise

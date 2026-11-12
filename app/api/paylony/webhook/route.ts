@@ -7,6 +7,7 @@ import { checkCardtap } from "@/lib/cardtap-topup-server";
 import { checkPay } from "@/lib/invoices-server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { setting } from "@/lib/config";
+import { fulfillPayment } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,9 @@ export async function POST(req: NextRequest) {
     else for (const r of new Set([event.reference, event.trx].filter((x): x is string => typeof x === "string" && /^[A-Za-z0-9_-]{6,80}$/.test(x)))) {
       await checkCardtap(getAdminDb(), r).catch(() => {}); // not one of ours, or not paid yet: nothing to do
       await checkPay(getAdminDb(), r, typeof event.trx === "string" ? event.trx : undefined).catch(() => {}); // a client invoice paid with Paylony
+      // A hotel guest's account number (lib/hotel-pay-server.ts): fulfillPayment asks Paylony about it by our reference before applying it.
+      const hp = (await getAdminDb().doc(`payments/${r}`).get()).data();
+      if (hp?.kind === "hotel" && hp.payWith === "paylony" && hp.status === "pending") await fulfillPayment(r).catch(() => {});
     }
     return new NextResponse("success", { status: 200, headers: { "Content-Type": "text/plain" } });
   } catch (err) {

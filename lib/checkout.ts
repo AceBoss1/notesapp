@@ -50,6 +50,7 @@ export async function startCheckout(
     | { kind: "nana_credit"; packId: string }
     | { kind: "logistics_addon" }
     | { kind: "inventory_addon" }
+    | { kind: "hotel_addon"; addon: string }
     | { kind: "certificate"; courseId: string; learnerName: string }
     | { kind: "giving"; cid: string; amountNaira: number; fund: string; note?: string; anonymous?: boolean; cover?: boolean }
     | { kind: "ticket"; eventId: string; typeId: string; quantity: number }

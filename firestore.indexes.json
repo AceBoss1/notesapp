@@ -641,6 +641,102 @@
         { "fieldPath": "publisherUid", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "hotelBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roomId", "order": "ASCENDING" },
+        { "fieldPath": "checkOut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hotelId", "order": "ASCENDING" },
+        { "fieldPath": "checkOut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hotelId", "order": "ASCENDING" },
+        { "fieldPath": "paidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "paidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelBookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "holdUntil", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hotelId", "order": "ASCENDING" },
+        { "fieldPath": "paidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "paidAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "billSettledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "holdUntil", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tillId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelPosEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "terminalSerial", "order": "ASCENDING" },
+        { "fieldPath": "at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hotelChats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hotelId", "order": "ASCENDING" },
+        { "fieldPath": "at", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

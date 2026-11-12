@@ -65,6 +65,19 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `AUTO_PAYOUTS` | no | off pauses automatic payout release. |
 | `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once. |
 
+## Hotel kit
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `MONIEPOINT_WEBHOOK_SECRET` | **yes** | Moniepoint card machines (the Hotel kit's card-machine link add-on): the secret Moniepoint shows when the webhook https://<site>/api/hotel/moniepoint is added. Every event is checked against it (HMAC-SHA256 over id, timestamp and body). Without it, and the two below, the add-on shows as not set up yet. |
+| `MONIEPOINT_CLIENT_ID` | no | Moniepoint push-payment API client ID (the ERP integration switched on for the business): a till sends the exact amount to the counter's machine. |
+| `MONIEPOINT_CLIENT_SECRET` | **yes** | Moniepoint push-payment API client secret. |
+| `MONIEPOINT_API_URL` | no | Moniepoint push-payment API base address (from Moniepoint when the integration is switched on). Without it, sales can't be sent to a machine, but machine payments still arrive by webhook. |
+| `MONIEPOINT_AMOUNT_UNIT` | no | naira (the default) or kobo: how Moniepoint's webhook and API state amounts. Check the first real payment against the machine's receipt. |
+| `WHATSAPP_APP_SECRET` | **yes** | WhatsApp Cloud API (the Hotel kit's WhatsApp ordering add-on): the Meta app secret; every webhook to https://<site>/api/hotel/whatsapp is checked against it (X-Hub-Signature-256). Without it, the verify token and the access token, the add-on shows as not set up yet. |
+| `WHATSAPP_VERIFY_TOKEN` | **yes** | The verify token typed into Meta's webhook settings for https://<site>/api/hotel/whatsapp. |
+| `WHATSAPP_ACCESS_TOKEN` | **yes** | A system-user access token with whatsapp_business_messaging, used to send Nana's replies from each hotel's number. |
+
 ## Naija Exam Prep
 
 | Setting | Secret | What it does |

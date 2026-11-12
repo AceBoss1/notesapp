@@ -1615,6 +1615,32 @@ test("Notes Jobs collections are server-only, even for the member they're about 
   }
 });
 
+test("hotel kit: hotels, bookings, orders, tills, payments and chats are server-only; staff screens may only read the pulse", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "hotels/pub"), { ownerUid: "pub", name: "Osun Suites", staff: {} });
+    await setDoc(doc(f, "hotelBookings/b1"), { hotelId: "pub", ownerUid: "pub", status: "held", totalKobo: 9000000, code: "ABCDEFGH" });
+    await setDoc(doc(f, "hotelOrders/o1"), { hotelId: "pub", ownerUid: "pub", status: "awaiting_payment", totalKobo: 2050000 });
+    await setDoc(doc(f, "hotelTills/t1"), { hotelId: "pub", pinHash: "salt:hash" });
+    await setDoc(doc(f, "hotelPulse/pub"), { rev: 3, at: "x" });
+  });
+  const owner = as("pub");
+  for (const path of ["hotels/pub", "hotelBookings/b1", "hotelOrders/o1", "hotelTills/t1", "hotelMenu/m1", "hotelStays/s1", "hotelChats/c1", "hotelPayments/p1", "hotelPosEvents/e1", "hotelTillSessions/x", "hotelCashups/c1", "hotelIssues/i1", "hotelRooms/r1", "hotelWaMessages/w1"]) {
+    await assertFails(getDoc(doc(owner, path)));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  // Nobody marks an order paid, a booking confirmed or prices anything from a browser.
+  await assertFails(updateDoc(doc(owner, "hotelOrders/o1"), { status: "paid" }));
+  await assertFails(updateDoc(doc(as("alice"), "hotelBookings/b1"), { status: "confirmed" }));
+  await assertFails(setDoc(doc(owner, "hotelMenu/m2"), { hotelId: "pub", priceKobo: 1 }));
+  await assertFails(setDoc(doc(owner, "hotelPayments/paystack_x"), { kind: "order", id: "o1" }));
+  // The pulse: signed-in staff screens read it to know when to fetch; nobody writes it, and signed-out visitors can't read it.
+  await assertSucceeds(getDoc(doc(owner, "hotelPulse/pub")));
+  await assertFails(getDoc(doc(anon(), "hotelPulse/pub")));
+  await assertFails(setDoc(doc(owner, "hotelPulse/pub"), { rev: 99 }));
+  await assertFails(getDocs(query(collection(owner, "hotelOrders"), where("hotelId", "==", "pub"))));
+});
+
 test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

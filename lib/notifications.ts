@@ -52,6 +52,7 @@ export type NotificationType =
   | "announcement" // news from #NotesApp to every member (Admin → Announcements)
   | "volunteer" // a Naija Exam Prep reviewer sign-up: received, approved
   | "books" // Business books: a shop's receipt, a reminder of money owed, or the waitlist (lib/books-server.ts)
+  | "hotel" // the Hotel kit: a booking, an order, late money, a request (lib/hotel-server.ts)
   | "referral" // the monthly referrals and affiliate report
   | "nana"; // Nana's inbox: something needs the member, or Nana did something for them (lib/agents)
 

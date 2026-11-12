@@ -21,6 +21,7 @@ import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
 import { getAdPackage } from "@/lib/ad-packages";
 import { ensurePricing } from "@/lib/pricing-server";
 import { currentPricing } from "@/lib/pricing";
+import { ADDONS } from "@/lib/hotel";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
@@ -310,6 +311,26 @@ export async function POST(req: NextRequest) {
       const record: PaymentRecord = {
         reference, kind: "inventory_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
         publisherUid: user.uid, publisherUsername: "", commissionRate: 0, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    if (kind === "hotel_addon") {
+      // A month of a Hotel kit add-on (lib/hotel.ts ADDONS) for the owner's hotels; the price is set in Admin.
+      const addon = ADDONS.find((x) => x.id === body.addon);
+      if (!addon) return NextResponse.json({ error: "Choose an add-on." }, { status: 400 });
+      const h = await db.doc(`hotels/${user.uid}`).get();
+      if (!h.exists) return NextResponse.json({ error: "Set up your hotel first." }, { status: 409 });
+      const full = (currentPricing().hotel as Record<string, number>)[addon.priceKey];
+      const code = await codeFor(NOTESAPP_OWNER, "hotel_addon", full);
+      const amount = full - (code?.discountKobo ?? 0);
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, addon: addon.id } });
+      const record: PaymentRecord = {
+        reference, kind: "hotel_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, hotelAddon: { addon: addon.id }, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
