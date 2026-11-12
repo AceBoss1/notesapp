@@ -1,0 +1,205 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:860px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px}
+.item{width:330px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}
+.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.cam{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.face{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:120px;height:150px;border-radius:50% 50% 45% 45%;background:radial-gradient(ellipse at 45% 40%,#b7795a,#6d3a28 70%);opacity:.85}
+.body{position:absolute;left:50%;top:44%;transform:translateX(-50%);width:230px;height:260px;border-radius:120px 120px 0 0;background:linear-gradient(#5b1426,#2a0811)}
+.pill{background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.live{background:#E0123E;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.chat{position:absolute;left:12px;right:70px;bottom:70px;display:flex;flex-direction:column;gap:6px}
+.msg{color:#fff;font-size:12.5px;line-height:1.35;text-shadow:0 1px 2px #000}.msg b{color:#FFD6E0}
+.rail{position:absolute;right:10px;bottom:76px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.rb{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px)}
+.rb small{display:block}
+.bar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;align-items:center}
+.input{flex:1;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;border:1px solid rgba(255,255,255,.25)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.lbl{font-size:12px;font-weight:700;color:var(--ink);margin:10px 0 6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg span{border:1px solid var(--rule);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;background:#fff}
+.seg .on{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.tg{width:34px;height:20px;border-radius:999px;background:var(--crimson);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#cfc3bc}.tg.off:after{right:auto;left:2px}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ring{width:84px;height:84px;border-radius:50%;padding:3px;background:conic-gradient(#E0123E,#ff6a88,#E0123E);position:relative}
+.ring>div{width:100%;height:100%;border-radius:50%;border:3px solid var(--paper);background:radial-gradient(#b7795a,#5b1426)}
+.ring .lv{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:14px;padding:11px;margin-top:8px}
+.opt.hl{border-color:var(--crimson);background:#fbf0f3}
+.opt i{font-style:normal;font-size:20px}.opt b{font-size:13.5px;display:block}.opt span{font-size:11.5px;color:var(--slate)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:20px;display:block;font-family:Fraunces,serif}.stat span{font-size:11.5px;color:var(--slate)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.gift{position:absolute;left:12px;top:150px;background:linear-gradient(90deg,rgba(122,3,40,.9),rgba(166,9,61,.75));color:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12px;display:flex;gap:8px;align-items:center}
+.gift i{font-style:normal;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.seats{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:8px}
+.seat{width:58px;height:74px;border-radius:12px;background:rgba(0,0,0,.35);border:1.5px dashed rgba(255,255,255,.55);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.seat.f{border:2px solid #3ddc84;background:radial-gradient(#8a5b45,#2a120b)}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600}
+.sub{font-size:12px;color:var(--slate);line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.lock{position:absolute;inset:0;background:linear-gradient(160deg,#4E0119,#A6093D);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.fp{width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:46px;background:rgba(255,255,255,.08)}
+.cring{width:150px;height:150px;border-radius:50%;margin:4px auto;background:conic-gradient(#E0123E 0 17%,#F6B3C3 17% 40%,#2FA37A 40% 58%,#F2C14E 58% 61%,#C9A7E8 61% 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.cring>div{width:112px;height:112px;border-radius:50%;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cring b{font-family:Fraunces,serif;font-size:30px}.cring span{font-size:11px;color:var(--slate)}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:11.5px}
+.cal span{padding:6px 0;border-radius:8px;position:relative}.cal .hd{font-size:10px;color:var(--slate);padding:2px 0}
+.p{background:#FBD3DC;color:#8c0026;font-weight:700}.pp{background:#fff;border:1.5px dashed #E0123E;color:#8c0026}.fw{background:#D6F0E4;color:#17694a}.ov{background:#F2C14E;color:#4d3800;font-weight:800}.td{outline:2px solid var(--ink)}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:10.5px;color:var(--slate)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.drops{display:flex;gap:4px;font-size:18px}
+.slider{height:6px;border-radius:9px;background:linear-gradient(90deg,var(--crimson) 0 40%,#e5d9d3 40%);position:relative;margin:8px 0}.slider:after{content:"";position:absolute;left:40%;top:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--crimson);transform:translateX(-50%)}
+.nana{background:linear-gradient(135deg,#fff,#fbeff3);border:1px solid #f0cbd6;border-radius:16px;padding:10px 12px;font-size:12px;line-height:1.45}.nana b{color:var(--crimson)}
+.bars{display:flex;align-items:flex-end;gap:7px;height:70px}.bars div{flex:1;background:var(--crimson);border-radius:5px 5px 0 0;opacity:.85;position:relative}.bars div span{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:10px;color:var(--slate)}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.35}
+.desk{width:100%;}
+.kcol{flex:1;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px}
+.kcol h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate)}
+.tk{border:1px solid var(--rule);border-radius:10px;padding:6px 7px;font-size:11px;line-height:1.35;background:#fff}.tk b{font-size:11.5px}
+.late{border-color:#E0123E;background:#fff1f3}
+.tier{border:1px solid var(--rule);border-radius:14px;padding:9px 10px;background:#fff;font-size:11.5px;line-height:1.4}.tier h3{font-size:13.5px;display:flex;justify-content:space-between}
+.tier.hl{border:2px solid var(--crimson)}
+.job{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px;font-size:12px;line-height:1.4}
+.score{font-family:Fraunces,serif;font-size:20px;font-weight:600;color:var(--crimson)}
+.why{color:#17694a}.risk{color:#8c4a00}
+.fun{display:flex;flex-direction:column;gap:4px;font-size:11.5px}.fun div{display:flex;align-items:center;gap:8px}.fun i{height:14px;background:var(--crimson);border-radius:4px;opacity:.85}
+.hotelhero{height:150px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.65)),linear-gradient(135deg,#b07a4f,#5a3420 55%,#24140c);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.room{display:flex;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:8px;font-size:12px}.room .im{width:72px;height:60px;border-radius:10px;background:linear-gradient(135deg,#d9b48f,#8a5a3c);flex:none}
+.food{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:7px;font-size:12px}.food .im{width:48px;height:48px;border-radius:10px;flex:none;background:radial-gradient(#f0a03c,#a8451b)}
+.qty{margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:700}.qty i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.pad>*{flex-shrink:0}
+</style></head><body>
+<h1>🌸 My Cycle: mockups</h1>
+<p class="lede">A private cycle and wellness companion for women and girls on #NotesApp, with advice from Nana that fits the phase you're in. It opens only with your fingerprint, face or passkey. It is encrypted on our server, so it works on any device you sign into. <b>It is not contraception and not medical advice: predictions are estimates from what you log.</b></p>
+<div class="grid">
+
+<!-- 1 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> My Cycle</div>
+  <div class="pad">
+    <div class="h2">Before we start</div>
+    <div class="sub">My Cycle is for women and girls. Your answer is private: it never shows on your profile, and nobody else can see it.</div>
+    <div class="opt hl"><i>♀️</i><div><b>I'm female</b><span>Set up My Cycle</span></div></div>
+    <div class="opt"><i>🙅</i><div><b>Not for me</b><span>We'll hide My Cycle from your menu</span></div></div>
+    <div class="lbl">When did your last period start?</div>
+    <div class="card" style="font-size:13px">📅 Sunday, 26 October</div>
+    <div class="lbl">How long is your cycle, usually?</div>
+    <div class="seg" style="display:flex;gap:6px"><span class="chip">I don't know</span><span class="chip on">28 days</span><span class="chip">Set 21–45</span></div>
+    <div class="note">🔒 Next, protect it with your fingerprint, face or passkey. You'll need it every time you open My Cycle.</div>
+    <button class="btn pri" style="margin-top:auto">Continue</button>
+  </div>
+</div></div><p class="cap"><b>1 · First open</b>She answers once, in private. "Not for me" hides My Cycle for good, and she can undo that in Settings → Privacy. Profiles get no gender field and her answer is never public. For a teen (13–17), the birth month and year already on her account choose the teen version.</p></div>
+
+<!-- 2 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="lock">
+    <div style="font-size:13px;opacity:.85">My Cycle is locked</div>
+    <div class="fp">👆</div>
+    <div class="h2" style="color:#fff">Unlock with your fingerprint</div>
+    <div style="font-size:12px;opacity:.85;line-height:1.45">Uses this phone's fingerprint, face or screen lock through your #NotesApp passkey. Nothing about your body leaves the phone.</div>
+    <button class="btn" style="background:#fff;color:var(--crimson)">Unlock</button>
+    <div style="font-size:11.5px;opacity:.8;margin-top:8px">Locks again after 2 minutes away, or when you switch apps.<br>When you switch apps, the screen is blanked so your phone's app switcher shows nothing.</div>
+    <div style="position:absolute;bottom:18px;font-size:11px;opacity:.75">Didn't work? Try again, or use your passkey on another device.</div>
+  </div>
+</div></div><p class="cap"><b>2 · Locked until she unlocks it</b>The web version of the app's biometric lock: a passkey check (WebAuthn, the same passkeys she can already use to sign in), every time. If the check fails, the page stays locked. If she switches apps or tabs, the page goes blank, and the server refuses the data without a fresh unlock.</p></div>
+
+<!-- 3 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> My Cycle <span style="margin-left:auto">🔒</span></div>
+  <div class="pad">
+    <div class="cring"><div><b>Day 18</b><span>of about 28</span><span style="color:#17694a;font-weight:700">Luteal phase</span></div></div>
+    <div class="stat"><div><b>10 days</b><span>until your next period (about 23 Nov)</span></div><div><b>Done</b><span>Fertile window ended 15 Nov</span></div></div>
+    <div class="nana"><b>Nana · today</b><br>Energy often dips in the luteal phase. You slept 6 h and logged bloating yesterday: try warm meals with beans or ugu (iron and fibre), less salt, and a gentle 20-minute walk.</div>
+    <div class="stat"><div>🥗 <b style="font-size:14px">Food for today</b><span>Phase-matched ideas</span></div><div>🏃🏾‍♀️ <b style="font-size:14px">Move today</b><span>Low to moderate</span></div></div>
+    <button class="btn pri">＋ Today's check-in</button>
+  </div>
+  <div class="tabs"><div class="on"><b>🌸</b>Today</div><div><b>📅</b>Calendar</div><div><b>📈</b>Insights</div><div><b>💬</b>Ask Nana</div></div>
+</div></div><p class="cap"><b>3 · Today</b>The ring shows the four phases (period, follicular, ovulation, luteal) and where she is. Nana's daily note uses <i>her own</i> logs and phase, and says when it's guessing. Food and fitness pages are tuned to the phase. Adults see the fertile window here.</p></div>
+
+<!-- 4 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Calendar <span style="margin-left:auto">🔒</span></div>
+  <div class="pad">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b>November 2026</b><span class="sub">‹ ›</span></div>
+    <div class="cal">
+      <span class="hd">M</span><span class="hd">T</span><span class="hd">W</span><span class="hd">T</span><span class="hd">F</span><span class="hd">S</span><span class="hd">S</span>
+      <span></span><span></span><span></span><span></span><span></span><span>1</span><span>2</span>
+      <span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span class="fw">9</span>
+      <span class="fw">10</span><span class="fw">11</span><span class="fw">12</span><span class="ov">13★</span><span class="fw">14</span><span class="fw">15</span><span>16</span>
+      <span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span><span class="pp">23</span>
+      <span class="pp">24</span><span class="pp">25</span><span class="pp">26</span><span class="pp">27</span><span>28</span><span>29</span><span>30</span>
+    </div>
+    <div class="leg"><span><i style="background:#FBD3DC"></i>Period (logged)</span><span><i style="border:1.5px dashed #E0123E"></i>Period (predicted)</span><span><i style="background:#D6F0E4"></i>Fertile window</span><span><i style="background:#F2C14E"></i>Ovulation (estimate)</span></div>
+    <div class="card"><div class="row" style="border:0"><span>Period started today</span><span class="tg off"></span></div><div class="row"><span>Taking the pill (shows Active / Break)</span><span class="tg off"></span></div></div>
+    <div class="note">Predictions get better with each period you log. With fewer than 3, they're marked "early guess". Not for use as contraception.</div>
+  </div>
+  <div class="tabs"><div><b>🌸</b>Today</div><div class="on"><b>📅</b>Calendar</div><div><b>📈</b>Insights</div><div><b>💬</b>Ask Nana</div></div>
+</div></div><p class="cap"><b>4 · Calendar</b>Logged and predicted periods, the fertile window and the ovulation estimate (adults only). Tap a day to log or fix a period. Pill mode swaps phases for Active and Break days. Cycle length is hers to set (21 to 45 days), or worked out from what she logs.</p></div>
+
+<!-- 5 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Today's check-in <span style="margin-left:auto">🔒</span></div>
+  <div class="pad">
+    <div class="lbl" style="margin-top:0">Mood</div>
+    <div class="chips"><span class="chip">😊 Happy</span><span class="chip">😌 Calm</span><span class="chip on">🥱 Tired</span><span class="chip">😟 Anxious</span><span class="chip">😤 Irritable</span><span class="chip">😢 Sad</span><span class="chip">⚡ Energetic</span><span class="chip">🤒 Unwell</span></div>
+    <div class="lbl">Symptoms</div>
+    <div class="chips"><span class="chip on">Bloating</span><span class="chip">Cramps</span><span class="chip">Headache</span><span class="chip on">Tender breasts</span><span class="chip">Acne</span><span class="chip">Nausea</span><span class="chip">＋</span></div>
+    <div class="lbl">Energy</div><div class="seg" style="display:flex;gap:6px"><span class="chip">Low</span><span class="chip on">OK</span><span class="chip">High</span></div>
+    <div class="lbl">Pain (0–5) · 2</div><div class="slider"></div>
+    <div class="lbl">Water</div><div class="drops">💧💧💧💧💧<span style="opacity:.25">💧💧💧</span></div>
+    <div class="lbl">Sleep · 6 h</div><div class="slider" style="background:linear-gradient(90deg,var(--crimson) 0 50%,#e5d9d3 50%)"></div>
+    <div class="card" style="font-size:12px;color:var(--slate)">Anything else? (only you and Nana read this)</div>
+    <button class="btn pri">Save · and ask Nana</button>
+  </div>
+</div></div><p class="cap"><b>5 · Daily check-in</b>Mood, symptoms, energy, pain, water and sleep, plus flow (spotting, light, medium, heavy) during a period. "Save and ask Nana" returns one note with three parts: how today fits her pattern, what to eat, and how to move. An optional reminder comes as a bell, never an email, and it never says what it's about.</p></div>
+
+<!-- 6 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Insights <span style="margin-left:auto">🔒</span></div>
+  <div class="pad">
+    <div class="lbl" style="margin-top:0">Your last 6 cycles</div>
+    <div class="bars"><div style="height:72%"><span>27</span></div><div style="height:80%"><span>29</span></div><div style="height:75%"><span>28</span></div><div style="height:88%"><span>31</span></div><div style="height:77%"><span>28</span></div><div style="height:78%"><span>28</span></div></div>
+    <div class="mini">Average 28.5 days · spread 4 days: regular</div>
+    <div class="lbl">Mood across your cycle</div>
+    <svg viewBox="0 0 300 70" style="width:100%;height:62px"><polyline fill="none" stroke="#A6093D" stroke-width="3" points="0,40 30,30 60,22 90,18 120,20 150,26 180,38 210,48 240,52 270,44 300,36"/><line x1="180" x2="180" y1="0" y2="70" stroke="#ccc" stroke-dasharray="3"/></svg>
+    <div class="mini">You log "tired" and "irritable" most in the 5 days before a period.</div>
+    <div class="lbl">Top symptoms</div>
+    <div class="fun"><div><span style="width:92px">Bloating</span><i style="width:120px"></i>12</div><div><span style="width:92px">Cramps</span><i style="width:90px"></i>9</div><div><span style="width:92px">Headache</span><i style="width:40px"></i>4</div></div>
+    <button class="btn sec">📝 Nana's monthly report</button>
+    <div class="note">Only your own history, never averages from other women. If you log something that may need a doctor (very heavy flow, a period 3 months late, severe pain), Nana says so plainly.</div>
+  </div>
+  <div class="tabs"><div><b>🌸</b>Today</div><div><b>📅</b>Calendar</div><div class="on"><b>📈</b>Insights</div><div><b>💬</b>Ask Nana</div></div>
+</div></div><p class="cap"><b>6 · Insights</b>Charts from her own history: cycle lengths, mood through the cycle and top symptoms. Nana's monthly report sums up the month. Download my data or Delete everything is one tap in My Cycle settings.</p></div>
+
+<!-- 7 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Ask Nana <span style="margin-left:auto">🔒</span></div>
+  <div class="pad">
+    <div class="nana" style="align-self:flex-end;background:#fff;max-width:85%">Why do I get pimples before my period?</div>
+    <div class="nana" style="max-width:92%"><b>Nana</b><br>That's common. In the days before a period, hormone changes make the skin oilier, so pores block more easily. Wash gently twice a day, don't pick, and drink water. If it hurts a lot or leaves marks, a pharmacist or doctor can help. 🌸</div>
+    <div class="note" style="background:#EEF6FF;border-color:#bcd7f5;color:#173d66"><b>Teen version (13–17)</b><br>Periods, symptoms, mood, food and movement. No fertile window, no ovulation day, no pill mode. Nana answers in words for her age and points to a trusted adult or clinic for anything serious. Her parent never sees her data, but the parent does get the usual note that teen mode exists.</div>
+    <div class="card" style="font-size:12px;color:var(--slate);margin-top:auto">Ask Nana anything about your cycle…</div>
+  </div>
+  <div class="tabs"><div><b>🌸</b>Today</div><div><b>📅</b>Calendar</div><div><b>📈</b>Insights</div><div class="on"><b>💬</b>Ask Nana</div></div>
+</div></div><p class="cap"><b>7 · Ask Nana, and the teen version</b>A private chat with Nana that knows her phase and logs. It is kept apart from her other Nana chats and never used for ads. Her own AI key is used if she connected one, otherwise Nana's allowance. The teen version is shown in the blue box.</p></div>
+
+</div></body></html>

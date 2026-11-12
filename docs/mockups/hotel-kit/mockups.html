@@ -1,0 +1,202 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:860px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px}
+.item{width:330px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}
+.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.cam{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.face{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:120px;height:150px;border-radius:50% 50% 45% 45%;background:radial-gradient(ellipse at 45% 40%,#b7795a,#6d3a28 70%);opacity:.85}
+.body{position:absolute;left:50%;top:44%;transform:translateX(-50%);width:230px;height:260px;border-radius:120px 120px 0 0;background:linear-gradient(#5b1426,#2a0811)}
+.pill{background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.live{background:#E0123E;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.chat{position:absolute;left:12px;right:70px;bottom:70px;display:flex;flex-direction:column;gap:6px}
+.msg{color:#fff;font-size:12.5px;line-height:1.35;text-shadow:0 1px 2px #000}.msg b{color:#FFD6E0}
+.rail{position:absolute;right:10px;bottom:76px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.rb{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px)}
+.rb small{display:block}
+.bar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;align-items:center}
+.input{flex:1;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;border:1px solid rgba(255,255,255,.25)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.lbl{font-size:12px;font-weight:700;color:var(--ink);margin:10px 0 6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg span{border:1px solid var(--rule);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;background:#fff}
+.seg .on{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.tg{width:34px;height:20px;border-radius:999px;background:var(--crimson);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#cfc3bc}.tg.off:after{right:auto;left:2px}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ring{width:84px;height:84px;border-radius:50%;padding:3px;background:conic-gradient(#E0123E,#ff6a88,#E0123E);position:relative}
+.ring>div{width:100%;height:100%;border-radius:50%;border:3px solid var(--paper);background:radial-gradient(#b7795a,#5b1426)}
+.ring .lv{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:14px;padding:11px;margin-top:8px}
+.opt.hl{border-color:var(--crimson);background:#fbf0f3}
+.opt i{font-style:normal;font-size:20px}.opt b{font-size:13.5px;display:block}.opt span{font-size:11.5px;color:var(--slate)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:20px;display:block;font-family:Fraunces,serif}.stat span{font-size:11.5px;color:var(--slate)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.gift{position:absolute;left:12px;top:150px;background:linear-gradient(90deg,rgba(122,3,40,.9),rgba(166,9,61,.75));color:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12px;display:flex;gap:8px;align-items:center}
+.gift i{font-style:normal;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.seats{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:8px}
+.seat{width:58px;height:74px;border-radius:12px;background:rgba(0,0,0,.35);border:1.5px dashed rgba(255,255,255,.55);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.seat.f{border:2px solid #3ddc84;background:radial-gradient(#8a5b45,#2a120b)}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600}
+.sub{font-size:12px;color:var(--slate);line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.lock{position:absolute;inset:0;background:linear-gradient(160deg,#4E0119,#A6093D);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.fp{width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:46px;background:rgba(255,255,255,.08)}
+.cring{width:150px;height:150px;border-radius:50%;margin:4px auto;background:conic-gradient(#E0123E 0 17%,#F6B3C3 17% 40%,#2FA37A 40% 58%,#F2C14E 58% 61%,#C9A7E8 61% 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.cring>div{width:112px;height:112px;border-radius:50%;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cring b{font-family:Fraunces,serif;font-size:30px}.cring span{font-size:11px;color:var(--slate)}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:11.5px}
+.cal span{padding:6px 0;border-radius:8px;position:relative}.cal .hd{font-size:10px;color:var(--slate);padding:2px 0}
+.p{background:#FBD3DC;color:#8c0026;font-weight:700}.pp{background:#fff;border:1.5px dashed #E0123E;color:#8c0026}.fw{background:#D6F0E4;color:#17694a}.ov{background:#F2C14E;color:#4d3800;font-weight:800}.td{outline:2px solid var(--ink)}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:10.5px;color:var(--slate)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.drops{display:flex;gap:4px;font-size:18px}
+.slider{height:6px;border-radius:9px;background:linear-gradient(90deg,var(--crimson) 0 40%,#e5d9d3 40%);position:relative;margin:8px 0}.slider:after{content:"";position:absolute;left:40%;top:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--crimson);transform:translateX(-50%)}
+.nana{background:linear-gradient(135deg,#fff,#fbeff3);border:1px solid #f0cbd6;border-radius:16px;padding:10px 12px;font-size:12px;line-height:1.45}.nana b{color:var(--crimson)}
+.bars{display:flex;align-items:flex-end;gap:7px;height:70px}.bars div{flex:1;background:var(--crimson);border-radius:5px 5px 0 0;opacity:.85;position:relative}.bars div span{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:10px;color:var(--slate)}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.35}
+.desk{width:100%;}
+.kcol{flex:1;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px}
+.kcol h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate)}
+.tk{border:1px solid var(--rule);border-radius:10px;padding:6px 7px;font-size:11px;line-height:1.35;background:#fff}.tk b{font-size:11.5px}
+.late{border-color:#E0123E;background:#fff1f3}
+.tier{border:1px solid var(--rule);border-radius:14px;padding:9px 10px;background:#fff;font-size:11.5px;line-height:1.4}.tier h3{font-size:13.5px;display:flex;justify-content:space-between}
+.tier.hl{border:2px solid var(--crimson)}
+.job{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px;font-size:12px;line-height:1.4}
+.score{font-family:Fraunces,serif;font-size:20px;font-weight:600;color:var(--crimson)}
+.why{color:#17694a}.risk{color:#8c4a00}
+.fun{display:flex;flex-direction:column;gap:4px;font-size:11.5px}.fun div{display:flex;align-items:center;gap:8px}.fun i{height:14px;background:var(--crimson);border-radius:4px;opacity:.85}
+.hotelhero{height:150px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.65)),linear-gradient(135deg,#b07a4f,#5a3420 55%,#24140c);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.room{display:flex;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:8px;font-size:12px}.room .im{width:72px;height:60px;border-radius:10px;background:linear-gradient(135deg,#d9b48f,#8a5a3c);flex:none}
+.food{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:7px;font-size:12px}.food .im{width:48px;height:48px;border-radius:10px;flex:none;background:radial-gradient(#f0a03c,#a8451b)}
+.qty{margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:700}.qty i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.pad>*{flex-shrink:0}
+</style></head><body>
+<h1>🏨 Hotel kit: mockups</h1>
+<p class="lede">A complete hotel on #NotesApp: the hotel's website, room bookings, food and drink orders from every department, payment online or at the counter, a live board for staff and a kitchen screen. <b>It comes in three tiers on the plans we already sell (Pro, Business, Enterprise), plus add-ons. All prices are set in Admin.</b> "Ọ̀ṣun Suites" is a made-up hotel.</p>
+<div class="grid">
+
+<!-- 1 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="hotelhero"><div style="font-size:11px;opacity:.85">naapp.tech/s/osunsuites · or their own domain</div><div class="h2" style="color:#fff;font-size:22px">Ọ̀ṣun Suites, Osogbo</div><div style="font-size:12px;opacity:.9">Rooms · Restaurant · Grill · Bakery · Lounge</div></div>
+  <div class="pad">
+    <div style="display:flex;gap:8px"><button class="btn pri" style="flex:1">Book a room</button><button class="btn sec" style="flex:1">Order food</button></div>
+    <div class="card" style="display:flex;gap:8px;font-size:12px"><span>📅 Thu 20 Nov → Sat 22 Nov</span><span style="margin-left:auto">2 guests</span></div>
+    <div class="room"><div class="im"></div><div><b>Deluxe double</b><div class="mini">King bed · breakfast for 2 · Wi-Fi</div><div style="margin-top:4px"><b>₦45,000</b> <span class="mini">/ night · 3 left</span></div></div></div>
+    <div class="room"><div class="im" style="background:linear-gradient(135deg,#c9a27d,#6b4630)"></div><div><b>Executive suite</b><div class="mini">Lounge · bathtub · airport pick-up</div><div style="margin-top:4px"><b>₦85,000</b> <span class="mini">/ night · 1 left</span></div></div></div>
+    <div class="chips"><span class="chip">🍽 Restaurant</span><span class="chip">🔥 Grill</span><span class="chip">🥐 Bakery</span><span class="chip">🍸 Lounge</span></div>
+    <div class="mini" style="text-align:center;margin-top:auto">Powered by #NotesApp</div>
+  </div>
+</div></div><p class="cap"><b>1 · The hotel's website</b>A new <b>Hotel</b> site kit with rooms and availability, each department's menu, gallery, location and reviews. All tiers. It uses the site builder we already have (looks, colours, cover photo, own domain on Business and up).</p></div>
+
+<!-- 2 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Book · Deluxe double</div>
+  <div class="pad">
+    <div class="card"><div class="row" style="border:0"><span>Check-in</span><b>Thu 20 Nov, from 2 pm</b></div><div class="row"><span>Check-out</span><b>Sat 22 Nov, by 12 noon</b></div><div class="row"><span>2 nights × ₦45,000</span><b>₦90,000</b></div><div class="row"><span>Airport pick-up (add)</span><b>₦15,000</b></div><div class="row"><b>Total</b><b>₦105,000</b></div></div>
+    <div class="lbl">Pay with</div>
+    <div class="opt hl"><i>💳</i><div><b>Card, bank or USSD (online)</b><span>Paid now; your booking is confirmed at once</span></div></div>
+    <div class="opt"><i>🏦</i><div><b>Bank transfer to this booking's account</b><span>An account number just for this booking. It turns paid by itself when the money lands. <i style="font-size:11px">Add-on</i></span></div></div>
+    <div class="opt"><i>🛎</i><div><b>Pay at the front desk</b><span>Only if the hotel allows it. The room is held for 30 minutes.</span></div></div>
+    
+    <button class="btn pri" style="margin-top:auto">Pay ₦105,000</button>
+  </div>
+</div></div><p class="cap"><b>2 · Book and pay</b>Rooms are held while the guest pays and released if unpaid. Only a payment the provider confirms can mark a booking paid; staff can't flip it by hand. A transfer that lands after the hold ended is kept and flagged for staff to rebook or refund. Cancellation rules come from the hotel's own policy.</p></div>
+
+<!-- 3 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> 🔥 Grill · order</div>
+  <div class="pad">
+    <div class="seg" style="display:flex;gap:6px"><span class="chip on">🛏 To my room</span><span class="chip">🪑 Table</span><span class="chip">🥡 Pick up</span></div>
+    <div class="card" style="font-size:12.5px">Room <b>204</b> · Deluxe double</div>
+    <div class="food"><div class="im"></div><div><b>Suya platter</b><div class="mini">Beef, onions, yaji</div><b>₦6,500</b></div><div class="qty"><i>−</i>1<i>＋</i></div></div>
+    <div class="food"><div class="im" style="background:radial-gradient(#e8c06a,#9b6a18)"></div><div><b>Asun</b><div class="mini">Spicy goat</div><b>₦7,000</b></div><div class="qty"><i>−</i>2<i>＋</i></div></div>
+    <div class="food" style="opacity:.5"><div class="im" style="background:radial-gradient(#ddd,#999)"></div><div><b>Catfish pepper soup</b><div class="mini">Sold out today</div></div></div>
+    <div class="card"><div class="row" style="border:0"><span>3 items</span><b>₦20,500</b></div><div class="row"><span>Put on my room bill</span><span class="tg"></span></div></div>
+    <button class="btn pri" style="margin-top:auto">Place order · ₦20,500</button>
+  </div>
+</div></div><p class="cap"><b>3 · Order from any department</b>Menus for each department, with sold-out items and stock counts. Guests order to their room, a table or for pick-up. They pay now, or a checked-in guest charges it to the room bill. The order lands on that department's board straight away.</p></div>
+
+<!-- 4 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Staff board · Grill <span style="margin-left:auto" class="live">LIVE</span></div>
+  <div class="pad" style="gap:7px">
+    <div class="stat"><div><b>68%</b><span>rooms full tonight</span></div><div><b>₦412k</b><span>taken today, all departments</span></div></div>
+    <div style="display:flex;gap:6px">
+      <div class="kcol"><h4>Paid · 3</h4><div class="tk"><b>#G-118</b> Rm 204<br>Suya ×1, Asun ×2</div><div class="tk"><b>#G-119</b> Table 6<br>Asun ×1</div></div>
+      <div class="kcol"><h4>Cooking · 2</h4><div class="tk late"><b>#G-114</b> Pick-up<br>⏱ 24 min · late</div><div class="tk"><b>#G-116</b> Rm 110<br>⏱ 9 min</div></div>
+      <div class="kcol"><h4>Ready · 1</h4><div class="tk"><b>#G-112</b> Table 2<br>✓ serve</div></div>
+    </div>
+    <div class="card" style="font-size:11.5px"><b>Just paid</b> · ₦20,500 by transfer · Rm 204 · 2 s ago<br><b>Booking</b> · Exec suite 20–22 Nov · ₦170,000 card</div>
+    <div class="chips"><span class="chip on">Grill</span><span class="chip">Restaurant</span><span class="chip">Bakery</span><span class="chip">Lounge</span><span class="chip">Front desk</span></div>
+  </div>
+</div></div><p class="cap"><b>4 · Live staff board (Standard and up)</b>Each department's staff see their orders move from Paid to Cooking to Ready to Done, and payments land live. A manager sees occupancy, today's takings, rooms and bookings for the week. Staff are team members with a department role, using the team access we already have.</p></div>
+
+<!-- 5 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#16100e;color:#fff">
+  <div class="top" style="background:#000"><span class="logo">N</span> Kitchen screen · Restaurant <span style="margin-left:auto">🔊</span></div>
+  <div class="pad">
+    <div class="tk late" style="background:#3a0d16;color:#fff;border-color:#E0123E;font-size:13px"><b style="font-size:15px">#R-207 · Table 4</b> · ⏱ 22 min (over 20)<br>Jollof rice ×2 · Plantain ×2<br><span style="opacity:.75">No pepper on one</span></div>
+    <div class="tk" style="background:#2a201c;color:#fff;border-color:#444;font-size:13px"><b style="font-size:15px">#R-209 · Room 312</b> · ⏱ 6 min<br>Egusi + pounded yam ×1<br>Chapman ×1</div>
+    <div class="tk" style="background:#2a201c;color:#fff;border-color:#444;font-size:13px"><b style="font-size:15px">#R-210 · Pick-up</b> · ⏱ 1 min · NEW<br>Fried rice + chicken ×3</div>
+    <div style="display:flex;gap:8px;margin-top:auto"><button class="btn" style="flex:1;background:#2FA37A;color:#fff">Ready ✓</button><button class="btn" style="flex:1;background:#333;color:#fff">Bump</button></div>
+    <div class="mini" style="color:#bbb;text-align:center">"New order, table four" is read out on a tablet in the kitchen</div>
+  </div>
+</div></div><p class="cap"><b>5 · Kitchen screen (Standard and up)</b>A screen for a kitchen tablet: big tickets, a sound and a spoken alert for each new order, wait times, and late orders in red (the late time is set in Manage). Tap Ready and the waiter or room service sees it.</p></div>
+
+<!-- 6 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Till · Lounge · Ada</div>
+  <div class="pad">
+    <div class="card"><div class="row" style="border:0"><span>Chapman ×2, Small chops ×1</span><b>₦9,500</b></div></div>
+    <div style="display:flex;gap:6px"><button class="btn sec" style="flex:1">💵 Cash</button><button class="btn pri" style="flex:1">💳 Send to card machine</button></div>
+    <div class="note">Sent ₦9,500 to the Lounge card machine… waiting for the card. The items are held until it's approved or 3 minutes pass.</div>
+    <div class="lbl">End of day · cash-up</div>
+    <div class="card" style="font-size:12px"><div class="row" style="border:0"><span>Cash counted</span><b>₦38,000</b></div><div class="row"><span>Card sales on this till</span><b>₦61,500</b></div><div class="row"><span>Card machine says</span><b>₦61,500 ✓</b></div><div class="row"><span>Transfers</span><b>₦22,000</b></div></div>
+    <div class="mini">Each till has its own PIN and is locked to one department. Sales also go into Business books by themselves.</div>
+  </div>
+</div></div><p class="cap"><b>6 · Tills and cash-up (Standard and up)</b>Counter sales by cash, transfer or card. The <b>card-machine link</b> (an add-on, for a Moniepoint terminal) sends the exact amount to the counter's machine. At close of day, the cash-up compares the till with the machine. Every sale also goes into Business books, and stock counts go down.</p></div>
+
+<!-- 7 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Ọ̀ṣun Suites · chat</div>
+  <div class="pad">
+    <div class="nana" style="align-self:flex-end;background:#fff;max-width:85%">Abeg I wan order 2 asun and one chapman to room 204</div>
+    <div class="nana" style="max-width:92%"><b>Nana · Grill</b><br>No wahala! 2 × Asun (₦14,000) and 1 × Chapman (₦3,000). Total <b>₦17,000</b>, to Room 204. Should I put it on your room bill, or would you rather pay now?</div>
+    <div class="nana" style="align-self:flex-end;background:#fff;max-width:85%">Room bill</div>
+    <div class="nana" style="max-width:92%"><b>Nana</b><br>Done ✓ Order #G-121 is with the grill. About 20 minutes.</div>
+    <div class="note">Prices, totals, rooms and account numbers always come from the hotel's own records, never from the AI. It answers in English, Pidgin, Yorùbá, Igbo and Hausa.</div>
+    <div class="mini" style="margin-top:auto">On the website (Grand). On the hotel's WhatsApp number with the <b>WhatsApp ordering</b> add-on. Staff can read every chat in Conversations.</div>
+  </div>
+</div></div><p class="cap"><b>7 · Order by chatting with Nana (Grand)</b>Each department gets a Nana that reads the live menu or room list, builds the order, confirms it with the guest, then places it. Staff see every chat and the order it made.</p></div>
+
+<!-- 8 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Hotel kit · plans</div>
+  <div class="pad" style="gap:7px">
+    <div class="tier"><h3><span>🛎 Hotel Starter</span><span class="mini">on Pro</span></h3>Hotel website · rooms and online booking · menus and orders for 1 department · pay online · booking and order bells · Business books</div>
+    <div class="tier hl"><h3><span>🏨 Hotel Standard</span><span class="mini">on Business</span></h3>Everything in Starter · <b>up to 6 departments</b> · live staff board · kitchen screen · tills with PINs and cash-up · stock · charge to room bill · own domain · staff roles</div>
+    <div class="tier"><h3><span>🏰 Hotel Grand</span><span class="mini">on Enterprise</span></h3>Everything in Standard · <b>several branches</b>, one owner view · Nana chat ordering on the website · Conversations · monthly reports by branch and department · priority help</div>
+    <div class="lbl" style="margin:4px 0 0">Add-ons (any tier, monthly)</div>
+    <div class="chips"><span class="chip">💬 WhatsApp ordering</span><span class="chip">🏦 Account number per order</span><span class="chip">💳 Card-machine link</span><span class="chip">🧹 Housekeeping</span><span class="chip">🧰 Set it up for me</span></div>
+    <div class="mini">Each tier costs what its plan costs. The add-on prices, the number of departments and the late time are all set in Admin, so help pages never print a figure.</div>
+  </div>
+</div></div><p class="cap"><b>8 · Three tiers and add-ons</b>Starter, Standard and Grand ride on Pro, Business and Enterprise, so there are no new subscriptions. The add-ons: <b>WhatsApp ordering</b>, a <b>bank account number for each order</b> (through Paylony), a <b>card-machine link</b> (Moniepoint), <b>Housekeeping</b> (room status: dirty, cleaning, ready; maintenance; lost and found), and <b>Set it up for me</b> (our team fills in the kit).</p></div>
+
+</div></body></html>
