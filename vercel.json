@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/agents",
       "schedule": "5 6 * * *"
+    },
+    {
+      "path": "/api/cron/nana-jobs",
+      "schedule": "20 3 * * *"
     }
   ]
 }

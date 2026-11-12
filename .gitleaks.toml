@@ -1,4 +1,4 @@
-# Secret scanning (gitleaks, the CI job "secrets" in .github/workflows/ci.yml): the default rules, minus three known
+# Secret scanning (gitleaks, the CI job "secrets" in .github/workflows/ci.yml): the default rules, minus a few known
 # non-secrets. Add to the list only a value you have checked is not a key; a real key that leaks must be rotated, not listed.
 #   Run locally: go install github.com/zricethezav/gitleaks/v8@v8.30.1 && gitleaks git --config .gitleaks.toml --redact .
 [extend]

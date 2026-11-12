@@ -77,6 +77,7 @@ const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
   { href: "/explore?tab=jobs", label: "Notes Jobs" },
+  { href: "/nana-jobs", label: "Nana Jobs" },
   { href: "/careers", label: "Careers" },
   { href: "/ventures", label: "Ventures: Rewrite the Playbook" },
   { href: "/contact", label: "Contact" },
