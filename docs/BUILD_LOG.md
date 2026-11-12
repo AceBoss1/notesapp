@@ -3249,3 +3249,13 @@ Business and Enterprise, plus add-ons priced in Admin. **Nana Jobs** (`docs/NANA
 scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licence, so only their ideas are used. shortlist-engine is MIT
 and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
 mockups are approved.
+
+**Hotel kit (v0.164.0)** — built from the approved plan and mockups (`docs/HOTEL_KIT.md`), with hotel-ops (no licence) read for ideas and
+rules only. Starter on Pro: the `hotel` site kit and the site's `/hotel` page (rooms with live availability, booking with a hold, ordering
+from a department to a room, a table or for pick-up), Paystack, bells, Business books. Standard on Business: departments (limit in Admin), the
+live staff board and kitchen screen (a pulse document plus polling), tills with their own PIN and cash-up, Inventory stock, the room bill
+settled at checkout, staff roles from the existing team. Grand on Enterprise: branches with one owner view, Nana ordering by tool use in five
+languages, Conversations and monthly reports with a CSV. Add-ons: an account number per order (Paylony) and Housekeeping built; WhatsApp and
+the Moniepoint card-machine link built behind settings with signed webhooks and "not set up yet"; Set it up for me as a lead to the team.
+Money rules in `lib/hotel-pay-server.ts`, tested against the emulators: only a verified payment sets paid, idempotent per provider reference,
+holds expire, late money stored and flagged (ledger disputed until rebooked or refunded), every sale in Business books.
