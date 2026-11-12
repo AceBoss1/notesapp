@@ -239,6 +239,24 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
 **Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
+    A("my-cycle", "My Cycle: your private cycle companion", "Safety and your data", `
+[My Cycle](/cycle) is a private cycle and wellness companion for women and girls: period predictions, a daily check-in, food and movement ideas for each phase, and advice from Nana. [How it works](/my-cycle).
+
+**Setting it up:** open **My Cycle** from your account menu. The first time, it asks once, in private: **I'm female** or **Not for me**. Your answer never shows on your profile. "Not for me" hides My Cycle from your menu; to bring it back, open [Account settings](/profile/account#privacy) → **Privacy**. If you choose I'm female, add the day your last period started and your usual cycle length (or "I don't know"), and tick the consent line.
+
+**The lock:** My Cycle opens only with a [passkey](/help/passkeys), checked with your fingerprint, face or screen lock every time. If you haven't got a passkey, it helps you add one first. When you switch apps or tabs, or after 2 minutes without a touch, the page goes blank and locks again.
+
+**Today, Calendar, Insights:** the ring shows where you are in your cycle. Your cycle length is the average of your last 6 cycles (or your own setting, or 28 days), always between 21 and 45 days. Adults also see the fertile window and an ovulation estimate (14 days before the next period), or Active and Break days with **Taking the pill**. Predictions are marked "early guess" until you've logged 3 periods. Tap a day on the calendar to log or fix a period.
+
+**Check-in and Nana:** log mood, symptoms, energy, pain, water, sleep and flow. **Save · and ask Nana** gives a short note on how today fits, what to eat and how to move. Nana also writes a note for each day, a monthly report, and answers your questions in **Ask Nana**. She is told only your phase and a short summary of what you logged, never your name. She uses your own connected AI account if you have one, otherwise your Nana allowance; when neither is available, you get our own tips for your phase. If something may need a doctor (very heavy bleeding, severe pain, a period more than 3 months late), she says so plainly.
+
+**Ages 13 to 17:** the teen version has periods, symptoms, mood, food and movement, with Nana in words for your age. There's no fertile window, ovulation day or pill mode. Your parent never sees what you log. Child profiles and organisation accounts don't have My Cycle.
+
+**Reminders:** in My Cycle's settings (⚙️) you can turn on an evening check-in reminder and a note if your period may be late. Both are bells that only say "A reminder from My Cycle", never an email.
+
+**Your data:** everything is encrypted on our server and only you can open it. It isn't part of your account download, ads, analytics or other Nana chats, and staff can't see it. **Download my data** and **Delete everything** are in My Cycle's settings, and closing your account deletes it all.
+
+**Not medical advice:** My Cycle is not contraception and not a medical device. Predictions are estimates from your own logs.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

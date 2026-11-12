@@ -47,6 +47,7 @@ const ICON: Record<NotificationType, string> = {
   books: "🧾",
   referral: "📈",
   nana: "✨",
+  reminder: "🔔",
   course: "🎓",
   review: "★",
   recommendation: "💬",

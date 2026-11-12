@@ -945,6 +945,12 @@ service cloud.firestore {
     match /staffMeta/{id} { allow read, write: if false; } // seed markers for the staff library and careers (server only)
     match /passkeys/{id} { allow read, write: if false; } // passkey public keys and counters (lib/passkeys-server.ts): server only
     match /passkeyChallenges/{id} { allow read, write: if false; } // one-time passkey challenges, 5 minutes (TTL expireAt): server only
+    // My Cycle (lib/cycle-server.ts): her answer, encrypted check-ins, Nana's notes and her private chat. Server only, even for her
+    // and for staff: she reads them through /api/cycle after a passkey check.
+    match /cycleProfiles/{id} { allow read, write: if false; }
+    match /cycleLogs/{id} { allow read, write: if false; }
+    match /cycleNotes/{id} { allow read, write: if false; }
+    match /cycleChats/{document=**} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

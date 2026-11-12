@@ -16,6 +16,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import AccountData from "@/components/AccountData";
+import CyclePrivacy from "@/components/cycle/CyclePrivacy";
 import VisibilitySettings from "@/components/VisibilitySettings";
 import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
@@ -220,6 +221,7 @@ export default function AccountPage() {
           <div className="mt-4"><VisibilitySettings /></div>
         </section>
       )}
+      {user && <CyclePrivacy user={user} />}
       {user && profile && <AccountData user={user} username={profile.username} />}
     </section>
     </>

@@ -58,6 +58,7 @@ const PRODUCT = [
   { href: "/booking", label: "Booking" },
   { href: "/boost", label: "Boost" },
   { href: "/coauthoring", label: "Co-authoring" },
+  { href: "/my-cycle", label: "My Cycle" },
   { href: "/badges", label: "Verification badges" },
   { href: "/advertise", label: "Advertise" },
   { href: "/organisations", label: "Organisations" },
