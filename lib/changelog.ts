@@ -20,6 +20,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Share on Media posts and lives, with Moments and Journals first, then other apps. One share icon everywhere." },
       { kind: "changed", text: "On a phone, long rows of tabs (Explore, Trending, profiles, communities) show the first few and a More menu for the rest." },
       { kind: "changed", text: "Explore → Topics: each main category is a dropdown of its topics." },
+      { kind: "added", text: "The country and currency picker is on members' own sites too (Business and Enterprise, and /s/ pages), at the bottom of every page." },
       { kind: "fixed", text: "The country beside your currency follows the same rule as the currency: members in Nigeria whose connection comes out abroad see Nigeria." },
     ],
   },
