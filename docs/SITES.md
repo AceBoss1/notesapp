@@ -163,7 +163,7 @@ So once `NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` is set in Vercel, every member's ow
 | Looks: Legacy, Clean, Scholar (Free Basic); Luxe, Aurora, Maroon (Pro); colour sets; brand colour (Pro); white, paper or Night background | Live |
 | Sections: banner, info strip, services menu, gallery, testimonials, team (with @tags), FAQ, academic sections with import | Live |
 | Pages: Journals (with topic links), Shop (storefront, basket), Courses, Track (Business), About, Contact, Terms and Privacy (own domain) | Live |
-| 18 kits (`KITS` in `lib/site-kits.ts`; Beauty and wellness in four flavours), including Schools and Churches and NGOs | Live |
+| 19 kits (`KITS` in `lib/site-kits.ts`; Beauty and wellness in four flavours), including Schools, Churches and NGOs, and Hotels | Live |
 | Community inside the site (`/community`), on the own domain too | Live |
 | The Hotels kit and the hotel's own `/hotel` page (rooms, booking, ordering; `docs/HOTEL_KIT.md`) | Live (v0.164.0) |
 | Analytics (visits by page and source on Business and above) | Live |
