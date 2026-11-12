@@ -48,6 +48,7 @@ const ICON: Record<NotificationType, string> = {
   hotel: "🏨",
   referral: "📈",
   nana: "✨",
+  reminder: "🔔",
   course: "🎓",
   review: "★",
   recommendation: "💬",

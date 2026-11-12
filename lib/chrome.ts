@@ -22,4 +22,4 @@ export function usesAppFrame(path: string, appHost: boolean): boolean {
 }
 
 export const showsBottomTabs = (path: string, opts: { member: boolean; appHost: boolean }) =>
-  (opts.member || opts.appHost) && !isThreadRoute(path) && !under(path, "/admin") && !under(path, "/write");
+  (opts.member || opts.appHost) && !isThreadRoute(path) && !under(path, "/admin") && !under(path, "/write") && !under(path, "/cycle"); // My Cycle has its own tabs

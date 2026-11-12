@@ -51,3 +51,13 @@ export async function signInWithPasskey(): Promise<User> {
   const { token } = await post<{ token: string }>("/api/passkeys/login", { step: "verify", challengeId, response });
   return (await signInWithCustomToken(auth, token)).user;
 }
+
+// A fresh fingerprint, face or screen-lock check for the signed-in member, against `url` (for example /api/cycle/unlock), which runs
+// verifyUserOptions and verifyUser on the server (lib/passkeys-server.ts). Resolves with what the verify step returned.
+export async function confirmWithPasskey<T = unknown>(user: User, url: string): Promise<T> {
+  const token = await user.getIdToken();
+  const { options, challengeId } = await post<{ options: Parameters<typeof startAuthentication>[0]["optionsJSON"]; challengeId: string }>(url, { step: "options" }, token);
+  let response;
+  try { response = await startAuthentication({ optionsJSON: options }); } catch (e) { throw friendly(e); }
+  return post<T>(url, { step: "verify", challengeId, response }, token);
+}

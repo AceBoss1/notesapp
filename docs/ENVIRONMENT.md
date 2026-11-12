@@ -63,7 +63,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `PAYLONY_ENCRYPTION_KEY` | **yes** | Paylony encryption key. |
 | `PAYLONY_CARDTAP_TERMINAL_ID` | no | Our CardTap terminal ID (Paylony dashboard): wallet top-ups with CardTap are offered only when this and PAYLONY_SECRET_KEY are set. |
 | `AUTO_PAYOUTS` | no | off pauses automatic payout release. |
-| `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once. |
+| `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens, connected AI keys and My Cycle (and signs its unlock cookie): base64 of 32 random bytes, made once. Without it My Cycle stays off. |
 
 ## Hotel kit
 

@@ -3250,6 +3250,27 @@ scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licen
 and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
 mockups are approved.
 
+**Nana Jobs (v0.162.0)** — `/jobs/nana`, a third Jobs tab: members 18+ connect their own AI (Gemini, Groq, Claude or any
+OpenAI-compatible API; `lib/ai-providers.ts`, `lib/ai-connect.ts`), start from their CV (PDF, .docx or pasted, read in the browser,
+kept encrypted, reviewed by their AI with "shipped" lines checked against the CV), and get a daily shortlist from Notes Jobs, four open
+feeds and the company boards they watch (`lib/nana-jobs-sources.ts`), through Shortlist's funnel (`lib/nana-jobs-funnel.ts`: dedupe,
+hard filters, prescore, the AI rubric, link check) with statuses, bell and email, and a cover note from the shipped list
+(`lib/nana-jobs-server.ts`). Shared pool once a day (`/api/cron/nana-jobs`), runs at each member's hour from the reminders cron. Public
+page `/nana-jobs`, help article, `THIRD_PARTY_NOTICES` (Shortlist, MIT). Tests `test:nana-jobs`, `test:nana-jobs-server`.
+
+## v0.163.0: My Cycle (12 Nov 2026)
+
+**My Cycle (v0.163.0)** — built from the approved plan and mockups (`docs/MY_CYCLE.md`). A private cycle and wellness companion at
+`/cycle`: first open asks once, in private ("I'm female" or "Not for me", stored only in `cycleProfiles`, never on `users/{uid}`), with an
+NDPA consent line; a passkey check with user verification every time (`verifyUser` in `lib/passkeys-server.ts`) sets a short httpOnly
+unlock cookie bound to her uid that every My Cycle route needs; the page blanks and locks on `visibilitychange`/`pagehide` and after 2
+idle minutes. Predictions are pure in `lib/cycle.ts` (average of the last 6 cycles, else her setting, else 28; 21 to 45 days; ovulation
+14 days before the next period; fertile window −5 to +1; four phases or pill Active/Break; "early guess" under 3 periods). Teens get
+periods only, enforced on the server; child profiles and organisations don't get it. Check-ins, settings, notes and chat are encrypted with
+`ACCOUNT_DATA_KEY`. Nana (daily note, check-in advice, monthly report, private chat) gets only her phase and a summary of her logs, uses her
+own AI key or Nana's allowance, and falls back to our own phase tips. Bells never say what they're about. Download my data, Delete
+everything, Settings → Privacy, the explainer `/my-cycle`, the help article, Privacy Policy section, and `npm run test:cycle`.
+
 **Hotel kit (v0.164.0)** — built from the approved plan and mockups (`docs/HOTEL_KIT.md`), with hotel-ops (no licence) read for ideas and
 rules only. Starter on Pro: the `hotel` site kit and the site's `/hotel` page (rooms with live availability, booking with a hold, ordering
 from a department to a room, a table or for pick-up), Paystack, bells, Business books. Standard on Business: departments (limit in Admin), the

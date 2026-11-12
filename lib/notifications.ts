@@ -54,6 +54,7 @@ export type NotificationType =
   | "books" // Business books: a shop's receipt, a reminder of money owed, or the waitlist (lib/books-server.ts)
   | "hotel" // the Hotel kit: a booking, an order, late money, a request (lib/hotel-server.ts)
   | "referral" // the monthly referrals and affiliate report
+  | "reminder" // a private reminder that never says what it's about (My Cycle, lib/cycle-server.ts)
   | "nana"; // Nana's inbox: something needs the member, or Nana did something for them (lib/agents)
 
 export type AppNotification = {

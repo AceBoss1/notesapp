@@ -315,6 +315,9 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await db.doc(`groupCreates/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the last group they started (stops a double tap making two)
     ...(await db.doc(`granolaConnections/${uid}`).get().then((d) => (d.exists ? [d] : []))), // a connected Granola account (encrypted tokens)
     ...(await db.doc(`aiConnections/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the encrypted key of a connected AI account
+    // My Cycle (lib/cycle-server.ts eraseCycle): her check-ins, settings, answer, notes and private chat with Nana, all of it.
+    ...(await own("cycleLogs", "uid", uid)),
+    ...(await Promise.all([`cycleProfiles/${uid}`, `cycleNotes/${uid}`, `cycleChats/${uid}`].map((x) => db.doc(x).get()))).filter((d) => d.exists),
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
   for (const r of await own("storeReviews", "uid", uid)) await deleteReview(db, uid, r.id).catch(() => {}); // takes the stars off the item totals too
