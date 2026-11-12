@@ -3,7 +3,7 @@
 A new tab in `/jobs`. A member connects their own AI. Nana then collects openings from Notes Jobs and public job boards, cuts the ones
 that don't fit, scores the rest against what the member has actually done, and gives a short ranked list. Each job comes with why it
 fits and the strongest reason they might not get it. **It finds and ranks. It never applies on anyone's behalf.** The owner asked for it
-on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.163.0** (mockups approved 12 Nov 2026,
+on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.162.0** (mockups approved 12 Nov 2026,
 with the CV review added by the owner when approving).
 
 Shortlist is MIT-licensed (© 2026 Victor Dickson), so its approach and code may be adapted. Any file that takes code from it keeps the
@@ -72,7 +72,7 @@ with". Step 2 of the set-up starts with the CV, right after Connect your AI.
 - **Confirmed by the member.** "Use this to fill in my profile" merges it into the scoring profile, which they then edit and save. No AI
   connected yet: the CV is kept and reviewed once they connect one. They can also skip the CV and fill in the profile themselves.
 
-## Where the code is (v0.163.0)
+## Where the code is (v0.162.0)
 
 `lib/ai-providers.ts` (calling Gemini, Groq, Anthropic and OpenAI-compatible APIs, key checks, pacing), `lib/ai-connect.ts` (the keys),
 `lib/nana-jobs.ts` (shapes and rules), `lib/nana-jobs-funnel.ts` (the funnel, link check, CV and cover-note guards),
@@ -82,7 +82,7 @@ with". Step 2 of the set-up starts with the CV, right after Connect your AI.
 Tests: `npm run test:nana-jobs` and `npm run test:nana-jobs-server`. Files that adapt Shortlist keep its MIT notice; the full notice is in
 `THIRD_PARTY_NOTICES`.
 
-## Build order (done in v0.163.0)
+## Build order (done in v0.162.0)
 
 1. Multi-provider AI connect, with tests for each provider's check and the pacing.
 2. Sources, shared pool, filters and prescore (pure, tested with Shortlist's fixtures adapted), then the scorer and the verifier.

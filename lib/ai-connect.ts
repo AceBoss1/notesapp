@@ -49,7 +49,7 @@ export async function disconnectKey(db: Firestore, uid: string): Promise<void> {
   await db.collection(COL).doc(uid).delete();
 }
 
-// ---- More providers (Nana Jobs, v0.163.0) ----
+// ---- More providers (Nana Jobs, v0.162.0) ----
 // Gemini, Groq and any OpenAI-compatible API join the Anthropic key above. Nana and the writing help keep using only the Anthropic key
 // (aiStatus, ownKey: unchanged); Nana Jobs can use any of them (lib/nana-jobs-server.ts). The others live in the server-only
 // `aiProviderKeys/{uid}_{provider}`, encrypted the same way, with only the last four characters ever shown. Each key is checked with a free

@@ -1016,7 +1016,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     intercompany agreement and tax set-up (FUNDING.md §5a step 5). A Flutterwave payout whose outcome is unknown leaves the
     earnings `paying` and a `treasuryPayouts` record `unconfirmed`: check Flutterwave, then set them back to `held` or finish by hand
     (no button yet). Tests: `test:global` (new), rules 96/96.
-131. **Nana Jobs: your own AI, a daily shortlist (v0.163.0, branch `push/nana-jobs`; owner, 12 Nov 2026, adopting Shortlist; the CV
+131. **Nana Jobs: your own AI, a daily shortlist (v0.162.0, branch `push/nana-jobs`; owner, 12 Nov 2026, adopting Shortlist; the CV
     review added by the owner when approving):** see `docs/NANA_JOBS.md`. `/jobs/nana` (a third tab beside the job board and Applied,
     `components/jobs/JobsSubTabs.tsx`), public explainer `/nana-jobs` (footer), help article `nana-jobs`. Members 18+ with personal
     accounts only (`whyNotAllowed`), free on every plan. `lib/ai-connect.ts` now holds Gemini, Groq and OpenAI-compatible keys too
