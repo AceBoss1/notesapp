@@ -133,6 +133,8 @@ jobs:
       - run: npm run test:ppm-server
       # Google and LinkedIn sign-in: the OpenID checks with a stand-in LinkedIn, then the Firestore and Auth emulators
       - run: npm run test:social-signin
+      # My Cycle: the prediction rules, then the server (unlock, passkey check, teen version, encryption, bells) on the emulators
+      - run: npm run test:cycle
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 

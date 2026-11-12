@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.163.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "My Cycle: a private cycle and wellness companion for women and girls. Today's phase on a ring, your next period, a calendar of logged and predicted periods, a daily check-in (mood, symptoms, energy, pain, water, sleep and flow), food and movement ideas for each phase, insights from your own history, and advice from Nana. Predictions are estimates, marked \"early guess\" until you've logged 3 periods; not contraception and not medical advice." },
+      { kind: "added", text: "My Cycle opens only with your passkey (fingerprint, face or screen lock), every time, and goes blank and locks when you switch apps. What you log is encrypted on our server, never on your profile, in ads or in other Nana chats. Download my data and Delete everything are in its settings." },
+      { kind: "added", text: "The teen version of My Cycle (13 to 17): periods, symptoms, mood, food and movement, with Nana in words for your age, and no fertile window, ovulation day or pill mode." },
+      { kind: "added", text: "Settings → Privacy, where \"Not for me\" on My Cycle can be undone." },
+    ],
+  },
+  {
     version: "v0.161.1",
     bump: "patch",
     date: "2026-11-10",

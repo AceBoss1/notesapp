@@ -13,11 +13,11 @@ import { CHALLENGE_TTL_MS, MAX_PASSKEYS, PasskeyError, RP_NAME, cleanName, origi
 
 // Passkeys on the server (lib/passkeys.ts has the rules). Collections, both server-only (firestore.rules):
 //   passkeys/{credentialId}            { uid, publicKey (base64url), counter, transports, rpID, name, deviceType, backedUp, createdAt, lastUsedAt }
-//   passkeyChallenges/{id}             { kind: "register" | "login", challenge, rpID, uid? , expireAt }  (TTL on expireAt; deleted on use)
+//   passkeyChallenges/{id}             { kind: "register" | "login" | "verify", challenge, rpID, uid? , expireAt }  (TTL on expireAt; deleted on use)
 // Signing in with a passkey ends in a Firebase custom token for the passkey's account, so the account's custom claims (staff access,
 // teen mode) apply exactly as with a password.
 
-type Ceremony = { kind: "register" | "login"; challenge: string; rpID: string; uid?: string; expireAt: Date };
+type Ceremony = { kind: "register" | "login" | "verify"; challenge: string; rpID: string; uid?: string; expireAt: Date };
 
 async function saveChallenge(db: Firestore, c: Omit<Ceremony, "expireAt">, now: Date): Promise<string> {
   const id = randomUUID();
@@ -187,4 +187,66 @@ export async function verifyAuthentication(
   if (!user || user.disabled) throw new PasskeyError(403, "This account can't sign in.");
   await ref.update({ counter: verification.authenticationInfo.newCounter, lastUsedAt: now.toISOString() });
   return { token: await auth.createCustomToken(user.uid), uid: user.uid };
+}
+
+// ── Checking it's still her (signed in) ──────────────────────────────────────────────────────────────────────────────────────────
+// A fresh passkey check for a member who is already signed in, used to unlock private areas (My Cycle, lib/cycle-server.ts). Only
+// her own passkeys for this address are offered, and user verification is required: the device must ask for her fingerprint, face or
+// screen lock, not just a tap. Throws 409 when she has no passkey for this address, so the page can help her add one first.
+export async function hasPasskeyFor(db: Firestore, uid: string, rpID: string): Promise<boolean> {
+  const mine = await db.collection("passkeys").where("uid", "==", uid).get();
+  return mine.docs.some((d) => d.data().rpID === rpID);
+}
+
+export async function verifyUserOptions(db: Firestore, uid: string, rpID: string, now = new Date()) {
+  const mine = (await db.collection("passkeys").where("uid", "==", uid).get()).docs.filter((d) => d.data().rpID === rpID);
+  if (!mine.length) throw new PasskeyError(409, "Add a passkey on this device first.");
+  const options = await generateAuthenticationOptions({
+    rpID,
+    userVerification: "required",
+    allowCredentials: mine.map((d) => ({ id: d.id, transports: Array.isArray(d.data().transports) ? d.data().transports : undefined })),
+  });
+  const challengeId = await saveChallenge(db, { kind: "verify", challenge: options.challenge, rpID, uid }, now);
+  return { options, challengeId };
+}
+
+export async function verifyUser(
+  db: Firestore,
+  uid: string,
+  body: { challengeId?: unknown; response?: unknown },
+  origin: string | null,
+  now = new Date(),
+): Promise<void> {
+  const c = await takeChallenge(db, body.challengeId, "verify", now);
+  if (c.uid !== uid) throw new PasskeyError(403, "That request was for another account.");
+  if (!origin || !originAllowed(origin, c.rpID)) throw new PasskeyError(400, "Passkeys can't be used from this address.");
+  const response = body.response as { id?: unknown } | undefined;
+  if (!response || typeof response !== "object" || typeof response.id !== "string" || response.id.length > 1024) {
+    throw new PasskeyError(400, "Your device didn't send a passkey. Try again.");
+  }
+  const ref = db.doc(`passkeys/${response.id}`);
+  const snap = await ref.get();
+  const pk = snap.data();
+  // Only one of her own passkeys will do.
+  if (!snap.exists || !pk || pk.uid !== uid || pk.rpID !== c.rpID) throw new PasskeyError(401, "That passkey isn't one of yours.");
+  let verification;
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: body.response as Parameters<typeof verifyAuthenticationResponse>[0]["response"],
+      expectedChallenge: c.challenge,
+      expectedOrigin: origin,
+      expectedRPID: c.rpID,
+      credential: {
+        id: snap.id,
+        publicKey: isoBase64URL.toBuffer(String(pk.publicKey)),
+        counter: Number(pk.counter) || 0,
+        transports: Array.isArray(pk.transports) ? pk.transports : undefined,
+      },
+      requireUserVerification: true,
+    });
+  } catch {
+    throw new PasskeyError(401, "We couldn't check that passkey. Try again.");
+  }
+  if (!verification.verified) throw new PasskeyError(401, "We couldn't check that passkey. Try again.");
+  await ref.update({ counter: verification.authenticationInfo.newCounter, lastUsedAt: now.toISOString() });
 }

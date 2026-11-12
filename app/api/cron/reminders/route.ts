@@ -33,6 +33,7 @@ import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
+import { cycleBells } from "@/lib/cycle-server";
 import { trackJob } from "@/lib/ops-metrics-server";
 import { settleEndedPromotions } from "@/lib/promo-settle-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
@@ -142,6 +143,8 @@ async function run() {
   await job("kidReports", () => sendKidReports(db));
   // Teen mode: on an 18th birthday, one bell to the "You're 18 now" screen (lib/young-server.ts).
   await job("birthday18", () => birthdayBells(db));
+  // My Cycle: the optional check-in reminder (from 7 PM Lagos) and "may be late" note, as bells that never say what they're about.
+  await job("cycleBells", () => cycleBells(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
   // Admin → Announcements: one more batch of an announcement left half-sent (the admin closed the page), until it's done.

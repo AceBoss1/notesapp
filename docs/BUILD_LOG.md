@@ -3249,3 +3249,17 @@ Business and Enterprise, plus add-ons priced in Admin. **Nana Jobs** (`docs/NANA
 scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licence, so only their ideas are used. shortlist-engine is MIT
 and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
 mockups are approved.
+
+## v0.163.0: My Cycle (12 Nov 2026)
+
+**My Cycle (v0.163.0)** — built from the approved plan and mockups (`docs/MY_CYCLE.md`). A private cycle and wellness companion at
+`/cycle`: first open asks once, in private ("I'm female" or "Not for me", stored only in `cycleProfiles`, never on `users/{uid}`), with an
+NDPA consent line; a passkey check with user verification every time (`verifyUser` in `lib/passkeys-server.ts`) sets a short httpOnly
+unlock cookie bound to her uid that every My Cycle route needs; the page blanks and locks on `visibilitychange`/`pagehide` and after 2
+idle minutes. Predictions are pure in `lib/cycle.ts` (average of the last 6 cycles, else her setting, else 28; 21 to 45 days; ovulation
+14 days before the next period; fertile window −5 to +1; four phases or pill Active/Break; "early guess" under 3 periods). Teens get
+periods only, enforced on the server; child profiles and organisations don't get it. Check-ins, settings, notes and chat are encrypted with
+`ACCOUNT_DATA_KEY`. Nana (daily note, check-in advice, monthly report, private chat) gets only her phase and a summary of her logs, uses her
+own AI key or Nana's allowance, and falls back to our own phase tips. Bells never say what they're about. Download my data, Delete
+everything, Settings → Privacy, the explainer `/my-cycle`, the help article, Privacy Policy section, and `npm run test:cycle`.
+
