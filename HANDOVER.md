@@ -1093,6 +1093,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
 
+- **Booking calendars (v0.164.1):** `components/MonthCalendar.tsx` (Monday-first month view in My Cycle's look; `isOpen` tints the
+  open days, `min`/`max` limit the range) in `BookingCard`, `PpmBook` and the reschedule box on `/bookings`. Test: `npm run test:calendar`.
+
 ## 5. Tests and checks
 
 ```

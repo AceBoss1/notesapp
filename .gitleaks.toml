@@ -1,4 +1,4 @@
-# Secret scanning (gitleaks, the CI job "secrets" in .github/workflows/ci.yml): the default rules, minus three known
+# Secret scanning (gitleaks, the CI job "secrets" in .github/workflows/ci.yml): the default rules, minus a few known
 # non-secrets. Add to the list only a value you have checked is not a key; a real key that leaks must be rotated, not listed.
 #   Run locally: go install github.com/zricethezav/gitleaks/v8@v8.30.1 && gitleaks git --config .gitleaks.toml --redact .
 [extend]
@@ -11,4 +11,7 @@ regexes = [
   '''^nak_your_key_here$''',             # the API docs' example key (app/(main)/docs/page.tsx)
   '''^na_nope_123456$''',                # a made-up payment reference in tests/invoices/invoices.emulator.ts
   '''^na-celebration-2026-dismissed$''', # a localStorage key name (components/CelebrationBanner.tsx)
+  '''^sk-test-123456789$''',             # made-up AI keys in tests/nana-jobs/nana-jobs.emulator.ts
+  '''^sk-or-test-123456789wxyz$''',
+  '''^moniepoint-test-secret-0123456789$''', # a made-up webhook secret in tests/hotel/hotel.emulator.ts
 ]
