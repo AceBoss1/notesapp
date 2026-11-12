@@ -786,6 +786,26 @@ service cloud.firestore {
     // items, receipts, reminders, imports and settings. All private to the seller (and an organisation's admins), and written only by the
     // server after it checks who is acting; the page reads them through /api/books, and the public receipt and statement pages through
     // the server, which never shows a phone number.
+    // The Hotel kit (lib/hotel-server.ts, docs/HOTEL_KIT.md): hotels, rooms, bookings, menus, orders, stays and the room bill, tills and their
+    // sessions and cash-ups, Housekeeping, Nana's chats, and every payment and card-machine event. All server-only: guests and staff go
+    // through /api/public/hotel and /api/hotel, which check who is acting and price everything from the hotel's own records. The one thing a
+    // browser may read is hotelPulse/{id} ({ rev, at }, no details), which staff screens listen to so they know when to fetch again.
+    match /hotels/{id} { allow read, write: if false; }
+    match /hotelRooms/{id} { allow read, write: if false; }
+    match /hotelBookings/{id} { allow read, write: if false; }
+    match /hotelMenu/{id} { allow read, write: if false; }
+    match /hotelOrders/{id} { allow read, write: if false; }
+    match /hotelStays/{id} { allow read, write: if false; }
+    match /hotelTills/{id} { allow read, write: if false; }
+    match /hotelTillSessions/{id} { allow read, write: if false; }
+    match /hotelCashups/{id} { allow read, write: if false; }
+    match /hotelIssues/{id} { allow read, write: if false; }
+    match /hotelChats/{id} { allow read, write: if false; }
+    match /hotelPayments/{id} { allow read, write: if false; }
+    match /hotelPosEvents/{id} { allow read, write: if false; }
+    match /hotelWaMessages/{id} { allow read, write: if false; }
+    match /hotelPulse/{id} { allow get: if request.auth != null; allow list, write: if false; }
+
     match /bookEntries/{id} { allow read, write: if false; }
     match /bookParties/{id} { allow read, write: if false; }
     match /bookItems/{id} { allow read, write: if false; }
@@ -928,12 +948,29 @@ service cloud.firestore {
     match /jobs/{id} { allow read, write: if false; }
     match /jobApplications/{id} { allow read, write: if false; }
     match /jobSeekers/{id} { allow read, write: if false; }
+    // Nana Jobs (lib/nana-jobs-server.ts): the scoring profile, the shortlist and statuses, the CV (encrypted), the watched company
+    // boards and the shared pool of openings are written and read only by the server. Firms never see any of it.
+    match /nanaJobsProfiles/{id} { allow read, write: if false; }
+    match /nanaJobsRuns/{id} { allow read, write: if false; }
+    match /nanaJobsStatuses/{id} { allow read, write: if false; }
+    match /nanaJobsCv/{id} { allow read, write: if false; }
+    match /nanaJobsBoards/{id} { allow read, write: if false; }
+    match /nanaJobsMeta/{id} { allow read, write: if false; }
+    match /jobPool/{id} { allow read, write: if false; }
+    // Members' own AI keys other than Anthropic (lib/ai-connect.ts), encrypted; like aiConnections, never readable from a browser.
+    match /aiProviderKeys/{id} { allow read, write: if false; }
     match /jobInvites/{id} { allow read, write: if false; }
     match /jobBells/{id} { allow read, write: if false; }
     match /hrDrafts/{id} { allow read, write: if false; } // Nana-HR's onboarding drafts (server only)
     match /staffMeta/{id} { allow read, write: if false; } // seed markers for the staff library and careers (server only)
     match /passkeys/{id} { allow read, write: if false; } // passkey public keys and counters (lib/passkeys-server.ts): server only
     match /passkeyChallenges/{id} { allow read, write: if false; } // one-time passkey challenges, 5 minutes (TTL expireAt): server only
+    // My Cycle (lib/cycle-server.ts): her answer, encrypted check-ins, Nana's notes and her private chat. Server only, even for her
+    // and for staff: she reads them through /api/cycle after a passkey check.
+    match /cycleProfiles/{id} { allow read, write: if false; }
+    match /cycleLogs/{id} { allow read, write: if false; }
+    match /cycleNotes/{id} { allow read, write: if false; }
+    match /cycleChats/{document=**} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)
@@ -1427,10 +1464,10 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.category is string
-        // The one-month feedback, the Naija Exam Prep reviewer sign-up and the Business books waitlist come only through their
-        // rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist; lib/leads-server.ts), never
-        // straight from a browser.
-        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist'])
+        // The one-month feedback, the Naija Exam Prep reviewer sign-up, the Business books waitlist and the Hotel kit's Set it up for
+        // me come only through their rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist,
+        // /api/public/hotel; lib/leads-server.ts, lib/hotel-server.ts), never straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist', 'hotel-setup'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the

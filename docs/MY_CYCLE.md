@@ -2,7 +2,7 @@
 
 A cycle tracker with advice from Nana for women and girls on #NotesApp, built in NotesApp's own web app (Next.js), **not in Flutter**.
 It works on phones and laptops. The owner asked for it on 12 Nov 2026, using the Bloom app (github.com/vicintel/bloom-app) as the reference.
-**Status: mockups awaiting the owner's approval. Nothing has been built yet.**
+**Status: built in v0.163.0 (12 Nov 2026).** The mockups were approved and built as drawn. Notes on the build are at the end.
 
 Bloom has no licence file, so none of its code is copied. Only the ideas are rebuilt here: phases, check-in, charts, food and fitness by
 phase, AI advice, and a biometric lock with a privacy shield.
@@ -65,3 +65,18 @@ no diagnosis, no contraception claims.
 2. Pages: `/cycle` (Today, Calendar, Check-in, Insights, Ask Nana), first open, lock and privacy shield.
 3. Nana prompts, the monthly report and bells.
 4. Public pages, a help article, the changelog, HANDOVER and BUILD_LOG, then the version bump.
+
+## As built (v0.163.0)
+
+- Pure rules: `lib/cycle.ts` (lengths, predictions, phases, pill mode, the teen filter `forTeen`, the calendar, insights, red flags, our
+  own phase tips, the consent line). Nana's instructions: `lib/cycle-nana.ts`. Server: `lib/cycle-server.ts` (everything written, the
+  unlock token, Nana calls through `runAi`, bells, export, erase). Routes: `app/api/cycle` and `app/api/cycle/unlock`. Page:
+  `app/(main)/cycle` with `components/cycle/*`; explainer `app/(main)/my-cycle`; Settings → Privacy `components/cycle/CyclePrivacy.tsx`.
+- The passkey check is `verifyUserOptions` / `verifyUser` in `lib/passkeys-server.ts` (her own passkeys only, `userVerification:
+  "required"`), with `confirmWithPasskey` in `lib/passkeys-client.ts`. The unlock cookie (`nc_cycle`, httpOnly, SameSite=Strict, path
+  `/api/cycle`) is an HMAC token signed with a key derived from `ACCOUNT_DATA_KEY`; it names her uid, lasts 2 minutes from the last
+  request and at most 30 minutes from the passkey check.
+- The menu item shows for members who may use it and haven't said "Not for me" (an unanswered member sees it so she can be asked).
+- The cycle-log documents carry the day in their id (`cycleLogs/{uid}_{day}`); the check-in itself is encrypted.
+- Not built: the installed app's secure-window flag (the Capacitor shell, `docs/MOBILE-APPS.md`, is a separate change); the Privacy Policy
+  section is drafted for counsel; there is no separate "How we treat young members" page yet, so that mention waits for it.

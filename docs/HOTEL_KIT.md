@@ -2,7 +2,7 @@
 
 The hotel's website, room bookings, food and drink orders from every department, payment online or at the counter, a live staff board,
 a kitchen screen and tills, all in NotesApp's own app. The owner asked for it on 12 Nov 2026, using Hotel Ops
-(github.com/vicintel/hotel-ops) as the reference. **Status: mockups awaiting the owner's approval. Nothing has been built yet.**
+(github.com/vicintel/hotel-ops) as the reference. **Status: built in v0.164.0** (12 Nov 2026), as drawn; see "What was built" at the end.
 
 Hotel Ops has no licence file, so none of its code is copied. We take its ideas and its payment rules (only a verified payment marks an
 order paid, holds expire, late money is kept and flagged, and the AI never states a price itself) and build them on our own stack:
@@ -68,3 +68,20 @@ All screens on one sheet: [all-screens.webp](mockups/hotel-kit/all-screens.webp)
 4. Add-ons: Paylony account per order, Moniepoint, WhatsApp, Housekeeping.
 
 Each step ships with its public page, help article, changelog, HANDOVER and BUILD_LOG.
+
+## What was built (v0.164.0)
+
+All four steps of the build order. Code map and owner steps: `HANDOVER.md` §2 item 131; help: `/help/hotel-kit`; public page: `/hotels`.
+
+- **Starter:** the Hotels kit on Your site; Your hotel (`/profile/hotel`) for rooms, menus, bookings, check-in and checkout; the site's
+  `/hotel` page (mockups 1 to 3) and the guest's link `/hotel/<code>`; Paystack; booking and order bells; Business books.
+- **Standard:** departments up to the Admin limit; the staff board (4) and kitchen screen (5); tills with PINs and cash-up (6) at `/till`;
+  stock from Inventory; the room bill; staff roles (Manager, Front desk, Department) for people already on the owner's team.
+- **Grand:** branches and the owner view; Nana chat ordering on the site (7), tool use, prices only from tool results; Conversations;
+  monthly reports by branch and department with a CSV.
+- **Add-ons (8):** account number per order (Paylony one-time accounts) and Housekeeping, full; WhatsApp ordering and the Moniepoint
+  card-machine link built behind settings (`lib/config.ts`, group "Hotel kit"), showing "Not set up yet" until configured; Set it up for
+  me reaches the team in Admin → Leads (category `hotel-setup`).
+
+Left out: the mockup's optional extras on a booking (airport pick-up), which have no data model yet; refunds of late money paid by
+transfer or card machine go to the team as a request (Paystack ones are refunded directly).

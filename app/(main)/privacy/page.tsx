@@ -77,6 +77,18 @@ export default async function PrivacyPage() {
         You can disconnect at any time from the same place, and we delete the saved permission straight away; you can also remove #NotesApp in your LinkedIn or X settings. A post you shared is a copy that lives on that network under its own terms and privacy policy: deleting the post here, or your account, does not delete it there, so remove it there yourself if you wish. If you delete your account we delete the saved permission and our record of what we shared. Your download of your data lists the accounts you connected and the posts we shared, never the saved permission.
       </p>
 
+      <h2 id="my-cycle">My Cycle</h2>
+      <p>
+        My Cycle is optional. Because what you log there is health data (sensitive personal data under the Nigeria Data Protection Act 2023), we
+        ask for your explicit consent the first time you set it up. We keep your answer to its first question, your period dates, cycle settings,
+        check-ins (mood, symptoms, energy, pain, water, sleep, flow and your notes), Nana&apos;s notes and your chat with Nana in My Cycle, encrypted on
+        our server, only to show your predictions and so Nana can advise you. Your answer never goes on your profile. It opens only after a passkey
+        check on your device. Nana&apos;s AI is sent your phase and a short summary of your logs, never your name or other details, using your own
+        connected AI account if you have one. None of it is used for ads, analytics or other Nana features, it is not part of your account
+        download, and our staff can&apos;t open it. You can download it or delete it all at any time in My Cycle&apos;s settings, and closing your account
+        deletes it. For members aged 13 to 17, the parent who confirmed teen mode is told My Cycle exists, but never sees what is logged.
+      </p>
+
       <h2>Your rights</h2>
       <p>You may access, correct, export or delete your data, object to processing, and withdraw consent. Most of this you can do yourself under <a href="/profile/account">Account</a> → Your data: download a copy of your data, or delete your account (it is refused while money, orders, sessions or paid plans are still open, so nobody is left out of pocket). For anything else, contact us at {LEGAL_CONTACT}. You may also complain to the Nigeria Data Protection Commission.</p>
 

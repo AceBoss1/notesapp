@@ -33,11 +33,15 @@ import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
+import { cycleBells } from "@/lib/cycle-server";
 import { trackJob } from "@/lib/ops-metrics-server";
 import { settleEndedPromotions } from "@/lib/promo-settle-server";
 import { monthlyBooksReports } from "@/lib/books-report-server";
+import { sweepHolds } from "@/lib/hotel-server";
 import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
+import { runDue as nanaJobsDue } from "@/lib/nana-jobs-server";
+import { liveDeps as nanaJobsDeps } from "@/lib/nana-jobs-api";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -105,6 +109,7 @@ async function run() {
   const expired = await job("expireTiers", expireTiers);
   const released = await job("releaseDueOrders", releaseDueOrders);
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
+  await job("hotelHolds", () => sweepHolds(db)); // Hotel kit: unpaid bookings and orders past their hold are released (lib/hotel-server.ts)
   // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
   const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
   // Ended boosts and adverts: the undelivered share refunded pro rata, the way the member paid, as the help and Terms promise
@@ -142,6 +147,8 @@ async function run() {
   await job("kidReports", () => sendKidReports(db));
   // Teen mode: on an 18th birthday, one bell to the "You're 18 now" screen (lib/young-server.ts).
   await job("birthday18", () => birthdayBells(db));
+  // My Cycle: the optional check-in reminder (from 7 PM Lagos) and "may be late" note, as bells that never say what they're about.
+  await job("cycleBells", () => cycleBells(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
   // Admin → Announcements: one more batch of an announcement left half-sent (the admin closed the page), until it's done.
@@ -164,6 +171,9 @@ async function run() {
   await job("booksReports", () => monthlyBooksReports(db));
   // Researchers who linked ORCID with sync on: their new works are added to their site's Publications (lib/publications-server.ts).
   await job("syncOrcidSites", () => syncOrcidSites(db));
+  // Nana Jobs: members' daily shortlists at the hour each chose, a few per run within a time limit (lib/nana-jobs-server.ts). The shared
+  // pool they read is collected once a day by /api/cron/nana-jobs.
+  await job("nanaJobs", () => nanaJobsDue(db, nanaJobsDeps(), { max: 3, budgetMs: 60_000 }));
   await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.

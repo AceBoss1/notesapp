@@ -16,7 +16,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "autoWithdrawMaxKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "autoWithdrawMaxKobo", "whatsappMonthlyKobo", "accountMonthlyKobo", "cardMachineMonthlyKobo", "housekeepingMonthlyKobo", "setupFromKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
 const RATE_EXTRA = new Set(["weeklyRate", "capRate", "cutRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -26,7 +26,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "departmentsMax" || key === "branchesMax" || key === "holdMinutes" || key === "lateMinutes" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -154,6 +154,22 @@ export default function PricingPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate">Enterprise has no fixed staff limit and Free Basic none. A customer paying what they owe from their statement link pays the seller like a store sale: by default with the seller&apos;s physical-goods commission, held, then paid out.</p>
+          </section>
+
+          <section className="card mt-6 p-5">
+            <h2 className="font-display text-2xl text-ink">Hotel kit</h2>
+            <p className="mt-1 text-xs text-slate">The hotel&apos;s website, rooms, orders, staff board, kitchen screen and tills (/profile/hotel). Starter rides on Pro, Standard on Business, Grand on Enterprise: no extra subscription. The add-ons are monthly, on any tier. Help pages never print these figures.</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>WhatsApp ordering, per month, ₦</span>{input(["hotel", "whatsappMonthlyKobo"], "", "Hotel kit WhatsApp ordering monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Account number per order, per month, ₦</span>{input(["hotel", "accountMonthlyKobo"], "", "Hotel kit account number per order monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Card-machine link, per month, ₦</span>{input(["hotel", "cardMachineMonthlyKobo"], "", "Hotel kit card-machine link monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Housekeeping, per month, ₦</span>{input(["hotel", "housekeepingMonthlyKobo"], "", "Hotel kit Housekeeping monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Set it up for me, from, ₦</span>{input(["hotel", "setupFromKobo"], "", "Hotel kit Set it up for me from price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Departments on Standard and Grand</span>{input(["hotel", "departmentsMax"], "", "Hotel kit departments on Standard and Grand")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Branches on Grand</span>{input(["hotel", "branchesMax"], "", "Hotel kit branches on Grand")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Unpaid booking or order held for</span>{input(["hotel", "holdMinutes"], "min", "Hotel kit minutes an unpaid booking or order is held")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Kitchen order late after</span>{input(["hotel", "lateMinutes"], "min", "Hotel kit minutes before a kitchen order is late")}</div>
+            </div>
           </section>
 
           <section className="card mt-6 p-5">

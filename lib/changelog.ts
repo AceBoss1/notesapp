@@ -19,6 +19,39 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.164.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "The Hotel kit: a whole hotel on #NotesApp. The hotel's own website with rooms, live availability and online booking, and food and drink orders from every department to a room, a table or for pick-up. Run it all from Your hotel, and choose the new Hotels, guest houses and resorts kit on Your site." },
+      { kind: "added", text: "Three tiers on the plans you already have: Hotel Starter on Pro, Hotel Standard on Business (several departments, a live staff board, a kitchen screen with sound and spoken alerts, tills with PINs and cash-up, stock from Inventory, the room bill, staff roles by department) and Hotel Grand on Enterprise (several branches with one owner view, ordering by chatting with Nana in English, Pidgin, Yorùbá, Igbo and Hausa, Conversations and monthly reports)." },
+      { kind: "added", text: "Money that stays right: rooms and orders are held while the guest pays and go back on sale when the hold runs out; only a payment the provider confirms marks anything paid; money that lands late is kept and flagged to rebook or refund; the room bill is settled at checkout; and every sale goes into Business books, with stock taken off Inventory." },
+      { kind: "added", text: "Add-ons on any tier: an account number for each order (it turns paid by itself when the transfer lands), Housekeeping (rooms dirty, cleaning or ready, maintenance and lost and found), and Set it up for me, where our team fills in your kit. WhatsApp ordering and the Moniepoint card-machine link are ready and show as not set up yet until they're switched on." },
+    ],
+  },
+  {
+    version: "v0.163.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "My Cycle: a private cycle and wellness companion for women and girls. Today's phase on a ring, your next period, a calendar of logged and predicted periods, a daily check-in (mood, symptoms, energy, pain, water, sleep and flow), food and movement ideas for each phase, insights from your own history, and advice from Nana. Predictions are estimates, marked \"early guess\" until you've logged 3 periods; not contraception and not medical advice." },
+      { kind: "added", text: "My Cycle opens only with your passkey (fingerprint, face or screen lock), every time, and goes blank and locks when you switch apps. What you log is encrypted on our server, never on your profile, in ads or in other Nana chats. Download my data and Delete everything are in its settings." },
+      { kind: "added", text: "The teen version of My Cycle (13 to 17): periods, symptoms, mood, food and movement, with Nana in words for your age, and no fertile window, ovulation day or pill mode." },
+      { kind: "added", text: "Settings → Privacy, where \"Not for me\" on My Cycle can be undone." },
+    ],
+  },
+  {
+    version: "v0.162.0",
+    bump: "minor",
+    date: "2026-11-12",
+    changes: [
+      { kind: "added", text: "Nana Jobs: a new tab in Jobs. Connect your own AI and get a short ranked list of jobs every morning from Notes Jobs, RemoteOK, Remotive, Himalayas, Arbeitnow and the job boards of companies you watch, each with why it fits and the strongest reason you might not get it. It finds and ranks; it never applies for you. Free on every plan, for members 18 and up." },
+      { kind: "added", text: "Start from your CV: upload a PDF or Word file, or paste it, and your AI gives you an honest review (what's strong, the gaps and quick fixes), the roles that fit, and a profile to start from. Your CV is kept encrypted, never shown to firms, and you can delete it any time." },
+      { kind: "added", text: "Connect Gemini, Groq or any OpenAI-compatible AI as well as Claude. Keys are checked with a free call, kept encrypted, and only their last 4 characters are shown. A paid AI is never used unless you choose it." },
+      { kind: "added", text: "Mark jobs Interested, Applied or Not for me, get a bell when your list is ready (email if you want it), and ask for a cover note written only from what you've actually shipped." },
+    ],
+  },
+  {
     version: "v0.161.1",
     bump: "patch",
     date: "2026-11-10",
