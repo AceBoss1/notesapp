@@ -10,6 +10,7 @@ import { canPublish } from "@/lib/users";
 import { useMember } from "@/lib/member-client";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
+import { useCycleMenu } from "@/lib/cycle-client";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { CloseIcon } from "./icons";
@@ -21,6 +22,7 @@ type L = { href: string; label: string };
 export default function AccountSheet({ open, onClose, links }: { open: boolean; onClose: () => void; links: L[] }) {
   const { user, profile, unreadDms } = useMember();
   const pathname = usePathname();
+  const cycle = useCycleMenu(user, profile?.accountKind === "organisation"); // My Cycle: hidden for "Not for me", child profiles and organisations
   useEffect(() => { onClose(); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
@@ -43,6 +45,7 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
     { href: "/giving", label: "My giving" },
     ...(canPublish(profile) ? [{ href: "/shipments", label: "Shipments (logistics)" }] : []),
     ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),
+    ...(cycle ? [{ href: "/cycle", label: "🌸 My Cycle" }] : []),
     { href: "/saved", label: "Saved" },
     { href: "/interests", label: "Your interests" },
     { href: "/invites", label: "Co-author invites" },

@@ -1010,7 +1010,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "cycleProfiles", "cycleLogs", "cycleNotes", "cycleChats", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1642,6 +1642,24 @@ test("passkeys and their challenges are server-only, even for the passkey's owne
     await assertFails(deleteDoc(doc(db, "passkeys/cred1")));
     await assertFails(getDoc(doc(db, "passkeyChallenges/c1")));
     await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
+  }
+});
+
+test("My Cycle is server-only, even for her and for staff: her answer, check-ins, notes and private chat", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "cycleProfiles/alice"), { uid: "alice", answer: "female", data: "x" });
+    await setDoc(doc(db, "cycleLogs/alice_2026-11-12"), { uid: "alice", day: "2026-11-12", data: "x" });
+    await setDoc(doc(db, "cycleNotes/alice"), { uid: "alice", data: "x" });
+    await setDoc(doc(db, "cycleChats/alice"), { uid: "alice", data: "x" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["cycleProfiles/alice", "cycleLogs/alice_2026-11-12", "cycleNotes/alice", "cycleChats/alice", "cycleChats/alice/messages/m1"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice", answer: "no" }));
+    }
+    await assertFails(getDocs(query(collection(db, "cycleLogs"), where("uid", "==", "alice"))));
+    await assertFails(deleteDoc(doc(db, "cycleProfiles/alice")));
   }
 });
 

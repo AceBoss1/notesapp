@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
 | `claude/interests-and-courses` | v0.39.0, merged: hashtag interests and one topic list (`lib/topics.ts`, `/interests`, the journal form, For you in the feed, the Topics tab, the digest), and the course platform plan (`docs/COURSES.md`). |
@@ -1032,6 +1033,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Known limits: a free tier that's slow means the rest of a run keeps the keyword score; the cover note on the live site needs the
     member's AI to answer; the CV reader handles PDF with text and .docx (not scans or old .doc). Tests: `test:nana-jobs` (new, pure),
     `test:nana-jobs-server` (new, emulator), rules (one new test).
+132. **My Cycle (v0.163.0, branch `push/my-cycle`; plan `docs/MY_CYCLE.md`):** a private cycle companion at `/cycle`, explainer
+    `/my-cycle`. Owner steps: (a) `firebase deploy --only firestore:rules` (four new server-only collections: `cycleProfiles`,
+    `cycleLogs`, `cycleNotes`, `cycleChats`); no new indexes. (b) `ACCOUNT_DATA_KEY` must be set in Vercel (it already protects bank
+    details and AI keys); without it My Cycle shows "isn't switched on yet". Changing that key later makes My Cycle data unreadable and
+    signs everyone out of My Cycle. (c) The cron job already in place (`/api/cron/reminders`) sends its bells. (d) Counsel: the Privacy
+    Policy "My Cycle" section and the consent line (NDPA, sensitive data), and a My Cycle line for the coming "How we treat young
+    members" page. Not built: the installed app's secure-window flag. Tests: `test:cycle` (new), rules 97/97.
 
 ## 3. How the work is done (please keep these)
 
@@ -1106,6 +1114,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
+| My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
@@ -1127,6 +1136,7 @@ npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
 npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards (no network)
 npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
+npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

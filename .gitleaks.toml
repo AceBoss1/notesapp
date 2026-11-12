@@ -13,4 +13,5 @@ regexes = [
   '''^na-celebration-2026-dismissed$''', # a localStorage key name (components/CelebrationBanner.tsx)
   '''^sk-test-123456789$''',             # made-up AI keys in tests/nana-jobs/nana-jobs.emulator.ts
   '''^sk-or-test-123456789wxyz$''',
+  '''^moniepoint-test-secret-0123456789$''', # a made-up webhook secret in tests/hotel/hotel.emulator.ts
 ]

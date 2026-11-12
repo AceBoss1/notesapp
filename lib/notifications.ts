@@ -53,6 +53,7 @@ export type NotificationType =
   | "volunteer" // a Naija Exam Prep reviewer sign-up: received, approved
   | "books" // Business books: a shop's receipt, a reminder of money owed, or the waitlist (lib/books-server.ts)
   | "referral" // the monthly referrals and affiliate report
+  | "reminder" // a private reminder that never says what it's about (My Cycle, lib/cycle-server.ts)
   | "nana"; // Nana's inbox: something needs the member, or Nana did something for them (lib/agents)
 
 export type AppNotification = {
