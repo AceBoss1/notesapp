@@ -3280,3 +3280,12 @@ languages, Conversations and monthly reports with a CSV. Add-ons: an account num
 the Moniepoint card-machine link built behind settings with signed webhooks and "not set up yet"; Set it up for me as a lead to the team.
 Money rules in `lib/hotel-pay-server.ts`, tested against the emulators: only a verified payment sets paid, idempotent per provider reference,
 holds expire, late money stored and flagged (ledger disputed until rebooked or refunded), every sale in Business books.
+
+## Booking calendars in My Cycle's look (v0.164.1, 12 Nov 2026)
+
+The owner liked My Cycle's calendar and asked for the same look for booking and scheduling. `components/MonthCalendar.tsx` is a
+Monday-first month picker: ‹ › between months, today outlined, the picked day in crimson, past days and days the creator isn't open
+greyed out. On 1:1 sessions it tints the weekdays the creator has times on (from `publisherSettings.session.availability`), so clients
+see at a glance which days are worth opening. It replaces the browser's plain date box in `BookingCard` (profile and site), `PpmBook`
+(pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
+month grid (blanks before the 1st, month lengths, leap years).

@@ -8,7 +8,8 @@ import { startCheckout } from "@/lib/checkout";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import DiscountCodeField from "@/components/DiscountCodeField";
 import { ShareButton } from "@/components/share/ShareToNotesApp";
-import { formatNaira as nairaText, formatSlot, PublisherSettings } from "@/lib/booking-time";
+import { formatNaira as nairaText, formatSlot, PublisherSettings, weekdayOf } from "@/lib/booking-time";
+import MonthCalendar from "@/components/MonthCalendar";
 import { moneyIn } from "@/lib/global-sales";
 import PayPreview from "@/components/PayPreview";
 
@@ -99,13 +100,13 @@ export default function BookingCard({
       <p className="mt-2 text-sm text-slate">
         {offered.minutes} minutes · {formatNaira(offered.priceKobo)} · times shown in Lagos time (WAT).
       </p>
-      <input
-        type="date"
+      <MonthCalendar
         value={date}
         min={tomorrow}
-        onChange={(e) => setDate(e.target.value)}
-        className="mt-6 rounded-xl2 border border-rule bg-paper px-4 py-2 font-ui text-sm text-ink"
-        aria-label="Session date"
+        onChange={setDate}
+        isOpen={(d) => (offered.availability?.[String(weekdayOf(d))]?.length ?? 0) > 0}
+        label="Session date"
+        className="mt-6 max-w-md"
       />
       {date && slots && slots.slots.length === 0 && (
         <p className="mt-4 text-sm text-slate">No times available on that date — try another day.</p>

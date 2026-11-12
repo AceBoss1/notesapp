@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.164.1",
+    bump: "patch",
+    date: "2026-11-12",
+    changes: [
+      { kind: "changed", text: "Booking calendars look like My Cycle's: a month view where the days a creator is open are tinted green, today is outlined and your pick is in crimson. Used for 1:1 sessions, pay-per-minute calls and rescheduling, in place of the plain date box." },
+    ],
+  },
+  {
     version: "v0.164.0",
     bump: "minor",
     date: "2026-11-12",
