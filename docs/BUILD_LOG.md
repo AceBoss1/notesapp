@@ -3249,3 +3249,11 @@ Business and Enterprise, plus add-ons priced in Admin. **Nana Jobs** (`docs/NANA
 scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licence, so only their ideas are used. shortlist-engine is MIT
 and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
 mockups are approved.
+
+**Nana Jobs (v0.162.0)** — `/jobs/nana`, a third Jobs tab: members 18+ connect their own AI (Gemini, Groq, Claude or any
+OpenAI-compatible API; `lib/ai-providers.ts`, `lib/ai-connect.ts`), start from their CV (PDF, .docx or pasted, read in the browser,
+kept encrypted, reviewed by their AI with "shipped" lines checked against the CV), and get a daily shortlist from Notes Jobs, four open
+feeds and the company boards they watch (`lib/nana-jobs-sources.ts`), through Shortlist's funnel (`lib/nana-jobs-funnel.ts`: dedupe,
+hard filters, prescore, the AI rubric, link check) with statuses, bell and email, and a cover note from the shipped list
+(`lib/nana-jobs-server.ts`). Shared pool once a day (`/api/cron/nana-jobs`), runs at each member's hour from the reminders cron. Public
+page `/nana-jobs`, help article, `THIRD_PARTY_NOTICES` (Shortlist, MIT). Tests `test:nana-jobs`, `test:nana-jobs-server`.
