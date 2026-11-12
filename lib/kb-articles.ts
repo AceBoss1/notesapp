@@ -1145,6 +1145,36 @@ Importing the same export again adds nothing (orders are matched by their own nu
 **Walk-in sales:** a sale you record in [Business books](/help/business-books) lowers the stock the same way an online order does, and shows in the history as Sold with its book entry; voiding it puts the stock back. A stock list imported in Business books (a Tralo export, for example) updates stock, cost prices and SKUs here, and can be undone for 24 hours.
 
 **Who has it:** included on Business and Enterprise. On Free Basic and Pro, add it for ${inventoryAddonPrice()} a month, after a free ${inventoryTrialDays()}-day trial (no card, once). An organisation's teammates who run its store, and its admins, can use the organisation's inventory.`),
+    A("hotel-kit", "Hotel kit: rooms, bookings, orders, the staff board, tills and Nana", "Selling", `
+The [Hotel kit](/hotels) runs a hotel on #NotesApp: its website, room bookings, food and drink orders from every department, payment online or at the counter, a live staff board, a kitchen screen and tills. Run it from [Your hotel](/profile/hotel).
+
+**Tiers:** it rides on the plans you already have, with no extra subscription. **Hotel Starter** comes with Pro: the hotel's website, rooms and online booking, menus and orders for one department, paying online, booking and order notifications, and every sale in [Business books](/help/business-books). **Hotel Standard** comes with Business: several departments, the live staff board, the kitchen screen, tills with PINs and cash-up, stock through [Inventory](/help/inventory), charging to the room bill, your own domain and staff roles by department. **Hotel Grand** comes with Enterprise: several branches with one owner view, ordering by chatting with Nana on your site, Conversations, monthly reports by branch and department, and priority help.
+
+**Getting started:** open Your hotel and create it (name, city, the first department). Add your **rooms** (name, price a night, room numbers or how many) and each department's **menu**. Then on [Your site](/profile/site) choose the **Hotels, guest houses and resorts** kit: it adds Book a room and Order food to your banner and a Rooms page at /hotel (on your own domain too).
+
+**Bookings and holds:** a guest picks dates and a room, and the room is **held** for them while they pay. If they don't pay in time, the hold runs out and the room goes back on sale by itself. Guests pay by card, bank or USSD online, by bank transfer to the booking's own account number (an add-on), or at the front desk if you allow it in Hotel and departments. They get a link to their booking and an email once it's confirmed. Your cancellation policy shows when they book.
+
+**Orders:** guests order from any department to their room, a table or for pick-up. Prices always come from your menu. Mark an item **Sold out** today from Menus. A checked-in guest can **put an order on the room bill** with the room-bill code they get at check-in (Standard and up).
+
+**Only a confirmed payment counts:** nobody, including you and your staff, can mark an online order paid by hand. It turns paid when Paystack, Paylony or the card machine confirms the money. Cash and card payments at the counter are recorded on a till or at the front desk, under the name of whoever took them.
+
+**Money that lands late:** if a guest pays after their hold ran out, the money is kept and flagged under Bookings → Money that landed late, held from payout. **Rebook** them if the room or order can still be honoured, or **Refund** them.
+
+**Check-in and checkout:** under Bookings, check a confirmed guest into a room number. Their room-bill orders add up on their stay. At checkout, **settle the bill** (cash, card or a transfer you've seen), or the guest pays it online from their link; checkout waits until it's settled.
+
+**Staff board and kitchen screen (Standard):** the board shows each department's orders moving from Paid to Cooking to Ready to Done, live, with today's takings and how full the rooms are for managers. The kitchen screen shows big tickets for one department, plays a sound and reads each new order aloud (tap **Tap for sound** once), and turns late orders red. You can set when an order counts as late in Hotel and departments. Tap a ticket to start it, **Ready** when it's done, **Bump** once it has gone out.
+
+**Tills and cash-up (Standard):** add a till under Tills, with its own PIN and one department, and open it on the counter's tablet or phone (Open till). It sells only that department's menu: **Cash**, **Card (machine)**, or a transfer you've seen. With the card-machine link add-on, **Send to card machine** sends the exact amount to the counter's Moniepoint machine, and the sale settles only when the machine approves it. At close, **Cash up** compares the cash you counted with the till's cash sales, and its card sales with what the card machine says.
+
+**Staff roles (Standard):** under Staff, give people on your team a role: **Manager** (everything except money settings and add-ons), **Front desk** (bookings, check-in and out, the room bill and every order) or **Department** (their department's orders only). They must be on your team first: your organisation's team, or staff on Business books.
+
+**Stock (Standard):** link a menu item to an [Inventory](/profile/inventory) item and each sale takes it off the shelf, with the usual low-stock alerts.
+
+**Branches, reports and Conversations (Grand):** add branches under Branches and see today's takings, occupancy and open orders for all of them in one view. **Reports** gives each month's takings by branch and department, with a CSV. Guests can order and book by **chatting with Nana** on your site in English, Pidgin, Yorùbá, Igbo or Hausa; every price, total, room and account number she gives comes from your own records, never from the AI. **Conversations** shows every chat, the steps Nana took and the order it made.
+
+**Add-ons (any tier, monthly):** **WhatsApp ordering** (Nana on your own WhatsApp Business number), an **account number for each order** (it turns paid by itself when the transfer lands), the **card-machine link** (Moniepoint) and **Housekeeping** (rooms dirty, cleaning or ready, maintenance jobs, lost and found; checkout marks a room dirty). Prices are under Plans and add-ons in Your hotel. If an add-on shows **Not set up yet**, it isn't available on #NotesApp yet. **Set it up for me:** our team fills in your kit for you; ask on [the Hotel kit page](/hotels#setup).
+
+**Where the money goes:** online payments are held for you and paid out with your other earnings, less your plan's commission, like a store sale (a booking's after the guest's stay). Every sale, online or at the counter, is written to Business books by itself.`),
     A("selling-physical-goods", "Selling physical goods from your store", "Selling", `
 Your store lives at /u/yourname/store. Add an item, tick that it is sold through #NotesApp checkout, and set the price, your delivery fee and your stock. You need a payout account under Rates & payouts.
 

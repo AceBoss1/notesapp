@@ -1041,6 +1041,29 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Policy "My Cycle" section and the consent line (NDPA, sensitive data), and a My Cycle line for the coming "How we treat young
     members" page. Not built: the installed app's secure-window flag. Tests: `test:cycle` (new), rules 97/97.
 
+133. **The Hotel kit (v0.164.0, branch `push/hotel-kit`; owner, 12 Nov 2026, plan and mockups `docs/HOTEL_KIT.md`):** a hotel's own
+    site and its running, on Pro (Hotel Starter), Business (Standard) and Enterprise (Grand). Code: `lib/hotel.ts` (pure rules: tiers,
+    roles, holds and availability, prices from the menu, the order lifecycle, cash-up, reports, Nana's price guard), `lib/hotel-server.ts`
+    (every write but money: set-up, rooms, menus, bookings with holds, orders, check-in and out, tills and PINs, Housekeeping, branches,
+    reports, Conversations, Set it up for me, `sweepHolds` in the reminders cron), `lib/hotel-pay-server.ts` (the only place anything turns
+    paid: Paystack and Paylony through `lib/payments.ts` kind `hotel`, counter cash and card, late money, Business books entries
+    `bookEntries/hotel_<id>`, Inventory stock, the ledger kind `hotel`), `lib/hotel-pos-server.ts` (Moniepoint card machines and WhatsApp,
+    signed webhooks), `lib/hotel-nana-server.ts` (tool-using Nana; replies with a figure no tool returned are replaced). Routes: `/api/hotel`
+    (staff), `/api/hotel/till` (PIN), `/api/public/hotel` (+ `/nana`), `/api/hotel/moniepoint`, `/api/hotel/whatsapp`; the Paylony webhook
+    also settles hotel references. Pages: `/profile/hotel` (+ `/board`, `/kitchen`), `/till`, `/hotel/<code>` (guest link), the site's
+    `/hotel` (`app/(site)/s/[username]/hotel`, own domain via middleware), `/hotels` (public). The `hotel` site kit and the Book a room /
+    Order food buttons are in `lib/site-kits.ts`. Admin → Pricing → Hotel kit holds the add-on prices, the department and branch limits, the
+    hold and late times (`lib/pricing.ts` hotel). Collections (server-only; `hotelPulse/{id}` is a counter staff screens may read):
+    `hotels`, `hotelRooms`, `hotelBookings`, `hotelMenu`, `hotelOrders`, `hotelStays`, `hotelTills`, `hotelTillSessions`, `hotelCashups`,
+    `hotelIssues`, `hotelChats`, `hotelPayments`, `hotelPosEvents`, `hotelWaMessages`. **Owner steps:** `firebase deploy --only
+    firestore` (rules) and `firebase deploy --only firestore:indexes` (twelve new hotel indexes); set the Hotel kit figures in Admin →
+    Pricing; for the WhatsApp add-on `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN` and the Meta webhook
+    `https://<site>/api/hotel/whatsapp`; for the card-machine link `MONIEPOINT_WEBHOOK_SECRET`, `MONIEPOINT_CLIENT_ID`,
+    `MONIEPOINT_CLIENT_SECRET`, `MONIEPOINT_API_URL` (and check `MONIEPOINT_AMOUNT_UNIT` against the first real receipt), webhook
+    `https://<site>/api/hotel/moniepoint`. Until set, those two add-ons show "Not set up yet" and can't be bought. The account number per
+    order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
+    airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
@@ -1111,6 +1134,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Paid add-ons | The team hub, company finance tools, the investor data room and LinkedIn advertising: in internal testing, then paid add-ons for Business and Enterprise. Said the same way on `/pricing`, `/roadmap`, `/teams`, `/advertise`, `/organisations` and the help article `paid-add-ons` (`lib/kb-articles.ts`) |
 | Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `app/(main)/admin/digest`, `components/EmailSettings.tsx` |
 | Partner API | `app/api/v1/*` behind `v1()` in `lib/api-v1.ts` (key, API access, plan, rate limit), keys `lib/api-keys.ts`, docs `lib/api-docs.ts` (the /docs page), webhooks `lib/webhooks.ts`; image uploads `app/api/v1/uploads` (presigned R2, `api/<uid>/`, v0.125.0) |
+| Hotel kit | `lib/hotel.ts` (rules), `lib/hotel-server.ts`, `lib/hotel-pay-server.ts` (money), `lib/hotel-pos-server.ts` (Moniepoint, WhatsApp), `lib/hotel-nana-server.ts`, `components/hotel/*`, `/api/hotel`, `/api/public/hotel`, pages `/profile/hotel`, `/till`, `/hotel/<code>`, `/hotels`, the site's `/hotel`; `docs/HOTEL_KIT.md` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
@@ -1137,6 +1161,8 @@ npm run test:host              # links to the main site follow the domain being 
 npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards (no network)
 npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
 npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
+npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle, cash-up, Nana's price guard); "ALL OK"
+npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

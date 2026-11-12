@@ -66,6 +66,7 @@ const PRODUCT = [
   { href: "/lives", label: "Paid lives" },
   { href: "/ppm", label: "Pay-per-minute sessions" },
   { href: "/store-selling", label: "Store selling" },
+  { href: "/hotels", label: "Hotel kit" },
   { href: "/affiliates", label: "Affiliates" },
   { href: "/partners", label: "Partner Network" },
   { href: "/partners/directory", label: "Find a partner" },

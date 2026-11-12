@@ -58,10 +58,10 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
-assert.equal(KITS.length, 18);
+assert.equal(KITS.length, 19);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 18);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "hotel", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 19);
 // Shop collections: the publisher's own labels (badge, else subcategory), spellings grouped, most used first, in their most used spelling.
 assert.equal(collectionKey("OCASION WEAR"), collectionKey("Occasion wears"));
 assert.equal(collectionKey("Dress"), collectionKey("Dresses"));

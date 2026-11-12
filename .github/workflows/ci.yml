@@ -69,6 +69,7 @@ jobs:
       - run: npm run test:sites
       - run: npm run test:trials
       - run: npm run test:inventory
+      - run: npm run test:hotel
       - run: npm run test:books
       - run: npm run test:ops
       - run: npm run test:pii
@@ -121,6 +122,7 @@ jobs:
       - run: npm run test:sites-server
       - run: npm run test:trials-server
       - run: npm run test:inventory-server
+      - run: npm run test:hotel-server
       - run: npm run test:books-server
       - run: npm run test:community-server
       # audio rooms against the emulator: the relay and Live mode (video on/off, the budget) with a stand-in Cloudflare

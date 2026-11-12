@@ -786,6 +786,26 @@ service cloud.firestore {
     // items, receipts, reminders, imports and settings. All private to the seller (and an organisation's admins), and written only by the
     // server after it checks who is acting; the page reads them through /api/books, and the public receipt and statement pages through
     // the server, which never shows a phone number.
+    // The Hotel kit (lib/hotel-server.ts, docs/HOTEL_KIT.md): hotels, rooms, bookings, menus, orders, stays and the room bill, tills and their
+    // sessions and cash-ups, Housekeeping, Nana's chats, and every payment and card-machine event. All server-only: guests and staff go
+    // through /api/public/hotel and /api/hotel, which check who is acting and price everything from the hotel's own records. The one thing a
+    // browser may read is hotelPulse/{id} ({ rev, at }, no details), which staff screens listen to so they know when to fetch again.
+    match /hotels/{id} { allow read, write: if false; }
+    match /hotelRooms/{id} { allow read, write: if false; }
+    match /hotelBookings/{id} { allow read, write: if false; }
+    match /hotelMenu/{id} { allow read, write: if false; }
+    match /hotelOrders/{id} { allow read, write: if false; }
+    match /hotelStays/{id} { allow read, write: if false; }
+    match /hotelTills/{id} { allow read, write: if false; }
+    match /hotelTillSessions/{id} { allow read, write: if false; }
+    match /hotelCashups/{id} { allow read, write: if false; }
+    match /hotelIssues/{id} { allow read, write: if false; }
+    match /hotelChats/{id} { allow read, write: if false; }
+    match /hotelPayments/{id} { allow read, write: if false; }
+    match /hotelPosEvents/{id} { allow read, write: if false; }
+    match /hotelWaMessages/{id} { allow read, write: if false; }
+    match /hotelPulse/{id} { allow get: if request.auth != null; allow list, write: if false; }
+
     match /bookEntries/{id} { allow read, write: if false; }
     match /bookParties/{id} { allow read, write: if false; }
     match /bookItems/{id} { allow read, write: if false; }
@@ -1444,10 +1464,10 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.category is string
-        // The one-month feedback, the Naija Exam Prep reviewer sign-up and the Business books waitlist come only through their
-        // rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist; lib/leads-server.ts), never
-        // straight from a browser.
-        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist'])
+        // The one-month feedback, the Naija Exam Prep reviewer sign-up, the Business books waitlist and the Hotel kit's Set it up for
+        // me come only through their rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist,
+        // /api/public/hotel; lib/leads-server.ts, lib/hotel-server.ts), never straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist', 'hotel-setup'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the
