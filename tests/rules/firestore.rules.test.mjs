@@ -1010,7 +1010,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "cycleProfiles", "cycleLogs", "cycleNotes", "cycleChats", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1596,6 +1596,19 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
   }
 });
 
+test("Nana Jobs: the profile, shortlist, statuses, CV, pool and AI keys are server-only, even for the member they're about", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) await setDoc(doc(db, p), { uid: "alice" });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice", x: 1 }));
+    }
+  }
+});
+
 test("Notes Jobs collections are server-only, even for the member they're about and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
@@ -1615,6 +1628,32 @@ test("Notes Jobs collections are server-only, even for the member they're about 
   }
 });
 
+test("hotel kit: hotels, bookings, orders, tills, payments and chats are server-only; staff screens may only read the pulse", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "hotels/pub"), { ownerUid: "pub", name: "Osun Suites", staff: {} });
+    await setDoc(doc(f, "hotelBookings/b1"), { hotelId: "pub", ownerUid: "pub", status: "held", totalKobo: 9000000, code: "ABCDEFGH" });
+    await setDoc(doc(f, "hotelOrders/o1"), { hotelId: "pub", ownerUid: "pub", status: "awaiting_payment", totalKobo: 2050000 });
+    await setDoc(doc(f, "hotelTills/t1"), { hotelId: "pub", pinHash: "salt:hash" });
+    await setDoc(doc(f, "hotelPulse/pub"), { rev: 3, at: "x" });
+  });
+  const owner = as("pub");
+  for (const path of ["hotels/pub", "hotelBookings/b1", "hotelOrders/o1", "hotelTills/t1", "hotelMenu/m1", "hotelStays/s1", "hotelChats/c1", "hotelPayments/p1", "hotelPosEvents/e1", "hotelTillSessions/x", "hotelCashups/c1", "hotelIssues/i1", "hotelRooms/r1", "hotelWaMessages/w1"]) {
+    await assertFails(getDoc(doc(owner, path)));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  // Nobody marks an order paid, a booking confirmed or prices anything from a browser.
+  await assertFails(updateDoc(doc(owner, "hotelOrders/o1"), { status: "paid" }));
+  await assertFails(updateDoc(doc(as("alice"), "hotelBookings/b1"), { status: "confirmed" }));
+  await assertFails(setDoc(doc(owner, "hotelMenu/m2"), { hotelId: "pub", priceKobo: 1 }));
+  await assertFails(setDoc(doc(owner, "hotelPayments/paystack_x"), { kind: "order", id: "o1" }));
+  // The pulse: signed-in staff screens read it to know when to fetch; nobody writes it, and signed-out visitors can't read it.
+  await assertSucceeds(getDoc(doc(owner, "hotelPulse/pub")));
+  await assertFails(getDoc(doc(anon(), "hotelPulse/pub")));
+  await assertFails(setDoc(doc(owner, "hotelPulse/pub"), { rev: 99 }));
+  await assertFails(getDocs(query(collection(owner, "hotelOrders"), where("hotelId", "==", "pub"))));
+});
+
 test("passkeys and their challenges are server-only, even for the passkey's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
@@ -1629,6 +1668,24 @@ test("passkeys and their challenges are server-only, even for the passkey's owne
     await assertFails(deleteDoc(doc(db, "passkeys/cred1")));
     await assertFails(getDoc(doc(db, "passkeyChallenges/c1")));
     await assertFails(setDoc(doc(db, "passkeyChallenges/c2"), { kind: "login", challenge: "y" }));
+  }
+});
+
+test("My Cycle is server-only, even for her and for staff: her answer, check-ins, notes and private chat", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "cycleProfiles/alice"), { uid: "alice", answer: "female", data: "x" });
+    await setDoc(doc(db, "cycleLogs/alice_2026-11-12"), { uid: "alice", day: "2026-11-12", data: "x" });
+    await setDoc(doc(db, "cycleNotes/alice"), { uid: "alice", data: "x" });
+    await setDoc(doc(db, "cycleChats/alice"), { uid: "alice", data: "x" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["cycleProfiles/alice", "cycleLogs/alice_2026-11-12", "cycleNotes/alice", "cycleChats/alice", "cycleChats/alice/messages/m1"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice", answer: "no" }));
+    }
+    await assertFails(getDocs(query(collection(db, "cycleLogs"), where("uid", "==", "alice"))));
+    await assertFails(deleteDoc(doc(db, "cycleProfiles/alice")));
   }
 });
 

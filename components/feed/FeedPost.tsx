@@ -40,7 +40,8 @@ const Icon = ({ d, className = "h-[18px] w-[18px]", fill = "none" }: { d: string
 );
 const HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z";
 const BUBBLE = "M4 5.5h16v10H9l-5 4v-14Z";
-const RESHARE = "M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4";
+// The sitewide share icon (components/share/ShareIcon.tsx), the curved arrow.
+const RESHARE = "M13.5 4.5 21 11.6l-7.5 7.1v-4.1c-5.2-.1-8.6 1.5-10.5 5.4.6-6 3.9-10.1 10.5-10.8V4.5Z";
 const BARS = "M5 20V9M10 20V4M15 20v-8M20 20V7";
 const BOOKMARK = "M6.5 3.5h11v17l-5.5-4-5.5 4v-17Z";
 const OPEN = "M8 16 16 8M9 8h7v7";

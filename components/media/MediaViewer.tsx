@@ -8,6 +8,9 @@ import { downloadMediaPicture, downloadMediaVideo, mediaApi } from "@/lib/media-
 import { Icon, Pattern } from "./MediaTile";
 import { SongPlayer, SongTag } from "./SongPicker";
 import GiftButton from "@/components/GiftButton";
+import Link from "next/link";
+import ShareIcon from "@/components/share/ShareIcon";
+import { ShareMenu } from "@/components/share/ShareToNotesApp";
 import PersonActions from "@/components/gifts/PersonActions";
 
 // One item on a creator's Media, full screen: a post (pictures you swipe through with ‹ ›, or a video on Cloudflare Stream's player), a
@@ -21,6 +24,7 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
   const [i, setI] = useState(item.type === "pictures" ? item.start ?? 0 : 0);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const post = item.type === "post" ? item.post : null;
   // Reactions: mine and the counts, from the view call; one per member (the same one again takes it back).
   const [mine, setMine] = useState<string | null>(null);
@@ -89,6 +93,7 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
           {post && !post.mine && post.allowGifts && ownerUid && <GiftButton publisherUid={ownerUid} username={username} toName={ownerName || username} toKind="creator" context="media" mediaId={post.id} label="🎁 Gift this post" />}
           {post ? (
             <>
+              {post.remixOf && <p className="text-xs text-white/70">🔁 Remix of <Link href={`/u/${post.remixOf.username}/media?post=${post.remixOf.id}`} className="font-semibold text-white underline underline-offset-2">@{post.remixOf.username}</Link></p>}
               {post.caption && <p className="text-sm text-white/90"><LinkedText text={post.caption} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
               <p className="flex flex-wrap items-center gap-3 font-ui text-xs font-semibold text-white/70">
                 <span className="inline-flex items-center gap-1"><Icon name="eye" className="h-3 w-3" />{compact(post.viewCount)}</span>
@@ -104,6 +109,15 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
                   ))}
                 </div>
               )}
+              {/* Share (Moments and Journals first, then other apps) and Remix (owner, 12 Nov 2026), when the creator allows shares. */}
+              {post.status === "ready" && (post.allowShares || post.mine) && (
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setSharing(true)} className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-ui text-sm font-bold text-white hover:bg-white/25"><ShareIcon className="h-4 w-4" />Share</button>
+                  {post.remixable && !post.mine && <Link href={`/profile/media?remix=${post.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-ui text-sm font-bold text-white hover:bg-white/25"><RemixIcon />Remix{post.remixCount ? <span className="font-normal text-white/70"> · {compact(post.remixCount)}</span> : null}</Link>}
+                  {post.mine && post.remixCount > 0 && <span className="inline-flex items-center gap-1.5 px-2 py-2 text-xs text-white/70"><RemixIcon /> {compact(post.remixCount)} remix{post.remixCount === 1 ? "" : "es"}</span>}
+                </div>
+              )}
+              {sharing && <ShareMenu shareRef={post.audience === "everyone" ? { kind: "media", id: post.id } : null} url={typeof window === "undefined" ? `/u/${username}/media?post=${post.id}` : `${window.location.origin}/u/${username}/media?post=${post.id}`} title={post.caption.split("\n")[0] || `@${username} on #NotesApp`} onClose={() => setSharing(false)} />}
               {/* Every picture and video carries the NotesApp mark, so a download is the same file. A video: once Stream has made its MP4. */}
               {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? (
                 <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download"}</button>
@@ -117,5 +131,15 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
         </div>
       </div>
     </div>
+  );
+}
+
+// Remix: two arrows chasing each other around a spark, like the screenshot the owner shared (12 Nov 2026).
+function RemixIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" /><path d="M20 20v-4h-4" />
+      <path d="M12 9.5v5M9.5 12h5" />
+    </svg>
   );
 }

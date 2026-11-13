@@ -6,10 +6,12 @@ import { isCrimsonTheme } from "@/lib/site-themes";
 import { COURSES_LIVE } from "@/lib/site-settings";
 import { useSite, type SiteInfo } from "./SiteContext";
 
-type Key = "home" | "track" | "notes" | "shop" | "courses" | "community" | "about" | "contact";
+type Key = "home" | "hotel" | "track" | "notes" | "shop" | "courses" | "community" | "about" | "contact";
 // `extra`: About and Contact, which only fit the header from a tablet up (the footer always has them).
 const LINKS: { key: Key; label: string; path: string; extra?: boolean; shown: (s: SiteInfo) => boolean }[] = [
   { key: "home", label: "Home", path: "", shown: () => true },
+  // The Hotel kit (lib/site-kits.ts "hotel"): rooms, booking and ordering (app/(site)/s/[username]/hotel).
+  { key: "hotel", label: "Rooms", path: "/hotel", shown: (s) => s.kit === "hotel" },
   { key: "track", label: "Track", path: "/track", shown: (s) => s.sections.track },
   { key: "notes", label: "Notes", path: "/notes", shown: (s) => s.sections.journals },
   { key: "shop", label: "Shop", path: "/shop", shown: (s) => s.sections.shop },
@@ -25,7 +27,7 @@ function current(pathname: string): Key {
   const seg = pathname.split("/").filter(Boolean);
   if (seg.includes("notes") || seg.includes("journals")) return "notes";
   if (seg.includes("shop") || seg.includes("store")) return "shop";
-  for (const k of ["track", "courses", "community", "about", "contact"] as const) if (seg.includes(k)) return k;
+  for (const k of ["hotel", "track", "courses", "community", "about", "contact"] as const) if (seg.includes(k)) return k;
   return "home";
 }
 

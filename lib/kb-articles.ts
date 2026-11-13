@@ -48,6 +48,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
+import { MILESTONES as REF_MILESTONES } from "./referral-milestones";
 import { CERTIFY_MEMBERS, CERTIFY_PAYING, DEFAULT_TERMS, LEADS_PER_DAY, TIERS as PARTNER_TIERS, TIER_LABEL as PARTNER_TIER_LABEL, TIER_NEED as PARTNER_TIER_NEED, TRACK, TRACKS, TRAINING, type Tier, type TierTerms } from "./partner-network";
 import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
@@ -136,6 +137,26 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 **Emoji packs:** open 😊 in a chat. **Everyday** has the usual emojis and ours (:na:). **Afro culture** has our own drawings (the drums, gongs, bronzes and maps), **Faces** has everyday faces in one colour, and **Flags** has every African country's flag and many more. These are free on every plan. **Summer**, **Spooky** and **Celebrate** come with Pro, Business and Enterprise: they show a 🔒 and **Unlock**, which opens [Plans and prices](/pricing). Pack emojis are maroon crimson by Day and warm ivory by Night (flags keep their own colours), and white inside your own crimson bubbles. Anywhere that only shows words, like the inbox or an email, they read as their name.
 
 **Flags and maps as you type:** type a country's name ("Nigeria", or just "Nig") or its code in capitals ("NG", "GHA") and a row above the box offers its flag, and its map when there is one. Tap to put it in: a code turns into the flag, and a name keeps its word (finished for you if you cut it short). Codes only count in capitals, so words like "in" or "us" never set it off.`),
+    A("referral-milestones", "Referral milestones: Bonus Credits for bringing friends", "Publishing and earning", `
+On top of what you earn from friends' plans, bringing friends to #NotesApp unlocks **milestones**, each paying **Bonus Credits** into your NotesApp wallet once:
+
+${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
+
+**Who counts:** a friend who joined through your link or code, verified their email and chose a username. Child profiles and suspended accounts don't count.
+
+**Claiming:** open [your Referrals page](/profile/referrals). Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
+
+**Spending them:** Bonus Credits pay for things on #NotesApp (boosts, badges, gifts, shop items and more). They can't be withdrawn as cash, and they last like any Bonus Credits.
+`),
+    A("media-remix", "Remix: make your own take on a Media post", "Publishing and earning", `
+**Remix** lets you make a new Media post from someone else's: their sound is chosen for you, your caption credits them, and your post links back to theirs ("Remix of @creator"). They get a bell when you post it.
+
+**How:** open a video or picture post on someone's Media and press **Remix**. Your Media studio opens with their sound picked (when they used a NotesApp Sound) and "Remix of @creator" in your caption. Add your own video or pictures, and post. Press **Not a remix** to make an ordinary post instead.
+
+**Which posts can be remixed:** posts for everyone whose creator allows shares (the same switch, "Allow shares", covers remixes). Posts by members in teen mode or child profiles can't be remixed. The original shows how many remixes it has.
+
+**Sharing:** the **Share** button on a Media post offers Moments and Journals first, then other apps and the link.
+`),
     A("referrals", "Referrals and affiliates", "Publishing and earning", `
 **Your link:** go to **Account → Referrals** ([/profile/referrals](/profile/referrals)) and copy your link (it looks like \`/r/yourname\`). Verify your email first: links only earn for verified members.
 
@@ -218,6 +239,24 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
 **Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
+    A("my-cycle", "My Cycle: your private cycle companion", "Safety and your data", `
+[My Cycle](/cycle) is a private cycle and wellness companion for women and girls: period predictions, a daily check-in, food and movement ideas for each phase, and advice from Nana. [How it works](/my-cycle).
+
+**Setting it up:** open **My Cycle** from your account menu. The first time, it asks once, in private: **I'm female** or **Not for me**. Your answer never shows on your profile. "Not for me" hides My Cycle from your menu; to bring it back, open [Account settings](/profile/account#privacy) → **Privacy**. If you choose I'm female, add the day your last period started and your usual cycle length (or "I don't know"), and tick the consent line.
+
+**The lock:** My Cycle opens only with a [passkey](/help/passkeys), checked with your fingerprint, face or screen lock every time. If you haven't got a passkey, it helps you add one first. When you switch apps or tabs, or after 2 minutes without a touch, the page goes blank and locks again.
+
+**Today, Calendar, Insights:** the ring shows where you are in your cycle. Your cycle length is the average of your last 6 cycles (or your own setting, or 28 days), always between 21 and 45 days. Adults also see the fertile window and an ovulation estimate (14 days before the next period), or Active and Break days with **Taking the pill**. Predictions are marked "early guess" until you've logged 3 periods. Tap a day on the calendar to log or fix a period.
+
+**Check-in and Nana:** log mood, symptoms, energy, pain, water, sleep and flow. **Save · and ask Nana** gives a short note on how today fits, what to eat and how to move. Nana also writes a note for each day, a monthly report, and answers your questions in **Ask Nana**. She is told only your phase and a short summary of what you logged, never your name. She uses your own connected AI account if you have one, otherwise your Nana allowance; when neither is available, you get our own tips for your phase. If something may need a doctor (very heavy bleeding, severe pain, a period more than 3 months late), she says so plainly.
+
+**Ages 13 to 17:** the teen version has periods, symptoms, mood, food and movement, with Nana in words for your age. There's no fertile window, ovulation day or pill mode. Your parent never sees what you log. Child profiles and organisation accounts don't have My Cycle.
+
+**Reminders:** in My Cycle's settings (⚙️) you can turn on an evening check-in reminder and a note if your period may be late. Both are bells that only say "A reminder from My Cycle", never an email.
+
+**Your data:** everything is encrypted on our server and only you can open it. It isn't part of your account download, ads, analytics or other Nana chats, and staff can't see it. **Download my data** and **Delete everything** are in My Cycle's settings, and closing your account deletes it all.
+
+**Not medical advice:** My Cycle is not contraception and not a medical device. Predictions are estimates from your own logs.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 
@@ -1106,6 +1145,36 @@ Importing the same export again adds nothing (orders are matched by their own nu
 **Walk-in sales:** a sale you record in [Business books](/help/business-books) lowers the stock the same way an online order does, and shows in the history as Sold with its book entry; voiding it puts the stock back. A stock list imported in Business books (a Tralo export, for example) updates stock, cost prices and SKUs here, and can be undone for 24 hours.
 
 **Who has it:** included on Business and Enterprise. On Free Basic and Pro, add it for ${inventoryAddonPrice()} a month, after a free ${inventoryTrialDays()}-day trial (no card, once). An organisation's teammates who run its store, and its admins, can use the organisation's inventory.`),
+    A("hotel-kit", "Hotel kit: rooms, bookings, orders, the staff board, tills and Nana", "Selling", `
+The [Hotel kit](/hotels) runs a hotel on #NotesApp: its website, room bookings, food and drink orders from every department, payment online or at the counter, a live staff board, a kitchen screen and tills. Run it from [Your hotel](/profile/hotel).
+
+**Tiers:** it rides on the plans you already have, with no extra subscription. **Hotel Starter** comes with Pro: the hotel's website, rooms and online booking, menus and orders for one department, paying online, booking and order notifications, and every sale in [Business books](/help/business-books). **Hotel Standard** comes with Business: several departments, the live staff board, the kitchen screen, tills with PINs and cash-up, stock through [Inventory](/help/inventory), charging to the room bill, your own domain and staff roles by department. **Hotel Grand** comes with Enterprise: several branches with one owner view, ordering by chatting with Nana on your site, Conversations, monthly reports by branch and department, and priority help.
+
+**Getting started:** open Your hotel and create it (name, city, the first department). Add your **rooms** (name, price a night, room numbers or how many) and each department's **menu**. Then on [Your site](/profile/site) choose the **Hotels, guest houses and resorts** kit: it adds Book a room and Order food to your banner and a Rooms page at /hotel (on your own domain too).
+
+**Bookings and holds:** a guest picks dates and a room, and the room is **held** for them while they pay. If they don't pay in time, the hold runs out and the room goes back on sale by itself. Guests pay by card, bank or USSD online, by bank transfer to the booking's own account number (an add-on), or at the front desk if you allow it in Hotel and departments. They get a link to their booking and an email once it's confirmed. Your cancellation policy shows when they book.
+
+**Orders:** guests order from any department to their room, a table or for pick-up. Prices always come from your menu. Mark an item **Sold out** today from Menus. A checked-in guest can **put an order on the room bill** with the room-bill code they get at check-in (Standard and up).
+
+**Only a confirmed payment counts:** nobody, including you and your staff, can mark an online order paid by hand. It turns paid when Paystack, Paylony or the card machine confirms the money. Cash and card payments at the counter are recorded on a till or at the front desk, under the name of whoever took them.
+
+**Money that lands late:** if a guest pays after their hold ran out, the money is kept and flagged under Bookings → Money that landed late, held from payout. **Rebook** them if the room or order can still be honoured, or **Refund** them.
+
+**Check-in and checkout:** under Bookings, check a confirmed guest into a room number. Their room-bill orders add up on their stay. At checkout, **settle the bill** (cash, card or a transfer you've seen), or the guest pays it online from their link; checkout waits until it's settled.
+
+**Staff board and kitchen screen (Standard):** the board shows each department's orders moving from Paid to Cooking to Ready to Done, live, with today's takings and how full the rooms are for managers. The kitchen screen shows big tickets for one department, plays a sound and reads each new order aloud (tap **Tap for sound** once), and turns late orders red. You can set when an order counts as late in Hotel and departments. Tap a ticket to start it, **Ready** when it's done, **Bump** once it has gone out.
+
+**Tills and cash-up (Standard):** add a till under Tills, with its own PIN and one department, and open it on the counter's tablet or phone (Open till). It sells only that department's menu: **Cash**, **Card (machine)**, or a transfer you've seen. With the card-machine link add-on, **Send to card machine** sends the exact amount to the counter's Moniepoint machine, and the sale settles only when the machine approves it. At close, **Cash up** compares the cash you counted with the till's cash sales, and its card sales with what the card machine says.
+
+**Staff roles (Standard):** under Staff, give people on your team a role: **Manager** (everything except money settings and add-ons), **Front desk** (bookings, check-in and out, the room bill and every order) or **Department** (their department's orders only). They must be on your team first: your organisation's team, or staff on Business books.
+
+**Stock (Standard):** link a menu item to an [Inventory](/profile/inventory) item and each sale takes it off the shelf, with the usual low-stock alerts.
+
+**Branches, reports and Conversations (Grand):** add branches under Branches and see today's takings, occupancy and open orders for all of them in one view. **Reports** gives each month's takings by branch and department, with a CSV. Guests can order and book by **chatting with Nana** on your site in English, Pidgin, Yorùbá, Igbo or Hausa; every price, total, room and account number she gives comes from your own records, never from the AI. **Conversations** shows every chat, the steps Nana took and the order it made.
+
+**Add-ons (any tier, monthly):** **WhatsApp ordering** (Nana on your own WhatsApp Business number), an **account number for each order** (it turns paid by itself when the transfer lands), the **card-machine link** (Moniepoint) and **Housekeeping** (rooms dirty, cleaning or ready, maintenance jobs, lost and found; checkout marks a room dirty). Prices are under Plans and add-ons in Your hotel. If an add-on shows **Not set up yet**, it isn't available on #NotesApp yet. **Set it up for me:** our team fills in your kit for you; ask on [the Hotel kit page](/hotels#setup).
+
+**Where the money goes:** online payments are held for you and paid out with your other earnings, less your plan's commission, like a store sale (a booking's after the guest's stay). Every sale, online or at the counter, is written to Business books by itself.`),
     A("selling-physical-goods", "Selling physical goods from your store", "Selling", `
 Your store lives at /u/yourname/store. Add an item, tick that it is sold through #NotesApp checkout, and set the price, your delivery fee and your stock. You need a payout account under Rates & payouts.
 
@@ -1342,6 +1411,22 @@ You can invite writers and admins by username or email; they publish under your 
 - **Schedule interview:** choose the date and time (Lagos time), the length, video or voice, and up to a few more interviewers from your hiring team. The interview gets its own room in [Messages](/messages) with the applicant and the interviewers, where you hold the call; the link goes into the conversation with a **Join** button, the application moves to Interview, and everyone gets a reminder a day and an hour before. Nana-HR only ever uses this NotesApp link in her drafts, never one she makes up.
 
 Nana-HR's summaries and drafts use the Nana allowance of the person who asks. The same messages work for roles at #NotesApp itself, on the [careers page](/careers).`),
+    A("nana-jobs", "Nana Jobs: your own AI, a daily shortlist", "Teams and organisations", `
+**Nana Jobs** is the third tab in Jobs, beside the job board and your applications: open [Jobs → Nana Jobs](/jobs/nana). You connect your own AI; Nana then collects openings from Notes Jobs and public job boards, drops the ones that don't fit, scores the rest against what you've actually done, and gives you a short ranked list every morning. Each job shows why it fits and the strongest reason you might not get it. **It finds and ranks. It never applies for you.** It's free on every plan, for members 18 and up with a personal account (teens keep the normal job board; organisations post jobs instead). See [how it works](/nana-jobs).
+
+**Setting up, in four steps:**
+1. **Connect your AI.** Gemini or Groq (both have free tiers: get a key at Google AI Studio or the Groq console), Claude (Anthropic, paid), or any OpenAI-compatible API with its address and model name (OpenRouter, a reachable Ollama and others). We check the key with a free call, keep it encrypted, and only ever show its last 4 characters. A paid AI is never used unless you choose it, and free ones are paced so they stay inside their limits. A Claude key you connected for Nana works here too. Without an AI you still get a free keyword ranking, marked **~ rough**.
+2. **Your CV, and what you've done and what you want.** Upload your CV (PDF or Word .docx) or paste the text. Your AI reviews it honestly (what's strong, the gaps, and quick fixes to the CV), suggests the roles that fit, and fills in a scoring profile for you to edit and confirm: the roles you want, a **"shipped" list** (things you've actually built or delivered, taken only from your CV: anything it suggests that isn't in your CV is left out), your skills, where you can work, your level, the lowest pay you'll take and your deal-breakers. Your CV is kept encrypted, used only for Nana Jobs, and **Delete my CV** removes it and its review at once. Prefer not to share a CV? Skip it and fill in the profile yourself.
+3. **Where to look.** Notes Jobs (always on, verified firms), the open feeds RemoteOK, Remotive, Himalayas and Arbeitnow, and the public Greenhouse, Lever or Ashby boards of companies you add (we check a company has a public board before adding it). Openings are collected once a day for everyone, so each board is asked once. We don't scrape LinkedIn or Indeed: both forbid it. Coming next: forwarding your LinkedIn job-alert emails to your own Nana Jobs address.
+4. **When to send it.** A daily run at the time you choose (Lagos time), plus **Run now** whenever you like. A bell when it's ready (on to start with) and the list by email (off to start with). You also choose how many openings your AI reads each day: it's your AI and your bill.
+
+**How the list is made:** repeats are removed; then free rules drop jobs that are too old, aren't a role you want, hit a deal-breaker, or that you can't take from where you live ("remote, but only from the US" is dropped for someone in Lagos); a keyword ranking picks the most likely ones; your AI reads those and scores each out of 100 (domain 25, stack 25, seniority 15, location 20, the quality of the posting 15) with a reason and the strongest risk; then each link is opened to check the job is still there (a slow site never hides a job). If your AI fails (out of credit, slow, or a wrong key), the list falls back to the keyword ranking marked **~ rough** and shows the AI's real error. It is never quietly empty.
+
+**Your shortlist:** mark each job **Interested**, **Applied** or **Not for me**. What you set is kept: a new run never changes it, and Not for me jobs don't come back. Notes Jobs roles keep the **Apply on #NotesApp** button; everything else opens the firm's own page. **Cover note** asks your AI for a short note written only from your "shipped" list, so it never claims experience you don't have; read it, make it yours, and apply yourself.
+
+**Private:** your scoring profile, CV and shortlist are never shown to firms and aren't your public profile. Firms still see only what you choose to share in [I need a job](/profile/applications).
+
+Nana Jobs builds on Shortlist, an open-source job-search engine by Victor Dickson (MIT licence).`),
     A("crypto-and-stablecoins", "Crypto and stablecoins on #NotesApp", "Selling", `
 **#NotesApp doesn't use crypto.** You pay and are paid in your own currency through Paystack and Paylony; NotesApp Credit is a naira balance, not a coin or token, and can't be sent or cashed out.
 

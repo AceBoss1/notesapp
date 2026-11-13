@@ -38,6 +38,9 @@ export const BUTTON_KINDS = [
   { id: "contact", label: "Contact us", needs: "" },
   { id: "services", label: "Check our services", needs: "" },
   { id: "link", label: "Learn more", needs: "A web address (https://…)" },
+  // The Hotel kit's two buttons: the rooms and the menus (app/(site)/s/[username]/hotel).
+  { id: "rooms", label: "Book a room", needs: "" },
+  { id: "order", label: "Order food", needs: "" },
 ] as const;
 export type ButtonKind = (typeof BUTTON_KINDS)[number]["id"];
 export type SiteButton = { kind: ButtonKind; label: string; value: string };
@@ -248,6 +251,8 @@ export function buttonHref(b: SiteButton, base: string): string {
   if (b.kind === "contact") return `${base}/contact`;
   if (b.kind === "services") return `${base || ""}/#services`;
   if (b.kind === "call") return `tel:${b.value}`;
+  if (b.kind === "rooms") return `${base}/hotel`;
+  if (b.kind === "order") return `${base}/hotel?tab=order`;
   return b.value;
 }
 
@@ -350,6 +355,21 @@ export const KITS: Kit[] = [
         { q: "Do you deliver?", a: "Yes. Delivery is worked out at checkout for your address, or pick up from us at no cost." },
         { q: "Can you cater for my event?", a: "Yes, from 30 guests. Tell us the date, the number of guests and the menu through our Contact page." },
         { q: "Can you work around allergies?", a: "Tell us when you order. We'll say honestly what we can make safely." },
+      ] },
+  },
+  {
+    // The Hotel kit (docs/HOTEL_KIT.md): the site around the hotel's own pages for rooms, booking and ordering (/hotel), which come from
+    // /profile/hotel. Starter on Pro, Standard on Business, Grand on Enterprise; the own domain on Business and up, as for every site.
+    id: "hotel", name: "Hotels, guest houses and resorts", emoji: "🏨", minTier: "pro", theme: "luxe", palette: "crimson",
+    bestFor: "Hotels, guest houses, shortlets, resorts and lodges with a restaurant, bar or lounge.",
+    blurb: "Opens with a photo of your hotel, then rooms with live availability and online booking, each department's menu for ordering to a room, a table or for pick-up, your gallery, where to find you and what guests say. Run it all from Your hotel.",
+    sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "info", "testimonials", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Rest well. Eat well.", subline: "Comfortable rooms, good food from our kitchen and grill, and a lounge to unwind. Book online and order to your room.", button: btn("rooms"), second: btn("order"),
+      hours: "Front desk open 24 hours · Restaurant 7am to 11pm",
+      faq: [
+        { q: "What time is check-in and check-out?", a: "Check-in and check-out times are shown when you book, with the hotel's cancellation policy." },
+        { q: "Can I order food to my room?", a: "Yes. Order from any of our departments on this site, to your room, a table or for pick-up, and pay online or put it on your room bill." },
+        { q: "How do I know my booking is confirmed?", a: "You get a confirmation link and email as soon as your payment goes through." },
       ] },
   },
   {

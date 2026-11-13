@@ -67,7 +67,13 @@ export type MediaPostDoc = {
   // Counters. M1 fills viewCount and downloadCount; M2 (feed, comments, reactions, gifts) fills the rest.
   viewCount: number; downloadCount: number; sharesCount: number;
   commentsCount: number; reactions: Record<string, number>; reactionsCount: number; giftsTotal: number; giftsCount: number;
+  // Remix (owner, 12 Nov 2026): a post made from another one (its sound, credited and linked), and how many remixes a post has.
+  remixOf?: { id: string; ownerUid: string; ownerUsername: string }; remixCount?: number;
 };
+
+// A post others may remix: ready, for everyone, and its creator allows shares (the same switch: "Moments, journals, chats, other apps
+// and remixes"). The creator must not be a child or in teen mode (checked on the server).
+export const canRemix = (p: { status?: string; audience?: string; allowShares?: boolean }) => p.status === "ready" && p.audience === "everyone" && p.allowShares !== false;
 
 // What a viewer gets: no keys or upload ids, only addresses.
 export type MediaPostView = {
@@ -78,6 +84,7 @@ export type MediaPostView = {
   pinned: boolean; createdAt: string;
   viewCount: number; downloadCount: number; sharesCount: number; commentsCount: number; reactionsCount: number; giftsTotal: number;
   mine: boolean;
+  remixOf?: { id: string; username: string }; remixCount: number; remixable: boolean;
   // A video's download: "ready" for everyone who may download; the creator also sees "preparing" and "failed" (with why).
   videoDownload?: VideoDownloadView; videoDownloadWhy?: string;
 };

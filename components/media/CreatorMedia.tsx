@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { CreatorMedia as Data } from "@/lib/media-server";
 import { SITE_SOURCE_LABEL, compact, mediaDuration, type MediaPostView } from "@/lib/media-rules";
@@ -23,6 +23,15 @@ export default function CreatorMedia({ data, isOwn, onChanged }: { data: Data | 
   const [moments, setMoments] = useState<MomentView[] | null>(null);
 
   const posts = useMemo(() => (data ? [...data.posts].sort((a, b) => Number(b.pinned) - Number(a.pinned)) : []), [data]);
+  // A shared link (/u/<username>/media?post=<id>, lib/share-targets.ts mediaCard) opens that post once the grid has loaded.
+  const [deepDone, setDeepDone] = useState(false);
+  useEffect(() => {
+    if (deepDone || !data) return;
+    setDeepDone(true);
+    let id = ""; try { id = new URLSearchParams(window.location.search).get("post") ?? ""; } catch { /* no query */ }
+    const p = id ? data.posts.find((x) => x.id === id) : undefined;
+    if (p) setOpen({ type: "post", post: p });
+  }, [data, deepDone]);
   if (data === undefined) return <p className="mt-6 text-sm text-slate">Loading Media…</p>;
   if (data === null) return <p className="mt-6 text-sm text-slate">Media couldn&apos;t be loaded. Try again in a moment.</p>;
   const username = data.owner.username;

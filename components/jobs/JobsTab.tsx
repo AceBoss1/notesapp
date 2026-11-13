@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import JobCard from "./JobCard";
+import JobsSubTabs from "./JobsSubTabs";
 import { jobsApi, useAuthUser } from "./useAuthUser";
 import { JOBS_BRAND, type Job } from "@/lib/jobs";
 
@@ -26,6 +27,7 @@ export default function JobsTab({ query }: { query: string }) {
   if (!data) return <p className="py-16 text-center text-sm text-slate">Loading…</p>;
   return (
     <div>
+      <div className="mb-4"><JobsSubTabs active="all" /></div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate">{JOBS_BRAND}: jobs from verified organisations. Apply with your NotesApp account.</p>
         <div className="flex flex-wrap gap-2 text-sm">

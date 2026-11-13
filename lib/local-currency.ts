@@ -32,6 +32,27 @@ export function pickCurrency(o: { saved?: string | null; country?: string | null
   return { currency: guessCurrency(o.timeZone || undefined), source: "timezone" };
 }
 
+// The country to show beside the currency, by the same rule (owner, 12 Nov 2026: "currency fixed but country didn't"): an African time
+// zone with a connection located outside Africa means the member is in that time zone's country (Lagos, not the Netherlands); with no
+// detected country at all, the time zone's country too. Otherwise the detected one.
+const ZONE_COUNTRY: Record<string, string> = {
+  "Africa/Lagos": "NG", "Africa/Nairobi": "KE", "Africa/Accra": "GH", "Africa/Johannesburg": "ZA", "Africa/Kampala": "UG", "Africa/Dar_es_Salaam": "TZ",
+  "Africa/Kigali": "RW", "Africa/Douala": "CM", "Africa/Abidjan": "CI", "Africa/Dakar": "SN", "Africa/Lusaka": "ZM", "Africa/Casablanca": "MA",
+  "Africa/Algiers": "DZ", "Africa/Tunis": "TN", "Africa/Tripoli": "LY", "Africa/Banjul": "GM", "Africa/Gaborone": "BW", "Africa/Cairo": "EG",
+  "Africa/Addis_Ababa": "ET", "Africa/Kinshasa": "CD", "Africa/Lubumbashi": "CD", "Africa/Luanda": "AO", "Africa/Maputo": "MZ", "Africa/Harare": "ZW",
+  "Africa/Windhoek": "NA", "Africa/Freetown": "SL", "Africa/Monrovia": "LR", "Africa/Lome": "TG", "Africa/Porto-Novo": "BJ", "Africa/Ouagadougou": "BF",
+  "Africa/Bamako": "ML", "Africa/Niamey": "NE", "Africa/Conakry": "GN", "Africa/Khartoum": "SD", "Africa/Mogadishu": "SO", "Africa/Blantyre": "MW",
+  "Africa/Maseru": "LS", "Africa/Mbabane": "SZ", "Africa/Nouakchott": "MR", "Africa/Asmara": "ER", "Africa/Djibouti": "DJ", "Africa/Libreville": "GA",
+  "Africa/Malabo": "GQ", "Africa/Brazzaville": "CG", "Africa/Bangui": "CF", "Africa/Ndjamena": "TD", "Africa/Bujumbura": "BI", "Africa/Juba": "SS",
+  "Africa/Sao_Tome": "ST", "Africa/Bissau": "GW",
+};
+export function pickCountry(o: { country?: string | null; timeZone?: string | null }): string | null {
+  const zoneCountry = o.timeZone ? ZONE_COUNTRY[o.timeZone] ?? null : null;
+  const detected = o.country && isCountryCode(o.country) ? o.country : null;
+  if (zoneCountry && (!detected || !AFRICAN_CODES.has(detected))) return zoneCountry;
+  return detected;
+}
+
 // ── In the browser ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export function detectedCountry(): string | null {
   if (typeof document === "undefined") return null;
@@ -45,8 +66,8 @@ function savedCurrency(): string | null {
 export function preferredCurrency(): { currency: string; source: "saved" | "country" | "timezone"; country: string | null; auto: string } {
   let timeZone: string | null = null;
   try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { /* old browser */ }
-  const country = detectedCountry();
-  return { ...pickCurrency({ saved: savedCurrency(), country, timeZone }), country, auto: pickCurrency({ country, timeZone }).currency };
+  const detected = detectedCountry();
+  return { ...pickCurrency({ saved: savedCurrency(), country: detected, timeZone }), country: pickCountry({ country: detected, timeZone }), auto: pickCurrency({ country: detected, timeZone }).currency };
 }
 export function setPreferredCurrency(code: string | null) {
   try { if (code) localStorage.setItem(CURRENCY_KEY, code); else localStorage.removeItem(CURRENCY_KEY); } catch { /* private window */ }

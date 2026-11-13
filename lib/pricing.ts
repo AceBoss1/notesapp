@@ -58,6 +58,11 @@ export type PricingConfig = {
   // physical-goods commission, as a store sale does (the default); "none" takes nothing. debtHoldDays: how long that money is held
   // before it's paid out, like a store sale's hold.
   books: { freeEntries: number; freeCustomers: number; freeImportRows: number; staffSeatsPro: number; staffSeatsBusiness: number; debtCommission: "store" | "none"; debtHoldDays: number };
+  // The Hotel kit (docs/HOTEL_KIT.md, lib/hotel.ts; owner, 12 Nov 2026): the monthly add-ons (WhatsApp ordering, an account number per order,
+  // the card-machine link, Housekeeping), the "from" price of Set it up for me, how many departments Hotel Standard and Grand may run
+  // (Starter has one), how many branches Grand may add, how long an unpaid booking or order holds its room or items, and when a kitchen
+  // order turns late. Help pages never print these figures.
+  hotel: { whatsappMonthlyKobo: number; accountMonthlyKobo: number; cardMachineMonthlyKobo: number; housekeepingMonthlyKobo: number; setupFromKobo: number; departmentsMax: number; branchesMax: number; holdMinutes: number; lateMinutes: number };
   // Course covers made with Nana (lib/covers.ts): how many a member makes a day on each plan (new designs and edits count 1 each).
   // The owner's rule: Free Basic 3 a day; Free (Standard) can't publish, so 0. The Pearl tokens come from the Nana allowance as usual.
   academyCovers: CoverLimits;
@@ -93,6 +98,7 @@ export function currentPricing(): PricingConfig {
     logistics: { ...LOGISTICS },
     inventory: { ...INVENTORY },
     books: { ...BOOKS },
+    hotel: { ...HOTEL },
     academyCovers: { ...ACADEMY_COVERS },
     nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo, resetEvery: NANA.resetEvery, allowanceGems: NANA.allowanceGems, usdKobo: NANA.usdKobo, rates: { pearl: { ...NANA.rates.pearl }, emerald: { ...NANA.rates.emerald }, ruby: { ...NANA.rates.ruby } } },
     badgeKobo: BADGE_PRICE_KOBO,
@@ -126,6 +132,8 @@ const INVENTORY: PricingConfig["inventory"] = { addonMonthlyKobo: 1_500 * 100, t
 // Staff roles, paying a debt online (2 Nov 2026, v0.119.0): Business 4 staff seats (as its team seats), Pro none until open question 4 is
 // answered; a debt paid online takes the store's commission and is held 7 days, until open question 5 is answered.
 const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500, staffSeatsPro: 0, staffSeatsBusiness: 4, debtCommission: "store", debtHoldDays: 7 };
+// The Hotel kit's defaults (12 Nov 2026), until the owner sets them in Admin → Pricing.
+const HOTEL: PricingConfig["hotel"] = { whatsappMonthlyKobo: 10_000 * 100, accountMonthlyKobo: 5_000 * 100, cardMachineMonthlyKobo: 5_000 * 100, housekeepingMonthlyKobo: 3_000 * 100, setupFromKobo: 50_000 * 100, departmentsMax: 6, branchesMax: 10, holdMinutes: 30, lateMinutes: 20 };
 const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: TRIAL_DAYS, cutRate: 0.1, cutMinKobo: 100 * 100 };
 // Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
 // on the small model cost about ₦15, so ₦50 leaves room. Free (Standard) members get the same. Top-ups keep 20% for card fees and
@@ -183,6 +191,7 @@ export function applyPricing(c: PricingConfig): void {
   Object.assign(LOGISTICS, c.logistics);
   Object.assign(INVENTORY, c.inventory);
   Object.assign(BOOKS, c.books);
+  if (c.hotel) Object.assign(HOTEL, c.hotel);
   Object.assign(ACADEMY_COVERS, c.academyCovers);
   Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
   NANA.resetEvery = c.nana.resetEvery; NANA.allowanceGems = c.nana.allowanceGems; NANA.usdKobo = c.nana.usdKobo;
@@ -259,6 +268,17 @@ export function cleanPricing(input: unknown): PricingConfig {
     debtCommission: bk.debtCommission === undefined ? d.books.debtCommission : bk.debtCommission === "store" || bk.debtCommission === "none" ? bk.debtCommission : bad("Business books, debts paid online: the store's commission, or none."),
     debtHoldDays: bk.debtHoldDays === undefined ? d.books.debtHoldDays : count(bk.debtHoldDays, "Business books, days a debt paid online is held", 0, 60),
   };
+  // The Hotel kit (v0.164.0): a config saved before keeps the defaults, field by field.
+  const ht = i.hotel === undefined ? d.hotel : rec(i.hotel);
+  const hk = (k: keyof PricingConfig["hotel"], what: string) => (ht[k] === undefined ? d.hotel[k] : kobo(ht[k], what, 100 * 100));
+  const hn = (k: keyof PricingConfig["hotel"], what: string, min: number, max: number) => (ht[k] === undefined ? d.hotel[k] : count(ht[k], what, min, max));
+  const hotel = {
+    whatsappMonthlyKobo: hk("whatsappMonthlyKobo", "Hotel kit, WhatsApp ordering monthly price"), accountMonthlyKobo: hk("accountMonthlyKobo", "Hotel kit, account number per order monthly price"),
+    cardMachineMonthlyKobo: hk("cardMachineMonthlyKobo", "Hotel kit, card-machine link monthly price"), housekeepingMonthlyKobo: hk("housekeepingMonthlyKobo", "Hotel kit, Housekeeping monthly price"),
+    setupFromKobo: hk("setupFromKobo", "Hotel kit, Set it up for me 'from' price"),
+    departmentsMax: hn("departmentsMax", "Hotel kit, departments on Standard and Grand", 2, 50), branchesMax: hn("branchesMax", "Hotel kit, branches on Grand", 1, 200),
+    holdMinutes: hn("holdMinutes", "Hotel kit, minutes an unpaid booking or order is held", 5, 1_440), lateMinutes: hn("lateMinutes", "Hotel kit, minutes before a kitchen order is late", 5, 240),
+  };
   // Added later too: a config without it keeps the default.
   const ac = i.academyCovers === undefined ? d.academyCovers : rec(i.academyCovers);
   const daily = (k: keyof CoverLimits, name: string) => {
@@ -308,7 +328,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
-    coursePackages, certificateLate, logistics, inventory, books, academyCovers, nana,
+    coursePackages, certificateLate, logistics, inventory, books, hotel, academyCovers, nana,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
@@ -353,6 +373,8 @@ export const breakEven = (tierName: "pro" | "business") => {
 export const inventoryAddonPrice = () => nairaText(INVENTORY.addonMonthlyKobo);
 export const inventoryTrialDays = () => INVENTORY.trialDays;
 export const booksCaps = () => ({ ...BOOKS });
+// The Hotel kit's Admin settings (lib/hotel.ts), read when used so a change in Admin applies straight away.
+export const hotelSettings = () => ({ ...HOTEL });
 // The pricing table's commission row (app/(main)/pricing/page.tsx), here so tests can check it with a saved config applied. One rate covers
 // paid sessions, journal subscriptions and gifts to the publisher; community giving and event tickets have no commission, a flat charge.
 export const COMMISSION_ROW_LABEL = "Commission: paid sessions, journal subscriptions and gifts to you";

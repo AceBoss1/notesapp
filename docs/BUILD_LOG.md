@@ -3238,3 +3238,54 @@ Finance's own, never a live feed at checkout, and expire after 48 hours so a sta
 way is one month per payment: three providers' recurring billing would each need their own cancellation and failure handling, and a
 reminder covers it for now. Payouts outside the naira go through Flutterwave for African currencies; dollar, pound and euro creators
 are paid by Finance and recorded until Stripe Connect is added. The existing naira flows are untouched.
+
+## Plans: My Cycle, Hotel kit and Nana Jobs (mockups for approval, 12 Nov 2026)
+
+Three plans with mockups, from the owner's request to bring three of github.com/vicintel's projects into NotesApp's own web app (not
+Flutter). **My Cycle** (`docs/MY_CYCLE.md`, from bloom-app): a cycle companion for women and girls. It is set up once in private (no
+gender on profiles), teens get periods only with no fertility, data is encrypted on the server, and it is locked behind a passkey
+(fingerprint or face) with a privacy shield. **Hotel kit** (`docs/HOTEL_KIT.md`, from hotel-ops): Starter, Standard and Grand on Pro,
+Business and Enterprise, plus add-ons priced in Admin. **Nana Jobs** (`docs/NANA_JOBS.md`, from shortlist-engine): a daily shortlist
+scored by the member's own AI, in `/jobs`. bloom-app and hotel-ops have no licence, so only their ideas are used. shortlist-engine is MIT
+and is credited where its code is adapted. The owner chose the recommended answer to all four questions. Nothing is built until the
+mockups are approved.
+
+**Nana Jobs (v0.162.0)** — `/jobs/nana`, a third Jobs tab: members 18+ connect their own AI (Gemini, Groq, Claude or any
+OpenAI-compatible API; `lib/ai-providers.ts`, `lib/ai-connect.ts`), start from their CV (PDF, .docx or pasted, read in the browser,
+kept encrypted, reviewed by their AI with "shipped" lines checked against the CV), and get a daily shortlist from Notes Jobs, four open
+feeds and the company boards they watch (`lib/nana-jobs-sources.ts`), through Shortlist's funnel (`lib/nana-jobs-funnel.ts`: dedupe,
+hard filters, prescore, the AI rubric, link check) with statuses, bell and email, and a cover note from the shipped list
+(`lib/nana-jobs-server.ts`). Shared pool once a day (`/api/cron/nana-jobs`), runs at each member's hour from the reminders cron. Public
+page `/nana-jobs`, help article, `THIRD_PARTY_NOTICES` (Shortlist, MIT). Tests `test:nana-jobs`, `test:nana-jobs-server`.
+
+## v0.163.0: My Cycle (12 Nov 2026)
+
+**My Cycle (v0.163.0)** — built from the approved plan and mockups (`docs/MY_CYCLE.md`). A private cycle and wellness companion at
+`/cycle`: first open asks once, in private ("I'm female" or "Not for me", stored only in `cycleProfiles`, never on `users/{uid}`), with an
+NDPA consent line; a passkey check with user verification every time (`verifyUser` in `lib/passkeys-server.ts`) sets a short httpOnly
+unlock cookie bound to her uid that every My Cycle route needs; the page blanks and locks on `visibilitychange`/`pagehide` and after 2
+idle minutes. Predictions are pure in `lib/cycle.ts` (average of the last 6 cycles, else her setting, else 28; 21 to 45 days; ovulation
+14 days before the next period; fertile window −5 to +1; four phases or pill Active/Break; "early guess" under 3 periods). Teens get
+periods only, enforced on the server; child profiles and organisations don't get it. Check-ins, settings, notes and chat are encrypted with
+`ACCOUNT_DATA_KEY`. Nana (daily note, check-in advice, monthly report, private chat) gets only her phase and a summary of her logs, uses her
+own AI key or Nana's allowance, and falls back to our own phase tips. Bells never say what they're about. Download my data, Delete
+everything, Settings → Privacy, the explainer `/my-cycle`, the help article, Privacy Policy section, and `npm run test:cycle`.
+
+**Hotel kit (v0.164.0)** — built from the approved plan and mockups (`docs/HOTEL_KIT.md`), with hotel-ops (no licence) read for ideas and
+rules only. Starter on Pro: the `hotel` site kit and the site's `/hotel` page (rooms with live availability, booking with a hold, ordering
+from a department to a room, a table or for pick-up), Paystack, bells, Business books. Standard on Business: departments (limit in Admin), the
+live staff board and kitchen screen (a pulse document plus polling), tills with their own PIN and cash-up, Inventory stock, the room bill
+settled at checkout, staff roles from the existing team. Grand on Enterprise: branches with one owner view, Nana ordering by tool use in five
+languages, Conversations and monthly reports with a CSV. Add-ons: an account number per order (Paylony) and Housekeeping built; WhatsApp and
+the Moniepoint card-machine link built behind settings with signed webhooks and "not set up yet"; Set it up for me as a lead to the team.
+Money rules in `lib/hotel-pay-server.ts`, tested against the emulators: only a verified payment sets paid, idempotent per provider reference,
+holds expire, late money stored and flagged (ledger disputed until rebooked or refunded), every sale in Business books.
+
+## Booking calendars in My Cycle's look (v0.164.1, 12 Nov 2026)
+
+The owner liked My Cycle's calendar and asked for the same look for booking and scheduling. `components/MonthCalendar.tsx` is a
+Monday-first month picker: ‹ › between months, today outlined, the picked day in crimson, past days and days the creator isn't open
+greyed out. On 1:1 sessions it tints the weekdays the creator has times on (from `publisherSettings.session.availability`), so clients
+see at a glance which days are worth opening. It replaces the browser's plain date box in `BookingCard` (profile and site), `PpmBook`
+(pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
+month grid (blanks before the 1st, month lengths, leap years).

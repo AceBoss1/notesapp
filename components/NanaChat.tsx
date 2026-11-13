@@ -20,7 +20,8 @@ export default function NanaChat() {
     return () => window.removeEventListener("keydown", esc);
   }, [open]);
   // Messages has Nana pinned at the top of the list, and the button would sit on the composer's Send.
-  if (pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/messages" || pathname.startsWith("/messages/")) return null;
+  // My Cycle has its own private Nana, kept apart from this one.
+  if (pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/cycle" || pathname === "/messages" || pathname.startsWith("/messages/")) return null;
   // On a phone the button sits above the tab bar, on the left (the write button is on the right).
   const spot = tabs ? "bottom-[5.25rem] left-4 lg:left-auto" : "bottom-4";
   return (

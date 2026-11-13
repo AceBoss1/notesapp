@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { User } from "firebase/auth";
 import { capi } from "@/components/community/api";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
+import MonthCalendar from "@/components/MonthCalendar";
 import { holdFor, type PpmAudience, type PpmKind } from "@/lib/ppm";
 import type { PpmFigures } from "@/lib/rooms";
 
@@ -82,10 +83,10 @@ export default function PpmBook({ username, viewer }: { username: string; viewer
         {o.voiceKobo > 0 && <button type="button" aria-pressed={kind === "voice"} onClick={() => setKind("voice")} className={seg(kind === "voice")}>🎙 Voice {formatNaira(o.voiceKobo)}/min</button>}
         {o.videoKobo > 0 && <button type="button" aria-pressed={kind === "video"} onClick={() => setKind("video")} className={seg(kind === "video")}>🎥 Video {formatNaira(o.videoKobo)}/min</button>}
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-[auto,1fr] sm:items-end">
-        <label className="block"><span className="mb-1.5 block font-ui text-sm font-semibold text-slate">Day</span>
-          <input type="date" value={date} min={tomorrow} onChange={(e) => setDate(e.target.value)} aria-label="Session date" className="rounded-2xl border border-rule bg-card px-4 py-3 text-base text-ink outline-none focus:border-crimson" />
-        </label>
+      <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,20rem),1fr] sm:items-start">
+        <div><span className="mb-1.5 block font-ui text-sm font-semibold text-slate">Day</span>
+          <MonthCalendar value={date} min={tomorrow} onChange={setDate} label="Session date" />
+        </div>
         <div className="min-w-0">
           {date && slots && slots.slots.length === 0 && <p className="text-sm text-slate">No times on that day. Try another.</p>}
           {slots && slots.slots.length > 0 && (

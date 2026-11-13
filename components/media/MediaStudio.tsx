@@ -110,6 +110,19 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
   const [songId, setSongId] = useState("");
   // "Use this sound" on a song's page opens the studio with ?song=<id> (lib/songs.ts).
   useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("song"); if (q) setSongId(q); } catch { /* no query */ } }, []);
+  // Remix (owner, 12 Nov 2026): "Remix" on someone's post opens the studio with ?remix=<post>: its sound is chosen, the caption credits
+  // them, and the new post links back to theirs (lib/media-server.ts remixSource).
+  const [remix, setRemix] = useState<{ id: string; username: string; kind: string; songId?: string; sound: string; caption: string; cover: string } | null>(null);
+  useEffect(() => {
+    let id = ""; try { id = new URLSearchParams(window.location.search).get("remix") ?? ""; } catch { /* no query */ }
+    if (!id) return;
+    fetch(`/api/media/remix?id=${encodeURIComponent(id)}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (!j?.source) { setNote({ ok: false, text: "That post can't be remixed any more." }); return; }
+      setRemix(j.source);
+      if (j.source.songId) setSongId(j.source.songId);
+      setCaption((c) => c || `Remix of @${j.source.username} `);
+    }).catch(() => {});
+  }, []);
   const [audience, setAudience] = useState<MediaAudience>("everyone");
   const [sw, setSw] = useState({ allowComments: true, allowShares: true, allowGifts: true, allowDownloads: false, pinned: false });
   const [progress, setProgress] = useState<number | null>(null);
@@ -133,7 +146,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
     if (!files.length) return setNote({ ok: false, text: "Choose a video or pictures first." });
     setBusy(true); setNote(null);
     try {
-      const common = { caption, audience, ...sw, ...(songId ? { songId } : {}) };
+      const common = { caption, audience, ...sw, ...(songId ? { songId } : {}), ...(remix ? { remixOf: remix.id } : {}) };
       if (isVideo) {
         const f = files[0];
         const { durationSec, width, height } = await videoInfo(f);
@@ -183,6 +196,17 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         </span>
       </button>
 
+      {remix && (
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-crimson/30 bg-crimson/[0.05] p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {remix.cover ? <img src={remix.cover} alt="" className="h-14 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-14 w-10 shrink-0 items-center justify-center rounded-lg bg-field" aria-hidden>🎞</span>}
+          <span className="min-w-0 flex-1 text-sm">
+            <b className="block font-ui text-ink">Remixing @{remix.username}&apos;s {remix.kind === "video" ? "video" : "post"}</b>
+            <span className="block truncate text-xs text-slate">{remix.songId ? `With its sound: ${remix.sound}` : "Make your own take; it links back to theirs"}{remix.caption ? ` · “${remix.caption}”` : ""}</span>
+          </span>
+          <button type="button" onClick={() => setRemix(null)} className="shrink-0 text-xs text-crimson underline">Not a remix</button>
+        </div>
+      )}
       <label className="mt-4 block font-ui text-[12.5px] font-bold text-ink" htmlFor="media-caption">Caption</label>
       <textarea id="media-caption" rows={3} maxLength={MEDIA_CAPTION_MAX} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Say what it is. #hashtags and @mentions work."
         className="mt-1.5 w-full rounded-2xl border border-rule bg-card px-3.5 py-3 text-sm text-ink outline-none focus:border-crimson" />
@@ -202,7 +226,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
 
       <div className="mt-4">
         <Row title="Comments" sub="Turn off any time. Comments arrive with the Media feed."><Switch label="Comments" on={sw.allowComments} onChange={(v) => setSw({ ...sw, allowComments: v })} /></Row>
-        <Row title="Allow shares" sub="Moments, journals, chats and other apps"><Switch label="Allow shares" disabled={s.teen} on={sw.allowShares && !s.teen} onChange={(v) => setSw({ ...sw, allowShares: v })} /></Row>
+        <Row title="Allow shares" sub="Moments, journals, chats, other apps and remixes"><Switch label="Allow shares" disabled={s.teen} on={sw.allowShares && !s.teen} onChange={(v) => setSw({ ...sw, allowShares: v })} /></Row>
         <Row title="Gifts" sub="Paid to you after a 7-day hold"><Switch label="Gifts" disabled={s.teen} on={sw.allowGifts && !s.teen} onChange={(v) => setSw({ ...sw, allowGifts: v })} /></Row>
         <Row title="Allow downloads" sub={`Off unless you turn it on. ${DOWNLOADS_NOTE}`}><Switch label="Allow downloads" disabled={s.teen} on={sw.allowDownloads && !s.teen} onChange={(v) => setSw({ ...sw, allowDownloads: v })} /></Row>
         <Row title="Pin to the top of my Media" sub={`Up to ${MEDIA_PINNED_MAX} pinned · ${pinnedNow} now`}><Switch label="Pin to the top of my Media" disabled={!sw.pinned && pinnedNow >= MEDIA_PINNED_MAX} on={sw.pinned} onChange={(v) => setSw({ ...sw, pinned: v })} /></Row>

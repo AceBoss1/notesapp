@@ -18,6 +18,7 @@ const LINKS = [
   { href: "/bookings", label: "Bookings" },
   { href: "/profile/books", label: "Business books" },
   { href: "/profile/inventory", label: "Inventory" },
+  { href: "/profile/hotel", label: "Your hotel" },
   { href: "/profile/discounts", label: "Discount codes" },
   { href: "/profile/coupons", label: "My coupons" },
   { href: "/profile/referrals", label: "Referrals" },

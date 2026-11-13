@@ -39,6 +39,7 @@ import { readForTickets, writeTickets } from "./tickets-server";
 import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 import { handleOf, postRoomEvent } from "./room-events-server";
+import { afterHotelPay, confirmPaylonyHotel, readHotelPay, writeHotelPay, type HotelPayInfo } from "./hotel-pay-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -46,7 +47,7 @@ import { handleOf, postRoomEvent } from "./room-events-server";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -120,7 +121,7 @@ export type PaymentRecord = {
   // "global": paid through Stripe, Flutterwave or Paystack in the buyer's currency, for something priced in the seller's own currency
   // (lib/global-sales-server.ts). Then `currency` is the seller's currency (every amount on this record is in its minor units, despite
   // the "Kobo" names; NGN when absent) and `global` is what the buyer paid and through whom.
-  payWith?: "wallet" | "cardtap" | "global";
+  payWith?: "wallet" | "cardtap" | "global" | "paylony";
   currency?: string;
   global?: SaleGlobal;
   // CardTap: Paylony's fee (1%, at most ₦1,000), whether we paid it (the launch offer), what the member pays, the code for the app,
@@ -153,6 +154,12 @@ export type PaymentRecord = {
   // A pay-per-minute session's charge (lib/ppm-server.ts): written when the call ends, paid from the credit held at booking
   // (payWith "wallet", walletDebit = the charge), so a refund goes back to the wallet like any wallet payment. publisherUid is the host.
   ppm?: PpmPaymentInfo;
+  // The Hotel kit (lib/hotel-pay-server.ts): a guest paying for a booking, an order or their room bill; publisherUid is the hotel's owner.
+  // payWith "paylony": an account number for this payment (the add-on), confirmed with Paylony before anything is applied.
+  hotel?: HotelPayInfo;
+  paylony?: { account: { accountNumber: string; bankName: string; accountName: string; expiresAt: string }; lastVerify?: { at: string; state: string } };
+  // A month of a Hotel kit add-on (lib/hotel.ts ADDONS), for the owner's hotels.
+  hotelAddon?: { addon: string };
 };
 export type PpmPaymentInfo = { sessionId: string; kind: "voice" | "video"; perMinuteKobo: number; billedMinutes: number; heldKobo: number; baseRate: number; upliftPct: number };
 export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: string; band: "early" | "normal" | "late"; listKobo: number; discountPct: number; tier?: SubTier; holderName: string; baseRate: number; upliftPct: number };
@@ -172,7 +179,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm" | "hotel";
   // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
   // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
   withdrawalOf?: number;
@@ -293,10 +300,12 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
   // A wallet payment was taken from the wallet when it was started (payFromWallet), so there is nothing to ask Paystack.
   // A CardTap top-up is asked of Paylony instead, and stays pending (CardtapNotPaid) until Paylony clearly says it's paid.
   if (payment.payWith === "cardtap") await confirmCardtap(payRef, payment);
+  // A hotel guest's transfer to the account number Paylony opened for it: applied only once Paylony says it's paid, for the full amount.
+  if (payment.payWith === "paylony") await confirmPaylonyHotel(payRef, payment);
   if (paidWith && payment.cartRef !== paidWith.cartRef) throw new Error("That order isn't part of this basket.");
   // A payment in another currency (lib/global-sales-server.ts) is asked of the provider that took it (a basket's orders: their basket was).
   if (payment.payWith === "global" && !paidWith) await confirmSale(db, payment);
-  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" || payment.payWith === "global" || paidWith ? null : await verifyTransaction(reference);
+  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" || payment.payWith === "global" || payment.payWith === "paylony" || paidWith ? null : await verifyTransaction(reference);
   if (tx && tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
   if (tx && (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN")) {
     // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
@@ -327,6 +336,8 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
     const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
     const liveRead = current.kind === "live_ticket" && current.liveTicket ? await readForLiveTicket(t, db, current) : null;
+    const hotelRead = current.kind === "hotel" && current.hotel ? await readHotelPay(t, db, current) : null;
+    const addonHotel = current.kind === "hotel_addon" && current.hotelAddon ? await t.get(db.doc(`hotels/${current.uid}`)) : null;
     // A subscription replaces the subscriber's record with this creator (a tier change carries the days left over).
     const subPrev = current.kind === "subscription" && current.subscription ? (await t.get(db.doc(`subscriptions/${current.uid}_${current.subscription.username}`))).data() : undefined;
 
@@ -474,6 +485,16 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
       }
       t.set(db.doc(`ledger/${reference}`), { ...ledgerFor(current, current.amountKobo, new Date(current.liveTicket.startsAt), now), awaitingLive: true });
+    } else if (current.kind === "hotel" && current.hotel && hotelRead) {
+      // A hotel guest's booking, order or room bill (lib/hotel-pay-server.ts): applied if it can still be honoured, else stored and flagged
+      // as late money; Business books; the owner's money held in the ledger.
+      current.hotel = writeHotelPay(t, db, current, hotelRead, now);
+      t.update(payRef, { hotel: current.hotel });
+    } else if (current.kind === "hotel_addon" && current.hotelAddon && addonHotel) {
+      // A month of a Hotel kit add-on: platform revenue (no ledger), running on from what's left.
+      const cur = (addonHotel.data()?.addons ?? {})[current.hotelAddon.addon] as string | undefined;
+      const from = Math.max(Date.parse(now), cur ? Date.parse(cur) || 0 : 0);
+      t.set(addonHotel.ref, { addons: { [current.hotelAddon.addon]: new Date(from + 31 * 86_400_000).toISOString() } }, { merge: true });
     } else if (current.kind === "debt" && current.debt && debtRead) {
       // A customer paid what they owe a Business books seller: the payment in the seller's books (oldest sales first), the customer's
       // receipt, and the seller's money held in the ledger, then paid out like a sale (lib/books-debt-server.ts).
@@ -814,6 +835,11 @@ async function notifyPaid(p: PaymentRecord) {
   // Amounts in the sale's own currency (a global sale priced in shillings says "KSh 650", not naira).
   const formatNaira = (kobo: number) => moneyIn(kobo, p.currency, nairaText);
   if (p.kind === "debt" && p.debt) return notifyDebtPaid(p);
+  if (p.kind === "hotel" && p.hotel) return afterHotelPay(getAdminDb(), p);
+  if (p.kind === "hotel_addon" && p.hotelAddon) {
+    await notifyBell({ uid: p.uid, type: "hotel", linkHref: "/profile/hotel?tab=plans", message: `Hotel kit add-on paid (${formatNaira(p.amountKobo)}): another month.` });
+    return;
+  }
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);
   if (p.kind === "ticket" && p.ticket) return notifyTickets(p);

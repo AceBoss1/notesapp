@@ -1,5 +1,7 @@
 "use client";
 
+import ShareIcon from "@/components/share/ShareIcon";
+import { ShareMenu } from "@/components/share/ShareToNotesApp";
 import LiveEntrance from "@/components/fans/LiveEntrance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addDoc, collection, doc, limitToLast, onSnapshot, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
@@ -515,15 +517,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 
   const [liked, setLiked] = useState(false);
   // The live's own link: a profile live's lobby, a paid live's page, or the community with ?room=.
-  const shareLive = async () => {
-    const path = room?.profile ? `/live/${id}` : room?.paid ? `/lives/${room.paid.eventId}` : room?.cid ? `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(id)}` : `/live/${id}`;
-    const url = `${window.location.origin}${path}`;
-    try {
-      if (navigator.share) await navigator.share({ title: room?.title ?? "Live on #NotesApp", url });
-      else { await navigator.clipboard.writeText(url); setNote("Link copied."); setTimeout(() => setNote(""), 2500); }
-    } catch { return; } // closed the share sheet
-    void act({ action: "event", kind: "share" });
-  };
+  // The usual share sheet (components/share/ShareToNotesApp.tsx ShareMenu): another app or the link. A live has no Moments/Journals card.
+  const [sharing, setSharing] = useState(false);
+  const shareLive = async () => setSharing(true);
+  const livePath = room?.profile ? `/live/${id}` : room?.paid ? `/lives/${room.paid.eventId}` : room?.cid ? `/c/${encodeURIComponent(room.cid)}?room=${encodeURIComponent(id)}` : `/live/${id}`;
   const act = async <T = unknown,>(body: Record<string, unknown>, tag = ""): Promise<T | null> => { setBusy(tag); try { return await capi<T>("/api/community/rooms", { id, ...body }); } catch (e) { setNote(e instanceof Error ? e.message : "Couldn't do that."); setTimeout(() => setNote(""), 3500); return null; } finally { setBusy(""); } };
   const role = room ? roomRole(room, me) : "listener";
   const stage = room ? stageOf(room) : [];
@@ -769,7 +766,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         {/* ❤️ Like (once; the count is everyone's) and ↗ Share (the link): each puts a line in the chat (lib/room-events-server.ts). */}
         {role !== "host" && <button type="button" disabled={liked} onClick={() => { setLiked(true); void act<{ likes?: number }>({ action: "event", kind: "like" }); }} aria-pressed={liked} aria-label="Like the live" className={`flex h-12 items-center gap-1.5 rounded-full px-4 font-ui text-sm font-semibold ${liked ? "bg-white text-[#E5383B]" : "bg-white/10 hover:bg-white/20"}`}>{liked ? "❤️" : "🤍"}{room?.likes ? <span>{room.likes.toLocaleString("en-GB")}</span> : null}</button>}
         {role === "host" && !!room?.likes && <span className="flex h-12 items-center gap-1.5 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold" aria-label={`${room.likes} likes`}>❤️ {room.likes.toLocaleString("en-GB")}</span>}
-        <button type="button" onClick={() => void shareLive()} aria-label="Share the live" className="flex h-12 items-center rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20">↗ Share</button>
+        <button type="button" onClick={() => void shareLive()} aria-label="Share the live" className="flex h-12 items-center gap-1.5 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20"><ShareIcon className="h-4 w-4" />Share</button>
+        {sharing && <ShareMenu shareRef={null} url={typeof window === "undefined" ? livePath : `${window.location.origin}${livePath}`} title={room?.title ?? "Live on #NotesApp"} onClose={() => setSharing(false)} onShared={() => void act({ action: "event", kind: "share" })} />}
         <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
           💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
         </button>

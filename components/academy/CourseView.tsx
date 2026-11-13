@@ -1,5 +1,6 @@
 "use client";
 
+import ShareIcon from "@/components/share/ShareIcon";
 import PlaysLife from "@/components/life/PlaysLife";
 import AdSlot from "@/components/AdSlot";
 import { useEffect, useRef, useState } from "react";
@@ -191,7 +192,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
             </button>
             <button type="button" onClick={() => openTab("reviews")} className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden className="text-amber-500">★</span>Review</button>
             <button type="button" onClick={() => setSharing(true)}
-              className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden>↗</span>Share</button>
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><ShareIcon className="h-4 w-4" />Share</button>
           </div>
           {note && <p role="status" className="pb-2 text-center text-xs font-semibold text-crimson">{note}</p>}
           {sharing && <ShareMenu shareRef={course.status === "published" ? { kind: "course", id: course.id } : null} url={shareUrl} title={course.title} onClose={() => setSharing(false)} />}

@@ -12,6 +12,7 @@ import { APP_HOST, LIFE_HOST, MAIN_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, fam
 //   /courses, /courses/<slug> → their Notes Academy courses, each opening inside their site (its lessons stay on the main site)
 //   /community            → the community they linked on /profile/site, inside their site (its API, events and uploads pass through)
 //   /track, /track/<id>   → logistics businesses (Track on /profile/site): look up and follow their shipments
+//   /hotel                → the Hotel kit: rooms, availability, booking and ordering from every department
 //   /login, /signup       → Enterprise: a branded sign-in / sign-up window on their domain; Business: the main-site page, then back here
 // A note or item that isn't theirs is sent to the main site instead.
 type Resolved = { found: boolean; known?: boolean; answered?: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean; full?: boolean };
@@ -121,7 +122,8 @@ function route(req: NextRequest, host: string, fam: Family) {
 // (lib/local-currency.ts). Set only when it's missing or changed, never on API calls.
 export async function middleware(req: NextRequest) {
   const res = await handle(req);
-  const country = (req.headers.get("x-vercel-ip-country") || "").toUpperCase();
+  // Vercel's geolocation: the header, or req.geo where the header isn't passed to middleware.
+  const country = (req.headers.get("x-vercel-ip-country") || (req as NextRequest & { geo?: { country?: string } }).geo?.country || "").toUpperCase();
   if (/^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1" && req.cookies.get("na_cc")?.value !== country && !req.nextUrl.pathname.startsWith("/api/")) {
     res.cookies.set("na_cc", country, { path: "/", maxAge: 30 * 86_400, sameSite: "lax", secure: true });
   }
@@ -163,6 +165,7 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   if (pathname === "/about" || pathname === "/contact" || pathname === "/courses" || pathname === "/cart" || pathname === "/community") return rewrite(`${site}${pathname}`); // pages from /profile/site, the basket, and their community
   if (/^\/courses\/[a-z0-9-]{1,80}\/?$/.test(pathname)) return rewrite(`${site}${pathname.replace(/\/$/, "")}`); // one of their courses (only theirs show)
   if (pathname === "/track" || /^\/track\/[A-Za-z0-9-]{8,12}\/?$/.test(pathname)) return rewrite(`${site}${pathname.replace(/\/$/, "")}`); // the Track section
+  if (pathname === "/hotel") return rewrite(`${site}/hotel`); // the Hotel kit: rooms, booking and ordering (its guest links stay on the main site)
 
   const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
   if (m) {

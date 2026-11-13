@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import CurrencyPicker from "@/components/CurrencyPicker";
 import { DEFAULT_AVATAR } from "@/lib/admin";
 import { serviceName, servicesOf } from "@/lib/shipments";
 import { headers } from "next/headers";
@@ -146,6 +147,9 @@ export default async function SiteLayout({ children, params }: Props) {
             <SiteNav footer />
           </div>
           <div className="border-t border-paper/10 py-4 text-center text-xs text-paper/55">
+            {/* The visitor's country and currency (owner, 12 Nov 2026: on members' own sites too, Business and Enterprise): detected,
+                and changeable; prices the seller set in their own currency show what the visitor pays in theirs. */}
+            <p className="mb-3"><CurrencyPicker /></p>
             <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />

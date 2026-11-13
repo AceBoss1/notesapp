@@ -12,6 +12,7 @@ import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useGoLive } from "@/components/lives/useGoLive";
+import { useCycleMenu } from "@/lib/cycle-client";
 
 // `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
 // the bell in a soft circle and the picture opens the menu, without the @username.
@@ -22,6 +23,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [unreadDms, setUnreadDms] = useState(0);
+  const cycle = useCycleMenu(user, profile?.accountKind === "organisation"); // My Cycle: hidden for "Not for me", child profiles and organisations
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -107,6 +109,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
             <Link href="/giving" className={item}>My giving</Link>
             {profile && canPublish(profile) && <Link href="/shipments" className={item}>Shipments (logistics)</Link>}
             {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
+            {cycle && <Link href="/cycle" className={item}>🌸 My Cycle</Link>}
             <Link href="/saved" className={item}>♥ Saved items</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
             <Link href="/profile/boosts" className={item}>Boost performance</Link>
