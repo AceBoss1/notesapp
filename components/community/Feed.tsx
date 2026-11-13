@@ -1,5 +1,6 @@
 "use client";
 
+import ShareIcon from "@/components/share/ShareIcon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadToR2 } from "@/lib/upload";
@@ -103,7 +104,7 @@ function Composer({ cid, channel, onDone }: { cid: string; channel: string; onDo
   );
 }
 
-const Action = ({ on, label, icon, onClick, disabled }: { on?: boolean; label: string; icon: string; onClick: () => void; disabled?: boolean }) => (
+const Action = ({ on, label, icon, onClick, disabled }: { on?: boolean; label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
   <button type="button" onClick={onClick} disabled={disabled} aria-pressed={on} className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 font-ui text-sm font-semibold hover:bg-paper disabled:opacity-50 ${on ? "text-crimson" : "text-slate"}`}>
     <span aria-hidden>{icon}</span>{label}
   </button>
@@ -161,7 +162,7 @@ function PostCard({ p, cid, role, me, as, onChange, shareable }: { p: Post; cid:
       <div className="mx-4 mt-2 flex border-t border-rule py-1">
         <Action icon={liked ? "♥" : "♡"} label="Like" on={liked} disabled={!member} onClick={() => { const on = !liked; setLiked(on); setLikes((n) => n + (on ? 1 : -1)); act({ action: "like", postId: p.id, on }, () => {}); }} />
         <Action icon="💬" label="Comment" onClick={() => { setOpen(true); setTimeout(() => input.current?.focus(), 50); }} />
-        <Action icon="↗" label={copied ? "Link copied" : "Share"} onClick={share} />
+        <Action icon={<ShareIcon className="inline h-4 w-4" />} label={copied ? "Link copied" : "Share"} onClick={share} />
       </div>
       {sharing && <ShareMenu shareRef={shareable && p.public ? { kind: "post", id: p.id } : null} url={communityUrl(cid, `#post-${p.id}`)} title={p.text.slice(0, 60) || `A post by ${p.authorName}`} onClose={() => setSharing(false)} onShared={() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }} />}
       {open && (

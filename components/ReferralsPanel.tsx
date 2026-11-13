@@ -1,5 +1,6 @@
 "use client";
 
+import { nextMilestone, type MilestoneState } from "@/lib/referral-milestones";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
@@ -11,6 +12,7 @@ import { naira } from "@/lib/discounts";
 type Summary = {
   username: string; verified: boolean; walletLive: boolean; offer: { from: string } | null;
   payout: { bankName: string; accountLast4: string } | null;
+  milestones?: MilestoneState[]; qualified?: number;
   friendsJoined: number; payingFriends: number; availableKobo: number; pendingKobo: number; paidOutKobo: number;
   earnings: { id: string; source: string; title: string; kobo: number; percent: number; status: string; releaseAfter: string; createdAt: string }[];
   withdrawals: { id: string; method: string; kobo: number; bonusKobo?: number; at: string }[];
@@ -140,6 +142,13 @@ export default function ReferralsPanel() {
         )}
       </div>
 
+      {s.milestones && <Milestones list={s.milestones} qualified={s.qualified ?? 0} busy={busy} onClaim={async (id) => {
+        setBusy(`ms_${id}`); setError(""); setNote("");
+        try { const r = await api<{ bonusKobo: number }>("/api/referrals", { body: { action: "milestone", id } }); setNote(`${naira(r.bonusKobo)} in Bonus Credits added to your wallet. Spend them on anything on #NotesApp.`); await load(); }
+        catch (e) { setError(e instanceof Error ? e.message : "Couldn't claim it."); }
+        finally { setBusy(""); }
+      }} />}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ["Ready to take", naira(s.availableKobo)],
@@ -218,5 +227,44 @@ export default function ReferralsPanel() {
         </div>
       )}
     </div>
+  );
+}
+
+// Referral milestones (lib/referral-milestones.ts), laid out like a game's achievements: each with its icon, what it needs, the Bonus
+// Credits it pays, a progress bar and Claim once it's reached.
+const MS_ICON: Record<MilestoneState["icon"], string> = {
+  first: "M15 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M8.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19 8v6M22 11h-6",
+  squad: "M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM22 19v-1a4 4 0 0 0-3-3.9M16 3.1a3.5 3.5 0 0 1 0 6.8",
+  crowd: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12ZM8.2 13.9 7 22l5-3 5 3-1.2-8.1M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z",
+  viral: "M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1ZM12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2ZM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5",
+};
+function Milestones({ list, qualified, busy, onClaim }: { list: MilestoneState[]; qualified: number; busy: string; onClaim: (id: string) => void }) {
+  const next = nextMilestone(list);
+  return (
+    <section>
+      <p className="px-1 font-ui text-xs font-bold uppercase tracking-wide text-slate">Friends · milestones</p>
+      <div className="mt-2 overflow-hidden rounded-[22px] border border-rule bg-card">
+        {list.map((m, i) => (
+          <div key={m.id} className={`flex items-center gap-4 px-4 py-4 ${i ? "border-t border-rule" : ""}`}>
+            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${m.reached ? "bg-crimson text-paper" : "bg-crimson/10 text-crimson"}`}>
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={MS_ICON[m.icon]} /></svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-ui text-lg font-semibold text-ink">{m.name}</p>
+              <p className="text-sm text-slate">{m.blurb} · <b className="text-ink">+{naira(m.bonusKobo)}</b> Bonus Credits</p>
+              {m.need > 1 && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-field" role="progressbar" aria-valuemin={0} aria-valuemax={m.need} aria-valuenow={m.progress}><div className="h-full rounded-full bg-crimson" style={{ width: `${(m.progress / m.need) * 100}%` }} /></div>}
+            </div>
+            <div className="shrink-0 text-right">
+              {m.claimed ? <span className="font-ui text-sm font-bold text-moss">✓ Claimed</span>
+                : m.reached ? <button type="button" disabled={!!busy} onClick={() => onClaim(m.id)} className="rounded-full bg-crimson px-4 py-2 font-ui text-sm font-bold text-paper disabled:opacity-50">{busy === `ms_${m.id}` ? "…" : "Claim"}</button>
+                : m.need > 1 ? <span className="font-ui text-lg text-slate">{m.progress}/{m.need}</span> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 px-1 text-xs text-slate">
+        {qualified} friend{qualified === 1 ? "" : "s"} joined as real members{next ? `, ${next.need - qualified} more to ${next.name}` : ": every milestone reached"}. A friend counts once they verify their email and choose a username.
+      </p>
+    </section>
   );
 }

@@ -4,7 +4,7 @@ import { createHmac } from "crypto";
 import { currencyForCountry, formatMoney, guessCurrency, payMethodsLabel, providerFor, toMajor, toMinor } from "../../lib/currency";
 import { canPayFrom, checkHomePrice, cleanRates, convert, earningOf, homeOffers, niceCeil, poolLine, ratesFresh, ratesReminderDue, readerPrice, renewReminderDue, suggestConversions, emptyPool, GlobalPayError } from "../../lib/global-pay";
 import { formEncode, isValidStripeSignature } from "../../lib/stripe";
-import { countryFromHeaders, isCountryCode, pickCurrency } from "../../lib/local-currency";
+import { countryFromHeaders, isCountryCode, pickCountry, pickCurrency } from "../../lib/local-currency";
 import { AFRICAN_CODES } from "../../lib/countries";
 import { isGlobalSale, isSaleKind, moneyIn, priceCurrency, validateWorldAddress } from "../../lib/global-sales";
 import { isValidFlutterwaveHash } from "../../lib/flutterwave";
@@ -130,5 +130,12 @@ const addr = { fullName: "Wanjiku Kamau", phone: "+254 712 345 678", street: "12
 assert.equal(validateWorldAddress(addr), null);
 assert.match(String(validateWorldAddress({ ...addr, phone: "712" })), /country code/);
 assert.match(String(validateWorldAddress({ ...addr, state: "" })), /region and country/);
+
+// The country beside the currency follows the same rule: Lagos time with a Dutch connection is Nigeria; Nairobi with a Kenyan one is Kenya.
+assert.equal(pickCountry({ country: "NL", timeZone: "Africa/Lagos" }), "NG");
+assert.equal(pickCountry({ country: null, timeZone: "Africa/Accra" }), "GH");
+assert.equal(pickCountry({ country: "KE", timeZone: "Africa/Nairobi" }), "KE");
+assert.equal(pickCountry({ country: "GB", timeZone: "Europe/London" }), "GB");
+assert.equal(pickCountry({ country: "GH", timeZone: "Africa/Lagos" }), "GH", "an African connection is trusted");
 
 console.log("GLOBAL OK");

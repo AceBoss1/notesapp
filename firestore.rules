@@ -1543,6 +1543,8 @@ service cloud.firestore {
     match /partners/{id} { allow read, write: if false; }
     match /partnerLeads/{id} { allow read, write: if false; }
     match /partnerMembers/{id} { allow read, write: if false; }
+    // Referral milestones claimed (lib/referral-milestones-server.ts): server only.
+    match /referralMilestones/{uid} { allow read, write: if false; }
     match /sounds/{id} { allow read, write: if false; }
     match /soundUploads/{id} { allow read, write: if false; }
     match /soundArtists/{uid} { allow read, write: if false; }

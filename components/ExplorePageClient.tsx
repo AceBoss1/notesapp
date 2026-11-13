@@ -10,6 +10,7 @@ import SocialChannelSpotlight from "@/components/SocialChannelSpotlight";
 import FoundersSpotlight from "@/components/FoundersSpotlight";
 import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
+import TabsMore from "@/components/TabsMore";
 import Shelf from "@/components/Shelf";
 import AdSlot from "@/components/AdSlot";
 import TopGiftedShelf from "@/components/TopGiftedShelf";
@@ -102,12 +103,7 @@ export default function ExplorePageClient() {
       <TopGiftedShelf className="mt-5" />
       <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "jobs" ? "Find jobs, organisations and cities" : tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
         className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
-      <div className="mt-5 flex gap-2 overflow-x-auto" role="tablist">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`shrink-0 rounded-full px-5 py-2 font-ui text-sm font-semibold ${tab === t.id ? "bg-crimson-deep text-paper" : "border border-rule bg-card text-ink hover:border-crimson"}`}>{t.label}</button>
-        ))}
-      </div>
+      <TabsMore className="mt-5" label="Explore" tabs={TABS.map((t) => ({ id: t.id, label: t.label }))} active={tab} onSelect={(id) => setTab(id as typeof tab)} />
       <div className="mt-5 empty:hidden"><AdSlot key={tab} placement="explore" offset={TABS.findIndex((t) => t.id === tab)} className="!my-0" /></div>
       <div className="mt-6">
         {tab === "jobs" ? <JobsTab query={query} /> : notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (

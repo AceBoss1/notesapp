@@ -1,5 +1,6 @@
 "use client";
 
+import ShareIcon from "./ShareIcon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -158,7 +159,7 @@ export function ShareMenu({ shareRef, url, title, onClose, onShared }: { shareRe
       <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-card text-ink shadow-xl" onClick={(e) => e.stopPropagation()}>
         <p className="flex items-center justify-between border-b border-rule px-4 py-3"><span className="truncate font-ui text-sm font-bold">Share “{title}”</span><button type="button" onClick={onClose} aria-label="Close" className="pl-3 text-xl leading-none text-slate">×</button></p>
         {shareRef && <ShareToNotesApp shareRef={shareRef} look="menu" onPicked={() => { onShared?.(); onClose(); }} />}
-        {canNative && <button type="button" className={row} onClick={async () => { try { await navigator.share({ title, url }); onShared?.(); onClose(); } catch { /* closed */ } }}><span aria-hidden>⤴</span>Share to another app</button>}
+        {canNative && <button type="button" className={row} onClick={async () => { try { await navigator.share({ title, url }); onShared?.(); onClose(); } catch { /* closed */ } }}><ShareIcon className="h-4 w-4" />Share to another app</button>}
         <button type="button" className={`${row} border-b-0`} onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true); onShared?.(); setTimeout(onClose, 900); } catch { window.prompt("Copy the link", url); } }}><span aria-hidden>🔗</span>{copied ? "Link copied" : "Copy link"}</button>
       </div>
     </div></Layer>
@@ -173,7 +174,7 @@ export function ShareButton({ shareRef, path, title, className, label = "Share" 
     <>
       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} aria-label={`Share ${title}`}
         className={className ?? "inline-flex items-center gap-1.5 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-bold text-ink hover:border-crimson"}>
-        <span aria-hidden>↗</span>{label}
+        <ShareIcon className="h-4 w-4" />{label}
       </button>
       {open && <ShareMenu shareRef={shareRef} url={url} title={title} onClose={() => setOpen(false)} />}
     </>

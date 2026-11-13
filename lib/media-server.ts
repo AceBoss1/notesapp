@@ -6,7 +6,7 @@ import { randomBytes } from "crypto";
 import {
   DOWNLOADS_OFF, GB, MEDIA_CAPTION_MAX, MEDIA_PICTURES_MAX, MEDIA_PICTURE_MAX_BYTES, MEDIA_PINNED_MAX, MEDIA_REACTIONS, MEDIA_SOUND, TEEN_DOWNLOAD_BLOCKED,
   allowedSwitches, cleanMediaSettings, isMediaAudience, isMediaKind, isOwnMediaKey, mediaPageVisible, mediaVisible, sitePicturesOf, sniffPicture,
-  streamPlayer, streamPoster,
+  streamPlayer, streamPoster, canRemix,
   type MediaAudience, type MediaPicture, type MediaPostDoc, type MediaPostView, type MediaSettings, type Relation, type ReplayTile, type SitePicture,
 } from "./media-rules";
 import { STREAM_MAX_BYTES } from "./stream-config";
@@ -152,6 +152,7 @@ function toView(id: string, p: MediaPostDoc, viewerUid: string | null, deps: Pic
     pinned: p.pinned, createdAt: p.createdAt,
     viewCount: p.viewCount ?? 0, downloadCount: p.downloadCount ?? 0, sharesCount: p.sharesCount ?? 0, commentsCount: p.commentsCount ?? 0, reactionsCount: p.reactionsCount ?? 0, giftsTotal: p.giftsTotal ?? 0,
     mine,
+    ...(p.remixOf ? { remixOf: { id: p.remixOf.id, username: p.remixOf.ownerUsername } } : {}), remixCount: p.remixCount ?? 0, remixable: canRemix(p),
     // The video's download: others only learn it is ready; the creator also sees it being prepared, or why it failed.
     ...(p.download && p.allowDownloads && (mine || p.download.state === "ready") ? { videoDownload: downloadView(p.download) } : {}),
     ...(mine && p.download?.state === "failed" && p.download.why ? { videoDownloadWhy: p.download.why } : {}),
@@ -218,7 +219,7 @@ export async function startMediaVideo(db: Firestore, owner: Person, tier: Accoun
 }
 
 export type CreateInput = {
-  kind?: unknown; caption?: unknown; audience?: unknown; pictureKeys?: unknown; videoUploadId?: unknown; songId?: unknown;
+  kind?: unknown; caption?: unknown; audience?: unknown; pictureKeys?: unknown; videoUploadId?: unknown; songId?: unknown; remixOf?: unknown;
   allowComments?: unknown; allowShares?: unknown; allowGifts?: unknown; allowDownloads?: unknown; pinned?: unknown;
 };
 
@@ -235,7 +236,12 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
   const song = input.songId === undefined || input.songId === "" || input.songId === null ? undefined : await findSong(db, input.songId, deps);
   if (input.songId && !song) throw new MediaError(400, "That song isn't in NotesApp Sounds.");
   if (pinned && (await pinnedCount(db, owner.uid)) >= MEDIA_PINNED_MAX) throw new MediaError(409, `You can pin up to ${MEDIA_PINNED_MAX} posts. Unpin one first.`);
+  // A remix: the post it's made from, checked now (it must still allow remixes); credited on the new post.
+  const remix = input.remixOf === undefined || input.remixOf === "" || input.remixOf === null ? null : await remixSource(db, input.remixOf);
+  if (input.remixOf && !remix) throw new MediaError(409, "That post can't be remixed any more.");
+  if (remix && remix.ownerUid === owner.uid) throw new MediaError(400, "That's your own post: post it again instead.");
   const base = {
+    ...(remix ? { remixOf: { id: remix.id, ownerUid: remix.ownerUid, ownerUsername: remix.username } } : {}),
     ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, caption, sound: song ? songLabel(song) : MEDIA_SOUND, ...(song ? { songId: song.id } : {}), audience, ...sw,
     pinned, ...(pinned ? { pinnedAt: now.toISOString() } : {}), createdAt: now.toISOString(), updatedAt: now.toISOString(),
     viewCount: 0, downloadCount: 0, sharesCount: 0, commentsCount: 0, reactions: {}, reactionsCount: 0, giftsTotal: 0, giftsCount: 0,
@@ -261,6 +267,7 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     // Hidden ("processing") until every picture carries the mark and its clean upload is gone; the cron finishes it if this is cut short.
     const doc: MediaPostDoc = { ...base, kind: "pictures", pictures, status: "processing", marked: false, bytes };
     await ref.set(doc);
+    if (remix) await remixed(db, remix, owner, ref.id);
     if (song) await countUse(db, song.id, "posts");
     const done = await markPicturePost(db, ref.id, deps, now).catch((e) => { console.error("[media] marking failed; the cron tries again", ref.id, e); return null; });
     return toView(ref.id, done ?? doc, owner.uid, deps);
@@ -281,6 +288,7 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
     return d;
   });
   if (song) await countUse(db, song.id, "posts");
+  if (remix) await remixed(db, remix, owner, ref.id);
   return toView(ref.id, (await refreshVideo(db, ref.id, deps, now)) ?? doc, owner.uid, deps);
 }
 
@@ -708,4 +716,23 @@ export async function deleteAllMedia(db: Firestore, uid: string, deps: MediaDeps
   for (const d of s.docs) await deleteMediaPost(db, uid, d.id, deps);
   await Promise.all([db.doc(`mediaUsage/${uid}`).delete(), db.doc(`mediaSettings/${uid}`).delete()]).catch(() => {});
   return s.size;
+}
+
+// ── Remix (owner, 12 Nov 2026) ──────────────────────────────────────────────────────────────────────────────────────────────────
+// What a remix starts from: the post's id, its creator, its sound and a cover to show in the studio. null when it can't be remixed
+// (not ready, not for everyone, shares switched off, or a creator who is a child or in teen mode).
+export type RemixSource = { id: string; ownerUid: string; username: string; kind: string; songId?: string; sound: string; caption: string; cover: string };
+export async function remixSource(db: Firestore, id: unknown): Promise<RemixSource | null> {
+  if (typeof id !== "string" || !/^[A-Za-z0-9]{10,40}$/.test(id)) return null;
+  const p = (await db.doc(`mediaPosts/${id}`).get()).data() as MediaPostDoc | undefined;
+  if (!p || !canRemix(p)) return null;
+  const u = (await db.doc(`users/${p.ownerUid}`).get()).data();
+  if (!u || u.teen === true || u.kid === true || u.suspended === true) return null;
+  return { id, ownerUid: p.ownerUid, username: p.ownerUsername, kind: p.kind, ...(p.songId ? { songId: p.songId } : {}), sound: p.sound, caption: p.caption.slice(0, 140), cover: p.video ? streamPoster(p.video.streamUid) : "" };
+}
+// Once a remix is posted: the original counts it, and its creator hears about it.
+async function remixed(db: Firestore, src: RemixSource, by: Person, newId: string) {
+  await db.doc(`mediaPosts/${src.id}`).update({ remixCount: FieldValue.increment(1) }).catch(() => {});
+  const { notifyBell } = await import("./email");
+  await notifyBell({ uid: src.ownerUid, type: "mention", linkHref: `/u/${by.username}/media?post=${newId}`, message: `@${by.username} remixed your post. See their remix.` }).catch(() => {});
 }

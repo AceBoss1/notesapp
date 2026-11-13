@@ -1,5 +1,6 @@
 "use client";
 
+import TabsMore from "@/components/TabsMore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -91,9 +92,8 @@ export default function CommunityView({ id }: { id: string }) {
             {v.viewingAs && <span className="font-semibold text-crimson">Previewing — nothing you do here changes your role.</span>}
           </label>
         )}
-        <nav className="mt-5 flex gap-1 overflow-x-auto border-b border-rule" aria-label="Community">
-          {v.tabs.map((t) => <button key={t} onClick={() => go(t)} className={`shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${shownTab === t ? "border-crimson text-ink" : "border-transparent text-slate hover:text-ink"}`}>{TAB_NAMES[t]}</button>)}
-        </nav>
+        <TabsMore label="Community" className="mt-5 border-b border-rule" mobile={4} tabs={v.tabs.map((t) => ({ id: t, label: TAB_NAMES[t] }))} active={shownTab} onSelect={(t) => go(t as Tab)}
+          tabClass={(on) => `shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${on ? "border-crimson text-ink" : "border-transparent text-slate hover:text-ink"}`} />
       </div>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} startRoom={params.get("start") === "room"} />}
