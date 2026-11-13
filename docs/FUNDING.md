@@ -70,28 +70,26 @@ get paid for it, in their own currency.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **8 November 2026**):
+**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **12 November 2026**; the
+8 November figures in brackets):
 
-| | As of 8 Nov 2026 |
+| | As of 12 Nov 2026 |
 |---|---|
-| Registered members | 86 (75 joined in the last 30 days); 65% women |
-| Publishers | 86 |
+| Registered members | 248, 232 joined in the last 30 days (8 Nov: 86); 65% women at the 8 November count (recount before quoting it again) |
+| Publishers | 233 (86) |
 | Sellers | 3, with 24 items listed |
 | Organisations | 7 |
-| Gold-verified accounts | 38 |
-| Paid transactions | 81, from 5 paying customers |
-| Money processed | ₦3,228,795 (₦3,021,298 in the last 30 days) |
-| Store orders, digital sales | 0, 0 |
-| Sessions booked | 1 (1 held) |
-| Merch pre-orders | 5 |
+| Gold-verified accounts | 40 (38) |
+| Paid transactions | 84, from 5 paying customers (81) |
+| Money processed | ₦3,978,795 (₦3,768,298 in the last 30 days) |
 | Paid out to sellers and publishers | ₦170 in 1 payout |
-| Held in escrow | ₦865,295.96 (21 entries) |
-| **Commission earned (our revenue)** | **₦95,968.80**, on sessions, subscriptions, gifts and the store |
+| Held in escrow | ₦1,140,095.96 (23 entries) |
+| **Commission earned (our revenue)** | **₦121,168.80**, on sessions, subscriptions, gifts and the store (about USD 81 at ₦1,500) |
 
-**How to say it honestly:** we're early. The strong numbers are growth (75 of 86 members joined in the last 30 days), money
-processed (₦3.2M, almost all in the last 30 days) and that 65% of members are women. Say "processed", never "revenue": our
-revenue is the commission we earned, **₦95,968.80** to 8 November. If an investor asks, 81 transactions came from 5 customers, so say so;
-don't present it as 81 customers. Store and digital sales haven't started yet.
+**How to say it honestly:** we're early. The strong numbers are growth (232 of 248 members joined in the last 30 days) and money
+processed (₦4.0M, almost all in the last 30 days). Say "processed", never "revenue": our revenue is the commission we earned,
+**₦121,168.80** to 12 November. If an investor asks, 84 transactions came from 5 customers, so say so; don't present it as 84
+customers. Store and digital sales haven't started yet.
 
 ---
 
@@ -1260,8 +1258,8 @@ US visa takes time from Lagos: start the appointment as soon as we're shortliste
 - **Company:** NotesApp (NotesApp Technologies Ltd, Nigeria; NotesApp Inc, Delaware). Website https://www.notesapp.name.ng.
 - **One line:** §1. **Sector:** creator economy and education (EdTech, FinTech payouts).
 - **Problem, solution, model:** §1 one paragraph; business model as in §9 (plans; commission on sales, bookings and courses).
-- **Traction (as of 8 November 2026):** 86 members, 75 of them in the last 30 days, 65% women; ₦3.2M processed (₦3.0M in the last 30
-  days); ₦95,968.80 commission earned. Say "processed", never "revenue" for the ₦3.2M (§1).
+- **Traction (as of 12 November 2026):** 248 members, 232 of them in the last 30 days; ₦3.98M processed (₦3.77M in the last 30
+  days); ₦121,168.80 commission earned (about USD 81); 84 paid transactions from 5 customers. Say "processed", never "revenue" (§1).
 - **Funding raised:** none. **Founders:** as in §13 (the co-founders and their roles; Emmanuela as Chief Legal Officer and
   co-founder; don't mention where anyone lives).
 - **Why now:** §11's "why now" line (local-currency payouts, M-Pesa next, global subscriptions in any currency since November 2026).
