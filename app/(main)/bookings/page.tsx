@@ -10,6 +10,7 @@ import { formatNaira, formatSlot } from "@/lib/booking-time";
 import { PAYOUT_HOLD_HOURS, POLICY_TEXT, RESCHEDULE_MAX, canReschedule, refundFraction } from "@/lib/cancellation";
 import { sessionEnd } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
+import MonthCalendar from "@/components/MonthCalendar";
 import MyCommission from "@/components/MyCommission";
 
 type Booking = {
@@ -193,7 +194,7 @@ export default function BookingsPage() {
         {rs?.reference === b.reference && (
           <div className="rounded-xl2 border border-rule bg-paper p-4 text-sm">
             <p className="font-ui font-semibold text-ink">Pick a new time ({RESCHEDULE_MAX - used} reschedule{RESCHEDULE_MAX - used === 1 ? "" : "s"} left, free)</p>
-            <input type="date" value={rs.date} min={tomorrow} onChange={(e) => pickDate(b, e.target.value)} className="mt-2 rounded-xl2 border border-rule bg-card px-3 py-2 text-sm" aria-label="New date" />
+            <MonthCalendar value={rs.date} min={tomorrow} onChange={(d) => pickDate(b, d)} label="New date" className="mt-2 max-w-sm" />
             {rs.date && rs.slots && rs.slots.length === 0 && <p className="mt-2 text-xs text-slate">No open times that day — try another.</p>}
             {rs.slots && rs.slots.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
