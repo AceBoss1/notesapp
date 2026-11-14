@@ -907,6 +907,10 @@ See [Plans and prices](/help/plans-and-prices) for what each plan costs.
 
 **Kept confidential:** only the Ventures review team reads your pitch, and #NotesApp never shares it outside the company without your permission, picked or not. #NotesApp builds many products, so it may already be working on something similar, or build it later on its own; pitching doesn't stop that or give either side rights over the other's work. If your idea is picked, the terms (what each side brings, the equity, the board seat, who owns what) are agreed with you before any work starts, and nothing is binding until both sides sign.
 
+**Pressure-test it with Nana first:** before you send, tap **Pressure-test it with Nana first** under the form. Nana runs three honest tests on what you wrote: **will people pay** (what they already pay for today, and what would make them pay for this now), **are you the one to build it** (your real advantage, and who else is better placed), and **is the timing right** (what changed that makes it possible now). You get a verdict and the reason for each, plus the questions a reviewer may ask you. It's private: nothing is kept or sent to the team, and it uses your own Nana allowance. Sharpen the weak parts, then send.
+
+**Nana helps the team read, people decide:** the team can ask Nana for the same three tests on a pitch you've sent. She reads only your pitch, never ranks pitches against each other and never decides; a person reads every pitch and makes every call.
+
 **What happens next:** a person reads every pitch. You're told in your notifications when it's received, being read, shortlisted (we'd like to talk), and picked or not picked this quarter. Any advice from the team shows with your pitch. Your pitches and where they stand are listed on the Ventures page.
 
 **Perks:** everyone who pitches gets perks from #NotesApp, sent by the team once the pitch is read. The Ventures page lists them.

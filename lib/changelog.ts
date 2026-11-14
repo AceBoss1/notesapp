@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.165.1",
+    bump: "patch",
+    date: "2026-11-14",
+    changes: [
+      { kind: "added", text: "Ventures: pressure-test your pitch with Nana before you send it. Three honest tests on what you wrote (will people pay, are you the one to build it, is the timing right), each with a verdict and the reason, plus the questions a reviewer may ask. Private: nothing is kept or sent to the team." },
+      { kind: "added", text: "Ventures review: the team can ask Nana for the same three tests on a pitch. She never ranks or decides; a person reads every pitch." },
+    ],
+  },
+  {
     version: "v0.165.0",
     bump: "minor",
     date: "2026-11-12",

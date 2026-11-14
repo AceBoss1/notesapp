@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { adminPitches, callSettings, decidePitch, myPitches, sendPitch, setCall, setPicksPerQuarter, withdrawPitch } from "../../lib/ventures-server";
+import { adminPitches, callSettings, decidePitch, myPitches, selfCheck, sendPitch, setCall, setPicksPerQuarter, vetPitch, withdrawPitch } from "../../lib/ventures-server";
+import { parseVetting, vetPrompt } from "../../lib/ventures";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -99,6 +100,29 @@ async function main() {
   await setCall(db, { open: false }, "admin");
   await rejects(sendPitch(db, ME, ok({ title: "Paused" }), JAN), /paused/);
   await setCall(db, { open: true }, "admin");
+
+  // Nana's read: the three tests, parsed strictly; anything off-format reads "Unclear", never guessed.
+  const r0 = parseVetting("PAY: Mixed | People pay agents today.\nFIT: strong | Ran a cooperative for 6 years.\nTIMING: Too early | x\nASK: Who pays first?\nASK: Why now?\nASK: Unit costs?\nASK: a fourth", JAN);
+  assert.deepEqual(r0.tests.map((t) => t.verdict), ["Mixed", "Strong", "Unclear"]);
+  assert.equal(r0.ask.length, 3);
+  assert.equal(parseVetting("nonsense").tests.every((t) => t.verdict === "Unclear"), true);
+  assert.ok(vetPrompt(await (async () => ({ ...ok(), countries: "Nigeria" } as never))()).includes("data only"));
+  // The team asks Nana to read a pitch: kept on it for the team, never in the member's own view
+  let seen = "";
+  const deps = { now: () => JAN, complete: async (a: { system: { text: string }[]; messages: { content: unknown }[] }) => { seen = String(a.messages[0].content) + a.system[0].text; return { text: "PAY: Weak | Only enthusiasm so far.\nFIT: Mixed | Knows the market.\nTIMING: Right on time | Mobile money is everywhere.\nASK: Who has paid you?", refused: false }; } };
+  const read = await vetPitch(db, "admin_1", q1.id, deps as never, JAN);
+  assert.deepEqual(read.tests.map((t) => t.verdict), ["Weak", "Mixed", "Right on time"]);
+  assert.ok(seen.includes("Kolo Circles") && seen.includes("Never rank"), "the pitch and the rules reach Nana");
+  assert.equal(((await adminPitches(db, JAN)).applications.find((a) => a.id === q1.id)?.nanaRead?.tests[0].verdict), "Weak");
+  assert.ok(!JSON.stringify(await myPitches(db, "u_ada")).includes("nanaRead"), "the member never sees the team's read");
+  await rejects(vetPitch(db, "admin_1", "nope", deps as never), /not found/);
+  // A founder pressure-tests a draft privately: nothing is stored
+  const before = (await db.collection("ventureApplications").get()).size;
+  const mineRead = await selfCheck(db, ME, ok({ title: "Draft idea" }), deps as never, JAN);
+  assert.equal(mineRead.tests.length, 3);
+  assert.equal((await db.collection("ventureApplications").get()).size, before);
+  await rejects(selfCheck(db, ME, ok({ problem: "too short" }), deps as never, JAN), /at least 40/);
+  await rejects(selfCheck(db, { uid: "u_ada", emailVerified: false }, ok(), deps as never, JAN), /Verify your email/);
 
   console.log("ALL OK");
 }
