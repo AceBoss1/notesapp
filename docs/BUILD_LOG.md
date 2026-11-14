@@ -3289,3 +3289,11 @@ greyed out. On 1:1 sessions it tints the weekdays the creator has times on (from
 see at a glance which days are worth opening. It replaces the browser's plain date box in `BookingCard` (profile and site), `PpmBook`
 (pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
 month grid (blanks before the 1st, month lengths, leap years).
+
+## Plan: My Calendar (mockups for approval, 14 Nov 2026)
+
+The owner asked for "a my calendar in the menu which syncs with user default calendar on device". `docs/MY_CALENDAR.md` and six phone
+mockups cover the menu entry, a month view in the booking-calendar look, a day's agenda, and syncing with the phone's calendar.
+Syncing works three ways: "Add to my calendar" (.ics) on any single entry; a private subscription link that iPhone, Google and Outlook
+calendars refresh themselves; and, in the installed app, writing straight into the phone's default calendar. Two-way sync with Google
+or Outlook is left for later. Nothing is built until the mockups are approved.
