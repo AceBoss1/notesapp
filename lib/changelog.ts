@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.164.2",
+    version: "v0.165.1",
     bump: "patch",
     date: "2026-11-14",
     changes: [

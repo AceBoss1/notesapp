@@ -3290,7 +3290,7 @@ see at a glance which days are worth opening. It replaces the browser's plain da
 (pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
 month grid (blanks before the 1st, month lengths, leap years).
 
-## Hotel booking on the new calendar (v0.164.2, 14 Nov 2026)
+## Hotel booking on the new calendar (v0.165.1, 14 Nov 2026)
 
 The owner asked for the booking calendar on hotel bookings too. `MonthCalendar` gains a range mode: the first tap is check-in, the next
 tap after it is check-out, a tap on or before check-in starts again, and the nights between are shaded. On the hotel's site the dates
