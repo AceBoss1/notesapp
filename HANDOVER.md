@@ -1144,7 +1144,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
 
 - **Booking calendars (v0.164.1):** `components/MonthCalendar.tsx` (Monday-first month view in My Cycle's look; `isOpen` tints the
-  open days, `min`/`max` limit the range) in `BookingCard`, `PpmBook` and the reschedule box on `/bookings`. Test: `npm run test:calendar`.
+  open days, `min`/`max` limit the range) in `BookingCard`, `PpmBook` and the reschedule box on `/bookings`; v0.165.1 adds range mode
+  (`rangeEnd`, `onRangeEnd`) for hotel stays in `components/hotel/HotelSite.tsx`, and `dayLabel` (dates written by hand so server and
+  browser match). Test: `npm run test:calendar`.
 
 ## 5. Tests and checks
 
