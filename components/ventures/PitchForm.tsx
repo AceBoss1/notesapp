@@ -7,8 +7,9 @@ import { auth } from "@/lib/firebase";
 import {
   AGREE_TEXT, CALL_NAME, KINDS, KIND_LABEL, LIMITS, OPEN_STATUSES, PICKS_PER_QUARTER, REGIONS, REGION_LABEL, SECTORS, SECTOR_LABEL,
   STAGES, STAGE_LABEL, STATUS_LABEL, notPickedNote,
-  type CallSettings, type MyApplication,
+  type CallSettings, type MyApplication, type NanaRead,
 } from "@/lib/ventures";
+import NanaReadView from "@/components/ventures/NanaRead";
 
 // The Rewrite the Playbook pitch (lib/ventures-server.ts sendPitch), with the member's own pitches below it. Signed in only; the API checks
 // everything again (18 and over, verified email, emerging markets, the call not paused, up to 3 pitches a quarter). Rolling: the team
@@ -32,6 +33,17 @@ export default function PitchForm() {
   const [f, setF] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [check, setCheck] = useState<NanaRead | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [checkErr, setCheckErr] = useState("");
+  // Nana's three tests on the draft, privately (lib/ventures-server.ts selfCheck): nothing is kept or sent to the team.
+  async function pressureTest() {
+    setChecking(true); setCheckErr("");
+    try {
+      const r = await call<{ read: NanaRead }>(user!, "POST", { action: "selfcheck", ...f, teamSize: Number(f.teamSize), links: f.links.split(/\s+/).filter(Boolean) });
+      setCheck(r.read);
+    } catch (e) { setCheckErr(e instanceof Error ? e.message : "Nana couldn't read it just now."); } finally { setChecking(false); }
+  }
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ call: { open: true, picksPerQuarter: PICKS_PER_QUARTER }, quarter: "", mine: [], signedIn: !!u }));
   useEffect(() => { if (user !== undefined) void load(user); }, [user?.uid, user === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -128,6 +140,15 @@ export default function PitchForm() {
               <span><b>This idea is for people or businesses in emerging markets.</b> Only ideas and ventures for emerging markets are welcome.</span></label>
             <label className="flex items-start gap-2.5"><input type="checkbox" required checked={f.agree} onChange={set("agree")} className="mt-1" />
               <span>{AGREE_TEXT} <a href="#terms" className="font-semibold text-crimson underline">The terms</a></span></label>
+          </div>
+
+          <div className="rounded-2xl border border-rule p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={pressureTest} disabled={checking} className="rounded-full border border-crimson px-5 py-2 font-ui text-sm font-semibold text-crimson disabled:opacity-50">{checking ? "Nana is reading…" : check ? "Test it again" : "Pressure-test it with Nana first"}</button>
+              <p className="text-xs text-slate">Three honest tests before you send: will people pay, are you the one to build it, is the timing right. Private; nothing is kept.</p>
+            </div>
+            {checkErr && <p className="mt-2 text-sm text-red-700" role="alert">{checkErr}</p>}
+            {check && <div className="mt-3"><NanaReadView read={check} who="founder" /></div>}
           </div>
 
           {msg && !msg.ok && <p className="text-sm text-red-700" role="alert">{msg.text}</p>}
