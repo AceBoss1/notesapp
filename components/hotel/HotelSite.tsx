@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEPT_KINDS, TARGETS, addDays, naira, nightsBetween, type TargetKind } from "@/lib/hotel";
 import HotelNanaChat from "./HotelNanaChat";
+import MonthCalendar, { dayLabel } from "@/components/MonthCalendar";
 
 // The hotel's own pages on its site (/hotel; docs/HOTEL_KIT.md mockups 1 to 3 and 7): rooms with live availability and booking with a hold,
 // then ordering from any department to a room, a table or for pick-up. Prices shown here are the hotel's; the server prices every booking
@@ -31,6 +32,7 @@ export default function HotelSite({ hotel, cover, base, mainUrl, today, startTab
   const [tab, setTab] = useState<"rooms" | "order">(startTab);
   const [checkIn, setCheckIn] = useState(addDays(today, 1));
   const [checkOut, setCheckOut] = useState(addDays(today, 3));
+  const [showCal, setShowCal] = useState(false);
   const [guests, setGuests] = useState(2);
   const [left, setLeft] = useState<Record<string, number> | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -69,14 +71,17 @@ export default function HotelSite({ hotel, cover, base, mainUrl, today, startTab
         {tab === "rooms" && !room && (
           <section className="mt-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-rule bg-white px-3 py-2.5 text-sm">
-              <span aria-hidden>📅</span>
-              <label className="sr-only" htmlFor="ci">Check-in</label>
-              <input id="ci" type="date" min={today} value={checkIn} onChange={(e) => { setCheckIn(e.target.value); if (e.target.value >= checkOut) setCheckOut(addDays(e.target.value, 1)); }} className="rounded-lg bg-transparent px-1 py-1" />
-              <span aria-hidden>→</span>
-              <label className="sr-only" htmlFor="co">Check-out</label>
-              <input id="co" type="date" min={addDays(checkIn, 1)} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="rounded-lg bg-transparent px-1 py-1" />
+              <button type="button" onClick={() => setShowCal((v) => !v)} aria-expanded={showCal} className="flex items-center gap-2 rounded-lg px-1 py-1 text-left text-ink">
+                <span aria-hidden>📅</span>
+                <span>{dayLabel(checkIn, true)} → {dayLabel(checkOut, true)}</span>
+                <span className="text-slate">· {nights} night{nights === 1 ? "" : "s"}</span>
+                <span className="text-xs text-crimson underline">{showCal ? "Done" : "Change"}</span>
+              </button>
               <label className="ml-auto flex items-center gap-1 text-slate"><select aria-label="Guests" value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="bg-transparent text-ink">{[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}</select> guest{guests === 1 ? "" : "s"}</label>
             </div>
+            {showCal && (
+              <MonthCalendar value={checkIn} min={today} onChange={(d) => { setCheckIn(d); setCheckOut(addDays(d, 1)); }} rangeEnd={checkOut} onRangeEnd={(d) => { setCheckOut(d); setShowCal(false); }} label="Your stay" />
+            )}
             {hotel.rooms.length === 0 && <p className="text-sm text-slate">Rooms will be listed here soon. Call the front desk to book.</p>}
             {hotel.rooms.map((r) => {
               const n = left?.[r.id];

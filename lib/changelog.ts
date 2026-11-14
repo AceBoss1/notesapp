@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.164.2",
+    bump: "patch",
+    date: "2026-11-14",
+    changes: [
+      { kind: "changed", text: "Hotel room booking uses the new calendar: tap your check-in day, then your check-out day, and your nights are shaded in between." },
+    ],
+  },
+  {
     version: "v0.165.0",
     bump: "minor",
     date: "2026-11-12",

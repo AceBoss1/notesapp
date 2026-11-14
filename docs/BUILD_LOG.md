@@ -3289,3 +3289,11 @@ greyed out. On 1:1 sessions it tints the weekdays the creator has times on (from
 see at a glance which days are worth opening. It replaces the browser's plain date box in `BookingCard` (profile and site), `PpmBook`
 (pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
 month grid (blanks before the 1st, month lengths, leap years).
+
+## Hotel booking on the new calendar (v0.164.2, 14 Nov 2026)
+
+The owner asked for the booking calendar on hotel bookings too. `MonthCalendar` gains a range mode: the first tap is check-in, the next
+tap after it is check-out, a tap on or before check-in starts again, and the nights between are shaded. On the hotel's site the dates
+show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens the calendar and closes once check-out is picked. Dates
+are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
+in Chrome and broke hydration.
