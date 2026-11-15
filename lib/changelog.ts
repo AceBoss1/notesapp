@@ -22,6 +22,37 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.174.2",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Careers at #NotesApp: the team's onboarding drafts for a new Campus Ambassador now include a proper ambassador agreement, so offers for contract roles are ready for review sooner. Nothing changes for applicants." },
+    ],
+  },
+  {
+    version: "v0.174.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Nana Jobs: a shortlist with nothing on it. If you hadn't filled in your profile, the job title from your NotesApp profile (\"Founder & CEO\", say) was used as the only role you wanted, so every opening was cut. Now a role counts only when you choose it; with no roles, Nana uses the ones from your CV review, or doesn't filter by job title at all." },
+      { kind: "fixed", text: "Nana Jobs: the CV review with Claude. Claude's answer was cut off before it finished, and a slow answer ran past the time limit and showed \"Something went wrong\". It now has room to answer, waits long enough, and when your AI does fail you see why (its own words, or \"your AI took too long\")." },
+      { kind: "added", text: "Nana Jobs: today's run now says why openings were cut (\"312 not in your roles, 98 location, 44 too old\"), and See all collected jobs lists every opening your run looked at, with the reason each one did or didn't make your list and a link to open it." },
+      { kind: "changed", text: "Nana Jobs: every job on your shortlist has a clear Apply button (the firm's own page in a new tab, or Apply on #NotesApp for Notes Jobs) and Mark as applied beside it. An empty profile now says so, with a button to set it up." },
+    ],
+  },
+  {
+    version: "v0.174.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Content checks: every photo, video frame and text that other people can see (journals, community posts and comments, Moments, Media posts, shop items, events and profiles) is checked by AI before it is published. Private messages are not read." },
+      { kind: "added", text: "A post that breaks the rules isn't published: it stays as a draft, you're told what was found and in which photo, and you can remove the photo or ask for a review. Each break is a strike; strikes and appeals are on your account page." },
+      { kind: "added", text: "The rules card on every community's About tab, the journal editor and the Media studio, the Content rules page, and a new section 2e in the Terms." },
+      { kind: "added", text: "Admin → People & Trust → Content checks (beside Reports): the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
+      { kind: "changed", text: "Videos on posts are now checked before they are shown (Terms, section 2a)." },
+    ],
+  },
+  {
     version: "v0.173.0",
     bump: "minor",
     date: "2026-11-15",

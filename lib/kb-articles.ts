@@ -286,6 +286,24 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
 **Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
+    A("content-checks", "Content checks: what is checked, strikes and appeals", "Safety and your data", `
+Every photo, video frame and text that people other than you can see is checked by AI **before it is published**. [The rules](/content-rules).
+
+**What is checked:** journals, community posts and comments, Moments, Media posts, shop items, events, and your profile's name, bio and pictures. Public, followers-only and subscriber-only posts follow the same rules (our payment partners and the app stores can see paid content). **Private one-to-one and group messages are not read.** Only new or changed text and pictures are checked, and it takes a second or two while you post.
+
+**Not allowed:** sexual content, gore, violence, self-harm, drugs, weapons, and hate or extremism. News, medical posts and art are judged in context: when the check isn't sure, a person on our Trust & safety team looks before anything is blocked, and that isn't a strike. Teens' posts are checked more strictly.
+
+**If a post breaks the rules:** it isn't published and nobody sees it. A journal stays as a draft; a post stays in the box you wrote it in. You're told what was found and in which photo: tap **Remove the photo** and post again, or **Ask for a review** if you think we got it wrong.
+
+**Strikes:** each post that breaks the rules is a strike. Too many in a short time and posting is paused for a while: you can still read and send messages, but you can't post. A further strike after that closes the account. Strikes clear after a while. See yours on [Account settings](/profile/account#content-checks) → **Content checks**.
+
+**Appeals:** every strike can be appealed with **Ask for a review**, and a paused account with **Appeal the suspension**. A person decides within 48 hours. If they restore your post it is published (a shop item or profile change: save it again and it goes straight through) and the strike is removed.
+
+**Communities:** a community is closed only when its owner or moderators keep posting or approving rule-breaking content. Its owner and moderators are warned first, members see the warning, and the owner can ask for a review.
+
+**Child safety:** child sexual abuse material closes the account at once and for good, and we report it to the authorities.
+
+**If the check is down:** we don't stop you posting. Your post goes up and is checked as soon as the check is back; if it breaks the rules then, it is taken down and you're told.`),
     A("my-cycle", "My Cycle: your private cycle companion", "Safety and your data", `
 [My Cycle](/cycle) is a private cycle and wellness companion for women and girls: period predictions, a daily check-in, food and movement ideas for each phase, and advice from Nana. [How it works](/my-cycle).
 
@@ -1494,7 +1512,11 @@ Nana-HR's summaries and drafts use the Nana allowance of the person who asks. Th
 
 **How the list is made:** repeats are removed; then free rules drop jobs that are too old, aren't a role you want, hit a deal-breaker, or that you can't take from where you live ("remote, but only from the US" is dropped for someone in Lagos); a keyword ranking picks the most likely ones; your AI reads those and scores each out of 100 (domain 25, stack 25, seniority 15, location 20, the quality of the posting 15) with a reason and the strongest risk; then each link is opened to check the job is still there (a slow site never hides a job). If your AI fails (out of credit, slow, or a wrong key), the list falls back to the keyword ranking marked **~ rough** and shows the AI's real error. It is never quietly empty.
 
-**Your shortlist:** mark each job **Interested**, **Applied** or **Not for me**. What you set is kept: a new run never changes it, and Not for me jobs don't come back. Notes Jobs roles keep the **Apply on #NotesApp** button; everything else opens the firm's own page. **Cover note** asks your AI for a short note written only from your "shipped" list, so it never claims experience you don't have; read it, make it yours, and apply yourself.
+**No roles yet?** You can still run it. Nana uses the roles from your CV review if you have one; otherwise it doesn't filter by job title at all and says so, with a button to set up your profile. The job title on your NotesApp profile is offered as a suggestion, never used by itself.
+
+**Why a job was cut:** today's run shows how many openings were cut and the main reasons ("312 not in your roles, 98 location, 44 too old"). **See all collected jobs** lists every opening your run looked at: on your list, fits but ranked lower, or cut (with the reason), each with a link to open it. Only you see it.
+
+**Your shortlist:** each job has an **Apply** button that opens the firm's own application page in a new tab (Notes Jobs roles say **Apply on #NotesApp** and open the in-app application), and **Mark as applied** beside it, so you can keep track. You can also mark a job **Interested** or **Not for me**. What you set is kept: a new run never changes it, and Not for me jobs don't come back. Your shortlist stays on the Nana Jobs tab until the next run replaces it; jobs you marked keep their mark. **Cover note** asks your AI for a short note written only from your "shipped" list, so it never claims experience you don't have; read it, make it yours, and apply yourself.
 
 **Private:** your scoring profile, CV and shortlist are never shown to firms and aren't your public profile. Firms still see only what you choose to share in [I need a job](/profile/applications).
 

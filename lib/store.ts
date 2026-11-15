@@ -3,6 +3,7 @@ import { CRYPTO_LISTING_MESSAGE, cryptoListing } from "./money-rules";
 import { cleanSubtopicLabel } from "./subtopics";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
+import { requestPass } from "./content-checks-client";
 import { cleanShipsFrom, isStoreCategory } from "./store-meta";
 import { SITE_URL } from "@/lib/host";
 
@@ -219,9 +220,14 @@ function clean(input: StoreItemInput) {
   };
 }
 
+const passFor = (d: { title: string; subtitle?: string; image: string; images?: string[] }) =>
+  requestPass("store_item", { title: d.title, subtitle: d.subtitle ?? "", image: d.image, images: d.images ?? [] });
+
 export async function addStoreItem(uid: string, input: StoreItemInput): Promise<string> {
   const now = new Date().toISOString();
-  const ref = await addDoc(collection(db, "storeItems"), { ownerUid: uid, ...clean(input), createdAt: now, updatedAt: now });
+  const data = clean(input);
+  const checkPass = await passFor(data); // AI content checks: firestore.rules ask for a pass for the title, description and photos
+  const ref = await addDoc(collection(db, "storeItems"), { ownerUid: uid, ...data, ...(checkPass ? { checkPass } : {}), createdAt: now, updatedAt: now });
   return ref.id;
 }
 
@@ -235,8 +241,10 @@ export async function updateStoreItem(uid: string, id: string, input: StoreItemI
   // A listing keeps its kind, and a digital one its attached file (set by the server).
   const keepKind = existing.data()?.kind === "digital" ? "digital" : undefined;
   const data = clean({ ...input, kind: keepKind, ...(keepKind ? { fileName: existing.data()?.fileName, fileSize: existing.data()?.fileSize, access: existing.data()?.access } : {}) });
+  const checkPass = await passFor(data);
   await setDoc(ref, {
     ...data,
+    ...(checkPass ? { checkPass } : {}),
     // Unless the seller edited stock (or the options), the numbers in the database win: orders reserve and release them.
     ...(!stockChanged && Number.isInteger(existing.data()?.stock) ? { stock: existing.data()!.stock } : {}),
     ...(!stockChanged && existing.data()?.variantStock && data.options ? { variantStock: existing.data()!.variantStock } : {}),

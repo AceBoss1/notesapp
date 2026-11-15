@@ -17,6 +17,7 @@ import { sweepMessageUploads } from "@/lib/messages-server";
 import { sweepMessageRequests } from "@/lib/message-edits";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 import { sendReportsDigest, liftExpiredSuspensions } from "@/lib/reports-server";
+import { recheckQueued } from "@/lib/content-checks-server";
 import { momentDeps } from "@/lib/moments-api";
 import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
@@ -130,6 +131,7 @@ async function run() {
   await job("replayTranscripts", () => transcribeReplays(db));
   await job("sweepMessageUploads", () => (privateFilesConfigured() ? sweepMessageUploads(db, deleteObject) : Promise.resolve(0)));
   await job("liftExpiredSuspensions", () => liftExpiredSuspensions(db));
+  await job("contentRechecks", () => recheckQueued(db)); // AI content checks: posts published while the checker couldn't answer
   await job("reportsDigest", async () => ((await sendReportsDigest(db)) ? 1 : 0));
   // From 07:00 Lagos time, once a day: the team's morning summary (their day, decisions, blockers, queues, milestones, meetings).
   await job("teamMorningSummary", () => sendMorningSummaries(db));

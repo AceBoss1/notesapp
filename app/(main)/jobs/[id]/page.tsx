@@ -42,7 +42,7 @@ export default async function JobPage({ params }: { params: { id: string } }) {
           <p className="mt-8 text-sm text-slate">Posted by a CAC-verified organisation. Never pay to apply for a job: report any job that asks you for money. <Link href="/explore?tab=jobs" className="text-crimson underline">All jobs</Link></p>
           <div className="mt-3"><ReportJob jobId={j.id} /></div>
         </article>
-        <aside className="card h-fit p-6">
+        <aside id="apply" className="card h-fit scroll-mt-20 p-6">
           <h2 className="font-display text-2xl text-ink">Apply</h2>
           {open && j.applyWithNotesApp === false && j.applyUrl ? (
             <div className="mt-3 text-sm text-ink">

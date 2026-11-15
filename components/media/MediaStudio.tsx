@@ -1,6 +1,9 @@
 "use client";
 
 import ReplaysList from "@/components/replays/ReplaysList";
+import BlockedNotice from "@/components/content-checks/BlockedNotice";
+import RulesCard from "@/components/content-checks/RulesCard";
+import { contentCheckOf, type CheckDetail } from "@/lib/content-checks";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Studio } from "@/lib/media-server";
@@ -108,6 +111,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
   const [songId, setSongId] = useState("");
+  const [blocked, setBlocked] = useState<CheckDetail | null>(null);
   // "Use this sound" on a song's page opens the studio with ?song=<id> (lib/songs.ts).
   useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("song"); if (q) setSongId(q); } catch { /* no query */ } }, []);
   // Remix (owner, 12 Nov 2026): "Remix" on someone's post opens the studio with ?remix=<post>: its sound is chosen, the caption credits
@@ -132,7 +136,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
   const isVideo = files[0]?.type.startsWith("video/");
   const pinnedNow = s.posts.filter((p) => p.pinned).length;
 
-  const choose = (list: FileList | null) => {
+  const choose = (list: FileList | File[] | null) => {
     if (!list?.length) return;
     const all = Array.from(list);
     const video = all.find((f) => f.type.startsWith("video/"));
@@ -144,7 +148,7 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
 
   const post = async () => {
     if (!files.length) return setNote({ ok: false, text: "Choose a video or pictures first." });
-    setBusy(true); setNote(null);
+    setBusy(true); setNote(null); setBlocked(null);
     try {
       const common = { caption, audience, ...sw, ...(songId ? { songId } : {}), ...(remix ? { remixOf: remix.id } : {}) };
       if (isVideo) {
@@ -169,8 +173,17 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
       onPosted();
     } catch (e) {
       setProgress(null);
-      setNote({ ok: false, text: e instanceof Error ? e.message : "Couldn't post that." });
+      // AI content checks: what was found and in which photo; the post stays here so it can be fixed.
+      const d = contentCheckOf(e);
+      if (d) setBlocked(d);
+      else setNote({ ok: false, text: e instanceof Error ? e.message : "Couldn't post that." });
     } finally { setBusy(false); }
+  };
+  // "Remove the photo": takes picture n out of the post.
+  const removePhoto = (_url: string | undefined, item: string | undefined) => {
+    const n = Number(/^picture (\d+)$/.exec(item ?? "")?.[1]);
+    if (!n || isVideo) return;
+    choose(files.filter((_, i) => i !== n - 1));
   };
 
   const q = s.quota;
@@ -237,7 +250,9 @@ function NewPost({ s, onPosted }: { s: Studio; onPosted: () => void }) {
         <span><b>{LIMIT_TIER_LABEL[s.tier]} plan:</b> {q.videos.limit > 0 ? `${q.videos.used} of ${q.videos.limit} videos used this week (resets Monday), up to ${q.maxVideoSeconds} seconds each. ` : "Media videos come with a paid plan. "}{q.picturePosts.used} of {q.picturePosts.limit} picture posts today. <Link href="/pricing" className="font-semibold text-crimson">See plans</Link></span>
       </p>
       {note && <p className={`mt-3 text-sm ${note.ok ? "text-moss" : "text-red-700"}`} role="status">{note.text}</p>}
+      {blocked && <div className="mt-3"><BlockedNotice detail={blocked} onRemovePhoto={removePhoto} onClose={() => setBlocked(null)} /></div>}
       <button type="button" disabled={busy || !files.length} onClick={post} className="mt-4 w-full rounded-full bg-crimson py-3.5 font-ui text-[15px] font-bold text-paper disabled:opacity-60">{busy ? "Posting…" : "Post to Media"}</button>
+      <RulesCard className="mt-5" />
     </section>
   );
 }

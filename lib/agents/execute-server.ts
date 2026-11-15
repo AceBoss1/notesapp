@@ -1,4 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { gateContent, gateJournal } from "../content-checks-server";
+import { isContentCheckError } from "../content-checks";
 import { sendMessage, type Alerts, type Notify } from "@/lib/messages-server";
 import { changeMessage } from "@/lib/message-edits";
 import { slugify } from "@/lib/firestore-notes";
@@ -73,6 +75,8 @@ export async function execute(db: Firestore, uid: string, p: Proposal, draft: st
     case "publish_post": {
       const { ref, n } = await ownNote(db, uid, pl.noteId);
       if (n.status === "published") return { noteId: ref.id, already: true };
+      try { await gateJournal(db, uid, n, ref.path); } // AI content checks
+      catch (e) { if (isContentCheckError(e)) throw new ExecError(`${e.message} It stays a draft.`, e.status); throw e; }
       await ref.update({ status: "published", date: now.toISOString() });
       void emitWebhook(uid, "post.published", postJson(ref.id, { ...n, status: "published" }));
       return { noteId: ref.id, slug: n.slug, href: `/journals/${n.slug}` };
@@ -83,6 +87,11 @@ export async function execute(db: Firestore, uid: string, p: Proposal, draft: st
       if (!item || item.ownerUid !== uid) throw new ExecError("That store item wasn't found on this account.", 404);
       const changes = cleanStoreChanges((pl.changes ?? {}) as Record<string, unknown>);
       if (!Object.keys(changes).length) throw new ExecError("Nothing to change.");
+      if (changes.title !== undefined || changes.subtitle !== undefined) {
+        const t = `${String(changes.title ?? item.title ?? "")}\n\n${String(changes.subtitle ?? item.subtitle ?? "")}`;
+        try { await gateContent(db, { uid, kind: "store_item", label: String(changes.title ?? item.title ?? ""), text: t, path: ref.path, takedown: { update: { title: item.title ?? "", subtitle: item.subtitle ?? "" } } }); }
+        catch (e) { if (isContentCheckError(e)) throw new ExecError(e.message, e.status); throw e; }
+      }
       const before = Object.fromEntries(Object.keys(changes).map((k) => [k, item[k] ?? null]));
       const update: Record<string, unknown> = { ...changes, updatedAt: now.toISOString() };
       if (changes.priceKobo !== undefined) update.price = `₦${Math.round(Number(changes.priceKobo) / 100).toLocaleString("en-NG")}`;

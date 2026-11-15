@@ -5,7 +5,9 @@ import { liveDeps, me, njFail, noStore } from "@/lib/nana-jobs-api";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Longer than the CV review's own wait for the member's AI (AI_TIMEOUT_MS.cv in lib/ai-providers.ts), so a slow AI gets our message,
+// not the platform's bare timeout page (the "Something went wrong" of 15 Nov 2026).
+export const maxDuration = 120;
 
 // Your CV. The browser reads the PDF or Word file and sends only the text. POST { text, fileName? } keeps it (encrypted) and has the
 // member's own AI review it; POST { again: true } reviews the saved one again; DELETE removes the CV and its review.

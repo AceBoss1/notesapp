@@ -22,7 +22,7 @@ for (const p of campusPages({ lead: true, role: null })) assert.equal(p.group, "
 const groups = groupSections(all);
 assert.deepEqual(groups.map((g) => g.name), GROUP_ORDER.filter((g) => g !== "Campus"), "Campus pages come from lib/campus.ts");
 const count = Object.fromEntries(groups.map((g) => [g.name, g.pages.length]));
-assert.deepEqual(count, { Workspace: 9, Content: 6, "People & Trust": 9, Money: 9, Growth: 10, Platform: 7, Admin: 4 }, "the counts in the design, plus Growth (v0.175.0)");
+assert.deepEqual(count, { Workspace: 9, Content: 6, "People & Trust": 10, Money: 9, Growth: 10, Platform: 7, Admin: 4 }, "the counts in the design, plus Content checks (v0.174.0) and Growth (v0.175.0)");
 assert.deepEqual(groups.find((g) => g.name === "People & Trust")!.pages.map((p) => p.label).slice(0, 3), ["Users", "Throwaway emails", "Organisations"]);
 
 assert.equal(activeSection(all, "/admin")?.label, "Dashboard");

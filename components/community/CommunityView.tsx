@@ -1,6 +1,7 @@
 "use client";
 
 import TabsMore from "@/components/TabsMore";
+import RulesCard from "@/components/content-checks/RulesCard";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,7 +25,7 @@ type View = {
   community: {
     id: string; name: string; tagline: string; avatar: string; cover: string; joinMode: string; questions: string[]; memberCount: number; verified: boolean;
     slowModeSec: number; spaces: Space[]; about: string; contact: string; ownerName: string; ownerUsername: string; publicView?: PublicView; allSpaces?: Space[];
-    inviteCode?: string; circlesAllowed: boolean; memberLimit: number | null;
+    inviteCode?: string; circlesAllowed: boolean; memberLimit: number | null; closedForRules?: boolean; rulesWarning?: string;
   };
   notice: string; role: Role | null; realRole: Role | null; status: string | null; viewingAs: boolean; tabs: Tab[];
   channels: { id: string; name: string; canPost: boolean }[]; canJoin: boolean;
@@ -96,13 +97,24 @@ export default function CommunityView({ id }: { id: string }) {
           tabClass={(on) => `shrink-0 border-b-2 px-3 py-2 text-sm font-semibold ${on ? "border-crimson text-ink" : "border-transparent text-slate hover:text-ink"}`} />
       </div>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {(c.closedForRules || c.rulesWarning) && (
+          <p role="status" className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-ink">
+            {c.closedForRules
+              ? "This community is closed: posts that break the rules kept being published or approved by its owner or moderators. Nothing new can be posted. Its owner can ask for a review."
+              : "A warning to everyone here: posts by this community's owner or moderators broke the rules. If it keeps happening, the community will be closed."}
+          </p>
+        )}
         {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} startRoom={params.get("start") === "room"} />}
         {room && user && <RoomScreen id={room.id} title={room.title} me={user.uid} onDone={() => setRoom(null)} />}
         {shownTab === "general" && <Feed shareable={v.community.joinMode !== "invite"} cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
         {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} initial={params.get("space") ?? ""} />}
         {shownTab === "events" && <div>{can(v.role, "events") && !v.viewingAs && <NewEventButton cid={id} onSaved={load} />}<EventList query={`cid=${id}`} empty="No upcoming events." /></div>}
         {shownTab === "members" && <Members cid={id} role={v.viewingAs ? null : v.role} me={user?.uid ?? null} as={as} />}
-        {shownTab === "about" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.about}</p>}
+        {shownTab === "about" && <>
+          <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.about}</p>
+          {/* The rules, on every community's About tab (AI content checks) */}
+          <RulesCard className="mt-4" />
+        </>}
         {shownTab === "contact" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.contact}</p>}
         {shownTab === "circles" && <Circles cid={id} role={v.viewingAs ? null : v.role} allowed={c.circlesAllowed} as={as} me={user?.uid ?? null} />}
         {shownTab === "admin" && v.role && <Admin cid={id} role={v.role} questions={c.questions} inviteCode={c.inviteCode} onSaved={load} giving={v.givingSettings} verified={c.verified}

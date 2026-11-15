@@ -55,6 +55,7 @@ export type NotificationType =
   | "hotel" // the Hotel kit: a booking, an order, late money, a request (lib/hotel-server.ts)
   | "referral" // the monthly referrals and affiliate report
   | "reminder" // a private reminder that never says what it's about (My Cycle, lib/cycle-server.ts)
+  | "content_check" // AI content checks: a post held or blocked, a review decided (lib/content-checks-server.ts)
   | "nana"; // Nana's inbox: something needs the member, or Nana did something for them (lib/agents)
 
 export type AppNotification = {
