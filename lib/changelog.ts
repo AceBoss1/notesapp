@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.173.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "For our team: Admin → Users finds members by name, @username, uid, work or email domain (and by an exact email, logged), with filters (needs action, suspended, possible duplicates, team, organisations, campus, new this week), plan and order; a summary at the top; and whether each member's email is confirmed, how they sign in and when they were last seen." },
+      { kind: "added", text: "For our team: a member's full picture in one panel (account, money, activity, reports and suspensions, who viewed their details), staff notes, a history of every change made to their account, and actions: send a notification (to one or many), resend the confirmation email, send a password reset link, export their data (logged), mark look-alike accounts as different people, and suspend several at once." },
+    ],
+  },
+  {
     version: "v0.172.0",
     bump: "minor",
     date: "2026-11-15",

@@ -154,6 +154,14 @@ test("campus: the team and its tasks are server-only (lib/campus-server.ts)", as
   await assertFails(setDoc(doc(as("cb"), "users/cb"), { ...base, campusBadge: "ambassador" }));
 });
 
+test("admin users: staff notes, change history and duplicate marks are server-only (lib/admin-members-server.ts)", async () => {
+  for (const path of ["adminMemberNotes/n1", "adminMemberHistory/h1", "adminUserFlags/alice"]) {
+    await assertFails(getDoc(doc(as("alice"), path)));
+    await assertFails(setDoc(doc(as("alice"), path), { uid: "alice", text: "x" }));
+    await assertFails(getDoc(doc(as("boss", { admin: true }), path)), "even staff go through the server");
+  }
+});
+
 test("a founder email without the admin claim is no longer an admin", async () => {
   await assertFails(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
   await assertFails(getDoc(doc(as("x", { email: "someone@else.com" }), "ledger/ref1")));
