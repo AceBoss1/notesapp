@@ -15,6 +15,9 @@ import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { hasAnyDept, hasDept } from "@/lib/admin-access";
 import { INDUSTRY_LABEL, headline, industryMix, isIndustry } from "@/lib/profile-work";
+import { PAGE_SIZE, USER_FILTERS, USER_SORTS, duplicateMap, filterCounts, filterUsers, isUserFilter, isUserSort, type UserFilter, type UserSort } from "@/lib/admin-user-search";
+import MemberPanel, { ago, membersCall } from "@/components/admin/users/MemberPanel";
+import ReasonDialog from "@/components/admin/users/ReasonDialog";
 
 const FOUNDER_USERNAMES = Object.values(ADMIN_PROFILES).map((p) => p.username);
 
@@ -37,8 +40,63 @@ export default function AdminUsersPage() {
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
   const [suspendLength, setSuspendLength] = useState<SuspensionLength>("1w");
+  // Finding members (lib/admin-user-search.ts): the search, filter, plan and order live in the address (?q=&f=&tier=&sort=&member=) so a
+  // link opens the same view; 50 shown at a time.
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<UserFilter>("all");
+  const [tierFilter, setTierFilter] = useState("");
+  const [sort, setSort] = useState<UserSort>("newest");
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [signals, setSignals] = useState<Record<string, { verified: boolean; providers: string[]; lastSignIn?: string; lastSeen?: string; disabled?: boolean; notDuplicateOf?: string[] }>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [panel, setPanel] = useState<string | null>(null);
+  const [finding, setFinding] = useState(false);
+  const [findEmail, setFindEmail] = useState("");
+  const [findError, setFindError] = useState("");
+  const [bulk, setBulk] = useState<"message" | "suspend" | null>(null);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkNote, setBulkNote] = useState("");
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setQ(p.get("q") ?? "");
+    const f = p.get("f"); if (isUserFilter(f)) setFilter(f);
+    setTierFilter(p.get("tier") ?? "");
+    const so = p.get("sort"); if (isUserSort(so)) setSort(so);
+    const open = p.get("member"); if (open) setPanel(open);
+  }, []);
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (filter !== "all") p.set("f", filter);
+    if (tierFilter) p.set("tier", tierFilter);
+    if (sort !== "newest") p.set("sort", sort);
+    if (panel) p.set("member", panel);
+    const qs = p.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    setShown(PAGE_SIZE);
+  }, [q, filter, tierFilter, sort, panel]);
 
   const mix = useMemo(() => (users ? industryMix(users) : null), [users]);
+  // Possible duplicates, less the pairs staff marked as different people.
+  const dups = useMemo(() => {
+    const m = users ? duplicateMap(users, sharedEmail, headline) : new Map<string, { other: UserProfile; why: "same email as" | "same name and work as" }[]>();
+    for (const [uid, l] of Array.from(m.entries())) {
+      const keep = l.filter((x) => !(signals[uid]?.notDuplicateOf ?? []).includes(x.other.uid));
+      if (keep.length) m.set(uid, keep); else m.delete(uid);
+    }
+    return m;
+  }, [users, sharedEmail, signals]);
+  const ctx = useMemo(() => ({ emails, badgePending: new Set(Object.entries(badgeRequests).filter(([, r]) => r?.status === "pending").map(([k]) => k)), duplicates: new Set(Array.from(dups.keys())) }), [emails, badgeRequests, dups]);
+  const list = useMemo(() => (users ? filterUsers(users, { q, filter, tier: tierFilter, sort }, ctx) : []), [users, q, filter, tierFilter, sort, ctx]);
+  const counts = useMemo(() => (users ? filterCounts(users, { q, tier: tierFilter }, ctx) : null), [users, q, tierFilter, ctx]);
+  // The strip at the top: everyone, by plan, new this week and month, and what's waiting on us.
+  const summary = useMemo(() => {
+    if (!users) return null;
+    const now = Date.now(), within = (d: number) => users.filter((u) => u.createdAt && now - Date.parse(u.createdAt) < d * 86_400_000).length;
+    const byTier = TIERS.map((t) => ({ tier: t.tier, label: t.label, n: users.filter((u) => (u.accountTier ?? "standard") === t.tier).length }));
+    const known = users.filter((u) => signals[u.uid]).length, verified = users.filter((u) => signals[u.uid]?.verified).length;
+    return { total: users.length, week: within(7), month: within(30), byTier, suspended: users.filter((u) => u.suspended).length, verifiedPct: known ? Math.round((verified / known) * 100) : null };
+  }, [users, signals]);
 
   function reload() {
     getAllUsersForAdmin()
@@ -59,6 +117,8 @@ export default function AdminUsersPage() {
             setEmails(j.emails || {});
             setSharedEmail(j.sharedEmail || {});
           }
+          // Email confirmed, sign-in method, last signed in and seen (lib/admin-members-server.ts signals).
+          membersCall<{ signals: typeof signals }>(user!, { body: { action: "signals", uids: list.map((u) => u.uid) } }).then((j) => setSignals(j.signals)).catch(() => {});
         } catch {
           /* emails are a convenience; the list still works without them */
         }
@@ -76,11 +136,48 @@ export default function AdminUsersPage() {
     return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   }
 
+  // Every change made here goes in the member's history (lib/admin-members-server.ts logChange), stamped on the server with who and when.
+  function logged(uid: string, what: string, detail: string) {
+    if (user) void membersCall(user, { body: { action: "history", uid, what, detail } }).catch(() => {});
+  }
+  const nameOf = (uid: string) => users?.find((x) => x.uid === uid);
+
+  async function findByEmail(reason: string, note: string) {
+    if (!user) return;
+    setFindError("");
+    try {
+      const r = await fetch("/api/admin/reveal", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify({ find: "email", email: findEmail, reason, note }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Couldn't look it up.");
+      setFinding(false); setFindEmail(""); setFilter("all"); setQ(j.uid); setPanel(j.uid);
+    } catch (e) { setFindError(e instanceof Error ? e.message : "Couldn't look it up."); }
+  }
+
+  async function bulkSend() {
+    if (!user || !selected.size) return;
+    setBusyUid("bulk");
+    try {
+      if (bulk === "message") {
+        await membersCall(user, { body: { action: "notify", uids: Array.from(selected), message: bulkText } });
+      } else if (bulk === "suspend") {
+        for (const uid of Array.from(selected)) {
+          const m = nameOf(uid);
+          if (!m || m.suspended || FOUNDER_USERNAMES.includes(m.username)) continue;
+          await suspendUser(uid, m.username, bulkText.trim(), user.uid, suspendLength);
+          logged(uid, "suspended", `${bulkText.trim()} (${suspendLength}, with ${selected.size - 1} others)`);
+        }
+      }
+      setBulkNote(bulk === "message" ? `Sent to ${selected.size}.` : `Suspended the ones that weren't already.`);
+      setBulk(null); setBulkText(""); setSelected(new Set()); reload();
+    } catch (e) { setBulkNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusyUid(null); }
+  }
+
   async function handleSuspend(uid: string, username: string) {
     if (!suspendReason.trim() || !user) return;
     setBusyUid(uid);
     try {
       await suspendUser(uid, username, suspendReason.trim(), user.uid, suspendLength);
+      logged(uid, "suspended", `${suspendReason.trim()} (${suspendLength})`);
       setSuspendReasonFor(null);
       setSuspendReason("");
       reload();
@@ -94,6 +191,7 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await unsuspendUser(uid, username, user.uid, upheld);
+      logged(uid, upheld ? "appeal" : "unsuspended", upheld ? "Appeal upheld, unsuspended" : "Unsuspended");
       reload();
     } finally {
       setBusyUid(null);
@@ -105,6 +203,7 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await rejectAppeal(uid, username, user.uid);
+      logged(uid, "appeal", "Appeal rejected, stays suspended");
       reload();
     } finally {
       setBusyUid(null);
@@ -116,6 +215,7 @@ export default function AdminUsersPage() {
     setBusyUid(u.uid);
     try {
       await resolveTierRequest(u.uid, u.username, user.uid, approve);
+      logged(u.uid, "basic request", approve ? "Approved" : "Rejected");
       reload();
     } finally {
       setBusyUid(null);
@@ -139,6 +239,7 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ uid, approve, reason }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't record the decision");
+      logged(uid, "badge request", approve ? "Approved" : `Declined${reason ? `: ${reason}` : ""}`);
       reload();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Couldn't record the decision");
@@ -151,6 +252,7 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await setGoldBadge(uid, (value || null) as GoldBadgeKind | null);
+      logged(uid, "gold", `${nameOf(uid)?.goldBadge?.kind ?? "none"} → ${value || "none"}`);
       reload();
     } finally {
       setBusyUid(null);
@@ -161,6 +263,7 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await updateUserTier(uid, tier);
+      logged(uid, "tier", `${nameOf(uid)?.accountTier ?? "standard"} → ${tier}`);
       reload();
     } finally {
       setBusyUid(null);
@@ -171,6 +274,7 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await updateUserRole(uid, username, role);
+      logged(uid, "role", `${nameOf(uid)?.role ?? "reader"} → ${role}`);
       reload();
     } finally {
       setBusyUid(null);
@@ -220,27 +324,100 @@ export default function AdminUsersPage() {
         </section>
       )}
 
+      {summary && (
+        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Members at a glance">
+          {[
+            { k: "Members", v: summary.total, n: `${summary.week} new this week · ${summary.month} this month` },
+            { k: "Waiting on us", v: counts?.action ?? 0, n: "Badge and Basic applications, appeals", on: () => setFilter("action") },
+            { k: "Suspended", v: summary.suspended, n: "Accounts suspended now", on: () => setFilter("suspended") },
+            { k: "Email confirmed", v: summary.verifiedPct === null ? "…" : `${summary.verifiedPct}%`, n: "Of everyone who signs in with email" },
+          ].map((c) => (
+            <button key={c.k} type="button" disabled={!c.on} onClick={c.on} className="rounded-[14px] border border-rule bg-card p-4 text-left enabled:hover:border-crimson">
+              <span className="block font-ui text-[13px] text-slate">{c.k}</span>
+              <span className="block font-display text-2xl text-ink">{c.v}</span>
+              <span className="block font-ui text-[11px] text-slate">{c.n}</span>
+            </button>
+          ))}
+          <p className="col-span-2 font-ui text-xs text-slate sm:col-span-4">{summary.byTier.map((t) => `${t.label} ${t.n}`).join(" · ")}</p>
+        </section>
+      )}
+
+      {users && (
+        <div className="sticky top-[4.5rem] z-20 -mx-4 mt-6 border-b border-rule bg-paper/95 px-4 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="relative min-w-0 flex-1 basis-60">
+              <span className="sr-only">Search members</span>
+              <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, @username, uid, work or email domain" className="w-full rounded-full border border-rule bg-card px-4 py-2.5 font-ui text-sm outline-none focus:border-crimson" />
+            </label>
+            {canCare || canMoney || hasDept(access, "legal") ? <button type="button" onClick={() => { setFinding(true); setFindError(""); }} className="rounded-full border border-rule bg-card px-4 py-2.5 font-ui text-sm font-semibold text-ink hover:border-crimson">Find by email</button> : null}
+            <select aria-label="Plan" value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} className="rounded-full border border-rule bg-card px-3 py-2.5 font-ui text-sm">
+              <option value="">Every plan</option>
+              {TIERS.map((t) => <option key={t.tier} value={t.tier}>{t.label}</option>)}
+            </select>
+            <select aria-label="Order" value={sort} onChange={(e) => setSort(e.target.value as UserSort)} className="rounded-full border border-rule bg-card px-3 py-2.5 font-ui text-sm">
+              {USER_SORTS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+            </select>
+          </div>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Show">
+            {USER_FILTERS.map((x) => (
+              <button key={x.id} type="button" title={x.hint} onClick={() => setFilter(x.id)} aria-pressed={filter === x.id}
+                className={`shrink-0 rounded-full px-3 py-1.5 font-ui text-xs font-semibold ${filter === x.id ? "bg-crimson text-paper" : "border border-rule bg-card text-ink hover:border-crimson"} ${x.id === "action" && (counts?.action ?? 0) > 0 && filter !== x.id ? "!border-amber-400 !bg-amber-50" : ""}`}>
+                {x.label} <span className="font-mono opacity-80">{counts?.[x.id] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          {selected.size > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-crimson-deep px-3 py-2 font-ui text-sm text-paper">
+              <b>{selected.size} selected</b>
+              {canCare && <button type="button" onClick={() => { setBulk("message"); setBulkText(""); }} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25">Send a notification</button>}
+              {canCare && <button type="button" onClick={() => { setBulk("suspend"); setBulkText(""); }} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25">Suspend</button>}
+              <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-paper/80 hover:text-paper">Clear</button>
+            </div>
+          )}
+          {bulk && (
+            <div className="mt-2 rounded-xl border border-rule bg-card p-3">
+              <p className="font-ui text-sm font-semibold text-ink">{bulk === "message" ? `Notification to ${selected.size} member${selected.size === 1 ? "" : "s"}` : `Suspend ${selected.size} account${selected.size === 1 ? "" : "s"}`}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <input value={bulkText} onChange={(e) => setBulkText(e.target.value)} maxLength={280} placeholder={bulk === "message" ? "The message (they see it in their notifications)" : "Reason (shown to them and in the moderation record)"} className="min-w-0 flex-1 rounded-lg border border-rule bg-paper px-3 py-2 text-sm" />
+                {bulk === "suspend" && <select value={suspendLength} onChange={(e) => setSuspendLength(e.target.value as SuspensionLength)} aria-label="How long" className="rounded-lg border border-rule bg-paper px-2 py-2 text-sm">{SUSPENSION_LENGTHS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}</select>}
+                <button type="button" disabled={busyUid === "bulk" || bulkText.trim().length < (bulk === "message" ? 5 : 3)} onClick={() => { if (bulk === "message" || confirm(`Suspend ${selected.size} accounts? Admins and accounts already suspended are skipped.`)) void bulkSend(); }} className="rounded-lg bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper disabled:opacity-50">{busyUid === "bulk" ? "Working…" : bulk === "message" ? "Send" : "Suspend them"}</button>
+                <button type="button" onClick={() => setBulk(null)} className="px-2 font-ui text-xs text-slate">Cancel</button>
+              </div>
+            </div>
+          )}
+          {bulkNote && <p className="mt-2 font-ui text-xs text-green-700" role="status">{bulkNote}</p>}
+        </div>
+      )}
+
       {!users ? (
         <p className="mt-8 text-slate">Loading…</p>
       ) : (
-        <div className="mt-8 divide-y divide-rule">
-          {users.map((u) => {
-            // A shared display name alone is not a duplicate ("David" and "David"). Flag another account only when it signs in with
-            // the same email, or has the same name and the same work (job title and workplace) and field.
-            const norm = (x: string) => x.trim().toLowerCase();
-            const sameWork = (o: typeof u) => !!headline(u) && norm(headline(o)) === norm(headline(u)) && (o.industry ?? "") === (u.industry ?? "");
-            const sameName = users.filter((o) => o.uid !== u.uid && (
-              (sharedEmail[u.uid] !== undefined && sharedEmail[o.uid] === sharedEmail[u.uid]) ||
-              (norm(o.displayName) === norm(u.displayName) && sameWork(o))
-            ));
-            const why = (o: typeof u) => (sharedEmail[u.uid] !== undefined && sharedEmail[o.uid] === sharedEmail[u.uid] ? "same email as" : "same name and work as");
+        <>
+        <div className="mt-4 flex items-center justify-between gap-3 font-ui text-xs text-slate">
+          <span>{list.length === users.length ? `${users.length} members` : `${list.length} of ${users.length} members`}</span>
+          {list.length > 0 && <button type="button" onClick={() => setSelected(new Set(list.slice(0, shown).map((u) => u.uid).filter((uid) => !FOUNDER_USERNAMES.includes(nameOf(uid)?.username ?? ""))))} className="font-semibold text-crimson">Select the {Math.min(shown, list.length)} shown</button>}
+        </div>
+        {list.length === 0 && <p className="mt-6 font-ui text-sm text-slate">No members match. Try fewer words, another filter, or Find by email.</p>}
+        <div className="mt-2 divide-y divide-rule">
+          {list.slice(0, shown).map((u) => {
+            // A shared display name alone is not a duplicate ("David" and "David"): same sign-in email, or same name and work and field
+            // (lib/admin-user-search.ts duplicateMap), less the pairs staff marked as different people.
+            const dupList = dups.get(u.uid) ?? [];
+            const sameName = dupList.map((x) => x.other);
+            const why = (o: typeof u) => dupList.find((x) => x.other.uid === o.uid)?.why ?? "same name and work as";
+            const sig = signals[u.uid];
             const isFounder = FOUNDER_USERNAMES.includes(u.username);
             const suspended = u.suspended === true;
             const pendingAppeal = suspended && u.suspension?.appealStatus === "pending";
 
             return (
-              <div key={u.uid} className="py-5">
+              <div key={u.uid} className={`py-5 ${selected.has(u.uid) ? "bg-crimson/5" : ""}`}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                  {!isFounder && (
+                    <input type="checkbox" aria-label={`Select ${u.displayName}`} checked={selected.has(u.uid)} className="h-4 w-4 accent-crimson"
+                      onChange={(e) => setSelected((cur) => { const n = new Set(cur); if (e.target.checked) n.add(u.uid); else n.delete(u.uid); return n; })} />
+                  )}
                   <Link href={`/u/${u.username}`} className="flex items-center gap-3 group">
                     <Image
                       src={suspended ? "/images/brand/suspended-avatar.png" : u.avatar}
@@ -258,8 +435,20 @@ export default function AdminUsersPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate mt-0.5"><Masked kind="member-email" subject={u.uid} masked={emails[u.uid]} page="Users" /></p>
+                      {sig && (
+                        <p className="mt-0.5 font-ui text-[11px] text-slate">
+                          {sig.verified ? <span className="text-green-700">✓ email confirmed</span> : <span className="text-amber-700">email not confirmed</span>}
+                          {sig.providers.length > 0 && <> · {sig.providers.join(", ")}</>}
+                          {" · "}seen {ago(sig.lastSeen ?? sig.lastSignIn)} · {(u.accountTier ?? "standard")}
+                          {sig.disabled && <b className="text-red-700"> · sign-in disabled</b>}
+                        </p>
+                      )}
                       {(headline(u) || isIndustry(u.industry)) && (
                         <p className="mt-0.5 text-xs text-ink">{[headline(u), isIndustry(u.industry) ? INDUSTRY_LABEL[u.industry] : ""].filter(Boolean).join(" · ")}</p>
+                      )}
+                      {sameName.length > 0 && canCare && (
+                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (user && confirm(`Mark ${u.displayName} and ${sameName.map((o) => "@" + o.username).join(", ")} as different people? The warning goes away for both.`)) void Promise.all(sameName.map((o) => membersCall(user, { body: { action: "notDuplicate", a: u.uid, b: o.uid } }))).then(() => reload()).catch((err) => alert(err instanceof Error ? err.message : "Couldn't save that.")); }}
+                          className="mt-1 block font-ui text-[11px] font-semibold text-crimson underline">Not the same person</button>
                       )}
                       {sameName.length > 0 && (
                         <p className="mt-1 text-xs font-semibold text-amber-800">
@@ -297,6 +486,7 @@ export default function AdminUsersPage() {
                     )}
                     </div>
                   </Link>
+                  </div>
 
                   <div className="flex items-center gap-3 flex-wrap">
                     {suspended && (
@@ -351,7 +541,8 @@ export default function AdminUsersPage() {
                       </select>}
                       </>
                     )}
-                    <p className="text-xs text-slate font-mono">
+                    <button type="button" onClick={() => setPanel(u.uid)} className="rounded-full bg-crimson px-3 py-1.5 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright">Details</button>
+                    <p className="text-xs text-slate font-mono" title="Joined">
                       {new Date(u.createdAt).toLocaleDateString("en-NG", {
                         year: "numeric",
                         month: "short",
@@ -437,6 +628,18 @@ export default function AdminUsersPage() {
             );
           })}
         </div>
+        {list.length > shown && <button type="button" onClick={() => setShown((n) => n + PAGE_SIZE)} className="mt-6 w-full rounded-full border border-rule bg-card py-3 font-ui text-sm font-semibold text-ink hover:border-crimson">Show {Math.min(PAGE_SIZE, list.length - shown)} more ({list.length - shown} left)</button>}
+        </>
+      )}
+
+      {panel && user && <MemberPanel user={user} uid={panel} onClose={() => setPanel(null)} onChanged={reload} />}
+      {finding && (
+        <ReasonDialog title="Find a member by email" note="Enter their whole email address. Only the account comes back; your name, the time and your reason go in the view log." action="Find" busy={false} error={findError}
+          ready={/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(findEmail.trim())} onCancel={() => setFinding(false)} onSubmit={(r, n) => void findByEmail(r, n)}>
+          <label className="mt-4 block font-ui text-xs font-semibold text-ink">Email
+            <input type="email" autoFocus value={findEmail} onChange={(e) => setFindEmail(e.target.value)} placeholder="name@example.com" className="mt-1 w-full rounded-xl border border-rule bg-paper px-3 py-2 text-sm font-normal" />
+          </label>
+        </ReasonDialog>
       )}
     </section>
   );

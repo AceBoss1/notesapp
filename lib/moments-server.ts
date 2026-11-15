@@ -3,6 +3,7 @@ import { countPlay, countUse, songIdOk } from "./sounds-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
+import { gateContent } from "./content-checks-server";
 import {
   MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoParts, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind, type MomentLink,
@@ -251,6 +252,13 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   const id = randomBytes(8).toString("hex");
   const createdAt = now.toISOString();
   const full: MomentDoc = { ...doc, createdAt, expiresAt: momentExpiry(now, hours).toISOString() };
+  // AI content checks: the text, the picture (the marked copy) and the video's poster and frames, before anyone sees it.
+  const sUid = full.videoKey ? streamUidOf(full.videoKey) : null;
+  await gateContent(db, {
+    uid: owner.uid, kind: "moment", label: text || (full.imageKey ? "a picture" : "a video"), text,
+    pictures: full.imageKey ? [deps.publicUrl(full.imageKey)] : [], videos: sUid ? [{ streamUid: sUid, durationSec: full.durationSec, signed: true }] : [],
+    where: { href: `/u/${owner.username}` }, path: `moments/${id}`, restore: { set: { ...full, expireAt: new Date(full.expiresAt) } }, takedown: { delete: true },
+  });
   const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
   const ownerDoc = (await db.doc(`users/${owner.uid}`).get()).data();
   const dailyLimit = await limit(db, "momentsPerDay", effectiveTier({ username: ownerDoc?.username ?? "", role: ownerDoc?.role ?? "reader", accountTier: ownerDoc?.accountTier ?? "standard" }));
@@ -302,6 +310,8 @@ export async function shareToMoment(
     createdAt: now.toISOString(), expiresAt: momentExpiry(now, hours).toISOString(),
     likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false, // the cover belongs to the item, never deleted with the moment
   };
+  // The caption is checked (the card is an item already published).
+  if (text) await gateContent(db, { uid: owner.uid, kind: "moment", label: text, text, path: `moments/${id}`, restore: { set: { ...full, expireAt: new Date(full.expiresAt) } }, takedown: { delete: true } });
   const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
   const ownerDoc = (await db.doc(`users/${owner.uid}`).get()).data();
   const dailyLimit = await limit(db, "momentsPerDay", effectiveTier({ username: ownerDoc?.username ?? "", role: ownerDoc?.role ?? "reader", accountTier: ownerDoc?.accountTier ?? "standard" }));

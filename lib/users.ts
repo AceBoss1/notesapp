@@ -12,6 +12,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { requestPass } from "./content-checks-client";
 import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
@@ -97,6 +98,7 @@ export type UserProfile = {
   // Gold badge (identity check / endorsement) — admin-written only, and
   // only displayed once GOLD_BADGE_LIVE (lib/badges.ts) is true.
   goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string; track?: "personal" | "corporate" };
+  campusBadge?: "coordinator" | "lead" | "ambassador"; // the campus programme (lib/campus.ts), set by the server only
   // Paid gold badges lapse when the subscription period ends. Absent = an
   // admin grant with no expiry. Written only by the server.
   goldUntil?: string;
@@ -363,7 +365,10 @@ export async function updateProfile(
   uid: string,
   data: Partial<Pick<UserProfile, "displayName" | "bio" | "avatar" | "social" | "industry" | "jobTitle" | "workplace">>
 ): Promise<void> {
-  await updateDoc(doc(db, USERS, uid), data);
+  // AI content checks: a new name, bio or picture is checked first (firestore.rules ask for the pass). Throws if it breaks the rules.
+  const shown = data.displayName !== undefined || data.bio !== undefined || data.avatar !== undefined;
+  const checkPass = shown ? await requestPass("profile", { displayName: data.displayName, bio: data.bio, avatar: data.avatar }) : null;
+  await updateDoc(doc(db, USERS, uid), { ...data, ...(checkPass ? { checkPass } : {}) });
 }
 
 async function readUsersFromFirestore(): Promise<UserProfile[]> {

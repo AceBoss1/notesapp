@@ -113,6 +113,50 @@ service cloud.firestore {
 
 
     // ============================================================
+    // AI CONTENT CHECKS (lib/content-checks-server.ts, docs/CONTENT_CHECKS.md)
+    // ============================================================
+    // Journals, shop items and profiles are saved from the browser, so publishing a journal, or changing a shop item's or profile's
+    // words or pictures, needs a check pass: contentPasses/{id}, written by the server after the check, for exactly that content, for
+    // this member, for an hour. Off in Admin (contentCheckSettings/current enabled == false): no pass is asked for.
+    function checksOn() {
+      return !exists(/databases/$(database)/documents/contentCheckSettings/current)
+        || get(/databases/$(database)/documents/contentCheckSettings/current).data.get('enabled', true) != false;
+    }
+    function checkPassOf(d, kind) {
+      return d.get('checkPass', '') is string && d.get('checkPass', '') != ''
+        && exists(/databases/$(database)/documents/contentPasses/$(d.checkPass))
+        && get(/databases/$(database)/documents/contentPasses/$(d.checkPass)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/contentPasses/$(d.checkPass)).data.kind == kind
+        && get(/databases/$(database)/documents/contentPasses/$(d.checkPass)).data.expiresAt > request.time;
+    }
+    function passData(d) { return get(/databases/$(database)/documents/contentPasses/$(d.checkPass)).data; }
+    function journalChecked(d) {
+      return !checksOn() || (checkPassOf(d, 'journal')
+        && passData(d).title == d.get('title', '') && passData(d).content == d.get('content', '')
+        && passData(d).image == d.get('featured_image', '') && passData(d).poster == d.get('videoPoster', ''));
+    }
+    // A journal written by a member: published only with a pass, unless it was already published and its words and pictures stay the same.
+    function journalCreateOk() {
+      return request.resource.data.get('status', 'draft') != 'published' || journalChecked(request.resource.data);
+    }
+    function journalUpdateOk() {
+      return request.resource.data.get('status', 'draft') != 'published'
+        || (resource.data.get('status', 'draft') == 'published'
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['title', 'content', 'featured_image', 'videoPoster']))
+        || journalChecked(request.resource.data);
+    }
+    function storeChecked(d) {
+      return !checksOn() || (checkPassOf(d, 'store_item')
+        && passData(d).title == d.get('title', '') && passData(d).subtitle == d.get('subtitle', '')
+        && passData(d).image == d.get('image', '') && passData(d).images == d.get('images', []));
+    }
+    function profileChecked(d) {
+      return !checksOn() || (checkPassOf(d, 'profile')
+        && passData(d).displayName == d.get('displayName', '') && passData(d).bio == d.get('bio', '')
+        && passData(d).avatar == d.get('avatar', ''));
+    }
+
+    // ============================================================
     // NOTES
     // ============================================================
 
@@ -137,6 +181,7 @@ service cloud.firestore {
           && request.resource.data.authorUid == request.auth.uid
           && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'coEditedAt', 'coEditedBy', 'coEditedByName', 'replayId'])
           && videoValid(request.resource.data)
+          && journalCreateOk()
         )
         // A team member writing for their organisation: the org is the author,
         // the member is recorded as the writer.
@@ -147,6 +192,7 @@ service cloud.firestore {
           && orgCanPublish(request.resource.data.authorUid)
           && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'coEditedAt', 'coEditedBy', 'coEditedByName', 'replayId'])
           && videoValid(request.resource.data)
+          && journalCreateOk()
         );
 
       // Admins can delete anything.
@@ -173,6 +219,7 @@ service cloud.firestore {
               .affectedKeys()
               .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid', 'coEditedAt', 'coEditedBy', 'coEditedByName', 'replayId'])
           && videoOkOnEdit(request.resource.data, resource.data)
+          && journalUpdateOk()
         )
         // Team members: a writer edits their own posts for the organisation, an
         // org admin edits any of its posts. Neither can change who wrote it.
@@ -187,6 +234,7 @@ service cloud.firestore {
               .affectedKeys()
               .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid', 'coEditedAt', 'coEditedBy', 'coEditedByName', 'replayId'])
           && videoOkOnEdit(request.resource.data, resource.data)
+          && journalUpdateOk()
         )
         || request.resource.data.diff(resource.data)
             .affectedKeys()
@@ -368,9 +416,13 @@ service cloud.firestore {
                 'jobTitle',
                 'workplace',
                 'showOnline',
-                'showLists'
+                'showLists',
+                'checkPass'
               ])
           && workOk(request.resource.data)
+          // A new name, bio or picture is checked first (AI content checks).
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['displayName', 'bio', 'avatar'])
+              || profileChecked(request.resource.data))
           && (!('showOnline' in request.resource.data) || request.resource.data.showOnline is bool)
           && (!('showLists' in request.resource.data) || request.resource.data.showLists is bool)
         );
@@ -379,6 +431,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // AI content checks: settings, flags, strikes, the answer cache, daily numbers, check passes, community steps and the Legal team's
+    // child-safety queue. Server-only; members and staff reach them through /api/content-checks and /api/admin/content-checks.
+    match /contentCheckSettings/{id} { allow read, write: if false; }
+    match /contentFlags/{id} { allow read, write: if false; }
+    match /contentStanding/{uid} { allow read, write: if false; }
+    match /contentCheckCache/{id} { allow read, write: if false; }
+    match /contentCheckStats/{day} { allow read, write: if false; }
+    match /contentPasses/{id} { allow read, write: if false; }
+    match /communityChecks/{cid} { allow read, write: if false; }
+    match /legalQueue/{id} { allow read, write: if false; }
 
     // ============================================================
     // SUSPENSIONS (private: the member and admins only)
@@ -670,7 +733,7 @@ service cloud.firestore {
         || t.matches('(^|.*[^a-z0-9])(guide|course|book|ebook|class|lesson|training|explained|basics|beginners?|masterclass|tutorial|webinar|handbook)([^a-z0-9].*|$)');
     }
     function validStoreItem(d) {
-      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'currency', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'subcategory', 'shipsFrom', 'featured', 'weightKg'])
+      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'currency', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'subcategory', 'shipsFrom', 'featured', 'weightKg', 'checkPass'])
         && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta', 'sellable', 'priceKobo', 'deliveryKobo', 'stock'])
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
         && notCryptoListing(d.title.lower())
@@ -739,22 +802,31 @@ service cloud.firestore {
       return orgStoreFlag(orgUid) || orgRole(orgUid) == 'admin';
     }
 
+    // A listing's words and photos unchanged (stock, price, featured…), or checked (AI content checks).
+    function storeContentOk() {
+      return (request.resource.data.get('title', '') == resource.data.get('title', '')
+          && request.resource.data.get('subtitle', '') == resource.data.get('subtitle', '')
+          && request.resource.data.get('image', '') == resource.data.get('image', '')
+          && request.resource.data.get('images', []) == resource.data.get('images', []))
+        || storeChecked(request.resource.data);
+    }
+
     match /storeItems/{itemId} {
       allow read: if true;
       allow create: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && request.resource.data.ownerUid == request.auth.uid
-            && validStoreItem(request.resource.data))
+            && validStoreItem(request.resource.data) && storeChecked(request.resource.data))
         || (orgItemsRole(request.resource.data.ownerUid) && orgCanPublish(request.resource.data.ownerUid)
-            && validStoreItem(request.resource.data));
+            && validStoreItem(request.resource.data) && storeChecked(request.resource.data));
       allow update: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && resource.data.ownerUid == request.auth.uid
             && request.resource.data.ownerUid == request.auth.uid
             && sameKind(request.resource.data, resource.data)
-            && validStoreItem(request.resource.data))
+            && validStoreItem(request.resource.data) && storeContentOk())
         || (orgItemsRole(resource.data.ownerUid) && orgCanPublish(resource.data.ownerUid)
             && request.resource.data.ownerUid == resource.data.ownerUid
             && sameKind(request.resource.data, resource.data)
-            && validStoreItem(request.resource.data));
+            && validStoreItem(request.resource.data) && storeContentOk());
       allow delete: if adminHasAny(['support', 'moderation'])
         || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
         || orgStoreFlag(resource.data.ownerUid);
@@ -970,6 +1042,7 @@ service cloud.firestore {
     // boards and the shared pool of openings are written and read only by the server. Firms never see any of it.
     match /nanaJobsProfiles/{id} { allow read, write: if false; }
     match /nanaJobsRuns/{id} { allow read, write: if false; }
+    match /nanaJobsSeen/{id} { allow read, write: if false; }
     match /nanaJobsStatuses/{id} { allow read, write: if false; }
     match /nanaJobsCv/{id} { allow read, write: if false; }
     match /nanaJobsBoards/{id} { allow read, write: if false; }

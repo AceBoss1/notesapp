@@ -110,6 +110,8 @@ export type MerchOrder = {
   trackingNumber?: string;
   trackingUrl?: string;
   address: { fullName: string; phone: string; street: string; city: string; state: string };
+  source?: "campus"; // a free campus reward (lib/campus-server.ts decideClaim): ₦0, no payment to refund
+  campusClaimId?: string;
 };
 
 export const MERCH_STEPS: { status: Exclude<MerchOrderStatus, "refunded">; label: string; at: "createdAt" | "printedAt" | "shippedAt" | "deliveredAt" }[] = [

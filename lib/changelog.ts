@@ -11,11 +11,71 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.169.2",
+    version: "v0.174.2",
     bump: "patch",
     date: "2026-11-15",
     changes: [
       { kind: "fixed", text: "Careers at #NotesApp: the team's onboarding drafts for a new Campus Ambassador now include a proper ambassador agreement, so offers for contract roles are ready for review sooner. Nothing changes for applicants." },
+    ],
+  },
+  {
+    version: "v0.174.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Nana Jobs: a shortlist with nothing on it. If you hadn't filled in your profile, the job title from your NotesApp profile (\"Founder & CEO\", say) was used as the only role you wanted, so every opening was cut. Now a role counts only when you choose it; with no roles, Nana uses the ones from your CV review, or doesn't filter by job title at all." },
+      { kind: "fixed", text: "Nana Jobs: the CV review with Claude. Claude's answer was cut off before it finished, and a slow answer ran past the time limit and showed \"Something went wrong\". It now has room to answer, waits long enough, and when your AI does fail you see why (its own words, or \"your AI took too long\")." },
+      { kind: "added", text: "Nana Jobs: today's run now says why openings were cut (\"312 not in your roles, 98 location, 44 too old\"), and See all collected jobs lists every opening your run looked at, with the reason each one did or didn't make your list and a link to open it." },
+      { kind: "changed", text: "Nana Jobs: every job on your shortlist has a clear Apply button (the firm's own page in a new tab, or Apply on #NotesApp for Notes Jobs) and Mark as applied beside it. An empty profile now says so, with a button to set it up." },
+    ],
+  },
+  {
+    version: "v0.174.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Content checks: every photo, video frame and text that other people can see (journals, community posts and comments, Moments, Media posts, shop items, events and profiles) is checked by AI before it is published. Private messages are not read." },
+      { kind: "added", text: "A post that breaks the rules isn't published: it stays as a draft, you're told what was found and in which photo, and you can remove the photo or ask for a review. Each break is a strike; strikes and appeals are on your account page." },
+      { kind: "added", text: "The rules card on every community's About tab, the journal editor and the Media studio, the Content rules page, and a new section 2e in the Terms." },
+      { kind: "added", text: "Admin → People & Trust → Content checks (beside Reports): the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
+      { kind: "changed", text: "Videos on posts are now checked before they are shown (Terms, section 2a)." },
+    ],
+  },
+  {
+    version: "v0.173.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "For our team: Admin → Users finds members by name, @username, uid, work or email domain (and by an exact email, logged), with filters (needs action, suspended, possible duplicates, team, organisations, campus, new this week), plan and order; a summary at the top; and whether each member's email is confirmed, how they sign in and when they were last seen." },
+      { kind: "added", text: "For our team: a member's full picture in one panel (account, money, activity, reports and suspensions, who viewed their details), staff notes, a history of every change made to their account, and actions: send a notification (to one or many), resend the confirmation email, send a password reset link, export their data (logged), mark look-alike accounts as different people, and suspend several at once." },
+    ],
+  },
+  {
+    version: "v0.172.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎁 Campus rewards: internships and scholarships from our partners, perks and free #NotesApp merch for campus ambassadors. Each says who can claim it (a level and up, the top few this month, or Campus Leads) and what's missing; merch is sent to you, with a tracking link when it ships." },
+      { kind: "added", text: "Campus Leads: a coordinator can make one ambassador on each campus its Campus Lead, who also sees how everyone on that campus is doing." },
+      { kind: "added", text: "Campus badges: campus coordinators wear the maroon #NotesApp team mark by their name, and campus ambassadors and Campus Leads the white mark with a maroon shadow." },
+    ],
+  },
+  {
+    version: "v0.171.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "The campus programme is open in Kenya, Botswana and Ghana as well as Nigeria, with due dates and months in each country's own time." },
+      { kind: "added", text: "🏆 Campus leaderboard for ambassadors: your team or your country, this month or all time. Points for every member who joins with your link or code, every approved task, and a bonus for finishing on time; medals for the top three, and levels from Rookie to Legend that never go down. Coordinators see each ambassador's level and points on their overview." },
+    ],
+  },
+  {
+    version: "v0.170.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎓 The campus programme, starting in Nigeria: campus ambassadors open Campus to see the tasks their coordinator gave them, report progress with a note and a link as proof, and see their sign-ups this month and in all with their link and code. See The campus programme in the Help Centre." },
+      { kind: "added", text: "For our team: Campus in the admin area. Campus coordinators (appointed per country by super admins, the Chief of Staff and Marketing) give their ambassadors access, send tasks to all or some of them, approve or send back what they hand in, and follow each one's sign-ups, tasks and check-ins. Ambassadors get the Campus pages only." },
     ],
   },
   {
