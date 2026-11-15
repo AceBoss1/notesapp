@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Media posts: Like, Share, Remix and Save sit on a rail down the right of the picture or video, each an icon with its label, like other video apps." },
+    ],
+  },
+  {
     version: "v0.167.0",
     bump: "minor",
     date: "2026-11-15",
