@@ -1035,6 +1035,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Known limits: a free tier that's slow means the rest of a run keeps the keyword score; the cover note on the live site needs the
     member's AI to answer; the CV reader handles PDF with text and .docx (not scans or old .doc). Tests: `test:nana-jobs` (new, pure),
     `test:nana-jobs-server` (new, emulator), rules (one new test).
+    **v0.174.1 fixes (branch `push/nana-jobs-fixes`):** an empty or never-filled profile no longer cuts everything (the account job
+    title is only a suggestion; no roles = the CV review's roles or no title gate, `effectiveProfile`); the funnel says why openings were
+    cut (`cutSummary`); **See all collected jobs** (`nanaJobsSeen/{uid}`, `GET /api/jobs/nana/seen`, own run only); Apply and Mark as
+    applied on every card; the Claude CV review fixed (effort low, room for thinking, cut-offs and refusals named, timeouts inside the
+    route's `maxDuration`) and the real reason shown in the browser (`apiErrorText`). Details in `docs/NANA_JOBS.md` "Fixes in
+    v0.174.1". **Owner:** `firebase deploy --only firestore:rules` (one new server-only collection, `nanaJobsSeen`); no new index. Tests:
+    `test:nana-jobs` now also runs `tests/nana-jobs/fixes.test.ts` (feed fixtures in `tests/nana-jobs/fixtures/`).
 132. **My Cycle (v0.163.0, branch `push/my-cycle`; plan `docs/MY_CYCLE.md`):** a private cycle companion at `/cycle`, explainer
     `/my-cycle`. Owner steps: (a) `firebase deploy --only firestore:rules` (four new server-only collections: `cycleProfiles`,
     `cycleLogs`, `cycleNotes`, `cycleChats`); no new indexes. (b) `ACCOUNT_DATA_KEY` must be set in Vercel (it already protects bank
@@ -1161,7 +1168,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Hotel kit | `lib/hotel.ts` (rules), `lib/hotel-server.ts`, `lib/hotel-pay-server.ts` (money), `lib/hotel-pos-server.ts` (Moniepoint, WhatsApp), `lib/hotel-nana-server.ts`, `components/hotel/*`, `/api/hotel`, `/api/public/hotel`, pages `/profile/hotel`, `/till`, `/hotel/<code>`, `/hotels`, the site's `/hotel`; `docs/HOTEL_KIT.md` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
-| Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
+| Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*` (incl. `seen`), `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `tests/nana-jobs/` (with `fixtures/`); `THIRD_PARTY_NOTICES` |
 | My Calendar | pure rules `lib/my-calendar.ts` (entries, agenda, dots, choices, bells, the `.ics` writer), month grid `lib/month-calendar.ts`, server `lib/my-calendar-server.ts` (sources, private link, bells, Monday email), routes `app/api/calendar` and `app/api/calendar/[token]` (the feed), pages `app/(main)/calendar` (+ `sync`, `settings`) and `components/calendar/*`, explainer `app/(main)/my-calendar`, app bridge `lib/native-calendar.ts`, menu `useCalendarToday` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
 | Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` on `/admin/content-checks` (People & Trust in `ADMIN_SECTIONS`, a tab of Reports), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
@@ -1189,7 +1196,7 @@ npm run test:shared            # shared rate limits and cache (a stand-in Upstas
 npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
-npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards (no network)
+npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards, the v0.174.1 faults on feed fixtures (no network)
 npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
 npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
 npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle, cash-up, Nana's price guard); "ALL OK"

@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.174.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Nana Jobs: a shortlist with nothing on it. If you hadn't filled in your profile, the job title from your NotesApp profile (\"Founder & CEO\", say) was used as the only role you wanted, so every opening was cut. Now a role counts only when you choose it; with no roles, Nana uses the ones from your CV review, or doesn't filter by job title at all." },
+      { kind: "fixed", text: "Nana Jobs: the CV review with Claude. Claude's answer was cut off before it finished, and a slow answer ran past the time limit and showed \"Something went wrong\". It now has room to answer, waits long enough, and when your AI does fail you see why (its own words, or \"your AI took too long\")." },
+      { kind: "added", text: "Nana Jobs: today's run now says why openings were cut (\"312 not in your roles, 98 location, 44 too old\"), and See all collected jobs lists every opening your run looked at, with the reason each one did or didn't make your list and a link to open it." },
+      { kind: "changed", text: "Nana Jobs: every job on your shortlist has a clear Apply button (the firm's own page in a new tab, or Apply on #NotesApp for Notes Jobs) and Mark as applied beside it. An empty profile now says so, with a button to set it up." },
+    ],
+  },
+  {
     version: "v0.174.0",
     bump: "minor",
     date: "2026-11-15",
