@@ -1,0 +1,38 @@
+// The admin sidebar's rules (lib/admin-access.ts, used by components/admin/AdminShell.tsx): every admin page is in the menu, the groups
+// are in order with the counts the design shows, the open page is the most specific one, and "Jump to a page" finds pages by any words.
+// Run inside npm run test:throwaway.
+import assert from "node:assert/strict";
+import { readdirSync, statSync } from "node:fs";
+import { ADMIN_SECTIONS, GROUP_ORDER, activeSection, allowedSections, groupSections, jumpMatches } from "../../lib/admin-access";
+
+const superAdmin = { role: "super", depts: [] } as never;
+const all = allowedSections(superAdmin);
+// Every folder under app/(main)/admin (but the login page) has its menu entry, and every entry is in a known group.
+for (const dir of readdirSync("app/(main)/admin")) {
+  if (dir === "login" || !statSync(`app/(main)/admin/${dir}`).isDirectory()) continue;
+  assert.ok(ADMIN_SECTIONS.some((s) => s.href === `/admin/${dir}` || s.href.startsWith(`/admin/${dir}/`)), `/admin/${dir} is in the menu`);
+}
+for (const s of ADMIN_SECTIONS) assert.ok(GROUP_ORDER.includes(s.group), `${s.label}: ${s.group} is a group`);
+
+const groups = groupSections(all);
+assert.deepEqual(groups.map((g) => g.name), GROUP_ORDER);
+const count = Object.fromEntries(groups.map((g) => [g.name, g.pages.length]));
+assert.deepEqual(count, { Workspace: 9, Content: 6, "People & Trust": 9, Money: 9, Growth: 9, Platform: 7, Admin: 4 }, "the counts in the design");
+assert.deepEqual(groups.find((g) => g.name === "People & Trust")!.pages.map((p) => p.label).slice(0, 3), ["Users", "Throwaway emails", "Organisations"]);
+
+assert.equal(activeSection(all, "/admin")?.label, "Dashboard");
+assert.equal(activeSection(all, "/admin/throwaway-emails")?.label, "Throwaway emails");
+assert.equal(activeSection(all, "/admin/team/finance")?.label, "Money ledger", "the most specific");
+assert.equal(activeSection(all, "/admin/users/abc")?.label, "Users");
+assert.equal(activeSection(all, "/admin/nowhere"), undefined);
+
+assert.deepEqual(jumpMatches(all, "  "), []);
+assert.deepEqual(jumpMatches(all, "throw").map((s) => s.label), ["Throwaway emails"]);
+assert.ok(jumpMatches(all, "money pay").some((s) => s.label === "Payments"), "words from the group count too");
+
+// Staff only see their own pages, and only those groups.
+const care = allowedSections({ role: "admin", depts: ["support"] } as never);
+assert.ok(care.some((s) => s.label === "Throwaway emails"));
+assert.ok(!groupSections(care).some((g) => g.name === "Admin"));
+
+console.log("ADMIN MENU OK");

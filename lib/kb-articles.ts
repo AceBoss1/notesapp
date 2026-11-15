@@ -1684,6 +1684,14 @@ None of them can be switched on yet, and there are no prices or dates. When they
 You can block anyone in Messages (from the menu at the top of the conversation), mute a conversation you don't want alerts from, and report a post, account, moment or conversation with the Report button, or through the [contact form](/contact). Our team reviews reports; anything marked as nudity or violence is reviewed within 24 hours. In a group, admins can also ban a member who misbehaves.
 
 Accounts can be suspended for a set time or until lifted. A suspended member sees the reason and can submit an appeal, which an admin reviews. For a problem with a payment, gift or order, contact us with the details and an admin will review it.`),
+    A("throwaway-email-addresses", "Temporary (throwaway) email addresses", "Safety and your data", `
+#NotesApp accounts need an email address you own. Temporary or "throwaway" inboxes (services that hand out an address for a few minutes) can't be used to join, because nobody can reach the account again, recover it or get its receipts, and they're often used for spam and fake referrals.
+
+**Signing up:** if the sign-up form says *"Temporary (throwaway) email addresses can't join NotesApp"*, use your own email address instead: Gmail, Yahoo, Outlook, iCloud, your work or school address, or any other you keep. Ordinary email providers are never blocked. You can also join with Google or LinkedIn.
+
+**If your account was suspended for this:** the reason on your account says *"This account uses a temporary (throwaway) email address"*. Your posts, purchases and earnings are kept. [Contact us](/contact) from the email address you want to use, with your @username, and our team will move the account to it and lift the suspension. You can also submit an appeal from the suspension notice.
+
+Our trust & safety team keeps the list of blocked domains; an address at any part of a blocked domain (for example mail.example.com when example.com is blocked) is refused too.`),
     A("payment-safety", "How your money is kept safe", "Safety and your data", `
 Payments run through Paystack's hosted checkout, so card and bank details never touch our servers. Money is held until it is earned: store payments until delivery is confirmed, session earnings for 24 hours after the session, and subscriptions, gifts and downloads for a short dispute window. You need a verified email to pay. Refund rules are shown before you pay and in the [Terms](/terms). The full picture is on [Trust & security](/security).`),
     A("your-data", "Downloading or deleting your data", "Safety and your data", `
