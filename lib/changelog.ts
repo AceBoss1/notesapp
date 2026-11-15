@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.166.0",
+    version: "v0.167.0",
     bump: "minor",
     date: "2026-11-15",
     changes: [
@@ -19,6 +19,16 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Add to my calendar: an invite your phone opens in its own calendar, on every entry, the booking confirmation, a hotel booking's page and each ticket in My tickets." },
       { kind: "added", text: "Sync with your phone: a private calendar link that iPhone Calendar, Google Calendar and Outlook subscribe to and keep up to date. Choose what goes out (money due starts off); it carries titles and times only, and Make a new link stops the old one at once." },
       { kind: "added", text: "Calendar reminders: a bell shortly before sessions and calls, an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Reminders that already came stay as they were." },
+    ],
+  },
+  {
+    version: "v0.166.0",
+    bump: "minor",
+    date: "2026-11-14",
+    changes: [
+      { kind: "changed", text: "Referral milestones now pay ₦200 (First friend), ₦1,100 (Squad), ₦6,000 (Crowd) and ₦25,000 (Viral) in Bonus Credits." },
+      { kind: "added", text: "Referral milestones in Notes Life: friends who join Notes Life from your invite count too (each friend once), and the milestones show with Claim in the game's Invite panel." },
+      { kind: "added", text: "Admin → Limits → Referral milestones: super admins set how many friends each milestone needs and what it pays, reset them to the defaults, or reset a member's claims." },
     ],
   },
   {

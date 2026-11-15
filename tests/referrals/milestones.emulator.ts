@@ -56,6 +56,30 @@ const db = getFirestore();
   const lots = (await db.doc("wallets/inv").get()).data()!.bonusLots as { kobo: number }[];
   assert.equal(lots.reduce((n, l) => n + l.kobo, 0), MILESTONES[0].bonusKobo + MILESTONES[1].bonusKobo);
 
+  // Notes Life invites count too, each friend once: g1 joined Notes Life from the invite only; f1 joined both ways (counted once).
+  verifiedSet.add("g1");
+  await db.doc("users/g1").set({ username: "g1" });
+  await db.doc("lifePlayers/g1").set({ referredBy: "inv" });
+  await db.doc("lifePlayers/f1").set({ referredBy: "inv" });
+  assert.equal(await M.qualifiedFriends(db, "inv", deps), 6, "five NotesApp friends plus one Notes Life friend; f1 once");
+
+  // Admin → Limits: change a milestone, refuse a bad order, reset to the defaults.
+  await assert.rejects(M.saveMilestoneSettings(db, { first: { need: 1, bonusNaira: 200 }, squad: { need: 1, bonusNaira: 1 }, crowd: { need: 25, bonusNaira: 1 }, viral: { need: 100, bonusNaira: 1 } }, "admin"), /more friends/);
+  const saved = await M.saveMilestoneSettings(db, { first: { need: 1, bonusNaira: 200 }, squad: { need: 5, bonusNaira: 1100 }, crowd: { need: 6, bonusNaira: 700 }, viral: { need: 100, bonusNaira: 25000 } }, "admin");
+  assert.equal(saved[2].need, 6); assert.equal(saved[2].bonusKobo, 700_00);
+  const r6 = await M.claimMilestone(db, ME, "crowd", { walletLive: true }, deps);
+  assert.equal(r6.bonusKobo, 700_00, "pays what the admin set");
+  const back = await M.resetMilestoneSettings(db, "admin");
+  assert.deepEqual(back.map((m) => [m.need, m.bonusKobo]), MILESTONES.map((m) => [m.need, m.bonusKobo]), "back to the defaults");
+
+  // A member's claims, reset by an admin: they can claim again, without overwriting the old wallet lines.
+  await assert.rejects(M.resetMemberMilestones(db, "@nobody", "admin"), /No member/);
+  await db.doc("usernames/inviter").set({ uid: "inv" });
+  await M.resetMemberMilestones(db, "@Inviter", "admin");
+  assert.equal((await M.myMilestones(db, "inv", deps)).milestones[0].claimed, false);
+  await M.claimMilestone(db, ME, "first", { walletLive: true }, deps);
+  assert.ok((await db.doc("walletTx/refms_inv_first").get()).exists && (await db.doc("walletTx/refms_inv_first_r1").get()).exists, "both claims in the history");
+
   console.log("MILESTONES OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
