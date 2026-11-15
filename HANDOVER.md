@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `claude/vigilant-franklin-xgf9ee` | **Plan only, nothing built:** Notes Planner (`docs/NOTES_PLANNER.md`), a personal planner on My Calendar, with eight mockups (`docs/mockups/notes-planner/`). Waiting for the owner's approval (asked 15 Nov 2026). After it, in the owner's order: Themes and kits, Moments, Merch. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
