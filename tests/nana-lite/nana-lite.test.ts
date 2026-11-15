@@ -1,11 +1,15 @@
 // Nana Lite, the pure rules (lib/nana-lite.ts). Run: npx -y tsx tests/nana-lite/nana-lite.test.ts → "NANA LITE OK"
 import assert from "node:assert/strict";
-import { LITE_MODELS, DEFAULT_LITE_MODEL, cleanFollowUp, explainPrompt, liteSystem, parseChoice, solvePrompt, summarise } from "../../lib/nana-lite";
+import { LITE_MODELS, DEFAULT_LITE_MODEL, resolveLiteModel, cleanFollowUp, explainPrompt, liteSystem, parseChoice, solvePrompt, summarise } from "../../lib/nana-lite";
 import type { StudentQuestion } from "../../lib/exam-prep";
 
 // Only models with licences that allow a paid product, all small
 assert.ok(LITE_MODELS.some((m) => m.id === DEFAULT_LITE_MODEL));
-for (const m of LITE_MODELS) { assert.match(m.licence, /^(MIT|Apache-2\.0)$/); assert.ok(parseFloat(m.params) <= 4, m.id); }
+for (const m of LITE_MODELS) { assert.match(m.licence, /^(MIT|Apache-2\.0|Llama 3\.2 Community)$/); assert.ok(parseFloat(m.params) <= 4, m.id); }
+// a hosted service's name for a listed model is accepted as it is; anything else isn't
+assert.equal(resolveLiteModel("@cf/meta/llama-3.2-3b-instruct"), "@cf/meta/llama-3.2-3b-instruct");
+assert.equal(resolveLiteModel(" phi-3.5-mini-instruct "), "phi-3.5-mini-instruct");
+assert.equal(resolveLiteModel("gpt-4o"), null);
 
 const q: StudentQuestion = { id: "q1", exam: "waec", subject: "biology", topic: "cells", stem: "Which organelle makes ATP?", options: [{ key: "A", text: "Ribosome" }, { key: "B", text: "Mitochondrion" }, { key: "C", text: "Nucleus" }, { key: "D", text: "Vacuole" }], answer: "B", explanation: "Mitochondria carry out aerobic respiration, which releases energy stored as ATP.", whyNot: { A: "Ribosomes make proteins." }, difficulty: 1, access: "free" };
 // Grounded: the prompt carries the reviewed explanation, the answer, the student's wrong choice and the teacher's note on it

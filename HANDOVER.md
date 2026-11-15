@@ -1070,7 +1070,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     40 a day (per account, or a hashed address signed out; `prepLiteDaily`, TTL two days); nothing typed is stored; the day's total is
     `prepStats.liteAsks`. Off until `NANA_LITE_URL` is set. `scripts/nana-lite-eval.ts` measures accuracy without the answer, for the
     pilot and Mozilla (FUNDING.md §24). Deploy `firebase deploy --only firestore`. Tests: `test:nana-lite`. Phase 3 (on the phone,
-    offline) is planned, not built.
+    offline) is planned, not built. Hosted options with the same settings: Cloudflare Workers AI (Llama 3.2 3B, "Built with Llama" shown)
+    and OpenRouter (for the evaluation); `docs/NANA_LITE.md` Phase 1 has AWS steps with Caddy serving lite.notesapp.name.ng and
+    lite.naapp.tech.
 
 ## 3. How the work is done (please keep these)
 

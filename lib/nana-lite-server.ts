@@ -6,14 +6,13 @@ import { createHash } from "crypto";
 import { setting } from "./config";
 import { OPTION_KEYS, toStudent, type OptionKey, type Question } from "./exam-prep";
 import { PrepError, bump, hasAccess } from "./exam-prep-server";
-import { DEFAULT_LITE_MODEL, LITE_DAILY_PER_STUDENT, LITE_MAX_TOKENS, LITE_MODELS, cleanFollowUp, explainPrompt, isLiteLang, liteSystem, type LiteLang } from "./nana-lite";
+import { DEFAULT_LITE_MODEL, LITE_DAILY_PER_STUDENT, LITE_MAX_TOKENS, resolveLiteModel, cleanFollowUp, explainPrompt, isLiteLang, liteSystem, type LiteLang } from "./nana-lite";
 
 export type LiteCall = (a: { system: string; user: string; maxTokens: number }) => Promise<{ text: string; ms: number }>;
 
 export const liteConfigured = () => !!setting("NANA_LITE_URL");
 export function liteModel(): string {
-  const m = (setting("NANA_LITE_MODEL") || "").trim();
-  return LITE_MODELS.some((x) => x.id === m) ? m : DEFAULT_LITE_MODEL;
+  return resolveLiteModel(setting("NANA_LITE_MODEL") || "") ?? DEFAULT_LITE_MODEL;
 }
 
 // The real call: POST {base}/v1/chat/completions. 25 seconds at most (a small model on a CPU server answers in a few).
