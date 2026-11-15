@@ -19,6 +19,7 @@ import {
   type CalEntry, type CalMode, type CalPrefs,
 } from "./my-calendar";
 
+import { planCalendar } from "./planner-server";
 // My Calendar on the server (docs/MY_CALENDAR.md; the rules are in lib/my-calendar.ts). Every entry is read from where it already lives,
 // each time it's asked for: nothing is copied, so a change or a cancellation shows at once. A source that fails is left out and named
 // (`failed`), and the rest still show.
@@ -227,7 +228,9 @@ const money: Source = {
 
 // My Cycle is not a source in this release: her periods and predictions are kept only encrypted (lib/cycle-server.ts, ACCOUNT_DATA_KEY)
 // and open with her passkey, so the calendar can't read even the coarse dates without unlocking them.
-export const SOURCES: Source[] = [bookings, ppm, hotelStays, hotelDesk, tickets, going, hosting, lives, interviews, money];
+// Notes Planner (lib/planner-server.ts): each month's project on its last day, and the Sunday review. Left out when she locked the Planner.
+const plan: Source = { id: "plan", label: "Notes Planner", read: (c) => planCalendar(c.db, c.uid, c.range.from, c.range.to) };
+export const SOURCES: Source[] = [bookings, ppm, hotelStays, hotelDesk, tickets, going, hosting, lives, interviews, money, plan];
 
 // ── Gathering ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export async function calendarMode(db: Firestore, uid: string): Promise<CalMode> {

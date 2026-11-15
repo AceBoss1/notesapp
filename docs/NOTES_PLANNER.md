@@ -113,8 +113,8 @@ My Calendar reads everything from where it already lives. The plan is the first 
 
 ## What comes after Notes Planner
 
-The owner's order (15 Nov 2026), each from the same article and each with its own mockups first:
+The owner's order (15 Nov 2026, changed the same day to put Moments first), each from the same article and each with its own mockups first:
 
-1. **Themes and kits**: Nana interviews a site owner and drafts their kit blocks; "Review my site" lists what stops visitors signing up.
-2. **Moments**: trim the pauses from a video moment; captions that land on the spoken word.
+1. **Moments**: trim the pauses from a video moment; captions that land on the spoken word.
+2. **Themes and kits**: Nana interviews a site owner and drafts their kit blocks; "Review my site" lists what stops visitors signing up.
 3. **Merch**: a 3D view that turns, with the logo and colour chosen and the price updating (`three` is already installed).
