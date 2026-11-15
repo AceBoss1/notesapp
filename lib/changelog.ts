@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.166.0",
+    bump: "minor",
+    date: "2026-11-14",
+    changes: [
+      { kind: "changed", text: "Referral milestones now pay ₦200 (First friend), ₦1,100 (Squad), ₦6,000 (Crowd) and ₦25,000 (Viral) in Bonus Credits." },
+      { kind: "added", text: "Referral milestones in Notes Life: friends who join Notes Life from your invite count too (each friend once), and the milestones show with Claim in the game's Invite panel." },
+      { kind: "added", text: "Admin → Limits → Referral milestones: super admins set how many friends each milestone needs and what it pays, reset them to the defaults, or reset a member's claims." },
+    ],
+  },
+  {
     version: "v0.165.1",
     bump: "patch",
     date: "2026-11-14",

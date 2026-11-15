@@ -48,7 +48,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
-import { MILESTONES as REF_MILESTONES } from "./referral-milestones";
+import { MILESTONES as REF_MILESTONES, type Milestone as RefMilestone } from "./referral-milestones";
 import { CERTIFY_MEMBERS, CERTIFY_PAYING, DEFAULT_TERMS, LEADS_PER_DAY, TIERS as PARTNER_TIERS, TIER_LABEL as PARTNER_TIER_LABEL, TIER_NEED as PARTNER_TIER_NEED, TRACK, TRACKS, TRAINING, type Tier, type TierTerms } from "./partner-network";
 import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
@@ -73,7 +73,7 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // ticket commission share is a price (currentPricing().liveTicketUpliftPct).
 // Pay-per-minute sessions: the minimum and maximum minutes held, the grace, the wait for more minutes and the no-show minutes (Admin →
 // Limits → Pay-per-minute sessions); the commission share is a price (currentPricing().ppmUpliftPct).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures; partners?: Record<Tier, TierTerms> };
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures; partners?: Record<Tier, TierTerms>; milestones?: RefMilestone[] };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -92,6 +92,7 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const ppm = live.ppm ?? DEFAULT_PPM_FIGURES;
   const ppmUplift = currentPricing().ppmUpliftPct;
   const pterms = live.partners ?? DEFAULT_TERMS; // Partner Network tier shares (Admin → Limits)
+  const refMs = live.milestones ?? REF_MILESTONES; // referral milestones (Admin → Limits → Referral milestones)
   const secs = (x: number) => `${x} second${x === 1 ? "" : "s"}`;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
@@ -140,11 +141,11 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
     A("referral-milestones", "Referral milestones: Bonus Credits for bringing friends", "Publishing and earning", `
 On top of what you earn from friends' plans, bringing friends to #NotesApp unlocks **milestones**, each paying **Bonus Credits** into your NotesApp wallet once:
 
-${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
+${refMs.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need.toLocaleString("en-NG")} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
 
-**Who counts:** a friend who joined through your link or code, verified their email and chose a username. Child profiles and suspended accounts don't count.
+**Who counts:** a friend who joined NotesApp through your link or code, or Notes Life from your invite, and has verified their email and chosen a username. Each friend counts once, however they joined. Child profiles and suspended accounts don't count.
 
-**Claiming:** open [your Referrals page](/profile/referrals). Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
+**Claiming:** open [your Referrals page](/profile/referrals), or the **Invite** panel in [Notes Life](/life/play) (Phone → Invite), where the same milestones are shown. Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
 
 **Spending them:** Bonus Credits pay for things on #NotesApp (boosts, badges, gifts, shop items and more). They can't be withdrawn as cash, and they last like any Bonus Credits.
 `),
