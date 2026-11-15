@@ -76,3 +76,8 @@ A live together with another creator (split screen), live shopping, and scheduli
   test pass on to try it.
 - Differences from the mockups: signed-out visitors are asked to sign in before joining (rooms are read by signed-in members only); the
   LIVE ring sits in a Live now row just above the Moments strip rather than inside it.
+
+## Notes Live Studio (v0.177.0)
+
+Broadcast graphics over a live (logo, lower third, ticker, comments on air, clips): see [NOTES_LIVE_STUDIO.md](NOTES_LIVE_STUDIO.md).
+The host switches it on from **🎬 Studio** in the room.

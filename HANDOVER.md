@@ -19,6 +19,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
+| `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
 | `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
@@ -1121,6 +1122,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (Lite first, Pearl when its JSON can't be used) and main Nana chat (choose "Nana Lite" in the picker, free; and it answers when the
     allowance is used up). Daily counts via `liteCount` (`books_<uid>`, `nana_<uid>`). Tests: `test:nana-jobs-server`,
     `test:books-server`, `test:nana-server`.
+139. **🎬 Notes Live Studio (v0.177.0, branch `claude/festive-lovelace-r64np9`; owner, 15 Nov 2026; `docs/NOTES_LIVE_STUDIO.md`):** broadcast
+    graphics over a live room: logo and LIVE badge, lower third, ticker, subtitle line, layouts and themes, viewers' comments on air
+    (with a queue), clips (intro, outro, video, sound, picture), a sponsor spot, screen share. No server-side video mixing: the room
+    document holds one `studio` object (`lib/studio.ts`) and every screen draws the programme from it
+    (`components/studio/ProgramFrame.tsx`); changes go through `studioStep` (`lib/rooms-server.ts`, `{ action: "studio" }` on
+    `/api/community/rooms`). Two new room permissions, `studio` and `onair`, and an **Editor** preset (`lib/rooms.ts`). Clips upload
+    through `/api/studio/upload` to the member's `studio/` folder. **Gate:** only in a live on the staff test pass
+    (`STUDIO_FOR_EVERYONE` in `lib/studio.ts` opens it). `/studio` is a public try-out page. **Owner steps:** none to deploy. **Not
+    built:** LinkedIn Live at the same time (shown as coming soon; needs LinkedIn Live approval for the stream key), graphics in the
+    recording, automatic subtitles, background blur, network ads. Home, About, the footer and Status were left as they are until the
+    studio opens to everyone. Tests: `test:studio`, `test:rooms-server` (`studio.emulator.ts`).
 
 ## 3. How the work is done (please keep these)
 

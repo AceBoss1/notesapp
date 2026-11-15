@@ -9,7 +9,7 @@ import { mintLiveToken } from "@/lib/live-rooms-server";
 import {
   answerInvite, askConsent, banFromLive, beatRoom, cameraOff, closeRoom, declineRequest, inviteToStage, joinRoom, leaveRoom, liveRoomFigures, liveRooms, liveVideoConfig, muteSpeaker,
   pinMessage, raiseHand, relayStep, removeChat, roomLiveStatus, roomModLog, roomPeople, roomStaff, sendRoomChat, setPoster, setRoomMods, setRoomSong, setSpeaker, setStageMode, setStageVideo, startRoom, takeSeat,
- markRoomEvent } from "@/lib/rooms-server";
+ markRoomEvent, studioStep } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
@@ -112,6 +112,12 @@ export async function POST(req: NextRequest) {
       case "pin": return NextResponse.json(await pinMessage(db, me.uid, body.id, body.text));
       case "consentask": return NextResponse.json(await askConsent(db, me.uid, body.id, body.uid));
       case "modlog": return NextResponse.json(await roomModLog(db, me.uid, body.id), { headers: { "Cache-Control": "no-store" } });
+      // Notes Live Studio (lib/studio.ts): the broadcast graphics, comments on air, clips. { action: "studio", id, op, … }.
+      case "studio": {
+        const limited = await rateLimit(req, "room-studio", me.uid, 120, 600);
+        if (limited) return limited;
+        return NextResponse.json(await studioStep(db, me.uid, body.id, body));
+      }
       default: throw new CommunityError(400, "Unknown action.");
     }
   } catch (err) {

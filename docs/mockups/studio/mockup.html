@@ -1,0 +1,219 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Notes Live Studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0a0b;--panel:#171214;--panel2:#1f181b;--line:#2e2428;--txt:#f4ecee;--mut:#9c8d92;--crim:#A6093D;--crim2:#7A0328;--deep:#4E0119;--live:#e5122f;--ok:#35c27a;--gold:#f2c14e;--li:#0a66c2}
+body{width:1680px;height:1050px;background:var(--bg);color:var(--txt);font:13px/1.35 "Inter","Manrope","Helvetica Neue",Arial,sans-serif;overflow:hidden}
+.top{height:56px;display:flex;align-items:center;gap:16px;padding:0 18px;border-bottom:1px solid var(--line);background:#120d0f}
+.top img{width:32px;height:32px;border-radius:8px}
+.brand{font-weight:800;font-size:16px;letter-spacing:.01em}.brand span{color:#ff5c84}
+.show{color:var(--mut);padding-left:16px;border-left:1px solid var(--line);font-size:13px}
+.show b{color:var(--txt);font-weight:600}
+.sp{flex:1}
+.onair{display:flex;align-items:center;gap:8px;background:var(--live);padding:6px 12px;border-radius:6px;font-weight:800;letter-spacing:.08em;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:#fff}
+.timer{font:600 15px ui-monospace,Menlo,monospace;color:var(--txt)}
+.dest{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);padding:6px 10px;border-radius:8px;font-size:12px}
+.dest i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(53,194,122,.18)}
+.dest b{font-weight:700}.dest em{font-style:normal;color:var(--mut)}
+.badge{font-size:10px;font-weight:800;padding:2px 5px;border-radius:4px;color:#fff}
+.b-na{background:var(--crim)}.b-li{background:var(--li)}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--txt);padding:8px 14px;border-radius:8px;font-weight:700;font-size:12px}
+.btn.end{background:transparent;border-color:#6b1a2b;color:#ff8ea5}
+.main{display:grid;grid-template-columns:250px 1fr 350px;height:994px}
+.col{padding:14px;overflow:hidden}
+.left{border-right:1px solid var(--line);background:var(--panel)}
+.right{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:0}
+h4{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:0 0 10px;font-weight:700}
+.src{position:relative;border-radius:10px;overflow:hidden;margin-bottom:10px;border:2px solid transparent;height:122px}
+.src.on{border-color:var(--live)}
+.src .lab{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:11.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.src .tag{position:absolute;top:6px;left:6px;font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:2px 6px;border-radius:4px;background:var(--live)}
+.src .tag.bs{background:#3a3034;color:#d8c9ce}
+.mic{display:inline-flex;gap:2px;align-items:flex-end;height:10px}.mic s{width:2px;background:var(--ok);border-radius:1px}
+.add{border:1px dashed #4a3b40;border-radius:10px;padding:10px;text-align:center;color:var(--mut);font-weight:600;margin-bottom:8px;font-size:12px}
+/* video placeholder */
+.vid{position:absolute;inset:0;overflow:hidden}
+.vid svg{position:absolute;inset:0;width:100%;height:100%}
+.v1{background:linear-gradient(160deg,#3b2c33,#1b1418 70%)}
+.v2{background:linear-gradient(200deg,#2a3440,#12171d 70%)}
+.v3{background:linear-gradient(170deg,#3d3524,#17140e 70%)}
+.v4{background:linear-gradient(170deg,#2b3a31,#101713 70%)}
+/* center */
+.center{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.monhead{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.monhead .pgm{color:#ff6b84}
+.monhead .r{margin-left:auto;letter-spacing:0;text-transform:none;font-weight:500}
+.pgmwrap{width:1044px;height:587px;position:relative;border-radius:6px;overflow:hidden;border:2px solid var(--live);box-shadow:0 0 0 4px rgba(229,18,47,.12),0 20px 50px rgba(0,0,0,.6);align-self:center;
+ background:radial-gradient(1200px 500px at 20% -10%,#5a0a26 0%,transparent 60%),radial-gradient(900px 500px at 100% 110%,#2a0513 0%,transparent 60%),linear-gradient(180deg,#16080d,#0a0406)}
+.pgmwrap:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 46px)}
+.tiles{position:absolute;left:26px;right:26px;top:58px;height:318px;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px}
+.tile{position:relative;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+.tile.spk{box-shadow:0 0 0 2px #fff}
+.strap{position:absolute;left:0;bottom:0;display:flex;align-items:stretch;font-size:11.5px;font-weight:700}
+.strap b{background:#fff;color:#16080d;padding:4px 9px}
+.strap span{background:rgba(10,4,6,.85);padding:4px 9px;font-weight:500;color:#e9dde0}
+.pt{position:absolute;top:14px;left:26px;right:26px;display:flex;align-items:center;gap:10px}
+.livebug{background:var(--live);font-weight:800;font-size:12px;letter-spacing:.1em;padding:5px 9px 5px 8px;border-radius:3px;display:flex;gap:6px;align-items:center}
+.loc{font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#f0dfe4;background:rgba(0,0,0,.4);padding:5px 9px;border-radius:3px}
+.bug{margin-left:auto;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;letter-spacing:.02em}
+.bug img{width:30px;height:30px;border-radius:7px}
+.bug small{display:block;font-size:9px;letter-spacing:.2em;color:#ffb3c4;font-weight:700}
+.cap{position:absolute;left:50%;transform:translateX(-50%);top:386px;background:rgba(0,0,0,.78);padding:6px 14px;border-radius:3px;font-size:15px;font-weight:500;white-space:nowrap}
+.cap u{text-decoration:none;color:var(--gold)}
+.l3{position:absolute;left:26px;bottom:50px;width:600px}
+.l3 .kick{display:inline-block;background:#fff;color:var(--crim2);font-size:10.5px;font-weight:800;letter-spacing:.14em;padding:3px 9px}
+.l3 .head{background:linear-gradient(90deg,var(--crim) 0%,var(--crim2) 70%,var(--deep));padding:8px 14px 9px;font:700 23px/1.12 "Newsreader",Georgia,serif;border-left:5px solid #fff}
+.l3 .sub{background:#fff;color:#1a1210;padding:5px 14px;font-size:12.5px;font-weight:600;display:inline-block}
+.l3 .sub b{color:var(--crim2)}
+.vc{position:absolute;right:26px;bottom:50px;width:372px;background:rgba(255,255,255,.97);color:#1a1210;border-radius:4px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.vc .h{background:#16080d;color:#fff;font-size:10px;font-weight:800;letter-spacing:.14em;padding:4px 10px;display:flex;justify-content:space-between}
+.vc .b{display:flex;gap:10px;padding:9px 11px}
+.av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff}
+.vc .n{font-weight:800;font-size:12.5px}.vc .n em{font-style:normal;font-weight:600;color:#6b5d61;font-size:11px}
+.vc p{font-size:13.5px;line-height:1.3;font-weight:500;margin-top:1px}
+.tick{position:absolute;left:0;right:0;bottom:0;height:38px;display:flex;align-items:stretch;background:#fff;color:#1a1210;font-weight:600;font-size:14px}
+.tick .t1{background:var(--live);color:#fff;font-weight:800;letter-spacing:.1em;font-size:12px;display:flex;align-items:center;padding:0 14px}
+.tick .run{flex:1;display:flex;align-items:center;gap:22px;white-space:nowrap;overflow:hidden;padding-left:16px}
+.tick .run i{width:6px;height:6px;background:var(--crim);flex:none;transform:rotate(45deg)}
+.tick .ck{background:#16080d;color:#fff;display:flex;align-items:center;padding:0 14px;font:700 13px ui-monospace,Menlo,monospace}
+/* controls */
+.ctl{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-weight:700;font-size:12.5px}
+.tog{width:34px;height:19px;border-radius:10px;background:var(--live);position:relative}.tog:after{content:"";position:absolute;right:2px;top:2px;width:15px;height:15px;border-radius:50%;background:#fff}
+.tog.off{background:#3a3034}.tog.off:after{right:auto;left:2px}
+.inp{background:#0f0b0c;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:11.5px;color:#e6d9dd;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid var(--line);color:var(--mut)}
+.chip.a{background:var(--crim2);border-color:var(--crim);color:#fff}
+.lay{display:flex;gap:8px;align-items:center}
+.lay h4{margin:0 6px 0 0}
+.lo{width:62px;height:38px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:4px;display:grid;gap:2px}
+.lo s{background:#4a3b40;border-radius:2px}.lo.a{border-color:var(--live)}.lo.a s{background:#ff6b84}
+.lay .btn{margin-left:auto}
+/* comments */
+.tabs{display:flex;gap:4px;padding:12px 14px 0;border-bottom:1px solid var(--line)}
+.tab{padding:8px 10px;font-weight:700;font-size:12px;color:var(--mut);border-bottom:2px solid transparent}
+.tab.a{color:#fff;border-color:var(--live)}
+.feed{flex:1;padding:10px 12px;overflow:hidden}
+.cm{display:flex;gap:9px;padding:9px;border-radius:10px;margin-bottom:6px;border:1px solid transparent}
+.cm.air{background:#2a0c16;border-color:var(--live)}
+.cm .bd{flex:1;min-width:0}
+.cm .nm{font-weight:700;font-size:12px;display:flex;align-items:center;gap:6px}
+.cm .nm time{margin-left:auto;color:var(--mut);font-weight:500;font-size:10.5px}
+.cm p{color:#ddd0d4;font-size:12.5px;margin:2px 0 6px}
+.act{display:flex;gap:6px}
+.a1{font-size:10.5px;font-weight:800;padding:4px 8px;border-radius:5px;background:#fff;color:#16080d}
+.a2{font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:5px;border:1px solid var(--line);color:var(--mut)}
+.a1.live{background:var(--live);color:#fff}
+.queue{border-top:1px solid var(--line);padding:12px 14px}
+.q{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;font-size:11.5px}
+.q b{color:var(--mut);font:700 11px ui-monospace,monospace}.q span:not(.badge){flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.health{border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:14px;font-size:11px;color:var(--mut)}
+.health b{color:var(--ok)}
+.main>*{min-width:0}.ctl>*{min-width:0}.center{min-width:0}
+.q .badge{flex:none}.q span.badge{flex:none}
+.tab{white-space:nowrap;padding:8px 7px;font-size:11.5px}
+.health{white-space:nowrap;gap:10px}
+.cap{top:388px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="p" viewBox="0 0 200 150"><rect x="130" y="14" width="46" height="60" rx="2" fill="rgba(255,255,255,.07)"/><rect x="18" y="20" width="30" height="80" rx="2" fill="rgba(255,255,255,.05)"/>
+<circle cx="100" cy="62" r="27" fill="currentColor"/><path d="M40 160c0-40 26-62 60-62s60 22 60 62z" fill="currentColor"/></symbol></defs></svg>
+
+<div class="top">
+  <img src="icon-192.png"><div class="brand">Notes <span>Live</span> Studio</div>
+  <div class="show"><b>African Mental Freedom</b> · Episode 12 · Moderator view</div>
+  <div class="sp"></div>
+  <div class="dest"><i></i><span class="badge b-na">NA</span><b>NotesApp</b><em>1,284 watching</em></div>
+  <div class="dest"><i></i><span class="badge b-li">in</span><b>LinkedIn Live</b><em>3,912 watching</em></div>
+  <div class="dest" style="border-style:dashed;color:var(--mut)">+ Add destination</div>
+  <div class="onair"><span class="dot"></span>ON AIR</div><div class="timer">00:42:17</div>
+  <div class="btn end">End broadcast</div>
+</div>
+
+<div class="main">
+  <div class="col left">
+    <h4>On stage · 3</h4>
+    <div class="src on"><div class="vid v1"><svg style="color:#8a6a76"><use href="#p"/></svg></div><span class="tag">ON AIR</span><div class="lab">Tunde Bakare · Host<span class="mic"><s style="height:4px"></s><s style="height:9px"></s><s style="height:6px"></s></span></div></div>
+    <div class="src on"><div class="vid v2"><svg style="color:#6f8296"><use href="#p"/></svg></div><span class="tag">ON AIR</span><div class="lab">Dr. Naledi Mokoena<span class="mic"><s style="height:8px"></s><s style="height:10px"></s><s style="height:7px"></s></span></div></div>
+    <div class="src on"><div class="vid v3"><svg style="color:#94835a"><use href="#p"/></svg></div><span class="tag">ON AIR</span><div class="lab">Zanele Dube<span class="mic"><s style="height:3px;background:#5a4a50"></s><s style="height:3px;background:#5a4a50"></s><s style="height:3px;background:#5a4a50"></s></span></div></div>
+    <h4 style="margin-top:14px">Backstage · 1</h4>
+    <div class="src"><div class="vid v4"><svg style="color:#6d8a78"><use href="#p"/></svg></div><span class="tag bs">READY</span><div class="lab">Kwame Asante<span style="color:#ffb3c4;font-weight:800;font-size:10.5px">BRING ON ›</span></div></div>
+    <div class="add">+ Invite guest by link</div>
+    <div class="add">▣ Share screen &nbsp;·&nbsp; ▶ Play video</div>
+    <h4 style="margin-top:14px">Audio</h4>
+    <div class="row"><span class="chip a">Mic on</span><span class="chip">Intro sting</span><span class="chip">Bed music</span><span class="chip">Mute all</span></div>
+  </div>
+
+  <div class="col center">
+    <div class="monhead"><span class="pgm">● Program</span><span>what viewers see on NotesApp and LinkedIn</span><span class="r">1080p · 30 fps · 4.5 Mbps</span></div>
+    <div class="pgmwrap">
+      <div class="pt"><div class="livebug"><span class="dot"></span>LIVE</div><div class="loc">Lagos · Johannesburg · London</div>
+        <div class="bug"><img src="icon-192.png"><div>NOTES LIVE<small>THE EMERGING VOICES</small></div></div></div>
+      <div class="tiles">
+        <div class="tile spk"><div class="vid v1"><svg style="color:#8a6a76"><use href="#p"/></svg></div><div class="strap"><b>TUNDE BAKARE</b><span>Host · Lagos</span></div></div>
+        <div class="tile"><div class="vid v2"><svg style="color:#6f8296"><use href="#p"/></svg></div><div class="strap"><b>DR. NALEDI MOKOENA</b><span>Johannesburg</span></div></div>
+        <div class="tile"><div class="vid v3"><svg style="color:#94835a"><use href="#p"/></svg></div><div class="strap"><b>ZANELE DUBE</b><span>London</span></div></div>
+      </div>
+      <div class="cap">…and if we do not teach <u>our own history</u>, someone else will teach it for us.</div>
+      <div class="l3"><span class="kick">TONIGHT'S QUESTION</span>
+        <div class="head">African Mental Freedom: reclaiming the levers through history</div>
+        <span class="sub"><b>DR. NALEDI MOKOENA</b> &nbsp;Historian and author, “The Long Memory”</span></div>
+      <div class="vc"><div class="h"><span>VIEWER COMMENT</span><span>via LinkedIn</span></div>
+        <div class="b"><div class="av" style="background:#7A0328">EA</div><div><div class="n">Efua Addo <em>· Accra</em></div><p>We need to re-embrace our culture and survive economically, looking at the current state of affairs.</p></div></div></div>
+      <div class="tick"><div class="t1">NOTES LIVE</div>
+        <div class="run"><span>Join the conversation: comment on NotesApp or LinkedIn and the moderators may put you on air</span><i></i><span>Next week: The Oyo Empire and what it teaches about institutions</span><i></i><span>Replay available on NotesApp straight after</span></div>
+        <div class="ck">19:42 WAT</div></div>
+    </div>
+
+    <div class="lay"><h4>Layout</h4>
+      <div class="lo" style="grid-template-columns:1fr"><s></s></div>
+      <div class="lo" style="grid-template-columns:1fr 1fr"><s></s><s></s></div>
+      <div class="lo a" style="grid-template-columns:1.25fr 1fr 1fr"><s></s><s></s><s></s></div>
+      <div class="lo" style="grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr"><s></s><s></s><s></s><s></s></div>
+      <div class="lo" style="grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr"><s style="grid-row:span 2"></s><s></s><s></s></div>
+      <div class="lo" style="grid-template-columns:3fr 1fr"><s></s><s style="align-self:end;height:12px"></s></div>
+      <span class="chip">Theme: Crimson newsroom</span><span class="chip">Midnight</span><span class="chip">Your brand</span>
+      <div class="btn">Preview next ▸ Take</div>
+    </div>
+
+    <div class="ctl">
+      <div class="card"><div class="hd">Lower third <span class="tog"></span></div>
+        <div class="inp">African Mental Freedom: reclaiming the levers through history</div>
+        <div class="inp">Dr. Naledi Mokoena · Historian and author, “The Long Memory”</div>
+        <div class="row"><span class="chip a">Headline + name</span><span class="chip">Name only</span><span class="chip">Breaking</span><span class="chip">Follows speaker</span></div></div>
+      <div class="card"><div class="hd">Ticker <span class="tog"></span></div>
+        <div class="inp">Join the conversation: comment on NotesApp or Link…</div>
+        <div class="inp">Next week: The Oyo Empire and what it teaches…</div>
+        <div class="row"><span class="chip">Slow</span><span class="chip a">Normal</span><span class="chip">Fast</span><span class="chip">+ Line</span></div></div>
+      <div class="card"><div class="hd">Subtitles <span class="tog"></span></div>
+        <div class="inp">Live captions · English (auto)</div>
+        <div class="inp">Translate to: Yorùbá, isiZulu, French…</div>
+        <div class="row"><span class="chip a">Burned in</span><span class="chip">Viewer's choice</span></div></div>
+      <div class="card"><div class="hd">Logo and clock <span class="tog"></span></div>
+        <div class="inp">notes-live-bug.png · top right</div>
+        <div class="inp">Show name: THE EMERGING VOICES</div>
+        <div class="row"><span class="chip a">Logo</span><span class="chip a">LIVE bug</span><span class="chip a">Clock</span><span class="chip">Upload</span></div></div>
+    </div>
+  </div>
+
+  <div class="col right">
+    <div class="tabs"><div class="tab a">All comments · 318</div><div class="tab">NotesApp</div><div class="tab">LinkedIn</div><div class="tab">Starred · 4</div></div>
+    <div class="feed">
+      <div class="cm air"><div class="av" style="background:#7A0328">EA</div><div class="bd"><div class="nm">Efua Addo <span class="badge b-li">in</span><time>19:41</time></div><p>We need to re-embrace our culture and survive economically, looking at the current state of affairs.</p><div class="act"><span class="a1 live">● ON AIR · 0:12</span><span class="a2">Take off</span></div></div></div>
+      <div class="cm"><div class="av" style="background:#3D5A45">JM</div><div class="bd"><div class="nm">Jabari Mwangi <span class="badge b-na">NA</span><time>19:41</time></div><p>The Oyo Empire had checks on the Alaafin long before Westminster. Why is this not in our syllabus?</p><div class="act"><span class="a1">Put on air</span><span class="a2">Queue</span><span class="a2">☆</span><span class="a2">Hide</span></div></div></div>
+      <div class="cm"><div class="av" style="background:#0a66c2">CT</div><div class="bd"><div class="nm">Claire Thornton <span class="badge b-li">in</span><time>19:40</time></div><p>Watching from Leeds. Africa strikes me as full of energies that, if freed, could redirect the world.</p><div class="act"><span class="a1">Put on air</span><span class="a2">Queue</span><span class="a2">☆</span><span class="a2">Hide</span></div></div></div>
+      <div class="cm"><div class="av" style="background:#8a5a12">SO</div><div class="bd"><div class="nm">Sade Okonkwo <span class="badge b-na">NA</span><time>19:40</time></div><p>Question for Dr. Mokoena: where should a parent start with a ten-year-old?</p><div class="act"><span class="a1">Put on air</span><span class="a2">Queue</span><span class="a2">★ Starred</span><span class="a2">Hide</span></div></div></div>
+      <div class="cm"><div class="av" style="background:#5b3c8a">KD</div><div class="bd"><div class="nm">Kofi Darko <span class="badge b-li">in</span><time>19:39</time></div><p>Cultural and economic level is more important than the political one.</p><div class="act"><span class="a1">Put on air</span><span class="a2">Queue</span><span class="a2">☆</span><span class="a2">Hide</span></div></div></div>
+    </div>
+    <div class="queue"><h4>On-air queue · moderators</h4>
+      <div class="q"><b>1</b><span>Sade Okonkwo: where should a parent start…</span><span class="badge b-na">NA</span></div>
+      <div class="q"><b>2</b><span>Jabari Mwangi: The Oyo Empire had checks…</span><span class="badge b-na">NA</span></div>
+      <div class="q" style="border-style:dashed;color:var(--mut)"><span>Moderators: Tunde (host), Amina, Chidi</span></div>
+    </div>
+    <div class="health"><span>NotesApp <b>● Excellent</b></span><span>LinkedIn <b>● Excellent</b></span><span>Recording <b>● On</b></span></div>
+  </div>
+</div>
+</body></html>

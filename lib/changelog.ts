@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.177.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Notes Live Studio: a broadcast look for a live. Your logo and a LIVE badge, a lower third with the headline and the speaker's name, a scrolling ticker, a subtitle line, layouts (Solo, Spotlight, Grid, Picture in picture) and three themes. Everyone watching sees the same picture. The #NotesApp team is testing it now; it opens to everyone soon. Try it at /studio." },
+      { kind: "added", text: "Notes Live Studio: put a viewer's comment on air from the chat, or line comments up in a queue." },
+      { kind: "added", text: "Notes Live Studio: play an intro, an outro, a video, a sound or a picture during the live, show a sponsor's picture or silent video in a marked spot, and share your screen from the stage." },
+      { kind: "added", text: "Lives: two new permissions for the people helping you, Run the studio and Put viewers' comments on air, and an Editor preset beside Basic and Full." },
+    ],
+  },
+  {
     version: "v0.176.0",
     bump: "minor",
     date: "2026-11-15",
