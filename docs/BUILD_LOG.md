@@ -3297,3 +3297,15 @@ tap after it is check-out, a tap on or before check-in starts again, and the nig
 show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens the calendar and closes once check-out is picked. Dates
 are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
 in Chrome and broke hydration.
+
+**Growth measurement (v0.169.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
+`docs/mockups/growth/`). A visitor's first page sets a first-party `na_src` cookie with the channel that brought them (`?by=`, `?src=`,
+utm tags, the referring host, the landing page: `classifyTouch` in `lib/growth.ts`, set in `middleware.ts`); `?by=<username>` also works
+like `/r/<username>` for referrals. The referral claim at sign-up now also writes `growthMembers/{uid}` (channel and a small detail; the
+channel only for teens and children). Installs are counted from `appinstalled` and the installed app's first open; first value at the
+server paths that already exist (jobs, Nana Jobs, Academy, Exam Prep mocks, Notes Life, Business books, bookings, Community) and for
+journals from the browser, checked by the server; a once-a-day "seen" marks returns in weeks 1 to 4, with `?r=` on bells, push, the
+digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads an hourly snapshot (`statCache/growth`): every channel,
+a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
+Members get "Your invite link" on Account → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
+(`test:growth`, `test:growth-server`, rules).

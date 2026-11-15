@@ -6,11 +6,14 @@ import { MilestoneError, claimMilestone, myMilestones } from "@/lib/referral-mil
 import { creditEarnings } from "@/lib/wallet-server";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { rateLimit } from "@/lib/rate-limit";
+import { FIRST_TOUCH_COOKIE, INSTALL_COOKIE } from "@/lib/growth";
+import { recordSignupSource } from "@/lib/growth-server";
 
 export const dynamic = "force-dynamic";
 
 // A member's referrals: GET → their earnings, friends and (if they were invited) their first-month offer.
-// POST { action: "claim" }                       after sign-up: record who brought them (from the referral cookie)
+// POST { action: "claim" }                       after sign-up: record who brought them (from the referral cookie), and the channel
+//                                                that brought them (the first-touch cookie, lib/growth.ts) for Admin → Growth
 // POST { action: "withdraw", method: "cash"|"credit" }
 async function me(req: NextRequest) {
   const u = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
@@ -47,6 +50,9 @@ export async function POST(req: NextRequest) {
     const db = getAdminDb();
     if (body.action === "claim") {
       const r = await claimReferral(db, u.uid, req.cookies.get(REFERRAL_COOKIE)?.value);
+      // Growth measurement, separate from the referral: it never changes the referral's answer.
+      await recordSignupSource(db, u.uid, req.cookies.get(FIRST_TOUCH_COOKIE)?.value, { installed: req.cookies.get(INSTALL_COOKIE)?.value === "1" })
+        .catch((e) => console.error("growth signup source", e));
       return NextResponse.json(r);
     }
     // A referral milestone's Bonus Credits (lib/referral-milestones.ts).

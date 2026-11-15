@@ -87,6 +87,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },
   { href: "/admin/partners", label: "Partner Network", need: ["growth", "executive", "marketing"], group: "Growth" },
   { href: "/admin/traction", label: "Traction", need: ["marketing", "growth", "finance"], group: "Growth" },
+  { href: "/admin/growth", label: "Growth", need: ["marketing", "growth", "finance"], group: "Growth" }, // where members come from and whether they stay (docs/GROWTH.md)
   { href: "/admin/digest", label: "Weekly digest", need: "super", group: "Growth" },
   { href: "/admin/announcements", label: "Announcements", need: "super", group: "Growth" },
   { href: "/admin/errors", label: "Errors", need: ["product", "engineering"], group: "Platform" },

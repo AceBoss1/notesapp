@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { createHash } from "crypto";
 import webpush from "web-push";
 import { setting } from "@/lib/config";
+import { withReturn } from "./growth";
 
 // Web push to a member's browsers and phones (Android Chrome and installed web apps; iPhone once the site is added to the home
 // screen). Needs three env vars (generate with `npx web-push generate-vapid-keys`): NEXT_PUBLIC_VAPID_PUBLIC_KEY,
@@ -71,7 +72,7 @@ export async function sendPush(db: Firestore, uid: string, payload: PushPayload,
   let sent = 0;
   for (const d of subs.docs) {
     const s = d.data() as PushSubscriptionInput;
-    try { await send({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload), { TTL: payload.ttl ?? 24 * 3600, urgency: payload.urgency ?? "normal" }); sent++; }
+    try { await send({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload.url ? { ...payload, url: withReturn(payload.url, "push") } : payload), { TTL: payload.ttl ?? 24 * 3600, urgency: payload.urgency ?? "normal" }); sent++; }
     catch (err) {
       const code = (err as { statusCode?: number }).statusCode;
       if (code === 404 || code === 410) await d.ref.delete().catch(() => {});

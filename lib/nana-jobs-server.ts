@@ -14,6 +14,7 @@ import {
   validateCvReview, validateVerdicts, verifyAll, type Candidate,
 } from "./nana-jobs-funnel";
 import { FEEDS, checkBoard, fetchBoards, fetchFeeds } from "./nana-jobs-sources";
+import { withReturn } from "./growth";
 
 // Nana Jobs on the server (docs/NANA_JOBS.md). Collections, all server-only (firestore.rules):
 //   nanaJobsProfiles/{uid}   the scoring profile, sources, AI choice and alert settings; nextRunAt for the daily run
@@ -254,10 +255,10 @@ export async function runFor(db: Firestore, uid: string, deps: NjDeps, o: { manu
 
   if (!o.manual && jobs.length) {
     const top3 = jobs.slice(0, 3).map((j) => `${j.title} at ${j.company}`).join("; ");
-    if (s.bell) await (deps.notify ?? defaultNotify)({ uid, linkHref: "/jobs/nana", message: `🧭 Your Nana Jobs shortlist is ready: ${jobs.length} role${jobs.length === 1 ? "" : "s"}. Top: ${top3}.` }).catch(() => {});
+    if (s.bell) await (deps.notify ?? defaultNotify)({ uid, linkHref: withReturn("/jobs/nana", "nana-jobs"), message: `🧭 Your Nana Jobs shortlist is ready: ${jobs.length} role${jobs.length === 1 ? "" : "s"}. Top: ${top3}.` }).catch(() => {});
     if (s.email) {
       const lines = jobs.map((j) => `${j.rough ? "~" : ""}${j.score} · ${j.title} · ${j.company}${j.location ? ` · ${j.location}` : ""}\n${j.reason ? `  ✓ ${j.reason}\n` : ""}${j.risk ? `  ⚠ ${j.risk}\n` : ""}  ${j.notesJobId ? `${SITE_URL}/jobs/${j.notesJobId}` : j.url}`);
-      const text = `Hello,\n\nHere is today's Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}, best first.${error ? `\n\nYour AI didn't answer for some of them ("${error}"), so those carry the rough keyword score, marked ~.` : ""}\n\n${lines.join("\n\n")}\n\nMark them Interested, Applied or Not for me, and get help with a cover note: ${SITE_URL}/jobs/nana\n\nNana finds and ranks. She never applies for you.\n\nNotesApp`;
+      const text = `Hello,\n\nHere is today's Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}, best first.${error ? `\n\nYour AI didn't answer for some of them ("${error}"), so those carry the rough keyword score, marked ~.` : ""}\n\n${lines.join("\n\n")}\n\nMark them Interested, Applied or Not for me, and get help with a cover note: ${SITE_URL}${withReturn("/jobs/nana", "nana-jobs")}\n\nNana finds and ranks. She never applies for you.\n\nNotesApp`;
       await (deps.email ?? defaultEmail)(uid, `Your Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}`, text).catch(() => false);
     }
   }

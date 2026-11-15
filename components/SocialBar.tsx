@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
+import { reportValue } from "@/lib/growth-client";
 import {
   incrementViewCount,
   incrementShareCount,
@@ -78,6 +79,16 @@ export default function SocialBar({
     recordView("note", noteId); // daily bucket for the trending feed
   }, [noteId]);
 
+  // Growth: a journal read to the end (this bar sits under the journal) is a reader's first value (lib/growth-client.ts).
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting) && auth.currentUser) { reportValue("read", noteId); io.disconnect(); } });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [noteId]);
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
       setUid(user?.uid || null);
@@ -136,7 +147,7 @@ export default function SocialBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-5 border-y border-rule">
+    <div ref={endRef} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-5 border-y border-rule">
       <div className="flex items-center gap-3">
         <button
           onClick={handleLike}

@@ -28,6 +28,7 @@ import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-ser
 import { bookOnlineOrder } from "./books-server";
 import { notifyDebtPaid, readDebt, writeDebt, type DebtInfo } from "./books-debt-server";
 import { SITE_URL } from "@/lib/host";
+import { firstValue } from "./growth-server";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
 import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
@@ -704,6 +705,8 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
   }
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
+    // Growth measurement (lib/growth-server.ts): a booking made is a client's first value.
+    if (result.payment.kind === "booking") await firstValue(db, result.payment.uid, "booking");
     await afterFanPayment(db, result.payment).catch((e) => console.error("fan points failed", e));
     await emitSaleWebhooks(result.payment);
     if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));

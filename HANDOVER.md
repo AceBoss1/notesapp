@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `push/growth-measure` | **v0.169.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
@@ -1064,6 +1065,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
     airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
 
+134. **Growth measurement, step 1 of the growth plan (v0.169.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
+    `docs/GROWTH.md`):** where members come from (first touch in the `na_src` cookie, set in `middleware.ts`), first value per kind of
+    member, returns in weeks 1 to 4 with what brought them (`?r=` on bells, push, the digest, reminders, Nana Jobs), installs, and
+    Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on Account → Referrals.
+    **Deploy:** `firebase deploy --only firestore:rules` (server-only `growthMembers`, `growthFirst`, `growthDaily`, `growthCreators`).
+    No new indexes, settings or keys. Tests: `test:growth`, `test:growth-server` (new), rules. Not built: offline Exam Prep mocks
+    don't count as first value (only ones submitted online); an iPhone install opened before signing in counts as Direct (its home-screen
+    app has its own cookies).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator
@@ -1139,6 +1149,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
+| Growth measurement | rules `lib/growth.ts` · server `lib/growth-server.ts` (sign-up source, `firstValue`, visits, installs, `markSeen`, `storedGrowth` hourly in `statCache/growth`, `inviteStats`) · first touch `middleware.ts` (`firstTouch`) · browser `components/GrowthBeat.tsx`, `lib/growth-client.ts` · `app/api/growth`, `app/api/admin/growth`, `/admin/growth`, `components/InviteLinkCard.tsx` · `docs/GROWTH.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
@@ -1168,6 +1179,8 @@ npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs
 npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
 npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle, cash-up, Nana's price guard); "ALL OK"
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
+npm run test:growth            # growth: channel mapping, return tags, first value, weeks, cohorts, the funnel; "GROWTH OK"
+npm run test:growth-server     # growth on the emulator: sign-up source, first values, visits, installs, returns, snapshot; "GROWTH SERVER OK"
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

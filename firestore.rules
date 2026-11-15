@@ -458,6 +458,12 @@ service cloud.firestore {
     match /referralWithdrawals/{id} { allow read, write: if false; }
     match /affiliateOffers/{id} { allow read, write: if false; }
     match /referralAlerts/{id} { allow read, write: if false; }
+    // Growth measurement (lib/growth-server.ts, docs/GROWTH.md): the channel that brought each member, first values, returns, and
+    // daily visit, install and creator-link counts. Server-only, even for the member and for staff (Admin → Growth reads it on the server).
+    match /growthMembers/{id} { allow read, write: if false; }
+    match /growthFirst/{id} { allow read, write: if false; }
+    match /growthDaily/{id} { allow read, write: if false; }
+    match /growthCreators/{id} { allow read, write: if false; }
     // The monthly referrals report (lib/referral-report-server.ts): one marker per member and month, and each month's run. Server-only.
     match /referralReports/{id} { allow read, write: if false; }
     match /referralReportRuns/{id} { allow read, write: if false; }

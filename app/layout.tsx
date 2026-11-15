@@ -2,6 +2,7 @@ import { THEME_SCRIPT } from "@/lib/theme";
 import ThemeWatcher from "@/components/theme/ThemeWatcher";
 import ErrorReporter from "@/components/ErrorReporter";
 import WebVitals from "@/components/WebVitals";
+import GrowthBeat from "@/components/GrowthBeat";
 import type { Metadata, Viewport } from "next";
 import { SITE, WHAT_IS_NOTESAPP } from "@/lib/site";
 import "./globals.css";
@@ -83,6 +84,7 @@ export default async function RootLayout({
         <ThemeWatcher />
         <ErrorReporter />
         <WebVitals />
+        <GrowthBeat />
         <PricingHydrator config={pricing}>{children}</PricingHydrator>
       </body>
     </html>
