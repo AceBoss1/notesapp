@@ -15,11 +15,13 @@ import { EntriesTab, StockTab } from "./Lists";
 import TellNana from "./TellNana";
 import Staff from "./Staff";
 import CashierHome, { type CashierData } from "./CashierHome";
-import { OutboxProvider, SyncBadge, isOfflineError, kvGet, kvSet, useOutbox } from "./outbox";
+import { OutboxProvider, SyncBadge, isOfflineError, kvGet, kvSet } from "./outbox";
 import { ROLE_LABEL, can, type BooksAct, type BooksRole } from "@/lib/books";
-import { Icon, makeApi } from "./shared";
+import { makeApi } from "./shared";
+import SelectBox from "@/components/ui/SelectBox";
 
-// The Business books app at /profile/books: a sidebar on desktop, tabs across the top on phones, and the quick sheets (Record a sale,
+// The Business books app at /profile/books: the shop, its save state and whose books at the top, then the tabs (a dropdown on phones),
+// as in the Moda user dashboard redesign (the My account menu sits on the left), and the quick sheets (Record a sale,
 // Add expense, Tell Nana) from anywhere. Tabs live in ?tab= so a link can open one; an organisation's admins and staff pass
 // ?owner=<the books' owner uid>. What shows follows the role (lib/books.ts can): a cashier gets the counter view only; a manager every tab
 // but Staff. With no connection, the last copy kept on the phone shows and new entries wait in the outbox (components/books/outbox.tsx).
@@ -89,38 +91,47 @@ export default function BooksApp() {
 
   return (
     <OutboxProvider user={user} owner={owner} onSynced={load}>
-      <div className="mx-auto max-w-[1440px] lg:grid lg:grid-cols-[232px_1fr]">
-        <aside className="hidden border-r border-rule px-3.5 py-6 lg:block">
-          <div className="flex items-center gap-3 px-2">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crimson font-ui font-bold text-paper">{home.shop.name.trim()[0]?.toUpperCase()}</span>
-            <span className="min-w-0"><span className="block font-ui text-[15px] font-bold leading-tight text-ink">{home.shop.name}</span><span className="text-xs text-slate">{role === "owner" ? TIER[home.shop.tier] ?? home.shop.tier : `You: ${ROLE_LABEL[role]}`}</span></span>
-          </div>
-          {home.accounts.length > 1 && (
-            <select aria-label="Whose books" value={owner || home.accounts[0].uid} onChange={(e) => switchTo(e.target.value)} className="mt-3 w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm text-ink">
-              {home.accounts.map((a) => <option key={a.uid} value={a.uid}>{a.name}</option>)}
-            </select>
-          )}
-          <nav className="mt-5 space-y-0.5" aria-label="Business books">
-            {tabs.map((t) => (
-              <button key={t.id} onClick={() => go(t.id)} aria-current={cur === t.id ? "page" : undefined} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-ui text-[15px] ${cur === t.id ? "bg-crimson/10 font-semibold text-crimson" : "text-ink hover:bg-field"}`}><Icon name={t.icon} className="h-[18px] w-[18px]" />{t.label}</button>
-            ))}
-          </nav>
-          {role !== "cashier" && <>
-            <p className="mt-6 px-3 font-mono text-[11px] uppercase tracking-eyebrow text-crimson">Shop</p>
-            <nav className="mt-2 space-y-0.5">
-              {[["/profile/inventory", "Inventory", "box"], ["/orders", "Online orders", "bag"], ["/profile/analytics", "Analytics", "chart"]].map(([href, label, icon]) => <Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 font-ui text-[15px] text-ink hover:bg-field"><Icon name={icon} className="h-[18px] w-[18px]" />{label}</Link>)}
-            </nav>
-          </>}
-          <SavedNote offline={offline} />
-        </aside>
-
+      <div className="mx-auto max-w-6xl">
         <div className="min-w-0">
-          <nav className="sticky top-0 z-20 flex items-center gap-2 overflow-x-auto border-b border-rule bg-paper px-4 py-3 lg:hidden" aria-label="Business books">
-            <SyncBadge compact />
-            {tabs.length > 1 && tabs.map((t) => <button key={t.id} onClick={() => go(t.id)} aria-current={cur === t.id ? "page" : undefined} className={`shrink-0 rounded-full px-4 py-2 font-ui text-sm font-semibold ${cur === t.id ? "bg-ink text-paper" : "bg-field text-ink"}`}>{t.label}</button>)}
-            {tabs.length === 1 && <span className="font-ui text-sm font-semibold text-ink">{home.shop.name} · {ROLE_LABEL[role]}</span>}
-          </nav>
-          <main className="px-4 py-6 sm:px-6 lg:px-9 lg:py-8">
+          <header className="px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-crimson font-ui font-bold text-paper">{home.shop.name.trim()[0]?.toUpperCase()}</span>
+              <span className="min-w-0 flex-1"><span className="block truncate font-ui text-[15px] font-semibold leading-tight text-ink">{home.shop.name}</span><span className="text-xs text-slate">{role === "owner" ? TIER[home.shop.tier] ?? home.shop.tier : `You: ${ROLE_LABEL[role]}`}</span></span>
+              <SyncBadge saved />
+              {home.accounts.length > 1 && (
+                <SelectBox label="Whose books" hideLabel className="hidden w-48 md:block" value={owner || home.accounts[0].uid} onChange={switchTo}
+                  options={home.accounts.map((a, i) => ({ value: a.uid, label: i === 0 ? "My books" : a.name }))} />
+              )}
+            </div>
+            {tabs.length > 1 ? (
+              <>
+                <div className="mt-5 hidden items-end justify-between gap-4 border-b border-rule md:flex">
+                  <nav className="flex gap-7 overflow-x-auto font-ui text-sm" aria-label="Business books">
+                    {tabs.map((t) => (
+                      <button key={t.id} onClick={() => go(t.id)} aria-current={cur === t.id ? "page" : undefined}
+                        className={`-mb-px shrink-0 border-b-[3px] py-2.5 ${cur === t.id ? "border-crimson-bright font-semibold text-crimson-bright" : "border-transparent font-medium text-slate hover:text-ink"}`}>{t.label}</button>
+                    ))}
+                  </nav>
+                  {role !== "cashier" && (
+                    <details className="relative mb-2 shrink-0">
+                      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[10px] border border-rule bg-card px-3.5 py-2 font-ui text-sm text-ink [&::-webkit-details-marker]:hidden">Shop <span aria-hidden className="text-xs text-slate">⌄</span></summary>
+                      <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-rule bg-card py-1 shadow-xl">
+                        {[["/profile/inventory", "Inventory"], ["/orders", "Online orders"], ["/profile/analytics", "Analytics"]].map(([href, label]) => <Link key={href} href={href} className="block px-4 py-2.5 font-ui text-sm text-ink hover:bg-field">{label}</Link>)}
+                      </div>
+                    </details>
+                  )}
+                </div>
+                <div className={`mt-4 grid gap-3 md:hidden ${home.accounts.length > 1 ? "grid-cols-[1.4fr,1fr]" : ""}`}>
+                  <SelectBox accent label="Business books" hideLabel value={cur} onChange={go} options={tabs.map((t) => ({ value: t.id, label: t.label }))} />
+                  {home.accounts.length > 1 && (
+                    <SelectBox label="Whose books" hideLabel value={owner || home.accounts[0].uid} onChange={switchTo}
+                      options={home.accounts.map((a, i) => ({ value: a.uid, label: i === 0 ? "My books" : a.name }))} />
+                  )}
+                </div>
+              </>
+            ) : <p className="mt-3 font-ui text-sm font-semibold text-ink">{home.shop.name} · {ROLE_LABEL[role]}</p>}
+          </header>
+          <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-7">
             {offline && <p className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">You&apos;re offline. This is your books as they were when you were last online; new sales, expenses and payments are kept on this phone and sync when you&apos;re back.</p>}
             {role === "cashier" ? <CashierHome data={home as CashierData} api={api} onSale={() => setSheet("sale")} onNana={() => setSheet("nana")} onChanged={load} /> : <>
               {cur === "today" && <Home data={home as HomeData} api={api} onSale={() => setSheet("sale")} onExpense={() => setSheet("expense")} onNana={() => setSheet("nana")} onChanged={load} go={go} />}
@@ -140,14 +151,6 @@ export default function BooksApp() {
       </div>
     </OutboxProvider>
   );
-}
-
-// The sidebar's note: everything saved, or what's waiting on this phone.
-function SavedNote({ offline }: { offline: boolean }) {
-  const o = useOutbox();
-  const waiting = o?.items.some((x) => x.state !== "done");
-  if (offline || waiting) return <div className="mt-6 px-1"><SyncBadge /><p className="mt-2 px-2 text-xs leading-relaxed text-slate">Entries made offline are kept on this device and sent when you&apos;re back online.</p></div>;
-  return <p className="mt-6 rounded-2xl bg-field p-3 text-xs leading-relaxed text-slate"><Icon name="cloud" className="mb-1 h-4 w-4" /><b className="text-ink">All saved.</b> Every entry is saved as soon as you tap Save (or kept on the phone until it syncs, with no connection), and paid online orders come in by themselves.</p>;
 }
 
 function GetIn({ reason }: { reason: string }) {

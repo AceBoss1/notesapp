@@ -124,13 +124,14 @@ export async function saveOrQueue<T>(o: Ctx | null, send: () => Promise<T>, acti
 }
 
 // "3 waiting to sync": the badge, on the phone's tab bar and in the desktop sidebar.
-export function SyncBadge({ compact }: { compact?: boolean }) {
+// `saved` shows a green "All saved" when nothing is waiting (the books header, Moda user dashboard redesign).
+export function SyncBadge({ compact, saved }: { compact?: boolean; saved?: boolean }) {
   const o = useOutbox();
   const [online, setOnline] = useState(true);
   useEffect(() => { const f = () => setOnline(navigator.onLine); f(); window.addEventListener("online", f); window.addEventListener("offline", f); return () => { window.removeEventListener("online", f); window.removeEventListener("offline", f); }; }, []);
   if (!o) return null;
   const text = badgeText(o.items);
-  if (!text && online) return null;
+  if (!text && online) return saved ? <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 font-ui text-xs font-semibold text-green-700" role="status"><Icon name="cloud" className="h-4 w-4" />All saved</span> : null;
   const stuck = stuckCount(o.items) > 0;
   return (
     <button onClick={() => o.syncNow()} title={online ? "Sync now" : "You're offline. Entries are kept on this phone."} className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-ui text-xs font-semibold ${stuck ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`} role="status">

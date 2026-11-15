@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BOOKS_IMPORT_MAX_BYTES, BOOKS_IMPORT_MAX_ROWS, BOOKS_UNDO_HOURS, DEFAULT_CATEGORIES, naira } from "@/lib/books";
+import SelectBox from "@/components/ui/SelectBox";
 import { FIELDS, IMPORT_KINDS, SOURCES, detectSource, presetFor, readSheet, sourceOf, statementFromPdfLines, type ImportKind, type SourceId } from "@/lib/books-import";
 import { Icon, download, field, pill, type Api } from "./shared";
 
@@ -38,6 +39,8 @@ async function pdfLines(f: File): Promise<string[]> {
   doc.destroy();
   return out;
 }
+
+const STEPS = ["Source", "Upload", "Match columns", "Preview", "Import"] as const;
 
 export default function ImportExport({ api, maxRows, inventory }: { api: Api; maxRows: number; inventory: boolean }) {
   const [source, setSource] = useState<SourceId>("csv");
@@ -126,16 +129,27 @@ export default function ImportExport({ api, maxRows, inventory }: { api: Api; ma
       <p className="eyebrow">Import and export</p>
       <h1 className="mt-1 font-display text-4xl text-ink">Bring in your existing records</h1>
       <p className="mt-2 max-w-3xl text-[15px] text-slate">From a spreadsheet, your online shop, Paystack or your bank. You see every row before anything is saved, and you can undo an import for {BOOKS_UNDO_HOURS} hours.</p>
-      <ol className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-        {["Source", "Upload", "Match columns", "Preview", "Import"].map((s, i) => (
-          <li key={s} className="flex items-center gap-2"><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${i + 1 < step ? "bg-crimson text-paper" : i + 1 === step ? "bg-ink text-paper" : "bg-field text-slate"}`}>{i + 1 < step ? "✓" : i + 1}</span><span className={i + 1 === step ? "font-semibold text-ink" : "text-slate"}>{s}</span>{i < 4 && <span className="hidden h-px w-6 bg-rule sm:block" />}</li>
+      {/* The steps: a row on a computer, "Upload · Step 2 of 5" with a bar on a phone (Moda user dashboard redesign). */}
+      <ol className="mt-5 hidden items-center gap-3 rounded-full border border-rule bg-card px-3 py-2 font-ui text-sm md:flex" aria-label="Steps">
+        {STEPS.map((s, i) => (
+          <li key={s} className="flex min-w-0 flex-1 items-center gap-2 last:flex-none" aria-current={i + 1 === step ? "step" : undefined}>
+            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${i + 1 <= step ? "bg-crimson text-paper" : "bg-field text-slate"}`}>{i + 1 < step ? "✓" : i + 1}</span>
+            <span className={`shrink-0 ${i + 1 === step ? "font-semibold text-ink" : "text-slate"}`}>{s}</span>
+            {i < STEPS.length - 1 && <span className="mx-1 h-px min-w-[1rem] flex-1 bg-rule" />}
+          </li>
         ))}
       </ol>
+      <div className="mt-5 rounded-[14px] border border-rule bg-card p-4 md:hidden" aria-label={`Step ${step} of ${STEPS.length}: ${STEPS[step - 1]}`}>
+        <div className="flex items-center justify-between font-ui"><span className="text-[15px] font-semibold text-ink">{STEPS[step - 1]}</span><span className="text-xs text-slate">Step {step} of {STEPS.length}</span></div>
+        <div className="mt-3 grid grid-cols-5 gap-1.5" aria-hidden="true">{STEPS.map((s, i) => <span key={s} className={`h-1.5 rounded-full ${i + 1 <= step ? "bg-crimson" : "bg-field"}`} />)}</div>
+      </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">1 · Where is it coming from?</p>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <SelectBox className="mt-2 sm:hidden" accent label="Where is it coming from?" hideLabel value={source} onChange={(v) => chooseSource(v as SourceId)}
+            options={[...SOURCES.map((s) => ({ value: s.id as string, label: `${s.label} · ${s.hint}` })), ...LATER.map((s) => ({ value: `later:${s.label}`, label: `${s.label} · not yet`, disabled: true }))]} />
+          <div className="mt-2 hidden grid-cols-1 gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {SOURCES.map((s) => (
               <button key={s.id} onClick={() => chooseSource(s.id)} aria-pressed={source === s.id} className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left ${source === s.id ? "border-crimson ring-1 ring-crimson" : "border-rule"}`}>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-field font-ui text-xs font-bold text-crimson">{s.icon || <Icon name="card" />}</span>

@@ -76,6 +76,23 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urls[i]} alt="" className="absolute inset-0 h-full w-full object-contain" />
           ) : <Pattern />}
+          {/* The action rail on the right, over the picture or video (owner, 15 Nov 2026, like the screenshot they shared): Like, Share
+              (Moments and Journals first, then other apps), Remix and Download, each an icon with its label underneath. */}
+          {post && post.status === "ready" && (
+            <div className="absolute bottom-4 right-2 z-10 flex flex-col items-center gap-4" role="group" aria-label="Actions">
+              <RailButton label={compact(Object.values(reactions).reduce((n, x) => n + x, 0) || post.reactionsCount)} on={mine === "❤️"} onClick={() => void react("❤️")} aria={mine === "❤️" ? "Take back your like" : "Like"}>
+                <svg viewBox="0 0 24 24" className="h-8 w-8" fill={mine === "❤️" ? "#ef4444" : "none"} stroke={mine === "❤️" ? "#ef4444" : "currentColor"} strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.4A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.7c0 5.8-7.5 10.4-7.5 10.4Z" /></svg>
+              </RailButton>
+              {(post.allowShares || post.mine) && <RailButton label="Share" onClick={() => setSharing(true)} aria="Share"><ShareIcon className="h-8 w-8" /></RailButton>}
+              {post.remixable && !post.mine && <RailButton label={post.remixCount ? `Remix · ${compact(post.remixCount)}` : "Remix"} href={`/profile/media?remix=${post.id}`} aria="Remix this post"><RemixIcon className="h-8 w-8" /></RailButton>}
+              {post.mine && post.remixCount > 0 && <RailButton label={`${compact(post.remixCount)} remix${post.remixCount === 1 ? "" : "es"}`} aria="Remixes of your post"><RemixIcon className="h-8 w-8" /></RailButton>}
+              {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready") && (
+                <RailButton label={busy ? "…" : "Save"} onClick={download} aria="Download">
+                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" /></svg>
+                </RailButton>
+              )}
+            </div>
+          )}
           {urls.length > 1 && (
             <>
               <div className="absolute inset-x-3 top-3 z-10 flex gap-1">{urls.map((_, k) => <span key={k} className={`h-[3px] flex-1 rounded-full ${k === i ? "bg-white" : "bg-white/35"}`} />)}</div>
@@ -109,19 +126,9 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
                   ))}
                 </div>
               )}
-              {/* Share (Moments and Journals first, then other apps) and Remix (owner, 12 Nov 2026), when the creator allows shares. */}
-              {post.status === "ready" && (post.allowShares || post.mine) && (
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setSharing(true)} className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-ui text-sm font-bold text-white hover:bg-white/25"><ShareIcon className="h-4 w-4" />Share</button>
-                  {post.remixable && !post.mine && <Link href={`/profile/media?remix=${post.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 font-ui text-sm font-bold text-white hover:bg-white/25"><RemixIcon />Remix{post.remixCount ? <span className="font-normal text-white/70"> · {compact(post.remixCount)}</span> : null}</Link>}
-                  {post.mine && post.remixCount > 0 && <span className="inline-flex items-center gap-1.5 px-2 py-2 text-xs text-white/70"><RemixIcon /> {compact(post.remixCount)} remix{post.remixCount === 1 ? "" : "es"}</span>}
-                </div>
-              )}
               {sharing && <ShareMenu shareRef={post.audience === "everyone" ? { kind: "media", id: post.id } : null} url={typeof window === "undefined" ? `/u/${username}/media?post=${post.id}` : `${window.location.origin}/u/${username}/media?post=${post.id}`} title={post.caption.split("\n")[0] || `@${username} on #NotesApp`} onClose={() => setSharing(false)} />}
               {/* Every picture and video carries the NotesApp mark, so a download is the same file. A video: once Stream has made its MP4. */}
-              {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? (
-                <button type="button" disabled={busy} onClick={download} className="rounded-full bg-white px-4 py-2 font-ui text-sm font-bold text-crimson disabled:opacity-60">{busy ? "Preparing…" : "⤓ Download"}</button>
-              ) : post.mine && post.videoDownload === "preparing" ? <p className="text-xs text-white/60">{VIDEO_DL_PREPARING}</p>
+              {post.allowDownloads && (post.kind === "pictures" || post.videoDownload === "ready" ? null : post.mine && post.videoDownload === "preparing" ? <p className="text-xs text-white/60">{VIDEO_DL_PREPARING}</p>
                 : post.mine && post.videoDownload === "failed" ? <p className="text-xs text-amber-300">{post.videoDownloadWhy || "The download file couldn't be made."}</p> : null)}
             </>
           ) : item.type === "pictures" ? (
@@ -135,11 +142,20 @@ export default function MediaViewer({ item, username, ownerUid, ownerName, onClo
 }
 
 // Remix: two arrows chasing each other around a spark, like the screenshot the owner shared (12 Nov 2026).
-function RemixIcon() {
+function RemixIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" /><path d="M20 20v-4h-4" />
       <path d="M12 9.5v5M9.5 12h5" />
     </svg>
   );
+}
+
+// One button on the right-hand rail: a white icon with a soft shadow (readable on any picture), and its label underneath.
+function RailButton({ children, label, onClick, href, aria, on }: { children: React.ReactNode; label: React.ReactNode; onClick?: () => void; href?: string; aria: string; on?: boolean }) {
+  const cls = `flex w-16 flex-col items-center gap-1 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] ${on ? "" : "hover:opacity-90"}`;
+  const inner = <>{children}<span className="font-ui text-[13px] font-bold leading-none">{label}</span></>;
+  if (href) return <Link href={href} aria-label={aria} className={cls}>{inner}</Link>;
+  if (!onClick) return <span aria-label={aria} className={cls}>{inner}</span>;
+  return <button type="button" onClick={onClick} aria-label={aria} aria-pressed={on} className={cls}>{inner}</button>;
 }

@@ -30,8 +30,7 @@ import MessageAttachments from "./MessageAttachments";
 import MediaViewer, { ChatMediaContext, mediaKey, type ChatMedia, type MediaItem } from "./MediaViewer";
 import ChatLibrary from "./ChatLibrary";
 import VoiceNoteButton from "./VoiceNoteButton";
-import StickerPicker from "./StickerPicker";
-import EmojiPicker from "./EmojiPicker";
+import EmojiStickerPicker from "./EmojiStickerPicker";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, getUserByUid, goldKindOf, isTeamMember } from "@/lib/users";
@@ -114,6 +113,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const voiceLength = useRef(new WeakMap<File, number>()); // how long each recorded voice note is
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recordingVoice, setRecordingVoice] = useState(false); // the voice note recorder takes the composer's row
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [reportingMsg, setReportingMsg] = useState<string | null>(null); // a message in a group
@@ -737,16 +737,15 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ? <p className="mx-4 mb-2 rounded-lg bg-amber-50 p-2 text-xs text-ink lg:mx-0">Sending is limited to admins in this group. You can still write because you are an admin.</p>
           : <p className="mx-4 mb-4 rounded-lg border border-rule bg-card p-3 text-center text-sm text-slate lg:mx-0 lg:mb-0 lg:bg-paper">Only group admins can send messages in this group. You can still read it.</p>)}
         <form className={selected || (group?.sendLocked && !group.adminUids.includes(user?.uid ?? "")) ? "hidden" : ""} onSubmit={(e) => { e.preventDefault(); if (editing) { if (text.trim()) void saveEdit(); return; } if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
-          <div className="flex flex-wrap items-center gap-2 px-4 pb-3 lg:gap-1 lg:px-0">
-            <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} className={`${CHIP} !px-3.5 text-base`} />
-            {/* Bold, italic and underline are always there on desktop; on a phone they show once there's something to format, which keeps the row to one line. */}
-            <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className={`${CHIP} w-9 !px-0 font-bold ${text ? "" : "!hidden lg:!inline-flex"}`}>B</button>
-            <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className={`${CHIP} w-9 !px-0 font-medium italic ${text ? "" : "!hidden lg:!inline-flex"}`}>I</button>
-            <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className={`${CHIP} w-9 !px-0 font-medium underline ${text ? "" : "!hidden lg:!inline-flex"}`}>U</button>
-            <StickerPicker onPick={sendSticker} disabled={busy || blockedByMe} className={`${CHIP} lg:!px-4`} label="Stickers" />
-            {!blockedByMe && <NanaAssist surface="chat" label="Nana" className={NANA_CHIP} getText={() => text} onApply={(t) => { setText(t); setTimeout(() => box.current?.focus(), 0); }}
+          {/* The row over the box (Moda user dashboard redesign): Emoji · Stickers, B, I, U and Nana; the paperclip is beside the box. */}
+          <div className={`relative flex items-center gap-2 px-4 pb-3 lg:gap-1 lg:px-0 ${recordingVoice ? "!hidden" : ""}`}>
+            <EmojiStickerPicker onEmoji={insertEmoji} onSticker={sendSticker} disabled={blockedByMe} stickersDisabled={busy}
+              className={`${CHIP} !px-3.5 whitespace-nowrap max-lg:h-11 max-lg:!px-4`} label={<><span aria-hidden className="text-base">😊</span><span className="ml-1.5 text-[13px] font-semibold lg:hidden">Emoji · Stickers</span></>} />
+            <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className={`${CHIP} w-9 !px-0 font-bold max-lg:h-11 max-lg:w-11`}>B</button>
+            <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className={`${CHIP} w-9 !px-0 font-medium italic max-lg:h-11 max-lg:w-11`}>I</button>
+            <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className={`${CHIP} w-9 !px-0 font-medium underline max-lg:h-11 max-lg:w-11`}>U</button>
+            {!blockedByMe && <NanaAssist surface="chat" label="Nana" className={`${NANA_CHIP} max-lg:ml-auto max-lg:h-11`} getText={() => text} onApply={(t) => { setText(t); setTimeout(() => box.current?.focus(), 0); }}
               getContext={() => messages.slice(-8).map((m) => `${m.from === user?.uid ? "Me" : (people[m.from]?.name || "Them").split(" ")[0]}: ${m.text || (m.sticker ? "(sticker)" : m.attachments?.length ? "(attachment)" : "")}`).join("\n")} />}
-            <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents" className={`${CHIP} lg:!px-4`}>Attach</button>
             <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
             {limits && <span className="ml-2 hidden text-xs text-slate lg:inline">up to {limits}</span>}
           </div>
@@ -773,6 +772,10 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             </ul>
           )}
           <div className="relative flex items-end gap-1.5 border-t border-rule bg-card px-4 py-2.5 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0">
+            <button type="button" onClick={() => picker.current?.click()} disabled={blockedByMe} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents"
+              className={`flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border border-rule bg-paper text-ink hover:border-crimson disabled:opacity-50 lg:h-14 lg:w-14 ${recordingVoice ? "!hidden" : ""}`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-5 w-5"><path d="m20 11.5-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" /></svg>
+            </button>
             <MentionPicker target={box} value={text} onChange={typed} place="above" />
             <CountrySuggest target={box} value={text} onChange={typed} />
             {/* Grows with what's typed where the browser can (field-sizing), up to a few lines, then scrolls. */}
@@ -783,15 +786,15 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                 if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }
                 else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
               }}
-              className="max-h-40 min-h-[3rem] min-w-0 flex-1 resize-none rounded-3xl border border-transparent bg-paper px-4 py-3 text-[15px] leading-6 text-ink outline-none [field-sizing:content] placeholder:text-slate/80 focus:border-crimson/30 lg:min-h-[3.5rem] lg:rounded-2xl lg:py-4 lg:text-sm"
+              className={`${recordingVoice ? "hidden" : ""} max-h-40 min-h-[3rem] min-w-0 flex-1 resize-none rounded-3xl border border-transparent bg-paper px-4 py-3 text-[15px] leading-6 text-ink outline-none [field-sizing:content] placeholder:text-slate/80 focus:border-crimson/30 lg:min-h-[3.5rem] lg:rounded-2xl lg:py-4 lg:text-sm`}
             />
-            <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} />
-            <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} aria-label={busy ? "Sending" : editing ? "Save" : "Send"} className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-crimson-bright text-white transition-colors hover:bg-crimson disabled:opacity-60 lg:h-12 lg:w-auto lg:bg-crimson lg:px-8 lg:font-ui lg:text-sm lg:font-semibold lg:hover:bg-crimson-bright">
+            <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} onRecordingChange={setRecordingVoice} />
+            <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} aria-label={busy ? "Sending" : editing ? "Save" : "Send"} className={`${recordingVoice ? "!hidden" : ""} flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-crimson-bright text-white transition-colors hover:bg-crimson disabled:opacity-60 lg:h-12 lg:w-auto lg:bg-crimson lg:px-8 lg:font-ui lg:text-sm lg:font-semibold lg:hover:bg-crimson-bright`}>
               {editing ? <CheckIcon className="lg:hidden" /> : <SendIcon className="-mr-0.5 lg:hidden" />}
               <span className="hidden lg:inline">{busy ? "Sending…" : editing ? "Save" : "Send"}</span>
             </button>
           </div>
-          {limits && <p className="pt-2 text-center text-xs text-slate lg:hidden">Up to {limits}</p>}
+          {recordingVoice ? <p className="pt-2 text-center font-ui text-xs text-slate">Recording a voice note</p> : limits && <p className="pt-2 text-center text-xs text-slate lg:hidden">Up to {limits}</p>}
         </form>
       </div>
       {menu && (() => {

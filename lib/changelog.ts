@@ -11,6 +11,35 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.169.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "My account has a new look: a menu down the left on a computer, with four groups (Profile, Money, Store, Growth) that open to their pages, Day / Night / Auto and Sign out at the bottom, and plain page headings in place of the crimson band. On a phone, the bar at the top says where you are (My account / Money / Analytics) and opens the same menu." },
+      { kind: "changed", text: "Analytics: the account picker sits at the top right, the tabs share a row with Last 7, 30 and 90 days, and your sounds sit beside the chart. On a phone, the tabs and the period are two dropdowns." },
+      { kind: "changed", text: "Business books: the shop, All saved and My books at the top with the tabs across (a dropdown on a phone, with Shop for Inventory, Online orders and Analytics); Import and export shows Step 2 of 5 with a bar on a phone, and the source as a dropdown." },
+      { kind: "changed", text: "Messages: one Emoji · Stickers button opens both, with Emoji and Stickers at the top; B, I and U are always there; the paperclip sits beside the message box; and recording a voice note fills the row with the time, a moving wave, a bin to cancel and the button to add it." },
+      { kind: "changed", text: "Explore on a phone: one Browse box (Topics, 1 of 9) opens the list of every section. Bookings shows the refund, rescheduling and payout rules as three cards. Your own profile has a Manage profile menu, and Subscribe comes first on a phone." },
+    ],
+  },
+  {
+    version: "v0.168.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp. The sign-up form says so; use your own address (ordinary providers like Gmail are never blocked) or Google or LinkedIn. See Temporary (throwaway) email addresses in the Help Centre." },
+      { kind: "changed", text: "For our team: a new admin area, with a sidebar of groups (Workspace, Content, People & Trust, Money, Growth, Platform, Admin) that open to their pages, Jump to a page, and a drawer on phones; plus Throwaway emails under People & Trust, to block domains and find and suspend accounts already using them. Nothing else changes for members." },
+    ],
+  },
+  {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Media posts: Like, Share, Remix and Save sit on a rail down the right of the picture or video, each an icon with its label, like other video apps." },
+    ],
+  },
+  {
     version: "v0.167.0",
     bump: "minor",
     date: "2026-11-15",
