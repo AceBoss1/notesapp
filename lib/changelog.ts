@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.174.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Content checks: every photo, video frame and text that other people can see (journals, community posts and comments, Moments, Media posts, shop items, events and profiles) is checked by AI before it is published. Private messages are not read." },
+      { kind: "added", text: "A post that breaks the rules isn't published: it stays as a draft, you're told what was found and in which photo, and you can remove the photo or ask for a review. Each break is a strike; strikes and appeals are on your account page." },
+      { kind: "added", text: "The rules card on every community's About tab, the journal editor and the Media studio, the Content rules page, and a new section 2e in the Terms." },
+      { kind: "added", text: "Admin → People & Trust → Content checks (beside Reports): the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
+      { kind: "changed", text: "Videos on posts are now checked before they are shown (Terms, section 2a)." },
+    ],
+  },
+  {
     version: "v0.173.0",
     bump: "minor",
     date: "2026-11-15",

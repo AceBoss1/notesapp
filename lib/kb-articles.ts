@@ -275,6 +275,24 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
 **Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
+    A("content-checks", "Content checks: what is checked, strikes and appeals", "Safety and your data", `
+Every photo, video frame and text that people other than you can see is checked by AI **before it is published**. [The rules](/content-rules).
+
+**What is checked:** journals, community posts and comments, Moments, Media posts, shop items, events, and your profile's name, bio and pictures. Public, followers-only and subscriber-only posts follow the same rules (our payment partners and the app stores can see paid content). **Private one-to-one and group messages are not read.** Only new or changed text and pictures are checked, and it takes a second or two while you post.
+
+**Not allowed:** sexual content, gore, violence, self-harm, drugs, weapons, and hate or extremism. News, medical posts and art are judged in context: when the check isn't sure, a person on our Trust & safety team looks before anything is blocked, and that isn't a strike. Teens' posts are checked more strictly.
+
+**If a post breaks the rules:** it isn't published and nobody sees it. A journal stays as a draft; a post stays in the box you wrote it in. You're told what was found and in which photo: tap **Remove the photo** and post again, or **Ask for a review** if you think we got it wrong.
+
+**Strikes:** each post that breaks the rules is a strike. Too many in a short time and posting is paused for a while: you can still read and send messages, but you can't post. A further strike after that closes the account. Strikes clear after a while. See yours on [Account settings](/profile/account#content-checks) → **Content checks**.
+
+**Appeals:** every strike can be appealed with **Ask for a review**, and a paused account with **Appeal the suspension**. A person decides within 48 hours. If they restore your post it is published (a shop item or profile change: save it again and it goes straight through) and the strike is removed.
+
+**Communities:** a community is closed only when its owner or moderators keep posting or approving rule-breaking content. Its owner and moderators are warned first, members see the warning, and the owner can ask for a review.
+
+**Child safety:** child sexual abuse material closes the account at once and for good, and we report it to the authorities.
+
+**If the check is down:** we don't stop you posting. Your post goes up and is checked as soon as the check is back; if it breaks the rules then, it is taken down and you're told.`),
     A("my-cycle", "My Cycle: your private cycle companion", "Safety and your data", `
 [My Cycle](/cycle) is a private cycle and wellness companion for women and girls: period predictions, a daily check-in, food and movement ideas for each phase, and advice from Nana. [How it works](/my-cycle).
 

@@ -1,4 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { gateContent } from "./content-checks-server";
+import { isContentCheckError } from "./content-checks";
 import { songLabel } from "./songs";
 import { countPlay, countUse, findSong } from "./sounds-server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -223,6 +225,8 @@ export type CreateInput = {
   allowComments?: unknown; allowShares?: unknown; allowGifts?: unknown; allowDownloads?: unknown; pinned?: unknown;
 };
 
+const TAKEN_DOWN = "Taken down: our content check found something that breaks the rules. See your account page to ask for a review.";
+
 export async function createMediaPost(db: Firestore, owner: Person, tier: AccountTier, input: CreateInput, deps: MediaDeps, now = new Date()): Promise<MediaPostView> {
   if (!owner.username) throw new MediaError(400, "Finish setting up your profile first.");
   if (!isMediaKind(input.kind)) throw new MediaError(400, "Choose a video or pictures.");
@@ -262,6 +266,12 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
       if (!sniffPicture(await deps.readStart(key))) throw new MediaError(400, "One of the files isn't a picture.");
       pictures.push({ key, bytes: head.size, marked: false });
     }
+    // AI content checks: the caption and every picture, before the post exists. A blocked or held post isn't made; the uploads stay so
+    // the member can take the photo out and post again.
+    await gateContent(db, {
+      uid: owner.uid, kind: "media", label: caption || "pictures", text: caption, pictures: pictures.map((x) => deps.publicUrl(x.key)),
+      where: { href: `/u/${owner.username}` }, path: ref.path, takedown: { update: { status: "rejected", rejectedReason: TAKEN_DOWN } },
+    });
     const bytes = pictures.reduce((n, p) => n + p.bytes, 0);
     await reserve(db, owner.uid, await mediaQuota(db, owner.uid, tier, now), "pictures", bytes);
     // Hidden ("processing") until every picture carries the mark and its clean upload is gone; the cron finishes it if this is cut short.
@@ -276,6 +286,8 @@ export async function createMediaPost(db: Firestore, owner: Person, tier: Accoun
   // A video: the upload this member started (once). It shows to others once Stream has it ready (refreshVideo).
   const uploadId = String(input.videoUploadId ?? "");
   if (!/^[0-9a-f]{16}$/.test(uploadId)) throw new MediaError(400, "Upload the video first.");
+  // The caption now; the video's poster and frames once Stream has it ready (refreshVideo), while it is still hidden.
+  if (caption) await gateContent(db, { uid: owner.uid, kind: "media", label: caption, text: caption, path: ref.path, takedown: { update: { status: "rejected", rejectedReason: TAKEN_DOWN } } });
   const upRef = db.doc(`mediaUploads/${uploadId}`);
   const doc = await db.runTransaction(async (t) => {
     const up = (await t.get(upRef)).data();
@@ -378,6 +390,19 @@ export async function refreshVideo(db: Firestore, id: string, deps: MediaDeps, n
   const max = await limit(db, "mediaVideoMaxSeconds", effectiveTier({ username: String(user?.username ?? ""), role: user?.role ?? "reader", accountTier: user?.accountTier ?? "standard" }));
   const duration = Number(v.duration ?? p.video.durationSec);
   if (duration > max + 1) return reject(`The video is longer than your plan's ${max} seconds. Your slot is back.`);
+  // AI content checks on the poster and a few frames, before it is shown. Blocked or held: it stays hidden (rejected, with the reason),
+  // and Restore on review shows it.
+  try {
+    await gateContent(db, {
+      uid: p.ownerUid, kind: "media", label: p.caption || "a video", videos: [{ streamUid: p.video.streamUid, durationSec: duration }],
+      where: { href: `/u/${p.ownerUsername}` }, path: ref.path, restore: { update: { status: "ready" } }, takedown: { update: { status: "rejected", rejectedReason: TAKEN_DOWN } },
+    });
+  } catch (e) {
+    if (!isContentCheckError(e)) throw e;
+    const patch = { status: "rejected" as const, rejectedReason: e.message, updatedAt: now.toISOString() };
+    await ref.update(patch);
+    return { ...p, ...patch };
+  }
   const bytes = Number(v.size ?? p.bytes);
   const patch = { status: "ready" as const, video: { ...p.video, durationSec: Math.round(duration), bytes }, bytes, updatedAt: now.toISOString() };
   if (bytes !== p.bytes) await db.doc(`mediaUsage/${p.ownerUid}`).update({ bytes: FieldValue.increment(bytes - p.bytes) }).catch(() => {});
@@ -443,7 +468,11 @@ export async function updateMediaPost(db: Firestore, owner: Person, id: string, 
   const p = (await ref.get()).data() as MediaPostDoc | undefined;
   if (!p || p.ownerUid !== owner.uid) throw new MediaError(404, "That post wasn't found.");
   const patch: Partial<MediaPostDoc> & Record<string, unknown> = { updatedAt: now.toISOString() };
-  if (input.caption !== undefined) { patch.caption = cleanCaption(input.caption); await mentionGate(db, owner, patch.caption); }
+  if (input.caption !== undefined) {
+    patch.caption = cleanCaption(input.caption);
+    await mentionGate(db, owner, patch.caption);
+    if (patch.caption && patch.caption !== p.caption) await gateContent(db, { uid: owner.uid, kind: "media", label: patch.caption, text: patch.caption, path: ref.path, restore: { update: { caption: patch.caption } }, takedown: { update: { caption: p.caption } } });
+  }
   if (input.audience !== undefined) {
     if (!isMediaAudience(input.audience)) throw new MediaError(400, "Choose who can see it.");
     patch.audience = input.audience;

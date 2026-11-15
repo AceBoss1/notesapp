@@ -1,6 +1,8 @@
 "use client";
 
 import ShareIcon from "@/components/share/ShareIcon";
+import BlockedNotice from "@/components/content-checks/BlockedNotice";
+import { contentCheckOf, type CheckDetail } from "@/lib/content-checks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadToR2 } from "@/lib/upload";
@@ -69,13 +71,14 @@ function Composer({ cid, channel, onDone }: { cid: string; channel: string; onDo
   const [image, setImage] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [blocked, setBlocked] = useState<CheckDetail | null>(null); // AI content checks
   const box = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (open) box.current?.focus(); }, [open]);
   async function pick(f?: File) { if (!f) return; setOpen(true); setBusy(true); try { setImage(await uploadToR2(f, "journal")); } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't upload."); } finally { setBusy(false); } }
   async function send() {
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setBlocked(null);
     try { await capi("/api/community", { action: "post", id: cid, channel, text, image }); setText(""); setImage(""); setOpen(false); onDone(); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Couldn't post."); }
+    catch (e) { const d = contentCheckOf(e); if (d) setBlocked(d); else setErr(e instanceof Error ? e.message : "Couldn't post."); }
     finally { setBusy(false); }
   }
   const prompt = channel === "general" ? "Create a note for every member…" : "Create a note…";
@@ -100,6 +103,7 @@ function Composer({ cid, channel, onDone }: { cid: string; channel: string; onDo
         <button className="btn-primary !px-5 !py-2 text-sm" disabled={busy || (!text.trim() && !image)} onClick={send}>{busy ? "Posting…" : "Post"}</button>
       </div>
       {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}
+      {blocked && <div className="mt-3"><BlockedNotice detail={blocked} onRemovePhoto={() => setImage("")} onClose={() => setBlocked(null)} /></div>}
     </div>
   );
 }
