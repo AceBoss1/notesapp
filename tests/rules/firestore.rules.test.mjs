@@ -1697,6 +1697,24 @@ test("My Cycle is server-only, even for her and for staff: her answer, check-ins
   }
 });
 
+test("My Calendar is server-only, even for her and for staff: her choices, the private link's hash and the bells sent", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "myCalendar/alice"), { uid: "alice", feedHash: "h1", prefs: { feed: { money: false } } });
+    await setDoc(doc(db, "calendarFeeds/h1"), { uid: "alice", createdAt: "x" });
+    await setDoc(doc(db, "calendarBells/bk_A1_alice"), { at: "x" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["myCalendar/alice", "calendarFeeds/h1", "calendarBells/bk_A1_alice"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice" }));
+      await assertFails(deleteDoc(doc(db, p)));
+    }
+    await assertFails(getDocs(query(collection(db, "calendarFeeds"), where("uid", "==", "alice"))));
+    await assertFails(setDoc(doc(db, "calendarFeeds/mine"), { uid: "bob" }));
+  }
+});
+
 test("Google and LinkedIn sign-in links, states, tickets and their log are server-only, even for the account's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
