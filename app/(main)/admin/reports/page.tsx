@@ -62,6 +62,8 @@ export default function AdminReportsPage() {
         {(["open", "resolved"] as const).map((s) => (
           <button key={s} onClick={() => { setReports(null); setStatus(s); }} aria-pressed={status === s} className={`rounded-full border px-4 py-1 text-sm ${status === s ? "border-crimson bg-crimson text-white" : "border-rule"}`}>{s === "open" ? "Open" : "Resolved"}</button>
         ))}
+        {/* AI content checks: its own page in the admin menu (People & Trust), shown as a tab of Reports */}
+        <Link href="/admin/content-checks" className="rounded-full border border-rule px-4 py-1 text-sm">🛡 Content checks</Link>
       </div>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {reports && !reports.length && <p className="mt-6 text-slate">Nothing {status}.</p>}

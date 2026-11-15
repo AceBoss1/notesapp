@@ -1,4 +1,5 @@
 import { isUnexpected, reportError } from "./monitoring";
+import { isContentCheckError } from "./content-checks";
 
 // Turns raw backend errors into something a visitor can act on.
 // Firestore's free tier stops reads/writes for the day once its quota is
@@ -7,6 +8,8 @@ import { isUnexpected, reportError } from "./monitoring";
 // Unexpected faults (runtime, SDK and network errors) are also recorded for /admin/errors.
 export function friendlyMessage(err: unknown, fallback = "Something went wrong."): { message: string; status: number } {
   const raw = err instanceof Error ? err.message : String(err || "");
+  // A content check stopped a post (lib/content-checks.ts): its own words and status.
+  if (isContentCheckError(err)) return { message: err.message, status: err.status };
   // Only Firestore's own quota errors; a third party saying "quota" (Cloudflare Stream's storage, for one) is not our database at capacity.
   if (/RESOURCE_EXHAUSTED/.test(raw) || (/quota/i.test(raw) && !/^Cloudflare Stream:/.test(raw))) {
     return { message: "We're at capacity right now — please try again in a little while. You haven't been charged.", status: 503 };

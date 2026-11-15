@@ -1,6 +1,7 @@
 "use client";
 
 import { auth } from "@/lib/firebase";
+import { apiError } from "@/lib/content-checks";
 
 // Calls to /api/community and /api/events, signed in when the visitor is (signed out works for what non-members may see).
 export async function capi<T = Record<string, unknown>>(url: string, body?: unknown): Promise<T> {
@@ -9,7 +10,7 @@ export async function capi<T = Record<string, unknown>>(url: string, body?: unkn
   if (u) headers.Authorization = `Bearer ${await u.getIdToken()}`;
   const res = await fetch(url, { method: body ? "POST" : "GET", headers, ...(body ? { body: JSON.stringify(body) } : {}), cache: "no-store" });
   const j = await res.json().catch(() => ({}));
-  if (!res.ok || j.error) throw new Error(j.error || "Something went wrong.");
+  if (!res.ok || j.error) throw apiError(j, "Something went wrong."); // a content check's detail rides along (lib/content-checks.ts)
   return j as T;
 }
 export const small = "rounded-full border border-rule px-3 py-1 text-xs font-semibold text-ink hover:border-crimson disabled:opacity-40";

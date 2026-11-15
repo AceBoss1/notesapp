@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
+import { apiError } from "./content-checks";
 import type { CreatorMedia, Studio } from "./media-server";
 import { MEDIA_LIVE } from "./media-rules";
 
@@ -17,7 +18,7 @@ export async function mediaApi<T>(path: string, init: { method?: string; body?: 
     cache: "no-store",
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Something went wrong.");
+  if (!res.ok) throw apiError(data, "Something went wrong.");
   return data as T;
 }
 

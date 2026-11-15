@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
+import { gateContent } from "./content-checks-server";
 import { effectiveTier, type UserProfile } from "./users";
 import { orgVerified } from "./org";
 import { notifyBell } from "./email";
@@ -57,6 +58,8 @@ export async function createCommunity(db: Firestore, uid: string, raw: { name?: 
   const id = cleanSlug(raw.id || s.name);
   if (!id) throw new CommunityError(400, "Choose an address with letters and numbers, 3 or more (for example grace-chapel-lekki).");
   const owned = await db.collection("communities").where("ownerUid", "==", uid).get();
+  // AI content checks: the name, tagline and about are public.
+  await gateContent(db, { uid, kind: "community", label: s.name, text: [s.name, s.tagline, s.about].filter(Boolean).join("\n\n") });
   if (owned.size >= MAX_OWNED) throw new CommunityError(409, `You can run up to ${MAX_OWNED} communities.`);
   const at = now.toISOString();
   const c: Community = {
@@ -90,6 +93,8 @@ export async function viewCommunity(db: Firestore, cid: string, viewerUid: strin
       ...(can(role, "invite") ? { inviteCode: c.inviteCode } : {}),
       circlesAllowed: circlesAllowed(owner ? tierOf(owner) : "standard"),
       memberLimit: Number.isFinite(memberLimit(owner ? tierOf(owner) : "standard")) ? memberLimit(owner ? tierOf(owner) : "standard") : null,
+      // AI content checks: closed because its owner or moderators kept posting rule-breaking content, or warned once (members see it).
+      ...((c as { closedForRules?: boolean }).closedForRules ? { closedForRules: true } : (c as { rulesWarning?: string }).rulesWarning ? { rulesWarning: (c as { rulesWarning?: string }).rulesWarning } : {}),
     },
     notice: c.verified || isVerified(owner) ? "" : UNVERIFIED_COMMUNITY_NOTICE,
     // Giving (lib/giving.ts): who may give (members, and signed-in visitors when the community is discoverable), the funds, and the cap
@@ -113,6 +118,12 @@ export async function updateSettings(db: Firestore, uid: string, cid: string, ra
   if (!can(role, "settings")) throw new CommunityError(403, "Only admins can change the community's settings.");
   const s = cleanSettings(raw);
   if (s.name !== undefined && s.name.length < 3) throw new CommunityError(400, "The name needs 3 letters or more.");
+  // AI content checks: what visitors see of the community (its words and pictures). Unchanged ones were checked before (cached).
+  const shown = [s.name, s.tagline, s.about, s.contact].filter((x): x is string => !!x);
+  if (shown.length || s.avatar || s.cover) {
+    const patch = Object.fromEntries(Object.entries(s).filter(([k]) => ["name", "tagline", "about", "contact", "avatar", "cover"].includes(k)));
+    await gateContent(db, { uid, kind: "community", label: s.name ?? cid, text: shown.join("\n\n"), pictures: [s.avatar, s.cover].filter((x): x is string => !!x), where: { cid, href: `/c/${cid}?tab=about` }, path: `communities/${cid}`, restore: { update: patch } });
+  }
   await db.doc(`communities/${cid}`).update({ ...s, updatedAt: now.toISOString() });
   return readCommunity(db, cid);
 }
@@ -259,6 +270,8 @@ export async function createPost(db: Firestore, uid: string, cid: string, channe
   if (!body) throw new CommunityError(400, "Write something, or add a picture.");
   const ref = db.collection("communityPosts").doc();
   const post: Post = { id: ref.id, cid, channel, authorUid: uid, authorName: me.displayName, authorUsername: me.username, authorAvatar: me.avatar, ...body, pinned: false, likes: 0, comments: 0, public: isPublicPost(c, channel), createdAt: now.toISOString() };
+  // AI content checks, before anyone sees it (members-only Spaces too: the same rules apply everywhere but private messages).
+  await gateContent(db, { uid, kind: "community_post", label: body.text || c.name, text: body.text, pictures: body.image ? [body.image] : [], where: { cid, href: `/c/${cid}?post=${ref.id}` }, path: ref.path, restore: { set: post }, takedown: { delete: true } });
   const batch = db.batch();
   batch.set(ref, post);
   batch.update(memberRef(db, cid, uid), { lastPostAt: post.createdAt });
@@ -321,6 +334,7 @@ export async function addComment(db: Firestore, uid: string, postId: string, raw
   if (!text) throw new CommunityError(400, "Write a comment.");
   const ref = db.collection("communityComments").doc();
   const cm: Comment = { id: ref.id, postId, cid: p.cid, authorUid: uid, authorName: me.displayName, authorUsername: me.username, authorAvatar: me.avatar ?? "", text, createdAt: now.toISOString() };
+  await gateContent(db, { uid, kind: "community_comment", label: text, text, where: { cid: p.cid, href: `/c/${p.cid}?post=${postId}` }, path: ref.path, restore: { set: cm }, takedown: { delete: true } });
   const batch = db.batch();
   batch.set(ref, cm);
   batch.update(db.doc(`communityPosts/${postId}`), { comments: FieldValue.increment(1) });

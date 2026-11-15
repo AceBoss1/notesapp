@@ -85,6 +85,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/help", label: "Help & Nana", need: ["support", "product"], group: "People & Trust" },
   { href: "/admin/leads", label: "Leads", need: ["support", "growth"], group: "People & Trust" },
   { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & Trust" },
+  { href: "/admin/content-checks", label: "Content checks", need: ["moderation", "legal"], group: "People & Trust" }, // AI content checks: the review queue, strikes, figures, Legal's child-safety queue
   { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & Trust" },
   { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & Trust" },
   { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },

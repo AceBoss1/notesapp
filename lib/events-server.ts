@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
+import { gateContent } from "./content-checks-server";
 import type { UserProfile } from "./users";
 import { notifyBell, sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
@@ -48,6 +49,8 @@ export async function createEvent(db: Firestore, uid: string, raw: EventInput & 
   const ref = db.collection("events").doc();
   const e: EventDoc = { ...r.event, hostUid: uid, hostName: p.displayName ?? "", hostUsername: p.username ?? "", ...(cid ? { cid, communityName } : {}), going: 0, interested: 0, createdAt: now.toISOString() };
   const doc = withNext(e, now);
+  // AI content checks: what the event page shows, before it is listed.
+  await gateContent(db, { uid, kind: "event", label: e.title, text: [e.title, e.description, e.place].filter(Boolean).join("\n\n"), where: { ...(cid ? { cid } : {}), href: `/events/${ref.id}` }, path: ref.path, restore: { set: doc }, takedown: { delete: true } });
   await ref.set(doc);
   return { ...doc, id: ref.id };
 }
@@ -62,6 +65,9 @@ export async function updateEvent(db: Firestore, uid: string, id: string, raw: E
   const r = cleanEvent({ ...e, ...raw }, now, { community: !!e.cid });
   if (!r.ok) throw new EventError(400, r.error);
   const next = withNext({ ...e, ...r.event }, now);
+  const { id: _id, ...prev } = e;
+  void _id;
+  await gateContent(db, { uid, kind: "event", label: next.title, text: [next.title, next.description, next.place].filter(Boolean).join("\n\n"), where: { ...(e.cid ? { cid: e.cid } : {}), href: `/events/${id}` }, path: `events/${id}`, restore: { set: next }, takedown: { update: { title: prev.title, description: prev.description, place: prev.place } } });
   await db.doc(`events/${id}`).set(next);
   await tellAttendees(db, next, id, `${e.title} has changed: ${next.nextStartAt ? whenText(new Date(next.nextStartAt), new Date(new Date(next.nextStartAt).getTime() + (new Date(next.endsAt).getTime() - new Date(next.startsAt).getTime()))) : "see the event"}.`);
   return { ...next, id };
