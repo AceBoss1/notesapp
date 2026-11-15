@@ -21,6 +21,7 @@ import { lagosDay } from "../../lib/books";
 import { templateCsv } from "../../lib/books-import";
 import { answerStaffInvite, cashierHome, catalogFor, inviteStaff, removeStaff, revokeInvite, setStaffRole, staffView } from "../../lib/books-staff-server";
 import { nanaEntries } from "../../lib/books-nana-server";
+import type { LiteCall } from "../../lib/nana-lite-server";
 import { syncOutbox } from "../../lib/books-sync-server";
 import { checkDebtPayment, startDebtPayment } from "../../lib/books-debt-server";
 import { monthlyBooksReports } from "../../lib/books-report-server";
@@ -472,12 +473,30 @@ Bad row,,Foodstuff,7000,9500,-2,bag`;
   assert.match((await nanaEntries(k, "Good morning", deps)).note ?? "", /didn't find/);
   await fails(nanaEntries(k, "   ", deps), 400);
   await fails(nanaEntries(k, "x".repeat(700), deps), 400);
+  // ---- Nana Lite first when it's on: our small model, off the allowance; Pearl when its reply can't be used ----
+  const good = reply = JSON.stringify({ entries: [{ kind: "expense", items: [], amount: 18000, method: "cash", category: "power", note: "Diesel" }] });
+  let liteReply = good, liteDown = false, liteAsks = 0;
+  const lite: LiteCall = async (a) => { liteAsks++; assert.ok(a.json && a.system.includes("bookkeeping")); if (liteDown) throw new Error("busy"); return { text: liteReply, ms: 5 }; };
+  calls.length = 0;
+  const usedBefore = (await db.doc("nanaAccounts/kemi").get()).data()?.usedKobo ?? 0;
+  const l1 = await nanaEntries(k, "Bought diesel 18k cash", deps, lite);
+  assert.equal(l1.via, "lite"); assert.deepEqual(l1.drafts.map((d) => [d.kind, d.totalKobo]), [["expense", 1_800_000]]);
+  assert.equal(calls.length, 0, "Pearl isn't called"); assert.equal((await db.doc("nanaAccounts/kemi").get()).data()?.usedKobo ?? 0, usedBefore, "nothing charged");
+  liteReply = "I think it was diesel?";
+  assert.equal((await nanaEntries(k, "Bought diesel 18k cash", deps, lite)).via, "platform", "an unreadable reply goes to Pearl");
+  liteReply = '{"entries":[]}';
+  assert.equal((await nanaEntries(k, "Bought diesel 18k cash", deps, lite)).via, "platform", "nothing found goes to Pearl");
+  liteDown = true;
+  assert.equal((await nanaEntries(k, "Bought diesel 18k cash", deps, lite)).via, "platform", "busy goes to Pearl");
+  liteDown = false; liteReply = good;
+  assert.equal(liteAsks, 4);
   // Out of allowance (and no credit): a clear message, and the model isn't called.
   const n = currentPricing().nana;
   await db.doc("nanaAccounts/kemi").set({ period: periodKey(now, n.resetEvery), usedKobo: 10_000_000, creditKobo: 0 });
   calls.length = 0;
   await fails(nanaEntries(k, "Sold 2 garri 5k", deps), 402, "nana_allowance");
   assert.equal(calls.length, 0);
+  assert.equal((await nanaEntries(k, "Bought diesel 18k cash", deps, lite)).via, "lite", "Nana Lite still drafts when the allowance is used up");
 
   // ---- Offline entries: synced once, whatever kind; their own day; stock and customers checked at sync time ----
   const k4 = await context(db, "kemi", "kemi", now);

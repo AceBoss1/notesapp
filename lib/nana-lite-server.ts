@@ -8,7 +8,8 @@ import { OPTION_KEYS, toStudent, type OptionKey, type Question } from "./exam-pr
 import { PrepError, bump, hasAccess } from "./exam-prep-server";
 import { DEFAULT_LITE_MODEL, LITE_DAILY_PER_STUDENT, LITE_MAX_TOKENS, resolveLiteModel, cleanFollowUp, explainPrompt, isLiteLang, liteSystem, type LiteLang } from "./nana-lite";
 
-export type LiteCall = (a: { system: string; user: string; maxTokens: number }) => Promise<{ text: string; ms: number }>;
+// `json`: ask for one JSON object (llama.cpp's response_format constrains the output with a grammar), for features that parse the reply.
+export type LiteCall = (a: { system: string; user: string; maxTokens: number; json?: boolean; temperature?: number }) => Promise<{ text: string; ms: number }>;
 
 export const liteConfigured = () => !!setting("NANA_LITE_URL");
 export function liteModel(): string {
@@ -17,7 +18,7 @@ export function liteModel(): string {
 
 // The real call: POST {base}/v1/chat/completions (our Nana Lite worker on Cloudflare). 50 seconds at most: a small model answers in a few,
 // but the first ask after its container has slept waits while the model loads.
-export const liveLite: LiteCall = async ({ system, user, maxTokens }) => {
+export const liveLite: LiteCall = async ({ system, user, maxTokens, json, temperature }) => {
   const base = (setting("NANA_LITE_URL") || "").replace(/\/+$/, "");
   if (!base) throw new PrepError("Nana Lite isn't switched on yet.", 503);
   const key = setting("NANA_LITE_KEY");
@@ -25,7 +26,7 @@ export const liveLite: LiteCall = async ({ system, user, maxTokens }) => {
   const res = await fetch(`${base}/v1/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(key ? { Authorization: `Bearer ${key}` } : {}) },
-    body: JSON.stringify({ model: liteModel(), messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: maxTokens, temperature: 0.3 }),
+    body: JSON.stringify({ model: liteModel(), messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: maxTokens, temperature: temperature ?? 0.3, ...(json ? { response_format: { type: "json_object" } } : {}) }),
     signal: AbortSignal.timeout(50_000),
   }).catch(() => null);
   if (!res || !res.ok) throw new PrepError("Nana Lite is busy right now. Read the explanation, and try again in a minute.", 503);
@@ -38,6 +39,18 @@ export const liveLite: LiteCall = async ({ system, user, maxTokens }) => {
 const day = (now: Date) => now.toISOString().slice(0, 10);
 // The daily-limit key: the account, or a hash of the device's address when signed out (never the address itself).
 export const limitKey = (uid: string | null, ip: string) => (uid ? `u_${uid}` : `ip_${createHash("sha256").update(ip).digest("hex").slice(0, 24)}`);
+
+// A daily counter for one user of Nana Lite (`key` names the feature and the account, e.g. "books_<uid>"): true and counted while under
+// `limit`, false once it's reached. Counted before the call, so a flood can't run up the server. Kept two days (TTL on expireAt).
+export async function liteCount(db: Firestore, key: string, limit: number, now = new Date()): Promise<boolean> {
+  const ref = db.doc(`prepLiteDaily/${key}_${day(now)}`);
+  return db.runTransaction(async (t) => {
+    const n = Number((await t.get(ref)).data()?.n ?? 0);
+    if (n >= limit) return false;
+    t.set(ref, { n: n + 1, day: day(now), expireAt: new Date(now.getTime() + 2 * 86_400_000) }, { merge: true });
+    return true;
+  });
+}
 
 export async function explain(
   db: Firestore,
@@ -55,14 +68,7 @@ export async function explain(
   const lang: LiteLang = isLiteLang(input.lang) ? input.lang : "en";
   const followUp = cleanFollowUp(input.followUp);
   // The daily limit, counted before the call so a flood can't run up the server.
-  const ref = db.doc(`prepLiteDaily/${limitKey(who.uid, who.ip)}_${day(now)}`);
-  const used = await db.runTransaction(async (t) => {
-    const n = Number((await t.get(ref)).data()?.n ?? 0);
-    if (n >= LITE_DAILY_PER_STUDENT) return -1;
-    t.set(ref, { n: n + 1, day: day(now), expireAt: new Date(now.getTime() + 2 * 86_400_000) }, { merge: true });
-    return n + 1;
-  });
-  if (used < 0) throw new PrepError(`You've asked Nana Lite ${LITE_DAILY_PER_STUDENT} times today. Come back tomorrow, or read the explanations.`, 429);
+  if (!(await liteCount(db, limitKey(who.uid, who.ip), LITE_DAILY_PER_STUDENT, now))) throw new PrepError(`You've asked Nana Lite ${LITE_DAILY_PER_STUDENT} times today. Come back tomorrow, or read the explanations.`, 429);
   const out = await call({ system: liteSystem(lang), user: explainPrompt(toStudent(q), chosen, followUp), maxTokens: LITE_MAX_TOKENS });
   await bump(db, "liteAsks", 1, now);
   return { text: out.text.slice(0, 1500), model: liteModel() };

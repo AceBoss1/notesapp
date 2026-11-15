@@ -46,7 +46,7 @@ export default function TellNana({ api, today, cashier, onClose, onSaved }: { ap
     try {
       const r = await api<{ drafts: Draft[]; note?: string; via: string }>("", { action: "nana", text });
       setCards(r.drafts.map((d, i) => ({ ...d, key: `${Date.now()}-${i}`, clientId: newClientId(), state: "draft" })));
-      setNote(r.note ?? (r.via === "standin" ? "Development: no AI key is set, so a simple reader stood in for Nana (nothing was charged)." : ""));
+      setNote(r.note ?? (r.via === "standin" ? "Development: no AI key is set, so a simple reader stood in for Nana (nothing was charged)." : r.via === "lite" ? "Drafted by Nana Lite, our small AI model, at no cost to your allowance. Check each one before you save it." : ""));
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
 

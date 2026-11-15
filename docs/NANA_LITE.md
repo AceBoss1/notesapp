@@ -202,6 +202,16 @@ member's own AI, or our large models where the answer must be right.
 - **Nana Jobs** (`lib/nana-jobs-server.ts`): when the member has no AI connected, Nana Lite scores their **top 10** openings, one per
   request (a small model handles one job at a time better than a batch). The run says "read by Nana Lite"; the CV review and cover notes
   still need the member's own AI. `LITE_JOBS_PER_RUN` in `lib/nana-jobs.ts`.
+- **Business books, Tell Nana** (`lib/books-nana-server.ts`): drafts entries on Nana Lite first (JSON only, `temperature 0`), free and off
+  the owner's allowance, 300 a day per shop. Pearl answers when Nana Lite's reply can't be read or finds nothing, when it's busy, or when
+  the catalogue makes the prompt too long (over 9,000 characters). The seller checks every draft before saving, as always.
+- **Main Nana chat** (`lib/nana-server.ts`): members can choose **Nana Lite** in the model picker (free, nothing from the allowance;
+  if it's busy, the help centre answers, never a paid model). It also answers when Pearl can't for a member: the allowance and credit
+  are used up, our daily cap is reached, or our AI is down. 60 answers a day per member; short answers from the help articles for that
+  question only. Never for visitors or the team hub, and never put in the answer bank. `GET /api/nana/account` says `lite: true` when it
+  can be chosen.
+- Daily counts for all of these share the TTL'd `prepLiteDaily` collection, keyed by feature (`books_<uid>`, `nana_<uid>`); see
+  `liteCount` in `lib/nana-lite-server.ts`.
 
 ## Limits and safety
 

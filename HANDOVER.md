@@ -1072,6 +1072,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     published questions the student can see; 40 a day (`prepLiteDaily`, TTL two days); nothing typed is stored (`prepStats.liteAsks`
     counts). `scripts/nana-lite-eval.ts` compares the three models (accuracy without the answer). OpenRouter and AWS perks are reserved
     for other work. Deploy `firebase deploy --only firestore`. Tests: `test:nana-lite`. Phase 3 (on the phone, offline) is planned.
+    **Also a cheaper fallback elsewhere (owner, 15 Nov):** Nana Jobs (top 10 read when the member has no AI), Business books Tell Nana
+    (Lite first, Pearl when its JSON can't be used) and main Nana chat (choose "Nana Lite" in the picker, free; and it answers when the
+    allowance is used up). Daily counts via `liteCount` (`books_<uid>`, `nana_<uid>`). Tests: `test:nana-jobs-server`,
+    `test:books-server`, `test:nana-server`.
 
 ## 3. How the work is done (please keep these)
 

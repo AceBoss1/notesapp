@@ -194,6 +194,10 @@ What's feasible:
   the same meter as Nana's writing help (`meterCheck` / `meterCharge` in `lib/nana-meter.ts`, as `lib/nana-assist.ts` does). One
   entry is about 1,500 tokens in and 200 out, about **₦0.40** at today's rates (`lib/pricing.ts`). Free Basic's ₦50 a week covers
   over 100 entries. Typing an entry yourself is always free.
+- **Nana Lite first** (v0.166.0, docs/NANA_LITE.md): when Nana Lite is switched on and the owner hasn't connected their own AI, our small
+  model drafts the entries first, free and off the allowance (300 a day per shop), asked for JSON only. Its reply goes through the same
+  checks; if it can't be read, finds nothing, or Nana Lite is busy, Pearl answers as above. Skipped when the shop's catalogue makes the
+  prompt too long for a small model (over 9,000 characters). The page says "Drafted by Nana Lite".
 - Nana gets only what the entry needs: the seller's item names and prices, and customer first names. Not balances or profit.
 
 ### Monthly summary email

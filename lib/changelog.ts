@@ -17,6 +17,8 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "added", text: "Naija Exam Prep: Still unsure? Ask Nana Lite. After a question is marked, Nana Lite explains it another way, in English or Pidgin, and answers follow-up questions. It's a small AI model that explains from the question's reviewed explanation. What you type isn't saved. Appears once Nana Lite is switched on." },
       { kind: "added", text: "Nana Jobs: no AI connected yet? Nana Lite, NotesApp's own small AI model, reads your top 10 openings for free, marked \"read by Nana Lite\". Connect your own AI to have up to 60 read." },
+      { kind: "added", text: "Business books: Tell Nana drafts with Nana Lite first, free and without touching your Nana allowance. Pearl steps in when Nana Lite can't read it." },
+      { kind: "added", text: "Nana AI: choose Nana Lite in the model picker for free, short answers that use none of your allowance. When your allowance and credit run out, Nana Lite answers instead of the help centre." },
     ],
   },
   {

@@ -9,8 +9,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid } from "@/lib/users";
 import { NANA_HISTORY_MAX, NANA_NAME, NANA_USER_MAX, firstName, type NanaMsg } from "@/lib/nana";
 import Markdownish from "./Markdownish";
-import { NanaGemPicker, readChoice, useNanaAccount } from "./NanaGems";
-import type { Effort, Gem } from "@/lib/nana-gems";
+import { NanaGemPicker, readChoice, useNanaAccount, type NanaChoice } from "./NanaGems";
 
 // The Nana AI chat itself: used by the corner button, the pinned conversation in Messages, the Nana page and the team hub. Members are
 // recognised automatically; visitors give a name and email first. The conversation is kept in this tab (sessionStorage) and a visitor's name
@@ -50,7 +49,7 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
   const [mode, setMode] = useState<"ai" | "kb" | null>(null);
   const [loaded, setLoaded] = useState(false); // nothing is saved until the saved chat has been read back
   const { account, refresh } = useNanaAccount(); // members: their gems, effort and allowance (components/NanaGems.tsx)
-  const [choice, setChoice] = useState<{ gem: Gem; effort: Effort }>({ gem: "pearl", effort: "low" });
+  const [choice, setChoice] = useState<NanaChoice>({ gem: "pearl", effort: "low" });
   useEffect(() => setChoice(readChoice()), []);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);

@@ -81,5 +81,33 @@ const acct = async (uid: string) => (await db.doc(`nanaAccounts/${uid}`).get()).
   const before = (await db.collection("nanaBank").get()).size;
   await ask("u_ent", "Why hasn't order 48213 arrived?");
   assert.equal((await db.collection("nanaBank").get()).size, before);
+
+  // ---- Nana Lite: chosen in the picker (free, never a paid model), and the stand-in when the allowance is gone ----
+  let liteDown = false, liteLeft = 3;
+  const liteAsked: { system: string; user: string }[] = [];
+  const lite = { call: async (a: { system: string; user: string }) => { liteAsked.push(a); if (liteDown) throw new Error("busy"); return { text: "Lite says: open Earnings. [[GAP]]", ms: 3 }; }, count: async () => liteLeft-- > 0 };
+  const askL = (uid: string, content: string, extra: Record<string, unknown> = {}) => chat(db, { messages: [{ role: "user", content }], signedIn: member(uid, uid), ...extra }, deps, lite);
+  await db.doc("users/u_lite").set({ displayName: "Lola", username: "lola", accountTier: "basic" });
+  const nCalls = calls.length;
+  const l1 = await askL("u_lite", "Where do I see my earnings this week?", { lite: true });
+  assert.equal(l1.via, "lite"); assert.equal(l1.reply, "Lite says: open Earnings."); assert.equal(l1.gap, true);
+  assert.equal(calls.length, nCalls, "no paid model"); assert.equal((await acct("u_lite")).usedKobo ?? 0, 0, "nothing from the allowance");
+  assert.match(l1.notice ?? "", /free/); assert.match(liteAsked[0].system, /Nana Lite/); assert.match(liteAsked[0].user, /PERSON: Where do I see my earnings/);
+  liteDown = true;
+  const l2 = await askL("u_lite", "Where do I see my earnings now?", { lite: true });
+  assert.equal(l2.via, "kb", "chose Lite and it's busy: the help centre, never Pearl"); assert.equal(calls.length, nCalls);
+  liteDown = false;
+  // Out of allowance: Nana Lite answers instead of the help centre.
+  assert.equal((await askL("u_lite", "A Pearl answer about my drafts")).via, "platform", "not chosen: Pearl as usual");
+  await db.doc("nanaAccounts/u_lite").set({ usedKobo: 10_000_000, creditKobo: 0 }, { merge: true });
+  const l3 = await askL("u_lite", "One more about my drafts again");
+  assert.equal(l3.via, "lite"); assert.match(l3.notice ?? "", /used your free Nana allowance.*Nana Lite/);
+  // Its daily limit reached: the help centre, as before.
+  liteLeft = 0;
+  assert.equal((await askL("u_lite", "And another about my drafts")).via, "kb");
+  // The team hub never uses Nana Lite.
+  liteLeft = 5; const hubAsks = liteAsked.length;
+  await chat(db, { messages: [{ role: "user", content: "hub question about drafts" }], signedIn: member("u_basic", "Bola"), hubContext: "" , lite: true }, deps, lite);
+  assert.equal(liteAsked.length, hubAsks);
   console.log("ALL OK");
 })().catch((e) => { console.error(e); process.exit(1); });
