@@ -1,0 +1,31 @@
+// Nana Lite on Cloudflare (#NotesApp v0.166.0; docs/NANA_LITE.md). A Worker in front of three Cloudflare Containers, one small model each.
+// Deploy: the "Deploy Nana Lite" GitHub Actions workflow, or by hand from this folder (Docker running): npm install --legacy-peer-deps &&
+// npx wrangler deploy. One secret: npx wrangler secret put NANA_LITE_KEY (the same value as NANA_LITE_KEY on Vercel).
+// Containers need the Workers Paid plan (the Atlas Cloudflare credits cover usage). Instance types and limits change: check
+// developers.cloudflare.com/containers before raising them.
+{
+  "name": "notesapp-nana-lite",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // Both addresses serve the same Worker; each zone must be on this Cloudflare account. Remove a line if its domain isn't.
+  "routes": [
+    { "pattern": "lite.naapp.tech", "custom_domain": true },
+    { "pattern": "lite.notesapp.name.ng", "custom_domain": true }
+  ],
+  "observability": { "enabled": false },
+  "containers": [
+    { "class_name": "PhiLite", "image": "./Dockerfile.phi", "instance_type": "standard", "max_instances": 2 },
+    { "class_name": "QwenLite", "image": "./Dockerfile.qwen", "instance_type": "standard", "max_instances": 2 },
+    { "class_name": "SmolLite", "image": "./Dockerfile.smol", "instance_type": "standard", "max_instances": 2 }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "PHI", "class_name": "PhiLite" },
+      { "name": "QWEN", "class_name": "QwenLite" },
+      { "name": "SMOL", "class_name": "SmolLite" }
+    ]
+  },
+  // Never edit a migration that has been deployed; add a new block with the next tag instead.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PhiLite", "QwenLite", "SmolLite"] }]
+}

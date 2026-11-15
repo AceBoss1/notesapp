@@ -1,0 +1,5 @@
+# SmolLM2-1.7B-Instruct (1.7B, Apache-2.0), 4-bit, from Hugging Face's own GGUF repository. Check the file name before building.
+FROM ghcr.io/ggml-org/llama.cpp:server
+ADD https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF/resolve/main/smollm2-1.7b-instruct-q4_k_m.gguf /models/model.gguf
+EXPOSE 8080
+CMD ["-m", "/models/model.gguf", "--host", "0.0.0.0", "--port", "8080", "-c", "4096", "--alias", "smollm2-1.7b-instruct"]

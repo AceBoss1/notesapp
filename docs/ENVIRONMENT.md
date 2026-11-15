@@ -82,9 +82,9 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 
 | Setting | Secret | What it does |
 |---|---|---|
-| `NANA_LITE_URL` | no | Nana Lite (docs/NANA_LITE.md): the base address of our own small-model server with an OpenAI-compatible API (llama.cpp's llama-server, Ollama or vLLM), e.g. https://lite.notesapp.name.ng (or Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/<account id>/ai, or OpenRouter: https://openrouter.ai/api). Unset: Nana Lite is off and Exam Prep shows only the written explanation. |
-| `NANA_LITE_MODEL` | no | The model name that server expects (default phi-3.5-mini-instruct). Use only a model (or one of its hosted names) listed in lib/nana-lite.ts LITE_MODELS, whose licence we checked. |
-| `NANA_LITE_KEY` | **yes** | The bearer key the Nana Lite server requires: the same value as llama-server --api-key on our own server, a Cloudflare API token (Workers AI) or an OpenRouter key. |
+| `NANA_LITE_URL` | no | Nana Lite (docs/NANA_LITE.md): the address of our Nana Lite worker on Cloudflare (workers/nana-lite), https://lite.naapp.tech or https://lite.notesapp.name.ng (both serve it). Unset: Nana Lite is off and Exam Prep shows only the written explanation. |
+| `NANA_LITE_MODEL` | no | Which of the three models answers students: phi-3.5-mini-instruct (default), qwen2.5-1.5b-instruct or smollm2-1.7b-instruct (lib/nana-lite.ts LITE_MODELS). |
+| `NANA_LITE_KEY` | **yes** | The key the Nana Lite worker requires: the same value as its secret (cd workers/nana-lite && npx wrangler secret put NANA_LITE_KEY). |
 | `EXAM_PREP_PASS_KEY` | **yes** | A P-256 private key (PKCS#8 PEM, or its base64) that signs the offline pass for saved packs with paid questions. Make one with: node -e "const{generateKeyPairSync:g}=require('crypto');console.log(g('ec',{namedCurve:'P-256'}).privateKey.export({type:'pkcs8',format:'pem'}))". Without it, only free questions can be saved for offline use. |
 
 ## Kiswahili (NKENNEAi)

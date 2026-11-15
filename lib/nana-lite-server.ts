@@ -15,7 +15,8 @@ export function liteModel(): string {
   return resolveLiteModel(setting("NANA_LITE_MODEL") || "") ?? DEFAULT_LITE_MODEL;
 }
 
-// The real call: POST {base}/v1/chat/completions. 25 seconds at most (a small model on a CPU server answers in a few).
+// The real call: POST {base}/v1/chat/completions (our Nana Lite worker on Cloudflare). 50 seconds at most: a small model answers in a few,
+// but the first ask after its container has slept waits while the model loads.
 export const liveLite: LiteCall = async ({ system, user, maxTokens }) => {
   const base = (setting("NANA_LITE_URL") || "").replace(/\/+$/, "");
   if (!base) throw new PrepError("Nana Lite isn't switched on yet.", 503);
@@ -25,7 +26,7 @@ export const liveLite: LiteCall = async ({ system, user, maxTokens }) => {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(key ? { Authorization: `Bearer ${key}` } : {}) },
     body: JSON.stringify({ model: liteModel(), messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: maxTokens, temperature: 0.3 }),
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(50_000),
   }).catch(() => null);
   if (!res || !res.ok) throw new PrepError("Nana Lite is busy right now. Read the explanation, and try again in a minute.", 503);
   const j = await res.json().catch(() => ({}));

@@ -4,6 +4,7 @@ import { explain, liteConfigured, liteModel } from "@/lib/nana-lite-server";
 import { body, db, fail, limit, maybeUser, ok } from "@/lib/exam-prep-api";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // the first ask after the model's container has slept waits while it loads
 
 // Nana Lite (lib/nana-lite.ts, docs/NANA_LITE.md).
 // GET → { on, model }: whether Nana Lite is switched on (NANA_LITE_URL), so the page shows or hides it.

@@ -8,14 +8,13 @@
 import type { OptionKey, StudentQuestion } from "./exam-prep";
 
 // Models we can run, with their licences checked against our use (a paid product). Change the default only to one listed here.
-// `aliases`: the same model's name on a hosted service (OpenRouter, Cloudflare Workers AI), so NANA_LITE_MODEL can name it there. Check a
-// service's catalogue before using an alias: names change.
+// Nana Lite runs these three on Cloudflare (workers/nana-lite: one Cloudflare Container each). `aliases` would let NANA_LITE_MODEL name a
+// model by another service's name; none is used (OpenRouter and AWS are reserved for other work, owner, 15 Nov 2026).
 export type LiteModel = { id: string; name: string; params: string; licence: string; where: "server" | "phone" | "both"; note: string; aliases?: string[] };
 export const LITE_MODELS: LiteModel[] = [
-  { id: "phi-3.5-mini-instruct", name: "Phi-3.5-mini-instruct", params: "3.8B", licence: "MIT", where: "server", note: "Strong at reasoning for its size; the server default.", aliases: ["microsoft/phi-3.5-mini-128k-instruct"] },
+  { id: "phi-3.5-mini-instruct", name: "Phi-3.5-mini-instruct", params: "3.8B", licence: "MIT", where: "server", note: "Strong at reasoning for its size; the server default." },
   { id: "qwen2.5-1.5b-instruct", name: "Qwen2.5-1.5B-Instruct", params: "1.5B", licence: "Apache-2.0", where: "both", note: "Small enough for a mid-range Android phone; the phone default." },
   { id: "smollm2-1.7b-instruct", name: "SmolLM2-1.7B-Instruct", params: "1.7B", licence: "Apache-2.0", where: "both", note: "A fully open fallback." },
-  { id: "llama-3.2-3b-instruct", name: "Llama 3.2 3B Instruct", params: "3B", licence: "Llama 3.2 Community", where: "server", note: "On Cloudflare Workers AI with no server of our own; the licence allows our use (show \"Built with Llama\" where it's used).", aliases: ["@cf/meta/llama-3.2-3b-instruct", "meta-llama/llama-3.2-3b-instruct"] },
 ];
 // The name to send to the server for a configured model (its id or one of its aliases), or null if it isn't a listed model.
 export const resolveLiteModel = (name: string): string | null => {

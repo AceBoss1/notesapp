@@ -11,14 +11,13 @@ const status = () => (onCache ??= prepApi<{ on: boolean; model: string | null }>
 
 export default function AskNanaLite({ q, chosen }: { q: StudentQuestion; chosen: OptionKey | null }) {
   const [on, setOn] = useState(false);
-  const [llama, setLlama] = useState(false); // the Llama licence asks for "Built with Llama" where it's used
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [lang, setLang] = useState<LiteLang>("en");
   const [answers, setAnswers] = useState<{ ask: string; text: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  useEffect(() => { if (navigator.onLine) status().then((r) => { setOn(r.on); setLlama(/llama/i.test(r.model ?? "")); }); }, []);
+  useEffect(() => { if (navigator.onLine) status().then((r) => setOn(r.on)); }, []);
   useEffect(() => { setOpen(false); setAnswers([]); setText(""); setErr(""); }, [q.id]);
   if (!on) return null;
 
@@ -59,7 +58,7 @@ export default function AskNanaLite({ q, chosen }: { q: StudentQuestion; chosen:
         <input value={text} maxLength={FOLLOW_UP_MAX} onChange={(e) => setText(e.target.value)} placeholder="Ask about this question…" className="min-w-0 flex-1 rounded-lg border border-[#0F2747]/20 px-3 py-2 text-sm" />
         <button disabled={busy || !text.trim()} className="rounded-lg bg-[#0F2747] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Ask</button>
       </form>
-      <p className="text-[11px] text-[#0F2747]/60">A small AI model that explains from this question’s reviewed explanation. It can be wrong: your teacher has the last word. What you type isn’t saved.{llama ? " Built with Llama." : ""}</p>
+      <p className="text-[11px] text-[#0F2747]/60">A small AI model that explains from this question’s reviewed explanation. It can be wrong: your teacher has the last word. What you type isn’t saved.</p>
     </div>
   );
 }

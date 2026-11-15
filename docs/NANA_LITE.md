@@ -1,13 +1,14 @@
 # Nana Lite: a small exam tutor for students
 
 > Status: **phase 1 built (v0.166.0, 15 November 2026)**: the tutor in Exam Prep practice, the server connection, the daily limit
-> and the evaluation script. **It switches on when `NANA_LITE_URL` points at our model server** (below); until then Exam Prep shows
+> and the evaluation script. **It runs on Cloudflare only** (owner, 15 November 2026): three small models in Cloudflare Containers behind our
+> `workers/nana-lite` worker, at `lite.naapp.tech` and `lite.notesapp.name.ng`. It switches on when `NANA_LITE_URL` points there; until then Exam Prep shows
 > only the written explanation, as before. The owner asked for it on 14 November 2026, after checking Mozilla's Human-Scale AI call
 > (FUNDING.md §24).
 
 ## What it is
 
-Nana runs on large hosted models. **Nana Lite runs a small open model on our own server** (and, in phase 3, on the student's phone,
+Nana runs on large hosted models. **Nana Lite runs small open models we deploy ourselves, in containers on Cloudflare** (and, in phase 3, on the student's phone,
 offline). It does one job well: when a student gets a WAEC, NECO or JAMB practice question wrong, or isn't sure, they tap **Still
 unsure? Ask Nana Lite** and get a short explanation another way, in English or Pidgin, and can ask follow-up questions.
 
@@ -20,7 +21,7 @@ trusted to supply them.
 
 | Principle | Nana Lite |
 |---|---|
-| **Small** | A 1.5 to 3.8 billion parameter open model, 4-bit quantised (about 1 to 2.5 GB), on one CPU server; phone-sized in phase 3 |
+| **Small** | A 1.5 to 3.8 billion parameter open model, 4-bit quantised (about 1 to 2.5 GB), each in its own CPU container on Cloudflare; phone-sized in phase 3 |
 | **Intentional** | Nothing a student types is stored (only a daily count, deleted after two days, and the day's total); paid questions open only to those with the pack; the model never sees who the student is |
 | **Tailored** | Built for Nigerian students preparing for WAEC, NECO and JAMB, from 2,150+ reviewed questions, in English and Pidgin, Kiswahili next |
 
@@ -30,46 +31,59 @@ Listed in `lib/nana-lite.ts` (`LITE_MODELS`); the server refuses any other name 
 
 | Model | Size | Licence | Use |
 |---|---|---|---|
-| Phi-3.5-mini-instruct | 3.8B | MIT | **Server default**: the best reasoning at this size |
-| Qwen2.5-1.5B-Instruct | 1.5B | Apache-2.0 | **Phone default** (phase 3); also a fast server option |
+| Phi-3.5-mini-instruct | 3.8B | MIT | **The default**: the best reasoning at this size |
+| Qwen2.5-1.5B-Instruct | 1.5B | Apache-2.0 | Fastest; the **phone default** in phase 3 |
 | SmolLM2-1.7B-Instruct | 1.7B | Apache-2.0 | A fully open fallback |
-| Llama 3.2 3B Instruct | 3B | Llama 3.2 Community | On **Cloudflare Workers AI** (no server of our own); show "Built with Llama" where it's used |
 
-A hosted service may call the same model by another name (OpenRouter: `microsoft/phi-3.5-mini-128k-instruct`; Workers AI:
-`@cf/meta/llama-3.2-3b-instruct`). Those names are listed as `aliases`; set `NANA_LITE_MODEL` to the exact name the service uses.
+All three run at once (one container each); `NANA_LITE_MODEL` picks which answers students, and the evaluation compares them. No Llama
+model is used.
 
 Check each model card's licence again before switching (licences change between versions; for example, some Qwen2.5 sizes use a
 research licence, which is why only 1.5B is listed).
 
-## Phase 1: switch it on
+## Phase 1: switch it on (Cloudflare)
 
-Three ways, all through the same three settings (`NANA_LITE_URL`, `NANA_LITE_MODEL`, `NANA_LITE_KEY`) and the same code. Start with
-whichever is ready first; moving later is only a change of settings.
+Nana Lite runs on **Cloudflare only**: a Worker (`workers/nana-lite`) checks the key and passes each request to one of three
+**Cloudflare Containers**, each running llama.cpp's OpenAI-compatible server with one model baked into its image (no internet needed
+inside the container). Containers sleep after 30 minutes idle and wake on the next ask (the first answer then waits 10 to 30 seconds
+while the model loads; the app allows 50).
 
-| Way | Stripe Atlas perk | Good for | Watch |
-|---|---|---|---|
-| **A. Cloudflare Workers AI** | USD 100k Cloudflare credits (choose "Atlas" on the Startup Program form) | Live **today**, no server to run, fast from Lagos and Nairobi | Small models from Cloudflare's catalogue only (Llama 3.2 3B); student text is processed by Cloudflare |
-| **B. OpenRouter** | USD 500 inference credits, 0% fees | Trying several small models quickly and **running the evaluation** before choosing | Pick providers that don't log or train on prompts (OpenRouter's privacy settings); USD 500 is for testing, not a year of students |
-| **C. Our own server on AWS** | USD 5,000 AWS Activate credits (Portfolio Package, the Atlas org ID; 7 to 10 business days) | **Our own small model on our own server**: the strongest "Small" and "Intentional" story, and nothing leaves our machine | We run and patch it |
+1. **Credits and plan.** Apply for the Cloudflare Startup Program and choose **Atlas** (USD 100k of credits on the NotesApp Inc
+   account). Containers need the **Workers Paid** plan; switch it on (the credits cover usage).
+2. **Domains.** Both `naapp.tech` and `notesapp.name.ng` must be zones on the same Cloudflare account for the two custom domains in
+   `wrangler.jsonc`. If one isn't, delete its line there (one address is enough; the app needs only one).
+3. **The key.** Make one: `openssl rand -hex 32`. Keep it for steps 4 and 6.
+4. **Deploy.** GitHub → Actions → **Deploy Nana Lite** → Run workflow (it uses the `CLOUDFLARE_API_TOKEN` and
+   `CLOUDFLARE_ACCOUNT_ID` secrets the live-rooms deploy already uses; the token also needs **Containers: Edit**). Add a
+   `NANA_LITE_KEY` repository secret first and the workflow sets it on the worker too. Or by hand, with Docker running:
+   ```
+   cd workers/nana-lite
+   npm install --legacy-peer-deps
+   npx wrangler deploy
+   npx wrangler secret put NANA_LITE_KEY
+   ```
+   The first deploy builds the three images (it downloads each model file once, about 1 to 2.5 GB each) and pushes them to Cloudflare.
+5. **Check it:**
+   ```
+   curl -s https://lite.naapp.tech/health
+   curl -s https://lite.naapp.tech/v1/chat/completions -H "Authorization: Bearer <the key>" -H "Content-Type: application/json" \
+     -d '{"model":"qwen2.5-1.5b-instruct","messages":[{"role":"user","content":"Say hello in Pidgin."}],"max_tokens":40}'
+   ```
+   Repeat with each model name and with `https://lite.notesapp.name.ng`. The first call to each model may take up to 30 seconds.
+6. **Connect NotesApp.** Vercel: `NANA_LITE_URL=https://lite.naapp.tech` (or `https://lite.notesapp.name.ng`; both work),
+   `NANA_LITE_MODEL=phi-3.5-mini-instruct`, `NANA_LITE_KEY=<the key>`; redeploy. Then `firebase deploy --only firestore`.
+7. **Measure** (Phase 2) all three, and set `NANA_LITE_MODEL` to the one that does best for students.
 
-### A. Cloudflare Workers AI (no server)
+**Sizes.** `wrangler.jsonc` gives each container the `standard` instance type and at most two instances. If Cloudflare offers a larger
+instance type (more CPU), use it for Phi first: answers come faster. Check Cloudflare's current Containers limits and prices before
+changing them.
 
-1. Apply for the Cloudflare Startup Program and choose **Atlas**; the credits go on the NotesApp Inc Cloudflare account.
-2. Cloudflare dashboard → **My Profile → API Tokens → Create Token** with the **Workers AI: Read** and **Edit** permissions only;
-   copy the token. Note the **Account ID** (on the account's overview page).
-3. Vercel: `NANA_LITE_URL=https://api.cloudflare.com/client/v4/accounts/<account id>/ai`,
-   `NANA_LITE_MODEL=@cf/meta/llama-3.2-3b-instruct`, `NANA_LITE_KEY=<the token>`; redeploy. (Our code adds `/v1/chat/completions`,
-   which is Workers AI's OpenAI-compatible endpoint. Check the model is still in Cloudflare's catalogue before setting it.)
-4. Show "Built with Llama" in the Nana Lite box's small print while this model is in use (the Llama licence asks for it).
+## Reserved for other work (not used for Nana Lite)
 
-### B. OpenRouter (testing and the evaluation)
+The owner's decision, 15 November 2026: Nana Lite uses Cloudflare only. The **OpenRouter** (USD 500) and **AWS Activate** (USD 5,000)
+perks are kept for other projects. The steps below stay for reference if that changes.
 
-1. Claim the credits; OpenRouter → **Keys → Create key**, with a credit limit.
-2. **Settings → Privacy:** turn off providers that may train on or log prompts.
-3. For the evaluation: `NANA_LITE_URL=https://openrouter.ai/api NANA_LITE_MODEL=microsoft/phi-3.5-mini-128k-instruct NANA_LITE_KEY=…`
-   then Phase 2's command. Run it for each candidate model and keep the reports.
-
-### C. Our own server on AWS (the target)
+### Our own server on AWS (reserved)
 
 **Apply for the credits first** (Atlas → Perks → AWS): use the same email as the Atlas account, choose **Portfolio Package**, enter the
 org ID Atlas gives; approval takes 7 to 10 business days. Credits are for organisations new to AWS Activate, expire (often after one
@@ -159,9 +173,11 @@ about USD 380+ a month) answers much faster for many students at once.
 ## Phase 2: measure it (before the pilot, and for grant applications)
 
 ```
-NANA_LITE_URL=… NANA_LITE_MODEL=phi-3.5-mini-instruct NANA_LITE_KEY=… FIREBASE_SERVICE_ACCOUNT_KEY='…' \
+NANA_LITE_URL=https://lite.naapp.tech NANA_LITE_MODEL=phi-3.5-mini-instruct NANA_LITE_KEY=… FIREBASE_SERVICE_ACCOUNT_KEY='…' \
   npx -y tsx scripts/nana-lite-eval.ts --exam waec --limit 300 --out waec-phi35
 ```
+Then the same with `NANA_LITE_MODEL=qwen2.5-1.5b-instruct --out waec-qwen15` and `NANA_LITE_MODEL=smollm2-1.7b-instruct --out
+waec-smol17`, and compare the three reports.
 
 It asks the model to solve published questions **without the answer** and writes `waec-phi35.md` (accuracy overall and by subject, how
 often it didn't answer, the median time) and `.json` (every row). This is a hard test: in the app the model is given the answer and the
@@ -182,13 +198,15 @@ can run it; others keep the server.
 - **Short answers** (350 tokens at most), so they're fast and readable on a phone.
 - **Only questions the student can already see:** published, and free or in a pack they have.
 - **It can be wrong:** the page says so, and the teacher has the last word. "Report a problem" stays under every question.
-- **No student content kept;** the model server keeps no logs of prompts (run llama-server without `--log-file`, and keep the reverse
-  proxy's request bodies out of its logs).
+- **No student content kept:** the worker never logs request bodies and has observability off; llama.cpp in the containers runs without
+  a log file.
 
 ## Code
 
 - `lib/nana-lite.ts`: models, prompts (explain and solve), parsing, evaluation summary.
-- `lib/nana-lite-server.ts`: the call to our server, the access check, the daily limit.
+- `lib/nana-lite-server.ts`: the call to our worker, the access check, the daily limit.
+- `workers/nana-lite/`: the Cloudflare Worker (`src/index.ts`), its three model images (`Dockerfile.phi`, `.qwen`, `.smol`) and
+  `wrangler.jsonc`; deployed by `.github/workflows/deploy-nana-lite.yml`.
 - `app/api/exam-prep/lite/route.ts`: `GET` (on or off), `POST` (explain).
 - `components/exam-prep/AskNanaLite.tsx`: the button and the follow-ups in practice.
 - `scripts/nana-lite-eval.ts`: the evaluation.

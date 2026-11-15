@@ -5,9 +5,10 @@ import type { StudentQuestion } from "../../lib/exam-prep";
 
 // Only models with licences that allow a paid product, all small
 assert.ok(LITE_MODELS.some((m) => m.id === DEFAULT_LITE_MODEL));
-for (const m of LITE_MODELS) { assert.match(m.licence, /^(MIT|Apache-2\.0|Llama 3\.2 Community)$/); assert.ok(parseFloat(m.params) <= 4, m.id); }
+for (const m of LITE_MODELS) { assert.match(m.licence, /^(MIT|Apache-2\.0)$/); assert.ok(parseFloat(m.params) <= 4, m.id); }
 // a hosted service's name for a listed model is accepted as it is; anything else isn't
-assert.equal(resolveLiteModel("@cf/meta/llama-3.2-3b-instruct"), "@cf/meta/llama-3.2-3b-instruct");
+assert.equal(LITE_MODELS.length, 3, "the three models we run; no Llama");
+assert.equal(resolveLiteModel("@cf/meta/llama-3.2-3b-instruct"), null);
 assert.equal(resolveLiteModel(" phi-3.5-mini-instruct "), "phi-3.5-mini-instruct");
 assert.equal(resolveLiteModel("gpt-4o"), null);
 
