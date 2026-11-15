@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMember } from "@/lib/member-client";
-import { isThreadRoute, usesAppFrame } from "@/lib/chrome";
+import { isAccountRoute, isThreadRoute, usesAppFrame } from "@/lib/chrome";
 import AppSidebar from "./AppSidebar";
 
 // Pages in the app frame get the left sidebar on a computer; everything else renders as it is.
@@ -33,6 +33,8 @@ export function FooterGate({ children }: { children: React.ReactNode }) {
   if (appHost) return null;
   // The admin area runs to the bottom of the window beside its sidebar (Moda admin redesign).
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return null;
+  // My account runs to the bottom of the window beside its menu, for members (Moda user dashboard redesign).
+  if (user && isAccountRoute(pathname)) return null;
   // The feed pages end in the right column's small links on a computer, as in the design.
   if (usesAppFrame(pathname, appHost)) return user ? null : <div className="lg:hidden">{children}</div>;
   if (isThreadRoute(pathname) || user) return <div className="max-lg:hidden">{children}</div>;

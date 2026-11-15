@@ -101,9 +101,12 @@ export default function ExplorePageClient() {
       <LiveNowStrip className="mt-4" />
       <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, events, things to buy, courses and jobs on #NotesApp.</p>
       <TopGiftedShelf className="mt-5" />
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "jobs" ? "Find jobs, organisations and cities" : tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
-        className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
-      <TabsMore className="mt-5" label="Explore" tabs={TABS.map((t) => ({ id: t.id, label: t.label }))} active={tab} onSelect={(id) => setTab(id as typeof tab)} />
+      <label className="relative mt-4 block max-w-md">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "jobs" ? "Find jobs, organisations and cities" : tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : tab === "events" ? "Find events, cities and hosts" : "Find people and channels"} aria-label="Search Explore"
+        className="w-full rounded-full border border-rule bg-card py-2.5 pl-11 pr-5 text-sm outline-none focus:border-crimson" />
+      </label>
+      <TabsMore className="mt-5" label="Explore" browse="Browse" tabs={TABS.map((t) => ({ id: t.id, label: t.label }))} active={tab} onSelect={(id) => setTab(id as typeof tab)} />
       <div className="mt-5 empty:hidden"><AdSlot key={tab} placement="explore" offset={TABS.findIndex((t) => t.id === tab)} className="!my-0" /></div>
       <div className="mt-6">
         {tab === "jobs" ? <JobsTab query={query} /> : notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (

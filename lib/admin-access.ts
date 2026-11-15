@@ -52,6 +52,8 @@ export const hasAnyDept = (a: Access | null | undefined, ds: readonly Dept[]) =>
 // Every page in the admin area and who can open it: "all" (any staff), "super", "team" (super admins and the Chief of Staff),
 // or the departments that include it.
 export type Need = "all" | "super" | "team" | readonly Dept[];
+import { activePage, groupPages, jumpTo, type MenuGroup } from "./side-menu";
+
 export type Section = { href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
@@ -132,21 +134,11 @@ export const GROUP_ORDER = ["Workspace", "Content", "People & Trust", "Money", "
 export const allowedSections = (a: Access | null | undefined) =>
   ADMIN_SECTIONS.filter((s) => canOpen(a, s.need)).sort((x, y) => GROUP_ORDER.indexOf(x.group) - GROUP_ORDER.indexOf(y.group));
 
-// The admin sidebar (components/admin/AdminShell.tsx). The open page: the most specific section the path falls under (Money ledger, not
-// also Team hub). The groups in order with their pages. "Jump to a page": every page whose name (or group) has all the words typed.
-export type AdminGroup = { name: string; pages: Section[] };
-export function activeSection(sections: Section[], pathname: string): Section | undefined {
-  return sections
-    .filter((s) => (s.exact ? pathname === s.href : pathname === s.href || pathname.startsWith(`${s.href}/`)))
-    .sort((a, b) => b.href.length - a.href.length)[0];
-}
-export const groupSections = (sections: Section[]): AdminGroup[] =>
-  GROUP_ORDER.map((name) => ({ name, pages: sections.filter((s) => s.group === name) })).filter((g) => g.pages.length > 0);
-export function jumpMatches(sections: Section[], q: string): Section[] {
-  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  return sections.filter((s) => words.every((w) => `${s.label} ${s.group}`.toLowerCase().includes(w)));
-}
+// The admin sidebar (components/admin/AdminShell.tsx, lib/side-menu.ts).
+export type AdminGroup = MenuGroup<Section>;
+export const activeSection = (sections: Section[], pathname: string) => activePage(sections, pathname);
+export const groupSections = (sections: Section[]): AdminGroup[] => groupPages(sections, GROUP_ORDER);
+export const jumpMatches = (sections: Section[], q: string) => jumpTo(sections, q);
 
 export function roleLabel(a: Access | null | undefined, owner = false): string {
   if (!a) return "";

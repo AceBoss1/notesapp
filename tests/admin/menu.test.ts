@@ -1,6 +1,6 @@
 // The admin sidebar's rules (lib/admin-access.ts, used by components/admin/AdminShell.tsx): every admin page is in the menu, the groups
 // are in order with the counts the design shows, the open page is the most specific one, and "Jump to a page" finds pages by any words.
-// Run inside npm run test:throwaway.
+// Run: npm run test:menus
 import assert from "node:assert/strict";
 import { readdirSync, statSync } from "node:fs";
 import { ADMIN_SECTIONS, GROUP_ORDER, activeSection, allowedSections, groupSections, jumpMatches } from "../../lib/admin-access";
