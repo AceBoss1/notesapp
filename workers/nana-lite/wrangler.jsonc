@@ -7,12 +7,10 @@
   "name": "notesapp-nana-lite",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
+  // The worker answers on its workers.dev address (https://notesapp-nana-lite.<account subdomain>.workers.dev); that goes in
+  // NANA_LITE_URL. naapp.tech stays on Vercel's nameservers (its *.naapp.tech wildcard needs them), so no custom domain here. If a domain
+  // is ever on this Cloudflare account, add: "routes": [{ "pattern": "lite.<domain>", "custom_domain": true }].
   "workers_dev": true,
-  // Both addresses serve the same Worker; each zone must be on this Cloudflare account. Remove a line if its domain isn't.
-  "routes": [
-    { "pattern": "lite.naapp.tech", "custom_domain": true },
-    { "pattern": "lite.notesapp.name.ng", "custom_domain": true }
-  ],
   "observability": { "enabled": false },
   "containers": [
     { "class_name": "PhiLite", "image": "./Dockerfile.phi", "instance_type": "standard", "max_instances": 2 },

@@ -1,7 +1,7 @@
 # Nana Lite worker
 
 Three small open models on Cloudflare, behind one Worker: **Phi-3.5-mini** (default), **Qwen2.5-1.5B** and **SmolLM2-1.7B**, each served
-by llama.cpp in its own Cloudflare Container, answering at `https://lite.naapp.tech` and `https://lite.notesapp.name.ng`. The app
+by llama.cpp in its own Cloudflare Container, answering on its `workers.dev` address. The app
 calls it from `lib/nana-lite-server.ts`. Full guide: `docs/NANA_LITE.md`.
 
 - `POST /v1/chat/completions` with `Authorization: Bearer <NANA_LITE_KEY>`; `"model"` picks the container (an unknown one gets Phi).

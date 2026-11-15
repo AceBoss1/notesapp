@@ -2,7 +2,7 @@
 
 > Status: **phase 1 built (v0.166.0, 15 November 2026)**: the tutor in Exam Prep practice, the server connection, the daily limit
 > and the evaluation script. **It runs on Cloudflare only** (owner, 15 November 2026): three small models in Cloudflare Containers behind our
-> `workers/nana-lite` worker, at `lite.naapp.tech` and `lite.notesapp.name.ng`. It switches on when `NANA_LITE_URL` points there; until then Exam Prep shows
+> `workers/nana-lite` worker, on its `workers.dev` address. It switches on when `NANA_LITE_URL` points there; until then Exam Prep shows
 > only the written explanation, as before. The owner asked for it on 14 November 2026, after checking Mozilla's Human-Scale AI call
 > (FUNDING.md §24).
 
@@ -50,8 +50,10 @@ while the model loads; the app allows 50).
 
 1. **Credits and plan.** Apply for the Cloudflare Startup Program and choose **Atlas** (USD 100k of credits on the NotesApp Inc
    account). Containers need the **Workers Paid** plan; switch it on (the credits cover usage).
-2. **Domains.** Both `naapp.tech` and `notesapp.name.ng` must be zones on the same Cloudflare account for the two custom domains in
-   `wrangler.jsonc`. If one isn't, delete its line there (one address is enough; the app needs only one).
+2. **The address.** The worker answers on `https://notesapp-nana-lite.<your account's subdomain>.workers.dev` (Cloudflare →
+   Workers & Pages → the worker shows it). That's all the app needs: students never see this address. `naapp.tech` stays on Vercel's
+   nameservers, because Vercel's `*.naapp.tech` wildcard (app., prep., life., mcp. and members' sites) needs them; moving it to
+   Cloudflare would break those. A custom domain such as `lite.<domain>` is optional and only for a domain whose DNS is on Cloudflare.
 3. **The key.** Make one: `openssl rand -hex 32`. Keep it for steps 4 and 6.
 4. **Deploy.** GitHub → Actions → **Deploy Nana Lite** → Run workflow (it uses the `CLOUDFLARE_API_TOKEN` and
    `CLOUDFLARE_ACCOUNT_ID` secrets the live-rooms deploy already uses; the token also needs **Containers: Edit**). Add a
@@ -65,12 +67,12 @@ while the model loads; the app allows 50).
    The first deploy builds the three images (it downloads each model file once, about 1 to 2.5 GB each) and pushes them to Cloudflare.
 5. **Check it:**
    ```
-   curl -s https://lite.naapp.tech/health
-   curl -s https://lite.naapp.tech/v1/chat/completions -H "Authorization: Bearer <the key>" -H "Content-Type: application/json" \
+   curl -s https://notesapp-nana-lite.<subdomain>.workers.dev/health
+   curl -s https://notesapp-nana-lite.<subdomain>.workers.dev/v1/chat/completions -H "Authorization: Bearer <the key>" -H "Content-Type: application/json" \
      -d '{"model":"qwen2.5-1.5b-instruct","messages":[{"role":"user","content":"Say hello in Pidgin."}],"max_tokens":40}'
    ```
-   Repeat with each model name and with `https://lite.notesapp.name.ng`. The first call to each model may take up to 30 seconds.
-6. **Connect NotesApp.** Vercel: `NANA_LITE_URL=https://lite.naapp.tech` (or `https://lite.notesapp.name.ng`; both work),
+   Repeat with each model name. The first call to each model may take up to 30 seconds.
+6. **Connect NotesApp.** Vercel: `NANA_LITE_URL=https://notesapp-nana-lite.<subdomain>.workers.dev`,
    `NANA_LITE_MODEL=phi-3.5-mini-instruct`, `NANA_LITE_KEY=<the key>`; redeploy. Then `firebase deploy --only firestore`.
 7. **Measure** (Phase 2) all three, and set `NANA_LITE_MODEL` to the one that does best for students.
 
@@ -173,7 +175,7 @@ about USD 380+ a month) answers much faster for many students at once.
 ## Phase 2: measure it (before the pilot, and for grant applications)
 
 ```
-NANA_LITE_URL=https://lite.naapp.tech NANA_LITE_MODEL=phi-3.5-mini-instruct NANA_LITE_KEY=… FIREBASE_SERVICE_ACCOUNT_KEY='…' \
+NANA_LITE_URL=https://notesapp-nana-lite.<subdomain>.workers.dev NANA_LITE_MODEL=phi-3.5-mini-instruct NANA_LITE_KEY=… FIREBASE_SERVICE_ACCOUNT_KEY='…' \
   npx -y tsx scripts/nana-lite-eval.ts --exam waec --limit 300 --out waec-phi35
 ```
 Then the same with `NANA_LITE_MODEL=qwen2.5-1.5b-instruct --out waec-qwen15` and `NANA_LITE_MODEL=smollm2-1.7b-instruct --out

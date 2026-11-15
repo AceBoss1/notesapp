@@ -1066,7 +1066,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 134. **Nana Lite, a small exam tutor (v0.166.0; owner, 14 and 15 Nov 2026; `docs/NANA_LITE.md`):** "Still unsure? Ask Nana Lite"
     under a marked Exam Prep practice question explains it another way (English or Pidgin) and answers follow-ups. **Cloudflare only:**
     `workers/nana-lite` is a Worker in front of three Cloudflare Containers (llama.cpp, one model baked into each image): Phi-3.5-mini
-    (default, MIT), Qwen2.5-1.5B and SmolLM2-1.7B (Apache-2.0); no Llama. Custom domains `lite.naapp.tech` and `lite.notesapp.name.ng`;
+    (default, MIT), Qwen2.5-1.5B and SmolLM2-1.7B (Apache-2.0); no Llama. On its workers.dev address (naapp.tech stays on Vercel nameservers for the wildcard);
     deployed by `.github/workflows/deploy-nana-lite.yml` (needs Workers Paid; token with Containers: Edit). App settings:
     `NANA_LITE_URL`, `NANA_LITE_MODEL`, `NANA_LITE_KEY` (the worker's secret). Grounded in the question's reviewed explanation; only
     published questions the student can see; 40 a day (`prepLiteDaily`, TTL two days); nothing typed is stored (`prepStats.liteAsks`
