@@ -21,6 +21,7 @@ turns down apps that are only a website in a frame, so these come in the first r
 | Biometrics (Face ID, fingerprint) | Opening the wallet and confirming payments |
 | Offline: drafts and Exam Prep packs | The pack already works offline on the web |
 | A native splash screen, icons and status bar in Day or Night | It should feel like an app from the first tap |
+| The phone's calendar (My Calendar, v0.166.0) | "Add to my calendar" writes an entry straight into the default calendar, after the member allows it. The web side is ready (`lib/native-calendar.ts`, used only when the app has the `CapacitorCalendar` plugin); install `@ebarooni/capacitor-calendar`, add the calendar permission texts (iOS `NSCalendarsWriteOnlyAccessUsageDescription`, `NSCalendarsUsageDescription`; Android `READ_CALENDAR`, `WRITE_CALENDAR`), `npx cap sync`, test, release. Steps in `docs/MY_CALENDAR.md` |
 
 ## 2. Paying inside the apps (the store rules)
 

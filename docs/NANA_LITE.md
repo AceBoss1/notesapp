@@ -1,6 +1,6 @@
 # Nana Lite: a small exam tutor for students
 
-> Status: **phase 1 built (v0.166.0, 15 November 2026)**: the tutor in Exam Prep practice, the server connection, the daily limit
+> Status: **phase 1 built (v0.176.0, 15 November 2026)**: the tutor in Exam Prep practice, the server connection, the daily limit
 > and the evaluation script. **It runs on Cloudflare only** (owner, 15 November 2026): three small models in Cloudflare Containers behind our
 > `workers/nana-lite` worker, on its `workers.dev` address. It switches on when `NANA_LITE_URL` points there; until then Exam Prep shows
 > only the written explanation, as before. The owner asked for it on 14 November 2026, after checking Mozilla's Human-Scale AI call

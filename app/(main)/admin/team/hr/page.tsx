@@ -2,12 +2,12 @@
 
 import { ROLE_PRESETS } from "@/lib/hr-drafts";
 import { ApplicationThread } from "@/components/ApplicationThread";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { useAdminCall } from "@/lib/useAdminCall";
 import { DEPARTMENTS, type Dept } from "@/lib/admin-access";
-import { APP_STATUS_LABEL, ARRANGEMENT_LABEL, type AppStatus, type Application, type Arrangement, type CareerRole } from "@/lib/careers";
+import { APP_STATUS_LABEL, ARRANGEMENT_LABEL, isContractArrangement, type AppStatus, type Application, type Arrangement, type CareerRole } from "@/lib/careers";
 import NanaPanel from "@/components/NanaPanel";
 
 type Draft = { kind: string; title: string; markdown: string };
@@ -21,6 +21,12 @@ const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 const blankRole = { title: "", dept: "growth" as Dept, reportsTo: "", summary: "", about: "", responsibilities: "", requirements: "", hours: "20 hours a week, Monday to Friday", location: "Remote, anywhere in Nigeria", arrangement: "salary_options" as Arrangement };
 const blankTerms = { applicationId: "", name: "", title: "", reportsTo: "", worksWith: "", offerDate: "", startDate: "", hoursPerWeek: "20", days: "", arrangement: "salary_options" as Arrangement, monthlySalary: "", bonusPerMonth: "", salaryAfterMilestone: "", milestoneName: "", probationMonths: "three", noticeAfterProbation: "one month's", restrictionMonths: "six", duties: "", whatTheyDo: "", howToWork: "", optionShares: "", optionPercent: "", exercisePrice: "", grantDate: "" };
+// Scroll a heading into view and move focus to it (for screen readers too), without a second jump.
+const bringIntoView = (el: HTMLElement | null) => {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.focus({ preventScroll: true });
+};
 const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "");
 
 // Nana-HR and hiring (the Nana-HR spec): every staff member asks Nana-HR about the handbook, their SOPs and briefs and their own hours,
@@ -36,7 +42,16 @@ export default function NanaHrPage() {
   const [roleForm, setRoleForm] = useState<(typeof blankRole & { id?: string }) | null>(null);
   const [openRole, setOpenRole] = useState<string | null>(null);
   const [terms, setTerms] = useState<typeof blankTerms | null>(null);
-  const [shownDrafts, setShownDrafts] = useState<Draft[] | null>(null);
+  // Drafts on show, with the applicant they're for (null: opened from the top or from Earlier drafts).
+  const [shown, setShown] = useState<{ drafts: Draft[]; applicationId: string | null; name: string } | null>(null);
+  // The form and the drafts open where they were asked for (under the applicant), then scroll into view with the heading focused, so
+  // something visibly happens on a phone (owner, 15 Nov 2026: "draft documents should draft from templates but it's not happening").
+  const termsHead = useRef<HTMLHeadingElement>(null);
+  const draftsHead = useRef<HTMLHeadingElement>(null);
+  const [termsOpened, setTermsOpened] = useState(0); // counts each time the form is opened, so typing in it never scrolls
+  const openTerms = (t: typeof blankTerms) => { setShown(null); setTerms(t); setTermsOpened((n) => n + 1); };
+  useEffect(() => { if (termsOpened) bringIntoView(termsHead.current); }, [termsOpened]);
+  useEffect(() => { if (shown) bringIntoView(draftsHead.current); }, [shown]);
 
   const load = useCallback(() => call().then(setData).catch((e) => setError(e.message)), [call]);
   useEffect(() => { if (user) load(); }, [user, load]);
@@ -53,6 +68,64 @@ export default function NanaHrPage() {
 
   if (loading || !user) return <p className="p-8 text-slate">Loading…</p>;
   const roles = data?.roles ?? [], apps = data?.applications ?? [];
+  const contract = terms ? isContractArrangement(terms.arrangement) : false;
+  const agreementName = terms?.arrangement === "affiliate_options" ? "Campus Ambassador Agreement" : "Contractor (Consulting) Agreement";
+  const termsForm = terms && (
+    <form className="card mt-4 grid gap-3 p-5 sm:grid-cols-3" aria-labelledby="hr-terms-head" onSubmit={async (e) => {
+      e.preventDefault();
+      const j = await run({ action: "drafts", terms: { ...terms, duties: terms.duties.split("\n"), whatTheyDo: terms.whatTheyDo.split("\n"), howToWork: terms.howToWork.split("\n") } }, "Drafts ready. Legal reviews them; the CEO (and, for options, the Board) approves and signs. Nana-HR never sends them.");
+      if (j) { setShown({ drafts: j.drafts, applicationId: terms.applicationId || null, name: terms.name }); setTerms(null); }
+    }}>
+      <h3 ref={termsHead} id="hr-terms-head" tabIndex={-1} className="scroll-mt-24 font-display text-xl text-ink outline-none sm:col-span-3">Onboarding documents for {terms.name || "a new hire"}</h3>
+      <p className="text-xs text-slate sm:col-span-3">
+        {contract
+          ? <>A contract role ({ARRANGEMENT_LABEL[terms.arrangement]}): Nana-HR drafts the {agreementName} (an independent contractor, not an employee), the NotesApp Inc. option grant and the internal announcement, from the templates in the library. No offer of employment. Anything you leave blank stays as an [open point] for the reviewer.</>
+          : <>From the templates in the library (the offer letter{terms.arrangement === "salary" ? "" : ", the NotesApp Inc. option grant"} and the internal announcement). Anything you leave blank stays as an [open point] for the reviewer.</>}
+      </p>
+      <label className="text-xs">Name<input className={field} value={terms.name} onChange={(e) => setTerms({ ...terms, name: e.target.value })} required /></label>
+      <label className="text-xs">Role title<input className={field} value={terms.title} onChange={(e) => setTerms({ ...terms, title: e.target.value })} required /></label>
+      <label className="text-xs">Pay arrangement<select className={field} value={terms.arrangement} onChange={(e) => setTerms({ ...terms, arrangement: e.target.value as Arrangement })}>{(Object.keys(ARRANGEMENT_LABEL) as Arrangement[]).map((k) => <option key={k} value={k}>{ARRANGEMENT_LABEL[k]}</option>)}</select></label>
+      <label className="text-xs">Reports to<input className={field} value={terms.reportsTo} onChange={(e) => setTerms({ ...terms, reportsTo: e.target.value })} placeholder="the Chief Executive Officer" /></label>
+      <label className="text-xs">Works with<input className={field} value={terms.worksWith} onChange={(e) => setTerms({ ...terms, worksWith: e.target.value })} /></label>
+      <label className="text-xs">Hours a week<input className={field} value={terms.hoursPerWeek} onChange={(e) => setTerms({ ...terms, hoursPerWeek: e.target.value })} /></label>
+      <label className="text-xs">{contract ? "Agreement date" : "Offer date"}<input className={field} value={terms.offerDate} onChange={(e) => setTerms({ ...terms, offerDate: e.target.value })} placeholder="13th October 2026" /></label>
+      <label className="text-xs">Start date<input className={field} value={terms.startDate} onChange={(e) => setTerms({ ...terms, startDate: e.target.value })} /></label>
+      <label className="text-xs">Notice period<input className={field} value={terms.noticeAfterProbation} onChange={(e) => setTerms({ ...terms, noticeAfterProbation: e.target.value })} placeholder="one month's" /></label>
+      {!contract && (
+        <>
+          <label className="text-xs">Monthly salary (₦)<input className={field} value={terms.monthlySalary} onChange={(e) => setTerms({ ...terms, monthlySalary: e.target.value })} /></label>
+          <label className="text-xs">Deferred bonus a month (₦, optional)<input className={field} value={terms.bonusPerMonth} onChange={(e) => setTerms({ ...terms, bonusPerMonth: e.target.value })} /></label>
+          <label className="text-xs">Salary after the milestone (₦, optional)<input className={field} value={terms.salaryAfterMilestone} onChange={(e) => setTerms({ ...terms, salaryAfterMilestone: e.target.value })} /></label>
+          <label className="text-xs">Milestone name (optional)<input className={field} value={terms.milestoneName} onChange={(e) => setTerms({ ...terms, milestoneName: e.target.value })} placeholder="Pre-Seed Milestone" /></label>
+        </>
+      )}
+      {terms.arrangement !== "salary" && (
+        <>
+          <label className="text-xs">Option shares<input className={field} value={terms.optionShares} onChange={(e) => setTerms({ ...terms, optionShares: e.target.value })} /></label>
+          <label className="text-xs">Option % of fully diluted<input className={field} value={terms.optionPercent} onChange={(e) => setTerms({ ...terms, optionPercent: e.target.value })} /></label>
+          <label className="text-xs">Exercise price (US$)<input className={field} value={terms.exercisePrice} onChange={(e) => setTerms({ ...terms, exercisePrice: e.target.value })} /></label>
+        </>
+      )}
+      <label className="text-xs sm:col-span-3">{contract ? "The services (one per line)" : "Duties for the first 90 days (one per line)"}<textarea rows={4} className={field} value={terms.duties} onChange={(e) => setTerms({ ...terms, duties: e.target.value })} /></label>
+      <label className="text-xs sm:col-span-3">For the announcement: what they do (one per line)<textarea rows={3} className={field} value={terms.whatTheyDo} onChange={(e) => setTerms({ ...terms, whatTheyDo: e.target.value })} /></label>
+      <label className="text-xs sm:col-span-3">For the announcement: how to work with them (one per line)<textarea rows={3} className={field} value={terms.howToWork} onChange={(e) => setTerms({ ...terms, howToWork: e.target.value })} /></label>
+      {error && <p className="text-sm text-red-700 sm:col-span-3" role="alert">{error}</p>}
+      <div className="flex gap-2 sm:col-span-3"><button className={btn} disabled={busy}>{busy ? "Drafting…" : "Draft them"}</button><button type="button" className={ghost} onClick={() => setTerms(null)}>Cancel</button></div>
+    </form>
+  );
+  const draftsPanel = shown && (
+    <div className="card mt-4 p-5">
+      <div className="flex items-center justify-between gap-2"><h3 ref={draftsHead} tabIndex={-1} className="scroll-mt-24 font-display text-xl text-ink outline-none">{shown.name ? `Drafts for ${shown.name}` : "Drafts"}</h3><button className={ghost} onClick={() => setShown(null)}>Close</button></div>
+      <p className="mt-1 text-xs text-slate">Drafts for counsel review, also kept under Earlier drafts below. Legal reviews them; the CEO (and, for options, the Board) approves and signs.</p>
+      {shown.drafts.map((d) => (
+        <details key={d.title} className="mt-3 rounded-lg border border-rule p-3" open>
+          <summary className="cursor-pointer font-ui text-sm font-semibold">{d.title}</summary>
+          <div className="mt-2 flex gap-2"><button className={ghost} onClick={() => navigator.clipboard?.writeText(d.markdown)}>Copy</button><button className={ghost} onClick={() => download(d)}>Download (.md)</button></div>
+          <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-paper p-3 text-xs">{d.markdown}</pre>
+        </details>
+      ))}
+    </div>
+  );
   return (
     <section className="mx-auto max-w-5xl px-4 py-10">
       <p className="eyebrow"><Link href="/admin/team" className="underline">Team hub</Link></p>
@@ -71,7 +144,7 @@ export default function NanaHrPage() {
           <p className="mt-1 text-sm text-slate">Roles are drafted here and opened by a super admin, then listed on <Link href="/careers" className="text-crimson underline">/careers</Link>. A person reads every application; Nana-HR&apos;s summary only checks it against the role&apos;s stated requirements. Applicants hear from us when they&apos;re invited to interview, offered the role or not taken forward.</p>
           <div className="mt-4 flex gap-2">
             {!roleForm && <button className={ghost} onClick={() => setRoleForm({ ...blankRole })}>Add a role</button>}
-            {!terms && <button className={ghost} onClick={() => setTerms({ ...blankTerms })}>Draft onboarding documents</button>}
+            {!terms && <button className={ghost} onClick={() => openTerms({ ...blankTerms })}>Draft onboarding documents</button>}
           </div>
 
           {roleForm && (
@@ -94,47 +167,8 @@ export default function NanaHrPage() {
             </form>
           )}
 
-          {terms && (
-            <form className="card mt-4 grid gap-3 p-5 sm:grid-cols-3" onSubmit={async (e) => {
-              e.preventDefault();
-              const j = await run({ action: "drafts", terms: { ...terms, duties: terms.duties.split("\n"), whatTheyDo: terms.whatTheyDo.split("\n"), howToWork: terms.howToWork.split("\n") } }, "Drafts ready. Legal reviews them; the CEO (and, for options, the Board) approves and signs. Nana-HR never sends them.");
-              if (j) { setShownDrafts(j.drafts); setTerms(null); }
-            }}>
-              <p className="text-xs text-slate sm:col-span-3">From the templates in the library (the offer letter, the NotesApp Inc. option grant and the internal announcement). Anything you leave blank stays as an [open point] for the reviewer.</p>
-              <label className="text-xs">Name<input className={field} value={terms.name} onChange={(e) => setTerms({ ...terms, name: e.target.value })} required /></label>
-              <label className="text-xs">Role title<input className={field} value={terms.title} onChange={(e) => setTerms({ ...terms, title: e.target.value })} required /></label>
-              <label className="text-xs">Pay arrangement<select className={field} value={terms.arrangement} onChange={(e) => setTerms({ ...terms, arrangement: e.target.value as Arrangement })}>{(Object.keys(ARRANGEMENT_LABEL) as Arrangement[]).map((k) => <option key={k} value={k}>{ARRANGEMENT_LABEL[k]}</option>)}</select></label>
-              <label className="text-xs">Reports to<input className={field} value={terms.reportsTo} onChange={(e) => setTerms({ ...terms, reportsTo: e.target.value })} placeholder="the Chief Executive Officer" /></label>
-              <label className="text-xs">Works with<input className={field} value={terms.worksWith} onChange={(e) => setTerms({ ...terms, worksWith: e.target.value })} /></label>
-              <label className="text-xs">Hours a week<input className={field} value={terms.hoursPerWeek} onChange={(e) => setTerms({ ...terms, hoursPerWeek: e.target.value })} /></label>
-              <label className="text-xs">Offer date<input className={field} value={terms.offerDate} onChange={(e) => setTerms({ ...terms, offerDate: e.target.value })} placeholder="13th October 2026" /></label>
-              <label className="text-xs">Start date<input className={field} value={terms.startDate} onChange={(e) => setTerms({ ...terms, startDate: e.target.value })} /></label>
-              <label className="text-xs">Monthly salary (₦)<input className={field} value={terms.monthlySalary} onChange={(e) => setTerms({ ...terms, monthlySalary: e.target.value })} /></label>
-              <label className="text-xs">Deferred bonus a month (₦, optional)<input className={field} value={terms.bonusPerMonth} onChange={(e) => setTerms({ ...terms, bonusPerMonth: e.target.value })} /></label>
-              <label className="text-xs">Salary after the milestone (₦, optional)<input className={field} value={terms.salaryAfterMilestone} onChange={(e) => setTerms({ ...terms, salaryAfterMilestone: e.target.value })} /></label>
-              <label className="text-xs">Milestone name (optional)<input className={field} value={terms.milestoneName} onChange={(e) => setTerms({ ...terms, milestoneName: e.target.value })} placeholder="Pre-Seed Milestone" /></label>
-              <label className="text-xs">Option shares<input className={field} value={terms.optionShares} onChange={(e) => setTerms({ ...terms, optionShares: e.target.value })} /></label>
-              <label className="text-xs">Option % of fully diluted<input className={field} value={terms.optionPercent} onChange={(e) => setTerms({ ...terms, optionPercent: e.target.value })} /></label>
-              <label className="text-xs">Exercise price (US$)<input className={field} value={terms.exercisePrice} onChange={(e) => setTerms({ ...terms, exercisePrice: e.target.value })} /></label>
-              <label className="text-xs sm:col-span-3">Duties for the first 90 days (one per line)<textarea rows={4} className={field} value={terms.duties} onChange={(e) => setTerms({ ...terms, duties: e.target.value })} /></label>
-              <label className="text-xs sm:col-span-3">For the announcement: what they do (one per line)<textarea rows={3} className={field} value={terms.whatTheyDo} onChange={(e) => setTerms({ ...terms, whatTheyDo: e.target.value })} /></label>
-              <label className="text-xs sm:col-span-3">For the announcement: how to work with them (one per line)<textarea rows={3} className={field} value={terms.howToWork} onChange={(e) => setTerms({ ...terms, howToWork: e.target.value })} /></label>
-              <div className="flex gap-2 sm:col-span-3"><button className={btn} disabled={busy}>Draft them</button><button type="button" className={ghost} onClick={() => setTerms(null)}>Cancel</button></div>
-            </form>
-          )}
-
-          {shownDrafts && (
-            <div className="card mt-4 p-5">
-              <div className="flex items-center justify-between"><p className="font-display text-xl text-ink">Drafts</p><button className={ghost} onClick={() => setShownDrafts(null)}>Close</button></div>
-              {shownDrafts.map((d) => (
-                <details key={d.title} className="mt-3 rounded-lg border border-rule p-3" open>
-                  <summary className="cursor-pointer font-ui text-sm font-semibold">{d.title}</summary>
-                  <div className="mt-2 flex gap-2"><button className={ghost} onClick={() => navigator.clipboard?.writeText(d.markdown)}>Copy</button><button className={ghost} onClick={() => download(d)}>Download (.md)</button></div>
-                  <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-paper p-3 text-xs">{d.markdown}</pre>
-                </details>
-              ))}
-            </div>
-          )}
+          {terms && !terms.applicationId && termsForm}
+          {shown && !shown.applicationId && draftsPanel}
 
           <ul className="mt-6 space-y-4">
             {roles.map((r) => {
@@ -182,8 +216,10 @@ export default function NanaHrPage() {
                             <button className={`${ghost} mt-3`} disabled={busy} onClick={() => run({ action: "summarise", id: a.id }, "Summary ready.")}>Summarise against the requirements</button>
                           )}
                           {a.status === "offer" || a.status === "hired" ? (
-                            <button className={`${btn} mt-3 ml-2`} onClick={() => { const p = r.seedKey ? ROLE_PRESETS[r.seedKey] : undefined; setTerms({ ...blankTerms, applicationId: a.id, name: a.name, title: r.title, reportsTo: p?.reportsTo ?? r.reportsTo, worksWith: p?.worksWith ?? "", arrangement: r.arrangement, duties: (p?.duties ?? r.responsibilities).join("\n"), whatTheyDo: (p?.whatTheyDo ?? []).join("\n"), howToWork: (p?.howToWork ?? []).join("\n") }); }}>Draft onboarding documents</button>
+                            <button className={`${btn} mt-3 ml-2`} onClick={() => { const p = r.seedKey ? ROLE_PRESETS[r.seedKey] : undefined; openTerms({ ...blankTerms, applicationId: a.id, name: a.name, title: r.title, reportsTo: p?.reportsTo ?? r.reportsTo, worksWith: p?.worksWith ?? "", hoursPerWeek: p?.hoursPerWeek ?? blankTerms.hoursPerWeek, arrangement: r.arrangement, duties: (p?.duties ?? r.responsibilities).join("\n"), whatTheyDo: (p?.whatTheyDo ?? []).join("\n"), howToWork: (p?.howToWork ?? []).join("\n") }); }}>Draft onboarding documents</button>
                           ) : null}
+                          {terms?.applicationId === a.id && termsForm}
+                          {shown?.applicationId === a.id && draftsPanel}
                           <ApplicationThread kind="career" applicationId={a.id} />
                         </li>
                       ))}
@@ -198,7 +234,7 @@ export default function NanaHrPage() {
             <>
               <h3 className="mt-10 font-display text-xl text-ink">Earlier drafts</h3>
               <ul className="mt-3 space-y-1 text-sm">
-                {data.drafts!.map((d) => <li key={d.id}><button className="text-crimson underline" onClick={() => setShownDrafts(d.drafts)}>{d.drafts.map((x) => x.title).join(" · ")}</button> <span className="text-xs text-slate">{day(d.createdAt)}</span></li>)}
+                {data.drafts!.map((d) => <li key={d.id}><button className="text-crimson underline" onClick={() => setShown({ drafts: d.drafts, applicationId: null, name: "" })}>{d.drafts.map((x) => x.title).join(" · ")}</button> <span className="text-xs text-slate">{day(d.createdAt)}</span></li>)}
               </ul>
             </>
           )}

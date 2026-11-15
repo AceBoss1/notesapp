@@ -2,6 +2,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { deleteReview } from "./reviews-server";
 import { removeDomain } from "./domains";
 import { eraseAuthLinks } from "./social-auth-server";
+import { growthDocsFor } from "./growth-server";
 
 // Server-only. A member's data rights under the Nigeria Data Protection Act: get a copy of what we
 // hold about them (export) and have their account erased (deletion). Money records are different:
@@ -324,6 +325,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   await deleteAll(db, toDelete.map((d) => d.ref));
   counts.relationships = toDelete.length;
   await deleteAll(db, ["badgeRequests", "suspensions", "tierSubscriptions", "badgeSubscriptions", "goldSubscriptions", "payoutAccounts", "publisherSettings", "presence"].map((c) => db.doc(`${c}/${uid}`)));
+  await deleteAll(db, growthDocsFor(db, uid)); // growth measurement: the channel that brought them, first values and returns
 
   // --- money and order records: kept for tax and disputes, with the personal details removed ---
   await updateAll(db, await own("payments", "uid", uid), { email: GONE });

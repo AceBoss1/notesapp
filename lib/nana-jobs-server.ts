@@ -1,30 +1,32 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { accountCryptoConfigured, decryptSecret, encryptSecret } from "./account-crypto";
 import { providerAccount, providersStatus } from "./ai-connect";
-import { PROVIDER_INFO, completeJson, modelOf, pickProvider, type Account, type AiProvider, type Fetch, type Sleep } from "./ai-providers";
+import { AI_TIMEOUT_MS, PROVIDER_INFO, completeJson, modelOf, pickProvider, type Account, type AiProvider, type Fetch, type Sleep } from "./ai-providers";
 import { listJobs } from "./jobs-server";
 import { JOB_TYPE_LABEL, payText, placeText, type Job } from "./jobs";
 import { SITE_URL } from "./host";
 import {
-  AI_PER_DAY, LITE_JOBS_PER_RUN, CV_MAX_CHARS, CV_MIN_CHARS, DEFAULT_PROFILE, DEFAULT_SETTINGS, MAX_COMPANIES, NanaJobsError, SHORTLIST, cleanProfile, cleanSettings, isJobStatus, nextRunAt,
-  profileReady, whyNotAllowed, type Board, type CvReview, type Funnel, type JobStatus, type NjProfile, type NjRun, type NjSettings, type PoolJob, type ShortJob,
+  AI_PER_DAY, LITE_JOBS_PER_RUN, CV_MAX_CHARS, CV_MIN_CHARS, DEFAULT_PROFILE, DEFAULT_SETTINGS, MAX_COMPANIES, NanaJobsError, SEEN_MAX, SHORTLIST, cleanProfile, cleanSettings, effectiveProfile, isJobStatus, nextRunAt,
+  profileReady, whyNotAllowed, type Board, type CvReview, type Funnel, type JobStatus, type NjProfile, type NjRun, type NjSettings, type PoolJob, type SeenJob, type ShortJob,
 } from "./nana-jobs";
 import {
   coverSystem, coverUser, cvSystem, dedupe, groundCoverNote, hardFilter, jobHash, pickShortlist, prescoreAll, scoringSystem, scoringUser, toShort,
   validateCvReview, validateVerdicts, verifyAll, type Candidate,
 } from "./nana-jobs-funnel";
 import { FEEDS, checkBoard, fetchBoards, fetchFeeds } from "./nana-jobs-sources";
+import { withReturn } from "./growth";
 
 // Nana Jobs on the server (docs/NANA_JOBS.md). Collections, all server-only (firestore.rules):
 //   nanaJobsProfiles/{uid}   the scoring profile, sources, AI choice and alert settings; nextRunAt for the daily run
 //   nanaJobsRuns/{uid}       the latest shortlist and its funnel (plus each listed job's text, for the cover note; never sent to browsers)
 //   nanaJobsStatuses/{uid}   Interested / Applied / Not for me, per job. Only the member writes these: a run never overwrites them.
+//   nanaJobsSeen/{uid}       every opening the latest run collected and what happened to it ("See all collected jobs"), own run only
 //   nanaJobsCv/{uid}         the member's CV text and its review, both encrypted with ACCOUNT_DATA_KEY. Deleted when they say so.
 //   nanaJobsBoards/{ats_slug} the company boards members watch, fetched once a day for everyone
 //   nanaJobsMeta/pool        which day's shared pool is current, and how many chunks it has
 //   jobPool/{day}-{n}        the shared pool: every opening collected that day, ~100 to a document (a member's run reads a handful of
 //                            documents, not thousands)
-const PROFILES = "nanaJobsProfiles", RUNS = "nanaJobsRuns", STATUSES = "nanaJobsStatuses", CV = "nanaJobsCv", BOARDS = "nanaJobsBoards", META = "nanaJobsMeta", POOL = "jobPool";
+const PROFILES = "nanaJobsProfiles", RUNS = "nanaJobsRuns", SEEN = "nanaJobsSeen", STATUSES = "nanaJobsStatuses", CV = "nanaJobsCv", BOARDS = "nanaJobsBoards", META = "nanaJobsMeta", POOL = "jobPool";
 const CHUNK = 100;
 const BATCH = 5; // openings per AI request: 25 openings is 5 requests, which fits a free tier's per-minute limit
 const lagosDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
@@ -36,6 +38,7 @@ export type NjDeps = {
   account?: (db: Firestore, uid: string, p: AiProvider) => Promise<Account | null>;
   budgetMs?: number; // how long the AI may take in one run before the rest falls back to the keyword score
   lite?: () => Account | null; // Nana Lite when the member has no AI connected (default: our worker, if NANA_LITE_URL is set)
+  cvTimeoutMs?: number; // tests: a shorter wait for the CV review
 };
 // Nana Lite as an OpenAI-compatible account (lib/nana-lite-server.ts): our worker on Cloudflare, our key, our small model.
 async function liteAccount(): Promise<Account | null> {
@@ -53,15 +56,25 @@ export async function assertAllowed(db: Firestore, uid: string): Promise<void> {
 }
 
 // ---- profile and settings ----
-type Doc = { profile: NjProfile; settings: NjSettings; steps: { sources: boolean; when: boolean }; setupDone: boolean; nextRunAt?: string | null };
+type Doc = { profile: NjProfile; settings: NjSettings; steps: { sources: boolean; when: boolean }; setupDone: boolean; nextRunAt?: string | null; rolesSetAt?: string | null };
+// The member's account job title ("Founder & CEO"), offered as a suggestion on the profile screen, never used as a role by itself.
+async function accountTitle(db: Firestore, uid: string): Promise<string> {
+  return String((await db.doc(`users/${uid}`).get()).data()?.jobTitle ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+}
 async function readDoc(db: Firestore, uid: string): Promise<Doc & { exists: boolean }> {
   const d = (await db.doc(`${PROFILES}/${uid}`).get()).data();
-  if (d) return { exists: true, profile: { ...DEFAULT_PROFILE, ...d.profile }, settings: { ...DEFAULT_SETTINGS, ...d.settings }, steps: { sources: !!d.steps?.sources, when: !!d.steps?.when }, setupDone: d.setupDone === true, nextRunAt: d.nextRunAt ?? null };
-  // First visit: start from the profile and "I need a job" settings we already have.
-  const [u, seeker] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`jobSeekers/${uid}`).get()]);
+  if (d) {
+    const profile: NjProfile = { ...DEFAULT_PROFILE, ...d.profile };
+    // Before v0.174.1 the account's job title was copied in as the only role on the first visit and saved with the first change
+    // (connecting an AI), so a member who never opened the profile screen had a title gate made of "Founder & CEO", which keeps nothing.
+    // A role the member never chose is not a role: with no rolesSetAt and the roles exactly that title, they count as empty.
+    if (!d.rolesSetAt && profile.roles.length === 1 && profile.roles[0].toLowerCase() === (await accountTitle(db, uid)).toLowerCase()) profile.roles = [];
+    return { exists: true, profile, settings: { ...DEFAULT_SETTINGS, ...d.settings }, steps: { sources: !!d.steps?.sources, when: !!d.steps?.when }, setupDone: d.setupDone === true, nextRunAt: d.nextRunAt ?? null, rolesSetAt: d.rolesSetAt ?? null };
+  }
+  // First visit: the city from "I need a job". The account's job title is only a suggestion (getState's suggestedRole).
+  const seeker = await db.doc(`jobSeekers/${uid}`).get();
   const city = String(seeker.data()?.city ?? "").trim();
-  const title = String(u.data()?.jobTitle ?? "").trim();
-  return { exists: false, profile: { ...DEFAULT_PROFILE, roles: title ? [title] : [], cities: city ? [city] : [] }, settings: { ...DEFAULT_SETTINGS }, steps: { sources: false, when: false }, setupDone: false, nextRunAt: null };
+  return { exists: false, profile: { ...DEFAULT_PROFILE, cities: city ? [city] : [] }, settings: { ...DEFAULT_SETTINGS }, steps: { sources: false, when: false }, setupDone: false, nextRunAt: null, rolesSetAt: null };
 }
 
 export type NjState = {
@@ -69,10 +82,11 @@ export type NjState = {
   providers: Awaited<ReturnType<typeof providersStatus>>; using: AiProvider | null;
   cv: { has: boolean; updatedAt?: string; chars?: number; fileName?: string; review: CvReview | null };
   run: NjRun | null;
+  suggestedRole: string; // the account's job title, offered as a one-tap role (never applied by itself)
 };
 export async function getState(db: Firestore, uid: string): Promise<NjState> {
   await assertAllowed(db, uid);
-  const [doc, providers, cv, run, st] = await Promise.all([readDoc(db, uid), providersStatus(db, uid), db.doc(`${CV}/${uid}`).get(), db.doc(`${RUNS}/${uid}`).get(), db.doc(`${STATUSES}/${uid}`).get()]);
+  const [doc, providers, cv, run, st, title] = await Promise.all([readDoc(db, uid), providersStatus(db, uid), db.doc(`${CV}/${uid}`).get(), db.doc(`${RUNS}/${uid}`).get(), db.doc(`${STATUSES}/${uid}`).get(), accountTitle(db, uid)]);
   const connected = providers.providers.filter((p) => p.connected).map((p) => p.provider);
   const c = cv.data();
   let review: CvReview | null = null;
@@ -87,6 +101,7 @@ export async function getState(db: Firestore, uid: string): Promise<NjState> {
     providers, using: pickProvider(connected, doc.settings.provider),
     cv: { has: !!c?.secret, ...(c ? { updatedAt: c.updatedAt, chars: c.chars, ...(c.fileName ? { fileName: c.fileName } : {}) } : {}), review },
     run: runOut,
+    suggestedRole: doc.profile.roles.some((r) => r.toLowerCase() === title.toLowerCase()) ? "" : title,
   };
 }
 
@@ -98,9 +113,12 @@ export async function saveSetup(db: Firestore, uid: string, b: Record<string, un
   const settings = b.settings && typeof b.settings === "object" ? cleanSettings(b.settings as Record<string, unknown>, cur.settings) : cur.settings;
   const steps = { ...cur.steps, ...(b.step === "sources" ? { sources: true } : {}), ...(b.step === "when" ? { when: true } : {}) };
   const setupDone = cur.setupDone || b.finish === true;
-  if (b.finish === true && !profileReady(profile)) throw new NanaJobsError("Add at least one role you want, and where you can work, first.");
+  // No roles is allowed (v0.174.1): the run then uses the roles from the CV review, or no title gate at all, and says so.
+  if (b.finish === true && !profile.remote && !profile.cities.length) throw new NanaJobsError("Say where you can work first: remote, or a city.");
+  const rolesChosen = !!(b.profile && typeof b.profile === "object" && (b.profile as Record<string, unknown>).roles !== undefined);
+  const rolesSetAt = rolesChosen ? now.toISOString() : cur.rolesSetAt ?? null;
   const runAt = setupDone && (!cur.nextRunAt || settings.hour !== cur.settings.hour || !cur.setupDone) ? nextRunAt(settings.hour, now) : cur.nextRunAt ?? null;
-  await db.doc(`${PROFILES}/${uid}`).set({ uid, profile, settings, steps, setupDone, nextRunAt: runAt, updatedAt: now.toISOString(), ...(cur.exists ? {} : { createdAt: now.toISOString() }) });
+  await db.doc(`${PROFILES}/${uid}`).set({ uid, profile, settings, steps, setupDone, nextRunAt: runAt, rolesSetAt, updatedAt: now.toISOString(), ...(cur.exists ? {} : { createdAt: now.toISOString() }) });
 }
 
 // ---- company boards ----
@@ -137,17 +155,26 @@ export async function saveCv(db: Firestore, uid: string, b: { text?: unknown; fi
   return reviewCv(db, uid, deps);
 }
 export async function reviewCv(db: Firestore, uid: string, deps: NjDeps): Promise<{ review: CvReview | null; dropped: number; note: string }> {
+  await assertAllowed(db, uid);
   const ref = db.doc(`${CV}/${uid}`);
   const c = (await ref.get()).data();
   if (!c?.secret) throw new NanaJobsError("Add your CV first.", 404);
   const ai = await chosenAccount(db, uid, deps);
   if (!ai) return { review: null, dropped: 0, note: "Your CV is saved. Connect your AI (step 1) and Nana will review it." };
   const cur = await readDoc(db, uid);
+  let cvText: string;
+  try { cvText = decryptSecret(String(c.secret)); }
+  catch { throw new NanaJobsError("Your saved CV couldn't be opened (it was saved under an older key). Please upload it again.", 409); }
+  const label = PROVIDER_INFO[ai.provider].label;
   let data: Record<string, unknown>;
-  try { data = await completeJson(ai, cvSystem(cur.profile.country), `THE CV\n${decryptSecret(String(c.secret))}`, { fetch: deps.fetch, sleep: deps.sleep, maxTokens: 2000 }); }
-  catch (e) { throw new NanaJobsError(`Your AI (${PROVIDER_INFO[ai.provider].label}) couldn't review it: "${e instanceof Error ? e.message : "no answer"}". Your CV is saved; try again in a moment.`, 502); }
+  try { data = await completeJson(ai, cvSystem(cur.profile.country), `THE CV\n${cvText}`, { fetch: deps.fetch, sleep: deps.sleep, maxTokens: 4000, timeoutMs: deps.cvTimeoutMs ?? AI_TIMEOUT_MS.cv }); }
+  catch (e) {
+    const why = e instanceof Error ? e.message : "no answer";
+    if (/took too long/.test(why)) throw new NanaJobsError(`Your AI (${label}) took too long to answer, so we stopped waiting. Your CV is saved: try "Review the CV I saved" in a moment.`, 504);
+    throw new NanaJobsError(`Your AI (${label}) couldn't review it: "${why}". Your CV is saved; try again in a moment.`, 502);
+  }
   let v;
-  try { v = validateCvReview(data, decryptSecret(String(c.secret)), cur.profile.country); }
+  try { v = validateCvReview(data, cvText, cur.profile.country); }
   catch (e) { throw new NanaJobsError(`Your AI's review didn't come back right (${e instanceof Error ? e.message : "empty"}). Try again in a moment.`, 502); }
   const { dropped, ...rest } = v;
   const review: CvReview = { ...rest, provider: ai.provider, at: nowOf(deps).toISOString() };
@@ -204,17 +231,21 @@ export async function runFor(db: Firestore, uid: string, deps: NjDeps, o: { manu
   await assertAllowed(db, uid);
   const now = nowOf(deps);
   const doc = await readDoc(db, uid);
-  const { profile: p, settings: s } = doc;
-  if (!profileReady(p)) throw new NanaJobsError("Add at least one role you want, and where you can work, first.");
-  const [pool, live, st, providers] = await Promise.all([
-    readPool(db), listJobs(db, null, now).then((r) => r.jobs.map(poolJobOfNotes)).catch(() => [] as PoolJob[]), db.doc(`${STATUSES}/${uid}`).get(), providersStatus(db, uid),
+  const { settings: s } = doc;
+  const [pool, live, st, providers, cvSnap] = await Promise.all([
+    readPool(db), listJobs(db, null, now).then((r) => r.jobs.map(poolJobOfNotes)).catch(() => [] as PoolJob[]), db.doc(`${STATUSES}/${uid}`).get(), providersStatus(db, uid), db.doc(`${CV}/${uid}`).get(),
   ]);
+  let cvReview: CvReview | null = null;
+  const cvData = cvSnap.data();
+  if (cvData?.review) { try { cvReview = JSON.parse(decryptSecret(String(cvData.review))); } catch { cvReview = null; } }
+  // The member's roles; with none, their CV review's; with neither, no title gate (an empty profile used to keep nothing).
+  const { profile: p, from: profileFrom } = effectiveProfile(doc.profile, cvReview);
   const watched = new Set(s.companies.filter((c) => c.ok && c.ats).map((c) => `${c.ats}:${c.slug}`));
   const uses = (src: string) => (s.feeds && src in FEEDS) || (s.boards && watched.has(src));
   const mine = [...live, ...pool.jobs.filter((j) => j.source !== "notes" && uses(j.source))];
   const unique = dedupe(mine);
   const collected = live.length + Object.entries(pool.counts).filter(([src]) => src !== "notes" && uses(src)).reduce((a, [, n]) => a + Number(n || 0), 0);
-  const { kept, reasons } = hardFilter(unique, p, now.getTime());
+  const { kept, reasons, cuts } = hardFilter(unique, p, now.getTime());
   const statuses = (st.data()?.items ?? {}) as Record<string, { status: JobStatus }>;
   const hidden = new Set(Object.entries(statuses).filter(([, v]) => v.status === "not_for_me").map(([k]) => k));
   const ranked = prescoreAll(kept, p).filter((c) => !hidden.has(c.hash));
@@ -264,16 +295,39 @@ export async function runFor(db: Firestore, uid: string, deps: NjDeps, o: { manu
   const alive = picks.filter((c) => stateOf.get(c.hash)?.state !== "dead").slice(0, SHORTLIST.max);
   funnel.alive = alive.length;
   const jobs = alive.map((c) => toShort(c, c.notesJobId ? "live" : (stateOf.get(c.hash)?.state === "live" ? "live" : "unknown")));
-  const run: NjRun = { at: now.toISOString(), provider: own ? (provider ?? "") : "", model: ai ? modelOf(ai) : "", funnel, error, note, jobs, rejected: reasons, ...(lite ? { via: "lite" as const } : {}) };
+  if (profileFrom !== "yours") note = [profileFrom === "cv" ? "You haven't chosen roles yet, so this run used the roles from your CV review." : "Your profile is empty, so every role was considered. Add the roles you want for a sharper list.", note].filter(Boolean).join(" ");
+  const run: NjRun = { at: now.toISOString(), provider: own ? (provider ?? "") : "", model: ai ? modelOf(ai) : "", funnel, error, note, jobs, rejected: reasons, profileFrom, ...(lite ? { via: "lite" as const } : {}) };
   const details = Object.fromEntries(alive.map((c) => [c.hash, { description: c.description.slice(0, 3000), salaryText: c.salaryText }]));
   await db.doc(`${RUNS}/${uid}`).set({ ...run, uid, details });
+  // Every opening this run collected and what happened to it, for "See all collected jobs" (read-only, this member's run only).
+  const listed = new Set(alive.map((c) => c.hash));
+  const inTop = new Map(top.map((c) => [c.hash, c]));
+  const why = (j: PoolJob): Pick<SeenJob, "outcome" | "why"> => {
+    if (listed.has(j.hash)) return { outcome: "listed", why: "On your shortlist" };
+    const cut = cuts.get(j.hash);
+    if (cut) return { outcome: "cut", why: cut === "title isn't a role you want" ? "Not one of your roles" : cut[0].toUpperCase() + cut.slice(1) };
+    if (hidden.has(j.hash)) return { outcome: "cut", why: "You said it's not for you" };
+    const dead = stateOf.get(j.hash);
+    if (dead?.state === "dead") return { outcome: "cut", why: `The link looks closed (${dead.reason})` };
+    const t = inTop.get(j.hash);
+    if (t?.verdict) return { outcome: "ranked", why: `Your AI scored it ${t.verdict.score}: below today's list` };
+    if (t) return { outcome: "ranked", why: "Read by keyword only: below today's list" };
+    return { outcome: "ranked", why: `Fits your rules; below the top ${s.aiPerDay} on keywords` };
+  };
+  // Listed first, then the ones that fit but ranked lower, then the cut ones; past SEEN_MAX (one document's worth) the cut ones are dropped.
+  const rank = { listed: 0, ranked: 1, cut: 2 } as const;
+  const seen: SeenJob[] = unique.map((j) => ({
+    hash: j.hash, title: j.title.slice(0, 160), company: j.company.slice(0, 100), location: j.location.slice(0, 120), url: j.url.slice(0, 500), sourceLabel: j.sourceLabel,
+    ...(j.notesJobId ? { notesJobId: j.notesJobId } : {}), ...why(j),
+  })).sort((a, b) => rank[a.outcome] - rank[b.outcome]).slice(0, SEEN_MAX);
+  await db.doc(`${SEEN}/${uid}`).set({ uid, at: run.at, total: unique.length, jobs: seen });
 
   if (!o.manual && jobs.length) {
     const top3 = jobs.slice(0, 3).map((j) => `${j.title} at ${j.company}`).join("; ");
-    if (s.bell) await (deps.notify ?? defaultNotify)({ uid, linkHref: "/jobs/nana", message: `🧭 Your Nana Jobs shortlist is ready: ${jobs.length} role${jobs.length === 1 ? "" : "s"}. Top: ${top3}.` }).catch(() => {});
+    if (s.bell) await (deps.notify ?? defaultNotify)({ uid, linkHref: withReturn("/jobs/nana", "nana-jobs"), message: `🧭 Your Nana Jobs shortlist is ready: ${jobs.length} role${jobs.length === 1 ? "" : "s"}. Top: ${top3}.` }).catch(() => {});
     if (s.email) {
       const lines = jobs.map((j) => `${j.rough ? "~" : ""}${j.score} · ${j.title} · ${j.company}${j.location ? ` · ${j.location}` : ""}\n${j.reason ? `  ✓ ${j.reason}\n` : ""}${j.risk ? `  ⚠ ${j.risk}\n` : ""}  ${j.notesJobId ? `${SITE_URL}/jobs/${j.notesJobId}` : j.url}`);
-      const text = `Hello,\n\nHere is today's Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}, best first.${error ? `\n\nYour AI didn't answer for some of them ("${error}"), so those carry the rough keyword score, marked ~.` : ""}\n\n${lines.join("\n\n")}\n\nMark them Interested, Applied or Not for me, and get help with a cover note: ${SITE_URL}/jobs/nana\n\nNana finds and ranks. She never applies for you.\n\nNotesApp`;
+      const text = `Hello,\n\nHere is today's Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}, best first.${error ? `\n\nYour AI didn't answer for some of them ("${error}"), so those carry the rough keyword score, marked ~.` : ""}\n\n${lines.join("\n\n")}\n\nMark them Interested, Applied or Not for me, and get help with a cover note: ${SITE_URL}${withReturn("/jobs/nana", "nana-jobs")}\n\nNana finds and ranks. She never applies for you.\n\nNotesApp`;
       await (deps.email ?? defaultEmail)(uid, `Your Nana Jobs shortlist: ${jobs.length} role${jobs.length === 1 ? "" : "s"}`, text).catch(() => false);
     }
   }
@@ -307,6 +361,16 @@ export async function runDue(db: Firestore, deps: NjDeps, o: { max?: number; bud
   return done;
 }
 
+// ---- every opening the member's latest run collected (read-only) ----
+export async function seenJobs(db: Firestore, uid: string): Promise<{ at: string | null; total: number; jobs: SeenJob[] }> {
+  await assertAllowed(db, uid);
+  const d = (await db.doc(`${SEEN}/${uid}`).get()).data();
+  if (!d) return { at: null, total: 0, jobs: [] };
+  const order = { listed: 0, ranked: 1, cut: 2 } as const;
+  const jobs = ((d.jobs ?? []) as SeenJob[]).slice().sort((a, b) => order[a.outcome] - order[b.outcome]);
+  return { at: String(d.at ?? "") || null, total: Number(d.total ?? jobs.length), jobs };
+}
+
 // ---- statuses: set only by the member ----
 export async function setStatus(db: Firestore, uid: string, hash: unknown, status: unknown, now = new Date()): Promise<void> {
   const h = String(hash ?? "");
@@ -335,7 +399,7 @@ export async function coverNote(db: Firestore, uid: string, hash: unknown, deps:
   const d = (run?.details?.[job.hash] ?? {}) as { description?: string };
   const full = { company: job.company, title: job.title, location: job.location, description: d.description ?? "" };
   let data: Record<string, unknown>;
-  try { data = await completeJson(ai, coverSystem(), coverUser(full, profile), { fetch: deps.fetch, sleep: deps.sleep, maxTokens: 700 }); }
+  try { data = await completeJson(ai, coverSystem(), coverUser(full, profile), { fetch: deps.fetch, sleep: deps.sleep, maxTokens: 900, timeoutMs: AI_TIMEOUT_MS.cover }); }
   catch (e) { throw new NanaJobsError(`Your AI couldn't write it just now: "${e instanceof Error ? e.message : "no answer"}".`, 502); }
   const note = groundCoverNote(String(data.note ?? ""), profile.shipped, `${full.title} ${full.company} ${full.description}`);
   if (note.length < 40) throw new NanaJobsError("Your AI's note didn't come back right. Try again in a moment.", 502);

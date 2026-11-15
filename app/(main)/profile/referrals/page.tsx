@@ -16,7 +16,7 @@ export default function ReferralsPage() {
       <section className="mx-auto max-w-3xl px-6 py-10">
         {user === null ? (
           <p className="text-sm text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to see your referral link.</p>
-        ) : user ? <ReferralsPanel /> : <p className="text-sm text-slate">Loading…</p>}
+        ) : user ? <ReferralsPanel invite /> : <p className="text-sm text-slate">Loading…</p>}
         <p className="mt-10 text-xs text-slate">How it works: <Link href="/help/referrals" className="text-crimson underline">Referrals and affiliates</Link>.</p>
       </section>
     </>

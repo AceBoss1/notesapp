@@ -1,6 +1,6 @@
 {
   "name": "notesapp-nana-lite",
-  "version": "0.166.0",
+  "version": "0.176.0",
   "private": true,
   "description": "Nana Lite on Cloudflare: a Worker in front of three small open models (Phi-3.5-mini, Qwen2.5-1.5B, SmolLM2-1.7B), each served by llama.cpp in a Cloudflare Container. Not part of the Next.js build.",
   "scripts": {

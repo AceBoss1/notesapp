@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkReply } from "@/lib/content-checks-reply";
 import { getAdminDb, verifyAdminRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
@@ -20,6 +21,8 @@ export async function POST(req: NextRequest) {
     const canModerate = body?.asBrand === true ? await verifyAdminRequest(token, "moderation").then(() => true, () => false) : false;
     return NextResponse.json(await postComment(getAdminDb(), uid, body, canModerate));
   } catch (err) {
+    const cc = checkReply(err);
+    if (cc) return cc;
     if (err instanceof CommentError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't post your comment");
     return NextResponse.json({ error: f.message }, { status: f.status });

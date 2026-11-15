@@ -13,6 +13,7 @@ import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useGoLive } from "@/components/lives/useGoLive";
 import { useCycleMenu } from "@/lib/cycle-client";
+import { useCalendarToday } from "@/components/calendar/useCalendarToday";
 
 // `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
 // the bell in a soft circle and the picture opens the menu, without the @username.
@@ -24,6 +25,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
   const menuRef = useRef<HTMLDivElement>(null);
   const [unreadDms, setUnreadDms] = useState(0);
   const cycle = useCycleMenu(user, profile?.accountKind === "organisation"); // My Cycle: hidden for "Not for me", child profiles and organisations
+  const calToday = useCalendarToday(user); // My Calendar: today's count; -1 for a child profile, which has no calendar
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -92,6 +94,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
+            {calToday !== -1 && <Link href="/calendar" className={`${item} flex items-center justify-between`}>📅 My Calendar{!!calToday && <span className="ml-2 rounded-full bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{calToday} today</span>}</Link>}
             {profile && goLive && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
             {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>

@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { applyToJob, myApplications, withdrawApplication } from "@/lib/jobs-server";
 import { jobsFail, signedIn } from "@/lib/jobs-api";
 import { rateLimit } from "@/lib/rate-limit";
+import { firstValue } from "@/lib/growth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,9 @@ export async function POST(req: NextRequest) {
     if (b.withdraw) { await withdrawApplication(getAdminDb(), me.uid, b.withdraw); return NextResponse.json({ ok: true }); }
     const limited = await rateLimit(req, "jobs-apply", me.uid, 20, 86400);
     if (limited) return limited;
-    return NextResponse.json(await applyToJob(getAdminDb(), me, b.jobId, b));
+    const r = await applyToJob(getAdminDb(), me, b.jobId, b);
+    await firstValue(getAdminDb(), me.uid, "job"); // growth: first value for job-seekers (lib/growth.ts)
+    return NextResponse.json(r);
   } catch (err) {
     return jobsFail(err, "Couldn't send your application");
   }

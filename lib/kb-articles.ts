@@ -48,7 +48,7 @@ import { FAN_ACTIONS, FAN_DEFAULTS, KOBO_PER_POINT, TOP_FANS, type FanSettings, 
 import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
-import { MILESTONES as REF_MILESTONES } from "./referral-milestones";
+import { MILESTONES as REF_MILESTONES, type Milestone as RefMilestone } from "./referral-milestones";
 import { CERTIFY_MEMBERS, CERTIFY_PAYING, DEFAULT_TERMS, LEADS_PER_DAY, TIERS as PARTNER_TIERS, TIER_LABEL as PARTNER_TIER_LABEL, TIER_NEED as PARTNER_TIER_NEED, TRACK, TRACKS, TRAINING, type Tier, type TierTerms } from "./partner-network";
 import { GIFT_POINT_KOBO, GIFT_SETTINGS, MOTIF_BLURB, NO_BONUS_TEXT, enabledGifts, giftClass, needsVerified, verifiedRuleText, withdrawRuleText } from "./gift-catalogue";
 
@@ -73,7 +73,7 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 // ticket commission share is a price (currentPricing().liveTicketUpliftPct).
 // Pay-per-minute sessions: the minimum and maximum minutes held, the grace, the wait for more minutes and the no-show minutes (Admin →
 // Limits → Pay-per-minute sessions); the commission share is a price (currentPricing().ppmUpliftPct).
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures; partners?: Record<Tier, TierTerms> };
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures; fans?: FanSettings; paid?: PaidLiveFigures; ppm?: PpmFigures; partners?: Record<Tier, TierTerms>; milestones?: RefMilestone[] };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -92,6 +92,7 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const ppm = live.ppm ?? DEFAULT_PPM_FIGURES;
   const ppmUplift = currentPricing().ppmUpliftPct;
   const pterms = live.partners ?? DEFAULT_TERMS; // Partner Network tier shares (Admin → Limits)
+  const refMs = live.milestones ?? REF_MILESTONES; // referral milestones (Admin → Limits → Referral milestones)
   const secs = (x: number) => `${x} second${x === 1 ? "" : "s"}`;
   const tierRange = (t: SubTier) => `${money(fan[`${t}Min`] * 100)} to ${money(fan[`${t}Max`] * 100)}`;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
@@ -140,11 +141,11 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
     A("referral-milestones", "Referral milestones: Bonus Credits for bringing friends", "Publishing and earning", `
 On top of what you earn from friends' plans, bringing friends to #NotesApp unlocks **milestones**, each paying **Bonus Credits** into your NotesApp wallet once:
 
-${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
+${refMs.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need.toLocaleString("en-NG")} friends`}: ${formatNaira(m.bonusKobo)} in Bonus Credits`).join("\n")}
 
-**Who counts:** a friend who joined through your link or code, verified their email and chose a username. Child profiles and suspended accounts don't count.
+**Who counts:** a friend who joined NotesApp through your link or code, or Notes Life from your invite, and has verified their email and chosen a username. Each friend counts once, however they joined. Child profiles and suspended accounts don't count.
 
-**Claiming:** open [your Referrals page](/profile/referrals). Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
+**Claiming:** open [your Referrals page](/profile/referrals), or the **Invite** panel in [Notes Life](/life/play) (Phone → Invite), where the same milestones are shown. Your milestones are at the top, with your progress. When one is reached, press **Claim** and the Bonus Credits go straight into [your wallet](/profile/wallet). Each milestone is claimed once.
 
 **Spending them:** Bonus Credits pay for things on #NotesApp (boosts, badges, gifts, shop items and more). They can't be withdrawn as cash, and they last like any Bonus Credits.
 `),
@@ -162,6 +163,8 @@ ${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m
 
 **Your code:** the same page shows your code, which is your username in capitals. A friend can type it under **Have a discount code?** when they choose a plan, instead of using your link; it counts the same. If a friend uses your code and someone else's link, the first one recorded wins.
 
+**Your invite link:** the same page also has an install link with your name on it, and shows how many opened it, joined, installed the app and are still active. See [Your invite link](/help/invite-link).
+
 **What a friend gets:** if they join through your link within ${REFERRAL_COOKIE_DAYS} days, their first month of Pro or Business is free. They add a card, which is checked with ${money(CARD_CHECK_KOBO)} that is given straight back, and the plan is billed from the second month. On a yearly plan they get one month's value off the first year instead.
 
 **What you earn on plans:** ${rate(PLAN_SHARE)} of what your friend pays for their plan, every payment, for ${PLAN_MONTHS} months from their first real payment. Nothing is earned on the free month.
@@ -177,6 +180,15 @@ ${REF_MILESTONES.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 
 **Affiliate codes:** a publisher can also let affiliates share one of their discount codes as their own; see [Discount codes and coupons](/help/discount-codes). Publishers: [Store selling](/store-selling#affiliates) has the short version.
+`),
+    A("invite-link", "Your invite link", "Publishing and earning", `
+**Where:** **My account → Growth → Referrals** ([/profile/referrals](/profile/referrals)), the **Your invite link** card. Your link opens the page that installs #NotesApp, with your name on it (it ends in \`/install?by=yourname\`). Copy it and share it anywhere: WhatsApp, your status, your bio, a poster.
+
+**What it counts:** how many times it was **opened** this month, how many people **joined** through you (with this link, your \`/r/yourname\` link or your code), how many of them **installed the app**, and how many are **still active** (they used #NotesApp in the last two weeks).
+
+**Rewards:** it works like your referral link. Friends who join through it count towards your referral earnings and milestones, under the same rules (see [Referrals and affiliates](/help/referrals)). Verify your email first.
+
+**Privacy:** you see numbers only, never who joined. Members in teen mode and child profiles are never counted for anyone. We keep only the channel that brought someone (for example "a creator's link" and your username), first-party: no ad cookies, and it is never sold or shared. See the [Privacy Policy](/privacy).
 `),
     A("discount-codes", "Discount codes and coupons", "Publishing and earning", `
 **Make a code for your own products (every plan):** go to **Account → Discount codes** ([/profile/discounts](/profile/discounts)) and choose **New code**.
@@ -207,6 +219,41 @@ You see how many times each code was used, how much it took off and what buyers 
 **One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
+    A("campus-ambassadors", "The campus programme: coordinators and ambassadors", "Company", `
+#NotesApp campus ambassadors bring students to #NotesApp at their university or college, led by a **campus coordinator** for their country: **Nigeria, Kenya, Botswana and Ghana**. Due dates and months run in each country's own time.
+
+**Becoming an ambassador:** watch [Careers](/careers) for the Campus Ambassador role, or ask a coordinator. You need your own #NotesApp account first (it's free); your coordinator then adds you with your @username or email, and you get a notification. Open **Campus** from it, or from **Campus team** in your My account menu.
+
+**What an ambassador sees in Campus:**
+- **My campus:** your sign-ups this month and in all, your tasks done and open, and your **link and code**. Everyone who joins with your link, or types your code (your username) at checkout, counts as your sign-up, and you earn from the plans they pay for, as in the [referral programme](/help/referral-milestones).
+- **Tasks:** what your coordinator asked you to do, with the due date. Mark each one To do, In progress or Done, and add a note and a link that shows it (a post, a photo album, a form). Your coordinator approves it, or sends it back with a note saying what to add.
+
+- **Leaderboard:** your team or your whole country, this month or all time. You earn points for every member who joins with your link or code, every task your coordinator approves, and a bonus for finishing a task by its due date (the page shows how many). The top three get medals, the board starts again each month, and your **level** (Rookie, Rising, Star, Champion, Legend) comes from all your points and never goes down. On the leaderboard ambassadors see each other by first name and initial with their campus.
+
+- **Rewards:** internships and scholarships from our partners, perks, and **#NotesApp merch**. Each reward says who can claim it (everyone, a level and up, the top few on the country's board this month, or Campus Leads), until when, and how many places are left. If you can't claim one yet, it says what's missing. Merch is free: choose your size and where to send it, and once it's approved you get a tracking link when it ships. You'll get a notification when a claim is decided.
+
+**Campus Leads:** your coordinator can make one ambassador on each campus its **Campus Lead**. A Campus Lead also sees how everyone on that campus is doing (sign-ups, tasks and check-ins), and some rewards are for Campus Leads only.
+
+**Badges:** campus coordinators wear the maroon #NotesApp team mark by their name; ambassadors and Campus Leads wear the white #NotesApp mark with a maroon shadow. The badge comes and goes with the role.
+
+Apart from the leaderboard, ambassadors see only their own tasks, numbers and claims, never other ambassadors' or anything else in the admin area (a Campus Lead also sees her campus).
+
+**What a coordinator does:** gives her ambassadors access (and takes it away), sends tasks to all of them or some, reviews what they hand in, and sees each ambassador's sign-ups, tasks done, open and overdue, and when they last checked in (the last time they opened Campus or reported on a task, not when they were last online). A coordinator sees only her own team.
+
+If you were added but don't see Campus, sign out and back in. If you leave the programme, your coordinator removes you; your account and your referral earnings stay yours.`),
+    A("my-account-menu", "Finding your way around My account", "Getting started", `
+Everything about your own account sits under **My account**, in four groups:
+
+- **Profile:** My journal, Edit profile, Media and Sounds.
+- **Money:** Wallet, Rates & payouts and Analytics.
+- **Store:** Business books, Inventory, Bookings and Your hotel.
+- **Growth:** Discount codes, My coupons, Referrals and Boost.
+
+**On a computer** the groups are down the left side: tap a group to open it, then the page. The page you're on is highlighted, and the small number beside each group is how many pages it has. At the bottom you can switch between **Day, Night and Auto** and **Sign out**, and **Back to NotesApp** takes you to your feed.
+
+**On a phone** a bar at the top says where you are, for example *My account / Money / Analytics*. Tap it to open the same menu.
+
+On pages with many tabs (Analytics, Business books, Explore), a phone shows a dropdown instead of the row of tabs: tap it to pick another. On your own profile, **Manage profile** has Write, My store, Edit profile, Rates & payouts and Analytics. Account settings, Family and your site are in the menu under your picture.`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). The quickest way is **Sign up with Google** (or **with LinkedIn**): you still choose your username, accept the Terms and say you are 18 or older, but there is no password to make and your email is already verified. See [Signing in with Google or LinkedIn](/help/google-linkedin-sign-in).
 
@@ -239,6 +286,24 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Sign in with it:** on the sign-in page, tap **Sign in with a passkey** and confirm on your device. The same works at the team hub's Staff login, and on the app, Notes Life and Naija Exam Prep.
 
 **Good to know:** a passkey works on the address it was made on and its family: one made on www.naapp.tech also works on app.naapp.tech, life.naapp.tech and prep.naapp.tech, but not on notesapp.name.ng, and the other way round. Your password keeps working. Lost a device? Remove its passkey under Account settings → Passkeys (unless it's your only way to sign in). Deleting your account removes your passkeys too.`),
+    A("content-checks", "Content checks: what is checked, strikes and appeals", "Safety and your data", `
+Every photo, video frame and text that people other than you can see is checked by AI **before it is published**. [The rules](/content-rules).
+
+**What is checked:** journals, community posts and comments, Moments, Media posts, shop items, events, and your profile's name, bio and pictures. Public, followers-only and subscriber-only posts follow the same rules (our payment partners and the app stores can see paid content). **Private one-to-one and group messages are not read.** Only new or changed text and pictures are checked, and it takes a second or two while you post.
+
+**Not allowed:** sexual content, gore, violence, self-harm, drugs, weapons, and hate or extremism. News, medical posts and art are judged in context: when the check isn't sure, a person on our Trust & safety team looks before anything is blocked, and that isn't a strike. Teens' posts are checked more strictly.
+
+**If a post breaks the rules:** it isn't published and nobody sees it. A journal stays as a draft; a post stays in the box you wrote it in. You're told what was found and in which photo: tap **Remove the photo** and post again, or **Ask for a review** if you think we got it wrong.
+
+**Strikes:** each post that breaks the rules is a strike. Too many in a short time and posting is paused for a while: you can still read and send messages, but you can't post. A further strike after that closes the account. Strikes clear after a while. See yours on [Account settings](/profile/account#content-checks) → **Content checks**.
+
+**Appeals:** every strike can be appealed with **Ask for a review**, and a paused account with **Appeal the suspension**. A person decides within 48 hours. If they restore your post it is published (a shop item or profile change: save it again and it goes straight through) and the strike is removed.
+
+**Communities:** a community is closed only when its owner or moderators keep posting or approving rule-breaking content. Its owner and moderators are warned first, members see the warning, and the owner can ask for a review.
+
+**Child safety:** child sexual abuse material closes the account at once and for good, and we report it to the authorities.
+
+**If the check is down:** we don't stop you posting. Your post goes up and is checked as soon as the check is back; if it breaks the rules then, it is taken down and you're told.`),
     A("my-cycle", "My Cycle: your private cycle companion", "Safety and your data", `
 [My Cycle](/cycle) is a private cycle and wellness companion for women and girls: period predictions, a daily check-in, food and movement ideas for each phase, and advice from Nana. [How it works](/my-cycle).
 
@@ -257,6 +322,31 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Your data:** everything is encrypted on our server and only you can open it. It isn't part of your account download, ads, analytics or other Nana chats, and staff can't see it. **Download my data** and **Delete everything** are in My Cycle's settings, and closing your account deletes it all.
 
 **Not medical advice:** My Cycle is not contraception and not a medical device. Predictions are estimates from your own logs.`),
+    A("my-calendar", "My Calendar: everything you've booked, synced to your phone", "Getting started", `
+[My Calendar](/calendar) is one calendar for everything you've booked, bought or been invited to on #NotesApp. Open it from your account menu (on a phone, from the menu behind your picture): **📅 My Calendar** shows how many things you have today. [How it works](/my-calendar).
+
+**What's in it:** 1:1 sessions and pay-per-minute calls (as the client or the host), hotel stays (check-in, your nights shaded, check-out; hotel staff who handle bookings see their hotel's arrivals and departures), event tickets, paid live tickets, events you said you're going to and events you host, interviews from Notes Jobs, and money due from [Business books](/books) (what customers owe you by a date, and what you owe suppliers). Each entry is read from where it lives, every time, so a change or a cancellation shows at once.
+
+**Using it:** the month has a coloured dot for each kind on a day; tap a kind under the month to hide or show it. Tap a day to see its list, and tap an entry to see when and where, your reminder, **Open** (the booking, ticket, job or stay it came from) and **Add to my calendar**. Times are in Lagos time (WAT), like bookings.
+
+**Add to my calendar:** downloads an invite (.ics) that your phone opens in its own calendar, for one entry. It's also on the booking confirmation, a hotel booking's page and each ticket in [My tickets](/tickets).
+
+**Sync with your phone:** in My Calendar, tap **🔄 Sync with your phone**, then **Make my link**.
+- **On your phone:** tap **Add to this phone's calendar**. iPhone Calendar, Google Calendar on Android and Outlook subscribe and keep themselves up to date. iPhone checks about every hour; Google can take a few hours.
+- **Google Calendar on a computer:** **Copy my private calendar link**, then in Google Calendar choose Other calendars **+** → **From URL** and paste it.
+- **Outlook:** Add calendar → **Subscribe from web**, and paste the link.
+- **What goes out:** choose sessions and calls, hotel stays, events and lives, interviews, and money due (off until you turn it on). The link carries titles and times only, never amounts or notes.
+- **Keep it private:** anyone with the link can see those events. **Make a new link** stops the old one at once; **Stop syncing** turns it off.
+
+**Reminders (⚙️ Settings):** a bell shortly before sessions and calls (5 to 30 minutes, or off; 10 by default), an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Bookings, interviews, events you're going to and paid lives still remind you a day and an hour before, as they always have.
+
+**My Cycle** isn't in My Calendar yet: its dates are locked with your passkey and encrypted, so the calendar can't read them.
+
+**Teen mode and child profiles:** teens see what teen mode allows (no Business books money). Child profiles don't have a calendar.
+
+**In the #NotesApp app:** once the app update with calendar access is out, Add to my calendar puts an entry straight into your phone's calendar, after you allow it.
+
+**Coming later:** connecting Google or Outlook both ways, so times you're busy there are blocked on your booking calendar.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 
@@ -1430,7 +1520,11 @@ Nana-HR's summaries and drafts use the Nana allowance of the person who asks. Th
 
 **No AI connected yet?** If Nana Lite is switched on, it reads your top 10 for you: it's NotesApp's own small AI model, so it costs you nothing, and the list says "read by Nana Lite". Connect your own AI to have more read (up to 60 a day) and to get a CV review and cover notes. Without either, you get the free keyword ranking, marked "~ rough".
 
-**Your shortlist:** mark each job **Interested**, **Applied** or **Not for me**. What you set is kept: a new run never changes it, and Not for me jobs don't come back. Notes Jobs roles keep the **Apply on #NotesApp** button; everything else opens the firm's own page. **Cover note** asks your AI for a short note written only from your "shipped" list, so it never claims experience you don't have; read it, make it yours, and apply yourself.
+**No roles yet?** You can still run it. Nana uses the roles from your CV review if you have one; otherwise it doesn't filter by job title at all and says so, with a button to set up your profile. The job title on your NotesApp profile is offered as a suggestion, never used by itself.
+
+**Why a job was cut:** today's run shows how many openings were cut and the main reasons ("312 not in your roles, 98 location, 44 too old"). **See all collected jobs** lists every opening your run looked at: on your list, fits but ranked lower, or cut (with the reason), each with a link to open it. Only you see it.
+
+**Your shortlist:** each job has an **Apply** button that opens the firm's own application page in a new tab (Notes Jobs roles say **Apply on #NotesApp** and open the in-app application), and **Mark as applied** beside it, so you can keep track. You can also mark a job **Interested** or **Not for me**. What you set is kept: a new run never changes it, and Not for me jobs don't come back. Your shortlist stays on the Nana Jobs tab until the next run replaces it; jobs you marked keep their mark. **Cover note** asks your AI for a short note written only from your "shipped" list, so it never claims experience you don't have; read it, make it yours, and apply yourself.
 
 **Private:** your scoring profile, CV and shortlist are never shown to firms and aren't your public profile. Firms still see only what you choose to share in [I need a job](/profile/applications).
 
@@ -1668,6 +1762,14 @@ None of them can be switched on yet, and there are no prices or dates. When they
 You can block anyone in Messages (from the menu at the top of the conversation), mute a conversation you don't want alerts from, and report a post, account, moment or conversation with the Report button, or through the [contact form](/contact). Our team reviews reports; anything marked as nudity or violence is reviewed within 24 hours. In a group, admins can also ban a member who misbehaves.
 
 Accounts can be suspended for a set time or until lifted. A suspended member sees the reason and can submit an appeal, which an admin reviews. For a problem with a payment, gift or order, contact us with the details and an admin will review it.`),
+    A("throwaway-email-addresses", "Temporary (throwaway) email addresses", "Safety and your data", `
+#NotesApp accounts need an email address you own. Temporary or "throwaway" inboxes (services that hand out an address for a few minutes) can't be used to join, because nobody can reach the account again, recover it or get its receipts, and they're often used for spam and fake referrals.
+
+**Signing up:** if the sign-up form says *"Temporary (throwaway) email addresses can't join NotesApp"*, use your own email address instead: Gmail, Yahoo, Outlook, iCloud, your work or school address, or any other you keep. Ordinary email providers are never blocked. You can also join with Google or LinkedIn.
+
+**If your account was suspended for this:** the reason on your account says *"This account uses a temporary (throwaway) email address"*. Your posts, purchases and earnings are kept. [Contact us](/contact) from the email address you want to use, with your @username, and our team will move the account to it and lift the suspension. You can also submit an appeal from the suspension notice.
+
+Our trust & safety team keeps the list of blocked domains; an address at any part of a blocked domain (for example mail.example.com when example.com is blocked) is refused too.`),
     A("payment-safety", "How your money is kept safe", "Safety and your data", `
 Payments run through Paystack's hosted checkout, so card and bank details never touch our servers. Money is held until it is earned: store payments until delivery is confirmed, session earnings for 24 hours after the session, and subscriptions, gifts and downloads for a short dispute window. You need a verified email to pay. Refund rules are shown before you pay and in the [Terms](/terms). The full picture is on [Trust & security](/security).`),
     A("your-data", "Downloading or deleting your data", "Safety and your data", `

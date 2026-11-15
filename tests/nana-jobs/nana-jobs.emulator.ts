@@ -33,7 +33,8 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   await refused(S.getState(db, "teen"), 403, /18 and over/);
   await refused(S.getState(db, "org"), 403, /personal accounts/);
   const first = await S.getState(db, "ada");
-  assert.deepEqual(first.profile.roles, ["Backend engineer"], "pre-filled from the profile");
+  assert.deepEqual(first.profile.roles, [], "the account's job title is never a role by itself (v0.169.1)");
+  assert.equal(first.suggestedRole, "Backend engineer", "…it's offered as a one-tap suggestion");
   assert.deepEqual(first.profile.cities, ["Lagos"], "and from \"I need a job\"");
   assert.equal(first.settings.bell, true); assert.equal(first.settings.email, false);
   assert.equal(first.steps.ai, false); assert.equal(first.using, null);
@@ -183,6 +184,71 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   await db.doc("nanaJobsProfiles/ada").update({ nextRunAt: "2026-11-13T07:00:00.000Z" });
   assert.equal(await S.runDue(db, { ...D, now: () => new Date("2026-11-13T07:01:00Z") }), 1);
   assert.equal(mails.length, 1, "email when they switch it on");
+
+  // ---- v0.169.1, fault A: a profile never filled in. Before, the account's job title was saved as the only role with the first change,
+  // and a title gate of "Founder & CEO" kept nothing ("Fit your rules 0"). Now that seeded role doesn't count, an empty profile has no
+  // title gate, the run says so, and every collected opening can be seen with the reason it was cut. ----
+  await db.doc("users/bola").set({ username: "bola", displayName: "Bola", jobTitle: "Founder & CEO" });
+  await db.doc("nanaJobsProfiles/bola").set({ uid: "bola", profile: { roles: ["Founder & CEO"], shipped: [], skills: [], remote: true, cities: [], country: "Nigeria", seniority: "mid", payFloor: "", dealBreakers: [] }, settings: { provider: "", feeds: true, boards: true, companies: [], bell: true, email: false, hour: 8, aiPerDay: 25 }, steps: { sources: true, when: true }, setupDone: true, nextRunAt: null });
+  const bolaState = await S.getState(db, "bola");
+  assert.deepEqual(bolaState.profile.roles, [], "the seeded title no longer counts as a role");
+  assert.equal(bolaState.suggestedRole, "Founder & CEO");
+  const bolaRun = await S.runFor(db, "bola", D, { manual: true });
+  assert.equal(bolaRun.profileFrom, "empty");
+  assert.ok(bolaRun.funnel.fit > 0 && bolaRun.jobs.length > 0, `an empty profile still gets a list: ${JSON.stringify(bolaRun.funnel)}`);
+  assert.ok(!bolaRun.rejected["title isn't a role you want"], "no title gate");
+  assert.match(bolaRun.note, /profile is empty/);
+  assert.equal(bolaRun.rejected["remote, but only from another country"], 1, "the US-only role is still cut, and counted");
+  const seen = await S.seenJobs(db, "bola");
+  assert.equal(seen.total, bolaRun.funnel.unique, "every collected opening");
+  assert.equal(seen.jobs.filter((j) => j.outcome === "listed").length, bolaRun.jobs.length);
+  assert.equal(seen.jobs.find((j) => j.company === "Usa Inc")?.why, "Remote, but only from another country");
+  assert.match(String(seen.jobs.find((j) => j.company === "Gone Ltd")?.why), /link looks closed/);
+  assert.ok(seen.jobs.every((j) => j.url && j.why), "an Open link and a reason on each");
+  await db.doc("users/dayo").set({ username: "dayo", displayName: "Dayo" });
+  assert.equal((await S.seenJobs(db, "dayo")).total, 0, "only your own run: someone else sees none of it");
+  await refused(S.seenJobs(db, "teen"), 403);
+  // Choosing roles (even the same title, on purpose) makes them count.
+  await S.saveSetup(db, "bola", { profile: { roles: ["Founder & CEO"] } }, now);
+  assert.deepEqual((await S.getState(db, "bola")).profile.roles, ["Founder & CEO"]);
+  const gated = await S.runFor(db, "bola", D, { manual: true });
+  assert.equal(gated.profileFrom, "yours"); assert.equal(gated.funnel.fit, 0);
+  assert.ok(gated.rejected["title isn't a role you want"] > 0, "the funnel says why: not in your roles");
+  // Finishing set-up no longer needs roles.
+  await db.doc("users/cleo").set({ username: "cleo", displayName: "Cleo" });
+  await S.saveSetup(db, "cleo", { finish: true }, now);
+  assert.equal((await S.getState(db, "cleo")).setupDone, true);
+
+  // ---- v0.169.1, fault B: the CV review with Claude. Claude thinks before it answers and that counts against max_tokens, so the old
+  // 2000-token request came back cut off; a slow answer outlived the function. The provider is a stand-in, injected; no network. ----
+  await db.doc("aiConnections/bola").set({ uid: "bola", provider: "anthropic", secret: "x", last4: "abcd", createdAt: now.toISOString() });
+  await S.saveSetup(db, "bola", { settings: { provider: "anthropic" } }, now);
+  const claudeAcct = async () => ({ provider: "anthropic" as const, apiKey: "sk-ant-test-standin-0000000000000000" });
+  const claudeBodies: Record<string, unknown>[] = [];
+  const claudeNet: Fetch = async (url, init) => {
+    if (!url.startsWith("https://api.anthropic.com/v1/messages")) return net(url, init);
+    const b = JSON.parse(String(init?.body)); claudeBodies.push(b);
+    const review = { strengths: ["Payments at real scale"], gaps: ["No tests"], fixes: ["Lead with the ledger"], roles: ["Backend Engineer"], profile: { roles: ["Backend Engineer"], shipped: ["Payments ledger on Postgres, 40k payouts a month"], skills: ["Node"], cities: ["Lagos"], country: "Nigeria", remote: true, seniority: "mid" } };
+    // Thinking takes ~1,500 tokens at low effort, ~3,500 otherwise; the answer ~1,200.
+    const room = Number(b.max_tokens) - (b.output_config?.effort === "low" ? 1500 : 3500);
+    return room < 1200 ? json({ content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify(review).slice(0, 60) }], stop_reason: "max_tokens" }) : json({ content: [{ type: "thinking", thinking: "" }, { type: "text", text: JSON.stringify(review) }], stop_reason: "end_turn" });
+  };
+  const viaClaude = await S.saveCv(db, "bola", { text: cvText }, { ...D, fetch: claudeNet, account: claudeAcct });
+  assert.deepEqual(viaClaude.review?.roles, ["Backend Engineer"], "Claude's review comes back whole");
+  assert.equal(viaClaude.review?.provider, "anthropic");
+  assert.equal(claudeBodies[0].model, "claude-haiku-5-5");
+  // With no roles of their own, the run uses the CV review's roles.
+  await S.saveSetup(db, "bola", { profile: { roles: [] } }, now);
+  const cvRun = await S.runFor(db, "bola", { ...D, fetch: claudeNet, account: async () => null }, { manual: true });
+  assert.equal(cvRun.profileFrom, "cv"); assert.match(cvRun.note, /roles from your CV review|keyword ranking/);
+  // A slow AI: our own timer stops it with a reason the browser can show ("took too long"), before the platform would.
+  const slowNet: Fetch = (url, init) => url.startsWith("https://api.anthropic.com") ? new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason))) : net(url, init);
+  await refused(S.reviewCv(db, "bola", { ...D, fetch: slowNet, account: claudeAcct, cvTimeoutMs: 50 }), 504, /took too long to answer/);
+  // The provider's own error is passed on, word for word.
+  const badKey: Fetch = async (url, init) => url.startsWith("https://api.anthropic.com") ? json({ type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }, 401) : net(url, init);
+  await refused(S.reviewCv(db, "bola", { ...D, fetch: badKey, account: claudeAcct }), 502, /401 invalid x-api-key/);
+
+  for (const u of ["bola", "cleo"]) await db.doc(`nanaJobsProfiles/${u}`).update({ nextRunAt: null }); // keep the daily-run checks below to Ada
 
   // ---- someone who turns out not to qualify is taken off the daily run ----
   await db.doc("users/ada").update({ accountKind: "organisation" });

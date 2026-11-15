@@ -1,4 +1,5 @@
 import { reportError } from "./monitoring";
+import { checkReply } from "./content-checks-reply";
 import { NextRequest, NextResponse } from "next/server";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
@@ -79,6 +80,8 @@ export async function mediaViewer(req: NextRequest): Promise<{ uid: string; user
 }
 
 export function mediaFail(err: unknown, fallback: string): NextResponse {
+  const cc = checkReply(err);
+  if (cc) return cc;
   if (err instanceof MediaError) return NextResponse.json({ error: err.message }, { status: err.status });
   // Cloudflare Stream refused: say so plainly (pictures still work) and log it for /admin/errors, which alerts the team.
   if (err instanceof StreamError) {

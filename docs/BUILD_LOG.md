@@ -3289,3 +3289,82 @@ greyed out. On 1:1 sessions it tints the weekdays the creator has times on (from
 see at a glance which days are worth opening. It replaces the browser's plain date box in `BookingCard` (profile and site), `PpmBook`
 (pay-per-minute) and the reschedule box on `/bookings`; the time buttons and checkout are unchanged. `npm run test:calendar` covers the
 month grid (blanks before the 1st, month lengths, leap years).
+
+## Hotel booking on the new calendar (v0.165.1, 14 Nov 2026)
+
+The owner asked for the booking calendar on hotel bookings too. `MonthCalendar` gains a range mode: the first tap is check-in, the next
+tap after it is check-out, a tap on or before check-in starts again, and the nights between are shaded. On the hotel's site the dates
+show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens the calendar and closes once check-out is picked. Dates
+are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
+in Chrome and broke hydration.
+
+## Plan: My Calendar (mockups for approval, 14 Nov 2026)
+
+The owner asked for "a my calendar in the menu which syncs with user default calendar on device". `docs/MY_CALENDAR.md` and six phone
+mockups cover the menu entry, a month view in the booking-calendar look, a day's agenda, and syncing with the phone's calendar.
+Syncing works three ways: "Add to my calendar" (.ics) on any single entry; a private subscription link that iPhone, Google and Outlook
+calendars refresh themselves; and, in the installed app, writing straight into the phone's default calendar. Two-way sync with Google
+or Outlook is left for later. Nothing is built until the mockups are approved.
+
+## My Calendar (v0.166.0, 15 Nov 2026)
+
+Built from the approved plan and mockups (`docs/MY_CALENDAR.md`). "📅 My Calendar" is in the account menu and the phone menu with
+today's count. `/calendar` shows the month in the booking calendar's look (`MonthCalendar` gains optional dots, shading, a legend and a
+month callback) with a dot per kind, hotel nights shaded and the day's agenda; each entry opens where it came from and has "Add to my
+calendar" (.ics). Entries are read live from bookings, per-minute sessions, hotel bookings (the guest's own, and a hotel's arrivals and
+departures for its staff), event and paid live tickets, events going to or hosted, interviews and Business books (`lib/my-calendar.ts`
+pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest still show). A private feed `/api/calendar/<token>.ics`
+(SHA-256 of the token stored, an encrypted copy so the member can see it again, titles and times only, her kinds, Make a new link) and a
+`webcal://` link from `lib/host.ts`. New reminders only where none existed: a bell before sessions and calls, an hour before events for
+ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
+encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
+`test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+**AI content checks (v0.174.0)** — every photo, video frame and text that people other than the author can see is checked before it is
+published (owner's decisions and approved mockups, 15 Nov 2026: `docs/CONTENT_CHECKS.md`, `docs/mockups/content-checks/`). Pure rules
+`lib/content-checks.ts` (settings with the owner's defaults, `decide`: pass, hold for a person, block with a strike, child safety; news,
+medical and art in context; teens stricter; strikes, pauses, bans, community steps, the words). The checker `lib/content-checks-ai.ts`: one
+structured call per post through the Anthropic SDK and `ANTHROPIC_API_KEY` (smallest current model, `CONTENT_CHECK_MODEL`), pictures shrunk
+to 768 px WebP, Stream posters and frames for video; no key, an error or a timeout publishes and queues. `lib/content-checks-server.ts`:
+`gateContent` (called by journals' pass and server publishes, journal comments, communities, community posts and comments, Moments, Media
+pictures, captions and videos before they show, events, shop items' and profiles' passes), the answer cache, strikes and pauses
+(`contentStanding`), bans through the existing suspension records, the Legal queue, appeals, reviews, `recheckQueued` (cron
+`contentRechecks`), check passes (`contentPasses`, required by `firestore.rules` to publish a journal or change a shop item's or profile's
+words or pictures). UI: the rules card (community About, journal editor, Media studio, `/content-rules`, Terms 2e), the blocked message
+with Remove the photo / Ask for a review, the account page's Content checks, Admin → Reports → Content checks. Tests: `test:content-checks`,
+`test:content-checks-server` (AI stubbed by injection), rules.
+
+## Nana Jobs fixes (v0.174.1, 15 Nov 2026)
+
+The owner tried Nana Jobs on his phone and hit two faults. **No job ever fitted** (Collected 455, Fit your rules 0, with Claude
+connected): the first visit had copied the account's job title in as the only role, the first save (connecting the AI) stored it, and a
+title gate of a founder's job title matches no posting. We reproduced it with real-looking feed data saved as fixtures (never fetched in
+tests), cleared the other suspects (date formats, locations with no cities, empty deal-breakers, the pay floor), and changed the rule: a
+role counts only when the member chooses it; with none, the CV review's roles or no title gate. The run now says why openings were cut,
+an empty profile says so with a button, and **See all collected jobs** shows every opening with its reason. **The CV review failed**:
+Claude thinks before answering and that counts against the output limit, so the 2,000-token answer was cut off; a slow answer could also
+outlive the 60-second function, and the browser turned the platform's timeout page into "Something went wrong". Low effort, room for the
+thinking, plain errors for cut-offs, a 120-second route and real error text in the browser fix it, with tests that stub the provider.
+Every shortlisted job also got a clear Apply button and Mark as applied.
+
+
+**Onboarding drafts for contract roles (v0.174.2, 15 Nov 2026)** — The owner reported that "draft documents should draft from templates
+but it's not happening", for a Campus Ambassador. Team hub → Nana-HR & hiring (`app/(main)/admin/team/hr/page.tsx`): the terms form now
+opens under the applicant, scrolls into view with the heading "Onboarding documents for <name>" focused, hides salary fields for contract
+roles, shows errors in place, and the drafts open there too (before, it opened at the top of the page, out of sight on a phone).
+`lib/hr-drafts.ts`: the Campus Ambassador Agreement (`ambassadorAgreement`) and the Contractor (Consulting) Agreement
+(`contractorAgreement`), both independent contractors, with the DRAFT FOR COUNSEL REVIEW banner and company details from `COMPANY_INFO`;
+`draftsFor` returns them (kind `agreement`) with the option grant and the announcement for contract arrangements; a `campus-ambassador`
+preset from its listing (about 5 hours a week). No referral rates are written in (the agreement points at the programme's published
+terms). Both are staff-library templates. Tests: `test:hr` (extended, now in CI).
+
+**Growth measurement (v0.175.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
+`docs/mockups/growth/`). A visitor's first page sets a first-party `na_src` cookie with the channel that brought them (`?by=`, `?src=`,
+utm tags, the referring host, the landing page: `classifyTouch` in `lib/growth.ts`, set in `middleware.ts`); `?by=<username>` also works
+like `/r/<username>` for referrals. The referral claim at sign-up now also writes `growthMembers/{uid}` (channel and a small detail; the
+channel only for teens and children). Installs are counted from `appinstalled` and the installed app's first open; first value at the
+server paths that already exist (jobs, Nana Jobs, Academy, Exam Prep mocks, Notes Life, Business books, bookings, Community) and for
+journals from the browser, checked by the server; a once-a-day "seen" marks returns in weeks 1 to 4, with `?r=` on bells, push, the
+digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads an hourly snapshot (`statCache/growth`): every channel,
+a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
+Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
+(`test:growth`, `test:growth-server`, rules).

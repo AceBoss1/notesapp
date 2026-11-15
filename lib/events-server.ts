@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
+import { gateContent } from "./content-checks-server";
 import type { UserProfile } from "./users";
 import { notifyBell, sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
@@ -9,6 +10,7 @@ import { can, isDiscoverable, type Community, type Role } from "./community";
 import { CommunityError, memberOf, readCommunity } from "./community-server";
 import { ticketsLeft, type TicketType } from "./tickets";
 import { cleanEvent, eventTrendScore, isListedEvent, nextOccurrence, reminderDue, whenText, type EventDoc, type EventInput, type Rsvp } from "./events";
+import { withReturn } from "./growth";
 
 // Events on the server (the rules are lib/events.ts). events/{id} carries `nextStartAt` (the next start, kept up to date by the cron) so
 // upcoming lists and reminders are one query. Members-only events are a community's and only its members see them.
@@ -48,6 +50,8 @@ export async function createEvent(db: Firestore, uid: string, raw: EventInput & 
   const ref = db.collection("events").doc();
   const e: EventDoc = { ...r.event, hostUid: uid, hostName: p.displayName ?? "", hostUsername: p.username ?? "", ...(cid ? { cid, communityName } : {}), going: 0, interested: 0, createdAt: now.toISOString() };
   const doc = withNext(e, now);
+  // AI content checks: what the event page shows, before it is listed.
+  await gateContent(db, { uid, kind: "event", label: e.title, text: [e.title, e.description, e.place].filter(Boolean).join("\n\n"), where: { ...(cid ? { cid } : {}), href: `/events/${ref.id}` }, path: ref.path, restore: { set: doc }, takedown: { delete: true } });
   await ref.set(doc);
   return { ...doc, id: ref.id };
 }
@@ -62,6 +66,9 @@ export async function updateEvent(db: Firestore, uid: string, id: string, raw: E
   const r = cleanEvent({ ...e, ...raw }, now, { community: !!e.cid });
   if (!r.ok) throw new EventError(400, r.error);
   const next = withNext({ ...e, ...r.event }, now);
+  const { id: _id, ...prev } = e;
+  void _id;
+  await gateContent(db, { uid, kind: "event", label: next.title, text: [next.title, next.description, next.place].filter(Boolean).join("\n\n"), where: { ...(e.cid ? { cid: e.cid } : {}), href: `/events/${id}` }, path: `events/${id}`, restore: { set: next }, takedown: { update: { title: prev.title, description: prev.description, place: prev.place } } });
   await db.doc(`events/${id}`).set(next);
   await tellAttendees(db, next, id, `${e.title} has changed: ${next.nextStartAt ? whenText(new Date(next.nextStartAt), new Date(new Date(next.nextStartAt).getTime() + (new Date(next.endsAt).getTime() - new Date(next.startsAt).getTime()))) : "see the event"}.`);
   return { ...next, id };
@@ -201,9 +208,11 @@ export async function sendEventReminders(db: Firestore, now = new Date(), push =
     for (const r of rs.docs) {
       // Bell and email together (sendEmail adds the bell); just the bell when there's no address.
       const to = await getUserEmail(r.data().uid).catch(() => null);
-      if (to) await sendEmail({ to, subject: kind === "hour" ? `Starting soon: ${e.title}` : `Tomorrow: ${e.title}`, text: `${message}\n\n${SITE_URL}/events/${e.id}\n\n#NotesApp`, bell: { uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message } }).catch(() => {});
-      else await notifyBell({ uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message }).catch(() => {});
-      await push(r.data().uid, { title: e.title, body: message, url: `/events/${e.id}` }).catch(() => 0);
+      // ?r=reminder: a return through a reminder counts for it (lib/growth.ts).
+      const href = withReturn(`/events/${e.id}`, "reminder");
+      if (to) await sendEmail({ to, subject: kind === "hour" ? `Starting soon: ${e.title}` : `Tomorrow: ${e.title}`, text: `${message}\n\n${SITE_URL}${href}\n\n#NotesApp`, bell: { uid: r.data().uid, type: "event", linkHref: href, message } }).catch(() => {});
+      else await notifyBell({ uid: r.data().uid, type: "event", linkHref: href, message }).catch(() => {});
+      await push(r.data().uid, { title: e.title, body: message, url: href }).catch(() => 0);
       sent++;
     }
   }

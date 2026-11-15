@@ -11,6 +11,7 @@ import { whenText } from "@/lib/events";
 import { bandsText } from "@/lib/giving";
 import { TICKETS_PER_ORDER_MAX, TICKET_PRICE_MIN_KOBO, TICKET_TYPES_MAX, checkInPath, quoteTickets, readTicketCode, showCode, type TicketDoc } from "@/lib/tickets";
 import { capi, field, small } from "@/components/community/api";
+import AddToCalendar from "@/components/calendar/AddToCalendar";
 
 // Paid event tickets (lib/tickets.ts): buying on the event page, the buyer's tickets with their QR codes, the organiser's ticket types,
 // and the check-in page at the door.
@@ -75,6 +76,7 @@ export function TicketCard({ t }: { t: TicketDoc }) {
         <p className="mt-2 text-sm text-ink">{t.typeName} · {t.holderName}</p>
         <p className="mt-1 font-mono text-lg tracking-widest text-ink">{showCode(t.code)}</p>
         <p className="mt-1 text-xs text-slate">{t.status === "refunded" ? "This ticket was refunded and no longer works." : t.checkedInAt ? `Checked in ${new Date(t.checkedInAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" })}` : "Show the QR code at the door, or read out the code."}</p>
+        {t.status === "valid" && <AddToCalendar small className="mt-3" entry={{ id: `event:${t.eventId}`, kind: "event", title: t.eventTitle, feedTitle: t.eventTitle, start: t.startsAt, end: t.endsAt || t.startsAt, sub: t.typeName, href: `/events/${t.eventId}` }} />}
       </div>
     </li>
   );

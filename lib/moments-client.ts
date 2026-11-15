@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { apiError } from "./content-checks";
 
 // Calls our own Moments / Messages API as the signed-in member.
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -11,6 +12,6 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     cache: "no-store",
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Something went wrong.");
+  if (!res.ok) throw apiError(data, "Something went wrong.");
   return data as T;
 }

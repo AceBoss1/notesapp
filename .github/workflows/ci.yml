@@ -43,6 +43,7 @@ jobs:
       - run: npm run test:cart
       - run: npm run test:discounts
       - run: npm run test:referrals
+      - run: npm run test:growth
       - run: npm run test:mcp
       - run: npm run test:agents
       - run: npm run test:pricing
@@ -72,14 +73,20 @@ jobs:
       - run: npm run test:hotel
       - run: npm run test:books
       - run: npm run test:calendar
+      - run: npm run test:my-calendar
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups
       - run: npm run test:community
+      - run: npm run test:content-checks
       # audio rooms: rooms, the relay and Live mode (tests/community/rooms*.test.ts)
       - run: npm run test:rooms
       - run: npm run test:fans
       - run: npm run test:global
+      - run: npm run test:throwaway
+      - run: npm run test:menus
+      - run: npm run test:admin-users
+      - run: npm run test:campus
       - run: npm run test:nana-jobs
       - run: npm run test:recording
       - run: npm run test:live-rooms
@@ -90,6 +97,8 @@ jobs:
       - run: npm run test:courses-server
       - run: npm run test:quizzes-server
       - run: npm run test:team-server
+      # Careers and Nana-HR: the drafting templates (offer, the contract agreements, grant, announcement), then hiring on the emulators
+      - run: npm run test:hr
       - run: npm run test:maintenance
       - run: npm run test:ops-server
       - run: npm run test:pii-server
@@ -116,6 +125,7 @@ jobs:
       - run: npm run test:cart-server
       - run: npm run test:discounts-server
       - run: npm run test:referrals-server
+      - run: npm run test:growth-server
       - run: npm run test:referral-report-server
       - run: npm run test:coupons-server
       - run: npm run test:calls-server
@@ -126,6 +136,7 @@ jobs:
       - run: npm run test:hotel-server
       - run: npm run test:books-server
       - run: npm run test:community-server
+      - run: npm run test:content-checks-server
       # audio rooms against the emulator: the relay and Live mode (video on/off, the budget) with a stand-in Cloudflare
       - run: npm run test:rooms-server
       - run: npm run test:fans-server
@@ -140,6 +151,8 @@ jobs:
       - run: npm run test:social-signin
       # My Cycle: the prediction rules, then the server (unlock, passkey check, teen version, encryption, bells) on the emulators
       - run: npm run test:cycle
+      # My Calendar against the emulator: every source, the private link and feed, the bells and the Monday email
+      - run: npm run test:my-calendar-server
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 

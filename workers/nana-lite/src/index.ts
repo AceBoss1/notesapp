@@ -1,4 +1,4 @@
-// Nana Lite on Cloudflare (#NotesApp v0.166.0; docs/NANA_LITE.md). A Worker in front of three small open models, each served by
+// Nana Lite on Cloudflare (#NotesApp v0.176.0; docs/NANA_LITE.md). A Worker in front of three small open models, each served by
 // llama.cpp's OpenAI-compatible server in its own Cloudflare Container (Dockerfile.phi, Dockerfile.qwen, Dockerfile.smol):
 //   phi-3.5-mini-instruct   Phi-3.5-mini-instruct, 3.8B, MIT          (the default)
 //   qwen2.5-1.5b-instruct   Qwen2.5-1.5B-Instruct, 1.5B, Apache-2.0

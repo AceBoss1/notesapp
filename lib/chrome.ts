@@ -21,5 +21,10 @@ export function usesAppFrame(path: string, appHost: boolean): boolean {
   return appHost && !OWN_LAYOUT.some((b) => under(path, b));
 }
 
+// My account (components/account/AccountShell.tsx): the app header (wide search, Write) and no site footer, with the account menu in
+// place of the app sidebar (Moda user dashboard redesign).
+export const isAccountRoute = (path: string) => under(path, "/profile") || under(path, "/bookings");
+export const usesAppHeader = (path: string, appHost: boolean) => usesAppFrame(path, appHost) || isAccountRoute(path);
+
 export const showsBottomTabs = (path: string, opts: { member: boolean; appHost: boolean }) =>
   (opts.member || opts.appHost) && !isThreadRoute(path) && !under(path, "/admin") && !under(path, "/write") && !under(path, "/cycle"); // My Cycle has its own tabs

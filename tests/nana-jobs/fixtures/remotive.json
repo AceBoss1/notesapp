@@ -1,0 +1,167 @@
+{
+ "0-legal-notice": "Remotive API Legal Notice",
+ "job-count": 10,
+ "total-job-count": 1600,
+ "jobs": [
+  {
+   "id": 2000000,
+   "url": "https://remotive.com/remote-jobs/software-dev/senior-frontend-engineer-2000000",
+   "title": "Senior Frontend Engineer",
+   "company_name": "Harbor & Co",
+   "company_logo": "",
+   "category": "Software Dev",
+   "tags": [
+    "software-dev"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-14T05:00:00",
+   "candidate_required_location": "Worldwide",
+   "salary": "",
+   "description": "<p>We're hiring a Senior Frontend Engineer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000001,
+   "url": "https://remotive.com/remote-jobs/writing/technical-writer-2000001",
+   "title": "Technical Writer",
+   "company_name": "Openfold",
+   "company_logo": "",
+   "category": "Writing",
+   "tags": [
+    "writing"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-13T04:00:00",
+   "candidate_required_location": "Americas, EMEA",
+   "salary": "$60k - $90k",
+   "description": "<p>We're hiring a Technical Writer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000002,
+   "url": "https://remotive.com/remote-jobs/sales/sales-development-representative-2000002",
+   "title": "Sales Development Representative",
+   "company_name": "Tidewater",
+   "company_logo": "",
+   "category": "Sales",
+   "tags": [
+    "sales"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-14T03:00:00",
+   "candidate_required_location": "USA",
+   "salary": "",
+   "description": "<p>We're hiring a Sales Development Representative to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000003,
+   "url": "https://remotive.com/remote-jobs/customer-support/customer-success-manager-2000003",
+   "title": "Customer Success Manager",
+   "company_name": "Ravel",
+   "company_logo": "",
+   "category": "Customer Support",
+   "tags": [
+    "customer-support"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-11T02:00:00",
+   "candidate_required_location": "Europe",
+   "salary": "$60k - $90k",
+   "description": "<p>We're hiring a Customer Success Manager to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000004,
+   "url": "https://remotive.com/remote-jobs/software-dev/backend-developer-go-2000004",
+   "title": "Backend Developer (Go)",
+   "company_name": "Glasswing",
+   "company_logo": "",
+   "category": "Software Dev",
+   "tags": [
+    "software-dev"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-07T01:00:00",
+   "candidate_required_location": "Worldwide",
+   "salary": "",
+   "description": "<p>We're hiring a Backend Developer (Go) to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000005,
+   "url": "https://remotive.com/remote-jobs/design/ux-researcher-2000005",
+   "title": "UX Researcher",
+   "company_name": "Moss & Pine",
+   "company_logo": "",
+   "category": "Design",
+   "tags": [
+    "design"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-12T00:00:00",
+   "candidate_required_location": "Canada",
+   "salary": "$60k - $90k",
+   "description": "<p>We're hiring a UX Researcher to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000006,
+   "url": "https://remotive.com/remote-jobs/data/data-engineer-2000006",
+   "title": "Data Engineer",
+   "company_name": "Signal Peak",
+   "company_logo": "",
+   "category": "Data",
+   "tags": [
+    "data"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-10-30T23:00:00",
+   "candidate_required_location": "Worldwide",
+   "salary": "",
+   "description": "<p>We're hiring a Data Engineer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000007,
+   "url": "https://remotive.com/remote-jobs/all-others/executive-assistant-2000007",
+   "title": "Executive Assistant",
+   "company_name": "Paperplane",
+   "company_logo": "",
+   "category": "All Others",
+   "tags": [
+    "all-others"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-12T22:00:00",
+   "candidate_required_location": "Africa",
+   "salary": "$60k - $90k",
+   "description": "<p>We're hiring a Executive Assistant to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000008,
+   "url": "https://remotive.com/remote-jobs/qa/qa-engineer-2000008",
+   "title": "QA Engineer",
+   "company_name": "Kitebase",
+   "company_logo": "",
+   "category": "Qa",
+   "tags": [
+    "qa"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-09-05T21:00:00",
+   "candidate_required_location": "Worldwide",
+   "salary": "",
+   "description": "<p>We're hiring a QA Engineer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  },
+  {
+   "id": 2000009,
+   "url": "https://remotive.com/remote-jobs/hr/recruiter-2000009",
+   "title": "Recruiter",
+   "company_name": "Vantage Row",
+   "company_logo": "",
+   "category": "Hr",
+   "tags": [
+    "hr"
+   ],
+   "job_type": "full_time",
+   "publication_date": "2026-11-09T20:00:00",
+   "candidate_required_location": "EMEA",
+   "salary": "$60k - $90k",
+   "description": "<p>We're hiring a Recruiter to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>"
+  }
+ ]
+}

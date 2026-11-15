@@ -7,7 +7,7 @@ import PasswordInput from "@/components/PasswordInput";
 import { useAuthUser } from "./useAuthUser";
 import { AI_PROVIDERS, PROVIDER_INFO, type AiProvider } from "@/lib/ai-providers";
 import type { ProviderStatus } from "@/lib/ai-connect";
-import { AI_PER_DAY, JOB_STATUS_LABEL, SENIORITY, SENIORITY_LABEL, hourText, type Board, type CvReview, type JobStatus, type NjProfile, type NjRun, type NjSettings, type ShortJob } from "@/lib/nana-jobs";
+import { AI_PER_DAY, JOB_STATUS_LABEL, SENIORITY, SENIORITY_LABEL, apiErrorText, cutSummary, hourText, profileEmpty, type Board, type CvReview, type JobStatus, type NjProfile, type NjRun, type NjSettings, type SeenJob, type ShortJob } from "@/lib/nana-jobs";
 
 // Nana Jobs (/jobs/nana; docs/NANA_JOBS.md, mockups in docs/mockups/nana-jobs/): set up in four steps (connect your AI, your CV and your
 // scoring profile, where to look, when to send it), then the daily shortlist with statuses, the run's funnel and a cover-note helper.
@@ -16,14 +16,18 @@ type State = {
   providers: { providers: ProviderStatus[]; canConnect: boolean }; using: AiProvider | null;
   cv: { has: boolean; updatedAt?: string; chars?: number; fileName?: string; review: CvReview | null };
   run: NjRun | null;
+  suggestedRole?: string;
 };
-type View = "intro" | "ai" | "cv" | "profile" | "sources" | "when" | "list";
+type View = "intro" | "ai" | "cv" | "profile" | "sources" | "when" | "list" | "seen";
 
+// The real reason when a call fails: the server's own message, "your AI took too long" for a platform timeout, or a lost connection.
 async function api<T>(user: User, url: string, method = "GET", body?: unknown): Promise<T> {
-  const r = await fetch(url, { method, headers: { Authorization: `Bearer ${await user.getIdToken()}`, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j.error || "Something went wrong"), { status: r.status });
-  return j as T;
+  let r: Response;
+  try { r = await fetch(url, { method, headers: { Authorization: `Bearer ${await user.getIdToken()}`, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined }); }
+  catch { throw Object.assign(new Error("We couldn't reach NotesApp. Check your connection and try again."), { status: 0 }); }
+  const text = await r.text().catch(() => "");
+  if (!r.ok) throw Object.assign(new Error(apiErrorText(r.status, text)), { status: r.status });
+  try { return JSON.parse(text) as T; } catch { return {} as T; }
 }
 
 const ICON: Record<AiProvider, string> = { gemini: "✨", groq: "⚡", anthropic: "🧠", openai: "🤖" };
@@ -160,6 +164,8 @@ export default function NanaJobs() {
       </div>
     </div>
   );
+
+  if (view === "seen") return <SeenList user={user} back={() => go("list")} />;
 
   // ---- 5 and 6 · the shortlist and today's run ----
   return <Shortlist st={st} setSt={setSt} user={user} busy={busy} act={act} flash={flash} go={go} />;
@@ -322,6 +328,10 @@ function ProfileStep({ st, head, busy, flash, back, onSave }: { st: State; head:
       {head}
       <Label>Roles you want</Label>
       <ChipList items={p.roles} onChange={(roles) => set({ roles })} on placeholder="Backend engineer" label="a role" />
+      {st.suggestedRole && !p.roles.some((r) => r.toLowerCase() === st.suggestedRole!.toLowerCase()) && (
+        <button type="button" onClick={() => set({ roles: [...p.roles, st.suggestedRole!] })} className="mt-2 text-xs font-semibold text-crimson">＋ Add &quot;{st.suggestedRole}&quot; from your NotesApp profile</button>
+      )}
+      <Mini>{p.roles.length ? "Nana keeps openings whose title matches one of these." : st.cv.review?.profile.roles.length ? `No roles yet: Nana uses the ones from your CV review (${st.cv.review.profile.roles.join(", ")}).` : "No roles yet: Nana won't filter by job title, so the list will be broad."}</Mini>
       <Label>Things you&apos;ve actually shipped (Nana may only claim these)</Label>
       <textarea rows={6} value={shipped} onChange={(e) => setShipped(e.target.value)} placeholder={"One per line, with the real figure if you have one.\nPayments ledger on Postgres, 40k payouts a month"} className={`mt-2 ${field}`} aria-label="Things you've shipped" />
       <Mini>{st.cv.review ? "Filled in from your CV. Edit freely." : "One per line. Nana's reasons and cover notes use only these."}</Mini>
@@ -345,7 +355,7 @@ function ProfileStep({ st, head, busy, flash, back, onSave }: { st: State; head:
       {flash}
       <div className="mt-6 flex gap-2">
         <button type="button" onClick={back} className="btn-ghost !py-2">Back</button>
-        <button type="button" disabled={!!busy || !p.roles.length} onClick={() => onSave({ ...p, shipped: shipped.split("\n").map((x) => x.trim()).filter(Boolean) })} className="btn-primary flex-1 !py-2 disabled:opacity-50">{busy ? "Saving…" : "Save and next"}</button>
+        <button type="button" disabled={!!busy} onClick={() => onSave({ ...p, shipped: shipped.split("\n").map((x) => x.trim()).filter(Boolean) })} className="btn-primary flex-1 !py-2 disabled:opacity-50">{busy ? "Saving…" : "Save and next"}</button>
       </div>
     </div>
   );
@@ -446,6 +456,9 @@ function Shortlist({ st, setSt, user, busy, act, flash, go }: { st: State; setSt
   const f = run?.funnel;
   const rows: [string, number][] = f ? [["Collected", f.collected], ["No repeats", f.unique], ["Fit your rules", f.fit], ["Keyword top", f.keywordTop], ["Read by AI", f.readByAi], ["Links alive", f.alive]] : [];
   const max = Math.max(1, f?.collected ?? 1);
+  const cuts = cutSummary(run?.rejected);
+  const empty = profileEmpty(st.profile);
+  const seeAll = f && f.unique > 0 ? <button type="button" onClick={() => go("seen")} className="text-sm font-semibold text-crimson underline">See all {f.unique.toLocaleString("en-GB")} collected jobs</button> : null;
   return (
     <div className="mt-5 grid gap-6 lg:grid-cols-[1.35fr,1fr]">
       <section aria-label="Today's shortlist">
@@ -456,9 +469,23 @@ function Shortlist({ st, setSt, user, busy, act, flash, go }: { st: State; setSt
         {run && <p className="mt-1 text-xs text-slate">{new Date(run.at).toLocaleString("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" })} Lagos{run.provider ? ` · read by ${PROVIDER_INFO[run.provider].label}` : run.via === "lite" ? " · read by Nana Lite" : ""}{st.nextRunAt ? ` · next run ${new Date(st.nextRunAt).toLocaleString("en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" })}` : ""}</p>}
         {flash}
         {run?.error && <div className="mt-3"><Note>{run.jobs.some((j) => j.rough) ? <>Your AI didn&apos;t answer for some of these (&quot;{run.error}&quot;), so they carry the free keyword score, marked <b>~ rough</b>.</> : <>Your AI didn&apos;t answer for a few openings (&quot;{run.error}&quot;). They kept their keyword score and didn&apos;t make the list.</>}</Note></div>}
-        {run?.note && !run.error && <p className="mt-3 text-sm text-slate">{run.note}</p>}
+        {empty && (
+          <div className="mt-3 rounded-xl border border-rule bg-card p-3 text-sm">
+            <p className="font-semibold text-ink">Your scoring profile is empty.</p>
+            <p className="mt-0.5 text-slate">{st.cv.review?.profile.roles.length ? `Nana is using the roles from your CV review (${st.cv.review.profile.roles.join(", ")}) until you choose your own.` : "Nana has no roles, skills or past work to match you against, so it looks at every role. Two minutes on your profile makes the list much sharper."}</p>
+            <button type="button" onClick={() => go(st.cv.has ? "profile" : "cv")} className="btn-primary mt-2 !py-1.5 text-sm">Set up my profile</button>
+          </div>
+        )}
+        {run?.note && !run.error && !empty && <p className="mt-3 text-sm text-slate">{run.note}</p>}
         {!run ? <p className="mt-4 text-sm text-slate">{busy === "run" ? "Reading today's openings… this can take a minute." : "No shortlist yet. Press Run now, or wait for your morning run."}</p>
-          : run.jobs.length === 0 ? <p className="mt-4 text-sm text-slate">Nothing fits your rules today. Try more roles, or switch on more sources.</p>
+          : run.jobs.length === 0 ? (
+            <div className="mt-4 text-sm text-slate">
+              <p>{run.funnel.unique === 0 ? "No openings came in today. Switch on more sources, or try again later." : `None of today's ${run.funnel.unique.toLocaleString("en-GB")} openings made the list.`}</p>
+              {cuts.length > 0 && <p className="mt-1">Cut: {cuts.map((c) => `${c.count.toLocaleString("en-GB")} ${c.label}`).join(", ")}.</p>}
+              {cuts[0]?.label === "not in your roles" && <p className="mt-1">Add more roles, or broader ones (&quot;Engineer&quot; rather than &quot;Senior Go Engineer&quot;).</p>}
+              <div className="mt-2 flex flex-wrap gap-3"><button type="button" onClick={() => go("profile")} className="text-sm font-semibold text-crimson underline">Edit my profile</button>{seeAll}</div>
+            </div>
+          )
           : <div className="mt-3 grid gap-3">{run.jobs.map((j) => (
             <article key={j.hash} className={`rounded-2xl border border-rule bg-card p-4 text-sm ${j.rough ? "opacity-90" : ""}`}>
               <div className="flex items-start justify-between gap-3">
@@ -470,15 +497,18 @@ function Shortlist({ st, setSt, user, busy, act, flash, go }: { st: State; setSt
                 {j.reason && <p className="mt-1.5 text-[#17694a]">{j.rough ? "~ " : "✓ "}{j.reason}</p>}
                 {j.risk && <p className="mt-0.5 text-[#8c4a00]">⚠ {j.risk}</p>}
               </>}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {j.notesJobId ? <Link href={`/jobs/${j.notesJobId}#apply`} className="rounded-full bg-crimson px-4 py-1.5 font-ui text-sm font-semibold text-paper">Apply on #NotesApp</Link>
+                  : <a href={j.url} target="_blank" rel="noopener noreferrer nofollow" className="rounded-full bg-crimson px-4 py-1.5 font-ui text-sm font-semibold text-paper">Apply ↗</a>}
+                <button type="button" aria-pressed={j.status === "applied"} disabled={busy === "status"} onClick={() => setStatus(j, j.status === "applied" ? null : "applied")}
+                  className={`rounded-full border px-3 py-1.5 font-ui text-sm font-semibold ${j.status === "applied" ? "border-green-700 bg-green-50 text-green-800" : "border-rule bg-card text-ink hover:border-crimson"}`}>{j.status === "applied" ? "Applied ✓" : "Mark as applied"}</button>
+              </div>
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                {(["interested", "applied", "not_for_me"] as JobStatus[]).map((s) => (
+                {(["interested", "not_for_me"] as JobStatus[]).map((s) => (
                   <button key={s} type="button" aria-pressed={j.status === s} onClick={() => setStatus(j, j.status === s ? null : s)} className={`${chip(j.status === s)} !py-0.5 text-xs`}>{s === "interested" && j.status === s ? "⭐ " : ""}{JOB_STATUS_LABEL[s]}</button>
                 ))}
-              </div>
-              <div className="mt-2.5 flex flex-wrap gap-3 text-xs font-semibold">
-                {j.notesJobId ? <Link href={`/jobs/${j.notesJobId}`} className="rounded-full bg-crimson px-3 py-1 text-paper">Apply on #NotesApp</Link>
-                  : <a href={j.url} target="_blank" rel="noopener noreferrer nofollow" className="text-crimson underline">Open the firm&apos;s page ↗</a>}
-                <button type="button" disabled={!!busy} onClick={() => writeCover(j)} className="text-crimson underline disabled:opacity-50">{busy === "cover" && cover?.hash !== j.hash ? "Cover note" : "✍️ Cover note"}</button>
+                <button type="button" disabled={!!busy} onClick={() => writeCover(j)} className="ml-1 text-xs font-semibold text-crimson underline disabled:opacity-50">✍️ Cover note</button>
+                {j.notesJobId ? null : <span className="text-xs text-slate">Opens the firm&apos;s own page in a new tab.</span>}
               </div>
               {cover?.hash === j.hash && (
                 <div className="mt-3">
@@ -498,6 +528,15 @@ function Shortlist({ st, setSt, user, busy, act, flash, go }: { st: State; setSt
                 <div key={label} className="flex items-center gap-2"><span className="w-24 shrink-0 text-slate">{label}</span><i className="block h-3.5 rounded bg-crimson/85" style={{ width: `${Math.max(3, Math.sqrt(n / max) * 60)}%` }} /><span className="font-semibold text-ink">{n.toLocaleString("en-GB")}</span></div>
               ))}
             </div>
+            {cuts.length > 0 && (
+              <div className="mt-3 border-t border-rule pt-2 text-xs">
+                <p className="font-semibold text-ink">Why openings were cut</p>
+                <ul className="mt-1 grid gap-0.5 text-slate">{cuts.map((c) => <li key={c.label}><b className="text-ink">{c.count.toLocaleString("en-GB")}</b> {c.label}</li>)}</ul>
+              </div>
+            )}
+            {run?.profileFrom === "cv" && <p className="mt-2 text-xs text-slate">Judged on the roles from your CV review.</p>}
+            {run?.profileFrom === "empty" && <p className="mt-2 text-xs text-slate">No roles set, so no job-title filter.</p>}
+            {seeAll && <div className="mt-2">{seeAll}</div>}
           </div>
         )}
         <AlertSettings st={st} onChange={saveAlerts} />
@@ -507,6 +546,61 @@ function Shortlist({ st, setSt, user, busy, act, flash, go }: { st: State; setSt
           <button type="button" onClick={() => go("ai")}>Your AI</button><button type="button" onClick={() => go("cv")}>Your CV</button><button type="button" onClick={() => go("profile")}>Your profile</button><button type="button" onClick={() => go("sources")}>Where to look</button>
         </div>
       </aside>
+    </div>
+  );
+}
+
+// ---- every opening the latest run collected, and what happened to each (read-only; the member's own run) ----
+const OUTCOME: Record<SeenJob["outcome"], { label: string; cls: string }> = {
+  listed: { label: "On your list", cls: "bg-green-50 text-green-800" },
+  ranked: { label: "Fits, ranked lower", cls: "bg-[#FFF4D6] text-[#5a4300]" },
+  cut: { label: "Cut", cls: "bg-[#f3eeeb] text-slate" },
+};
+function SeenList({ user, back }: { user: User; back: () => void }) {
+  const [data, setData] = useState<{ at: string | null; total: number; jobs: SeenJob[] } | null>(null);
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState<"all" | SeenJob["outcome"]>("all");
+  const [q, setQ] = useState("");
+  useEffect(() => { api<{ at: string | null; total: number; jobs: SeenJob[] }>(user, "/api/jobs/nana/seen").then(setData).catch((e) => setError(e instanceof Error ? e.message : String(e))); }, [user]);
+  const counts = { all: data?.jobs.length ?? 0, listed: 0, ranked: 0, cut: 0 };
+  data?.jobs.forEach((j) => { counts[j.outcome]++; });
+  const needle = q.trim().toLowerCase();
+  const shown = (data?.jobs ?? []).filter((j) => (filter === "all" || j.outcome === filter) && (!needle || `${j.title} ${j.company} ${j.location} ${j.why}`.toLowerCase().includes(needle)));
+  const [limit, setLimit] = useState(100);
+  return (
+    <div className="mx-auto mt-5 max-w-3xl">
+      <button type="button" onClick={back} className="text-sm font-semibold text-crimson">← Today&apos;s shortlist</button>
+      <h2 className="mt-3 font-display text-2xl text-ink">All collected jobs{data ? ` · ${data.total.toLocaleString("en-GB")}` : ""}</h2>
+      <p className="mt-1 text-sm text-slate">Every opening your latest run looked at, and why each one did or didn&apos;t make your list. Only you see this.{data?.at ? ` Run: ${new Date(data.at).toLocaleString("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lagos" })} Lagos.` : ""}</p>
+      {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
+      {!data && !error && <p className="py-10 text-center text-sm text-slate">Loading…</p>}
+      {data && (
+        <>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Show">
+            {(["all", "listed", "ranked", "cut"] as const).map((k) => (
+              <button key={k} type="button" aria-pressed={filter === k} onClick={() => { setFilter(k); setLimit(100); }} className={`${chip(filter === k)} !py-0.5 text-xs`}>{k === "all" ? "All" : OUTCOME[k].label} · {counts[k]}</button>
+            ))}
+            <input value={q} onChange={(e) => { setQ(e.target.value); setLimit(100); }} placeholder="Search title, firm or reason" aria-label="Search the collected jobs" className="ml-auto w-full rounded-full border border-rule bg-card px-3 py-1 text-sm outline-none focus:border-crimson sm:w-60" />
+          </div>
+          {data.total > data.jobs.length && <p className="mt-2 text-xs text-slate">Showing {data.jobs.length.toLocaleString("en-GB")} of {data.total.toLocaleString("en-GB")}: everything on your list or ranked below it, and the first of the ones that were cut.</p>}
+          {data.jobs.length === 0 ? <p className="mt-4 text-sm text-slate">No run yet. Press Run now on your shortlist.</p> : (
+            <ul className="mt-3 divide-y divide-rule rounded-2xl border border-rule bg-card">
+              {shown.slice(0, limit).map((j) => (
+                <li key={j.hash} className="flex flex-col gap-1 p-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-ink">{j.title} · <span className="font-normal">{j.company}</span></p>
+                    <p className="text-xs text-slate">{[j.location, j.notesJobId ? "Notes Jobs" : j.sourceLabel].filter(Boolean).join(" · ")}</p>
+                    <p className="mt-0.5 text-xs"><span className={`mr-1.5 rounded-full px-2 py-0.5 font-semibold ${OUTCOME[j.outcome].cls}`}>{OUTCOME[j.outcome].label}</span><span className="text-ink">{j.why}</span></p>
+                  </div>
+                  {j.notesJobId ? <Link href={`/jobs/${j.notesJobId}`} className="shrink-0 text-xs font-semibold text-crimson underline">Open</Link>
+                    : <a href={j.url} target="_blank" rel="noopener noreferrer nofollow" className="shrink-0 text-xs font-semibold text-crimson underline">Open ↗</a>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {shown.length > limit && <button type="button" onClick={() => setLimit(limit + 200)} className="btn-ghost mt-3 w-full !py-2">Show more ({(shown.length - limit).toLocaleString("en-GB")} left)</button>}
+        </>
+      )}
     </div>
   );
 }

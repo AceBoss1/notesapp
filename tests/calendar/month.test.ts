@@ -1,6 +1,6 @@
 // The month grid used by the booking calendars (components/MonthCalendar.tsx). Run: npm run test:calendar
 import assert from "node:assert/strict";
-import { monthCells } from "../../components/MonthCalendar";
+import { dayLabel, monthCells } from "../../components/MonthCalendar";
 
 const nov = monthCells(2026, 10); // November 2026 starts on a Sunday
 assert.equal(nov.filter((c) => c === null).length, 6, "Monday-first: six blanks before Sunday the 1st");
@@ -10,4 +10,6 @@ assert.equal(feb[0], "2027-02-01"); assert.equal(feb.length, 28);
 assert.equal(monthCells(2028, 1).at(-1), "2028-02-29", "leap year");
 const dec = monthCells(2026, 11); // Tuesday the 1st
 assert.equal(dec[1], "2026-12-01"); assert.equal(dec.at(-1), "2026-12-31");
+assert.equal(dayLabel("2026-11-16"), "Monday 16 November");
+assert.equal(dayLabel("2026-11-19", true), "Thu 19 Nov", "hand-written, so server and browser print the same");
 console.log("ALL OK");

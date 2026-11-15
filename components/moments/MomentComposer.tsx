@@ -6,6 +6,8 @@ import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { api } from "@/lib/moments-client";
+import BlockedNotice from "@/components/content-checks/BlockedNotice";
+import { contentCheckOf, type CheckDetail } from "@/lib/content-checks";
 import { sendToStream, videoInfo } from "@/lib/media-client";
 import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoClips, momentVideoParts, type MomentHours, type ComposedMomentKind as MomentKind } from "@/lib/moments-rules";
 import { VIDEO_ACCEPT } from "@/lib/video-rules";
@@ -35,6 +37,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   const [songId, setSongId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<CheckDetail | null>(null); // AI content checks
   const [duration, setDuration] = useState<number | null>(null);
   const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const [doneNote, setDoneNote] = useState<string | null>(null); // shown after a video was shared, before closing
@@ -56,7 +59,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   const allowed = quota ? Math.min(needed, quota.remaining) : needed;
 
   async function post() {
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setBlocked(null);
     try {
       const body: Record<string, unknown> = { kind, hours, text };
       if (kind === "image") {
@@ -104,7 +107,9 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
       onPosted();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't share the moment.");
+      const d = contentCheckOf(e);
+      if (d) setBlocked(d);
+      else setError(e instanceof Error ? e.message : "Couldn't share the moment.");
     } finally {
       setBusy(false);
     }
@@ -170,6 +175,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
           </div>
         </fieldset>
         {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
+        {blocked && <div className="mt-3"><BlockedNotice detail={blocked} onRemovePhoto={() => setFile(null)} onClose={() => setBlocked(null)} /></div>}
         <button onClick={post} disabled={busy || tooLong || noRoom || (kind === "text" ? !text.trim() : !file)} className="btn-primary mt-5 w-full disabled:opacity-50">{busy ? "Sharing…" : "Share moment"}</button>
       </div>
     </div>

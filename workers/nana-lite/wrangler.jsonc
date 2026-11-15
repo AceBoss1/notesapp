@@ -1,4 +1,4 @@
-// Nana Lite on Cloudflare (#NotesApp v0.166.0; docs/NANA_LITE.md). A Worker in front of three Cloudflare Containers, one small model each.
+// Nana Lite on Cloudflare (#NotesApp v0.176.0; docs/NANA_LITE.md). A Worker in front of three Cloudflare Containers, one small model each.
 // Deploy: the "Deploy Nana Lite" GitHub Actions workflow, or by hand from this folder (Docker running): npm install --legacy-peer-deps &&
 // npx wrangler deploy. One secret: npx wrangler secret put NANA_LITE_KEY (the same value as NANA_LITE_KEY on Vercel).
 // Containers need the Workers Paid plan (the Atlas Cloudflare credits cover usage). Instance types and limits change: check

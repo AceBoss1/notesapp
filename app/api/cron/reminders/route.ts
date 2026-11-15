@@ -17,6 +17,7 @@ import { sweepMessageUploads } from "@/lib/messages-server";
 import { sweepMessageRequests } from "@/lib/message-edits";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 import { sendReportsDigest, liftExpiredSuspensions } from "@/lib/reports-server";
+import { recheckQueued } from "@/lib/content-checks-server";
 import { momentDeps } from "@/lib/moments-api";
 import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
@@ -42,6 +43,8 @@ import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
 import { runDue as nanaJobsDue } from "@/lib/nana-jobs-server";
 import { liveDeps as nanaJobsDeps } from "@/lib/nana-jobs-api";
+import { withReturn } from "@/lib/growth";
+import { calendarBells, weekAheadEmails } from "@/lib/my-calendar-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -86,8 +89,8 @@ async function run() {
     const pubEmail = await getUserEmail(b.publisherUid);
     const text = `Reminder: your ${b.minutes}-minute #NotesApp session with @${b.username} ${label} — ${when}.`;
     const results = await Promise.all([
-      sendEmail({ to: b.clientEmail, bell: { uid: b.clientUid, type: "booking", linkHref: "/bookings" }, subject: `Reminder: session ${when}`, text }),
-      pubEmail ? sendEmail({ to: pubEmail, bell: { uid: b.publisherUid, type: "booking", linkHref: "/bookings" }, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
+      sendEmail({ to: b.clientEmail, bell: { uid: b.clientUid, type: "booking", linkHref: withReturn("/bookings", "reminder") }, subject: `Reminder: session ${when}`, text }),
+      pubEmail ? sendEmail({ to: pubEmail, bell: { uid: b.publisherUid, type: "booking", linkHref: withReturn("/bookings", "reminder") }, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
     ]);
     if (results.every(Boolean)) {
       await doc.ref.update(flag === "reminder1Sent" ? { reminder1Sent: true, reminder24Sent: true } : { reminder24Sent: true });
@@ -128,6 +131,7 @@ async function run() {
   await job("replayTranscripts", () => transcribeReplays(db));
   await job("sweepMessageUploads", () => (privateFilesConfigured() ? sweepMessageUploads(db, deleteObject) : Promise.resolve(0)));
   await job("liftExpiredSuspensions", () => liftExpiredSuspensions(db));
+  await job("contentRechecks", () => recheckQueued(db)); // AI content checks: posts published while the checker couldn't answer
   await job("reportsDigest", async () => ((await sendReportsDigest(db)) ? 1 : 0));
   // From 07:00 Lagos time, once a day: the team's morning summary (their day, decisions, blockers, queues, milestones, meetings).
   await job("teamMorningSummary", () => sendMorningSummaries(db));
@@ -164,6 +168,11 @@ async function run() {
   // Pay-per-minute sessions (lib/ppm-server.ts): a call whose phones went quiet, or whose held minutes ran out and weren't topped up,
   // is ended and charged on the server's meter; a session whose call never started is ended and the hold given back.
   await job("ppmSessions", () => sweepPpm(db));
+  // My Calendar (lib/my-calendar-server.ts), only what nothing else sends: a short bell before sessions and per-minute calls (her choice,
+  // 10 minutes by default), an hour before an event for ticket holders not already reminded as going, and the day before a hotel check-in;
+  // then, on Mondays from 7 AM Lagos, the optional week-ahead email, a few per run.
+  await job("calendarBells", () => calendarBells(db));
+  await job("weekAhead", () => weekAheadEmails(db));
   await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
   // The 1st of each month from 08:00 Lagos, in batches: last month's referrals report to members who had activity (lib/referral-report-server.ts).
   await job("referralReports", () => monthlyReferralReports(db));

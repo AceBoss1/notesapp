@@ -13,6 +13,7 @@ import {
 import GiftArt, { GiftArtStyles } from "@/components/GiftArt";
 import { findGift, isGiftMotif } from "@/lib/gift-catalogue";
 import { playGift } from "@/lib/gift-play";
+import { withReturn } from "@/lib/growth";
 
 const ICON: Record<NotificationType, string> = {
   like: "♥",
@@ -22,6 +23,7 @@ const ICON: Record<NotificationType, string> = {
   suspended: "⚠",
   unsuspended: "✓",
   appeal_rejected: "✕",
+  content_check: "🛡",
   role_changed: "🎖",
   gift: "🎁",
   coauthor: "🤝",
@@ -97,7 +99,7 @@ export default function NotificationBell({ user, buttonClassName, panelClassName
       const qty = Number((n as { giftQty?: unknown }).giftQty) > 1 ? Number((n as { giftQty?: unknown }).giftQty) : 1;
       playGift({ giftId: n.giftAnim, name: g?.name ?? "A gift", priceKobo: (g?.priceKobo ?? 0) * qty, key: `bell_${n.id}`, ...(qty > 1 ? { quantity: qty } : {}) });
     }
-    if (n.linkHref) router.push(n.linkHref);
+    if (n.linkHref) router.push(withReturn(n.linkHref, "bell")); // ?r=bell: a return through a bell counts for it (lib/growth.ts)
   }
 
   return (

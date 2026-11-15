@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { CREDIT_BONUS, HOLD_DAYS, MAX_AFFILIATE_PERCENT, MIN_CASH_KOBO, PLAN_MONTHS, PLAN_SHARE, referralLink } from "@/lib/referrals";
 import { naira } from "@/lib/discounts";
+import InviteLinkCard from "./InviteLinkCard";
 
 // A member's referrals and affiliate earnings (lib/referrals.ts): their link, what they've earned, taking it as cash or as
 // NotesApp Credit with a bonus, and, for publishers, the share they offer affiliates on each product.
@@ -63,7 +64,7 @@ function BankForm({ onSaved }: { onSaved: () => void }) {
   );
 }
 
-export default function ReferralsPanel() {
+export default function ReferralsPanel({ invite = false }: { invite?: boolean }) {
   const [s, setS] = useState<Summary | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -141,6 +142,8 @@ export default function ReferralsPanel() {
           </>
         )}
       </div>
+
+      {invite && <InviteLinkCard username={s.username} />}
 
       {s.milestones && <Milestones list={s.milestones} qualified={s.qualified ?? 0} busy={busy} onClaim={async (id) => {
         setBusy(`ms_${id}`); setError(""); setNote("");

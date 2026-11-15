@@ -3,6 +3,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { KbError, cleanArticle, type KbArticle } from "./kb";
 import { builtInArticles, type KbLive } from "./kb-articles";
 import { tierTerms } from "./partner-network-server";
+import { liveMilestones } from "./referral-milestones-server";
 import { currentPricing } from "./pricing";
 import { ensurePricing } from "./pricing-server";
 import { getLimitOverrides } from "./limits-server";
@@ -48,7 +49,9 @@ export async function loadKbLive(db: Firestore): Promise<KbLive> {
   const ppm = roomSettings ? ppmFigures(roomSettings) : undefined;
   // The Partner Network's tier shares (Admin → Limits → Partner Network).
   const partners = await tierTerms(db).catch(() => undefined);
-  return { limits, agents, rooms, recording, fans, paid, ppm, partners };
+  // Referral milestones (Admin → Limits → Referral milestones).
+  const milestones = await liveMilestones(db).catch(() => undefined);
+  return { limits, agents, rooms, recording, fans, paid, ppm, partners, milestones };
 }
 
 // Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles

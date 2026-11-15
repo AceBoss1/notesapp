@@ -15,6 +15,8 @@
 // sits above the interests box.
 // Built with tables and inline styles only (mail apps ignore stylesheets); 600px wide on a computer, full width on a phone.
 
+import { withReturn } from "./growth";
+
 export type DigestStory = {
   title: string;
   summary: string;
@@ -118,7 +120,16 @@ ${x.text ? `<p style="margin:4px 0 0;font-family:${SANS};font-size:14px;line-hei
 
 const slot = (d: DigestEmail, n: 1 | 2 | 3) => d.sponsored?.find((x) => x.slot === n);
 
-export function renderDigestHtml(d: DigestEmail): string {
+// ?r=digest on the digest's links to our own pages, so a return through the email counts for it (lib/growth.ts). Unsubscribe and the
+// sponsored slots' click counter (an API address) are left as they are.
+function tagged(d: DigestEmail): DigestEmail {
+  const t = (href: string) => withReturn(href, "digest", d.site);
+  const items = (xs?: DigestItem[]) => xs?.map((x) => ({ ...x, href: t(x.href) }));
+  return { ...d, stories: d.stories.map((s) => ({ ...s, href: t(s.href) })), market: items(d.market), courses: items(d.courses), interestsUrl: t(d.interestsUrl) };
+}
+
+export function renderDigestHtml(digest: DigestEmail): string {
+  const d = tagged(digest);
   const r = d.reader;
   const button = (href: string, label: string, bg: string) =>
     `<table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td bgcolor="${bg}" style="background:${bg};border-radius:999px;"><a href="${esc(href)}" style="display:inline-block;padding:12px 28px;font-family:${SANS};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${label}</a></td></tr></table>`;
@@ -139,9 +150,9 @@ export function renderDigestHtml(d: DigestEmail): string {
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:0 24px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${d.stories.map((s, i) => story(s, i === d.stories.length - 1) + (i === 1 ? sponsoredBlock(slot(d, 1)) : i === 5 ? sponsoredBlock(slot(d, 2)) : "")).join("")}${d.stories.length < 2 ? sponsoredBlock(slot(d, 1)) : ""}${d.stories.length >= 2 && d.stories.length < 6 ? sponsoredBlock(slot(d, 2)) : ""}</table>
 </td></tr>
-<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:8px 24px 28px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">${button(`${d.site}/journals`, "Read more in your feed", C.crimson)}</td></tr>
-${itemSection("FROM NOTES MARKET", d.market, { href: `${d.site}/shop`, label: "Browse Notes Market" })}
-${itemSection("FROM NOTES ACADEMY", d.courses, { href: `${d.site}/academy`, label: "Browse Notes Academy" })}
+<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:8px 24px 28px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">${button(withReturn(`${d.site}/journals`, "digest", d.site), "Read more in your feed", C.crimson)}</td></tr>
+${itemSection("FROM NOTES MARKET", d.market, { href: withReturn(`${d.site}/shop`, "digest", d.site), label: "Browse Notes Market" })}
+${itemSection("FROM NOTES ACADEMY", d.courses, { href: withReturn(`${d.site}/academy`, "digest", d.site), label: "Browse Notes Academy" })}
 ${slot(d, 3) ? `<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:0 24px 8px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sponsoredBlock(slot(d, 3))}</table></td></tr>` : ""}
 <tr><td bgcolor="${C.paper}" style="background:${C.paper};padding:28px 24px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};text-align:center;">
   <a href="${esc(d.site)}" style="text-decoration:none;"><img src="${esc(d.site)}/images/brand/email-logo.png" width="160" alt="#NotesApp" style="display:block;margin:0 auto 18px;border:0;height:auto;width:160px;"></a>
@@ -157,7 +168,8 @@ ${slot(d, 3) ? `<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:0 24
 </table></td></tr></table></body></html>`;
 }
 
-export function renderDigestText(d: DigestEmail): string {
+export function renderDigestText(digest: DigestEmail): string {
+  const d = tagged(digest);
   const lines = [`Stories for ${d.reader.name} (@${d.reader.username})`, "", "#NotesApp Weekly Digest: this week's highlights", ""];
   for (const s of d.stories) {
     lines.push(`${s.title}`, `${s.writerName}${s.inName ? ` in ${s.inName}` : ""} · ${s.readMinutes} min read${s.views ? ` · ${count(s.views)} views` : ""}${s.premium ? " · Members only" : ""}`, s.summary, `Read more: ${s.href}`, "");
@@ -167,7 +179,7 @@ export function renderDigestText(d: DigestEmail): string {
     if (!items?.length) continue;
     lines.push(`${title}:`, ...items.map((it) => `- ${it.title} · ${it.price} · ${it.by} (${it.why}): ${it.href}`), "");
   }
-  lines.push(`Read more in your feed: ${d.site}/journals`, `Choose your interests: ${d.interestsUrl}`, "", `Unsubscribe from the weekly digest: ${d.unsubscribeUrl}`, `Sent by #NotesApp · ${d.company}`);
+  lines.push(`Read more in your feed: ${withReturn(`${d.site}/journals`, "digest", d.site)}`, `Choose your interests: ${d.interestsUrl}`, "", `Unsubscribe from the weekly digest: ${d.unsubscribeUrl}`, `Sent by #NotesApp · ${d.company}`);
   return lines.join("\n");
 }
 

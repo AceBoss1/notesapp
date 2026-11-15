@@ -17,6 +17,9 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
+| `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
+| `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
@@ -1033,6 +1036,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Known limits: a free tier that's slow means the rest of a run keeps the keyword score; the cover note on the live site needs the
     member's AI to answer; the CV reader handles PDF with text and .docx (not scans or old .doc). Tests: `test:nana-jobs` (new, pure),
     `test:nana-jobs-server` (new, emulator), rules (one new test).
+    **v0.174.1 fixes (branch `push/nana-jobs-fixes`):** an empty or never-filled profile no longer cuts everything (the account job
+    title is only a suggestion; no roles = the CV review's roles or no title gate, `effectiveProfile`); the funnel says why openings were
+    cut (`cutSummary`); **See all collected jobs** (`nanaJobsSeen/{uid}`, `GET /api/jobs/nana/seen`, own run only); Apply and Mark as
+    applied on every card; the Claude CV review fixed (effort low, room for thinking, cut-offs and refusals named, timeouts inside the
+    route's `maxDuration`) and the real reason shown in the browser (`apiErrorText`). Details in `docs/NANA_JOBS.md` "Fixes in
+    v0.174.1". **Owner:** `firebase deploy --only firestore:rules` (one new server-only collection, `nanaJobsSeen`); no new index. Tests:
+    `test:nana-jobs` now also runs `tests/nana-jobs/fixes.test.ts` (feed fixtures in `tests/nana-jobs/fixtures/`).
 132. **My Cycle (v0.163.0, branch `push/my-cycle`; plan `docs/MY_CYCLE.md`):** a private cycle companion at `/cycle`, explainer
     `/my-cycle`. Owner steps: (a) `firebase deploy --only firestore:rules` (four new server-only collections: `cycleProfiles`,
     `cycleLogs`, `cycleNotes`, `cycleChats`); no new indexes. (b) `ACCOUNT_DATA_KEY` must be set in Vercel (it already protects bank
@@ -1063,7 +1073,42 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `https://<site>/api/hotel/moniepoint`. Until set, those two add-ons show "Not set up yet" and can't be bought. The account number per
     order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
     airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
-134. **Nana Lite, a small exam tutor (v0.166.0; owner, 14 and 15 Nov 2026; `docs/NANA_LITE.md`):** "Still unsure? Ask Nana Lite"
+
+134. **My Calendar (v0.166.0, branch `push/my-calendar`; owner, 14 Nov 2026, "calendar approved build"; plan and mockups
+    `docs/MY_CALENDAR.md`):** "📅 My Calendar" in both menus with today's count; `/calendar`, `/calendar/sync`, `/calendar/settings`,
+    explainer `/my-calendar`, help "my-calendar". Code: `lib/my-calendar.ts` (pure: entries, agenda, dots, choices, bells, the `.ics`
+    writer), `lib/my-calendar-server.ts` (every source read live, the private link, `calendarBells` and `weekAheadEmails` in the reminders
+    cron), `app/api/calendar` (+ `[token]` for the feed), `components/calendar/*`, `lib/native-calendar.ts` (the app's calendar plugin,
+    when present). Collections (server-only): `myCalendar`, `calendarFeeds`, `calendarBells`. **Owner steps:** `firebase deploy --only
+    firestore:rules` (the three new collections; no new indexes); `ACCOUNT_DATA_KEY` (already set for My Cycle) lets members see their
+    link again, otherwise it's shown once; for the apps, the calendar plugin and permission texts in `docs/MY_CALENDAR.md` "Not built",
+    then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
+    Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
+    a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
+135. **AI content checks (v0.174.0, branch `push/content-checks`; owner, 15 Nov 2026, plan and mockups `docs/CONTENT_CHECKS.md`):** every
+    photo, video frame and text others can see is checked before it is published; private messages never. **Owner steps:** (a) `firebase
+    deploy --only firestore:rules,firestore:indexes` (eight new server-only collections; check passes for journals, shop items and profiles;
+    two TTL policies, no composite index). (b) `ANTHROPIC_API_KEY` is already set for Nana and is used here too (optional
+    `CONTENT_CHECK_MODEL`); without a key nothing is blocked: posts are published and queued for the re-check. (c) Check the figures in
+    Admin → Reports → Content checks (defaults: 3 strikes in 90 days, 14 days' pause). (d) Switch on Cloudflare's **CSAM Scanning Tool**
+    for the zone serving the R2 bucket and the site. (e) Register with NCMEC's CyberTipline and agree the Nigerian reporting route
+    (NPF-NCCC, NAPTIP) with counsel; give the Legal lead the Legal department in Admin → Access. (f) Counsel: Terms section 2e. Video:
+    Media and Moments by poster and frames; journal videos by their poster only. Tests: `test:content-checks`, `test:content-checks-server`
+    (new), rules (two new tests).
+136. **Onboarding drafts for contract roles (v0.174.2, branch `push/admin-menus-drafts`; owner, 15 Nov 2026):** Nana-HR & hiring's
+    terms form opens under the applicant, scrolled into view and focused; contract roles now get the Campus Ambassador Agreement or the
+    Contractor (Consulting) Agreement (`lib/hr-drafts.ts`, kind `agreement`) plus the option grant and announcement; both are templates
+    in the staff library (seeded on the next library load). **Owner steps:** nothing to deploy. Have Legal review the two agreements
+    (each [Counsel: …] point: withholding tax, consideration for options-only work, the data clause, disputes). Test: `test:hr` (now in CI).
+137. **Growth measurement, step 1 of the growth plan (v0.175.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
+    `docs/GROWTH.md`):** where members come from (first touch in the `na_src` cookie, set in `middleware.ts`), first value per kind of
+    member, returns in weeks 1 to 4 with what brought them (`?r=` on bells, push, the digest, reminders, Nana Jobs), installs, and
+    Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on My account → Growth → Referrals.
+    **Deploy:** `firebase deploy --only firestore:rules` (server-only `growthMembers`, `growthFirst`, `growthDaily`, `growthCreators`).
+    No new indexes, settings or keys. Tests: `test:growth`, `test:growth-server` (new), rules. Not built: offline Exam Prep mocks
+    don't count as first value (only ones submitted online); an iPhone install opened before signing in counts as Direct (its home-screen
+    app has its own cookies).
+138. **Nana Lite, a small exam tutor (v0.176.0; owner, 14 and 15 Nov 2026; `docs/NANA_LITE.md`):** "Still unsure? Ask Nana Lite"
     under a marked Exam Prep practice question explains it another way (English or Pidgin) and answers follow-ups. **Cloudflare only:**
     `workers/nana-lite` is a Worker in front of three Cloudflare Containers (llama.cpp, one model baked into each image): Phi-3.5-mini
     (default, MIT), Qwen2.5-1.5B and SmolLM2-1.7B (Apache-2.0); no Llama. On its workers.dev address (naapp.tech stays on Vercel nameservers for the wildcard);
@@ -1150,14 +1195,20 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Hotel kit | `lib/hotel.ts` (rules), `lib/hotel-server.ts`, `lib/hotel-pay-server.ts` (money), `lib/hotel-pos-server.ts` (Moniepoint, WhatsApp), `lib/hotel-nana-server.ts`, `components/hotel/*`, `/api/hotel`, `/api/public/hotel`, pages `/profile/hotel`, `/till`, `/hotel/<code>`, `/hotels`, the site's `/hotel`; `docs/HOTEL_KIT.md` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
-| Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
+| Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*` (incl. `seen`), `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `tests/nana-jobs/` (with `fixtures/`); `THIRD_PARTY_NOTICES` |
+| My Calendar | pure rules `lib/my-calendar.ts` (entries, agenda, dots, choices, bells, the `.ics` writer), month grid `lib/month-calendar.ts`, server `lib/my-calendar-server.ts` (sources, private link, bells, Monday email), routes `app/api/calendar` and `app/api/calendar/[token]` (the feed), pages `app/(main)/calendar` (+ `sync`, `settings`) and `components/calendar/*`, explainer `app/(main)/my-calendar`, app bridge `lib/native-calendar.ts`, menu `useCalendarToday` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
+| Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` on `/admin/content-checks` (People & Trust in `ADMIN_SECTIONS`, a tab of Reports), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
+| Growth measurement | rules `lib/growth.ts` · server `lib/growth-server.ts` (sign-up source, `firstValue`, visits, installs, `markSeen`, `storedGrowth` hourly in `statCache/growth`, `inviteStats`) · first touch `middleware.ts` (`firstTouch`) · browser `components/GrowthBeat.tsx`, `lib/growth-client.ts` · `app/api/growth`, `app/api/admin/growth`, `/admin/growth`, `components/InviteLinkCard.tsx` · `docs/GROWTH.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
+| Hiring drafts | `lib/hr-drafts.ts` (offer, Campus Ambassador Agreement, Contractor (Consulting) Agreement, option grant, announcement; `ROLE_PRESETS`), `lib/careers-server.ts` (`makeDrafts`), `app/(main)/admin/team/hr/page.tsx`; test `npm run test:hr` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
 
 - **Booking calendars (v0.164.1):** `components/MonthCalendar.tsx` (Monday-first month view in My Cycle's look; `isOpen` tints the
-  open days, `min`/`max` limit the range) in `BookingCard`, `PpmBook` and the reschedule box on `/bookings`. Test: `npm run test:calendar`.
+  open days, `min`/`max` limit the range) in `BookingCard`, `PpmBook` and the reschedule box on `/bookings`; v0.165.1 adds range mode
+  (`rangeEnd`, `onRangeEnd`) for hotel stays in `components/hotel/HotelSite.tsx`, and `dayLabel` (dates written by hand so server and
+  browser match). Test: `npm run test:calendar`.
 
 ## 5. Tests and checks
 
@@ -1174,11 +1225,18 @@ npm run test:shared            # shared rate limits and cache (a stand-in Upstas
 npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
-npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards (no network)
+npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards, the v0.174.1 faults on feed fixtures (no network)
 npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
 npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
 npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle, cash-up, Nana's price guard); "ALL OK"
+npm run test:content-checks    # AI content checks: thresholds, deciding, strikes, communities, words; "ALL OK"
+npm run test:content-checks-server # the gate, holds, blocks, pauses, bans, appeals, re-check, passes, create paths (AI stubbed); "ALL OK"
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
+npm run test:growth            # growth: channel mapping, return tags, first value, weeks, cohorts, the funnel; "GROWTH OK"
+npm run test:growth-server     # growth on the emulator: sign-up source, first values, visits, installs, returns, snapshot; "GROWTH SERVER OK"
+npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
+npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
+npm run test:hr                # careers and Nana-HR drafts (offer, the contract agreements, grant), then hiring on the emulators
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

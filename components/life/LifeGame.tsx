@@ -1,5 +1,6 @@
 "use client";
 
+import LifeMilestones from "@/components/life/LifeMilestones";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -1326,6 +1327,7 @@ export default function LifeGame() {
         {picked.length > 0 && <ul className="mt-3 divide-y rounded-2xl border text-sm">{picked.map((c) => <li key={c.tel} className="flex items-center gap-2 px-3 py-2"><span className="min-w-0 flex-1"><b className="block truncate">{c.name}</b><span className="text-[10px] text-slate">{c.tel}</span></span><a href={WA(text, ngPhone(c.tel))} target="_blank" rel="noreferrer" className="rounded-full bg-[#25D366] px-2.5 py-1 text-xs font-bold text-white">WhatsApp</a><a href={`sms:${c.tel}?body=${encodeURIComponent(text)}`} className="rounded-full border px-2.5 py-1 text-xs font-bold">SMS</a></li>)}</ul>}
         <p className="mt-2 break-all text-center font-mono text-[10px] text-slate">{link}</p>
         {!canPick && <p className="mt-1 text-center text-[10px] text-slate">Picking from your contacts works in Chrome on Android; on other phones, share on WhatsApp and choose your friends there.</p>}
+        {user && <LifeMilestones user={user} />}
         <div className="mt-4 flex items-baseline justify-between"><p className="text-[11px] font-bold uppercase tracking-wider text-slate">Your invites</p>{inviteList && <span className="text-[11px] text-slate">{inviteList.invites.length} joined · {inviteList.paid} paid · you earned <b className="text-emerald-700">{bonusOf(inviteList.paid)}</b></span>}</div>
         {!inviteList ? <p className="text-sm text-slate">Loading…</p> : inviteList.invites.length === 0 ? <p className="mt-1 rounded-2xl bg-slate-50 px-3 py-3 text-center text-xs text-slate">Nobody has joined from your link yet. Friends show up here as soon as they open Notes Life from it.</p> : (
           <ul className="mt-1 divide-y rounded-2xl border text-sm">{inviteList.invites.map((f) => (

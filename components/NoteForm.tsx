@@ -12,6 +12,7 @@ import NanaAssist from "./NanaAssist";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken, getNoteById } from "@/lib/firestore-notes";
+import { reportValue } from "@/lib/growth-client";
 import { deleteField } from "firebase/firestore";
 import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
 import { uploadMarked } from "@/lib/upload";
@@ -23,6 +24,10 @@ import TopicPicker from "@/components/TopicPicker";
 import { SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
 import { ensureSubtopics } from "@/lib/subtopics-client";
 import type { Subtopic } from "@/lib/subtopics";
+import BlockedNotice from "@/components/content-checks/BlockedNotice";
+import RulesCard from "@/components/content-checks/RulesCard";
+import { requestPass } from "@/lib/content-checks-client";
+import { contentCheckOf, type CheckDetail } from "@/lib/content-checks";
 import { MAX_NOTE_TAGS, MAX_NOTE_TOPICS, matchTopic, normaliseTag, parseTags, topicLabel, topicsOf } from "@/lib/topics";
 
 // Kept identical to Precheks' own author_role text on purpose — this
@@ -70,7 +75,8 @@ function selfRoleLabel(p: UserProfile): string {
   return roleLabelFor(p);
 }
 
-export default function NoteForm({ noteId, initial, self, org }: Props) {
+export default function NoteForm({ noteId: props_noteId, initial, self, org }: Props) {
+  const noteId = props_noteId;
   useLivePricing(); // the boost price below, as set in Admin → Pricing
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title || "");
@@ -110,6 +116,10 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const featuredDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) void uploadFeatured(f); }, true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // AI content checks: what the check found when publishing was stopped (the journal stays a draft), and the id of a new journal that
+  // was saved as a draft on the way, so saving again updates it instead of making another.
+  const [blocked, setBlocked] = useState<CheckDetail | null>(null);
+  const createdId = useRef<string | undefined>(undefined);
 
   function handleTitleChange(v: string) {
     setTitle(v);
@@ -140,6 +150,10 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   async function persist(forceDraft = false): Promise<string | null> {
     setSaving(true);
     setError("");
+    setBlocked(null);
+    const noteId = props_noteId ?? createdId.current;
+    // A member publishing: saved as a draft first, checked, then published with the check's pass (firestore.rules ask for it).
+    const checkFirst = !forceDraft && status === "published" && !!self;
     const author = org
       ? { name: org.profile.displayName, role: "Organisation channel", avatar: org.profile.avatar }
       : self
@@ -178,7 +192,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         : // an admin publishing under a founder's or @na-notesapp's name: record whose journal it is by username (not by the
           // display name), so renaming never loses it; the backfill script adds the account id (scripts/backfill-author-uids.ts)
           resolveAuthorUsername(author.name) ? { authorUsername: resolveAuthorUsername(author.name)! } : {}),
-      status: forceDraft ? ("draft" as const) : status,
+      status: forceDraft || checkFirst ? ("draft" as const) : status,
       premium,
       ...(premium ? { minTier: audience } : initial?.minTier ? { minTier: deleteField() } : {}),
       offerSwahili: offerSwahili && !premium,
@@ -205,7 +219,21 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         await updateNote(noteId, payload);
       } else {
         savedId = await createNote(payload);
+        createdId.current = savedId;
       }
+      if (checkFirst && savedId) {
+        try {
+          const checkPass = await requestPass("journal", { noteId: savedId });
+          await updateNote(savedId, { status: "published", ...(checkPass ? { checkPass } : {}) });
+        } catch (err) {
+          const d = contentCheckOf(err);
+          if (!d) throw err;
+          setBlocked(d); // it stays a draft; nobody saw it
+          setSaving(false);
+          return null;
+        }
+      }
+      if (payload.status === "published") reportValue("journal"); // growth: a writer's first value (lib/growth-client.ts)
       try {
         localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
       } catch {}
@@ -396,6 +424,14 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       </label>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
+      {blocked && (
+        <BlockedNotice detail={blocked} onClose={() => setBlocked(null)} onRemovePhoto={(url) => {
+          // The cover, or a picture written into the text.
+          if (url && featuredImage === url) setFeaturedImage("");
+          else if (url) setContent((c) => c.split(url).length > 1 ? c.replace(new RegExp(`!\\[[^\\]]*\\]\\(${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`, "g"), "") : c);
+        }} />
+      )}
+      {self && <RulesCard className="max-w-xl" />}
 
       <div className="flex gap-4">
         <button

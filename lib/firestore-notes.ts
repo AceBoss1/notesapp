@@ -76,6 +76,8 @@ export type Note = {
   videoSize?: number;
   // A replay of a live (lib/live-recording.ts), set only by the server when the host taps Share to Journal; the post embeds its player.
   replayId?: string;
+  // AI content checks: the pass the server gave when it checked this journal (firestore.rules ask for one to publish; lib/content-checks-server.ts).
+  checkPass?: string;
 };
 
 export type NoteWithComputed = Note & {

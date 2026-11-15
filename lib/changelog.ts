@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.166.0",
+    version: "v0.176.0",
     bump: "minor",
     date: "2026-11-15",
     changes: [
@@ -22,12 +22,149 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.175.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Ventures: pressure-test your pitch with Nana before you send it. Three honest tests on what you wrote (will people pay, are you the one to build it, is the timing right), each with a verdict and the reason, plus the questions a reviewer may ask. Private: nothing is kept or sent to the team." },
+      { kind: "added", text: "Ventures review: the team can ask Nana for the same three tests on a pitch. She never ranks or decides; a person reads every pitch." },
+    ],
+  },
+  {
+    version: "v0.175.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Your invite link on My account → Referrals: an install link with your name on it, and how many people opened it this month, joined through you, installed the app and are still active. Numbers only, never who." },
+      { kind: "added", text: "Admin → Growth: where members come from (creators' links, Exam Prep, Jobs, Academy, Notes Life, the install page, search, WhatsApp, social, ads or direct), how many reach what they came for, and how many come back in weeks 1 to 4, with each channel's funnel, weekly cohorts, what brings members back, and the top creator links." },
+      { kind: "changed", text: "Links in bells, phone notifications, the weekly digest, reminders and Nana Jobs shortlists now say where they came from, so we can see what brings members back." },
+      { kind: "changed", text: "Privacy Policy: we note the channel that brought you, first-party only, never sold or shared; for teens and child profiles, the channel only." },
+    ],
+  },
+  {
+    version: "v0.174.2",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Careers at #NotesApp: the team's onboarding drafts for a new Campus Ambassador now include a proper ambassador agreement, so offers for contract roles are ready for review sooner. Nothing changes for applicants." },
+    ],
+  },
+  {
+    version: "v0.174.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Nana Jobs: a shortlist with nothing on it. If you hadn't filled in your profile, the job title from your NotesApp profile (\"Founder & CEO\", say) was used as the only role you wanted, so every opening was cut. Now a role counts only when you choose it; with no roles, Nana uses the ones from your CV review, or doesn't filter by job title at all." },
+      { kind: "fixed", text: "Nana Jobs: the CV review with Claude. Claude's answer was cut off before it finished, and a slow answer ran past the time limit and showed \"Something went wrong\". It now has room to answer, waits long enough, and when your AI does fail you see why (its own words, or \"your AI took too long\")." },
+      { kind: "added", text: "Nana Jobs: today's run now says why openings were cut (\"312 not in your roles, 98 location, 44 too old\"), and See all collected jobs lists every opening your run looked at, with the reason each one did or didn't make your list and a link to open it." },
+      { kind: "changed", text: "Nana Jobs: every job on your shortlist has a clear Apply button (the firm's own page in a new tab, or Apply on #NotesApp for Notes Jobs) and Mark as applied beside it. An empty profile now says so, with a button to set it up." },
+    ],
+  },
+  {
+    version: "v0.174.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Content checks: every photo, video frame and text that other people can see (journals, community posts and comments, Moments, Media posts, shop items, events and profiles) is checked by AI before it is published. Private messages are not read." },
+      { kind: "added", text: "A post that breaks the rules isn't published: it stays as a draft, you're told what was found and in which photo, and you can remove the photo or ask for a review. Each break is a strike; strikes and appeals are on your account page." },
+      { kind: "added", text: "The rules card on every community's About tab, the journal editor and the Media studio, the Content rules page, and a new section 2e in the Terms." },
+      { kind: "added", text: "Admin → People & Trust → Content checks (beside Reports): the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
+      { kind: "changed", text: "Videos on posts are now checked before they are shown (Terms, section 2a)." },
+    ],
+  },
+  {
+    version: "v0.173.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "For our team: Admin → Users finds members by name, @username, uid, work or email domain (and by an exact email, logged), with filters (needs action, suspended, possible duplicates, team, organisations, campus, new this week), plan and order; a summary at the top; and whether each member's email is confirmed, how they sign in and when they were last seen." },
+      { kind: "added", text: "For our team: a member's full picture in one panel (account, money, activity, reports and suspensions, who viewed their details), staff notes, a history of every change made to their account, and actions: send a notification (to one or many), resend the confirmation email, send a password reset link, export their data (logged), mark look-alike accounts as different people, and suspend several at once." },
+    ],
+  },
+  {
+    version: "v0.172.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎁 Campus rewards: internships and scholarships from our partners, perks and free #NotesApp merch for campus ambassadors. Each says who can claim it (a level and up, the top few this month, or Campus Leads) and what's missing; merch is sent to you, with a tracking link when it ships." },
+      { kind: "added", text: "Campus Leads: a coordinator can make one ambassador on each campus its Campus Lead, who also sees how everyone on that campus is doing." },
+      { kind: "added", text: "Campus badges: campus coordinators wear the maroon #NotesApp team mark by their name, and campus ambassadors and Campus Leads the white mark with a maroon shadow." },
+    ],
+  },
+  {
+    version: "v0.171.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "The campus programme is open in Kenya, Botswana and Ghana as well as Nigeria, with due dates and months in each country's own time." },
+      { kind: "added", text: "🏆 Campus leaderboard for ambassadors: your team or your country, this month or all time. Points for every member who joins with your link or code, every approved task, and a bonus for finishing on time; medals for the top three, and levels from Rookie to Legend that never go down. Coordinators see each ambassador's level and points on their overview." },
+    ],
+  },
+  {
+    version: "v0.170.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎓 The campus programme, starting in Nigeria: campus ambassadors open Campus to see the tasks their coordinator gave them, report progress with a note and a link as proof, and see their sign-ups this month and in all with their link and code. See The campus programme in the Help Centre." },
+      { kind: "added", text: "For our team: Campus in the admin area. Campus coordinators (appointed per country by super admins, the Chief of Staff and Marketing) give their ambassadors access, send tasks to all or some of them, approve or send back what they hand in, and follow each one's sign-ups, tasks and check-ins. Ambassadors get the Campus pages only." },
+    ],
+  },
+  {
+    version: "v0.169.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "My account has a new look: a menu down the left on a computer, with four groups (Profile, Money, Store, Growth) that open to their pages, Day / Night / Auto and Sign out at the bottom, and plain page headings in place of the crimson band. On a phone, the bar at the top says where you are (My account / Money / Analytics) and opens the same menu." },
+      { kind: "changed", text: "Analytics: the account picker sits at the top right, the tabs share a row with Last 7, 30 and 90 days, and your sounds sit beside the chart. On a phone, the tabs and the period are two dropdowns." },
+      { kind: "changed", text: "Business books: the shop, All saved and My books at the top with the tabs across (a dropdown on a phone, with Shop for Inventory, Online orders and Analytics); Import and export shows Step 2 of 5 with a bar on a phone, and the source as a dropdown." },
+      { kind: "changed", text: "Messages: one Emoji · Stickers button opens both, with Emoji and Stickers at the top; B, I and U are always there; the paperclip sits beside the message box; and recording a voice note fills the row with the time, a moving wave, a bin to cancel and the button to add it." },
+      { kind: "changed", text: "Explore on a phone: one Browse box (Topics, 1 of 9) opens the list of every section. Bookings shows the refund, rescheduling and payout rules as three cards. Your own profile has a Manage profile menu, and Subscribe comes first on a phone." },
+    ],
+  },
+  {
+    version: "v0.168.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp. The sign-up form says so; use your own address (ordinary providers like Gmail are never blocked) or Google or LinkedIn. See Temporary (throwaway) email addresses in the Help Centre." },
+      { kind: "changed", text: "For our team: a new admin area, with a sidebar of groups (Workspace, Content, People & Trust, Money, Growth, Platform, Admin) that open to their pages, Jump to a page, and a drawer on phones; plus Throwaway emails under People & Trust, to block domains and find and suspend accounts already using them. Nothing else changes for members." },
+    ],
+  },
+  {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Media posts: Like, Share, Remix and Save sit on a rail down the right of the picture or video, each an icon with its label, like other video apps." },
+    ],
+  },
+  {
+    version: "v0.167.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "📅 My Calendar, in the account menu and the phone menu with today's count: your 1:1 sessions and pay-per-minute calls, hotel stays (and, for hotel staff, the hotel's arrivals and departures), event and paid live tickets, events you're going to or host, Notes Jobs interviews and money due from Business books, in one month view with a coloured dot for each kind and the day's list below. Each entry opens where it came from. Times are in Lagos time." },
+      { kind: "added", text: "Add to my calendar: an invite your phone opens in its own calendar, on every entry, the booking confirmation, a hotel booking's page and each ticket in My tickets." },
+      { kind: "added", text: "Sync with your phone: a private calendar link that iPhone Calendar, Google Calendar and Outlook subscribe to and keep up to date. Choose what goes out (money due starts off); it carries titles and times only, and Make a new link stops the old one at once." },
+      { kind: "added", text: "Calendar reminders: a bell shortly before sessions and calls, an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Reminders that already came stay as they were." },
+    ],
+  },
+  {
+    version: "v0.166.0",
+    bump: "minor",
+    date: "2026-11-14",
+    changes: [
+      { kind: "changed", text: "Referral milestones now pay ₦200 (First friend), ₦1,100 (Squad), ₦6,000 (Crowd) and ₦25,000 (Viral) in Bonus Credits." },
+      { kind: "added", text: "Referral milestones in Notes Life: friends who join Notes Life from your invite count too (each friend once), and the milestones show with Claim in the game's Invite panel." },
+      { kind: "added", text: "Admin → Limits → Referral milestones: super admins set how many friends each milestone needs and what it pays, reset them to the defaults, or reset a member's claims." },
+    ],
+  },
+  {
     version: "v0.165.1",
     bump: "patch",
     date: "2026-11-14",
     changes: [
-      { kind: "added", text: "Ventures: pressure-test your pitch with Nana before you send it. Three honest tests on what you wrote (will people pay, are you the one to build it, is the timing right), each with a verdict and the reason, plus the questions a reviewer may ask. Private: nothing is kept or sent to the team." },
-      { kind: "added", text: "Ventures review: the team can ask Nana for the same three tests on a pitch. She never ranks or decides; a person reads every pitch." },
+      { kind: "changed", text: "Hotel room booking uses the new calendar: tap your check-in day, then your check-out day, and your nights are shaded in between." },
     ],
   },
   {

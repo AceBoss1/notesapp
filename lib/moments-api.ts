@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkReply } from "./content-checks-reply";
 import { getAdminDb, verifySignedInRequest } from "./firebase-admin";
 import { r2PublicUrl, deleteMediaObject } from "./r2";
 import { MomentError, streamUidOf, type MomentDeps } from "./moments-server";
@@ -52,6 +53,8 @@ export async function authed(req: NextRequest, feature: "moments" | "messages", 
 }
 
 export function fail(err: unknown, fallback: string): NextResponse {
+  const cc = checkReply(err);
+  if (cc) return cc;
   if (err instanceof MomentError || err instanceof MessageError) return NextResponse.json({ error: err.message }, { status: err.status });
   if (err instanceof Error && /Missing auth token|verifyIdToken|ID token/i.test(err.message)) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const f = friendlyMessage(err, fallback);
