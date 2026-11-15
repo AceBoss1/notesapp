@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { STATUS_LABEL, naira, type OrderStatus } from "@/lib/hotel";
+import { lagosAt } from "@/lib/my-calendar";
+import AddToCalendar from "@/components/calendar/AddToCalendar";
 
 // What a guest's link shows (app/hotel/[code]): their booking, order or room bill, and the ways to pay for it. The server confirms every
 // payment with the provider; this page only asks it to check.
@@ -59,6 +61,10 @@ export default function HotelGuest({ initial, pay, returnRef, wantTransfer }: { 
           <li className="flex justify-between py-2"><span className="text-[#5C534E]">Check-out</span><b>{v.checkOut}, by {v.checkOutTime}</b></li>
           <li className="flex justify-between py-2"><span className="text-[#5C534E]">{v.nights} night{v.nights === 1 ? "" : "s"}</span><b>{naira(v.totalKobo ?? 0)}</b></li>
         </ul>
+      )}
+      {/* My Calendar: the stay as one event, check-in to check-out (Lagos time). */}
+      {v.kind === "booking" && v.checkIn && v.checkOut && (v.status === "confirmed" || v.status === "checked_in" || (v.status === "held" && v.held)) && (
+        <AddToCalendar small className="mt-3" entry={{ id: `stay:${v.id}`, kind: "hotel", stay: true, title: `${v.hotel}: ${v.room ?? "your stay"}`, feedTitle: `Hotel stay · ${v.hotel}`, start: lagosAt(v.checkIn, v.checkInTime || "14:00"), end: lagosAt(v.checkOut, v.checkOutTime || "12:00"), where: v.hotel, href: `/hotel/${v.code}` }} />
       )}
       {v.kind === "order" && (
         <ul className="mt-4 divide-y divide-[#E7DAD3] text-sm">
