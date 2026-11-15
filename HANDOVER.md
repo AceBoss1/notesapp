@@ -1063,6 +1063,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `https://<site>/api/hotel/moniepoint`. Until set, those two add-ons show "Not set up yet" and can't be bought. The account number per
     order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
     airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
+134. **Nana Lite, a small exam tutor (v0.166.0; owner, 14 Nov 2026; `docs/NANA_LITE.md`):** "Still unsure? Ask Nana Lite" under a
+    marked Exam Prep practice question explains it another way (English or Pidgin) and answers follow-ups, from OUR OWN small open model
+    (Phi-3.5-mini by default; only MIT/Apache models in `LITE_MODELS`) through an OpenAI-compatible server (`NANA_LITE_URL`,
+    `NANA_LITE_MODEL`, `NANA_LITE_KEY`). Grounded in the question's reviewed explanation; only published questions the student can see;
+    40 a day (per account, or a hashed address signed out; `prepLiteDaily`, TTL two days); nothing typed is stored; the day's total is
+    `prepStats.liteAsks`. Off until `NANA_LITE_URL` is set. `scripts/nana-lite-eval.ts` measures accuracy without the answer, for the
+    pilot and Mozilla (FUNDING.md §24). Deploy `firebase deploy --only firestore`. Tests: `test:nana-lite`. Phase 3 (on the phone,
+    offline) is planned, not built.
 
 ## 3. How the work is done (please keep these)
 

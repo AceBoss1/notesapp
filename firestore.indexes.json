@@ -741,6 +741,12 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "prepLiteDaily",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "appReplies",
       "fieldPath": "expireAt",
       "ttl": true,

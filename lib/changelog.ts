@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.166.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep: Still unsure? Ask Nana Lite. After a question is marked, Nana Lite explains it another way, in English or Pidgin, and answers follow-up questions. It's a small AI on NotesApp's own server that explains from the question's reviewed explanation. What you type isn't saved. Appears once Nana Lite is switched on." },
+    ],
+  },
+  {
     version: "v0.165.1",
     bump: "patch",
     date: "2026-11-14",

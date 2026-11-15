@@ -21,7 +21,7 @@ const token = (bytes = 18) => randomBytes(bytes).toString("base64url");
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 
 // Daily counts for Admin → Naija Exam Prep (no student is identified in them).
-export const bump = (db: Firestore, field: "answers" | "mocks" | "packsSold" | "packsSaved" | "payLinks" | "reports", by = 1, now = new Date()) =>
+export const bump = (db: Firestore, field: "answers" | "mocks" | "packsSold" | "packsSaved" | "payLinks" | "reports" | "liteAsks", by = 1, now = new Date()) =>
   db.doc(`prepStats/${today(now)}`).set({ [field]: FieldValue.increment(by), day: today(now) }, { merge: true }).catch(() => {});
 
 // ---------------------------------------------------------------- catalogue

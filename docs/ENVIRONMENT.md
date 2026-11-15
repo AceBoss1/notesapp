@@ -82,6 +82,9 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 
 | Setting | Secret | What it does |
 |---|---|---|
+| `NANA_LITE_URL` | no | Nana Lite (docs/NANA_LITE.md): the base address of our own small-model server with an OpenAI-compatible API (llama.cpp's llama-server, Ollama or vLLM), e.g. https://lite.notesapp.name.ng. Unset: Nana Lite is off and Exam Prep shows only the written explanation. |
+| `NANA_LITE_MODEL` | no | The model name that server expects (default phi-3.5-mini-instruct). Use only a model listed in lib/nana-lite.ts LITE_MODELS, whose licence we checked. |
+| `NANA_LITE_KEY` | **yes** | Optional: the bearer key the Nana Lite server requires (set the same value as llama-server --api-key). |
 | `EXAM_PREP_PASS_KEY` | **yes** | A P-256 private key (PKCS#8 PEM, or its base64) that signs the offline pass for saved packs with paid questions. Make one with: node -e "const{generateKeyPairSync:g}=require('crypto');console.log(g('ec',{namedCurve:'P-256'}).privateKey.export({type:'pkcs8',format:'pem'}))". Without it, only free questions can be saved for offline use. |
 
 ## Kiswahili (NKENNEAi)
