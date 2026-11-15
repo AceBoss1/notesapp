@@ -39,6 +39,20 @@ export async function reveal(db: Firestore, who: Viewer, input: RevealInput, now
   return { value };
 }
 
+// Admin → Users "Find by email": the account that signs in with an exact address. Only the uid comes back (never another detail), for the
+// same departments that may see a member's email, with a reason; logged in adminViewLog like a reveal ("Found by email").
+export async function findByEmail(db: Firestore, who: Viewer, input: { email?: unknown; reason?: unknown; note?: unknown }, find: (email: string) => Promise<string | null>, now = new Date()): Promise<{ uid: string }> {
+  if (!hasAnyDept(who.access, REVEALS["member-email"].depts)) throw new RevealError(403, "Your role doesn't include looking members up by email.");
+  const email = String(input.email ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) throw new RevealError(400, "Enter the whole email address.");
+  const reason = revealReason(input.reason, input.note);
+  if (!reason) throw new RevealError(400, "Say why you need it (for Other, add a few words).");
+  const uid = await find(email);
+  if (!uid) throw new RevealError(404, "No #NotesApp account signs in with that email.");
+  await db.collection("adminViewLog").add({ at: Timestamp.fromDate(now), adminUid: who.uid, adminName: who.name, kind: "member-email", subject: uid, reason: `Found by email · ${reason}`, page: "Users" });
+  return { uid };
+}
+
 // Newest first; by one member (subject) or one staff member (adminUid) when asked.
 export async function viewLog(db: Firestore, opts: { subject?: string; adminUid?: string; limit?: number } = {}): Promise<ViewLogEntry[]> {
   let q = db.collection("adminViewLog").orderBy("at", "desc");

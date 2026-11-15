@@ -3,19 +3,24 @@
 // Run: npm run test:menus
 import assert from "node:assert/strict";
 import { readdirSync, statSync } from "node:fs";
-import { ADMIN_SECTIONS, GROUP_ORDER, activeSection, allowedSections, groupSections, jumpMatches } from "../../lib/admin-access";
+import { ADMIN_SECTIONS, GROUP_ORDER, activeSection, allowedSections, groupSections, jumpMatches, pathAllowed } from "../../lib/admin-access";
+import { campusPages } from "../../lib/campus";
 
 const superAdmin = { role: "super", depts: [] } as never;
 const all = allowedSections(superAdmin);
 // Every folder under app/(main)/admin (but the login page) has its menu entry, and every entry is in a known group.
 for (const dir of readdirSync("app/(main)/admin")) {
   if (dir === "login" || !statSync(`app/(main)/admin/${dir}`).isDirectory()) continue;
+  if (dir === "campus") { assert.ok(campusPages({ lead: true, role: null }).every((p) => p.href.startsWith("/admin/campus"))); continue; } // its own menu (lib/campus.ts)
   assert.ok(ADMIN_SECTIONS.some((s) => s.href === `/admin/${dir}` || s.href.startsWith(`/admin/${dir}/`)), `/admin/${dir} is in the menu`);
 }
 for (const s of ADMIN_SECTIONS) assert.ok(GROUP_ORDER.includes(s.group), `${s.label}: ${s.group} is a group`);
+// Campus pages are open to the gate for everyone (coordinators and ambassadors aren't staff); /api/campus decides.
+assert.ok(pathAllowed(null, "/admin/campus") && pathAllowed(null, "/admin/campus/tasks") && !pathAllowed(null, "/admin/campusx"));
+for (const p of campusPages({ lead: true, role: null })) assert.equal(p.group, "Campus");
 
 const groups = groupSections(all);
-assert.deepEqual(groups.map((g) => g.name), GROUP_ORDER);
+assert.deepEqual(groups.map((g) => g.name), GROUP_ORDER.filter((g) => g !== "Campus"), "Campus pages come from lib/campus.ts");
 const count = Object.fromEntries(groups.map((g) => [g.name, g.pages.length]));
 assert.deepEqual(count, { Workspace: 9, Content: 6, "People & Trust": 10, Money: 9, Growth: 9, Platform: 7, Admin: 4 }, "the counts in the design");
 assert.deepEqual(groups.find((g) => g.name === "People & Trust")!.pages.map((p) => p.label).slice(0, 3), ["Users", "Throwaway emails", "Organisations"]);

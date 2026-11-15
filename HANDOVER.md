@@ -18,7 +18,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
-| `push/content-checks` | **v0.170.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
+| `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
@@ -1077,7 +1077,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
     Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
     a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
-135. **AI content checks (v0.170.0, branch `push/content-checks`; owner, 15 Nov 2026, plan and mockups `docs/CONTENT_CHECKS.md`):** every
+135. **AI content checks (v0.174.0, branch `push/content-checks`; owner, 15 Nov 2026, plan and mockups `docs/CONTENT_CHECKS.md`):** every
     photo, video frame and text others can see is checked before it is published; private messages never. **Owner steps:** (a) `firebase
     deploy --only firestore:rules,firestore:indexes` (eight new server-only collections; check passes for journals, shop items and profiles;
     two TTL policies, no composite index). (b) `ANTHROPIC_API_KEY` is already set for Nana and is used here too (optional

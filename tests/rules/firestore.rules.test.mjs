@@ -138,6 +138,32 @@ test("throwaway emails: no profile with a sign-in email at a blocked domain or i
   await assertFails(setDoc(doc(as("alice"), "settings/emailBlocklist"), { domains: [] }));
 });
 
+test("campus: the team and its tasks are server-only (lib/campus-server.ts)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "campusTeam/alice"), { uid: "alice", role: "ambassador", country: "NG" });
+    await setDoc(doc(db, "campusTasks/t1"), { assignees: ["alice"], coordinatorUid: "pub" });
+  });
+  await assertFails(getDoc(doc(as("alice"), "campusTeam/alice")));
+  await assertFails(setDoc(doc(as("alice"), "campusTeam/alice"), { role: "coordinator" }));
+  await assertFails(getDoc(doc(as("alice"), "campusTasks/t1")));
+  await assertFails(updateDoc(doc(as("pub"), "campusTasks/t1"), { assignees: [] }));
+  await assertFails(getDoc(doc(as("alice"), "campusRewards/r1")));
+  await assertFails(setDoc(doc(as("alice"), "campusRewardClaims/r1_alice"), { status: "approved" }));
+  // The campus badge is the server's to give.
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { campusBadge: "coordinator" }));
+  const base = { uid: "cb", username: "cb", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false, consent: { version: "v", acceptedAt: "x" } };
+  await assertFails(setDoc(doc(as("cb"), "users/cb"), { ...base, campusBadge: "ambassador" }));
+});
+
+test("admin users: staff notes, change history and duplicate marks are server-only (lib/admin-members-server.ts)", async () => {
+  for (const path of ["adminMemberNotes/n1", "adminMemberHistory/h1", "adminUserFlags/alice"]) {
+    await assertFails(getDoc(doc(as("alice"), path)));
+    await assertFails(setDoc(doc(as("alice"), path), { uid: "alice", text: "x" }));
+    await assertFails(getDoc(doc(as("boss", { admin: true }), path)), "even staff go through the server");
+  }
+});
+
 test("a founder email without the admin claim is no longer an admin", async () => {
   await assertFails(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
   await assertFails(getDoc(doc(as("x", { email: "someone@else.com" }), "ledger/ref1")));

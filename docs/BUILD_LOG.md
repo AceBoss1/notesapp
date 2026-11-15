@@ -3319,7 +3319,7 @@ pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest 
 ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
-**AI content checks (v0.170.0)** — every photo, video frame and text that people other than the author can see is checked before it is
+**AI content checks (v0.174.0)** — every photo, video frame and text that people other than the author can see is checked before it is
 published (owner's decisions and approved mockups, 15 Nov 2026: `docs/CONTENT_CHECKS.md`, `docs/mockups/content-checks/`). Pure rules
 `lib/content-checks.ts` (settings with the owner's defaults, `decide`: pass, hold for a person, block with a strike, child safety; news,
 medical and art in context; teens stricter; strikes, pauses, bans, community steps, the words). The checker `lib/content-checks-ai.ts`: one

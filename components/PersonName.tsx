@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import TeamBadge, { CampusBadge } from "@/components/TeamBadge";
 import { useBadges } from "@/lib/badges-client";
 import type { NameBadges } from "@/lib/name-badges";
 
@@ -11,11 +11,12 @@ import type { NameBadges } from "@/lib/name-badges";
 // they're looked up by username (lib/badges-client.ts, one request for a whole list).
 export function NameBadgeIcons({ username, badges, size = 15, onDark = false }: { username?: string | null; badges?: NameBadges | null; size?: number; onDark?: boolean }) {
   const b = useBadges(username, badges);
-  if (!b || (!b.level && !b.team)) return null;
+  if (!b || (!b.level && !b.team && !b.campus)) return null;
   return (
     <span className="ml-1 inline-flex items-center gap-0.5 align-middle">
       {b.level && <VerifiedBadge size={size} level={b.level} goldKind={b.goldKind} onDark={onDark} />}
       {b.team && <TeamBadge size={size} />}
+      {b.campus && <CampusBadge size={size} lead={b.campus === "lead"} />}
     </span>
   );
 }

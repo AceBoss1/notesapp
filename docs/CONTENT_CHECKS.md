@@ -2,7 +2,7 @@
 
 Every photo, video frame and text that people other than the author can see on #NotesApp is checked by AI **before it is published**.
 Private 1:1 and group messages are never checked. Child sexual abuse material is an instant permanent ban and is reported.
-**Status: built in v0.170.0 (15 Nov 2026).** The owner approved the mockups on 15 Nov 2026 and they were built as drawn. Notes on the build,
+**Status: built in v0.174.0 (15 Nov 2026).** The owner approved the mockups on 15 Nov 2026 and they were built as drawn. Notes on the build,
 and what differs, are at the end.
 
 ## Decisions (owner, 15 Nov 2026)
@@ -122,7 +122,7 @@ figure (default 3 in the window) its owner and moderators get a bell and every v
 7. **Counsel:** review Terms section 2e (content checks) and decide whether to bump the Terms version.
 8. **Give the Legal department to the Legal lead** in Admin → Access so they see the child-safety queue.
 
-## As built (v0.170.0)
+## As built (v0.174.0)
 
 - Built as drawn, with these differences, all from the owner's own rules:
   - **The rules card has no figures** ("Too many in a short time and posting is paused for a while"): the mockup said "three in 90 days",

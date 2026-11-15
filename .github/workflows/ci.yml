@@ -84,6 +84,8 @@ jobs:
       - run: npm run test:global
       - run: npm run test:throwaway
       - run: npm run test:menus
+      - run: npm run test:admin-users
+      - run: npm run test:campus
       - run: npm run test:nana-jobs
       - run: npm run test:recording
       - run: npm run test:live-rooms
