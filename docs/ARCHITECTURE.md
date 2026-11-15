@@ -169,7 +169,7 @@ The speed and infrastructure plan starts each stage when a number crosses its li
 - **Tests**: `npm run test:backups` (a stand-in fetch checks every request).
 
 
-## Growth measurement (v0.169.0)
+## Growth measurement (v0.171.0)
 
 Step 1 of the growth plan (`docs/GROWTH.md`). The middleware works out a visitor's channel once, from first-party data, and keeps it in the
 httpOnly `na_src` cookie on the domain's whole family; it can't write to the database, so a short readable `na_ping` flag asks the page

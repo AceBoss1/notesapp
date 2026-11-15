@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { BRAND_EMOJI } from "@/lib/messages-rules";
 import { EMOJI_PACKS, packUnlocked, unlocksPacks } from "@/lib/emoji-packs";
@@ -16,33 +16,21 @@ export const EMOJIS = [
   "💜","🖤","💔","⭐","🌟","🌍","☀️","🌙","☕","🍽️","🚀","💡","📌","📎","📅","✅",
 ];
 
-// The 😊 button before B / I / U: opens a grid; tapping an emoji puts it into the message where the cursor is. Tabs along the top: Everyday
-// (ours and the usual emojis) and each emoji pack (lib/emoji-packs.ts). A pack that comes with Pro and above shows a lock and Unlock.
-export default function EmojiPicker({ onPick, disabled, className = "w-8 rounded border border-rule py-1" }: { onPick: (emoji: string) => void; disabled?: boolean; className?: string }) {
-  const [open, setOpen] = useState(false);
+// The emoji half of the composer's Emoji · Stickers panel (EmojiStickerPicker): tapping an emoji puts it into the message where the cursor
+// is. Tabs along the top: Everyday (ours and the usual emojis) and each emoji pack (lib/emoji-packs.ts). A pack that comes with Pro and
+// above shows a lock and Unlock.
+export function EmojiPanel({ onPick }: { onPick: (emoji: string) => void }) {
   const [tab, setTab] = useState("everyday");
   const { profile } = useMember();
   const tier = profile ? effectiveTier(profile) : undefined;
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
-  }, [open]);
   const pack = EMOJI_PACKS.find((p) => p.id === tab);
   const unlocked = !pack || packUnlocked(pack, tier);
   return (
-    <div className="relative" ref={box}>
-      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Emoji" title="Emoji" className={className}>😊</button>
-      {open && (
-        <div className="absolute bottom-full left-0 z-20 mb-2 w-[19.5rem] rounded-lg border border-rule bg-card p-2 shadow-lg" role="dialog" aria-label="Choose an emoji">
+    <div>
           <div className="mb-2 flex gap-1 overflow-x-auto border-b border-rule pb-2" role="tablist" aria-label="Emoji packs">
             {[{ id: "everyday", name: "Everyday", free: true }, ...EMOJI_PACKS].map((p) => (
               <button key={p.id} type="button" role="tab" aria-selected={tab === p.id} onClick={() => setTab(p.id)}
-                className={`shrink-0 rounded-full px-2.5 py-1 font-ui text-xs font-semibold ${tab === p.id ? "bg-crimson text-white" : "text-slate hover:bg-paper"}`}>
+                className={`shrink-0 rounded-full px-3 py-1.5 font-ui text-[13px] ${tab === p.id ? "bg-crimson-bright/10 font-semibold text-crimson" : "text-slate hover:bg-paper"}`}>
                 {!p.free && !unlocksPacks(tier) && <span aria-label="locked">🔒 </span>}{p.name}
               </button>
             ))}
@@ -78,8 +66,6 @@ export default function EmojiPicker({ onPick, disabled, className = "w-8 rounded
               </div>
             </>
           )}
-        </div>
-      )}
     </div>
   );
 }

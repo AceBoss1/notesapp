@@ -16,7 +16,7 @@ set-up steps outside the code are in `docs/OWNER_SETUP.md`.
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to naapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
-| `docs/GROWTH.md` | Growth measurement (step 1 of the growth plan, v0.169.0): channels, first value, returns, Admin → Growth, the invite link, privacy |
+| `docs/GROWTH.md` | Growth measurement (step 1 of the growth plan, v0.171.0): channels, first value, returns, Admin → Growth, the invite link, privacy |
 | `docs/REFERRALS.md` | Discount codes (#NotesApp and every publisher), referral links and affiliates: the owner's decisions, how plans are billed, what was built |
 | `docs/FUNDING.md` | Funding applications (internal drafts): the .tech startup programme for naapp.tech, the pitch.tech answers (due 20 Nov 2026), Emergent Ventures, and a reusable company summary |
 | `docs/NOTES-LIFE-LOOKS.md` | Notes Life's two looks (plan): a pixel look (what Low res becomes) and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map with properties; the build steps |
@@ -35,6 +35,7 @@ set-up steps outside the code are in `docs/OWNER_SETUP.md`.
 |---|---|---|
 | Publishing | Journals (Markdown composer with toolbar and preview, drafts, premium posts), follow, likes, comments and replies, shares, co-authoring (the lead invites with Can view or Can view and edit; the invitee agrees to the terms on `/invites/journal/<id>`, `lib/invite-terms.ts`), organisation channels and teams, drag-and-drop or pasted pictures (JPEG and PNG go up as WebP, `lib/upload.ts` asWebp) | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
 | **Links and @mentions** | Web addresses become links wherever members write (`lib/linkify.ts`, `components/LinkedText.tsx`, `remarkLinkify` for journals); link preview cards in Messages and Notes Life chat (`/api/link-preview`: signed in, public addresses only, every redirect re-checked, 512 KB / 5 s, cached 6 h); the @mention picker (`components/MentionPicker.tsx`, users by username prefix) in journals, comments, replies, messages, moment captions and Notes Life chat; @username links to `/u/username` | `/help` → "Links and @mentions" |
+| **My Calendar** | One calendar for sessions, calls, hotel stays, tickets, events, interviews and money due (v0.166.0): `/calendar` (month with dots per kind, the day's agenda, Add to my calendar), `/calendar/sync` (a private `webcal://` link, titles and times only, choose what goes out), `/calendar/settings` (bells, Monday week-ahead email), explainer `/my-calendar` | `docs/MY_CALENDAR.md`, help "My Calendar" |
 | **My Cycle** | A private cycle and wellness companion (v0.163.0): `/cycle` (locked with a passkey, user verification every time; privacy shield), explainer `/my-cycle`, teen version without fertility, Nana advice, encrypted server-only data | `docs/MY_CYCLE.md`, help "My Cycle" |
 | **Video on posts** | One MP4/WebM per post (≤ 100 MB, ≤ 3 min, weekly allowance by plan), our own player, cover-image picker, server-verified uploads | "Video on posts" |
 | **Share previews** | Per-post, per-store-item and per-store Open Graph cards | "Share previews (Open Graph)" |

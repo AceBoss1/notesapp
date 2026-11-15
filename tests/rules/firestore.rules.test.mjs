@@ -120,6 +120,22 @@ test("admin custom claim grants access; a plain user with an admin-like claim na
   await assertFails(getDoc(doc(as("boss", { isAdmin: true }), "ledger/ref1")));
 });
 
+test("throwaway emails: no profile with a sign-in email at a blocked domain or its subdomains", async () => {
+  const base = { username: "x", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false, consent: { version: "v", acceptedAt: "x" } };
+  const make = (uid, email) => setDoc(doc(as(uid, { email }), `users/${uid}`), { ...base, uid, username: uid });
+  // Before the list exists, nothing is refused by the rules (the sign-up forms still check the built-in list).
+  await assertSucceeds(make("t0", "a@petchi.uk"));
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "settings/emailBlocklist"), { added: ["kuku.lu"], domains: ["petchi.uk", "kuku.lu"] }));
+  await assertFails(make("t1", "a@petchi.uk"));
+  await assertFails(make("t2", "b@MAIL.Petchi.UK"));
+  await assertFails(make("t3", "c@x.y.z.kuku.lu"));
+  await assertSucceeds(make("t4", "d@gmail.com"));
+  await assertSucceeds(make("t5", "e@notpetchi.uk")); // not a subdomain
+  await assertSucceeds(make("t6")); // no email (phone sign-in)
+  // Members can't change the list.
+  await assertFails(setDoc(doc(as("alice"), "settings/emailBlocklist"), { domains: [] }));
+});
+
 test("a founder email without the admin claim is no longer an admin", async () => {
   await assertFails(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
   await assertFails(getDoc(doc(as("x", { email: "someone@else.com" }), "ledger/ref1")));
@@ -1686,6 +1702,24 @@ test("My Cycle is server-only, even for her and for staff: her answer, check-ins
     }
     await assertFails(getDocs(query(collection(db, "cycleLogs"), where("uid", "==", "alice"))));
     await assertFails(deleteDoc(doc(db, "cycleProfiles/alice")));
+  }
+});
+
+test("My Calendar is server-only, even for her and for staff: her choices, the private link's hash and the bells sent", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "myCalendar/alice"), { uid: "alice", feedHash: "h1", prefs: { feed: { money: false } } });
+    await setDoc(doc(db, "calendarFeeds/h1"), { uid: "alice", createdAt: "x" });
+    await setDoc(doc(db, "calendarBells/bk_A1_alice"), { at: "x" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["myCalendar/alice", "calendarFeeds/h1", "calendarBells/bk_A1_alice"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice" }));
+      await assertFails(deleteDoc(doc(db, p)));
+    }
+    await assertFails(getDocs(query(collection(db, "calendarFeeds"), where("uid", "==", "alice"))));
+    await assertFails(setDoc(doc(db, "calendarFeeds/mine"), { uid: "bob" }));
   }
 });
 

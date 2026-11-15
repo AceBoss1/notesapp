@@ -17,7 +17,8 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
-| `push/growth-measure` | **v0.169.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
+| `push/growth-measure` | **v0.171.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
+| `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
@@ -1065,10 +1066,21 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
     airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
 
-134. **Growth measurement, step 1 of the growth plan (v0.169.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
+134. **My Calendar (v0.166.0, branch `push/my-calendar`; owner, 14 Nov 2026, "calendar approved build"; plan and mockups
+    `docs/MY_CALENDAR.md`):** "📅 My Calendar" in both menus with today's count; `/calendar`, `/calendar/sync`, `/calendar/settings`,
+    explainer `/my-calendar`, help "my-calendar". Code: `lib/my-calendar.ts` (pure: entries, agenda, dots, choices, bells, the `.ics`
+    writer), `lib/my-calendar-server.ts` (every source read live, the private link, `calendarBells` and `weekAheadEmails` in the reminders
+    cron), `app/api/calendar` (+ `[token]` for the feed), `components/calendar/*`, `lib/native-calendar.ts` (the app's calendar plugin,
+    when present). Collections (server-only): `myCalendar`, `calendarFeeds`, `calendarBells`. **Owner steps:** `firebase deploy --only
+    firestore:rules` (the three new collections; no new indexes); `ACCOUNT_DATA_KEY` (already set for My Cycle) lets members see their
+    link again, otherwise it's shown once; for the apps, the calendar plugin and permission texts in `docs/MY_CALENDAR.md` "Not built",
+    then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
+    Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
+    a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
+135. **Growth measurement, step 1 of the growth plan (v0.171.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
     `docs/GROWTH.md`):** where members come from (first touch in the `na_src` cookie, set in `middleware.ts`), first value per kind of
     member, returns in weeks 1 to 4 with what brought them (`?r=` on bells, push, the digest, reminders, Nana Jobs), installs, and
-    Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on Account → Referrals.
+    Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on My account → Growth → Referrals.
     **Deploy:** `firebase deploy --only firestore:rules` (server-only `growthMembers`, `growthFirst`, `growthDaily`, `growthCreators`).
     No new indexes, settings or keys. Tests: `test:growth`, `test:growth-server` (new), rules. Not built: offline Exam Prep mocks
     don't count as first value (only ones submitted online); an iPhone install opened before signing in counts as Direct (its home-screen
@@ -1148,6 +1160,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
+| My Calendar | pure rules `lib/my-calendar.ts` (entries, agenda, dots, choices, bells, the `.ics` writer), month grid `lib/month-calendar.ts`, server `lib/my-calendar-server.ts` (sources, private link, bells, Monday email), routes `app/api/calendar` and `app/api/calendar/[token]` (the feed), pages `app/(main)/calendar` (+ `sync`, `settings`) and `components/calendar/*`, explainer `app/(main)/my-calendar`, app bridge `lib/native-calendar.ts`, menu `useCalendarToday` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
 | Growth measurement | rules `lib/growth.ts` · server `lib/growth-server.ts` (sign-up source, `firstValue`, visits, installs, `markSeen`, `storedGrowth` hourly in `statCache/growth`, `inviteStats`) · first touch `middleware.ts` (`firstTouch`) · browser `components/GrowthBeat.tsx`, `lib/growth-client.ts` · `app/api/growth`, `app/api/admin/growth`, `/admin/growth`, `components/InviteLinkCard.tsx` · `docs/GROWTH.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
@@ -1181,6 +1194,8 @@ npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle,
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
 npm run test:growth            # growth: channel mapping, return tags, first value, weeks, cohorts, the funnel; "GROWTH OK"
 npm run test:growth-server     # growth on the emulator: sign-up source, first values, visits, installs, returns, snapshot; "GROWTH SERVER OK"
+npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
+npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

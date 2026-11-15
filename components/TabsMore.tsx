@@ -6,15 +6,17 @@ import Link from "next/link";
 // A row of tabs that stays short on a phone (owner, 12 Nov 2026: "reduce tabs in mobile sitewide … use a tab called [More…] to envelope
 // when tabs are many"). On a phone it shows the first `mobile` tabs, always including the one that's open, and puts the rest under
 // "More ▾"; from the sm breakpoint up every tab shows, as before. A tab either calls onSelect or, with href, is a link.
+// With `browse` (Explore, from the Moda user dashboard redesign) a phone shows one wide box instead, "Browse  Topics  1 of 9 ⌄", opening
+// the list of every tab.
 export type TabItem = { id: string; label: React.ReactNode; href?: string; badge?: React.ReactNode };
 
 const pill = (on: boolean) => `shrink-0 rounded-full px-4 py-2 font-ui text-sm font-semibold ${on ? "bg-crimson-deep text-paper" : "border border-rule bg-card text-ink hover:border-crimson"}`;
 
 export default function TabsMore({
-  tabs, active, onSelect, mobile = 3, className = "", tabClass = pill, label = "Sections",
+  tabs, active, onSelect, mobile = 3, className = "", tabClass = pill, label = "Sections", browse,
 }: {
   tabs: TabItem[]; active: string; onSelect?: (id: string) => void; mobile?: number; className?: string;
-  tabClass?: (active: boolean) => string; label?: string;
+  tabClass?: (active: boolean) => string; label?: string; browse?: string;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -43,10 +45,28 @@ export default function TabsMore({
       : <button key={t.id} type="button" role="tab" aria-selected={t.id === active} onClick={() => { onSelect?.(t.id); after?.(); }} className={cls}>{inner}</button>;
   };
 
+  const at = Math.max(0, tabs.findIndex((t) => t.id === active));
   return (
     <div className={className}>
+      {/* Phones: one box that opens the list */}
+      {browse && (
+        <div ref={box} className="relative sm:hidden">
+          <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+            className="flex h-12 w-full items-center gap-3 rounded-[14px] border border-crimson-bright bg-card px-4 text-left font-ui">
+            <span className="text-sm text-slate">{browse}</span>
+            <span className="min-w-0 flex-1 truncate text-base font-semibold text-crimson-bright">{tabs[at]?.label}</span>
+            <span className="shrink-0 text-xs text-slate">{at + 1} of {tabs.length}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`h-4 w-4 shrink-0 text-crimson-bright transition-transform ${open ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+          {open && (
+            <div role="listbox" aria-label={label} className="absolute inset-x-0 z-40 mt-2 overflow-hidden rounded-2xl border border-rule bg-card py-1 shadow-xl">
+              {tabs.map((t) => one(t, `flex w-full items-center gap-2 px-4 py-3 text-left font-ui text-sm ${t.id === active ? "font-semibold text-crimson-bright" : "text-ink hover:bg-field"}`, () => setOpen(false)))}
+            </div>
+          )}
+        </div>
+      )}
       {/* Phones */}
-      <div className="flex min-w-0 items-center gap-2 whitespace-nowrap sm:hidden" role="tablist" aria-label={label}>
+      {!browse && <div className="flex min-w-0 items-center gap-2 whitespace-nowrap sm:hidden" role="tablist" aria-label={label}>
         {shown.map((t) => one(t, tabClass(t.id === active)))}
         {rest.length > 0 && (
           <div ref={box} className="relative">
@@ -58,7 +78,7 @@ export default function TabsMore({
             )}
           </div>
         )}
-      </div>
+      </div>}
       {/* Tablets and computers: every tab, scrolling sideways when needed */}
       <div className="hidden gap-2 overflow-x-auto sm:flex" role="tablist" aria-label={label}>
         {tabs.map((t) => one(t, tabClass(t.id === active)))}

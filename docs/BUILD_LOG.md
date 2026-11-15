@@ -3298,7 +3298,28 @@ show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens t
 are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
 in Chrome and broke hydration.
 
-**Growth measurement (v0.169.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
+## Plan: My Calendar (mockups for approval, 14 Nov 2026)
+
+The owner asked for "a my calendar in the menu which syncs with user default calendar on device". `docs/MY_CALENDAR.md` and six phone
+mockups cover the menu entry, a month view in the booking-calendar look, a day's agenda, and syncing with the phone's calendar.
+Syncing works three ways: "Add to my calendar" (.ics) on any single entry; a private subscription link that iPhone, Google and Outlook
+calendars refresh themselves; and, in the installed app, writing straight into the phone's default calendar. Two-way sync with Google
+or Outlook is left for later. Nothing is built until the mockups are approved.
+
+## My Calendar (v0.166.0, 15 Nov 2026)
+
+Built from the approved plan and mockups (`docs/MY_CALENDAR.md`). "📅 My Calendar" is in the account menu and the phone menu with
+today's count. `/calendar` shows the month in the booking calendar's look (`MonthCalendar` gains optional dots, shading, a legend and a
+month callback) with a dot per kind, hotel nights shaded and the day's agenda; each entry opens where it came from and has "Add to my
+calendar" (.ics). Entries are read live from bookings, per-minute sessions, hotel bookings (the guest's own, and a hotel's arrivals and
+departures for its staff), event and paid live tickets, events going to or hosted, interviews and Business books (`lib/my-calendar.ts`
+pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest still show). A private feed `/api/calendar/<token>.ics`
+(SHA-256 of the token stored, an encrypted copy so the member can see it again, titles and times only, her kinds, Make a new link) and a
+`webcal://` link from `lib/host.ts`. New reminders only where none existed: a bell before sessions and calls, an hour before events for
+ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
+encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
+`test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+**Growth measurement (v0.171.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
 `docs/mockups/growth/`). A visitor's first page sets a first-party `na_src` cookie with the channel that brought them (`?by=`, `?src=`,
 utm tags, the referring host, the landing page: `classifyTouch` in `lib/growth.ts`, set in `middleware.ts`); `?by=<username>` also works
 like `/r/<username>` for referrals. The referral claim at sign-up now also writes `growthMembers/{uid}` (channel and a small detail; the
@@ -3307,5 +3328,5 @@ server paths that already exist (jobs, Nana Jobs, Academy, Exam Prep mocks, Note
 journals from the browser, checked by the server; a once-a-day "seen" marks returns in weeks 1 to 4, with `?r=` on bells, push, the
 digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads an hourly snapshot (`statCache/growth`): every channel,
 a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
-Members get "Your invite link" on Account → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
+Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
 (`test:growth`, `test:growth-server`, rules).

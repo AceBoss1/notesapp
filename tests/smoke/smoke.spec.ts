@@ -38,6 +38,7 @@ test("server-only writes refuse people who aren't signed in", async ({ request }
   expect((await request.post("/api/notify/like", { data: { noteId: "x" } })).status()).toBe(401);
   expect((await request.post("/api/admin/notify", { data: { uid: "x", kind: "suspended" } })).status()).toBe(403);
   expect((await request.get("/api/admin/digest")).status()).toBe(403);
+  expect((await request.get("/api/admin/throwaway-emails")).status()).toBe(403);
   expect((await request.post("/api/journals/save", { data: { noteId: "x" } })).status()).toBe(401);
 });
 

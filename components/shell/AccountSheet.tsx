@@ -11,6 +11,7 @@ import { useMember } from "@/lib/member-client";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { useCycleMenu } from "@/lib/cycle-client";
+import { useCalendarToday } from "@/components/calendar/useCalendarToday";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { CloseIcon } from "./icons";
@@ -23,6 +24,7 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
   const { user, profile, unreadDms } = useMember();
   const pathname = usePathname();
   const cycle = useCycleMenu(user, profile?.accountKind === "organisation"); // My Cycle: hidden for "Not for me", child profiles and organisations
+  const calToday = useCalendarToday(user); // My Calendar: today's count; -1 for a child profile, which has no calendar
   useEffect(() => { onClose(); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
@@ -34,8 +36,9 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
   if (!open) return null;
 
   const row = "block px-5 py-3 font-ui text-[15px] font-semibold text-ink hover:bg-paper";
-  const account: (L & { badge?: number })[] = profile ? [
+  const account: (L & { badge?: number; note?: string })[] = profile ? [
     { href: `/u/${profile.username}`, label: "My profile" },
+    ...(calToday !== -1 ? [{ href: "/calendar", label: "📅 My Calendar", ...(calToday ? { note: `${calToday} today` } : {}) }] : []),
     ...(canPublish(profile) ? [{ href: "/write", label: "My journal (write)" }] : []),
     { href: `/u/${profile.username}/store`, label: "My store" },
     ...(MESSAGES_LIVE ? [{ href: "/messages", label: "Messages", badge: unreadDms }] : []),
@@ -85,7 +88,7 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
         {account.length > 0 && (
           <ul className="border-b border-rule py-2">
             {account.map((l) => (
-              <li key={l.href}><Link href={l.href} className={`${row} flex items-center justify-between`}>{l.label}{!!l.badge && <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[11px] font-bold text-paper">{l.badge}</span>}</Link></li>
+              <li key={l.href}><Link href={l.href} className={`${row} flex items-center justify-between`}>{l.label}{!!l.badge && <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[11px] font-bold text-paper">{l.badge}</span>}{l.note && <span className="rounded-full border border-crimson/30 bg-crimson/10 px-2 py-0.5 text-[11px] font-bold text-crimson">{l.note}</span>}</Link></li>
             ))}
           </ul>
         )}
