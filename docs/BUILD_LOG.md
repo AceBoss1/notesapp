@@ -3368,3 +3368,19 @@ digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads 
 a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
 Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
 (`test:growth`, `test:growth-server`, rules).
+
+**Notes Planner (v0.177.0, 15 Nov 2026)** — the owner shared Charlie Hills' article "5 things to build with Fable 5.2" and asked where
+it could make #NotesApp better; build 4 ("plan your year like a product launch") became a personal planner on My Calendar. Mockups
+were approved the same day ("planner approved build"). Only the idea is used; the questions and Nana's instructions are our own words.
+`lib/planner.ts` (pure): the plan's dates (the 1st of next month, 12 months; a teen may plan one term), `cleanPlan` (what Nana wrote
+or the member typed, checked), Nana's reply markers (`[[PART n]]`, `[[SUMMARY]]`), the interview's progress, ticks and the streak, the
+Sunday review, `planEntries` (each month's project on its last day and the Sunday review, as the calendar's new `plan` kind), her
+choices and when the bells are due. `lib/planner-nana.ts`: what Nana is told for the interview, the plan (JSON, our own tools first,
+never invented facts) and the review note, with the teen wording and the care rules. `lib/planner-server.ts`: encrypted storage
+(`ACCOUNT_DATA_KEY`) in server-only `plannerPlans`, `plannerDays` and `plannerReviews`, Nana through the meter (her answer is kept even
+when Nana can't reply), by-hand plans and edits, ticks, reviews, the optional passkey lock (a signed httpOnly cookie for `/api/planner`),
+`planCalendar` as a My Calendar source (left out when locked), Download, Delete, account closure and `plannerBells`. Routes:
+`/api/planner` and `/api/planner/unlock`. Screens in `components/planner/`: `/calendar/planner`, `/calendar/planner/review`,
+`/calendar/planner/settings`; `PlannerDay` puts the month's project and the tick boxes above the day in My Calendar, which gains
+Calendar | Planner tabs. The private feed gets a "Notes Planner" switch, off by default, titled "Planner" unless she chooses titles.
+Tests: `test:planner`, `test:planner-server`, rules. Still to measure: what one interview costs on the real model.

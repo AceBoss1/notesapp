@@ -5,7 +5,8 @@ their next 12 months the way a product team plans a launch: one goal, three numb
 every day and a Sunday review. The plan lands in My Calendar beside their bookings, stays and tickets.
 
 The owner asked for it on 15 Nov 2026 ("new product built on top of my calendar called my personal planner", then "start with Notes
-Planner"). **Status: mockups drawn, waiting for the owner's approval. Nothing is built.**
+Planner"). **Status: built in v0.177.0 (15 Nov 2026)**, from the mockups the owner approved that day ("planner approved build"). What was
+built, and what wasn't, is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (build 4, "Plan your 2027 like a product launch").
 Only the idea is used: an interview that pushes back, then a plan in a fixed shape. The questions and Nana's instructions are
@@ -110,6 +111,43 @@ My Calendar reads everything from where it already lives. The plan is the first 
 - Plans for a team or a business.
 - Ready-made plan templates.
 - Nana changing the plan on her own. She can suggest a change at a review; the member makes it.
+
+## Built in v0.177.0
+
+- **The pure rules** `lib/planner.ts`: plan dates, `cleanPlan`, Nana's reply markers, the interview's progress, ticks and the
+  streak, the Sunday review, `planEntries`, her choices, the bells. **What Nana is told** `lib/planner-nana.ts`.
+- **The server** `lib/planner-server.ts`: `plannerPlans/{uid}` (the interview, the plan and the plan before it, encrypted; her
+  choices beside it for the bells job), `plannerDays/{uid}_{day}` (ticks), `plannerReviews/{uid}_{week}` (reviews). All three are
+  server-only in `firestore.rules`, and deleted with the account.
+- **Nana:** the first question is ours, so the interview opens at once. Each answer is saved before Nana is asked, so nothing is
+  lost if she can't reply. Calls go through the member's Nana allowance (Pearl, Quick), or their own AI account if they connected one.
+- **Screens** (`components/planner/`): `/calendar/planner` (start, interview, summary, plan, month by month, the form),
+  `/calendar/planner/review`, `/calendar/planner/settings`. My Calendar has Calendar | Planner tabs, the Plan kind in its legend, and
+  the month's project and tick boxes above the day (`PlannerDay`).
+- **On the calendar:** each month's project on its last day and the Sunday review are entries. Daily moves are tick boxes, not
+  entries, so the month isn't a dot on every day.
+- **The lock:** off by default. Turning it on needs a passkey on that device. While it's on, the plan is left out of My Calendar and
+  the private feed.
+- **Teens:** always gentle, 14 questions, a term (3 months) or a year, no "life I refuse", links to learning only.
+- **Tests:** `npm run test:planner` (pure) and `npm run test:planner-server` (Firestore emulator), both in CI, plus the rules test.
+
+Screenshots from the real code, with sample data on the emulators: [phone](mockups/notes-planner/built-phone.webp) and
+[desktop](mockups/notes-planner/built-desktop.webp). (On a phone the plan page now puts today's moves and the months above the rest
+of the plan; the phone sheet was taken just before that change.)
+
+## Changed from the mockups
+
+- **Three screens, not eight routes.** The plan and "month by month" are one page; on a phone today's moves and the months come first.
+- **"Send to my phone's calendar"** also appears on My Calendar's Sync screen, as "Notes Planner".
+- **A streak** counts days with at least one move ticked.
+- **"Answer and sum up"** appears after eight questions, for members who want to finish sooner.
+
+## Not built, or still to do
+
+- **The cost of an interview isn't measured.** It needs the real model, which this build environment doesn't have. Measure one adult
+  interview and plan on staging, then decide whether Free plans need a separate allowance for it.
+- **No public page of its own.** It is described on `/my-calendar`, About, the roadmap and in the help article.
+- **The installed app** doesn't write Planner entries into the phone's calendar; the private link does that job.
 
 ## What comes after Notes Planner
 

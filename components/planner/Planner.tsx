@@ -163,15 +163,17 @@ function PlanView({ g, view, onView, onEdit, onNew }: { g: Gate; view: View; onV
   const end = plan.months[plan.months.length - 1].month;
   const ended = thisMonth > end;
   return (
-    <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
-      <section className="space-y-4">
-        {error && <Alert>{error}</Alert>}
-        {view.interview && <Note>You have a new plan interview in progress. <button type="button" className="font-bold underline" onClick={onNew}>Carry on with Nana</button></Note>}
-        <div className="rounded-2xl bg-gradient-to-br from-[rgb(var(--c-crimson-deep,78_1_25))] to-[rgb(var(--c-crimson-bright,166_9_61))] p-4 text-white">
-          <p className="text-[10.5px] font-bold uppercase tracking-wider opacity-80">The goal · by the end of {monthName(end)}</p>
-          <p className="mt-1 font-display text-xl leading-snug">{plan.goal}</p>
-          <p className="mt-2 text-[11px] opacity-80">{planSpan(plan.start, plan.months.length)}{plan.by === "nana" ? " · written with Nana" : ""}</p>
-        </div>
+    <div className="mt-5 space-y-4">
+      {error && <Alert>{error}</Alert>}
+      {view.interview && <Note>You have a new plan interview in progress. <button type="button" className="font-bold underline" onClick={onNew}>Carry on with Nana</button></Note>}
+      <div className="rounded-2xl bg-gradient-to-br from-[rgb(var(--c-crimson-deep,78_1_25))] to-[rgb(var(--c-crimson-bright,166_9_61))] p-4 text-white">
+        <p className="text-[10.5px] font-bold uppercase tracking-wider opacity-80">The goal · by the end of {monthName(end)}</p>
+        <p className="mt-1 font-display text-xl leading-snug">{plan.goal}</p>
+        <p className="mt-2 text-[11px] opacity-80">{planSpan(plan.start, plan.months.length)}{plan.by === "nana" ? " · written with Nana" : ""}</p>
+      </div>
+      {/* On a phone, today's moves and the months come before the rest of the plan. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
+      <section className="order-2 space-y-4 lg:order-1">
         {plan.becoming && <div className={`${card} p-4 text-[13.5px] leading-relaxed text-ink`}><Label>Who I&apos;m becoming</Label><p className="mt-1">{plan.becoming}</p></div>}
         {(plan.vision || plan.refuse) && (
           <div className={`${card} space-y-2 p-4 text-[13.5px] leading-relaxed text-ink`}>
@@ -220,7 +222,7 @@ function PlanView({ g, view, onView, onEdit, onNew }: { g: Gate; view: View; onV
         {view.old && <details className="text-xs text-slate"><summary className="cursor-pointer">Your plan before this one</summary><p className="mt-1 leading-relaxed">{planSpan(view.old.start, view.old.months.length)}: {view.old.goal}</p></details>}
       </section>
 
-      <section className="space-y-4">
+      <section className="order-1 space-y-4 lg:order-2">
         {view.review?.open && (
           <Link href="/calendar/planner/review" className={`flex items-center justify-between gap-3 ${card} p-4 hover:border-crimson`}>
             <span><b className="block font-ui text-sm text-ink">🪞 Sunday review</b><span className="text-xs text-slate">{view.review.done ? "Done for this week. Open it to read Nana's note or change it." : "Three questions, five minutes. This week's is waiting."}</span></span>
@@ -268,6 +270,7 @@ function PlanView({ g, view, onView, onEdit, onNew }: { g: Gate; view: View; onV
         </div>
         <p className="text-xs text-slate">Reminders: today&apos;s moves at {hourLabel(view.prefs.movesBell).toLowerCase()}, Sunday review at {hourLabel(view.prefs.reviewBell).toLowerCase()}. <Link href="/calendar/planner/settings" className="text-crimson underline">Change</Link> · <Link href="/help/notes-planner" className="text-crimson underline">How Notes Planner works</Link></p>
       </section>
+      </div>
     </div>
   );
 }

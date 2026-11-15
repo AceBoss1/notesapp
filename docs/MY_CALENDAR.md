@@ -114,3 +114,8 @@ That needs Google's app verification for calendar access.
 - **"Change in Settings → Region"** (screen 6): the site has no time-zone setting; times stay in Lagos time like the rest of booking,
   and the screen says so.
 - **Reminders in emails and "Prepare with Nana"** on interviews were not added.
+
+## Notes Planner (v0.177.0)
+
+A Planner tab was added on top of My Calendar (`docs/NOTES_PLANNER.md`): a new kind, `plan`, a new feed group (off by default) and a
+new source, `planCalendar`, in `lib/my-calendar-server.ts`. The day shows the month's project and tick boxes (`components/planner/PlannerDay.tsx`).

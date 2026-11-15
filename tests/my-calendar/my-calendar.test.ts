@@ -53,7 +53,7 @@ assert.equal(whenText(owed), "Sat 14 Nov, all day");
 assert.equal(whenText(stay), "Mon 16 Nov, 2:00 pm to Thu 19 Nov, 12:00 pm (WAT)");
 
 // ── Who sees what ──
-assert.deepEqual(allowedKinds({ teen: false, kid: false }), ["session", "hotel", "event", "live", "interview", "money"]);
+assert.deepEqual(allowedKinds({ teen: false, kid: false }), ["session", "hotel", "event", "live", "interview", "money", "plan"]);
 assert.ok(!allowedKinds({ teen: true, kid: false }).includes("money"), "teen mode has no Business books money");
 assert.deepEqual(allowedKinds({ teen: false, kid: true }), [], "a child profile has no calendar");
 
