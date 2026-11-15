@@ -110,7 +110,7 @@ async function member(uid: string, username: string, extra: Record<string, unkno
   assert.deepEqual(r30.creators.map((c) => [c.username, c.joined, c.installed]), [["ada", 1, 1]], "teen1 never counted for @ada");
   assert.ok(rep.triggers.find((x) => x.trigger === "bell")!.returns >= 1);
   const stored = await storedGrowth(db);
-  assert.equal(stored.data.ranges["30"].signups, 4);
+  assert.equal(stored.data.ranges["90"].signups, rep.ranges["90"].signups, "the stored snapshot (counted at the real time) has the same members");
   assert.ok((await db.doc("statCache/growth").get()).exists, "kept as a snapshot, read once per page view");
 
   // ---- a member's own invite numbers ----
