@@ -131,7 +131,7 @@ export type ShortJob = {
 };
 export type Funnel = { collected: number; unique: number; fit: number; keywordTop: number; readByAi: number; alive: number };
 // profileFrom: what the run judged against. "yours" = the member's own roles; "cv" = no roles yet, so the roles from their CV review;
-// "empty" = neither, so no title gate at all (v0.169.1: an empty profile used to keep nothing).
+// "empty" = neither, so no title gate at all (v0.173.1: an empty profile used to keep nothing).
 export type ProfileFrom = "yours" | "cv" | "empty";
 export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number>; profileFrom?: ProfileFrom };
 

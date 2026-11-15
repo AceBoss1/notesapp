@@ -3320,7 +3320,7 @@ ticket holders not going, the day before a hotel check-in, and a Monday week-ahe
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
 
-## Nana Jobs fixes (v0.169.1, 15 Nov 2026)
+## Nana Jobs fixes (v0.173.1, 15 Nov 2026)
 
 The owner tried Nana Jobs on his phone and hit two faults. **No job ever fitted** (Collected 455, Fit your rules 0, with Claude
 connected): the first visit had copied the account's job title in as the only role, the first save (connecting the AI) stored it, and a

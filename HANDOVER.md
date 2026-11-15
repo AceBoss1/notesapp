@@ -1034,12 +1034,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Known limits: a free tier that's slow means the rest of a run keeps the keyword score; the cover note on the live site needs the
     member's AI to answer; the CV reader handles PDF with text and .docx (not scans or old .doc). Tests: `test:nana-jobs` (new, pure),
     `test:nana-jobs-server` (new, emulator), rules (one new test).
-    **v0.169.1 fixes (branch `push/nana-jobs-fixes`):** an empty or never-filled profile no longer cuts everything (the account job
+    **v0.173.1 fixes (branch `push/nana-jobs-fixes`):** an empty or never-filled profile no longer cuts everything (the account job
     title is only a suggestion; no roles = the CV review's roles or no title gate, `effectiveProfile`); the funnel says why openings were
     cut (`cutSummary`); **See all collected jobs** (`nanaJobsSeen/{uid}`, `GET /api/jobs/nana/seen`, own run only); Apply and Mark as
     applied on every card; the Claude CV review fixed (effort low, room for thinking, cut-offs and refusals named, timeouts inside the
     route's `maxDuration`) and the real reason shown in the browser (`apiErrorText`). Details in `docs/NANA_JOBS.md` "Fixes in
-    v0.169.1". **Owner:** `firebase deploy --only firestore:rules` (one new server-only collection, `nanaJobsSeen`); no new index. Tests:
+    v0.173.1". **Owner:** `firebase deploy --only firestore:rules` (one new server-only collection, `nanaJobsSeen`); no new index. Tests:
     `test:nana-jobs` now also runs `tests/nana-jobs/fixes.test.ts` (feed fixtures in `tests/nana-jobs/fixtures/`).
 132. **My Cycle (v0.163.0, branch `push/my-cycle`; plan `docs/MY_CYCLE.md`):** a private cycle companion at `/cycle`, explainer
     `/my-cycle`. Owner steps: (a) `firebase deploy --only firestore:rules` (four new server-only collections: `cycleProfiles`,
@@ -1184,7 +1184,7 @@ npm run test:shared            # shared rate limits and cache (a stand-in Upstas
 npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
-npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards, the v0.169.1 faults on feed fixtures (no network)
+npm run test:nana-jobs         # Nana Jobs: providers, pacing, sources, the funnel, link check, CV and cover-note guards, the v0.173.1 faults on feed fixtures (no network)
 npm run test:nana-jobs-server  # Nana Jobs on the emulator: keys, CV, pool, runs, statuses, daily run
 npm run test:cycle             # My Cycle: predictions, then unlock, passkey check, teen version, encryption, bells; prints "ALL OK" twice
 npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle, cash-up, Nana's price guard); "ALL OK"
