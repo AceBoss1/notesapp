@@ -13,6 +13,8 @@ import {
   type AgendaItem, type CalEntry, type CalKind, type CalMode, type CalPrefs,
 } from "@/lib/my-calendar";
 import AddToCalendar from "./AddToCalendar";
+import { PlannerTabs } from "@/components/planner/PlannerGate";
+import PlannerDay from "@/components/planner/PlannerDay";
 
 // My Calendar (/calendar; docs/MY_CALENDAR.md, mockups 2 and 3): the month in the booking calendar's look with a coloured dot per kind and
 // hotel nights shaded, and below it the day's agenda. A tap on a day shows that day; a tap on an entry opens it, with where it came from
@@ -127,7 +129,8 @@ export default function MyCalendar() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <CalendarHeader title="My Calendar" />
-      <p className="mt-1 text-sm text-slate">Everything you&apos;ve booked, bought or been invited to on #NotesApp, in Lagos time (WAT).</p>
+      <PlannerTabs active="calendar" />
+      <p className="mt-3 text-sm text-slate">Everything you&apos;ve booked, bought or been invited to on #NotesApp, and your plan, in Lagos time (WAT).</p>
       {data?.mode.teen && <p className="mt-2 text-xs text-slate">In teen mode, your calendar shows what teen mode allows.</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-[#FFF1F3] px-3 py-2 text-sm text-crimson">{error}</p>}
       {data && data.failed.length > 0 && <p className="mt-4 rounded-xl border border-[#F1D48A] bg-[#FFF4D6] px-3 py-2 text-xs text-[#5a4300]">We couldn&apos;t load {data.failed.join(", ").toLowerCase()} just now. Everything else is here; try again in a moment.</p>}
@@ -136,6 +139,7 @@ export default function MyCalendar() {
           dots={(d) => (dots[d] ?? []).map((k) => KIND_COLOUR[k])} shade={(d) => nights.has(d)} legend={legend} />
         <section aria-live="polite">
           <h2 className="font-ui text-sm font-bold text-ink">{day === today ? `Today · ${dayLabel(day)}` : dayLabel(day)}</h2>
+          {user && day && <div className="mt-3"><PlannerDay user={user} day={day} hidden={hidden.has("plan")} /></div>}
           {!data && !error ? <p className="mt-3 text-sm text-slate">Loading…</p> : items.length === 0 ? (
             <p className="mt-3 rounded-2xl border border-dashed border-rule p-5 text-sm text-slate">Nothing on this day. Book a session, buy a ticket or say you&apos;re going to an event and it shows here.</p>
           ) : (
