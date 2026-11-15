@@ -11,7 +11,7 @@ import SearchBar from "@/components/SearchBar";
 import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
 import { useMember } from "@/lib/member-client";
-import { isThreadRoute, usesAppFrame } from "@/lib/chrome";
+import { isThreadRoute, usesAppHeader } from "@/lib/chrome";
 import AccountSheet from "./AccountSheet";
 import { MenuIcon, PenIcon } from "./icons";
 
@@ -34,7 +34,7 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
   const { user, profile, appHost } = useMember();
   const [sheet, setSheet] = useState(false);
   const close = useCallback(() => setSheet(false), []);
-  const app = usesAppFrame(pathname, appHost);
+  const app = usesAppHeader(pathname, appHost);
 
   return (
     <header className={`sticky top-0 z-40 ${isThreadRoute(pathname) ? "max-lg:hidden" : ""}`}>

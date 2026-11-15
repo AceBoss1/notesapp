@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import PageHero from "@/components/PageHero";
 import SoundsSummary from "@/components/sounds/SoundsSummary";
+import SelectBox from "@/components/ui/SelectBox";
 import { formatNaira } from "@/lib/booking-time";
 import { LOW_STOCK, RANGE_DAYS, SOURCE_LABEL, change, salesCsv, type Report } from "@/lib/analytics";
 
@@ -24,12 +25,12 @@ const short = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("
 const when = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const n = (x: number) => x.toLocaleString("en-NG");
 
-function Stat({ label, value, now, before, note }: { label: string; value: string; now?: number; before?: number; note?: string }) {
+function Stat({ label, value, now, before, note, wide }: { label: string; value: string; now?: number; before?: number; note?: string; wide?: boolean }) {
   const c = now !== undefined && before !== undefined ? change(now, before) : "";
   return (
-    <div className="card p-4">
-      <p className="text-xs text-slate">{label}</p>
-      <p className="mt-1 font-display text-2xl text-ink">{value}</p>
+    <div className={`min-w-0 rounded-[14px] border border-rule bg-card p-[18px] ${wide ? "max-lg:col-span-2" : ""}`}>
+      <p className="font-ui text-[13px] font-medium text-slate">{label}</p>
+      <p className="mt-1 break-words font-display text-[1.75rem] font-medium leading-tight text-ink sm:text-[1.875rem]">{value}</p>
       {c && <p className={`mt-0.5 text-xs font-semibold ${c.startsWith("+") ? "text-green-700" : "text-crimson"}`}>{c} on the period before</p>}
       {note && <p className="mt-0.5 text-xs text-slate">{note}</p>}
     </div>
@@ -48,7 +49,7 @@ function Chart({ points, money }: { points: { day: string; v: number }[]; money:
   return (
     <div className="mt-3">
       <p className="text-xs text-slate">Highest day {label(max)} · total {label(total)}</p>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="mt-1 h-40 w-full border-b border-rule" role="img"
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="mt-1 h-40 w-full border-b border-rule lg:h-60" role="img"
         aria-label={`From ${short(points[0]?.day ?? "")} to ${short(points[points.length - 1]?.day ?? "")}: highest day ${label(max)}, total ${label(total)}`}>
         <line x1={0} x2={w} y1={y(max / 2)} y2={y(max / 2)} className="stroke-rule" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
         <path d={`${line} L${w},${h} L0,${h} Z`} className="fill-crimson/10" />
@@ -104,62 +105,76 @@ export default function AnalyticsPage() {
   if (user === null) return <section className="mx-auto max-w-5xl px-4 py-10"><p className="text-sm text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to see your analytics.</p></section>;
   return (
     <>
-      <PageHero compact max="max-w-5xl" eyebrow="My account" title={<>Analytics</>}>
-        <p>How you&apos;re doing, in one place: what you earned, your orders and customers, what sells, and who visits.</p>
+      <PageHero compact max="max-w-6xl" eyebrow="My account" title={<>Analytics</>}
+        side={(data?.accounts.length ?? 0) > 1 ? (
+          <>
+            <SelectBox label="Account" className="hidden lg:block" value={as || data!.accounts[0].uid} onChange={setAs}
+              options={data!.accounts.map((a) => ({ value: a.uid, label: `${a.name} (@${a.username})` }))} />
+            <SelectBox label="Account" inline className="lg:hidden" value={as || data!.accounts[0].uid} onChange={setAs}
+              options={data!.accounts.map((a) => ({ value: a.uid, label: `${a.name} (@${a.username})` }))} />
+          </>
+        ) : undefined}>
+        <p>What you earned, your orders and customers, what sells, and who visits.</p>
       </PageHero>
-      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <div className="flex flex-wrap items-end gap-3">
-          {(data?.accounts.length ?? 0) > 1 && (
-            <label className="text-xs text-slate">Account
-              <select value={as || data!.accounts[0].uid} onChange={(e) => setAs(e.target.value)} className="mt-1 block border border-rule bg-card px-3 py-2 text-sm">
-                {data!.accounts.map((a) => <option key={a.uid} value={a.uid}>{a.name} (@{a.username})</option>)}
-              </select>
-            </label>
-          )}
-          <div className="flex rounded-full border border-rule bg-card p-1 text-xs font-semibold" role="group" aria-label="Period">
-            {RANGE_DAYS.map((d) => {
-              const open = !data || data.ranges.includes(d);
-              return (
-                <button key={d} type="button" disabled={!open || busy} onClick={() => setDays(d)} title={open ? undefined : "Comes with Pro"}
-                  className={`rounded-full px-3 py-1.5 ${days === d ? "bg-crimson text-paper" : "text-ink"} disabled:opacity-50`}>
-                  Last {d} days{open ? "" : " 🔒"}
-                </button>
-              );
-            })}
-          </div>
-          {r && (data!.can.download
-            ? <button type="button" onClick={download} className="ml-auto rounded-full border border-rule px-4 py-2 text-xs font-semibold text-ink">⬇ Download sales</button>
-            : <span className="ml-auto text-xs text-slate">Download sales: <Link href="/pricing" className="text-crimson underline">Pro</Link></span>)}
-        </div>
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         {error && <p className="mt-4 text-sm text-crimson" role="alert">{error}</p>}
-        {user && !as && <SoundsSummary />}
         {!r ? <p className="mt-8 text-sm text-slate">{busy || user === undefined ? "Loading…" : ""}</p> : (
           <>
-            <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-rule text-sm" aria-label="Analytics">
-              {TABS.map(([id, label]) => (
-                <button key={id} type="button" onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}
-                  className={`shrink-0 border-b-2 px-3 py-2 ${tab === id ? "border-crimson font-semibold text-ink" : "border-transparent text-slate"}`}>{label}</button>
-              ))}
-            </nav>
-            <p className="mt-3 text-xs text-slate">{short(r.from)} to {short(r.to)}{busy ? " · updating…" : ""}</p>
+            {/* Computers: the tabs, with the period on the right. Phones: two dropdowns (Moda user dashboard redesign). */}
+            <div className="mt-2 hidden items-end justify-between gap-4 border-b border-rule md:flex">
+              <nav className="flex gap-7 overflow-x-auto font-ui text-sm" aria-label="Analytics">
+                {TABS.map(([id, label]) => (
+                  <button key={id} type="button" onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined}
+                    className={`-mb-px shrink-0 border-b-[3px] py-2.5 ${tab === id ? "border-crimson-bright font-semibold text-crimson-bright" : "border-transparent font-medium text-slate hover:text-ink"}`}>{label}</button>
+                ))}
+              </nav>
+              <div className="mb-2 flex shrink-0 rounded-full border border-rule bg-card p-[3px] font-ui text-[13px]" role="group" aria-label="Period">
+                {RANGE_DAYS.map((d) => {
+                  const open = data!.ranges.includes(d);
+                  return (
+                    <button key={d} type="button" disabled={!open || busy} onClick={() => setDays(d)} title={open ? undefined : "Comes with Pro"}
+                      className={`rounded-full px-3.5 py-1.5 ${days === d ? "bg-crimson font-semibold text-paper" : "text-slate hover:text-ink"} disabled:opacity-50`}>
+                      Last {d} days{open ? "" : " 🔒"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-3 md:hidden">
+              <SelectBox accent value={tab} onChange={setTab} options={TABS.map(([value, label]) => ({ value, label }))} label="Analytics" hideLabel />
+              <SelectBox value={days} onChange={setDays} disabled={busy} label="Period" hideLabel
+                options={RANGE_DAYS.map((d) => ({ value: d, label: `Last ${d} days${data!.ranges.includes(d) ? "" : " (Pro)"}`, disabled: !data!.ranges.includes(d) }))} />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="font-ui text-[13px] text-slate">{short(r.from)} to {short(r.to)}{busy ? " · updating…" : ""}</p>
+              {data!.can.download
+                ? <button type="button" onClick={download} className="rounded-full border border-rule bg-card px-4 py-1.5 font-ui text-xs font-semibold text-ink hover:border-crimson">⬇ Download sales</button>
+                : <span className="font-ui text-xs text-slate">Download sales: <Link href="/pricing" className="text-crimson underline">Pro</Link></span>}
+            </div>
 
             {tab === "overview" && (
               <div className="mt-3 space-y-4">
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <Stat label="You earned" value={formatNaira(r.totals.earnedKobo)} now={r.totals.earnedKobo} before={r.before.earnedKobo} note="After our fee, from everything you sell" />
+                  <Stat wide label="You earned" value={formatNaira(r.totals.earnedKobo)} now={r.totals.earnedKobo} before={r.before.earnedKobo} note="After our fee, from everything you sell" />
                   <Stat label="Orders paid" value={n(r.totals.ordersPaid)} now={r.totals.ordersPaid} before={r.before.ordersPaid}
                     note={r.totals.checkouts ? `${Math.round((r.totals.ordersPaid / Math.max(r.totals.ordersPaid, r.totals.checkouts)) * 100)}% of ${n(Math.max(r.totals.ordersPaid, r.totals.checkouts))} checkouts started` : undefined} />
                   <Stat label="Average order" value={formatNaira(r.totals.avgOrderKobo)} now={r.totals.avgOrderKobo} before={r.before.avgOrderKobo} />
-                  <Stat label="Visits" value={n(r.totals.visits)} now={r.totals.visits} before={r.before.visits} note="Your profile, site, journals, items and courses" />
+                  <Stat wide label="Visits" value={n(r.totals.visits)} now={r.totals.visits} before={r.before.visits} note="Your profile, site, journals, items and courses" />
                 </div>
-                <div className="card p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-ui text-sm font-bold text-ink">{metric === "earned" ? "Earned" : metric === "orders" ? "Orders paid" : "Visits"}, day by day</p>
-                    <div className="flex gap-1 text-xs">
-                      {(["earned", "orders", "visits"] as const).map((m) => <button key={m} type="button" onClick={() => setMetric(m)} className={`rounded-full px-3 py-1 ${metric === m ? "bg-ink text-paper" : "border border-rule text-ink"}`}>{m === "earned" ? "Earned" : m === "orders" ? "Orders" : "Visits"}</button>)}
+                <div className="flex flex-col gap-4 lg:flex-row">
+                  <div className="min-w-0 rounded-[14px] border border-rule bg-card p-5 lg:flex-[2]">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="font-ui text-base font-semibold text-ink">{metric === "earned" ? "Earned" : metric === "orders" ? "Orders paid" : "Visits"}, day by day</p>
+                      <div className="grid w-full grid-cols-3 rounded-full border border-rule bg-paper p-[3px] font-ui text-[13px] sm:w-auto" role="group" aria-label="Show">
+                        {(["earned", "orders", "visits"] as const).map((m) => (
+                          <button key={m} type="button" onClick={() => setMetric(m)} aria-pressed={metric === m}
+                            className={`rounded-full px-4 py-1 ${metric === m ? "bg-crimson font-semibold text-paper" : "text-slate hover:text-ink"}`}>{m === "earned" ? "Earned" : m === "orders" ? "Orders" : "Visits"}</button>
+                        ))}
+                      </div>
                     </div>
+                    <Chart points={points} money={metric === "earned"} />
                   </div>
-                  <Chart points={points} money={metric === "earned"} />
+                  {user && !as && <SoundsSummary card className="lg:flex-1" />}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="card p-4">

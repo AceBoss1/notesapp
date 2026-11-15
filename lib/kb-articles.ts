@@ -208,6 +208,19 @@ You see how many times each code was used, how much it took off and what buyers 
 **One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
+    A("my-account-menu", "Finding your way around My account", "Getting started", `
+Everything about your own account sits under **My account**, in four groups:
+
+- **Profile:** My journal, Edit profile, Media and Sounds.
+- **Money:** Wallet, Rates & payouts and Analytics.
+- **Store:** Business books, Inventory, Bookings and Your hotel.
+- **Growth:** Discount codes, My coupons, Referrals and Boost.
+
+**On a computer** the groups are down the left side: tap a group to open it, then the page. The page you're on is highlighted, and the small number beside each group is how many pages it has. At the bottom you can switch between **Day, Night and Auto** and **Sign out**, and **Back to NotesApp** takes you to your feed.
+
+**On a phone** a bar at the top says where you are, for example *My account / Money / Analytics*. Tap it to open the same menu.
+
+On pages with many tabs (Analytics, Business books, Explore), a phone shows a dropdown instead of the row of tabs: tap it to pick another. On your own profile, **Manage profile** has Write, My store, Edit profile, Rates & payouts and Analytics. Account settings, Family and your site are in the menu under your picture.`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). The quickest way is **Sign up with Google** (or **with LinkedIn**): you still choose your username, accept the Terms and say you are 18 or older, but there is no password to make and your email is already verified. See [Signing in with Google or LinkedIn](/help/google-linkedin-sign-in).
 
