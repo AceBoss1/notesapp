@@ -81,6 +81,7 @@ jobs:
       - run: npm run test:rooms
       - run: npm run test:fans
       - run: npm run test:global
+      - run: npm run test:throwaway
       - run: npm run test:nana-jobs
       - run: npm run test:recording
       - run: npm run test:live-rooms

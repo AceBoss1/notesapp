@@ -69,8 +69,9 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/exam-prep", label: "Naija Exam Prep", need: ["content", "finance", "product"], group: "Content" },
   { href: "/admin/topics", label: "Topics", need: ["content", "moderation"], group: "Content" },
   { href: "/admin/sounds", label: "Sounds", need: ["content", "moderation", "finance"], group: "Content" },
-  { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance", "legal"], group: "People & trust" },
-  { href: "/admin/organisations", label: "Organisations", need: ["support", "growth"], group: "People & trust" },
+  { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance", "legal"], group: "People & Trust" },
+  { href: "/admin/throwaway-emails", label: "Throwaway emails", need: ["support", "moderation"], group: "People & Trust" },
+  { href: "/admin/organisations", label: "Organisations", need: ["support", "growth"], group: "People & Trust" },
   { href: "/admin/revenue", label: "Revenue", need: ["finance"], group: "Money" },
   { href: "/admin/payments", label: "Payments", need: ["finance"], group: "Money" },
   { href: "/admin/team/payroll", label: "Payroll", need: ["finance"], group: "Money" },
@@ -79,11 +80,11 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/referrals", label: "Referrals", need: ["marketing", "growth", "finance"], group: "Growth" },
   { href: "/admin/ads", label: "Ads", need: ["marketing", "growth", "finance"], group: "Growth" },
   { href: "/admin/ad-share", label: "Ad share", need: ["finance"], group: "Money" },
-  { href: "/admin/help", label: "Help & Nana", need: ["support", "product"], group: "People & trust" },
-  { href: "/admin/leads", label: "Leads", need: ["support", "growth"], group: "People & trust" },
-  { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & trust" },
-  { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & trust" },
-  { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & trust" },
+  { href: "/admin/help", label: "Help & Nana", need: ["support", "product"], group: "People & Trust" },
+  { href: "/admin/leads", label: "Leads", need: ["support", "growth"], group: "People & Trust" },
+  { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & Trust" },
+  { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & Trust" },
+  { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & Trust" },
   { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },
   { href: "/admin/partners", label: "Partner Network", need: ["growth", "executive", "marketing"], group: "Growth" },
   { href: "/admin/traction", label: "Traction", need: ["marketing", "growth", "finance"], group: "Growth" },
@@ -92,7 +93,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/errors", label: "Errors", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/nkenne", label: "Kiswahili (NKENNEAi)", need: ["product"], group: "Platform" },
   { href: "/admin/enterprise", label: "Enterprise", need: ["growth"], group: "Growth" },
-  { href: "/admin/shops", label: "Shops", need: ["support", "moderation"], group: "People & trust" },
+  { href: "/admin/shops", label: "Shops", need: ["support", "moderation"], group: "People & Trust" },
   { href: "/admin/stream", label: "Video storage", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/pricing", label: "Pricing", need: "super", group: "Money" },
   { href: "/admin/credits", label: "Credits", need: "super", group: "Money" },
@@ -127,9 +128,25 @@ export function pathAllowed(a: Access | null | undefined, pathname: string): boo
 }
 
 // The menu shows related pages together: groups in this order, pages within a group in the order listed above.
-export const GROUP_ORDER = ["Workspace", "Content", "People & trust", "Money", "Growth", "Platform", "Admin"];
+export const GROUP_ORDER = ["Workspace", "Content", "People & Trust", "Money", "Growth", "Platform", "Admin"];
 export const allowedSections = (a: Access | null | undefined) =>
   ADMIN_SECTIONS.filter((s) => canOpen(a, s.need)).sort((x, y) => GROUP_ORDER.indexOf(x.group) - GROUP_ORDER.indexOf(y.group));
+
+// The admin sidebar (components/admin/AdminShell.tsx). The open page: the most specific section the path falls under (Money ledger, not
+// also Team hub). The groups in order with their pages. "Jump to a page": every page whose name (or group) has all the words typed.
+export type AdminGroup = { name: string; pages: Section[] };
+export function activeSection(sections: Section[], pathname: string): Section | undefined {
+  return sections
+    .filter((s) => (s.exact ? pathname === s.href : pathname === s.href || pathname.startsWith(`${s.href}/`)))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+}
+export const groupSections = (sections: Section[]): AdminGroup[] =>
+  GROUP_ORDER.map((name) => ({ name, pages: sections.filter((s) => s.group === name) })).filter((g) => g.pages.length > 0);
+export function jumpMatches(sections: Section[], q: string): Section[] {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  return sections.filter((s) => words.every((w) => `${s.label} ${s.group}`.toLowerCase().includes(w)));
+}
 
 export function roleLabel(a: Access | null | undefined, owner = false): string {
   if (!a) return "";

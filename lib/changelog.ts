@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.168.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp. The sign-up form says so; use your own address (ordinary providers like Gmail are never blocked) or Google or LinkedIn. See Temporary (throwaway) email addresses in the Help Centre." },
+      { kind: "changed", text: "For our team: a new admin area, with a sidebar of groups (Workspace, Content, People & Trust, Money, Growth, Platform, Admin) that open to their pages, Jump to a page, and a drawer on phones; plus Throwaway emails under People & Trust, to block domains and find and suspend accounts already using them. Nothing else changes for members." },
+    ],
+  },
+  {
     version: "v0.167.1",
     bump: "patch",
     date: "2026-11-15",

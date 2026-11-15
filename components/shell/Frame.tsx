@@ -31,6 +31,8 @@ export function FooterGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, appHost } = useMember();
   if (appHost) return null;
+  // The admin area runs to the bottom of the window beside its sidebar (Moda admin redesign).
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return null;
   // The feed pages end in the right column's small links on a computer, as in the design.
   if (usesAppFrame(pathname, appHost)) return user ? null : <div className="lg:hidden">{children}</div>;
   if (isThreadRoute(pathname) || user) return <div className="max-lg:hidden">{children}</div>;
