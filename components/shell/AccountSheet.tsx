@@ -15,6 +15,8 @@ import { useCalendarToday } from "@/components/calendar/useCalendarToday";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { CloseIcon } from "./icons";
+import MenuGroupList from "@/components/MenuGroupList";
+import { accountMenu } from "@/lib/account-menu";
 
 type L = { href: string; label: string };
 
@@ -36,31 +38,8 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
   if (!open) return null;
 
   const row = "block px-5 py-3 font-ui text-[15px] font-semibold text-ink hover:bg-paper";
-  const account: (L & { badge?: number; note?: string })[] = profile ? [
-    { href: `/u/${profile.username}`, label: "My profile" },
-    ...(calToday !== -1 ? [{ href: "/calendar", label: "📅 My Calendar", ...(calToday ? { note: `${calToday} today` } : {}) }] : []),
-    ...(canPublish(profile) ? [{ href: "/write", label: "My journal (write)" }] : []),
-    { href: `/u/${profile.username}/store`, label: "My store" },
-    ...(MESSAGES_LIVE ? [{ href: "/messages", label: "Messages", badge: unreadDms }] : []),
-    { href: "/bookings", label: "Bookings" },
-    { href: "/orders", label: "Orders & parcels" },
-    { href: "/tickets", label: "My tickets" },
-    { href: "/giving", label: "My giving" },
-    ...(canPublish(profile) ? [{ href: "/shipments", label: "Shipments (logistics)" }] : []),
-    ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),
-    ...(cycle ? [{ href: "/cycle", label: "🌸 My Cycle" }] : []),
-    { href: "/saved", label: "Saved" },
-    { href: "/interests", label: "Your interests" },
-    { href: "/invites", label: "Co-author invites" },
-    { href: "/boost", label: "Boost a post" },
-    { href: "/profile/boosts", label: "Boost performance" },
-    ...(profile.accountKind === "organisation" ? [{ href: "/organisation", label: "Organisation setup" }] : []),
-    { href: "/advertise/campaigns", label: "My ad campaigns" },
-    { href: "/badges", label: "Verification badges" },
-    { href: "/profile/edit", label: "Edit profile" },
-    { href: "/profile/account", label: "Account (email, username)" },
-    { href: "/profile/publishing", label: canPublish(profile) ? "Rates & payouts" : "Start publishing" },
-  ] : [];
+  // Grouped behind a drop-down each, the same list as the desktop menu (lib/account-menu.ts).
+  const account = profile ? accountMenu({ username: profile.username, canPublish: canPublish(profile), organisation: profile.accountKind === "organisation", messages: MESSAGES_LIVE, wallet: WALLET_LIVE, cycle: !!cycle, calendar: calToday !== -1, goLive: false }) : [];
   const more: L[] = [...links, { href: "/help", label: "Help centre" }, { href: "/contact", label: "Contact" }, { href: "/terms", label: "Terms of Service" }, { href: "/privacy", label: "Privacy Policy" }];
 
   return (
@@ -86,11 +65,18 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
           </div>
         )}
         {account.length > 0 && (
-          <ul className="border-b border-rule py-2">
-            {account.map((l) => (
-              <li key={l.href}><Link href={l.href} className={`${row} flex items-center justify-between`}>{l.label}{!!l.badge && <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[11px] font-bold text-paper">{l.badge}</span>}{l.note && <span className="rounded-full border border-crimson/30 bg-crimson/10 px-2 py-0.5 text-[11px] font-bold text-crimson">{l.note}</span>}</Link></li>
-            ))}
-          </ul>
+          <div className="border-b border-rule py-2">
+            <MenuGroupList
+              links={account}
+              storageKey="account"
+              itemClass={row}
+              headerClass="border-t border-rule px-5 py-3 font-mono text-[11px] uppercase tracking-eyebrow text-slate hover:bg-paper"
+              extra={(l) =>
+                l.href === "/messages" && unreadDms > 0 ? <span className="rounded-full bg-crimson px-2 py-0.5 font-mono text-[11px] font-bold text-paper">{unreadDms}</span>
+                : l.href === "/calendar" && !!calToday && calToday > 0 ? <span className="rounded-full border border-crimson/30 bg-crimson/10 px-2 py-0.5 text-[11px] font-bold text-crimson">{calToday} today</span>
+                : null}
+            />
+          </div>
         )}
         <p className="px-5 pt-4 font-mono text-[11px] uppercase tracking-eyebrow text-slate">Day or night</p>
         <div className="px-5 pt-2"><ThemeSwitch compact /></div>

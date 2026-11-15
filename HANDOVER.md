@@ -1076,6 +1076,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
     Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
     a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
+135. **Drop-down menus and the contract agreements (v0.167.1, branch `push/admin-menus-drafts`; owner, 15 Nov 2026):** the Admin and My
+    account bars (`components/SectionNav.tsx`) and the account menus (`components/MenuGroupList.tsx` in `AuthNav` and `AccountSheet`, one
+    list in `lib/account-menu.ts`) have a drop-down per group, closed except the current page's, remembered per browser
+    (`lib/menu-groups.ts`, `lib/use-open-groups.ts`). The duplicate Media link is gone. Nana-HR & hiring: the onboarding form opens under
+    the applicant, scrolled into view; contract roles now get the Campus Ambassador Agreement or the Contractor (Consulting) Agreement
+    (`lib/hr-drafts.ts`, kind `agreement`), plus the option grant and announcement; both are templates in the staff library (seeded on the
+    next library load). **Owner steps:** none to deploy (no rules or indexes). Have Legal review the two agreements (every [Counsel: …]
+    point: withholding tax, consideration for options-only work, the data clause, disputes). Tests: `test:menus` (new), `test:hr` (now in CI).
 
 ## 3. How the work is done (please keep these)
 
@@ -1155,6 +1163,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
+| Menus | grouped drop-downs: `lib/menu-groups.ts` (rules), `lib/use-open-groups.ts` (remembered per browser), `components/SectionNav.tsx` (Admin, My account bars), `components/MenuGroupList.tsx` (`AuthNav`, `AccountSheet`), the account links in `lib/account-menu.ts`, the admin pages in `lib/admin-access.ts` (`ADMIN_SECTIONS`, `GROUP_ORDER`); test `npm run test:menus` |
+| Hiring drafts | `lib/hr-drafts.ts` (offer, Campus Ambassador Agreement, Contractor (Consulting) Agreement, option grant, announcement; `ROLE_PRESETS`), `lib/careers-server.ts` (`makeDrafts`), `app/(main)/admin/team/hr/page.tsx`; test `npm run test:hr` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
 
 - **Booking calendars (v0.164.1):** `components/MonthCalendar.tsx` (Monday-first month view in My Cycle's look; `isOpen` tints the
@@ -1184,6 +1194,8 @@ npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle,
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
 npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
 npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
+npm run test:menus             # the drop-down menus: groups, the open state, the account links (Media once); "ALL OK"
+npm run test:hr                # careers and Nana-HR drafts (offer, the contract agreements, grant), then hiring on the emulators
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

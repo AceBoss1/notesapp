@@ -3319,3 +3319,18 @@ pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest 
 ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+
+**Drop-down menus and the contract agreements (v0.167.1, 15 Nov 2026)** — The owner asked for the admin and account menus "with drop down
+for each", and reported that onboarding documents weren't drafting. Menus: `components/SectionNav.tsx` (Admin and My account bars) shows
+a wrapping row of group buttons with a chevron and the open groups' links underneath, closed except the current page's group;
+`components/MenuGroupList.tsx` does the same for the desktop account menu (`AuthNav`) and the phone `AccountSheet`, now one list in
+`lib/account-menu.ts` (everyday links, then Profile & content, Money, Orders & bookings). Rules in `lib/menu-groups.ts`; open/closed
+choices in localStorage (`naMenu:<menu>`), read in an effect so the first render matches the server (`lib/use-open-groups.ts`). The My
+account bar listed Media twice (once behind `MEDIA_LIVE`, once always; both `/profile/media`): one link now, grouped Profile & content,
+Money, Business, Insights. HR (`app/(main)/admin/team/hr/page.tsx`): the terms form opens under the applicant, scrolls into view with
+"Onboarding documents for <name>" focused, hides salary fields for contract roles and shows errors in place; the drafts open there too.
+`lib/hr-drafts.ts`: the Campus Ambassador Agreement (`ambassadorAgreement`) and the Contractor (Consulting) Agreement
+(`contractorAgreement`), both independent contractors, drafted by `draftsFor` (kind `agreement`) with the option grant and the
+announcement for contract arrangements; a `campus-ambassador` preset from its listing; both in the staff library as templates. No
+referral rates are written into the agreement (it points at the programme's published terms). Tests: `test:menus` (new), `test:hr`
+(extended, now in CI).

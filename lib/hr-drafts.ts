@@ -4,6 +4,9 @@ import { isArrangement, isContractArrangement, type Arrangement } from "./career
 // Nana-HR's onboarding drafts (owner, 3 Nov 2026: "using the documents I sent for Nora Bawa, Nana-HR could be drafting such for new
 // hires"). Three templates taken from those documents with every personal detail removed: the offer of employment (NOTESAPP
 // TECHNOLOGIES LTD), the executive option grant (NotesApp Inc., under the 2026 Equity Incentive Plan) and the internal announcement.
+// Contract roles (lib/careers.ts isContractArrangement) get an agreement instead of the offer of employment (owner, 15 Nov 2026: "draft
+// documents should draft from templates"): the Campus Ambassador Agreement (affiliate rewards and stock options) and the Contractor
+// (Consulting) Agreement (stock options only), both independent contractors, not employees.
 // Filled from what the Chief of Staff enters; nothing is invented. Anything not given stays as an open point in [brackets], and every
 // draft says it is for counsel review: Legal reviews, the CEO (and, for options, the Board) approves and signs. Nana-HR never sends one.
 
@@ -19,7 +22,7 @@ export type DraftTerms = {
 
 // Starting points for a role's onboarding drafts, by the vacancy's seedKey (lib/careers.ts SEED_ROLES). The Chief of Staff still checks
 // every line; pay, dates and equity are never preset and stay [open points] until entered.
-export type RolePreset = { title: string; reportsTo: string; worksWith: string; duties: string[]; whatTheyDo: string[]; howToWork: string[] };
+export type RolePreset = { title: string; reportsTo: string; worksWith: string; duties: string[]; whatTheyDo: string[]; howToWork: string[]; hoursPerWeek?: string };
 export const ROLE_PRESETS: Record<string, RolePreset> = {
   // Owner, 8 Nov 2026: the Chief of Staff and Senior Executive Assistant is one role and an open vacancy, reporting to the CEO.
   "chief-of-staff": {
@@ -69,11 +72,36 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
       "Keep pay, equity and funding figures on the task, with only the people named",
     ],
   },
+  // Owner, 15 Nov 2026: the Campus Ambassador (lib/careers.ts, seedKey "campus-ambassador") had no preset, so its drafts came out
+  // empty. Taken from the role's own listing: affiliate rewards and stock options, a contract role, about 5 hours a week.
+  "campus-ambassador": {
+    title: "Campus Ambassador",
+    reportsTo: "the User Acquisition Lead",
+    worksWith: "the Marketing team and the other Campus Ambassadors",
+    hoursPerWeek: "5",
+    duties: [
+      "Weeks 1 to 2: set up your own referral link, read the brand rules and campaign materials the Marketing team sends you, and agree your campus plan with the User Acquisition Lead",
+      "Weeks 2 to 6: introduce NotesApp to departments, clubs, fellowships, student businesses and lecturers on your campus, and help each one set up",
+      "From week 3: run your campus's NotesApp community: announcements, study groups, events and lives",
+      "Every month: hold at least one short workshop or demo (in person or as a live), and share what students ask for with the team",
+      "Every month: report who joined, who started publishing or teaching, and what's working",
+    ],
+    whatTheyDo: [
+      "Brings NotesApp to their campus: departments, clubs, fellowships, student businesses and lecturers",
+      "Runs the campus's NotesApp community, with study groups, events and lives",
+      "Holds a workshop or demo each month and passes on what students ask for",
+    ],
+    howToWork: [
+      "Send campus events, partnerships and requests to them as a team hub task, with a date",
+      "Share campaign codes and materials with them through the Marketing team, never pay or reward figures in group chats",
+      "Bring anything about a student's safety or data to Trust & safety the same day",
+    ],
+  },
 };
 // A role's preset filled into blank terms (for the library's ready-to-review letter, and the team hub's draft form).
 export const presetTerms = (key: string): Partial<Record<keyof DraftTerms, unknown>> => {
   const p = ROLE_PRESETS[key];
-  return p ? { title: p.title, reportsTo: p.reportsTo, worksWith: p.worksWith, duties: p.duties, whatTheyDo: p.whatTheyDo, howToWork: p.howToWork } : {};
+  return p ? { title: p.title, reportsTo: p.reportsTo, worksWith: p.worksWith, duties: p.duties, whatTheyDo: p.whatTheyDo, howToWork: p.howToWork, ...(p.hoursPerWeek ? { hoursPerWeek: p.hoursPerWeek } : {}) } : {};
 };
 
 const s = (v: unknown, max = 200) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -103,9 +131,9 @@ const OPCO = `${COMPANY_INFO.legalName}\n\nRC ${COMPANY_INFO.rcNumber} · TIN ${
 export function offerLetter(t: DraftTerms): string {
   const pay: string[] = [];
   if (t.arrangement === "affiliate_options") {
-    pay.push("This role is a contract engagement rewarded with affiliate rewards (the NotesApp affiliate and referral programme, paid as members it brings in pay) and employee stock options, so this offer of employment does not apply. Use Legal's campus ambassador agreement with the option grant. [Legal: ambassador agreement template]");
+    pay.push("This role is a contract engagement rewarded with affiliate rewards (the NotesApp affiliate and referral programme, paid as members it brings in pay) and employee stock options, so this offer of employment does not apply. Nana-HR drafts the Campus Ambassador Agreement and the option grant instead.");
   } else if (t.arrangement === "options_only") {
-    pay.push("This role is a contract engagement rewarded with stock options only, so this offer of employment does not apply. Use Legal's contractor agreement with the option grant. [Legal: contractor agreement template]");
+    pay.push("This role is a contract engagement rewarded with stock options only, so this offer of employment does not apply. Nana-HR drafts the Contractor (Consulting) Agreement and the option grant instead.");
   } else {
     pay.push("| Item | Amount | When |", "| --- | --- | --- |", `| Monthly salary | ₦${or(t.monthlySalary, "amount")} | Paid monthly in arrears, from your start date |`);
     if (t.bonusPerMonth) pay.push(`| Deferred performance bonus | ₦${t.bonusPerMonth} for each month you serve | Accrues monthly; paid after the ${or(t.milestoneName, "milestone")}, and only if you are still employed on that date |`);
@@ -188,7 +216,7 @@ This agreement is made on ${or(t.grantDate, "grant date")} between NotesApp Inc.
 | Grant Date | ${or(t.grantDate, "date the Board approves the grant")} |
 | Exercise price | US$${or(t.exercisePrice, "price")} per share, not less than fair market value on the Grant Date, [method] |
 | Expiry | Ten years from the Grant Date, or earlier as this agreement says |
-| Service | ${isContractArrangement(t.arrangement) ? "Your services under your consulting agreement count as service to the Company" : `Your employment with ${COMPANY_INFO.legalName} (a subsidiary) counts as service to the Company`} |
+| Service | ${isContractArrangement(t.arrangement) ? `Your services under your ${t.arrangement === "affiliate_options" ? "Campus Ambassador Agreement" : "Contractor (Consulting) Agreement"} with ${COMPANY_INFO.legalName} (a subsidiary) count as service to the Company` : `Your employment with ${COMPANY_INFO.legalName} (a subsidiary) counts as service to the Company`} |
 
 ## 2. Vesting
 
@@ -246,9 +274,144 @@ Emmanuel Adams, Chief Executive Officer, ${COMPANY_INFO.legalName}
 `;
 }
 
-export function draftsFor(t: DraftTerms): { kind: "offer" | "grant" | "announcement"; title: string; markdown: string }[] {
-  const out: { kind: "offer" | "grant" | "announcement"; title: string; markdown: string }[] = [];
-  if (!isContractArrangement(t.arrangement)) out.push({ kind: "offer", title: `Offer letter: ${t.name || "new hire"}`, markdown: offerLetter(t) });
+
+// The parts the two contract agreements share: not an employee, confidentiality, data protection, IP, no authority, law, signatures.
+const optionClause = (t: DraftTerms, n: number) => `## ${n}. Stock options
+
+NotesApp Inc., the group's parent, will offer you an option to buy shares under a separate Option Grant Agreement and its 2026 Equity Incentive Plan, subject to the approval of its Board. Your option is ${or(t.optionPercent, "%")} of the parent's fully diluted capital (${or(t.optionShares, "number")} shares). Your services under this agreement count as service for that option. The option is governed only by that agreement and the Plan: it is not a fee under this agreement and creates no employment. If this agreement ends, you keep only the options already vested on that date, as that agreement says.`;
+
+const contractorStatus = (n: number, who: string) => `## ${n}. Independent contractor
+
+You provide the services as an independent contractor, not as an employee, worker, partner or agent of the Company. Nothing in this agreement creates employment. You are not entitled to a salary, pension contributions, paid leave or other employee benefits, and the Company does not deduct PAYE from what it pays you. You are responsible for your own taxes and for registering with the tax authority where the law requires it. [Counsel: withholding tax on payments to individuals, and the TIN requirement.] You decide how, when and where you do the work, within what this agreement says. You may work for others at the same time, except for a direct competitor of the NotesApp group without our written agreement. You provide your own phone, computer and data.${who ? ` ${who}` : ""}`;
+
+const sharedTerms = (t: DraftTerms, first: number, extra: { ip: string; restrict?: string }) => {
+  let n = first;
+  const parts = [
+    `## ${n++}. Confidentiality
+
+You must keep confidential everything you learn about the NotesApp group that isn't public: plans, figures, members' and customers' information, the team hub and anything marked confidential. You use it only to provide the services, and you return or delete it when this agreement ends. This continues after the agreement ends. It doesn't cover information that is already public (other than through you), or that the law or a court requires you to disclose (tell us first where the law allows).`,
+    `## ${n++}. Data protection
+
+You will handle personal data only as the services need and as the Company instructs, in line with the Nigeria Data Protection Act 2023 and the Company's privacy policy. In particular: you never collect people's personal details for NotesApp outside NotesApp itself (no private lists or spreadsheets of names, phone numbers or emails); you never share anyone's details with a third party; you never contact or target anyone under 18 to sign up or pay; and you tell the Company within 24 hours if you think personal data has been lost, shared or misused. [Counsel: whether a data processing clause or agreement is needed.]`,
+    `## ${n++}. Intellectual property
+
+${extra.ip} Your own work from before this agreement, and your own personal accounts, stay yours. The NotesApp names, logos and trade marks belong to the NotesApp group; you get no right in them except the limited use this agreement allows.`,
+    ...(extra.restrict ? [extra.restrict.replace("{n}", String(n++))] : []),
+    `## ${n++}. No authority to bind the Company
+
+You may not sign anything, make any promise, offer any price, discount or reward, open any account or collect any money on behalf of the Company or anyone in the NotesApp group, or say that you can. Only the Company's officers can bind it, in writing.`,
+    `## ${n++}. Law and general
+
+This agreement is governed by the laws of the Federal Republic of Nigeria. [Counsel: disputes first to good-faith discussion for 30 days, then mediation or arbitration in Lagos, or the courts.] It is the whole agreement about the services and replaces earlier discussions. Changes must be in writing and signed by both of us. You may not pass this agreement to anyone else. If a part of it can't be enforced, the rest still applies. Notices go by email to the addresses each of us gives.`,
+  ];
+  return parts.join("\n\n");
+};
+
+const signatures = (t: DraftTerms, role: string) => `Signed for and on behalf of ${COMPANY_INFO.legalName}
+
+________________________ (Chief Executive Officer) · ________________________ (Director or Secretary) · Date: __________
+
+Signed by the ${role}
+
+________________________ ${or(t.name, "name")} · Date: __________`;
+
+const appendix = (t: DraftTerms, open: string) => `## Appendix: the services
+
+${t.duties.length ? t.duties.map((d) => `- ${d}`).join("\n") : `- [${open}]`}`;
+
+// The Campus Ambassador Agreement (affiliate rewards and stock options): an independent contractor who brings NotesApp to their campus.
+export function ambassadorAgreement(t: DraftTerms): string {
+  return `${HEAD(OPCO, "Campus Ambassador Agreement")}
+${or(t.title, "Campus Ambassador")}. ${COMPANY_INFO.legalName} and ${or(t.name, "name")}.
+
+Date: ${or(t.offerDate, "date")}
+
+This agreement is made between ${COMPANY_INFO.legalName}, RC ${COMPANY_INFO.rcNumber}, a company registered in Nigeria ("the Company", "NotesApp"), and ${or(t.name, "name")} of [address] ("you", the Ambassador).
+
+## 1. The engagement
+
+The Company engages you as ${or(t.title, "Campus Ambassador")} at [campus], to bring NotesApp to your campus. You start on ${or(t.startDate, "start date")}. You report to ${t.reportsTo}${t.worksWith ? `, and work with ${t.worksWith}` : ""}. You confirm that you are 18 or over and a current student of [campus].
+
+${contractorStatus(2, "Your studies come first: you choose your hours around them, which we expect to be about " + t.hoursPerWeek + " hours a week.")}
+
+## 3. What you do
+
+You provide the services in the appendix, honestly and with reasonable care. In short: you introduce NotesApp to departments, clubs, fellowships, student businesses and lecturers on your campus and help them set up; you run your campus's NotesApp community; you hold a workshop or demo at least once a month; and you report each month on who joined and what's working. You follow your campus's own rules on events, posters and use of its name, and you get the permission the campus needs before an event.
+
+## 4. Affiliate rewards (no fixed pay)
+
+You are rewarded only through the NotesApp affiliate and referral programme, with your own referral and affiliate links and codes. You earn what the programme pays, at its rates and on its terms as published in the app when the referred payment is made, on payments made by people you genuinely referred. There is no salary, fee, retainer or minimum, and no reward just for sign-ups. Rewards show on your Referrals page, become available and are withdrawn as the programme's rules say. You earn nothing on your own purchases, on accounts you control, or on referrals made in breach of this agreement, and the Company may hold back or reverse rewards on those. The Company may change the programme's rates and terms for the future by updating them in the app and telling you; what you have already earned is not reduced. The Company reimburses expenses only if it approved them in writing beforehand. [Counsel: whether a minimum withdrawal or a cap applies to ambassadors.]
+
+${optionClause(t, 5)}
+
+## 6. Term and ending this agreement
+
+This agreement runs from your start date for [term, for example one academic session], and then continues until either of us ends it. Either of us may end it at any time with [${t.noticeAfterProbation}] written notice. The Company may end it at once if you break the conduct rules below, mislead anyone about NotesApp, misuse personal data or the brand, or stop being a student. When it ends, you stop presenting yourself as a NotesApp ambassador, stop using the brand materials, and return or delete the Company's information. Rewards already earned under the programme's rules are paid as those rules say. [Counsel: whether rewards on referrals made before the end keep accruing for the programme's usual period.]
+
+## 7. Conduct and use of the brand
+
+- You are honest about what NotesApp does. You never promise anyone earnings, results or jobs, and never push anyone to pay.
+- When you share your link or talk about NotesApp, you say that you are a NotesApp Campus Ambassador and may earn a reward.
+- No spam, fake accounts, fake reviews, buying sign-ups, or paid adverts in NotesApp's name without written approval.
+- You follow the NotesApp Terms of Service and Community Guidelines, and the brand rules in the materials we give you. You use the NotesApp names and logos only as those rules allow, only for this engagement, and never change them. That permission ends when this agreement ends.
+- You never speak to the press or post as NotesApp's official voice; send those requests to ${t.reportsTo}.
+- You report any safety concern about a member, especially a young member, to Trust & safety the same day.
+
+${sharedTerms(t, 8, { ip: "Material you make for the Company in the services (posts, flyers, slides, workshop material, videos) belongs to the Company from creation, and you assign it to the Company; the Company may pass it on to NotesApp Inc., the group's IP holder. You may show it in your own portfolio once it is public." })}
+
+${signatures(t, "Ambassador")}
+
+${appendix(t, "the services, from the role's listing")}
+`;
+}
+
+// The Contractor (Consulting) Agreement (stock options only): an independent consultant rewarded with an option grant, no cash fee.
+export function contractorAgreement(t: DraftTerms): string {
+  const restrict = `## {n}. Non-solicitation
+
+For [${t.restrictionMonths}] months after this agreement ends you will not solicit the Company's staff or approach its customers or partners using confidential information. Nothing stops you working in the industry generally. [Counsel to confirm enforceability and scope.]`;
+  return `${HEAD(OPCO, "Contractor (Consulting) Agreement")}
+${or(t.title, "role")}. ${COMPANY_INFO.legalName} and ${or(t.name, "name")}.
+
+Date: ${or(t.offerDate, "date")}
+
+This agreement is made between ${COMPANY_INFO.legalName}, RC ${COMPANY_INFO.rcNumber}, a company registered in Nigeria ("the Company"), and ${or(t.name, "name")} of [address] ("you", the Consultant).
+
+## 1. The engagement
+
+The Company engages you as a consultant in the role of ${or(t.title, "role")}, starting on ${or(t.startDate, "start date")}. You report to ${t.reportsTo}${t.worksWith ? `, and work with ${t.worksWith}` : ""}, for about ${t.hoursPerWeek} hours a week on ${t.days}, at times you agree with ${t.reportsTo}. You record your hours in NotesApp Time Track in the team hub. The services are set out in the appendix and may be changed by agreement in writing.
+
+${contractorStatus(2, "")}
+
+## 3. Fee and expenses
+
+You are rewarded for the services with stock options only (section 4): the Company pays no cash fee, salary or retainer. [Counsel: consideration for the services and the IP assignment; whether a nominal fee is needed.] The Company reimburses reasonable expenses that it approved in writing beforehand and that you have documented.
+
+${optionClause(t, 4)}
+
+## 5. Term and ending this agreement
+
+This agreement runs from your start date until either of us ends it. Either of us may end it at any time with [${t.noticeAfterProbation}] written notice. The Company may end it at once for serious breach, dishonesty or conduct that harms the NotesApp group. When it ends, you return or delete the Company's information and hand over work in progress.
+
+${sharedTerms(t, 6, { ip: "Everything you create in providing the services (writing, designs, code, documents and know-how) belongs to the Company from creation, and you assign it to the Company and will sign what is needed to confirm that; the Company may pass it on to NotesApp Inc., the group's IP holder. You waive your moral rights in it to the extent the law allows.", restrict })}
+
+${signatures(t, "Consultant")}
+
+${appendix(t, "the services for the first 90 days")}
+`;
+}
+
+export type DraftKind = "offer" | "agreement" | "grant" | "announcement";
+
+// Which documents a new hire gets: employees an offer letter; contract roles their agreement instead (the Campus Ambassador
+// Agreement for affiliate rewards and options, the Contractor (Consulting) Agreement for options only); everyone with options the
+// option grant; and everyone the internal announcement.
+export function draftsFor(t: DraftTerms): { kind: DraftKind; title: string; markdown: string }[] {
+  const out: { kind: DraftKind; title: string; markdown: string }[] = [];
+  const who = t.name || "new hire";
+  if (t.arrangement === "affiliate_options") out.push({ kind: "agreement", title: `Campus Ambassador Agreement: ${who}`, markdown: ambassadorAgreement(t) });
+  else if (t.arrangement === "options_only") out.push({ kind: "agreement", title: `Contractor (Consulting) Agreement: ${who}`, markdown: contractorAgreement(t) });
+  else out.push({ kind: "offer", title: `Offer letter: ${who}`, markdown: offerLetter(t) });
   if (t.arrangement !== "salary") out.push({ kind: "grant", title: `Option grant: ${t.name || "new hire"}`, markdown: optionGrant(t) });
   out.push({ kind: "announcement", title: `Internal announcement: ${t.name || "new hire"}`, markdown: announcement(t) });
   return out;

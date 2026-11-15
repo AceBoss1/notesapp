@@ -16,3 +16,4 @@ export const BellIcon = (p: P) => <I {...p}><path d="M6 16.5V11a6 6 0 0 1 12 0v5
 export const PenIcon = (p: P) => <I {...p}><path d="m14.5 5.5 4 4L8 20H4v-4L14.5 5.5Z" /><path d="m12.5 7.5 4 4" /></I>;
 export const MenuIcon = (p: P) => <I {...p}><path d="M4 7h16M4 12h16M4 17h16" /></I>;
 export const CloseIcon = (p: P) => <I {...p}><path d="M6 6l12 12M18 6 6 18" /></I>;
+export const ChevronIcon = (p: P) => <I {...p}><path d="m6 9 6 6 6-6" /></I>;

@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:courses
       - run: npm run test:social
       - run: npm run test:team
+      - run: npm run test:menus
       - run: npm run test:chat
       - run: npm run test:uploads
       - run: npm run test:media
@@ -91,6 +92,8 @@ jobs:
       - run: npm run test:courses-server
       - run: npm run test:quizzes-server
       - run: npm run test:team-server
+      # Careers and Nana-HR: the drafting templates (offer, the contract agreements, grant, announcement), then hiring on the emulators
+      - run: npm run test:hr
       - run: npm run test:maintenance
       - run: npm run test:ops-server
       - run: npm run test:pii-server

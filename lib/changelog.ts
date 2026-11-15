@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Shorter menus on a phone: the My account bar on your profile pages is now four drop-downs (Profile & content, Money, Business, Insights), and the account menu keeps your everyday links on top with Profile & content, Money, and Orders & bookings as drop-downs. The group you're in opens by itself, and what you open or close is remembered on that device." },
+      { kind: "fixed", text: "Media was listed twice in the My account bar; it's there once now." },
+      { kind: "changed", text: "The admin menu's groups are drop-downs too, closed except the one you're in. Nothing changes for members." },
+    ],
+  },
+  {
     version: "v0.167.0",
     bump: "minor",
     date: "2026-11-15",

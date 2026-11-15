@@ -3,7 +3,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import type { Dept } from "./admin-access";
 import type { DocCategory, DocScope } from "./staff-ops";
 import { STAFF_LIBRARY_TEXT, STAFF_LIBRARY_VERSION } from "./staff-library-content";
-import { announcement, cleanTerms, offerLetter, optionGrant, presetTerms } from "./hr-drafts";
+import { ambassadorAgreement, announcement, cleanTerms, contractorAgreement, offerLetter, optionGrant, presetTerms } from "./hr-drafts";
 
 // The hiring templates Nana-HR drafts from (lib/hr-drafts.ts), shown blank in the library so the executive office and Legal can review
 // the wording. Every [bracket] is filled from the team hub when Nana-HR drafts for a real hire.
@@ -15,6 +15,9 @@ const TEMPLATES: Record<string, string> = {
   // The Executive Assistant's offer, ready for review: the role's duties filled in, pay, dates and equity left as [open points].
   "template-offer-chief-of-staff": offerLetter(cleanTerms({ ...presetTerms("chief-of-staff"), arrangement: "salary_options", hoursPerWeek: "20" })),
   "template-offer-executive-assistant": offerLetter(cleanTerms({ ...presetTerms("executive-assistant"), arrangement: "salary_options", hoursPerWeek: "20" })),
+  // The contract roles' agreements (15 Nov 2026): the Campus Ambassador's with its duties filled in, and the blank consulting agreement.
+  "template-ambassador": ambassadorAgreement(cleanTerms({ ...presetTerms("campus-ambassador"), arrangement: "affiliate_options" })),
+  "template-contractor": contractorAgreement(cleanTerms({ arrangement: "options_only", reportsTo: "[who they report to]", hoursPerWeek: "[hours]" })),
 };
 const textOf = (key: string) => STAFF_LIBRARY_TEXT[key] ?? TEMPLATES[key];
 
@@ -51,6 +54,8 @@ export const SEED_DOCS: SeedDoc[] = [
   { key: "template-announcement", title: "Template: internal announcement of a new hire", category: "template", description: "The welcome announcement Nana-HR drafts; never with pay, equity or financial figures.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "template-offer-chief-of-staff", title: "Template: offer of employment, Chief of Staff and Senior Executive Assistant", category: "template", description: "The Chief of Staff and Senior Executive Assistant's offer, from the executive offer template: duties for the first 90 days filled in; pay, dates and stock options left for Legal and the CEO (options for the Board).", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "template-offer-executive-assistant", title: "Template: offer of employment, Executive Assistant", category: "template", description: "The Executive Assistant's offer, from the executive offer template: duties for the first 90 days filled in; pay, dates and stock options left for the Chief of Staff, Legal and the CEO.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
+  { key: "template-ambassador", title: "Template: Campus Ambassador Agreement", category: "template", description: "The agreement Nana-HR drafts for a Campus Ambassador: an independent contractor rewarded with affiliate rewards and stock options, not an employee. Duties filled in; dates, campus and options left for Legal and the CEO.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
+  { key: "template-contractor", title: "Template: Contractor (Consulting) Agreement", category: "template", description: "The agreement Nana-HR drafts for a contract role rewarded with stock options only: an independent consultant, not an employee. For Legal's review before signing.", scope: "dept", depts: ["executive", "legal"], requiresAck: false },
   { key: "brief-community", title: "Community Strategist brief", category: "brief", description: "Why communities matter to NotesApp, who the Community Strategist serves, what they own, principles, the first 90 days and measures.", scope: "dept", depts: ["support"], requiresAck: true },
   { key: "sop-community", title: "SOP: Community Strategist", category: "sop", description: "Onboarding a new community, giving and tithes, events and lives, quiet communities, requests and conflicts, the monthly report.", scope: "dept", depts: ["support", "moderation"], requiresAck: true },
   { key: "playbook-government", title: "Government partnerships playbook", category: "brief", description: "Deals like SMEDAN and Zoho's: 20 Nigerian agencies and programmes, the offer for each (credits, not cash), deal terms, the pitch, the MoU outline, a 90-day plan and the risks.", scope: "dept", depts: ["growth", "executive", "legal"], requiresAck: false },
