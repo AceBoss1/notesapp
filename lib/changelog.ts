@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.171.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "The campus programme is open in Kenya, Botswana and Ghana as well as Nigeria, with due dates and months in each country's own time." },
+      { kind: "added", text: "🏆 Campus leaderboard for ambassadors: your team or your country, this month or all time. Points for every member who joins with your link or code, every approved task, and a bonus for finishing on time; medals for the top three, and levels from Rookie to Legend that never go down. Coordinators see each ambassador's level and points on their overview." },
+    ],
+  },
+  {
     version: "v0.170.0",
     bump: "minor",
     date: "2026-11-15",

@@ -7,8 +7,8 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
 import { canManageTeam, hasDept, type Access } from "./admin-access";
 import {
-  CAMPUS_COUNTRIES, CampusError, LIMITS, cleanTask, cleanUrl, isCampusCountry, lagosDay, taskCounts,
-  type CampusCountry, type CampusMember, type CampusTask, type Progress, type ProgressStatus,
+  CAMPUS_COUNTRIES, CampusError, LEVELS, LIMITS, MEDALS, POINTS, approvedTally, campusDay, cleanTask, cleanUrl, isCampusCountry, levelFor,
+  pointsOf, shortName, taskCounts, type CampusCountry, type CampusMember, type CampusTask, type Progress, type ProgressStatus,
 } from "./campus";
 
 export { CampusError };
@@ -147,7 +147,7 @@ export async function team(db: Firestore, v: Viewer, opts: { country?: unknown; 
 
 export async function createTask(db: Firestore, v: Viewer, input: Record<string, unknown>, notify: Notify, now = new Date()): Promise<CampusTask> {
   const coord = mustCoordinate(v);
-  const fields = cleanTask(input, lagosDay(now));
+  const fields = cleanTask(input, campusDay(coord.country, now));
   const mine = (await db.collection("campusTeam").where("coordinatorUid", "==", coord.uid).get()).docs.map((d) => d.id);
   const assignees = input.assignees === "all" ? mine : Array.isArray(input.assignees) ? Array.from(new Set(input.assignees.map(String))) : [];
   if (!assignees.length) throw new CampusError(mine.length ? "Choose who the task is for." : "Add your ambassadors first, then give them tasks.");
@@ -172,7 +172,7 @@ async function ownTask(db: Firestore, v: Viewer, id: unknown) {
 // Edit the task, and add (never silently drop) ambassadors: someone taken off keeps what they reported, the task just leaves their list.
 export async function updateTask(db: Firestore, v: Viewer, id: unknown, input: Record<string, unknown>, notify: Notify, now = new Date()) {
   const { ref, t, coord } = await ownTask(db, v, id);
-  const fields = cleanTask({ ...t, ...input }, input.due && input.due !== t.due ? lagosDay(now) : "0000-00-00");
+  const fields = cleanTask({ ...t, ...input }, input.due && input.due !== t.due ? campusDay(t.country, now) : "0000-00-00");
   let assignees = t.assignees;
   if (input.assignees !== undefined) {
     const mine = (await db.collection("campusTeam").where("coordinatorUid", "==", coord.uid).get()).docs.map((d) => d.id);
@@ -250,29 +250,111 @@ export async function review(db: Firestore, v: Viewer, id: unknown, uid: unknown
 
 // ---- how everyone is doing ----
 
+// Sign-ups through one ambassador's link or code: this month (by the country's own day) and in all. Kept five minutes, as the leaderboard
+// asks for a whole country at once.
+const signupCache = new Map<string, { at: number; month: number; all: number }>();
+export const clearSignupCache = () => signupCache.clear();
+async function signupsOf(db: Firestore, uid: string, country: string, monthStart: string, now: Date) {
+  const key = `${uid}|${country}|${monthStart}`;
+  const hit = signupCache.get(key);
+  if (hit && now.getTime() - hit.at < 300_000 && now.getTime() >= hit.at) return hit;
+  const refs = (await db.collection("referrals").where("referredBy", "==", uid).limit(5000).get()).docs.map((d) => String(d.data().referredAt ?? ""));
+  const row = { at: now.getTime(), month: refs.filter((at) => at && campusDay(country, new Date(at)) >= monthStart).length, all: refs.length };
+  signupCache.set(key, row);
+  if (signupCache.size > 5000) signupCache.delete(signupCache.keys().next().value as string);
+  return row;
+}
+
+// The country a view is about: an ambassador's or coordinator's own, or the one a lead chose.
+function scopeCountry(v: Viewer, opts: { country?: unknown }): CampusCountry {
+  if (v.member && !v.lead) return v.member.country;
+  return isCampusCountry(opts.country) ? opts.country : v.member?.country ?? "NG";
+}
+
 export type AmbassadorStats = {
   uid: string; name: string; username: string; campus: string; state?: string; coordinatorUid?: string; lastCheckIn?: string;
   signupsMonth: number; signupsAll: number; done: number; open: number; overdue: number; redo: number;
+  pointsMonth: number; pointsAll: number; level: { name: string; emoji: string };
 };
 
-// Sign-ups through each ambassador's link or code (this month in Lagos time, and all time), and her tasks.
+// Sign-ups through each ambassador's link or code (this month in the country's own days, and all time), her tasks and her points.
 export async function overview(db: Firestore, v: Viewer, opts: { country?: unknown; coordinatorUid?: unknown } = {}, now = new Date()) {
-  const today = lagosDay(now), monthStart = `${today.slice(0, 7)}-01`;
+  const country = scopeCountry(v, opts);
+  const today = campusDay(country, now), monthStart = `${today.slice(0, 7)}-01`;
   const people = v.member?.role === "ambassador" && !v.lead ? [v.member] : (await team(db, v, opts)).filter((m) => m.role === "ambassador");
   const list = v.member?.role === "ambassador" && !v.lead ? await tasks(db, v) : await tasks(db, v, opts);
   const stats: AmbassadorStats[] = [];
   for (const m of people) {
-    const refs = (await db.collection("referrals").where("referredBy", "==", m.uid).limit(5000).get()).docs.map((d) => String(d.data().referredAt ?? ""));
-    // referredAt is UTC; a sign-up counts in the month of its Lagos day.
-    const signupsMonth = refs.filter((at) => at && lagosDay(new Date(at)) >= monthStart).length;
-    stats.push({ uid: m.uid, name: m.name, username: m.username, campus: m.campus, state: m.state, coordinatorUid: m.coordinatorUid, lastCheckIn: m.lastCheckIn, signupsMonth, signupsAll: refs.length, ...taskCounts(list, m.uid, today) });
+    const s = await signupsOf(db, m.uid, m.country, monthStart, now);
+    const ap = approvedTally(list, m.uid, monthStart, m.country);
+    const pointsAll = pointsOf({ signups: s.all, ...ap.all });
+    const { level } = levelFor(pointsAll);
+    stats.push({ uid: m.uid, name: m.name, username: m.username, campus: m.campus, state: m.state, coordinatorUid: m.coordinatorUid, lastCheckIn: m.lastCheckIn,
+      signupsMonth: s.month, signupsAll: s.all, ...taskCounts(list, m.uid, today),
+      pointsMonth: pointsOf({ signups: s.month, ...ap.month }), pointsAll, level: { name: level.name, emoji: level.emoji } });
   }
   stats.sort((a, b) => b.signupsMonth - a.signupsMonth || b.signupsAll - a.signupsAll || b.done - a.done || a.name.localeCompare(b.name));
-  const sum = (k: "signupsMonth" | "signupsAll" | "done" | "open" | "overdue") => stats.reduce((s, x) => s + x[k], 0);
+  const sum = (k: "signupsMonth" | "signupsAll" | "done" | "open" | "overdue") => stats.reduce((t, x) => t + x[k], 0);
   return {
-    month: monthStart.slice(0, 7), today,
+    country, month: monthStart.slice(0, 7), today,
     totals: { ambassadors: stats.length, signupsMonth: sum("signupsMonth"), signupsAll: sum("signupsAll"), done: sum("done"), open: sum("open"), overdue: sum("overdue"), tasks: list.length },
     ambassadors: stats,
+  };
+}
+
+// ---- the leaderboard: every ambassador in the programme can see it ----
+
+export type BoardRow = { rank: number; medal?: string; uid?: string; name: string; campus: string; points: number; signups: number; approved: number; level: { name: string; emoji: string }; me: boolean };
+export const BOARD_SHOWN = 50;
+
+// Ambassadors ranked by points, for "my team" (one coordinator's ambassadors) or the whole country, this month or in all. Names are
+// shortened ("Chioma E.") and only the people running the programme get the uids. Ties share a rank.
+export async function leaderboard(db: Firestore, v: Viewer, opts: { scope?: unknown; period?: unknown; country?: unknown; coordinatorUid?: unknown } = {}, now = new Date()) {
+  if (!v.lead && !v.member) throw new CampusError("Campus is for coordinators and ambassadors.", 403);
+  const scope = opts.scope === "country" ? "country" : "team";
+  const period = opts.period === "all" ? "all" : "month";
+  const country = scopeCountry(v, opts);
+  // Whose team: an ambassador's coordinator, a coordinator's own, or the one a lead chose (no team: the whole country).
+  const teamOf = v.member?.role === "ambassador" ? v.member.coordinatorUid : v.member?.role === "coordinator" && !(v.lead && opts.coordinatorUid) ? v.member.uid : typeof opts.coordinatorUid === "string" && opts.coordinatorUid ? opts.coordinatorUid : undefined;
+  const byTeam = scope === "team" && !!teamOf;
+  const q = byTeam ? db.collection("campusTeam").where("coordinatorUid", "==", teamOf) : db.collection("campusTeam").where("country", "==", country);
+  const people = (await q.get()).docs.map((d) => d.data() as CampusMember).filter((m) => m.role === "ambassador" && m.country === country);
+  const today = campusDay(country, now), monthStart = `${today.slice(0, 7)}-01`;
+  const allTasks = (await db.collection("campusTasks").where("country", "==", country).get()).docs.map((d) => d.data() as CampusTask);
+  const scored = [];
+  for (const m of people) {
+    const s = await signupsOf(db, m.uid, country, monthStart, now);
+    const ap = approvedTally(allTasks, m.uid, monthStart, country);
+    const all = { signups: s.all, ...ap.all }, month = { signups: s.month, ...ap.month };
+    const t = period === "all" ? all : month;
+    const { level } = levelFor(pointsOf(all));
+    scored.push({ m, points: pointsOf(t), signups: t.signups, approved: t.approved, level: { name: level.name, emoji: level.emoji } });
+  }
+  scored.sort((a, b) => b.points - a.points || b.signups - a.signups || a.m.name.localeCompare(b.m.name));
+  const staff = v.lead || v.member?.role === "coordinator";
+  let rank = 0, last = -1;
+  const rows: BoardRow[] = scored.map((x, i) => {
+    if (x.points !== last) { rank = i + 1; last = x.points; }
+    return {
+      rank, ...(rank <= 3 && x.points > 0 ? { medal: MEDALS[rank - 1] } : {}), ...(staff ? { uid: x.m.uid } : {}),
+      name: staff ? x.m.name : shortName(x.m.name), campus: x.m.campus, points: x.points, signups: x.signups, approved: x.approved, level: x.level, me: x.m.uid === v.uid,
+    };
+  });
+  const mine = rows.find((r) => r.me) ?? null;
+  const shown = rows.slice(0, BOARD_SHOWN);
+  // My own standing: where I am, my level from all-time points, and how far to the next.
+  let standing = null;
+  if (v.member?.role === "ambassador") {
+    const meScore = scored.find((x) => x.m.uid === v.uid);
+    const s = await signupsOf(db, v.uid, country, monthStart, now);
+    const ap = approvedTally(allTasks, v.uid, monthStart, country);
+    const allPts = pointsOf({ signups: s.all, ...ap.all });
+    const lv = levelFor(allPts);
+    standing = { rank: mine?.rank ?? null, of: rows.length, points: meScore?.points ?? 0, pointsAll: allPts, level: lv.level, next: lv.next, toNext: lv.toNext };
+  }
+  return {
+    scope: byTeam ? "team" : "country", period, country, month: monthStart.slice(0, 7), rules: { points: POINTS, levels: LEVELS },
+    rows: mine && !shown.includes(mine) ? [...shown, mine] : shown, total: rows.length, standing,
   };
 }
 

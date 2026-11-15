@@ -24,7 +24,7 @@ const db = getFirestore();
   await assert.rejects(C.appointCoordinator(db, auth, await view("chi"), { who: "ada@example.test", country: "NG" }, notify), /Only super admins/);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "nobody@example.test", country: "NG" }, notify), /sign up first/);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "@kid", country: "NG" }, notify), /adults/);
-  await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "GH" }, notify), /country/);
+  await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "ZA" }, notify), /country/);
   await C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "NG" }, notify);
   await C.appointCoordinator(db, auth, lead, { who: "@bola", country: "NG" }, notify);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "@ada", country: "NG" }, notify), /already a coordinator/);
@@ -98,6 +98,46 @@ const db = getFirestore();
   await assert.rejects(C.me(db, await view("dayo")), /coordinators and ambassadors/);
   // Editing and deleting stay with the task's coordinator.
   await assert.rejects(C.deleteTask(db, bola, t1.id), /wasn't found/);
+
+  // The leaderboard: every ambassador sees it, ranked by points; ambassadors see short names and no uids; ties share a rank.
+  C.clearSignupCache();
+  for (const u of ["wanjiru", "otieno", "akinyi", "kofi"]) { await db.doc(`users/${u}`).set({ username: u, displayName: `${u[0].toUpperCase()}${u.slice(1)} Test` }); await db.doc(`usernames/${u}`).set({ uid: u }); }
+  await C.appointCoordinator(db, auth, lead, { who: "@wanjiru", country: "KE" }, notify);
+  const wan = await view("wanjiru");
+  await C.addAmbassador(db, auth, wan, { who: "@otieno", campus: "University of Nairobi" }, notify);
+  await C.addAmbassador(db, auth, wan, { who: "@akinyi", campus: "Kenyatta University" }, notify);
+  await assert.rejects(C.addAmbassador(db, auth, wan, { who: "@chi", campus: "X Uni" }, notify), /already on a campus team/);
+  const kt = await C.createTask(db, wan, { title: "Campus stand", kind: "event", due: "2026-11-20", assignees: "all" }, notify, now);
+  const oti = await view("otieno"), aki = await view("akinyi");
+  await C.report(db, oti, kt.id, { status: "done" }, notify, new Date("2026-11-19T10:00:00Z"));
+  await C.review(db, wan, kt.id, "otieno", "approved", "", notify, new Date("2026-11-19T12:00:00Z"));
+  for (const [id, by, at] of [["k1", "akinyi", "2026-11-03T09:00:00Z"], ["k2", "akinyi", "2026-11-04T09:00:00Z"], ["k3", "otieno", "2026-09-04T09:00:00Z"]]) await db.doc(`referrals/${id}`).set({ uid: id, referredBy: by, referredAt: at });
+  const later = new Date("2026-11-19T13:00:00Z");
+  const b = await C.leaderboard(db, aki, { scope: "team", period: "month" }, later);
+  assert.equal(b.country, "KE"); assert.equal(b.scope, "team");
+  // Otieno: approved on time this month = 20 + 10 = 30; Akinyi: 2 sign-ups this month = 20.
+  assert.deepEqual(b.rows.map((r) => [r.rank, r.name, r.points]), [[1, "Otieno T.", 30], [2, "Akinyi T.", 20]]);
+  assert.equal(b.rows[0].medal, "🥇");
+  assert.ok(b.rows.every((r) => r.uid === undefined), "ambassadors never get uids");
+  assert.equal(b.rows[1].me, true);
+  assert.equal(b.standing!.rank, 2); assert.equal(b.standing!.level.name, "Rookie"); assert.equal(b.standing!.toNext, 80);
+  const all = await C.leaderboard(db, aki, { scope: "country", period: "all" }, later);
+  assert.deepEqual(all.rows.map((r) => [r.name, r.points]), [["Otieno T.", 40], ["Akinyi T.", 20]], "all time: Otieno's September sign-up counts too");
+  assert.equal(all.scope, "country");
+  // A coordinator sees full names and uids; Nigeria's board doesn't mix in Kenya.
+  const wb = await C.leaderboard(db, wan, { scope: "team" }, later);
+  assert.equal(wb.rows[0].name, "Otieno Test"); assert.equal(wb.rows[0].uid, "otieno");
+  const ng = await C.leaderboard(db, lead, { scope: "country", country: "NG" }, later);
+  assert.ok(!ng.rows.some((r) => r.name.startsWith("Otieno")));
+  assert.deepEqual((await C.leaderboard(db, lead, { scope: "country", country: "KE" }, later)).rows.map((r) => r.name), ["Otieno Test", "Akinyi Test"]);
+  // Ties share a rank.
+  await db.doc("referrals/k4").set({ uid: "k4", referredBy: "akinyi", referredAt: "2026-11-05T09:00:00Z" });
+  C.clearSignupCache();
+  const tie = await C.leaderboard(db, oti, {}, later);
+  assert.deepEqual(tie.rows.map((r) => r.rank), [1, 1]);
+  // Kenya's due dates are Nairobi days.
+  await assert.rejects(C.createTask(db, wan, { title: "Too late", due: "2026-11-30" }, notify, new Date("2026-11-30T21:30:00Z")), /passed/);
+  await assert.rejects(C.leaderboard(db, await view("kofi")), /coordinators and ambassadors/);
 
   console.log("CAMPUS OK");
   process.exit(0);

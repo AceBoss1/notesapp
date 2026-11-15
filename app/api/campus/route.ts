@@ -6,7 +6,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell } from "@/lib/email";
 import {
-  CampusError, addAmbassador, appointCoordinator, createTask, deleteTask, me, moveTeam, overview, removeMember, report, review, tasks, team,
+  CampusError, addAmbassador, appointCoordinator, createTask, deleteTask, leaderboard, me, moveTeam, overview, removeMember, report, review, tasks, team,
   updateTask, viewerOf, type Notify,
 } from "@/lib/campus-server";
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 // Campus (lib/campus.ts): coordinators, their ambassadors and their tasks. Any signed-in account may ask; what it gets follows its
 // campus record and, for leads, its staff access.
-//   GET ?view=me | team | tasks | overview   (&country=NG &coordinator=<uid> for leads)
+//   GET ?view=me | team | tasks | overview | leaderboard (&scope=team|country &period=month|all)   (&country=NG &coordinator=<uid> for leads)
 //   POST { action: "coordinator", who, country, campus?, state? } · { action: "ambassador", who, campus, state?, coordinatorUid? }
 //        { action: "remove", uid } · { action: "move", from, to }
 //        { action: "task", title, details, kind, target?, due, assignees: "all" | uid[] } · { action: "edit", id, ... } · { action: "delete", id }
@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     const body = view === "team" ? { team: await team(db, v, opts) }
       : view === "tasks" ? { tasks: await tasks(db, v, opts) }
       : view === "overview" ? await overview(db, v, opts)
+      : view === "leaderboard" ? await leaderboard(db, v, { ...opts, scope: sp.get("scope") ?? undefined, period: sp.get("period") ?? undefined })
       : await me(db, v);
     return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return fail(e); }
