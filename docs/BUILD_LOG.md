@@ -3297,3 +3297,11 @@ tap after it is check-out, a tap on or before check-in starts again, and the nig
 show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens the calendar and closes once check-out is picked. Dates
 are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
 in Chrome and broke hydration.
+
+## Throwaway email domains blocked (v0.167.1, 15 Nov 2026)
+
+The owner asked for petchi.uk, a kuku.lu throwaway email domain, and its subdomains to be blocked. `lib/email-blocklist.ts` holds
+the list. Both sign-up forms refuse such an address before a Firebase account is made ("Please use your own email address…"), and
+`firestore.rules` refuses to create a profile when the signed-in token's email is at the domain or any subdomain, so a sign-up that
+skips the form never gets a profile. `scripts/blocked-emails.mjs` lists existing accounts at a blocked domain and, with `--suspend`,
+suspends them with a reason the member can read. Tests: `test:email-blocklist` and a new rules test.

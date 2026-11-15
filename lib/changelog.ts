@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp, starting with petchi.uk and every address under it. Please sign up with your own email." },
+    ],
+  },
+  {
     version: "v0.166.0",
     bump: "minor",
     date: "2026-11-14",

@@ -7,6 +7,14 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // ============================================================
 
+    // Throwaway email domains (lib/email-blocklist.ts BLOCKED_EMAIL_DOMAINS; keep the two in step): no profile is created for an
+    // account whose sign-in email is at one of them or any of its subdomains.
+    function blockedEmail() {
+      return 'email' in request.auth.token
+        && request.auth.token.email is string
+        && request.auth.token.email.lower().matches('.*@([a-z0-9-]+[.])*petchi[.]uk[.]?$');
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -298,6 +306,7 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && !isKid()
         && request.auth.uid == uid
+        && !blockedEmail()
         && !('email' in request.resource.data)
         && (
           isAdmin()

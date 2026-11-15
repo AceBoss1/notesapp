@@ -1148,6 +1148,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
   (`rangeEnd`, `onRangeEnd`) for hotel stays in `components/hotel/HotelSite.tsx`, and `dayLabel` (dates written by hand so server and
   browser match). Test: `npm run test:calendar`.
 
+- **Throwaway email domains (v0.167.1):** `lib/email-blocklist.ts` (`BLOCKED_EMAIL_DOMAINS`, now `petchi.uk`; a domain also blocks
+  its subdomains) is checked by both sign-up forms (`components/SignupFlow.tsx`, `components/site/SiteAuth.tsx`) before an account is
+  made, and by `firestore.rules` `blockedEmail()` on `users/{uid}` create, so skipping the form still gets no profile. **Keep the
+  regex in firestore.rules in step with the list** when adding a domain. Existing accounts: `scripts/blocked-emails.mjs` (dry run,
+  `--suspend`). Test: `npm run test:email-blocklist`, plus the rules test.
+
 ## 5. Tests and checks
 
 ```

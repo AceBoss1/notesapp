@@ -56,6 +56,14 @@ test("profile work lines: optional, short, and only on your own profile", async 
   await assertFails(setDoc(doc(as("newbie3"), "users/newbie3"), { ...base, uid: "newbie3", username: "newbie3", notAllowed: "x" }));
 });
 
+test("no profile for a throwaway email domain (petchi.uk and its subdomains)", async () => {
+  const p = (uid) => ({ uid, username: uid, displayName: "T", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false });
+  await assertFails(setDoc(doc(as("temp1", { email: "spam@petchi.uk" }), "users/temp1"), p("temp1")));
+  await assertFails(setDoc(doc(as("temp2", { email: "Spam@Mail.Petchi.UK" }), "users/temp2"), p("temp2")));
+  await assertSucceeds(setDoc(doc(as("real1", { email: "ada@gmail.com" }), "users/real1"), p("real1")));
+  await assertSucceeds(setDoc(doc(as("real2", { email: "ada@notpetchi.uk" }), "users/real2"), p("real2")));
+});
+
 test("users cannot edit someone else's profile", async () => {
   await assertFails(updateDoc(doc(as("pub"), "users/alice"), { bio: "hacked" }));
 });

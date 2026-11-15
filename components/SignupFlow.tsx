@@ -3,6 +3,7 @@
 import { goBack } from "@/lib/return-to";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BLOCKED_EMAIL_MESSAGE, isBlockedEmail } from "@/lib/email-blocklist";
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/users";
@@ -103,6 +104,7 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
       return;
     }
 
+    if (isBlockedEmail(completeFor ? completeFor.email : email)) { setError(BLOCKED_EMAIL_MESSAGE); return; }
     setLoading(true);
     try {
       if (await isUsernameTaken(cleanUsername)) {

@@ -72,6 +72,7 @@ jobs:
       - run: npm run test:hotel
       - run: npm run test:books
       - run: npm run test:calendar
+      - run: npm run test:email-blocklist
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups
