@@ -14,8 +14,6 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useGoLive } from "@/components/lives/useGoLive";
 import { useCycleMenu } from "@/lib/cycle-client";
 import { useCalendarToday } from "@/components/calendar/useCalendarToday";
-import MenuGroupList from "@/components/MenuGroupList";
-import { accountMenu } from "@/lib/account-menu";
 
 // `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
 // the bell in a soft circle and the picture opens the menu, without the @username.
@@ -94,18 +92,33 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
           </button>
         )}
         {open && (
-          <div role="menu" className="absolute right-0 z-50 mt-2 max-h-[80vh] w-64 overflow-y-auto border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
-            <MenuGroupList
-              links={accountMenu({ username: profile?.username, canPublish: !!profile && canPublish(profile), organisation: profile?.accountKind === "organisation", messages: MESSAGES_LIVE, wallet: WALLET_LIVE, cycle: !!cycle, calendar: calToday !== -1, goLive: !!profile && !!goLive })}
-              storageKey="account"
-              role="menuitem"
-              itemClass={item}
-              headerClass="border-t border-rule px-4 py-2 font-mono text-[10px] uppercase tracking-eyebrow text-slate hover:text-crimson"
-              extra={(l) =>
-                l.href === "/calendar" && !!calToday && calToday > 0 ? <span className="rounded-full bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{calToday} today</span>
-                : l.href === "/messages" && unreadDms > 0 ? <span className="rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>
-                : null}
-            />
+          <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
+            {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
+            {calToday !== -1 && <Link href="/calendar" className={`${item} flex items-center justify-between`}>📅 My Calendar{!!calToday && <span className="ml-2 rounded-full bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{calToday} today</span>}</Link>}
+            {profile && goLive && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
+            {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
+            <Link href="/profile/edit" className={item}>Edit profile</Link>
+            <Link href="/profile/account" className={item}>Account (email, username)</Link>
+            <Link href="/profile/publishing" className={item}>
+              {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}
+            </Link>
+            {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
+            {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
+            {MESSAGES_LIVE && <Link href="/messages" className={item}>💬 Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
+            <Link href="/bookings" className={item}>Bookings</Link>
+            <Link href="/profile/family" className={item}>👨‍👩‍👧 Family (child profiles)</Link>
+            <Link href="/orders" className={item}>Orders &amp; parcels</Link>
+            <Link href="/tickets" className={item}>🎟 My tickets</Link>
+            <Link href="/giving" className={item}>My giving</Link>
+            {profile && canPublish(profile) && <Link href="/shipments" className={item}>Shipments (logistics)</Link>}
+            {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
+            {cycle && <Link href="/cycle" className={item}>🌸 My Cycle</Link>}
+            <Link href="/saved" className={item}>♥ Saved items</Link>
+            <Link href="/boost" className={item}>Boost a post</Link>
+            <Link href="/profile/boosts" className={item}>Boost performance</Link>
+            {profile?.accountKind === "organisation" && <Link href="/organisation" className={item}>Organisation setup</Link>}
+            <Link href="/advertise/campaigns" className={item}>My ad campaigns</Link>
+            <Link href="/badges" className={item}>Verification badges</Link>
             <div className="border-t border-rule px-3 py-2"><ThemeSwitch compact /></div>
             <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>
               Sign out

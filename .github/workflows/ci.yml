@@ -34,7 +34,6 @@ jobs:
       - run: npm run test:courses
       - run: npm run test:social
       - run: npm run test:team
-      - run: npm run test:menus
       - run: npm run test:chat
       - run: npm run test:uploads
       - run: npm run test:media
