@@ -5,8 +5,9 @@ import type { Firestore } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import { isKidUid } from "./kids";
 import { notifyBell } from "./email";
+import type { NanaDeps } from "./nana-server";
 import {
-  AGREE_TEXT, CALL_NAME, DEFAULT_CALL, LIMITS, OPEN_STATUSES, PICKS_MAX, PICKS_MIN, STATUS_NOTE, VENTURES_PATH,
+  AGREE_TEXT, CALL_NAME, VETTING_SYSTEM, parseVetting, vetPrompt, type NanaRead, DEFAULT_CALL, LIMITS, OPEN_STATUSES, PICKS_MAX, PICKS_MIN, STATUS_NOTE, VENTURES_PATH,
   isKind, isPicks, isRegion, isSector, isStage, isStatus, quarterOf,
   type Application, type CallSettings, type MyApplication, type Status,
 } from "./ventures";
@@ -34,6 +35,30 @@ export async function callSettings(db: Firestore): Promise<CallSettings> {
 
 export type ApplyInput = Record<string, unknown>;
 
+// The pitch's own fields, checked the same way for sending and for a private self-check.
+export function cleanPitch(b: ApplyInput) {
+  if (!isKind(b.kind)) throw new VenturesError(400, "Say whether it's a feature, a product or a business.");
+  if (!isSector(b.sector)) throw new VenturesError(400, "Choose the area it's in.");
+  if (!isStage(b.stage)) throw new VenturesError(400, "Choose how far along it is.");
+  if (!isRegion(b.region)) throw new VenturesError(400, "Choose the emerging market it's for.");
+  const teamSize = Math.floor(Number(b.teamSize));
+  if (!Number.isFinite(teamSize) || teamSize < 1 || teamSize > LIMITS.teamSize) throw new VenturesError(400, `Team size is 1 to ${LIMITS.teamSize}.`);
+  const links = (Array.isArray(b.links) ? b.links : String(b.links ?? "").split(/\s+/)).map((l) => String(l).trim()).filter(Boolean);
+  if (links.length > LIMITS.links) throw new VenturesError(400, `Up to ${LIMITS.links} links.`);
+  if (links.some((l) => !/^https:\/\/[^\s]+\.[^\s]+$/.test(l) || l.length > 300)) throw new VenturesError(400, "Links must start with https://");
+  return {
+    kind: b.kind, sector: b.sector, stage: b.stage, region: b.region,
+    countries: text(b.countries, LIMITS.countries, "The countries it's for", 2),
+    title: text(b.title, LIMITS.title, "The name of your idea", 2),
+    oneLiner: text(b.oneLiner, LIMITS.oneLiner, "Your one-line pitch", 10),
+    problem: text(b.problem, LIMITS.problem, "The problem", 40),
+    solution: text(b.solution, LIMITS.solution, "Your idea", 40),
+    whyYou: text(b.whyYou, LIMITS.whyYou, "Why you", 20),
+    traction: text(b.traction, LIMITS.traction, "Traction"),
+    teamSize, links,
+  };
+}
+
 export async function sendPitch(db: Firestore, me: { uid: string; emailVerified: boolean }, b: ApplyInput, now = new Date()): Promise<MyApplication> {
   if (!me.emailVerified) throw new VenturesError(403, "Verify your email first: open the link we sent to your inbox.");
   if (isKidUid(me.uid)) throw new VenturesError(403, `${CALL_NAME} is for members aged 18 and over.`);
@@ -45,27 +70,9 @@ export async function sendPitch(db: Firestore, me: { uid: string; emailVerified:
   const quarter = quarterOf(now);
   if (b.agree !== true) throw new VenturesError(400, `Tick the box: "${AGREE_TEXT}"`);
   if (b.emergingMarkets !== true) throw new VenturesError(400, "Only ideas and ventures for emerging markets are welcome. Confirm yours is.");
-  if (!isKind(b.kind)) throw new VenturesError(400, "Say whether it's a feature, a product or a business.");
-  if (!isSector(b.sector)) throw new VenturesError(400, "Choose the area it's in.");
-  if (!isStage(b.stage)) throw new VenturesError(400, "Choose how far along it is.");
-  if (!isRegion(b.region)) throw new VenturesError(400, "Choose the emerging market it's for.");
-  const teamSize = Math.floor(Number(b.teamSize));
-  if (!Number.isFinite(teamSize) || teamSize < 1 || teamSize > LIMITS.teamSize) throw new VenturesError(400, `Team size is 1 to ${LIMITS.teamSize}.`);
-  const links = (Array.isArray(b.links) ? b.links : String(b.links ?? "").split(/\s+/)).map((l) => String(l).trim()).filter(Boolean);
-  if (links.length > LIMITS.links) throw new VenturesError(400, `Up to ${LIMITS.links} links.`);
-  if (links.some((l) => !/^https:\/\/[^\s]+\.[^\s]+$/.test(l) || l.length > 300)) throw new VenturesError(400, "Links must start with https://");
-
   const app: Omit<Application, "id"> = {
     uid: me.uid, username: String(u.username), name: String(u.displayName ?? u.username),
-    quarter, kind: b.kind, sector: b.sector, stage: b.stage, region: b.region,
-    countries: text(b.countries, LIMITS.countries, "The countries it's for", 2),
-    title: text(b.title, LIMITS.title, "The name of your idea", 2),
-    oneLiner: text(b.oneLiner, LIMITS.oneLiner, "Your one-line pitch", 10),
-    problem: text(b.problem, LIMITS.problem, "The problem", 40),
-    solution: text(b.solution, LIMITS.solution, "Your idea", 40),
-    whyYou: text(b.whyYou, LIMITS.whyYou, "Why you", 20),
-    traction: text(b.traction, LIMITS.traction, "Traction"),
-    teamSize, links, status: "received", createdAt: now.toISOString(), updatedAt: now.toISOString(),
+    quarter, ...cleanPitch(b), status: "received", createdAt: now.toISOString(), updatedAt: now.toISOString(),
   };
   const mine = await db.collection(COL).where("uid", "==", me.uid).get();
   const inQuarter = mine.docs.filter((d) => d.data().quarter === quarter && d.data().status !== "withdrawn");
@@ -147,4 +154,32 @@ export async function setCall(db: Firestore, input: { open?: unknown }, by: stri
   if (typeof input.open !== "boolean") throw new VenturesError(400, "Open or pause the call.");
   await db.doc("settings/ventures").set({ open: input.open, updatedBy: by, updatedAt: new Date().toISOString() }, { merge: true });
   return callSettings(db);
+}
+
+// ── Nana's read (lib/ventures.ts VET_TESTS) ─────────────────────────────────────────────────────────────────────────────────────────
+async function runVetting(db: Firestore, uid: string, pitch: Parameters<typeof vetPrompt>[0], deps: NanaDeps | undefined, now: Date): Promise<NanaRead> {
+  const { runAi, realDeps, gemModel } = await import("./nana-server");
+  const ran = await runAi(db, deps ?? realDeps(), now, uid, { system: [{ type: "text", text: VETTING_SYSTEM }], messages: [{ role: "user", content: vetPrompt(pitch) }], maxTokens: 900, model: gemModel("pearl") }, 200);
+  if (!ran.completion || ran.completion.refused || !ran.completion.text) throw new VenturesError(503, "Nana couldn't read it just now. Try again later.");
+  return parseVetting(ran.completion.text, now);
+}
+
+// The team: Nana reads a pitch and her read is kept on it (never shown to the member). A person still decides.
+export async function vetPitch(db: Firestore, staffUid: string, id: unknown, deps?: NanaDeps, now = new Date()): Promise<NanaRead> {
+  if (typeof id !== "string" || !/^[0-9a-f]{16}$/.test(id)) throw new VenturesError(404, "Pitch not found.");
+  const ref = db.doc(`${COL}/${id}`);
+  const a = (await ref.get()).data() as Application | undefined;
+  if (!a) throw new VenturesError(404, "Pitch not found.");
+  const read = await runVetting(db, staffUid, a, deps, now);
+  await ref.update({ nanaRead: read, updatedAt: now.toISOString() });
+  return read;
+}
+
+// A founder pressure-tests their own draft before sending: the same three tests, on their own Nana allowance. Nothing is kept.
+export async function selfCheck(db: Firestore, me: { uid: string; emailVerified: boolean }, b: ApplyInput, deps?: NanaDeps, now = new Date()): Promise<NanaRead> {
+  if (!me.emailVerified) throw new VenturesError(403, "Verify your email first: open the link we sent to your inbox.");
+  if (isKidUid(me.uid)) throw new VenturesError(403, `${CALL_NAME} is for members aged 18 and over.`);
+  const u = (await db.doc(`users/${me.uid}`).get()).data();
+  if (!u || u.suspended === true || u.teen === true) throw new VenturesError(403, "Your account can't do that right now.");
+  return runVetting(db, me.uid, cleanPitch(b), deps, now);
 }

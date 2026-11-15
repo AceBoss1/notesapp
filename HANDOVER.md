@@ -1108,6 +1108,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     No new indexes, settings or keys. Tests: `test:growth`, `test:growth-server` (new), rules. Not built: offline Exam Prep mocks
     don't count as first value (only ones submitted online); an iPhone install opened before signing in counts as Direct (its home-screen
     app has its own cookies).
+138. **Nana Lite, a small exam tutor (v0.176.0; owner, 14 and 15 Nov 2026; `docs/NANA_LITE.md`):** "Still unsure? Ask Nana Lite"
+    under a marked Exam Prep practice question explains it another way (English or Pidgin) and answers follow-ups. **Cloudflare only:**
+    `workers/nana-lite` is a Worker in front of three Cloudflare Containers (llama.cpp, one model baked into each image): Phi-3.5-mini
+    (default, MIT), Qwen2.5-1.5B and SmolLM2-1.7B (Apache-2.0); no Llama. On its workers.dev address (naapp.tech stays on Vercel nameservers for the wildcard);
+    deployed by `.github/workflows/deploy-nana-lite.yml` (needs Workers Paid; token with Containers: Edit). App settings:
+    `NANA_LITE_URL`, `NANA_LITE_MODEL`, `NANA_LITE_KEY` (the worker's secret). Grounded in the question's reviewed explanation; only
+    published questions the student can see; 40 a day (`prepLiteDaily`, TTL two days); nothing typed is stored (`prepStats.liteAsks`
+    counts). `scripts/nana-lite-eval.ts` compares the three models (accuracy without the answer). OpenRouter and AWS perks are reserved
+    for other work. Deploy `firebase deploy --only firestore`. Tests: `test:nana-lite`. Phase 3 (on the phone, offline) is planned.
+    **Also a cheaper fallback elsewhere (owner, 15 Nov):** Nana Jobs (top 10 read when the member has no AI), Business books Tell Nana
+    (Lite first, Pearl when its JSON can't be used) and main Nana chat (choose "Nana Lite" in the picker, free; and it answers when the
+    allowance is used up). Daily counts via `liteCount` (`books_<uid>`, `nana_<uid>`). Tests: `test:nana-jobs-server`,
+    `test:books-server`, `test:nana-server`.
 
 ## 3. How the work is done (please keep these)
 

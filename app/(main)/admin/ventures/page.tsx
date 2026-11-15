@@ -8,6 +8,7 @@ import {
   type Application, type Status,
 } from "@/lib/ventures";
 import type { AdminVentures } from "@/lib/ventures-server";
+import NanaReadView from "@/components/ventures/NanaRead";
 
 const btn = "rounded-full border border-rule px-3 py-1 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40";
 
@@ -77,6 +78,13 @@ export default function AdminVenturesPage() {
                   {([["The problem", a.problem], ["The idea", a.solution], ["Why them", a.whyYou], ["Traction", a.traction || "None given"]] as [string, string][]).map(([h, t]) => (
                     <div key={h}><p className="font-ui text-xs font-bold uppercase tracking-wide text-slate">{h}</p><p className="mt-1 whitespace-pre-wrap text-ink">{t}</p></div>
                   ))}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-ui text-xs font-bold uppercase tracking-wide text-slate">Nana&apos;s read: pay, fit, timing</p>
+                      <button type="button" className={btn} disabled={busy === `vet-${a.id}`} onClick={() => act(`vet-${a.id}`, { action: "vet", id: a.id })}>{busy === `vet-${a.id}` ? "Nana is reading…" : a.nanaRead ? "Read again" : "Ask Nana to read it"}</button>
+                    </div>
+                    {a.nanaRead && <div className="mt-2"><NanaReadView read={a.nanaRead} /></div>}
+                  </div>
                   {a.links.length > 0 && <ul className="text-xs">{a.links.map((l) => <li key={l}><a href={l} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-crimson underline">{l}</a></li>)}</ul>}
                   <label className="block text-xs font-semibold text-ink">Advice to the member (they see it with their pitch; most useful when it isn&apos;t picked)
                     <textarea rows={3} defaultValue={a.advice ?? ""} onChange={(e) => setAdvice({ ...advice, [a.id]: e.target.value })} className="mt-1 block w-full rounded-xl border border-rule bg-paper px-3 py-2 text-sm font-normal" />

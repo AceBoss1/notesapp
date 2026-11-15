@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       const [library, records] = await Promise.all([hrLibraryFor(db, me), hrRecordsFor(db, { ...me, name: signedIn?.name || me.email })]);
       hr = { rules: HR_RULES, library: library.text, records };
     }
-    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext, hr, gem: body.gem, effort: body.effort }), { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext, hr, gem: body.gem, effort: body.effort, lite: body.lite === true }), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof NanaError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't reach Nana");

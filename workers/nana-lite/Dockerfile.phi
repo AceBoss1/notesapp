@@ -1,0 +1,6 @@
+# Phi-3.5-mini-instruct (3.8B, MIT), 4-bit, served by llama.cpp's OpenAI-compatible server. The model file is baked into the image so
+# the container needs no internet. Check the file name on its Hugging Face page before building (bartowski's GGUF builds).
+FROM ghcr.io/ggml-org/llama.cpp:server
+ADD https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf /models/model.gguf
+EXPOSE 8080
+CMD ["-m", "/models/model.gguf", "--host", "0.0.0.0", "--port", "8080", "-c", "4096", "--alias", "phi-3.5-mini-instruct"]

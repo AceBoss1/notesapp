@@ -3,7 +3,7 @@ import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { friendlyMessage } from "@/lib/api-errors";
 import { quarterOf } from "@/lib/ventures";
-import { VenturesError, callSettings, myPitches, sendPitch, withdrawPitch } from "@/lib/ventures-server";
+import { VenturesError, callSettings, myPitches, selfCheck, sendPitch, withdrawPitch } from "@/lib/ventures-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 // POST { action: "apply", kind, sector, stage, region, countries, title, oneLiner, problem, solution, whyYou, traction, teamSize, links,
 //        emergingMarkets: true, agree: true } → { pitch }
 //      { action: "withdraw", id }
+//      { action: "selfcheck", …the pitch fields } → { read }: Nana's three tests on a draft, privately (nothing kept; own Nana allowance)
 async function who(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return null;
@@ -45,6 +46,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();
     if (body.action === "apply") return NextResponse.json({ pitch: await sendPitch(db, me, body) });
+    if (body.action === "selfcheck") {
+      const slow = await rateLimit(req, "ventures-selfcheck", me.uid, 6, 3600);
+      if (slow) return slow;
+      return NextResponse.json({ read: await selfCheck(db, me, body) });
+    }
     if (body.action === "withdraw") { await withdrawPitch(db, me.uid, body.id); return NextResponse.json({ ok: true }); }
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   } catch (err) {

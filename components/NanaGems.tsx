@@ -13,18 +13,20 @@ import type { AccountTier } from "@/lib/users";
 
 export type NanaAccountView = {
   tier: AccountTier; gems: Gem[]; efforts: Effort[]; allowanceKobo: number; usedKobo: number; leftKobo: number; creditKobo: number;
-  resetEvery: "day" | "week" | "month"; resetsAt: string; allowanceGems: "all" | "pearl"; ownKey: boolean;
+  resetEvery: "day" | "week" | "month"; resetsAt: string; allowanceGems: "all" | "pearl"; ownKey: boolean; lite?: boolean;
   packs: { id: string; name: string; priceKobo: number; creditKobo: number }[];
 };
 
 const CHOICE_KEY = "na-nana-choice";
-export function readChoice(): { gem: Gem; effort: Effort } {
+// lite: the member chose Nana Lite (our free small model); gem and effort are kept for when they switch back.
+export type NanaChoice = { gem: Gem; effort: Effort; lite?: boolean };
+export function readChoice(): NanaChoice {
   try {
     const v = JSON.parse(localStorage.getItem(CHOICE_KEY) || "{}");
-    return { gem: GEMS.includes(v.gem) ? v.gem : "pearl", effort: EFFORTS.includes(v.effort) ? v.effort : "low" };
+    return { gem: GEMS.includes(v.gem) ? v.gem : "pearl", effort: EFFORTS.includes(v.effort) ? v.effort : "low", ...(v.lite === true ? { lite: true } : {}) };
   } catch { return { gem: "pearl", effort: "low" }; }
 }
-const saveChoice = (c: { gem: Gem; effort: Effort }) => { try { localStorage.setItem(CHOICE_KEY, JSON.stringify(c)); } catch { /* kept for this visit */ } };
+const saveChoice = (c: NanaChoice) => { try { localStorage.setItem(CHOICE_KEY, JSON.stringify(c)); } catch { /* kept for this visit */ } };
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: kobo % 100 ? 2 : 0 })}`;
 const resetText = (iso: string, every: NanaAccountView["resetEvery"]) => {
@@ -62,7 +64,7 @@ function Meter({ a }: { a: NanaAccountView }) {
 }
 
 // The chip in Nana's header: which gem and effort the next answer uses. Locked choices say which plan opens them.
-export function NanaGemPicker({ account, choice, onChoice }: { account: NanaAccountView; choice: { gem: Gem; effort: Effort }; onChoice: (c: { gem: Gem; effort: Effort }) => void }) {
+export function NanaGemPicker({ account, choice, onChoice }: { account: NanaAccountView; choice: NanaChoice; onChoice: (c: NanaChoice) => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -73,12 +75,13 @@ export function NanaGemPicker({ account, choice, onChoice }: { account: NanaAcco
   }, [open]);
   const gem = account.gems.includes(choice.gem) ? choice.gem : "pearl";
   const effort = account.efforts.includes(choice.effort) ? choice.effort : "low";
-  const pick = (c: { gem: Gem; effort: Effort }) => { saveChoice(c); onChoice(c); };
+  const lite = !!account.lite && !account.ownKey && !!choice.lite;
+  const pick = (c: NanaChoice) => { saveChoice(c); onChoice(c); };
   return (
     <div ref={box} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" aria-label={`Nana model: ${GEM_INFO[gem].name}, ${EFFORT_INFO[effort].name}. Change`}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" aria-label={lite ? "Nana model: Nana Lite. Change" : `Nana model: ${GEM_INFO[gem].name}, ${EFFORT_INFO[effort].name}. Change`}
         className="flex items-center gap-1.5 rounded-full border border-rule bg-paper px-2.5 py-1 font-ui text-[11px] font-semibold text-ink hover:border-crimson">
-        <GemDot gem={gem} className="h-2 w-2" />{GEM_INFO[gem].name}<span className="hidden text-slate sm:inline">· {EFFORT_INFO[effort].name}</span><span aria-hidden="true" className="text-slate">▾</span>
+        {lite ? <>Lite<span className="hidden text-slate sm:inline">· free</span></> : <><GemDot gem={gem} className="h-2 w-2" />{GEM_INFO[gem].name}<span className="hidden text-slate sm:inline">· {EFFORT_INFO[effort].name}</span></>}<span aria-hidden="true" className="text-slate">▾</span>
       </button>
       {open && (
         <div role="dialog" aria-label="Choose Nana's model" className="absolute right-0 top-full z-30 mt-2 w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-rule bg-card p-3 shadow-2xl">
@@ -88,8 +91,8 @@ export function NanaGemPicker({ account, choice, onChoice }: { account: NanaAcco
               const ok = account.gems.includes(g);
               return (
                 <li key={g}>
-                  <button type="button" disabled={!ok} onClick={() => pick({ gem: g, effort })} aria-pressed={gem === g}
-                    className={`flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left ${gem === g ? "bg-crimson/10 ring-1 ring-crimson/30" : ok ? "hover:bg-paper" : "opacity-60"}`}>
+                  <button type="button" disabled={!ok} onClick={() => pick({ gem: g, effort })} aria-pressed={!lite && gem === g}
+                    className={`flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left ${!lite && gem === g ? "bg-crimson/10 ring-1 ring-crimson/30" : ok ? "hover:bg-paper" : "opacity-60"}`}>
                     <GemDot gem={g} className="mt-1 h-3 w-3" />
                     <span className="min-w-0 flex-1"><span className="block font-ui text-sm font-bold text-ink">{GEM_INFO[g].name}</span><span className="block text-[11px] leading-snug text-slate">{GEM_INFO[g].blurb}</span></span>
                     {!ok && <span className="shrink-0 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-crimson ring-1 ring-rule">{planName(GEM_INFO[g].from)}</span>}
@@ -97,13 +100,23 @@ export function NanaGemPicker({ account, choice, onChoice }: { account: NanaAcco
                 </li>
               );
             })}
+            {account.lite && !account.ownKey && (
+              <li>
+                <button type="button" onClick={() => pick({ gem, effort, lite: true })} aria-pressed={lite}
+                  className={`flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left ${lite ? "bg-crimson/10 ring-1 ring-crimson/30" : "hover:bg-paper"}`}>
+                  <span aria-hidden="true" className="mt-1 inline-block h-3 w-3 shrink-0 rounded-full border border-ink/30" />
+                  <span className="min-w-0 flex-1"><span className="block font-ui text-sm font-bold text-ink">Nana Lite</span><span className="block text-[11px] leading-snug text-slate">Free: our small model, short answers from the help centre. Nothing from your allowance.</span></span>
+                  <span className="shrink-0 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-rule">Free</span>
+                </button>
+              </li>
+            )}
           </ul>
           <p className="mt-3 px-1 font-ui text-[11px] font-bold uppercase tracking-wider text-slate">Effort</p>
           <div className="mt-1 grid grid-cols-3 gap-1 rounded-xl bg-paper p-1">
             {EFFORTS.map((e) => {
               const ok = account.efforts.includes(e);
               return (
-                <button key={e} type="button" disabled={!ok} onClick={() => pick({ gem, effort: e })} aria-pressed={effort === e} title={ok ? EFFORT_INFO[e].blurb : `${planName(EFFORT_INFO[e].from)} plan`}
+                <button key={e} type="button" disabled={!ok || lite} onClick={() => pick({ gem, effort: e })} aria-pressed={effort === e} title={ok ? EFFORT_INFO[e].blurb : `${planName(EFFORT_INFO[e].from)} plan`}
                   className={`rounded-lg px-1 py-1.5 font-ui text-[11px] font-semibold ${effort === e ? "bg-card text-ink shadow-sm ring-1 ring-rule" : ok ? "text-slate hover:text-ink" : "text-slate/50"}`}>
                   {EFFORT_INFO[e].name}{!ok && <span aria-hidden="true"> 🔒</span>}
                 </button>

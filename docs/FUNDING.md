@@ -26,13 +26,16 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 15 | **HBS Africa Business Club, Africa New Venture Competition 2027** (Harvard Business School; prizes reported as USD 30k / 15k / 10k; finals at the Africa Business Conference, Boston, 5–6 Feb 2027): §19 | [africa-hbsclub.com](https://www.africa-hbsclub.com/conference/new-venture-competition) (the form is a Google Form linked from the club's post) | **12 November 2026** | nothing; equity not mentioned | **today** |
 | 16 | **Obama Foundation Leaders Africa 2027–2028** (free leadership programme for a person, not a company): §20 | [obama.org/programs/leaders](https://www.obama.org/programs/leaders/) | priority **23 November 2026**; final 4 December 2026 (noon US Central, reported) | nothing | the CEO applies, if eligible |
 | 17 | **3MTT Nigeria Delivery Network, Cohort 5** (about ₦4bn, paid per verified Fellow outcome; Federal Ministry of Communications, Innovation and Digital Economy): §21 | [delivery.3mtt.gov.ng](https://delivery.3mtt.gov.ng/) | **30 November 2026** (funding, reported); membership reviewed quarterly | nothing; paid in stages on results | apply as a Funded Delivery Partner (consortium) |
+| 18 | **Techstars Anywhere Accelerator** (Spring 2027; mostly remote, 3 in-person gatherings; USD 220k: USD 20k for 5% common + USD 200k uncapped MFN SAFE): §22 | [techstars.com/accelerators/anywhere](https://www.techstars.com/accelerators/anywhere) | **18 November 2026** | 5% common equity, plus the SAFE's dilution later | apply: NotesApp Inc is a Delaware C-corp; confirm a Lagos team is eligible |
+| 19 | **HBS Alumni Angels of Greater New York** Pitch Night (members have invested USD 48M+ in 170+ companies; no Harvard affiliation needed, per their post): §23 | [hbsangelsny.com/apply-to-pitch](https://www.hbsangelsny.com/apply-to-pitch) | **24 November 2026**, to pitch on **7 December 2026** | an application fee (USD 50 reported on Gust); angel terms if they invest | apply through NotesApp Inc |
+| 20 | **Mozilla Foundation Human-Scale AI Incubator** (non-dilutive: USD 300k for 12 months, up to USD 500k over 3 years; 7 projects; cohort from April 2027): §24 | [Mozilla call](https://www.mozillafoundation.org/en/what-we-do/grantmaking/incubator/human-scale-ai/call-for-proposals/faqs/), [apply](https://mozillafoundation.tfaforms.net/f/humanscaleai) | **20 November 2026, 11:59 p.m. PST** | nothing | only with an honest Small-AI plan (§24) |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
 
 ---
 
-### Deadlines at a glance (as of 12 November 2026)
+### Deadlines at a glance (as of 14 November 2026)
 
 | When | What | § |
 |---|---|---|
@@ -40,6 +43,9 @@ nothing) and **Capital Wings** (§7: nobody named, no registration number or lic
 | **Sun 15 Nov 2026, 11:59 p.m. WAT** | USPF Changemaker Challenge (all five sectors) | §14 |
 | **Wed 18 Nov 2026** | Alliance accelerator, ALL19 (Regular Admission) | §5 |
 | **Fri 20 Nov 2026** | .tech pitch competition | §3 |
+| **Wed 18 Nov 2026** | Techstars Anywhere Accelerator (Spring 2027) | §22 |
+| **Fri 20 Nov 2026, 11:59 p.m. PST** | Mozilla Human-Scale AI Incubator | §24 |
+| **Tue 24 Nov 2026** (pitch Mon 7 Dec) | HBS Alumni Angels of Greater New York, Pitch Night | §23 |
 | **Mon 23 Nov 2026** (priority; final 4 Dec) | Obama Foundation Leaders Africa (the CEO, as a person) | §20 |
 | **Wed 25 Nov 2026** | Atlas: the 83(b) postmarked (Atlas files; save the tracking number when it appears) | §5a |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | §21 |
@@ -1326,4 +1332,71 @@ parts (riders' safety, vehicle checks). Get a short letter from each saying how 
   a job or contract (Notes Jobs application status). Fellows' data stays theirs; we share only what each Fellow agrees to.
 - **Numbers to set:** how many Fellows per track `[ ]`, the rate per successful Fellow we ask for `[ ]` (within their benchmark),
   partners' letters `[ ]`, states covered `[ ]`.
+
+---
+
+## 22. Techstars Anywhere Accelerator (Spring 2027)
+
+> Status: **decide by 18 November 2026** (the deadline). From FounderHQ Weekly's LinkedIn post (November 2026) and Techstars' page.
+
+- **What:** about 13 weeks, **8 March to 3 June 2027** (Demo Day), mostly remote with **three in-person gatherings**; mentors,
+  investors and fundraising support.
+- **Money:** USD 220,000: **USD 20,000 for 5% common equity** (a USD 400k valuation on that part) plus **USD 200,000 on an uncapped
+  MFN SAFE** (it converts at the next round's terms, so its dilution is set then).
+- **Fit:** Techstars says Anywhere is for companies **in North American time zones**. Lagos (WAT) is 5 to 6 hours ahead of New York,
+  so afternoon sessions there are evenings here: workable, but ask Techstars whether a Lagos-based team is eligible before relying on
+  it. NotesApp Inc is a Delaware C-corp, which their documents expect. Visas for the three gatherings: check where they are.
+- **Our view:** worth applying if the team can give 13 weeks of evenings; the 5% plus an uncapped SAFE is a real cost, so weigh it
+  against Alliance (§5, same week) and the non-dilutive options. Reuse the HBS answers (§19) and the deck.
+
+---
+
+## 23. HBS Alumni Angels of Greater New York: Pitch Night
+
+> Status: **apply by 24 November 2026** to pitch on **Monday 7 December 2026**. From the group's LinkedIn post (November 2026) and
+> their apply page; applications run through Gust.
+
+- **Who they are:** an angel group of Harvard Business School alumni in New York; members have invested **USD 48M+ in 170+
+  early-stage companies**. Their post says **no Harvard affiliation is required** to apply (an older event page said otherwise:
+  check the form).
+- **How it works:** monthly pitch nights, about five startups each; members then decide individually who to follow up with.
+- **Cost:** Gust lists a **USD 50** application fee (check before paying).
+- **Fit:** pre-seed and seed companies with traction; NotesApp Inc (Delaware) makes a US angel cheque simple. Pitching is likely by
+  video or in person in New York: ask which.
+- **Use:** the deck (HBS NVC version), the 12 November traction (§1), and the SAFE notes (§5) for terms.
+
+---
+
+## 24. Mozilla Foundation: Human-Scale AI Incubator
+
+> Status: **decide by 20 November 2026, 11:59 p.m. PST** (no extensions). From the Mozilla Foundation's LinkedIn post and FAQs.
+> Non-dilutive: **USD 300,000 for 12 months**, up to **USD 200,000 more** (USD 500,000 over three years); seven projects; the
+> cohort starts April 2027.
+
+**What they want (all three, not one of them):**
+- **Small:** efficient models that need less compute and energy (the form reportedly asks the model's parameter count).
+- **Intentional:** people and communities control their data and the system; privacy and transparency.
+- **Tailored:** built for a specific community and problem.
+- Plus: **working technology already deployed or piloted** with its users; **AI is the core**; a **charitable purpose and public
+  benefit** (non-profit status not required); able to receive funds from a US 501(c)(3). Not wanted: "a basic chatbot built on LLMs".
+
+**Where Nana stands today (honestly):**
+- **Tailored: yes.** The Nana tutor on Notes Academy and Exam Prep (WAEC and NECO), in English, Pidgin and Kiswahili, by voice.
+- **Intentional: mostly.** Members can bring their own AI key; Nana drafts and a person approves; money never moves through AI;
+  My Cycle (in build) keeps health data encrypted; Ventures and Nana-HR checks never rank people.
+- **Small: no.** Nana runs on large hosted models (Claude), and Kiswahili speech uses the NKENNEAi API. As it stands, Nana would
+  read as an LLM product, which this call excludes.
+
+**The upgrade that would qualify (and is worth doing anyway):** **Nana Lite, a small exam tutor for students.**
+- A small open model (in the 1 to 4 billion parameter range, quantised) fine-tuned on our 2,150+ WAEC and NECO questions and their
+  worked answers, with retrieval over the question bank, so it explains, quizzes and marks without a large model.
+- Runs on our own server at low cost, and on a mid-range Android phone **offline** for students with little data.
+- English and Pidgin first, Kiswahili next; voice where the device allows.
+- Students' answers stay theirs: on the device by default, never used for training without consent, deletable in one tap.
+- Pilot: a few schools or exam-prep centres for a term, measuring practice sessions and score changes.
+- Public benefit: free for students in public schools (Pledge 1%, §18).
+
+**Recommendation:** applying costs nothing but time. Only apply this round if we can honestly say a Nana Lite pilot is running by
+the deadline (a small model on our server answering Exam Prep questions for a test group of students). Otherwise, build it now and
+apply in the next round with a working pilot, which is what the call rewards. Do not describe the current Nana as small.
 

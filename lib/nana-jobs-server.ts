@@ -6,7 +6,7 @@ import { listJobs } from "./jobs-server";
 import { JOB_TYPE_LABEL, payText, placeText, type Job } from "./jobs";
 import { SITE_URL } from "./host";
 import {
-  CV_MAX_CHARS, CV_MIN_CHARS, DEFAULT_PROFILE, DEFAULT_SETTINGS, MAX_COMPANIES, NanaJobsError, SEEN_MAX, SHORTLIST, cleanProfile, cleanSettings, effectiveProfile, isJobStatus, nextRunAt,
+  AI_PER_DAY, LITE_JOBS_PER_RUN, CV_MAX_CHARS, CV_MIN_CHARS, DEFAULT_PROFILE, DEFAULT_SETTINGS, MAX_COMPANIES, NanaJobsError, SEEN_MAX, SHORTLIST, cleanProfile, cleanSettings, effectiveProfile, isJobStatus, nextRunAt,
   profileReady, whyNotAllowed, type Board, type CvReview, type Funnel, type JobStatus, type NjProfile, type NjRun, type NjSettings, type PoolJob, type SeenJob, type ShortJob,
 } from "./nana-jobs";
 import {
@@ -37,8 +37,16 @@ export type NjDeps = {
   email?: (uid: string, subject: string, text: string) => Promise<boolean>;
   account?: (db: Firestore, uid: string, p: AiProvider) => Promise<Account | null>;
   budgetMs?: number; // how long the AI may take in one run before the rest falls back to the keyword score
+  lite?: () => Account | null; // Nana Lite when the member has no AI connected (default: our worker, if NANA_LITE_URL is set)
   cvTimeoutMs?: number; // tests: a shorter wait for the CV review
 };
+// Nana Lite as an OpenAI-compatible account (lib/nana-lite-server.ts): our worker on Cloudflare, our key, our small model.
+async function liteAccount(): Promise<Account | null> {
+  const { liteConfigured, liteModel } = await import("./nana-lite-server");
+  const { setting } = await import("./config");
+  if (!liteConfigured()) return null;
+  return { provider: "openai", apiKey: setting("NANA_LITE_KEY") || "", baseUrl: `${(setting("NANA_LITE_URL") || "").replace(/\/+$/, "")}/v1`, model: liteModel() };
+}
 const nowOf = (d: NjDeps) => (d.now ? d.now() : new Date());
 
 // ---- who ----
@@ -247,16 +255,24 @@ export async function runFor(db: Firestore, uid: string, deps: NjDeps, o: { manu
   // The member's AI reads the top N, a few openings per request, paced for free tiers. A failure keeps the keyword score and the real error.
   const connected = providers.providers.filter((x) => x.connected).map((x) => x.provider);
   const provider = pickProvider(connected, s.provider);
-  const ai = provider ? await (deps.account ?? providerAccount)(db, uid, provider) : null;
+  const own = provider ? await (deps.account ?? providerAccount)(db, uid, provider) : null;
+  // No AI of the member's: Nana Lite reads the best few of the keyword ranking, one opening per request (a small model's context is short).
+  const lite = own ? null : (deps.lite ? deps.lite() : await liteAccount());
+  const ai = own ?? lite;
+  if (lite) top.splice(LITE_JOBS_PER_RUN);
+  funnel.keywordTop = top.length;
   let error = "", note = "";
-  if (!ai) note = s.provider && !connected.includes(s.provider) ? `The AI you chose isn't connected any more, so this is the free keyword ranking.` : "No AI connected yet, so this is the free keyword ranking.";
+  const lost = s.provider && !connected.includes(s.provider) ? "The AI you chose isn't connected any more" : "No AI connected yet";
+  if (!ai) note = `${lost}, so this is the free keyword ranking.`;
   else {
+    if (lite) note = `${lost}, so Nana Lite read your top ${top.length}. Connect your own AI to have up to ${AI_PER_DAY.max} read.`;
     const system = scoringSystem(p);
     const started = Date.now();
     let fails = 0;
-    for (let i = 0; i < top.length; i += BATCH) {
-      if (Date.now() - started > (deps.budgetMs ?? 100_000)) { note = "Your AI ran out of time today; the rest keep their keyword score."; break; }
-      const batch = top.slice(i, i + BATCH);
+    const step = lite ? 1 : BATCH;
+    for (let i = 0; i < top.length; i += step) {
+      if (Date.now() - started > (deps.budgetMs ?? 100_000)) { note = `${lite ? "Nana Lite" : "Your AI"} ran out of time today; the rest keep their keyword score.`; break; }
+      const batch = top.slice(i, i + step);
       try {
         const data = await completeJson(ai, system, scoringUser(batch), { fetch: deps.fetch, sleep: deps.sleep, maxTokens: 400 * batch.length });
         const v = validateVerdicts(data, batch.length);
@@ -280,7 +296,7 @@ export async function runFor(db: Firestore, uid: string, deps: NjDeps, o: { manu
   funnel.alive = alive.length;
   const jobs = alive.map((c) => toShort(c, c.notesJobId ? "live" : (stateOf.get(c.hash)?.state === "live" ? "live" : "unknown")));
   if (profileFrom !== "yours") note = [profileFrom === "cv" ? "You haven't chosen roles yet, so this run used the roles from your CV review." : "Your profile is empty, so every role was considered. Add the roles you want for a sharper list.", note].filter(Boolean).join(" ");
-  const run: NjRun = { at: now.toISOString(), provider: provider ?? "", model: ai ? modelOf(ai) : "", funnel, error, note, jobs, rejected: reasons, profileFrom };
+  const run: NjRun = { at: now.toISOString(), provider: own ? (provider ?? "") : "", model: ai ? modelOf(ai) : "", funnel, error, note, jobs, rejected: reasons, profileFrom, ...(lite ? { via: "lite" as const } : {}) };
   const details = Object.fromEntries(alive.map((c) => [c.hash, { description: c.description.slice(0, 3000), salaryText: c.salaryText }]));
   await db.doc(`${RUNS}/${uid}`).set({ ...run, uid, details });
   // Every opening this run collected and what happened to it, for "See all collected jobs" (read-only, this member's run only).

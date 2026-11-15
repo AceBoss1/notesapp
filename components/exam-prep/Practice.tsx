@@ -6,6 +6,7 @@ import { loadCatalogue, prepApi, useMe, useOnline } from "@/lib/exam-prep-client
 import { keepProgress, localProgress, savedPack, usableQuestions } from "@/lib/exam-prep-local";
 import { syncProgress } from "@/lib/exam-prep-sync";
 import { Explanation, QuestionBody, ReportButton } from "./QuestionView";
+import AskNanaLite from "./AskNanaLite";
 import { Back, btnGo, btnGold, btnLine, card, Note, PLink, Spinner } from "./ui";
 
 // Practice: one question at a time, marked straight away with the explanation. Online it asks the server for the questions this
@@ -82,6 +83,7 @@ export default function Practice({ exam }: { exam: ExamId }) {
           </div>
           <QuestionBody q={q} chosen={chosen} reveal={!!chosen} onChoose={choose} disabled={!!chosen} />
           {chosen && <Explanation q={q} chosen={chosen} />}
+          {chosen && !offline && <AskNanaLite q={q} chosen={chosen} />}
           <div className="mt-4 flex items-center justify-between gap-2">
             <ReportButton id={q.id} />
             {chosen && <button onClick={next} className={btnGo}>{i + 1 < qs.length ? "Next question" : "Finish"}</button>}

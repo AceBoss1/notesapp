@@ -487,6 +487,8 @@ service cloud.firestore {
     // Global subscriptions (lib/global-pay-server.ts): exchange rates, a publisher's home currency and prices, payout details outside
     // naira (and their encrypted numbers), payments in other currencies, earnings, the currency pools, conversions and payouts. All
     // server-only: members and Finance reach them through /api/global, /api/publisher/global and /api/admin/treasury.
+    // Nana Lite's per-day ask counter (lib/nana-lite-server.ts): a count only, never what was asked. Server-only; TTL on expireAt.
+    match /prepLiteDaily/{id} { allow read, write: if false; }
     match /globalConfig/{id} { allow read, write: if false; }
     match /publisherGlobal/{uid} { allow read, write: if false; }
     match /globalPayoutAccounts/{uid} { allow read, write: if false; }

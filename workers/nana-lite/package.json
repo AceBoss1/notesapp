@@ -1,0 +1,18 @@
+{
+  "name": "notesapp-nana-lite",
+  "version": "0.176.0",
+  "private": true,
+  "description": "Nana Lite on Cloudflare: a Worker in front of three small open models (Phi-3.5-mini, Qwen2.5-1.5B, SmolLM2-1.7B), each served by llama.cpp in a Cloudflare Container. Not part of the Next.js build.",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.28"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261115.1",
+    "wrangler": "^4.40.0"
+  }
+}

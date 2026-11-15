@@ -133,7 +133,9 @@ export type Funnel = { collected: number; unique: number; fit: number; keywordTo
 // profileFrom: what the run judged against. "yours" = the member's own roles; "cv" = no roles yet, so the roles from their CV review;
 // "empty" = neither, so no title gate at all (v0.174.1: an empty profile used to keep nothing).
 export type ProfileFrom = "yours" | "cv" | "empty";
-export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number>; profileFrom?: ProfileFrom };
+export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number>; profileFrom?: ProfileFrom; via?: "lite" };
+// via "lite": no AI of the member's was connected, so Nana Lite (our small model, lib/nana-lite.ts) read the top openings at our cost.
+export const LITE_JOBS_PER_RUN = 10; // openings Nana Lite reads in one run (our cost): the best of the keyword ranking
 
 // Every opening a run collected, with what happened to it (the "See all collected jobs" view). Only the member's own run; read-only.
 export type SeenJob = { hash: string; title: string; company: string; location: string; url: string; sourceLabel: string; notesJobId?: string; outcome: "listed" | "cut" | "ranked"; why: string };
