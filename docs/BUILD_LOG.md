@@ -3319,3 +3319,16 @@ pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest 
 ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+
+## Nana Jobs fixes (v0.167.1, 15 Nov 2026)
+
+The owner tried Nana Jobs on his phone and hit two faults. **No job ever fitted** (Collected 455, Fit your rules 0, with Claude
+connected): the first visit had copied the account's job title in as the only role, the first save (connecting the AI) stored it, and a
+title gate of a founder's job title matches no posting. We reproduced it with real-looking feed data saved as fixtures (never fetched in
+tests), cleared the other suspects (date formats, locations with no cities, empty deal-breakers, the pay floor), and changed the rule: a
+role counts only when the member chooses it; with none, the CV review's roles or no title gate. The run now says why openings were cut,
+an empty profile says so with a button, and **See all collected jobs** shows every opening with its reason. **The CV review failed**:
+Claude thinks before answering and that counts against the output limit, so the 2,000-token answer was cut off; a slow answer could also
+outlive the 60-second function, and the browser turned the platform's timeout page into "Something went wrong". Low effort, room for the
+thinking, plain errors for cut-offs, a 120-second route and real error text in the browser fix it, with tests that stub the provider.
+Every shortlisted job also got a clear Apply button and Mark as applied.

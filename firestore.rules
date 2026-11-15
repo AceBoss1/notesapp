@@ -952,6 +952,7 @@ service cloud.firestore {
     // boards and the shared pool of openings are written and read only by the server. Firms never see any of it.
     match /nanaJobsProfiles/{id} { allow read, write: if false; }
     match /nanaJobsRuns/{id} { allow read, write: if false; }
+    match /nanaJobsSeen/{id} { allow read, write: if false; }
     match /nanaJobsStatuses/{id} { allow read, write: if false; }
     match /nanaJobsCv/{id} { allow read, write: if false; }
     match /nanaJobsBoards/{id} { allow read, write: if false; }

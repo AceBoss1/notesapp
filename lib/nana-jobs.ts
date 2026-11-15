@@ -130,7 +130,57 @@ export type ShortJob = {
   status?: JobStatus;
 };
 export type Funnel = { collected: number; unique: number; fit: number; keywordTop: number; readByAi: number; alive: number };
-export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number> };
+// profileFrom: what the run judged against. "yours" = the member's own roles; "cv" = no roles yet, so the roles from their CV review;
+// "empty" = neither, so no title gate at all (v0.167.1: an empty profile used to keep nothing).
+export type ProfileFrom = "yours" | "cv" | "empty";
+export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number>; profileFrom?: ProfileFrom };
+
+// Every opening a run collected, with what happened to it (the "See all collected jobs" view). Only the member's own run; read-only.
+export type SeenJob = { hash: string; title: string; company: string; location: string; url: string; sourceLabel: string; notesJobId?: string; outcome: "listed" | "cut" | "ranked"; why: string };
+export const SEEN_MAX = 1000;
+
+// The hard filters' reasons, grouped into the few a member understands ("312 not in your roles · 98 location · 44 too old").
+export function cutGroup(reason: string): string {
+  if (reason === "title isn't a role you want") return "not in your roles";
+  if (/^older than/.test(reason)) return "too old";
+  if (/another country|other countries|chose on-site|citizenship/.test(reason)) return "location";
+  if (reason === "above the level you want") return "above your level";
+  if (/^deal-breaker/.test(reason)) return "deal-breakers";
+  if (reason === "student or trainee post") return "student or trainee";
+  if (reason === "incomplete") return "incomplete listing";
+  return reason;
+}
+export function cutSummary(rejected: Record<string, number> | undefined, top = 4): { label: string; count: number }[] {
+  const by = new Map<string, number>();
+  for (const [r, n] of Object.entries(rejected ?? {})) { const g = cutGroup(r); by.set(g, (by.get(g) ?? 0) + Number(n || 0)); }
+  return [...by.entries()].filter(([, n]) => n > 0).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, top);
+}
+export const cutText = (rejected: Record<string, number> | undefined, top = 4) => cutSummary(rejected, top).map((c) => `${c.count.toLocaleString("en-GB")} ${c.label}`).join(", ");
+
+// Nothing to judge against: no roles, skills or shipped work.
+export const profileEmpty = (p: Pick<NjProfile, "roles" | "skills" | "shipped">) => !p.roles.length && !p.skills.length && !p.shipped.length;
+
+// The profile a run judges against. The member's own roles win; with none, the roles (and skills and shipped work, where the member left
+// those empty) from their CV review; with neither, no roles, which means no title gate.
+export function effectiveProfile(p: NjProfile, cv: Pick<CvReview, "profile"> | null | undefined): { profile: NjProfile; from: ProfileFrom } {
+  if (p.roles.length) return { profile: p, from: "yours" };
+  const c = cv?.profile;
+  if (c?.roles?.length) return { profile: { ...p, roles: c.roles, skills: p.skills.length ? p.skills : c.skills ?? [], shipped: p.shipped.length ? p.shipped : c.shipped ?? [] }, from: "cv" };
+  return { profile: p, from: "empty" };
+}
+
+// What the browser shows when an API call fails. The server's own words when it sent them; a platform timeout (an HTML or plain-text
+// 504 with no JSON) becomes "your AI took too long", never a bare "Something went wrong".
+export function apiErrorText(status: number, body: string): string {
+  let msg = "";
+  try { const j = JSON.parse(body); msg = typeof j?.error === "string" ? j.error : typeof j?.message === "string" ? j.message : ""; } catch { /* not JSON */ }
+  if (msg.trim()) return msg.trim();
+  if (status === 504 || status === 408 || /FUNCTION_INVOCATION_TIMEOUT|timed? ?out/i.test(body)) return "Your AI took too long to answer, so we stopped waiting. Nothing was lost: please try again in a moment.";
+  if (status === 429) return "That's a lot of tries in a short time. Please wait a little and try again.";
+  if (status === 401) return "Sign in again to continue.";
+  if (status === 413) return "That's too much to send in one go. Please send a shorter version.";
+  return `That didn't work on our side (error ${status || "no answer"}). Please try again in a moment.`;
+}
 
 // The CV review the member's AI writes (screen 2b): honest, short, and a profile to start from.
 export type CvReview = {

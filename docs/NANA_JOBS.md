@@ -3,7 +3,7 @@
 A new tab in `/jobs`. A member connects their own AI. Nana then collects openings from Notes Jobs and public job boards, cuts the ones
 that don't fit, scores the rest against what the member has actually done, and gives a short ranked list. Each job comes with why it
 fits and the strongest reason they might not get it. **It finds and ranks. It never applies on anyone's behalf.** The owner asked for it
-on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.162.0** (mockups approved 12 Nov 2026,
+on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.162.0; fixes in v0.167.1** (mockups approved 12 Nov 2026,
 with the CV review added by the owner when approving).
 
 Shortlist is MIT-licensed (© 2026 Victor Dickson), so its approach and code may be adapted. Any file that takes code from it keeps the
@@ -81,6 +81,34 @@ with". Step 2 of the set-up starts with the CV, right after Connect your AI.
 `app/api/cron/reminders`, `components/jobs/NanaJobs.tsx`, `components/jobs/JobsSubTabs.tsx`, pages `/jobs/nana` and `/nana-jobs`.
 Tests: `npm run test:nana-jobs` and `npm run test:nana-jobs-server`. Files that adapt Shortlist keep its MIT notice; the full notice is in
 `THIRD_PARTY_NOTICES`.
+
+## Fixes in v0.167.1 (owner's reports, 15 Nov 2026)
+
+- **"No job ever fits" (Collected 455, Fit your rules 0).** Root cause: on the first visit the account's job title (`users.jobTitle`,
+  e.g. "Founder & CEO") was copied in as the only role, and the first save of anything (connecting an AI) stored it. A member who never
+  opened the profile screen therefore had a title gate that no posting matched. Reproduced with real-looking feed fixtures
+  (`tests/nana-jobs/fixtures/*.json`, the four feeds' own shapes and date formats). Checked and cleared: freshness parsing (ISO with an
+  offset, ISO with no zone, Unix seconds all read right), the location rules with no cities, deal-breakers (empties were already dropped;
+  now a deal-breaker must be a whole word of two letters or more), and the pay floor (never a hard filter: the AI weighs it). Fix: the
+  account title is only a suggestion (`suggestedRole`); a stored role counts only once the member chose roles (`rolesSetAt`; an old
+  document whose only role is exactly the account title is read as empty); with no roles the run uses the CV review's roles
+  (`effectiveProfile`), or applies no title gate. Finishing set-up and running no longer need roles. `has()` now tries every occurrence
+  of a word in a title.
+- **Why jobs were cut.** The run's `rejected` counts are grouped (`cutSummary`: not in your roles, location, too old, above your level,
+  deal-breakers, student or trainee) and shown under the funnel and in the empty state. An empty profile shows "Your scoring profile is
+  empty" with **Set up my profile**.
+- **See all collected jobs.** Each run writes `nanaJobsSeen/{uid}` (server-only; up to 1,000 openings, listed and ranked first) with
+  each opening's outcome and reason; `GET /api/jobs/nana/seen` returns only the signed-in member's. Read-only, with an Open link.
+- **Apply.** Every shortlisted card has **Apply** (the firm's page in a new tab; Notes Jobs: **Apply on #NotesApp**, to the job's
+  apply form at `/jobs/{id}#apply`) and **Mark as applied** beside it (the Applied status).
+- **"The CV review fails" with Claude.** Root cause: Claude's current small model (`claude-haiku-5-5`, a real model id, the same one
+  `lib/nana-server.ts` uses) thinks before it answers and the thinking counts against `max_tokens`; the review asked for 2,000 tokens, so
+  the JSON was cut off or never came. A slow answer also could run past the route's 60 s `maxDuration` (the AI call itself waited 60 s),
+  so the platform returned a bare 504 page, which the browser showed as "Something went wrong". Fix (`lib/ai-providers.ts`): Anthropic
+  requests send `output_config.effort: "low"` and `ANTHROPIC_THINKING_ROOM` extra tokens; `stop_reason` `max_tokens` and `refusal` (and
+  OpenAI-style `finish_reason: "length"`) become plain errors; `AI_TIMEOUT_MS` sets each call's wait and the CV route's `maxDuration` is
+  120 s (cover note 90 s), checked by a test. The browser shows the server's own message, or "your AI took too long" for a timeout page
+  (`apiErrorText`). A stored CV that can't be decrypted says so.
 
 ## Build order (done in v0.162.0)
 
