@@ -11,15 +11,55 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.168.0",
+    version: "v0.170.0",
     bump: "minor",
     date: "2026-11-15",
     changes: [
       { kind: "added", text: "Content checks: every photo, video frame and text that other people can see (journals, community posts and comments, Moments, Media posts, shop items, events and profiles) is checked by AI before it is published. Private messages are not read." },
       { kind: "added", text: "A post that breaks the rules isn't published: it stays as a draft, you're told what was found and in which photo, and you can remove the photo or ask for a review. Each break is a strike; strikes and appeals are on your account page." },
       { kind: "added", text: "The rules card on every community's About tab, the journal editor and the Media studio, the Content rules page, and a new section 2e in the Terms." },
-      { kind: "added", text: "Admin → Reports → Content checks: the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
+      { kind: "added", text: "Admin → People & Trust → Content checks (beside Reports): the day's numbers, the review queue with Restore and Keep blocked, the week's strikes, the figures, and the Legal team's child-safety queue." },
       { kind: "changed", text: "Videos on posts are now checked before they are shown (Terms, section 2a)." },
+    ],
+  },
+  {
+    version: "v0.169.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "My account has a new look: a menu down the left on a computer, with four groups (Profile, Money, Store, Growth) that open to their pages, Day / Night / Auto and Sign out at the bottom, and plain page headings in place of the crimson band. On a phone, the bar at the top says where you are (My account / Money / Analytics) and opens the same menu." },
+      { kind: "changed", text: "Analytics: the account picker sits at the top right, the tabs share a row with Last 7, 30 and 90 days, and your sounds sit beside the chart. On a phone, the tabs and the period are two dropdowns." },
+      { kind: "changed", text: "Business books: the shop, All saved and My books at the top with the tabs across (a dropdown on a phone, with Shop for Inventory, Online orders and Analytics); Import and export shows Step 2 of 5 with a bar on a phone, and the source as a dropdown." },
+      { kind: "changed", text: "Messages: one Emoji · Stickers button opens both, with Emoji and Stickers at the top; B, I and U are always there; the paperclip sits beside the message box; and recording a voice note fills the row with the time, a moving wave, a bin to cancel and the button to add it." },
+      { kind: "changed", text: "Explore on a phone: one Browse box (Topics, 1 of 9) opens the list of every section. Bookings shows the refund, rescheduling and payout rules as three cards. Your own profile has a Manage profile menu, and Subscribe comes first on a phone." },
+    ],
+  },
+  {
+    version: "v0.168.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp. The sign-up form says so; use your own address (ordinary providers like Gmail are never blocked) or Google or LinkedIn. See Temporary (throwaway) email addresses in the Help Centre." },
+      { kind: "changed", text: "For our team: a new admin area, with a sidebar of groups (Workspace, Content, People & Trust, Money, Growth, Platform, Admin) that open to their pages, Jump to a page, and a drawer on phones; plus Throwaway emails under People & Trust, to block domains and find and suspend accounts already using them. Nothing else changes for members." },
+    ],
+  },
+  {
+    version: "v0.167.1",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "changed", text: "Media posts: Like, Share, Remix and Save sit on a rail down the right of the picture or video, each an icon with its label, like other video apps." },
+    ],
+  },
+  {
+    version: "v0.167.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "📅 My Calendar, in the account menu and the phone menu with today's count: your 1:1 sessions and pay-per-minute calls, hotel stays (and, for hotel staff, the hotel's arrivals and departures), event and paid live tickets, events you're going to or host, Notes Jobs interviews and money due from Business books, in one month view with a coloured dot for each kind and the day's list below. Each entry opens where it came from. Times are in Lagos time." },
+      { kind: "added", text: "Add to my calendar: an invite your phone opens in its own calendar, on every entry, the booking confirmation, a hotel booking's page and each ticket in My tickets." },
+      { kind: "added", text: "Sync with your phone: a private calendar link that iPhone Calendar, Google Calendar and Outlook subscribe to and keep up to date. Choose what goes out (money due starts off); it carries titles and times only, and Make a new link stops the old one at once." },
+      { kind: "added", text: "Calendar reminders: a bell shortly before sessions and calls, an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Reminders that already came stay as they were." },
     ],
   },
   {

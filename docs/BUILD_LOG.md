@@ -3298,7 +3298,28 @@ show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens t
 are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
 in Chrome and broke hydration.
 
-**AI content checks (v0.168.0)** — every photo, video frame and text that people other than the author can see is checked before it is
+## Plan: My Calendar (mockups for approval, 14 Nov 2026)
+
+The owner asked for "a my calendar in the menu which syncs with user default calendar on device". `docs/MY_CALENDAR.md` and six phone
+mockups cover the menu entry, a month view in the booking-calendar look, a day's agenda, and syncing with the phone's calendar.
+Syncing works three ways: "Add to my calendar" (.ics) on any single entry; a private subscription link that iPhone, Google and Outlook
+calendars refresh themselves; and, in the installed app, writing straight into the phone's default calendar. Two-way sync with Google
+or Outlook is left for later. Nothing is built until the mockups are approved.
+
+## My Calendar (v0.166.0, 15 Nov 2026)
+
+Built from the approved plan and mockups (`docs/MY_CALENDAR.md`). "📅 My Calendar" is in the account menu and the phone menu with
+today's count. `/calendar` shows the month in the booking calendar's look (`MonthCalendar` gains optional dots, shading, a legend and a
+month callback) with a dot per kind, hotel nights shaded and the day's agenda; each entry opens where it came from and has "Add to my
+calendar" (.ics). Entries are read live from bookings, per-minute sessions, hotel bookings (the guest's own, and a hotel's arrivals and
+departures for its staff), event and paid live tickets, events going to or hosted, interviews and Business books (`lib/my-calendar.ts`
+pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest still show). A private feed `/api/calendar/<token>.ics`
+(SHA-256 of the token stored, an encrypted copy so the member can see it again, titles and times only, her kinds, Make a new link) and a
+`webcal://` link from `lib/host.ts`. New reminders only where none existed: a bell before sessions and calls, an hour before events for
+ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
+encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
+`test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+**AI content checks (v0.170.0)** — every photo, video frame and text that people other than the author can see is checked before it is
 published (owner's decisions and approved mockups, 15 Nov 2026: `docs/CONTENT_CHECKS.md`, `docs/mockups/content-checks/`). Pure rules
 `lib/content-checks.ts` (settings with the owner's defaults, `decide`: pass, hold for a person, block with a strike, child safety; news,
 medical and art in context; teens stricter; strikes, pauses, bans, community steps, the words). The checker `lib/content-checks-ai.ts`: one

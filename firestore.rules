@@ -331,6 +331,23 @@ service cloud.firestore {
         && (!('workplace' in d) || (d.workplace is string && d.workplace.size() <= 80));
     }
 
+    // Throwaway emails (Admin → People & trust → Throwaway emails, lib/throwaway-emails.ts): nobody can make a profile with a
+    // sign-in email at a blocked domain or any of its subdomains (up to six labels: mail.petchi.uk → petchi.uk). The list is the
+    // public settings/emailBlocklist document the server keeps whole.
+    function throwawayEmail() {
+      let email = request.auth.token.get('email', '');
+      let parts = email is string && email.matches('^[^@]+@[^@]+[.][^@]+$') ? email.lower().split('@')[1].split('[.]') : [];
+      let n = parts.size();
+      let path = /databases/$(database)/documents/settings/emailBlocklist;
+      return n >= 2 && exists(path) && get(path).data.get('domains', []).hasAny([
+        parts[n - 2:n].join('.'),
+        n >= 3 ? parts[n - 3:n].join('.') : '',
+        n >= 4 ? parts[n - 4:n].join('.') : '',
+        n >= 5 ? parts[n - 5:n].join('.') : '',
+        n >= 6 ? parts[n - 6:n].join('.') : ''
+      ]);
+    }
+
     match /users/{uid} {
 
       // Public profiles.
@@ -359,6 +376,7 @@ service cloud.firestore {
             && request.resource.data.role == 'reader'
             && request.resource.data.accountTier == 'standard'
             && request.resource.data.suspended == false
+            && !throwawayEmail()
           )
         );
 
@@ -1043,6 +1061,11 @@ service cloud.firestore {
     match /cycleLogs/{id} { allow read, write: if false; }
     match /cycleNotes/{id} { allow read, write: if false; }
     match /cycleChats/{document=**} { allow read, write: if false; }
+    // My Calendar (lib/my-calendar-server.ts): her choices and the hash of her private calendar link, the link's lookup by that hash, and
+    // the bells already sent. Server only, even for her and for staff: she reads and changes them through /api/calendar.
+    match /myCalendar/{id} { allow read, write: if false; }
+    match /calendarFeeds/{id} { allow read, write: if false; }
+    match /calendarBells/{id} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

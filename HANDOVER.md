@@ -17,7 +17,8 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
-| `push/content-checks` | **v0.168.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
+| `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
+| `push/content-checks` | **v0.170.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
 | `push/discovery` | **v0.40.0:** the new look from the owner's Moda designs (the phone header and tab bar, the app frame on computers, the journal feed, Explore, saved journals, Messages, calls, the profile header, Trending), Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
@@ -1065,7 +1066,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     order needs Paylony live keys (item 5). Tests: `test:hotel`, `test:hotel-server` (new), rules. Not built: room extras (the mockup's
     airport pick-up line), and Nana chat from the hotel's own site on Standard (Grand only, as planned).
 
-134. **AI content checks (v0.168.0, branch `push/content-checks`; owner, 15 Nov 2026, plan and mockups `docs/CONTENT_CHECKS.md`):** every
+134. **My Calendar (v0.166.0, branch `push/my-calendar`; owner, 14 Nov 2026, "calendar approved build"; plan and mockups
+    `docs/MY_CALENDAR.md`):** "📅 My Calendar" in both menus with today's count; `/calendar`, `/calendar/sync`, `/calendar/settings`,
+    explainer `/my-calendar`, help "my-calendar". Code: `lib/my-calendar.ts` (pure: entries, agenda, dots, choices, bells, the `.ics`
+    writer), `lib/my-calendar-server.ts` (every source read live, the private link, `calendarBells` and `weekAheadEmails` in the reminders
+    cron), `app/api/calendar` (+ `[token]` for the feed), `components/calendar/*`, `lib/native-calendar.ts` (the app's calendar plugin,
+    when present). Collections (server-only): `myCalendar`, `calendarFeeds`, `calendarBells`. **Owner steps:** `firebase deploy --only
+    firestore:rules` (the three new collections; no new indexes); `ACCOUNT_DATA_KEY` (already set for My Cycle) lets members see their
+    link again, otherwise it's shown once; for the apps, the calendar plugin and permission texts in `docs/MY_CALENDAR.md` "Not built",
+    then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
+    Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
+    a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
+135. **AI content checks (v0.170.0, branch `push/content-checks`; owner, 15 Nov 2026, plan and mockups `docs/CONTENT_CHECKS.md`):** every
     photo, video frame and text others can see is checked before it is published; private messages never. **Owner steps:** (a) `firebase
     deploy --only firestore:rules,firestore:indexes` (eight new server-only collections; check passes for journals, shop items and profiles;
     two TTL policies, no composite index). (b) `ANTHROPIC_API_KEY` is already set for Nana and is used here too (optional
@@ -1150,8 +1162,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Nana Jobs | `lib/ai-providers.ts`, `lib/ai-connect.ts`, `lib/nana-jobs*.ts`, `lib/cv-extract.ts`, `app/api/jobs/nana/*`, `app/api/cron/nana-jobs`, `components/jobs/NanaJobs.tsx`, `/jobs/nana`, `/nana-jobs`; `docs/NANA_JOBS.md`; `THIRD_PARTY_NOTICES` |
+| My Calendar | pure rules `lib/my-calendar.ts` (entries, agenda, dots, choices, bells, the `.ics` writer), month grid `lib/month-calendar.ts`, server `lib/my-calendar-server.ts` (sources, private link, bells, Monday email), routes `app/api/calendar` and `app/api/calendar/[token]` (the feed), pages `app/(main)/calendar` (+ `sync`, `settings`) and `components/calendar/*`, explainer `app/(main)/my-calendar`, app bridge `lib/native-calendar.ts`, menu `useCalendarToday` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
-| Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` (Admin → Reports → Content checks), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
+| Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` on `/admin/content-checks` (People & Trust in `ADMIN_SECTIONS`, a tab of Reports), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
@@ -1183,6 +1196,8 @@ npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle,
 npm run test:content-checks    # AI content checks: thresholds, deciding, strikes, communities, words; "ALL OK"
 npm run test:content-checks-server # the gate, holds, blocks, pauses, bans, appeals, re-check, passes, create paths (AI stubbed); "ALL OK"
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
+npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
+npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

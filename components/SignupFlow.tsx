@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/users";
+import { throwawayError } from "@/lib/throwaway-emails-client";
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, MANDATORY_USERNAMES, isReservedUsername } from "@/lib/journals-directory";
 import Avatar from "@/components/Avatar";
@@ -107,6 +108,12 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
     try {
       if (await isUsernameTaken(cleanUsername)) {
         setError("That username is already taken.");
+        setLoading(false);
+        return;
+      }
+      const throwaway = await throwawayError(completeFor ? completeFor.email : email);
+      if (throwaway) {
+        setError(throwaway);
         setLoading(false);
         return;
       }

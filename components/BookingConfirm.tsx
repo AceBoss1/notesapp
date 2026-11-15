@@ -6,10 +6,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { formatNaira, formatSlot } from "@/lib/booking-time";
+import { formatNaira, formatSlot, sessionEnd, sessionStart } from "@/lib/booking-time";
 import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 import { isGiftMotif } from "@/lib/gift-catalogue";
 import { playGift } from "@/lib/gift-play";
+import AddToCalendar from "@/components/calendar/AddToCalendar";
 
 type Result = {
   status: string;
@@ -26,7 +27,7 @@ type Result = {
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string; animId?: string; animName?: string; quantity?: number };
-  booking?: { username: string; date: string; slot: string };
+  booking?: { username: string; date: string; slot: string; minutes?: number };
   subscription?: { username: string };
 };
 
@@ -226,6 +227,7 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">
             {result.booking.date} at {formatSlot(result.booking.slot)} (Lagos time) with @{result.booking.username}. A confirmation email is on its way.
           </p>
+          <div className="mt-5"><AddToCalendar entry={{ id: `booking:${reference}`, kind: "session", title: `1:1 with @${result.booking.username} · ${result.booking.minutes ?? 60} min`, feedTitle: `1:1 with @${result.booking.username}`, start: sessionStart(result.booking.date, result.booking.slot).toISOString(), end: sessionEnd(result.booking.date, result.booking.slot, result.booking.minutes ?? 60).toISOString(), where: "On #NotesApp", href: "/bookings" }} /></div>
           <Link href={`/u/${result.booking.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to profile
           </Link>

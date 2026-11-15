@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { SUSPENSION_LENGTHS, type SuspensionLength } from "@/lib/suspension-length";
-import ContentChecksAdmin from "@/components/admin/ContentChecksAdmin";
 import { REPORT_REASON_LABEL, REPORT_URGENT_HOURS, URGENT_REASONS, type ReportReason } from "@/lib/moments-rules";
 
 type Report = {
@@ -18,9 +17,6 @@ type Report = {
 export default function AdminReportsPage() {
   const { user, loading } = useAdminAuth();
   const [status, setStatus] = useState<"open" | "resolved">("open");
-  // "checks": the AI content checks tab (components/admin/ContentChecksAdmin.tsx); ?tab=checks opens it.
-  const [tab, setTab] = useState<"reports" | "checks">("reports");
-  useEffect(() => { try { if (new URLSearchParams(window.location.search).get("tab") === "checks") setTab("checks"); } catch { /* no query */ } }, []);
   const [reports, setReports] = useState<Report[] | null>(null);
   const [error, setError] = useState("");
   const [length, setLength] = useState<Record<string, SuspensionLength>>({});
@@ -40,7 +36,7 @@ export default function AdminReportsPage() {
         : j.reports))
       .catch((e) => setError(e.message));
   }, [call, status]);
-  useEffect(() => { if (user && tab === "reports") load(); }, [user, load, tab]);
+  useEffect(() => { if (user) load(); }, [user, load]);
 
   async function resolve(id: string, outcome: "dismissed" | "actioned") {
     setError("");
@@ -64,12 +60,11 @@ export default function AdminReportsPage() {
       <p className="mt-2 text-sm text-slate">Moments and conversations members have reported. “Suspend” suspends the reported member and actions the report in one click (your note becomes the reason they see). To warn someone instead, use <Link href="/admin/users" className="text-crimson underline">Users</Link>.</p>
       <div className="mt-4 flex gap-2">
         {(["open", "resolved"] as const).map((s) => (
-          <button key={s} onClick={() => { setReports(null); setStatus(s); setTab("reports"); }} aria-pressed={tab === "reports" && status === s} className={`rounded-full border px-4 py-1 text-sm ${tab === "reports" && status === s ? "border-crimson bg-crimson text-white" : "border-rule"}`}>{s === "open" ? "Open" : "Resolved"}</button>
+          <button key={s} onClick={() => { setReports(null); setStatus(s); }} aria-pressed={status === s} className={`rounded-full border px-4 py-1 text-sm ${status === s ? "border-crimson bg-crimson text-white" : "border-rule"}`}>{s === "open" ? "Open" : "Resolved"}</button>
         ))}
-        <button onClick={() => setTab("checks")} aria-pressed={tab === "checks"} className={`rounded-full border px-4 py-1 text-sm ${tab === "checks" ? "border-crimson bg-crimson text-white" : "border-rule"}`}>🛡 Content checks</button>
+        {/* AI content checks: its own page in the admin menu (People & Trust), shown as a tab of Reports */}
+        <Link href="/admin/content-checks" className="rounded-full border border-rule px-4 py-1 text-sm">🛡 Content checks</Link>
       </div>
-      {tab === "checks" && <ContentChecksAdmin user={user} />}
-      {tab === "reports" && <>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {reports && !reports.length && <p className="mt-6 text-slate">Nothing {status}.</p>}
       <ul className="mt-6 space-y-4">
@@ -121,7 +116,6 @@ export default function AdminReportsPage() {
           </li>
         ))}
       </ul>
-      </>}
     </div>
   );
 }

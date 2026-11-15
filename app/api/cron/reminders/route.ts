@@ -43,6 +43,7 @@ import { monthlyReferralReports } from "@/lib/referral-report-server";
 import { sweepRecordings, transcribeReplays } from "@/lib/live-recording-server";
 import { runDue as nanaJobsDue } from "@/lib/nana-jobs-server";
 import { liveDeps as nanaJobsDeps } from "@/lib/nana-jobs-api";
+import { calendarBells, weekAheadEmails } from "@/lib/my-calendar-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -166,6 +167,11 @@ async function run() {
   // Pay-per-minute sessions (lib/ppm-server.ts): a call whose phones went quiet, or whose held minutes ran out and weren't topped up,
   // is ended and charged on the server's meter; a session whose call never started is ended and the hold given back.
   await job("ppmSessions", () => sweepPpm(db));
+  // My Calendar (lib/my-calendar-server.ts), only what nothing else sends: a short bell before sessions and per-minute calls (her choice,
+  // 10 minutes by default), an hour before an event for ticket holders not already reminded as going, and the day before a hotel check-in;
+  // then, on Mondays from 7 AM Lagos, the optional week-ahead email, a few per run.
+  await job("calendarBells", () => calendarBells(db));
+  await job("weekAhead", () => weekAheadEmails(db));
   await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
   // The 1st of each month from 08:00 Lagos, in batches: last month's referrals report to members who had activity (lib/referral-report-server.ts).
   await job("referralReports", () => monthlyReferralReports(db));
