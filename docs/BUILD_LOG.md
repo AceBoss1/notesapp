@@ -3320,7 +3320,7 @@ ticket holders not going, the day before a hotel check-in, and a Monday week-ahe
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
 
-**Onboarding drafts for contract roles (v0.169.1, 15 Nov 2026)** — The owner reported that "draft documents should draft from templates
+**Onboarding drafts for contract roles (v0.169.2, 15 Nov 2026)** — The owner reported that "draft documents should draft from templates
 but it's not happening", for a Campus Ambassador. Team hub → Nana-HR & hiring (`app/(main)/admin/team/hr/page.tsx`): the terms form now
 opens under the applicant, scrolls into view with the heading "Onboarding documents for <name>" focused, hides salary fields for contract
 roles, shows errors in place, and the drafts open there too (before, it opened at the top of the page, out of sight on a phone).

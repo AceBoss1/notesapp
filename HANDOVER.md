@@ -1076,7 +1076,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
     Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
     a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
-135. **Onboarding drafts for contract roles (v0.169.1, branch `push/admin-menus-drafts`; owner, 15 Nov 2026):** Nana-HR & hiring's
+135. **Onboarding drafts for contract roles (v0.169.2, branch `push/admin-menus-drafts`; owner, 15 Nov 2026):** Nana-HR & hiring's
     terms form opens under the applicant, scrolled into view and focused; contract roles now get the Campus Ambassador Agreement or the
     Contractor (Consulting) Agreement (`lib/hr-drafts.ts`, kind `agreement`) plus the option grant and announcement; both are templates
     in the staff library (seeded on the next library load). **Owner steps:** nothing to deploy. Have Legal review the two agreements
