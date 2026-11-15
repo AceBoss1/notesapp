@@ -168,3 +168,13 @@ The speed and infrastructure plan starts each stage when a number crosses its li
   (browser) and `getAdminDb()` (server), so a recovery switches the whole site with one setting.
 - **Tests**: `npm run test:backups` (a stand-in fetch checks every request).
 
+
+## Growth measurement (v0.175.0)
+
+Step 1 of the growth plan (`docs/GROWTH.md`). The middleware works out a visitor's channel once, from first-party data, and keeps it in the
+httpOnly `na_src` cookie on the domain's whole family; it can't write to the database, so a short readable `na_ping` flag asks the page
+(`components/GrowthBeat.tsx`, in the root layout) to report a new visitor or a creator-link open once. The existing referral claim at
+sign-up also writes `growthMembers/{uid}`. First values are one `create` each (`growthFirst/{uid}_{kind}`) at server paths that already
+exist, remembered per instance; returns are one "seen" a day per member, tagged by `?r=` on our own links (`withReturn`). Admin → Growth
+reads an hourly snapshot (`statCache/growth`, `lib/stat-cache.ts`), never the collections per page view. All four collections are
+server-only.

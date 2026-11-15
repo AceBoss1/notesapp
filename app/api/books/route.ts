@@ -16,6 +16,7 @@ import {
 import { cashierHome, catalogFor, inviteStaff, keepers, removeStaff, revokeInvite, setStaffRole, staffView } from "@/lib/books-staff-server";
 import { nanaEntries } from "@/lib/books-nana-server";
 import { syncOutbox } from "@/lib/books-sync-server";
+import { firstValue } from "@/lib/growth-server";
 
 // Business books (lib/books-server.ts). Only the seller, an organisation's admins and the staff the seller invited may read or write a
 // seller's books: every call is checked here, first who they are (context → booksRoleOf) and then what their role allows for that view or
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
     };
     if (ACT[b.action]) need(c, ACT[b.action]);
     switch (b.action) {
-      case "sale": return NextResponse.json(await recordSale(c, b));
+      case "sale": { const sale = await recordSale(c, b); await firstValue(db, me.uid, "sale"); return NextResponse.json(sale); } // growth: a business's first value
       case "expense": return NextResponse.json({ entry: await recordExpense(c, b) });
       case "purchase": return NextResponse.json({ entry: await recordPurchase(c, b) });
       case "payment": return NextResponse.json({ entry: await recordPayment(c, b) });

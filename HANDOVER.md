@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
@@ -1099,6 +1100,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Contractor (Consulting) Agreement (`lib/hr-drafts.ts`, kind `agreement`) plus the option grant and announcement; both are templates
     in the staff library (seeded on the next library load). **Owner steps:** nothing to deploy. Have Legal review the two agreements
     (each [Counsel: …] point: withholding tax, consideration for options-only work, the data clause, disputes). Test: `test:hr` (now in CI).
+137. **Growth measurement, step 1 of the growth plan (v0.175.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
+    `docs/GROWTH.md`):** where members come from (first touch in the `na_src` cookie, set in `middleware.ts`), first value per kind of
+    member, returns in weeks 1 to 4 with what brought them (`?r=` on bells, push, the digest, reminders, Nana Jobs), installs, and
+    Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on My account → Growth → Referrals.
+    **Deploy:** `firebase deploy --only firestore:rules` (server-only `growthMembers`, `growthFirst`, `growthDaily`, `growthCreators`).
+    No new indexes, settings or keys. Tests: `test:growth`, `test:growth-server` (new), rules. Not built: offline Exam Prep mocks
+    don't count as first value (only ones submitted online); an iPhone install opened before signing in counts as Direct (its home-screen
+    app has its own cookies).
 
 ## 3. How the work is done (please keep these)
 
@@ -1177,6 +1186,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | My Calendar | pure rules `lib/my-calendar.ts` (entries, agenda, dots, choices, bells, the `.ics` writer), month grid `lib/month-calendar.ts`, server `lib/my-calendar-server.ts` (sources, private link, bells, Monday email), routes `app/api/calendar` and `app/api/calendar/[token]` (the feed), pages `app/(main)/calendar` (+ `sync`, `settings`) and `components/calendar/*`, explainer `app/(main)/my-calendar`, app bridge `lib/native-calendar.ts`, menu `useCalendarToday` |
 | My Cycle | pure rules `lib/cycle.ts`, Nana's prompt `lib/cycle-nana.ts`, server `lib/cycle-server.ts` (encrypted store, unlock token, bells), routes `app/api/cycle` + `app/api/cycle/unlock` (`lib/cycle-api.ts`), passkey check `verifyUser` in `lib/passkeys-server.ts`, page `app/(main)/cycle` + `components/cycle/*`, explainer `app/(main)/my-cycle`, menu `lib/cycle-client.ts` (`useCycleMenu`) |
 | Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` on `/admin/content-checks` (People & Trust in `ADMIN_SECTIONS`, a tab of Reports), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
+| Growth measurement | rules `lib/growth.ts` · server `lib/growth-server.ts` (sign-up source, `firstValue`, visits, installs, `markSeen`, `storedGrowth` hourly in `statCache/growth`, `inviteStats`) · first touch `middleware.ts` (`firstTouch`) · browser `components/GrowthBeat.tsx`, `lib/growth-client.ts` · `app/api/growth`, `app/api/admin/growth`, `/admin/growth`, `components/InviteLinkCard.tsx` · `docs/GROWTH.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
 | Hiring drafts | `lib/hr-drafts.ts` (offer, Campus Ambassador Agreement, Contractor (Consulting) Agreement, option grant, announcement; `ROLE_PRESETS`), `lib/careers-server.ts` (`makeDrafts`), `app/(main)/admin/team/hr/page.tsx`; test `npm run test:hr` |
@@ -1209,6 +1219,8 @@ npm run test:hotel             # the Hotel kit's rules (tiers, holds, lifecycle,
 npm run test:content-checks    # AI content checks: thresholds, deciding, strikes, communities, words; "ALL OK"
 npm run test:content-checks-server # the gate, holds, blocks, pauses, bans, appeals, re-check, passes, create paths (AI stubbed); "ALL OK"
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
+npm run test:growth            # growth: channel mapping, return tags, first value, weeks, cohorts, the funnel; "GROWTH OK"
+npm run test:growth-server     # growth on the emulator: sign-up source, first values, visits, installs, returns, snapshot; "GROWTH SERVER OK"
 npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
 npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
 npm run test:hr                # careers and Nana-HR drafts (offer, the contract agreements, grant), then hiring on the emulators

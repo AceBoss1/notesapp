@@ -12,6 +12,7 @@ import NanaAssist from "./NanaAssist";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken, getNoteById } from "@/lib/firestore-notes";
+import { reportValue } from "@/lib/growth-client";
 import { deleteField } from "firebase/firestore";
 import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
 import { uploadMarked } from "@/lib/upload";
@@ -232,6 +233,7 @@ export default function NoteForm({ noteId: props_noteId, initial, self, org }: P
           return null;
         }
       }
+      if (payload.status === "published") reportValue("journal"); // growth: a writer's first value (lib/growth-client.ts)
       try {
         localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
       } catch {}

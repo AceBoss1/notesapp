@@ -1859,6 +1859,29 @@ test("pay-per-minute: offers are server-only; a session and its hold are read on
   }
 });
 
+test("growth measurement is server-only: sources, first values, returns and daily counts, even for the member and for staff (lib/growth-server.ts)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "growthMembers/alice"), { uid: "alice", joinedAt: "2026-11-01T00:00:00Z", channel: "creators", detail: "pub", weeks: [1] });
+    await setDoc(doc(d, "growthFirst/alice_read"), { uid: "alice", kind: "read", at: "x" });
+    await setDoc(doc(d, "growthDaily/20261115"), { day: "2026-11-15", visits: { search: 3 } });
+    await setDoc(doc(d, "growthCreators/pub_202611"), { username: "pub", month: "202611", opens: 4 });
+  });
+  for (const db of [as("alice"), as("pub"), as("staff", { admin: true }), anon()]) {
+    await assertFails(getDoc(doc(db, "growthMembers/alice")));
+    await assertFails(getDocs(query(collection(db, "growthMembers"), where("detail", "==", "pub"))));
+    await assertFails(getDoc(doc(db, "growthFirst/alice_read")));
+    await assertFails(getDoc(doc(db, "growthDaily/20261115")));
+    await assertFails(getDoc(doc(db, "growthCreators/pub_202611")));
+    await assertFails(setDoc(doc(db, "growthMembers/alice"), { uid: "alice", channel: "ads" }));
+    await assertFails(updateDoc(doc(db, "growthMembers/alice"), { weeks: [1, 2, 3, 4] }));
+    await assertFails(setDoc(doc(db, "growthFirst/alice_exam"), { uid: "alice", kind: "exam", at: "x" }));
+    await assertFails(setDoc(doc(db, "growthDaily/20261116"), { day: "2026-11-16", installs: { ads: 99 } }));
+    await assertFails(setDoc(doc(db, "growthCreators/alice_202611"), { opens: 1000 }));
+    await assertFails(deleteDoc(doc(db, "growthMembers/alice")));
+  }
+});
+
 test("AI content checks: publishing a journal, or changing a shop item's or profile's words or pictures, needs a check pass", async () => {
   const hour = (h) => new Date(Date.now() + h * 3_600_000);
   await env.withSecurityRulesDisabled(async (ctx) => {

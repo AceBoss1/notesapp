@@ -163,6 +163,8 @@ ${refMs.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need.toL
 
 **Your code:** the same page shows your code, which is your username in capitals. A friend can type it under **Have a discount code?** when they choose a plan, instead of using your link; it counts the same. If a friend uses your code and someone else's link, the first one recorded wins.
 
+**Your invite link:** the same page also has an install link with your name on it, and shows how many opened it, joined, installed the app and are still active. See [Your invite link](/help/invite-link).
+
 **What a friend gets:** if they join through your link within ${REFERRAL_COOKIE_DAYS} days, their first month of Pro or Business is free. They add a card, which is checked with ${money(CARD_CHECK_KOBO)} that is given straight back, and the plan is billed from the second month. On a yearly plan they get one month's value off the first year instead.
 
 **What you earn on plans:** ${rate(PLAN_SHARE)} of what your friend pays for their plan, every payment, for ${PLAN_MONTHS} months from their first real payment. Nothing is earned on the free month.
@@ -178,6 +180,15 @@ ${refMs.map((m) => `- **${m.name}:** ${m.need === 1 ? "1 friend" : `${m.need.toL
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 
 **Affiliate codes:** a publisher can also let affiliates share one of their discount codes as their own; see [Discount codes and coupons](/help/discount-codes). Publishers: [Store selling](/store-selling#affiliates) has the short version.
+`),
+    A("invite-link", "Your invite link", "Publishing and earning", `
+**Where:** **My account → Growth → Referrals** ([/profile/referrals](/profile/referrals)), the **Your invite link** card. Your link opens the page that installs #NotesApp, with your name on it (it ends in \`/install?by=yourname\`). Copy it and share it anywhere: WhatsApp, your status, your bio, a poster.
+
+**What it counts:** how many times it was **opened** this month, how many people **joined** through you (with this link, your \`/r/yourname\` link or your code), how many of them **installed the app**, and how many are **still active** (they used #NotesApp in the last two weeks).
+
+**Rewards:** it works like your referral link. Friends who join through it count towards your referral earnings and milestones, under the same rules (see [Referrals and affiliates](/help/referrals)). Verify your email first.
+
+**Privacy:** you see numbers only, never who joined. Members in teen mode and child profiles are never counted for anyone. We keep only the channel that brought someone (for example "a creator's link" and your username), first-party: no ad cookies, and it is never sold or shared. See the [Privacy Policy](/privacy).
 `),
     A("discount-codes", "Discount codes and coupons", "Publishing and earning", `
 **Make a code for your own products (every plan):** go to **Account → Discount codes** ([/profile/discounts](/profile/discounts)) and choose **New code**.

@@ -43,6 +43,7 @@ jobs:
       - run: npm run test:cart
       - run: npm run test:discounts
       - run: npm run test:referrals
+      - run: npm run test:growth
       - run: npm run test:mcp
       - run: npm run test:agents
       - run: npm run test:pricing
@@ -124,6 +125,7 @@ jobs:
       - run: npm run test:cart-server
       - run: npm run test:discounts-server
       - run: npm run test:referrals-server
+      - run: npm run test:growth-server
       - run: npm run test:referral-report-server
       - run: npm run test:coupons-server
       - run: npm run test:calls-server

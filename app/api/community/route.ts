@@ -3,6 +3,7 @@ import { checkReply } from "@/lib/content-checks-reply";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { firstValue } from "@/lib/growth-server";
 import {
   CommunityError, addComment, communitiesIHost, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, trendingCommunities, insights, join, leave, like, listCircles,
   listComments, listMembers, listPosts, pinPost, removeComment, removeMember, removePost, rotateInvite, setCircleMembers, setRole, unban,
@@ -72,11 +73,11 @@ export async function POST(req: NextRequest) {
       case "remove": await removeMember(db, uid, id, String(b.uid), false); return ok({ ok: true });
       case "ban": await removeMember(db, uid, id, String(b.uid), true); return ok({ ok: true });
       case "unban": await unban(db, uid, id, String(b.uid)); return ok({ ok: true });
-      case "post": return ok({ post: await createPost(db, uid, id, String(b.channel ?? ""), b) });
+      case "post": { const post = await createPost(db, uid, id, String(b.channel ?? ""), b); await firstValue(db, uid, "community"); return ok({ post }); }
       case "remove_post": await removePost(db, uid, String(b.postId)); return ok({ ok: true });
       case "pin": await pinPost(db, uid, String(b.postId), b.pinned === true); return ok({ ok: true });
       case "like": await like(db, uid, String(b.postId), b.on === true); return ok({ ok: true });
-      case "comment": return ok({ comment: await addComment(db, uid, String(b.postId), b.text) });
+      case "comment": { const comment = await addComment(db, uid, String(b.postId), b.text); await firstValue(db, uid, "community"); return ok({ comment }); }
       case "remove_comment": await removeComment(db, uid, String(b.commentId)); return ok({ ok: true });
       case "circle": return ok({ circle: await createCircle(db, uid, id, b) });
       case "circle_members": await setCircleMembers(db, uid, id, String(b.circleId), b.memberUids); return ok({ ok: true });

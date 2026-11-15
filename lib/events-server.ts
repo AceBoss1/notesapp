@@ -10,6 +10,7 @@ import { can, isDiscoverable, type Community, type Role } from "./community";
 import { CommunityError, memberOf, readCommunity } from "./community-server";
 import { ticketsLeft, type TicketType } from "./tickets";
 import { cleanEvent, eventTrendScore, isListedEvent, nextOccurrence, reminderDue, whenText, type EventDoc, type EventInput, type Rsvp } from "./events";
+import { withReturn } from "./growth";
 
 // Events on the server (the rules are lib/events.ts). events/{id} carries `nextStartAt` (the next start, kept up to date by the cron) so
 // upcoming lists and reminders are one query. Members-only events are a community's and only its members see them.
@@ -207,9 +208,11 @@ export async function sendEventReminders(db: Firestore, now = new Date(), push =
     for (const r of rs.docs) {
       // Bell and email together (sendEmail adds the bell); just the bell when there's no address.
       const to = await getUserEmail(r.data().uid).catch(() => null);
-      if (to) await sendEmail({ to, subject: kind === "hour" ? `Starting soon: ${e.title}` : `Tomorrow: ${e.title}`, text: `${message}\n\n${SITE_URL}/events/${e.id}\n\n#NotesApp`, bell: { uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message } }).catch(() => {});
-      else await notifyBell({ uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message }).catch(() => {});
-      await push(r.data().uid, { title: e.title, body: message, url: `/events/${e.id}` }).catch(() => 0);
+      // ?r=reminder: a return through a reminder counts for it (lib/growth.ts).
+      const href = withReturn(`/events/${e.id}`, "reminder");
+      if (to) await sendEmail({ to, subject: kind === "hour" ? `Starting soon: ${e.title}` : `Tomorrow: ${e.title}`, text: `${message}\n\n${SITE_URL}${href}\n\n#NotesApp`, bell: { uid: r.data().uid, type: "event", linkHref: href, message } }).catch(() => {});
+      else await notifyBell({ uid: r.data().uid, type: "event", linkHref: href, message }).catch(() => {});
+      await push(r.data().uid, { title: e.title, body: message, url: href }).catch(() => 0);
       sent++;
     }
   }

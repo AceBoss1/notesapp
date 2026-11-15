@@ -94,6 +94,12 @@ export default async function PrivacyPage() {
 
       <h2>Cookies and storage</h2>
       <p>We use only what is needed to keep you signed in and remember basic preferences.</p>
+      <p>
+        When you first visit, we note the channel that brought you (for example a creator&apos;s link, a search engine, WhatsApp or one of our own pages)
+        in a first-party cookie, and keep it with your account as that channel&apos;s name and, where there is one, the creator&apos;s username or
+        campaign. It helps us see which channels bring members who stay. It is first-party only: no address you came from, no IP address, nothing
+        for ad networks, and it is never sold or shared. For members aged 13 to 17 and child profiles we keep the channel only.
+      </p>
 
       <h2>Contact</h2>
       <p>{COMPANY_INFO.legalName} (RC {COMPANY_INFO.rcNumber}) · {LEGAL_CONTACT}</p>

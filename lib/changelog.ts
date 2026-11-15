@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.175.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "Your invite link on My account → Referrals: an install link with your name on it, and how many people opened it this month, joined through you, installed the app and are still active. Numbers only, never who." },
+      { kind: "added", text: "Admin → Growth: where members come from (creators' links, Exam Prep, Jobs, Academy, Notes Life, the install page, search, WhatsApp, social, ads or direct), how many reach what they came for, and how many come back in weeks 1 to 4, with each channel's funnel, weekly cohorts, what brings members back, and the top creator links." },
+      { kind: "changed", text: "Links in bells, phone notifications, the weekly digest, reminders and Nana Jobs shortlists now say where they came from, so we can see what brings members back." },
+      { kind: "changed", text: "Privacy Policy: we note the channel that brought you, first-party only, never sold or shared; for teens and child profiles, the channel only." },
+    ],
+  },
+  {
     version: "v0.174.2",
     bump: "patch",
     date: "2026-11-15",

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
-import { LIFE_LIVE } from "@/lib/life/catalog";
+import { GAME_DAY_MS, LIFE_LIVE } from "@/lib/life/catalog";
 import { LifeError, act, friends, invites, mutate, richList, statement, view, type Action } from "@/lib/life/server";
 import { awardReferral } from "@/lib/life/referral";
 import { isKidUid } from "@/lib/kids";
 import { lifeGate } from "@/lib/kids-server";
 import { YoungError } from "@/lib/young";
+import { firstValue } from "@/lib/growth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       if (body.action === "dw_giveaway") throw new LifeError(403, "Kids' Notesville skips the VIP bar.");
     }
     const { player, result } = await act(db, me.uid, body);
+    if (Date.now() - player.startedAt >= GAME_DAY_MS) await firstValue(db, me.uid, "life"); // growth: a player's first value, one game day played
     const r = result as { referral?: string | null };
     let referral: string | null = null;
     if (r?.referral && !isKidUid(me.uid)) referral = await awardReferral(db, me.uid, r.referral).catch((e) => { console.error("referral bonus failed", e); return null; });

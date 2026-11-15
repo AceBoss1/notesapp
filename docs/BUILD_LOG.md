@@ -3356,3 +3356,15 @@ roles, shows errors in place, and the drafts open there too (before, it opened a
 `draftsFor` returns them (kind `agreement`) with the option grant and the announcement for contract arrangements; a `campus-ambassador`
 preset from its listing (about 5 hours a week). No referral rates are written in (the agreement points at the programme's published
 terms). Both are staff-library templates. Tests: `test:hr` (extended, now in CI).
+
+**Growth measurement (v0.175.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
+`docs/mockups/growth/`). A visitor's first page sets a first-party `na_src` cookie with the channel that brought them (`?by=`, `?src=`,
+utm tags, the referring host, the landing page: `classifyTouch` in `lib/growth.ts`, set in `middleware.ts`); `?by=<username>` also works
+like `/r/<username>` for referrals. The referral claim at sign-up now also writes `growthMembers/{uid}` (channel and a small detail; the
+channel only for teens and children). Installs are counted from `appinstalled` and the installed app's first open; first value at the
+server paths that already exist (jobs, Nana Jobs, Academy, Exam Prep mocks, Notes Life, Business books, bookings, Community) and for
+journals from the browser, checked by the server; a once-a-day "seen" marks returns in weeks 1 to 4, with `?r=` on bells, push, the
+digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads an hourly snapshot (`statCache/growth`): every channel,
+a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
+Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
+(`test:growth`, `test:growth-server`, rules).

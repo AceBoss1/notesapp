@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_HOST, LIFE_HOST, MAIN_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
+import { APP_HOST, APP_SHORT_DOMAINS, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
+import { FIRST_TOUCH_COOKIE, FIRST_TOUCH_DAYS, PING_COOKIE, classifyTouch, cleanDetail, encodeTouch } from "@/lib/growth";
+import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS } from "@/lib/referrals";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
@@ -127,7 +129,48 @@ export async function middleware(req: NextRequest) {
   if (/^[A-Z]{2}$/.test(country) && country !== "XX" && country !== "T1" && req.cookies.get("na_cc")?.value !== country && !req.nextUrl.pathname.startsWith("/api/")) {
     res.cookies.set("na_cc", country, { path: "/", maxAge: 30 * 86_400, sameSite: "lax", secure: true });
   }
+  firstTouch(req, res);
   return res;
+}
+
+// Growth measurement (lib/growth.ts, docs/GROWTH.md): on a visitor's first page on one of our addresses, where they came from is
+// worked out once (first-party only: ?by=, ?src=, utm tags, the referring site's host name, the landing page) and kept in the
+// first-touch cookie, shared by our app, Notes Life and Exam Prep addresses. A creator's ?by=<username> also works like their
+// /r/<username> link for the referral programme (the latest link wins, as before). Pages only: never API calls, files, prefetches
+// or known bots, and nothing on members' own domains.
+const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse/i;
+function firstTouch(req: NextRequest, res: NextResponse) {
+  try {
+    const { pathname, searchParams } = req.nextUrl;
+    if (req.method !== "GET" || pathname.startsWith("/api/") || pathname.startsWith("/_next") || pathname.startsWith("/admin") || PUBLIC_FILE.test(pathname)) return;
+    if (req.headers.get("rsc") || req.headers.get("next-router-prefetch") || req.headers.get("purpose") === "prefetch") return;
+    if (!(req.headers.get("accept") || "").includes("text/html") || BOT.test(req.headers.get("user-agent") || "")) return;
+    const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
+    const fam = ourRoot(host);
+    if (!fam && !isMainHost(host)) return;
+    const secure = req.nextUrl.protocol === "https:";
+    const domain = fam ? `.${fam.root}` : undefined;
+    let ping = "";
+    const by = cleanDetail(searchParams.get("by"));
+    const creatorLink = /^[a-z0-9_-]{2,30}$/.test(by) || /^\/r\/[A-Za-z0-9_-]{2,30}\/?$/.test(pathname);
+    if (creatorLink) ping += "o";
+    if (/^[a-z0-9_-]{2,30}$/.test(by)) {
+      res.cookies.set(REFERRAL_COOKIE, by, { path: "/", maxAge: REFERRAL_COOKIE_DAYS * 86_400, sameSite: "lax", secure, httpOnly: true });
+    }
+    if (!req.cookies.get(FIRST_TOUCH_COOKIE)?.value) {
+      let refHost = "";
+      try { refHost = new URL(req.headers.get("referer") || "").hostname; } catch { /* typed in or saved: Direct */ }
+      const params: Record<string, string | null> = {};
+      for (const k of ["by", "src", "utm_source", "utm_medium", "utm_campaign"]) params[k] = searchParams.get(k);
+      const touch = classifyTouch({ path: pathname, role: fam ? roleOf(fam) : "main", params, refHost, ownHosts: [...KNOWN_ROOTS, ...APP_SHORT_DOMAINS, host], now: new Date() });
+      res.cookies.set(FIRST_TOUCH_COOKIE, encodeTouch(touch), { path: "/", maxAge: FIRST_TOUCH_DAYS * 86_400, sameSite: "lax", secure, httpOnly: true, ...(domain ? { domain } : {}) });
+      ping += "v";
+    }
+    const prev = (req.cookies.get(PING_COOKIE)?.value || "").replace(/[^vo]/g, "");
+    if (ping) res.cookies.set(PING_COOKIE, Array.from(new Set(prev + ping)).join(""), { path: "/", maxAge: 86_400, sameSite: "lax", secure, ...(domain ? { domain } : {}) });
+  } catch {
+    /* measuring must never stop a page */
+  }
 }
 
 async function handle(req: NextRequest): Promise<NextResponse> {
