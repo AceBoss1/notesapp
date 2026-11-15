@@ -219,7 +219,13 @@ Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store
 
 - **Leaderboard:** your team or your whole country, this month or all time. You earn points for every member who joins with your link or code, every task your coordinator approves, and a bonus for finishing a task by its due date (the page shows how many). The top three get medals, the board starts again each month, and your **level** (Rookie, Rising, Star, Champion, Legend) comes from all your points and never goes down. On the leaderboard ambassadors see each other by first name and initial with their campus.
 
-Apart from the leaderboard, ambassadors see only their own tasks and numbers, never other ambassadors' or anything else in the admin area.
+- **Rewards:** internships and scholarships from our partners, perks, and **#NotesApp merch**. Each reward says who can claim it (everyone, a level and up, the top few on the country's board this month, or Campus Leads), until when, and how many places are left. If you can't claim one yet, it says what's missing. Merch is free: choose your size and where to send it, and once it's approved you get a tracking link when it ships. You'll get a notification when a claim is decided.
+
+**Campus Leads:** your coordinator can make one ambassador on each campus its **Campus Lead**. A Campus Lead also sees how everyone on that campus is doing (sign-ups, tasks and check-ins), and some rewards are for Campus Leads only.
+
+**Badges:** campus coordinators wear the maroon #NotesApp team mark by their name; ambassadors and Campus Leads wear the white #NotesApp mark with a maroon shadow. The badge comes and goes with the role.
+
+Apart from the leaderboard, ambassadors see only their own tasks, numbers and claims, never other ambassadors' or anything else in the admin area (a Campus Lead also sees her campus).
 
 **What a coordinator does:** gives her ambassadors access (and takes it away), sends tasks to all of them or some, reviews what they hand in, and sees each ambassador's sign-ups, tasks done, open and overdue, and when they last checked in (the last time they opened Campus or reported on a task, not when they were last online). A coordinator sees only her own team.
 

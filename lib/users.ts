@@ -97,6 +97,7 @@ export type UserProfile = {
   // Gold badge (identity check / endorsement) — admin-written only, and
   // only displayed once GOLD_BADGE_LIVE (lib/badges.ts) is true.
   goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string; track?: "personal" | "corporate" };
+  campusBadge?: "coordinator" | "lead" | "ambassador"; // the campus programme (lib/campus.ts), set by the server only
   // Paid gold badges lapse when the subscription period ends. Absent = an
   // admin grant with no expiry. Written only by the server.
   goldUntil?: string;

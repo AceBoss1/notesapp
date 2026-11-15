@@ -75,7 +75,7 @@ export default function CampusLeaderboardPage() {
                   <div className={`flex items-center gap-3 px-4 py-3 font-ui sm:px-5 ${r.me ? "bg-crimson-bright/10" : ""}`} aria-current={r.me ? "true" : undefined}>
                     <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold ${r.medal ? "text-xl" : "bg-field text-slate"}`}>{r.medal ?? r.rank}</span>
                     <span className="min-w-0 flex-1">
-                      <b className="block truncate text-[15px] text-ink">{r.name}{r.me && <span className="ml-1.5 rounded-full bg-crimson-bright px-2 py-0.5 text-[10px] font-bold uppercase text-white">You</span>}</b>
+                      <b className="block truncate text-[15px] text-ink">{r.name}{r.me && <span className="ml-1.5 rounded-full bg-crimson-bright px-2 py-0.5 text-[10px] font-bold uppercase text-white">You</span>}{r.campusLead && <span className="ml-1.5 rounded-full bg-crimson-bright/10 px-2 py-0.5 text-[10px] font-semibold text-crimson-bright">Campus Lead</span>}</b>
                       <span className="block truncate text-xs text-slate"><span aria-hidden>{r.level.emoji}</span> {r.level.name} · {r.campus}</span>
                     </span>
                     <span className="shrink-0 text-right">

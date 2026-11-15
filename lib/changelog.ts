@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.172.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎁 Campus rewards: internships and scholarships from our partners, perks and free #NotesApp merch for campus ambassadors. Each says who can claim it (a level and up, the top few this month, or Campus Leads) and what's missing; merch is sent to you, with a tracking link when it ships." },
+      { kind: "added", text: "Campus Leads: a coordinator can make one ambassador on each campus its Campus Lead, who also sees how everyone on that campus is doing." },
+      { kind: "added", text: "Campus badges: campus coordinators wear the maroon #NotesApp team mark by their name, and campus ambassadors and Campus Leads the white mark with a maroon shadow." },
+    ],
+  },
+  {
     version: "v0.171.0",
     bump: "minor",
     date: "2026-11-15",

@@ -6,9 +6,12 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
 import { canManageTeam, hasDept, type Access } from "./admin-access";
+import { MERCH_BATCH, MERCH_ITEMS, validateAddress } from "./merch";
+import { validateWorldAddress } from "./global-sales";
 import {
-  CAMPUS_COUNTRIES, CampusError, LEVELS, LIMITS, MEDALS, POINTS, approvedTally, campusDay, cleanTask, cleanUrl, isCampusCountry, levelFor,
-  pointsOf, shortName, taskCounts, type CampusCountry, type CampusMember, type CampusTask, type Progress, type ProgressStatus,
+  CAMPUS_COUNTRIES, CampusError, LEVELS, LIMITS, MEDALS, POINTS, approvedTally, badgeFor, campusDay, cleanReward, cleanTask, cleanUrl,
+  eligibility, isCampusCountry, levelFor, pointsOf, sameCampus, shortName, taskCounts, type CampusBadge, type CampusCountry, type CampusMember,
+  type CampusReward, type CampusTask, type ClaimStatus, type Progress, type ProgressStatus, type RewardClaim,
 } from "./campus";
 
 export { CampusError };
@@ -22,6 +25,11 @@ export const isLead = (access: Access | null | undefined) => !!access && (canMan
 export async function viewerOf(db: Firestore, uid: string, access: Access | null): Promise<Viewer> {
   const d = (await db.doc(`campusTeam/${uid}`).get()).data() as CampusMember | undefined;
   return { uid, lead: isLead(access), member: d ?? null };
+}
+
+// The badge by a member's name (users/{uid}.campusBadge, read by lib/name-badges.ts): set and cleared with the role, never by the member.
+async function setBadge(db: Firestore, uid: string, badge: CampusBadge | null) {
+  await db.doc(`users/${uid}`).set({ campusBadge: badge ?? FieldValue.delete() }, { merge: true }).catch(() => {});
 }
 
 const coordinatorOf = (v: Viewer) => (v.member?.role === "coordinator" ? v.member : null);
@@ -41,6 +49,12 @@ export async function me(db: Firestore, v: Viewer, now = new Date()) {
   if (v.member?.coordinatorUid) {
     const c = (await db.doc(`campusTeam/${v.member.coordinatorUid}`).get()).data() as CampusMember | undefined;
     if (c) coordinator = { name: c.name, username: c.username };
+  }
+  // Keep the badge in step with the role (members added before badges existed get theirs here).
+  if (v.member) {
+    const want = badgeFor(v.member);
+    const has = (await db.doc(`users/${v.uid}`).get()).data()?.campusBadge;
+    if (has !== want) await setBadge(db, v.uid, want);
   }
   return { lead: v.lead, member: v.member, coordinator, countries: CAMPUS_COUNTRIES };
 }
@@ -78,6 +92,7 @@ export async function appointCoordinator(db: Firestore, auth: Pick<Auth, "getUse
   if (existing?.role === "ambassador") throw new CampusError(`${who.name} is an ambassador on ${existing.coordinatorUid === v.uid ? "your" : "a"} team. Remove them from it first.`, 409);
   const m: CampusMember = { uid: who.uid, role: "coordinator", country: input.country, ...placeOf({ campus: input.campus || "Country team", state: input.state }), username: who.username, name: who.name, addedBy: v.uid, addedAt: now.toISOString() };
   await db.doc(`campusTeam/${who.uid}`).set(m);
+  await setBadge(db, who.uid, badgeFor(m));
   await notify({ uid: who.uid, linkHref: "/admin/campus", message: `You're now a #NotesApp campus coordinator for ${CAMPUS_COUNTRIES.find((c) => c.code === m.country)!.name}. Open Campus to add your ambassadors.` });
   return m;
 }
@@ -98,6 +113,7 @@ export async function addAmbassador(db: Firestore, auth: Pick<Auth, "getUserByEm
   if (size >= LIMITS.team) throw new CampusError(`A team can have ${LIMITS.team} ambassadors.`, 409);
   const m: CampusMember = { uid: who.uid, role: "ambassador", country: coord.country, ...placeOf(input), coordinatorUid: coord.uid, username: who.username, name: who.name, addedBy: v.uid, addedAt: now.toISOString() };
   await db.doc(`campusTeam/${who.uid}`).set(m);
+  await setBadge(db, who.uid, badgeFor(m));
   await notify({ uid: who.uid, linkHref: "/admin/campus", message: `${coord.name} added you to the #NotesApp campus team (${m.campus}). Open Campus to see your tasks and your link.` });
   return m;
 }
@@ -113,6 +129,7 @@ export async function removeMember(db: Firestore, v: Viewer, uid: unknown, notif
     if (left) throw new CampusError(`${target.name} still has ${left} ambassador${left === 1 ? "" : "s"}. Move them to another coordinator first.`, 409);
   }
   await db.doc(`campusTeam/${target.uid}`).delete();
+  await setBadge(db, target.uid, null);
   await notify({ uid: target.uid, linkHref: "/", message: "You're no longer on the #NotesApp campus team. Thank you for everything you did." });
   return { removed: target.uid };
 }
@@ -130,6 +147,19 @@ export async function moveTeam(db: Firestore, v: Viewer, fromUid: unknown, toUid
   await batch.commit();
   for (const d of team.docs) await notify({ uid: d.id, linkHref: "/admin/campus", message: `Your campus coordinator is now ${to.name}.` });
   return { moved: team.size };
+}
+
+// A coordinator makes one of her ambassadors her campus's Campus Lead (or not); a programme lead can too.
+export async function setCampusLead(db: Firestore, v: Viewer, uid: unknown, on: unknown, notify: Notify) {
+  const ref = db.doc(`campusTeam/${String(uid)}`);
+  const m = (await ref.get()).data() as CampusMember | undefined;
+  if (!m || m.role !== "ambassador") throw new CampusError("They're not an ambassador.", 404);
+  if (m.coordinatorUid !== v.uid && !v.lead) throw new CampusError("You can only choose Campus Leads on your own team.", 403);
+  const lead = on === true;
+  await ref.update({ campusLead: lead });
+  await setBadge(db, m.uid, badgeFor({ ...m, campusLead: lead }));
+  await notify({ uid: m.uid, linkHref: "/admin/campus", message: lead ? `You're now the #NotesApp Campus Lead for ${m.campus}. You can see how everyone on your campus is doing in Campus.` : `You're no longer Campus Lead for ${m.campus}. Thank you for leading.` });
+  return { ...m, campusLead: lead };
 }
 
 // The people in view: a coordinator's own ambassadors; for a lead, everyone in a country (or one coordinator's team).
@@ -274,22 +304,30 @@ function scopeCountry(v: Viewer, opts: { country?: unknown }): CampusCountry {
 export type AmbassadorStats = {
   uid: string; name: string; username: string; campus: string; state?: string; coordinatorUid?: string; lastCheckIn?: string;
   signupsMonth: number; signupsAll: number; done: number; open: number; overdue: number; redo: number;
-  pointsMonth: number; pointsAll: number; level: { name: string; emoji: string };
+  pointsMonth: number; pointsAll: number; level: { name: string; emoji: string }; campusLead?: boolean;
 };
 
 // Sign-ups through each ambassador's link or code (this month in the country's own days, and all time), her tasks and her points.
 export async function overview(db: Firestore, v: Viewer, opts: { country?: unknown; coordinatorUid?: unknown } = {}, now = new Date()) {
   const country = scopeCountry(v, opts);
   const today = campusDay(country, now), monthStart = `${today.slice(0, 7)}-01`;
-  const people = v.member?.role === "ambassador" && !v.lead ? [v.member] : (await team(db, v, opts)).filter((m) => m.role === "ambassador");
-  const list = v.member?.role === "ambassador" && !v.lead ? await tasks(db, v) : await tasks(db, v, opts);
+  const amb = v.member?.role === "ambassador" && !v.lead ? v.member : null;
+  // A Campus Lead sees everyone on her campus in her coordinator's team; other ambassadors only themselves.
+  const people = amb
+    ? amb.campusLead && amb.coordinatorUid
+      ? (await db.collection("campusTeam").where("coordinatorUid", "==", amb.coordinatorUid).get()).docs.map((d) => d.data() as CampusMember).filter((m) => m.role === "ambassador" && (m.uid === amb.uid || sameCampus(m.campus, amb.campus)))
+      : [amb]
+    : (await team(db, v, opts)).filter((m) => m.role === "ambassador");
+  const list = amb
+    ? amb.campusLead && amb.coordinatorUid ? (await db.collection("campusTasks").where("coordinatorUid", "==", amb.coordinatorUid).get()).docs.map((d) => d.data() as CampusTask) : await tasks(db, v)
+    : await tasks(db, v, opts);
   const stats: AmbassadorStats[] = [];
   for (const m of people) {
     const s = await signupsOf(db, m.uid, m.country, monthStart, now);
     const ap = approvedTally(list, m.uid, monthStart, m.country);
     const pointsAll = pointsOf({ signups: s.all, ...ap.all });
     const { level } = levelFor(pointsAll);
-    stats.push({ uid: m.uid, name: m.name, username: m.username, campus: m.campus, state: m.state, coordinatorUid: m.coordinatorUid, lastCheckIn: m.lastCheckIn,
+    stats.push({ uid: m.uid, name: m.name, username: m.username, campus: m.campus, state: m.state, coordinatorUid: m.coordinatorUid, lastCheckIn: m.lastCheckIn, ...(m.campusLead ? { campusLead: true } : {}),
       signupsMonth: s.month, signupsAll: s.all, ...taskCounts(list, m.uid, today),
       pointsMonth: pointsOf({ signups: s.month, ...ap.month }), pointsAll, level: { name: level.name, emoji: level.emoji } });
   }
@@ -304,7 +342,7 @@ export async function overview(db: Firestore, v: Viewer, opts: { country?: unkno
 
 // ---- the leaderboard: every ambassador in the programme can see it ----
 
-export type BoardRow = { rank: number; medal?: string; uid?: string; name: string; campus: string; points: number; signups: number; approved: number; level: { name: string; emoji: string }; me: boolean };
+export type BoardRow = { rank: number; medal?: string; uid?: string; name: string; campus: string; points: number; signups: number; approved: number; level: { name: string; emoji: string }; me: boolean; campusLead?: boolean };
 export const BOARD_SHOWN = 50;
 
 // Ambassadors ranked by points, for "my team" (one coordinator's ambassadors) or the whole country, this month or in all. Names are
@@ -338,6 +376,7 @@ export async function leaderboard(db: Firestore, v: Viewer, opts: { scope?: unkn
     return {
       rank, ...(rank <= 3 && x.points > 0 ? { medal: MEDALS[rank - 1] } : {}), ...(staff ? { uid: x.m.uid } : {}),
       name: staff ? x.m.name : shortName(x.m.name), campus: x.m.campus, points: x.points, signups: x.signups, approved: x.approved, level: x.level, me: x.m.uid === v.uid,
+      ...(x.m.campusLead ? { campusLead: true } : {}),
     };
   });
   const mine = rows.find((r) => r.me) ?? null;
@@ -356,6 +395,143 @@ export async function leaderboard(db: Firestore, v: Viewer, opts: { scope?: unkn
     scope: byTeam ? "team" : "country", period, country, month: monthStart.slice(0, 7), rules: { points: POINTS, levels: LEVELS },
     rows: mine && !shown.includes(mine) ? [...shown, mine] : shown, total: rows.length, standing,
   };
+}
+
+// ---- partner rewards ----
+
+const MERCH_IDS = MERCH_ITEMS.map((m) => m.id);
+
+// Leads post and edit rewards (a country's, or every country's).
+export async function saveReward(db: Firestore, v: Viewer, input: Record<string, unknown>, notify: Notify, now = new Date()): Promise<CampusReward> {
+  if (!v.lead) throw new CampusError("Only super admins, the Chief of Staff and Marketing post rewards.", 403);
+  const at = now.toISOString();
+  const fields = cleanReward(input, campusDay("GH", now), MERCH_IDS); // the earliest of the countries' days: "today" anywhere
+  if (typeof input.id === "string" && input.id) {
+    const ref = db.doc(`campusRewards/${input.id}`);
+    const old = (await ref.get()).data() as CampusReward | undefined;
+    if (!old) throw new CampusError("That reward wasn't found.", 404);
+    const next = { ...old, ...fields, active: input.active === false ? false : old.active, updatedAt: at } as CampusReward;
+    for (const k of ["partnerUrl", "merchItemId", "minLevel", "topN", "leadsOnly", "slots"] as const) if (!(k in fields)) delete (next as Record<string, unknown>)[k];
+    await ref.set(next);
+    return next;
+  }
+  const ref = db.collection("campusRewards").doc();
+  const r: CampusReward = { id: ref.id, ...fields, active: true, createdBy: v.uid, createdAt: at, updatedAt: at } as CampusReward;
+  await ref.set(r);
+  // Tell the ambassadors it's for.
+  const q = r.country === "all" ? db.collection("campusTeam") : db.collection("campusTeam").where("country", "==", r.country);
+  const people = (await q.get()).docs.map((d) => d.data() as CampusMember).filter((m) => m.role === "ambassador" && (!r.leadsOnly || m.campusLead));
+  for (const m of people) await notify({ uid: m.uid, linkHref: "/admin/campus/rewards", message: `New campus reward: ${r.title}${r.partner && r.partner !== "#NotesApp" ? ` from ${r.partner}` : ""}. See if you can claim it.` });
+  return r;
+}
+
+export async function closeReward(db: Firestore, v: Viewer, id: unknown, now = new Date()) {
+  if (!v.lead) throw new CampusError("Only the programme's leads close rewards.", 403);
+  const ref = db.doc(`campusRewards/${String(id)}`);
+  if (!(await ref.get()).exists) throw new CampusError("That reward wasn't found.", 404);
+  await ref.update({ active: false, updatedAt: now.toISOString() });
+  return { closed: ref.id };
+}
+
+// What someone sees: the rewards for their country (leads: every reward), places left, and for an ambassador whether she can claim each
+// and her own claims. Leads and coordinators also get the claims to look at (a coordinator only her team's).
+export async function rewards(db: Firestore, v: Viewer, now = new Date()) {
+  if (!v.lead && !v.member) throw new CampusError("Campus is for coordinators and ambassadors.", 403);
+  let list = (await db.collection("campusRewards").get()).docs.map((d) => d.data() as CampusReward);
+  if (!v.lead) list = list.filter((r) => r.active && (r.country === "all" || r.country === v.member!.country));
+  list.sort((a, b) => Number(b.active) - Number(a.active) || a.closesOn.localeCompare(b.closesOn));
+  const claimsOf = async (q: FirebaseFirestore.Query) => (await q.get()).docs.map((d) => d.data() as RewardClaim);
+  const used = new Map<string, number>();
+  for (const c of await claimsOf(db.collection("campusRewardClaims").where("status", "in", ["pending", "approved"]))) used.set(c.rewardId, (used.get(c.rewardId) ?? 0) + 1);
+  const rows = list.map((r) => ({ ...r, left: r.slots ? Math.max(0, r.slots - (used.get(r.id) ?? 0)) : null }));
+  let mine: RewardClaim[] = [], claims: RewardClaim[] = [], eligible: Record<string, { ok: boolean; why?: string }> = {};
+  if (v.member?.role === "ambassador" && !v.lead) {
+    mine = await claimsOf(db.collection("campusRewardClaims").where("uid", "==", v.uid));
+    const board = await leaderboard(db, v, { scope: "country", period: "month" }, now);
+    const st = board.standing;
+    const today = campusDay(v.member.country, now);
+    eligible = Object.fromEntries(rows.map((r) => [r.id, r.left === 0 ? { ok: false, why: "All places are taken." } : eligibility(r, { country: v.member!.country, campusLead: v.member!.campusLead, pointsAll: st?.pointsAll ?? 0, monthRank: st?.rank ?? null }, today)]));
+  } else if (v.lead) {
+    claims = await claimsOf(db.collection("campusRewardClaims"));
+  } else if (v.member?.role === "coordinator") {
+    claims = await claimsOf(db.collection("campusRewardClaims").where("coordinatorUid", "==", v.uid));
+  }
+  claims.sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending") || b.createdAt.localeCompare(a.createdAt));
+  return { rewards: rows, mine, claims, eligible, merch: MERCH_ITEMS.map((m) => ({ id: m.id, name: m.name, sizes: m.sizes ?? [] })) };
+}
+
+// An ambassador claims a reward: once each, while she's eligible and places are left. Merch needs a size (when it has sizes) and where to
+// send it.
+export async function claimReward(db: Firestore, v: Viewer, id: unknown, input: Record<string, unknown>, notify: Notify, now = new Date()) {
+  const m = v.member;
+  if (m?.role !== "ambassador") throw new CampusError("Rewards are for ambassadors.", 403);
+  const r = (await db.doc(`campusRewards/${String(id)}`).get()).data() as CampusReward | undefined;
+  if (!r) throw new CampusError("That reward wasn't found.", 404);
+  const board = await leaderboard(db, v, { scope: "country", period: "month" }, now);
+  const st = board.standing;
+  const ok = eligibility(r, { country: m.country, campusLead: m.campusLead, pointsAll: st?.pointsAll ?? 0, monthRank: st?.rank ?? null }, campusDay(m.country, now));
+  if (!ok.ok) throw new CampusError(ok.why ?? "You can't claim this one.", 409);
+  const note = String(input.note ?? "").trim().slice(0, LIMITS.note);
+  let size: string | undefined, address: RewardClaim["address"];
+  if (r.kind === "merch") {
+    const item = MERCH_ITEMS.find((x) => x.id === r.merchItemId);
+    if (item?.sizes?.length) {
+      size = String(input.size ?? "");
+      if (!item.sizes.includes(size)) throw new CampusError("Choose your size.");
+    }
+    const a = (input.address ?? {}) as Record<string, string>;
+    const bad = m.country === "NG" ? validateAddress(a as never) : validateWorldAddress(a);
+    if (bad) throw new CampusError(bad);
+    address = { fullName: String(a.fullName).trim(), phone: String(a.phone).trim(), street: String(a.street).trim(), city: String(a.city).trim(), state: String(a.state).trim() };
+  }
+  const claimId = `${r.id}_${m.uid}`;
+  const ref = db.doc(`campusRewardClaims/${claimId}`);
+  await db.runTransaction(async (t) => {
+    const [existing, taken] = await Promise.all([t.get(ref), r.slots ? t.get(db.collection("campusRewardClaims").where("rewardId", "==", r.id).where("status", "in", ["pending", "approved"])) : Promise.resolve(null)]);
+    if (existing.exists && existing.data()?.status !== "declined") throw new CampusError("You've already claimed this one.", 409);
+    if (r.slots && taken && taken.size >= r.slots) throw new CampusError("All places are taken.", 409);
+    const c: RewardClaim = {
+      id: claimId, rewardId: r.id, rewardTitle: r.title, kind: r.kind, uid: m.uid, name: m.name, username: m.username, campus: m.campus, country: m.country,
+      ...(m.coordinatorUid ? { coordinatorUid: m.coordinatorUid } : {}), ...(note ? { note } : {}), ...(size ? { size } : {}), ...(address ? { address } : {}),
+      status: "pending", createdAt: now.toISOString(),
+    };
+    t.set(ref, c);
+  });
+  if (m.coordinatorUid) await notify({ uid: m.coordinatorUid, linkHref: "/admin/campus/rewards", message: `${m.name} claimed "${r.title}".` });
+  return { claimed: claimId };
+}
+
+// Leads decide a claim. An approved merch claim becomes a free merch order in the current batch, fulfilled from Admin → Merch like any
+// other (a parcel and tracking page are made when it's first moved along).
+export async function decideClaim(db: Firestore, auth: Pick<import("firebase-admin/auth").Auth, "getUser">, v: Viewer, id: unknown, verdict: unknown, note: unknown, notify: Notify, now = new Date()) {
+  if (!v.lead) throw new CampusError("Only the programme's leads decide claims.", 403);
+  if (verdict !== "approved" && verdict !== "declined") throw new CampusError("Approve or decline it.");
+  const ref = db.doc(`campusRewardClaims/${String(id)}`);
+  const c = (await ref.get()).data() as RewardClaim | undefined;
+  if (!c) throw new CampusError("That claim wasn't found.", 404);
+  if (c.status !== "pending") throw new CampusError("That claim has already been decided.", 409);
+  const decisionNote = String(note ?? "").trim().slice(0, LIMITS.note);
+  if (verdict === "declined" && !decisionNote) throw new CampusError("Say why, so they know.");
+  const at = now.toISOString();
+  const patch: Partial<RewardClaim> = { status: verdict as ClaimStatus, decidedBy: v.uid, decidedAt: at, ...(decisionNote ? { decisionNote } : {}) };
+  if (verdict === "approved" && c.kind === "merch") {
+    const r = (await db.doc(`campusRewards/${c.rewardId}`).get()).data() as CampusReward | undefined;
+    const item = MERCH_ITEMS.find((x) => x.id === r?.merchItemId);
+    if (!item || !c.address) throw new CampusError("This merch claim is missing the item or the address.", 409);
+    const email = await auth.getUser(c.uid).then((u) => u.email ?? "").catch(() => "");
+    const reference = `campus_${c.id}`;
+    await db.doc(`merchOrders/${reference}`).set({
+      reference, uid: c.uid, email, itemName: item.name, logoLabel: "Campus ambassador", ...(c.size ? { size: c.size } : {}), quantity: 1, amountKobo: 0,
+      status: "preordered", batchId: MERCH_BATCH.id, createdAt: at, address: c.address, source: "campus", campusClaimId: c.id,
+    });
+    patch.merchReference = reference;
+  }
+  await ref.update(patch);
+  await notify({
+    uid: c.uid, linkHref: "/admin/campus/rewards",
+    message: verdict === "approved" ? `Your claim for "${c.rewardTitle}" was approved${c.kind === "merch" ? ". Your merch is on the way: you'll get the tracking link when it ships" : ""}. Congratulations!` : `Your claim for "${c.rewardTitle}" wasn't approved: ${decisionNote}`,
+  });
+  return { ...c, ...patch };
 }
 
 export const countryOf = (c: unknown): CampusCountry => (isCampusCountry(c) ? c : "NG");

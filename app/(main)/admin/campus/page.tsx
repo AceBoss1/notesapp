@@ -27,11 +27,12 @@ export default function CampusOverviewPage() {
   const month = data ? new Date(`${data.month}-01T12:00:00Z`).toLocaleDateString("en-GB", { month: "long" }) : "this month";
 
   if (ambassador && me?.member) {
-    const s = data?.ambassadors[0];
+    const s = data?.ambassadors.find((a) => a.uid === me.member!.uid) ?? data?.ambassadors[0];
+    const mates = me.member.campusLead ? (data?.ambassadors ?? []) : [];
     const link = origin ? referralLink(origin, me.member.username) : "";
     return (
       <CampusPage title="My campus" me={me} denied={denied}
-        intro={<>You&apos;re a #NotesApp campus ambassador at <b className="text-ink">{placeOf(me.member)}</b>{me.coordinator ? <> with <b className="text-ink">{me.coordinator.name}</b> as your coordinator</> : null}.</>}>
+        intro={<>You&apos;re {me.member.campusLead ? "the #NotesApp Campus Lead" : "a #NotesApp campus ambassador"} at <b className="text-ink">{placeOf(me.member)}</b>{me.coordinator ? <> with <b className="text-ink">{me.coordinator.name}</b> as your coordinator</> : null}.</>}>
         {error && <p className="mb-4 font-ui text-sm text-crimson" role="alert">{error}</p>}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label={`Sign-ups in ${month}`} value={s?.signupsMonth ?? "…"} note="With your link or code" />
@@ -54,7 +55,21 @@ export default function CampusOverviewPage() {
             <span className="shrink-0 font-ui text-sm font-semibold">Leaderboard →</span>
           </Link>
         )}
+        {me.member.campusLead && (
+          <section className={`${card} mt-4 p-0`} aria-labelledby="mates">
+            <h2 id="mates" className="p-5 pb-3 font-ui text-base font-semibold text-ink">You lead {me.member.campus}: everyone on your campus</h2>
+            <ul className="divide-y divide-rule border-t border-rule">
+              {mates.map((a) => (
+                <li key={a.uid} className="px-5 py-3 font-ui text-sm">
+                  <div className="flex items-baseline justify-between gap-3"><b className="truncate text-ink">{a.name}{a.uid === me.member!.uid ? " (you)" : ""}</b><span className="shrink-0 font-semibold text-ink">{a.signupsMonth} <span className="font-normal text-slate">this month</span></span></div>
+                  <p className="mt-0.5 text-xs text-slate"><span aria-hidden>{a.level.emoji}</span> {a.level.name} · {a.signupsAll} in all · {a.done} done · {a.open} open{a.overdue ? <b className="text-red-700"> · {a.overdue} overdue</b> : null} · checked in {ago(a.lastCheckIn)}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <Link href="/admin/campus/tasks" className="mt-4 inline-block font-ui text-sm font-semibold text-crimson">Your tasks →</Link>
+        <Link href="/admin/campus/rewards" className="ml-5 mt-4 inline-block font-ui text-sm font-semibold text-crimson">Rewards →</Link>
       </CampusPage>
     );
   }

@@ -30,7 +30,7 @@ export default function CampusAmbassadorsPage() {
 
   return (
     <CampusPage title="Ambassadors" me={me} denied={denied || roleDenied}
-      intro="Give your ambassadors team access with their #NotesApp @username or email (they sign up first, free). They see their tasks, their sign-ups and their link in Campus, and nothing else in the admin area.">
+      intro="Give your ambassadors team access with their #NotesApp @username or email (they sign up first, free). They see their tasks, their sign-ups and their link in Campus, and nothing else in the admin area. Make your best ambassador on a campus its Campus Lead: they also see how everyone on that campus is doing.">
       <Notice error={err || error} note={note} />
       {(coordinator || lead) && (
         <section className={`${card} mb-5`} aria-labelledby="add">
@@ -55,8 +55,13 @@ export default function CampusAmbassadorsPage() {
               <li key={m.uid} className="flex flex-wrap items-center gap-3 px-5 py-3 font-ui text-sm">
                 <span className="min-w-0 flex-1">
                   <Link href={`/u/${m.username}`} className="font-semibold text-ink hover:text-crimson">{m.name}</Link> <span className="text-slate">@{m.username}</span>
+                  {m.campusLead && <span className="ml-1.5 rounded-full bg-crimson-bright/10 px-2 py-0.5 text-[11px] font-semibold text-crimson-bright">Campus Lead</span>}
                   <span className="block text-xs text-slate">{placeOf(m)}{lead && m.coordinatorUid ? ` · ${names[m.coordinatorUid] ?? "another coordinator"}'s team` : ""} · added {ago(m.addedAt)} · checked in {ago(m.lastCheckIn)}</span>
                 </span>
+                {(lead || m.coordinatorUid === me?.member?.uid) && (
+                  <button type="button" disabled={busy} onClick={() => void act({ action: "campusLead", uid: m.uid, on: !m.campusLead }, m.campusLead ? `${m.name} is no longer Campus Lead.` : `${m.name} is now Campus Lead for ${m.campus}.`)}
+                    className="font-semibold text-crimson disabled:opacity-50">{m.campusLead ? "Stop leading" : "Make Campus Lead"}</button>
+                )}
                 {(lead || m.coordinatorUid === me?.member?.uid) && (
                   <button type="button" disabled={busy} onClick={() => { if (confirm(`Take ${m.name} off the campus team? They lose access to Campus at once; what they reported on tasks stays.`)) void act({ action: "remove", uid: m.uid }, `${m.name} is off the team.`); }}
                     className="font-semibold text-red-700 disabled:opacity-50">Remove</button>

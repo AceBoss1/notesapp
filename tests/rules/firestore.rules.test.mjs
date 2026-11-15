@@ -146,6 +146,12 @@ test("campus: the team and its tasks are server-only (lib/campus-server.ts)", as
   await assertFails(setDoc(doc(as("alice"), "campusTeam/alice"), { role: "coordinator" }));
   await assertFails(getDoc(doc(as("alice"), "campusTasks/t1")));
   await assertFails(updateDoc(doc(as("pub"), "campusTasks/t1"), { assignees: [] }));
+  await assertFails(getDoc(doc(as("alice"), "campusRewards/r1")));
+  await assertFails(setDoc(doc(as("alice"), "campusRewardClaims/r1_alice"), { status: "approved" }));
+  // The campus badge is the server's to give.
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { campusBadge: "coordinator" }));
+  const base = { uid: "cb", username: "cb", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false, consent: { version: "v", acceptedAt: "x" } };
+  await assertFails(setDoc(doc(as("cb"), "users/cb"), { ...base, campusBadge: "ambassador" }));
 });
 
 test("a founder email without the admin claim is no longer an admin", async () => {

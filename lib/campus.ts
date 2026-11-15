@@ -8,6 +8,12 @@
 //                each is doing. A coordinator only ever sees and manages her own ambassadors.
 //   ambassador   sees her own tasks, reports progress (a note and a link as proof), her own sign-ups and her referral link.
 //
+//   campus lead  an ambassador her coordinator chose to lead her campus (owner, 15 Nov 2026: "add campus lead role"): she also sees how
+//                the other ambassadors on her campus are doing.
+//
+// Badges by the name (owner: "national campus ambassador coordinators [get] the notesapp team maroon badge, while campus ambassador gets
+// an inversed white badge with maroon shadow"): users/{uid}.campusBadge, set by the server only (lib/name-badges.ts).
+//
 // Campus access is its own record (campusTeam/{uid}), not the staff `admin` claim: an ambassador gets the Campus pages in the admin area
 // and nothing else (no staff badge, no internal pages or tools, no plan upgrade).
 
@@ -28,6 +34,7 @@ export type CampusMember = {
   campus: string; // the university or college, e.g. "University of Lagos"
   state?: string; // e.g. "Lagos"
   coordinatorUid?: string; // an ambassador's coordinator
+  campusLead?: boolean; // an ambassador her coordinator made Campus Lead: she also sees how everyone on her campus is doing
   username: string; name: string;
   addedBy: string; addedAt: string;
   lastCheckIn?: string; // last time they opened Campus or reported on a task (not their general online status)
@@ -115,6 +122,7 @@ export function campusPages(v: CampusView): { href: string; label: string; group
     { href: "/admin/campus", label: v.role === "ambassador" && !v.lead ? "My campus" : "Overview", group: "Campus" as const },
     { href: "/admin/campus/tasks", label: "Tasks", group: "Campus" as const },
     { href: "/admin/campus/leaderboard", label: "Leaderboard", group: "Campus" as const },
+    { href: "/admin/campus/rewards", label: "Rewards", group: "Campus" as const },
     ...(coord ? [{ href: "/admin/campus/ambassadors", label: "Ambassadors", group: "Campus" as const }] : []),
     ...(v.lead ? [{ href: "/admin/campus/coordinators", label: "Coordinators", group: "Campus" as const }] : []),
   ];
@@ -169,3 +177,87 @@ export const shortName = (name: string) => {
   return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
 };
 export const MEDALS = ["🥇", "🥈", "🥉"];
+
+export type CampusBadge = "coordinator" | "lead" | "ambassador";
+export const badgeFor = (m: Pick<CampusMember, "role" | "campusLead"> | null | undefined): CampusBadge | null =>
+  !m ? null : m.role === "coordinator" ? "coordinator" : m.campusLead ? "lead" : "ambassador";
+export const BADGE_TITLE: Record<CampusBadge, string> = {
+  coordinator: "#NotesApp campus coordinator (team)", lead: "#NotesApp Campus Lead", ambassador: "#NotesApp campus ambassador",
+};
+// Two ambassadors are on the same campus when the names match, ignoring case, spaces and punctuation ("UNILAG" ≠ "University of Lagos").
+export const sameCampus = (a: string, b: string) => a.toLowerCase().replace(/[^a-z0-9]/g, "") === b.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// ---- partner rewards (owner, 15 Nov 2026: "add ... partner rewards, also we want to offer our merchs to them") ----
+// The programme's leads post rewards: internships and scholarships from partner companies, perks, and #NotesApp merch (free to the
+// ambassador; an approved merch claim becomes an ordinary merch order, fulfilled from Admin → Merch). Each reward says who can claim it.
+export const REWARD_KINDS = [
+  { id: "internship", label: "Internship", emoji: "💼" },
+  { id: "scholarship", label: "Scholarship", emoji: "🎓" },
+  { id: "merch", label: "#NotesApp merch", emoji: "👕" },
+  { id: "perk", label: "Perk", emoji: "🎁" },
+] as const;
+export type RewardKind = (typeof REWARD_KINDS)[number]["id"];
+export const isRewardKind = (k: unknown): k is RewardKind => REWARD_KINDS.some((x) => x.id === k);
+export const rewardKind = (k: string) => REWARD_KINDS.find((x) => x.id === k) ?? REWARD_KINDS[3];
+
+export type CampusReward = {
+  id: string; country: CampusCountry | "all"; kind: RewardKind;
+  title: string; partner: string; partnerUrl?: string; details: string;
+  merchItemId?: string; // merch: which item (lib/merch.ts)
+  minLevel?: string; // a level name from LEVELS: all-time points at least that level
+  topN?: number; // only the top N on the country's board this month
+  leadsOnly?: boolean; // Campus Leads only
+  slots?: number; // how many can be approved (pending claims count while waiting)
+  closesOn: string; // last day to claim, YYYY-MM-DD in the ambassador's country
+  active: boolean;
+  createdBy: string; createdAt: string; updatedAt: string;
+};
+export type ClaimStatus = "pending" | "approved" | "declined";
+export type RewardClaim = {
+  id: string; rewardId: string; rewardTitle: string; kind: RewardKind;
+  uid: string; name: string; username: string; campus: string; country: CampusCountry; coordinatorUid?: string;
+  note?: string; size?: string;
+  address?: { fullName: string; phone: string; street: string; city: string; state: string };
+  status: ClaimStatus; decidedBy?: string; decidedAt?: string; decisionNote?: string; merchReference?: string;
+  createdAt: string;
+};
+
+export function cleanReward(input: Record<string, unknown>, today: string, merchIds: readonly string[]) {
+  const country = input.country === "all" ? "all" : isCampusCountry(input.country) ? input.country : null;
+  if (!country) throw new CampusError("Choose the country, or all of them.");
+  const kind = isRewardKind(input.kind) ? input.kind : null;
+  if (!kind) throw new CampusError("Choose what kind of reward it is.");
+  const title = clip(input.title, LIMITS.title);
+  if (title.length < 3) throw new CampusError("Give the reward a short title.");
+  const partner = clip(input.partner, 80) || "#NotesApp";
+  const partnerUrl = input.partnerUrl ? cleanUrl(input.partnerUrl) : undefined;
+  const details = String(input.details ?? "").trim().slice(0, LIMITS.details);
+  const merchItemId = kind === "merch" ? String(input.merchItemId ?? "") : undefined;
+  if (kind === "merch" && !merchIds.includes(merchItemId!)) throw new CampusError("Choose the merch item.");
+  const minLevel = LEVELS.some((l) => l.name === input.minLevel) && input.minLevel !== LEVELS[0].name ? String(input.minLevel) : undefined;
+  const topN = input.topN ? Math.floor(Number(input.topN)) : undefined;
+  if (topN !== undefined && (!Number.isFinite(topN) || topN < 1 || topN > 1000)) throw new CampusError("Top N must be a number from 1.");
+  const slots = input.slots ? Math.floor(Number(input.slots)) : undefined;
+  if (slots !== undefined && (!Number.isFinite(slots) || slots < 1 || slots > 10_000)) throw new CampusError("Places must be a number from 1.");
+  const closesOn = String(input.closesOn ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(closesOn) || Number.isNaN(Date.parse(`${closesOn}T00:00:00Z`))) throw new CampusError("Choose the last day to claim.");
+  if (closesOn < today) throw new CampusError("That day has passed.");
+  return {
+    country, kind, title, partner, ...(partnerUrl ? { partnerUrl } : {}), details, ...(merchItemId ? { merchItemId } : {}),
+    ...(minLevel ? { minLevel } : {}), ...(topN ? { topN } : {}), ...(input.leadsOnly === true ? { leadsOnly: true } : {}), ...(slots ? { slots } : {}), closesOn,
+  };
+}
+
+// Can this ambassador claim this reward? `why` says what's missing, in words she can act on.
+export function eligibility(r: Pick<CampusReward, "country" | "minLevel" | "topN" | "leadsOnly" | "closesOn" | "active">, a: { country: string; campusLead?: boolean; pointsAll: number; monthRank: number | null }, today: string): { ok: boolean; why?: string } {
+  if (!r.active) return { ok: false, why: "This reward is closed." };
+  if (r.country !== "all" && r.country !== a.country) return { ok: false, why: `For ambassadors in ${countryName(r.country)}.` };
+  if (today > r.closesOn) return { ok: false, why: "Claims have closed." };
+  if (r.leadsOnly && !a.campusLead) return { ok: false, why: "For Campus Leads." };
+  if (r.minLevel) {
+    const need = LEVELS.find((l) => l.name === r.minLevel);
+    if (need && a.pointsAll < need.min) return { ok: false, why: `Reach ${need.emoji} ${need.name} first (${need.min - a.pointsAll} more points).` };
+  }
+  if (r.topN && (!a.monthRank || a.monthRank > r.topN)) return { ok: false, why: `For the top ${r.topN} in the country this month${a.monthRank ? ` (you're #${a.monthRank})` : ""}.` };
+  return { ok: true };
+}
