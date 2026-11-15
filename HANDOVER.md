@@ -1162,11 +1162,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
   (`rangeEnd`, `onRangeEnd`) for hotel stays in `components/hotel/HotelSite.tsx`, and `dayLabel` (dates written by hand so server and
   browser match). Test: `npm run test:calendar`.
 
-- **Throwaway email domains (v0.167.1):** `lib/email-blocklist.ts` (`BLOCKED_EMAIL_DOMAINS`, now `petchi.uk`; a domain also blocks
-  its subdomains) is checked by both sign-up forms (`components/SignupFlow.tsx`, `components/site/SiteAuth.tsx`) before an account is
-  made, and by `firestore.rules` `blockedEmail()` on `users/{uid}` create, so skipping the form still gets no profile. **Keep the
-  regex in firestore.rules in step with the list** when adding a domain. Existing accounts: `scripts/blocked-emails.mjs` (dry run,
-  `--suspend`). Test: `npm run test:email-blocklist`, plus the rules test.
+- **Throwaway email domains (v0.167.1):** `lib/email-blocklist.ts` (built-in `petchi.uk`; a domain also blocks its subdomains) plus
+  the domains added in **Admin → Throwaway emails** (`/admin/blocked-emails`, moderation or support; `lib/email-blocklist-server.ts`
+  writes `settings/emailBlocklist` `{ domains, regex }`, which browsers can't write). Both sign-up forms check the combined list
+  (`lib/email-blocklist-client.ts`) before an account is made, and `firestore.rules` `blockedEmail()` refuses `users/{uid}` create
+  for the built-in domain or the stored regex, so an added domain works at once without a deploy. The page also finds accounts that
+  already use a blocked domain and suspends them (moderation only), with a reason the member reads. Keep the built-in list in code
+  and in `firestore.rules` in step. Script alternative: `scripts/blocked-emails.mjs`. Tests: `test:email-blocklist`,
+  `test:email-blocklist-server`, rules.
 
 ## 5. Tests and checks
 

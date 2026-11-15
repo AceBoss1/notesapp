@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-11-15",
     changes: [
       { kind: "changed", text: "Temporary (throwaway) email addresses can't be used to join #NotesApp, starting with petchi.uk and every address under it. Please sign up with your own email." },
+      { kind: "added", text: "Admin → Throwaway emails: add or remove blocked domains (each also blocks its subdomains), find accounts that already use one, and suspend them with one button." },
     ],
   },
   {

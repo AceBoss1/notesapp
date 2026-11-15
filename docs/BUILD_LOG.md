@@ -3326,4 +3326,6 @@ The owner asked for petchi.uk, a kuku.lu throwaway email domain, and its subdoma
 the list. Both sign-up forms refuse such an address before a Firebase account is made ("Please use your own email address…"), and
 `firestore.rules` refuses to create a profile when the signed-in token's email is at the domain or any subdomain, so a sign-up that
 skips the form never gets a profile. `scripts/blocked-emails.mjs` lists existing accounts at a blocked domain and, with `--suspend`,
-suspends them with a reason the member can read. Tests: `test:email-blocklist` and a new rules test.
+suspends them with a reason the member can read. The owner then asked for both to work from the admin dashboard: **Admin → Throwaway
+emails** adds and removes domains (written with a regex that firestore.rules reads, so a new domain is refused at once) and has Find
+accounts and Suspend buttons. Tests: `test:email-blocklist`, `test:email-blocklist-server` and rules.

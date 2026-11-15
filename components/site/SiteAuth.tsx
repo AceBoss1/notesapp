@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { BLOCKED_EMAIL_MESSAGE, isBlockedEmail } from "@/lib/email-blocklist";
+import { BLOCKED_EMAIL_MESSAGE } from "@/lib/email-blocklist";
+import { emailIsBlocked } from "@/lib/email-blocklist-client";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
@@ -83,7 +84,7 @@ function AuthModal({ mode, setMode, onDone, onClose }: { mode: Mode; setMode: (m
     if (!agreed) return setError("Please accept the Terms and Privacy Policy to continue.");
     if (clean.length < 3) return setError("Username must be at least 3 characters (letters, numbers, _).");
     if (isReservedUsername(clean)) return setError("That username isn't available.");
-    if (isBlockedEmail(email)) return setError(BLOCKED_EMAIL_MESSAGE);
+    if (await emailIsBlocked(email)) return setError(BLOCKED_EMAIL_MESSAGE);
     setBusy(true);
     try {
       if (await isUsernameTaken(clean)) { setError("That username is already taken."); return; }

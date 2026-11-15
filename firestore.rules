@@ -12,7 +12,12 @@ service cloud.firestore {
     function blockedEmail() {
       return 'email' in request.auth.token
         && request.auth.token.email is string
-        && request.auth.token.email.lower().matches('.*@([a-z0-9-]+[.])*petchi[.]uk[.]?$');
+        && (
+          request.auth.token.email.lower().matches('.*@([a-z0-9-]+[.])*petchi[.]uk[.]?$')
+          // The domains added in Admin → Throwaway emails (lib/email-blocklist-server.ts writes this regex).
+          || (exists(/databases/$(database)/documents/settings/emailBlocklist)
+              && request.auth.token.email.lower().matches(get(/databases/$(database)/documents/settings/emailBlocklist).data.regex))
+        );
     }
 
     function isSignedIn() {
@@ -642,8 +647,9 @@ service cloud.firestore {
       // WhatsApp and social links.
       allow read: if true;
 
-      // Only admins can change site-wide settings.
-      allow write: if adminHas('product');
+      // Only admins can change site-wide settings. The throwaway-email list is written only by the server (Admin → Throwaway
+      // emails), because firestore.rules match sign-ups against the regex in it.
+      allow write: if adminHas('product') && docId != 'emailBlocklist';
     }
 
 

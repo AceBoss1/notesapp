@@ -70,6 +70,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/topics", label: "Topics", need: ["content", "moderation"], group: "Content" },
   { href: "/admin/sounds", label: "Sounds", need: ["content", "moderation", "finance"], group: "Content" },
   { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance", "legal"], group: "People & trust" },
+  { href: "/admin/blocked-emails", label: "Throwaway emails", need: ["moderation", "support"], group: "People & trust" },
   { href: "/admin/organisations", label: "Organisations", need: ["support", "growth"], group: "People & trust" },
   { href: "/admin/revenue", label: "Revenue", need: ["finance"], group: "Money" },
   { href: "/admin/payments", label: "Payments", need: ["finance"], group: "Money" },

@@ -62,6 +62,11 @@ test("no profile for a throwaway email domain (petchi.uk and its subdomains)", a
   await assertFails(setDoc(doc(as("temp2", { email: "Spam@Mail.Petchi.UK" }), "users/temp2"), p("temp2")));
   await assertSucceeds(setDoc(doc(as("real1", { email: "ada@gmail.com" }), "users/real1"), p("real1")));
   await assertSucceeds(setDoc(doc(as("real2", { email: "ada@notpetchi.uk" }), "users/real2"), p("real2")));
+  // Domains added in Admin → Throwaway emails (the server writes the regex; browsers, even product admins, can't).
+  await env.withSecurityRulesDisabled((c) => setDoc(doc(c.firestore(), "settings/emailBlocklist"), { domains: ["temp-mail.example"], regex: ".*@([a-z0-9-]+[.])*(petchi[.]uk|temp-mail[.]example)[.]?$" }));
+  await assertFails(setDoc(doc(as("temp3", { email: "x@sub.temp-mail.example" }), "users/temp3"), p("temp3")));
+  await assertSucceeds(setDoc(doc(as("real3", { email: "x@example.org" }), "users/real3"), p("real3")));
+  await assertFails(setDoc(doc(as("prod", { admin: true, depts: ["product"] }), "settings/emailBlocklist"), { domains: [], regex: ".*" }));
 });
 
 test("users cannot edit someone else's profile", async () => {
