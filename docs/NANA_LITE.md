@@ -194,6 +194,15 @@ Run Qwen2.5-1.5B (4-bit) in the browser with WebGPU (WebLLM) or in the Android a
 questions already saved on the phone for offline practice. The student's questions then never leave the phone. Only on devices that
 can run it; others keep the server.
 
+## Where else Nana Lite works
+
+The same worker answers any OpenAI-compatible call, so other Nana features use it as a cheaper fallback. Each still prefers the
+member's own AI, or our large models where the answer must be right.
+
+- **Nana Jobs** (`lib/nana-jobs-server.ts`): when the member has no AI connected, Nana Lite scores their **top 10** openings, one per
+  request (a small model handles one job at a time better than a batch). The run says "read by Nana Lite"; the CV review and cover notes
+  still need the member's own AI. `LITE_JOBS_PER_RUN` in `lib/nana-jobs.ts`.
+
 ## Limits and safety
 
 - **40 asks a day** per account (or per device, by a hash of its address, when signed out), and 30 per 10 minutes at the API.

@@ -130,7 +130,9 @@ export type ShortJob = {
   status?: JobStatus;
 };
 export type Funnel = { collected: number; unique: number; fit: number; keywordTop: number; readByAi: number; alive: number };
-export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number> };
+// via "lite": no AI of the member's was connected, so Nana Lite (our small model, lib/nana-lite.ts) read the top openings at our cost.
+export type NjRun = { at: string; provider: AiProvider | ""; model: string; funnel: Funnel; error: string; note: string; jobs: ShortJob[]; rejected: Record<string, number>; via?: "lite" };
+export const LITE_JOBS_PER_RUN = 10; // openings Nana Lite reads in one run (our cost): the best of the keyword ranking
 
 // The CV review the member's AI writes (screen 2b): honest, short, and a profile to start from.
 export type CvReview = {

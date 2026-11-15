@@ -64,7 +64,7 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   assert.equal(provs.find((p) => p.provider === "openai")?.connected, false);
 
   // ---- the stand-in internet: AI providers, feeds, boards and job pages ----
-  let geminiDown = false;
+  let geminiDown = false, liteCalls = 0;
   const cvText = "Ada Obi, Lagos, Nigeria. Backend engineer, 4 years. At Kora I built the payments ledger on Postgres handling 40k payouts a month. Built a Next.js app used by 12k users. Skills: Node, TypeScript, Postgres, Redis. I mentor two junior developers and wrote our on-call runbook. Education: BSc Computer Science, University of Lagos.";
   const scoreFor = (user: string) => {
     const ids = [...user.matchAll(/### JOB (j\d+)\nCOMPANY: ([^\n]+)\nTITLE: ([^\n]+)/g)];
@@ -79,6 +79,11 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
       if (sys.includes("review one person's CV")) return answer(JSON.stringify({ strengths: ["Payments at real scale"], gaps: ["No tests or CI mentioned"], fixes: ["Put 40k payouts a month in the first line"], roles: ["Backend Engineer", "Platform Engineer"], profile: { roles: ["Backend Engineer"], shipped: ["Payments ledger on Postgres, 40k payouts a month", "Next.js app, 12k users", "Ran a 2 million user Kubernetes platform"], skills: ["Node", "TypeScript", "Postgres"], cities: ["Lagos"], country: "Nigeria", remote: true, seniority: "mid" } }));
       if (sys.includes("cover note")) return answer(JSON.stringify({ note: "At Kora I built a payments ledger on Postgres handling 40k payouts a month. I also led 9 engineers. I'd like to work on your settlement engine." }));
       return answer(JSON.stringify(scoreFor(user)));
+    }
+    if (url === "https://lite.test/v1/chat/completions") {
+      liteCalls++;
+      const body = JSON.parse(String(init?.body));
+      return json({ choices: [{ message: { content: JSON.stringify(scoreFor(String(body.messages[1].content))) }, finish_reason: "stop" }] });
     }
     if (url.startsWith("https://remoteok.com/api")) return json([{ legal: 1 }, { id: 1, company: "Remotive Co", position: "Full-stack Developer", location: "Worldwide", url: "https://remoteok.com/remote-jobs/1", date: iso(3), description: "Node, Postgres", tags: ["node"] }, { id: 2, company: "Gone Ltd", position: "Backend Engineer", location: "Worldwide", url: "https://gone.example/jobs/2", date: iso(1), description: "Node Postgres payments" }, { id: 3, company: "Usa Inc", position: "Backend Engineer", location: "Remote - US", url: "https://usa.example/jobs/3", date: iso(1), description: "Node" }]);
     if (url.startsWith("https://remotive.com")) throw new Error("socket hang up");
@@ -154,6 +159,15 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   assert.equal(rough.jobs.find((j) => j.hash === top.hash)?.status, "interested", "the status the member set survives the run");
   assert.ok(!rough.jobs.some((j) => j.hash === fullstack.hash), "Not for me never comes back");
   geminiDown = false;
+
+  // ---- no AI of their own: Nana Lite (our small model) reads the top 10, one opening per request ----
+  const viaLite = await S.runFor(db, "ada", { ...D, account: async () => null, lite: () => ({ provider: "openai", apiKey: "lite-key", baseUrl: "https://lite.test/v1", model: "phi-3.5-mini-instruct" }) }, { manual: true });
+  assert.equal(viaLite.via, "lite"); assert.equal(viaLite.provider, ""); assert.equal(viaLite.error, "");
+  assert.ok(liteCalls > 0 && liteCalls <= 10, `one request per opening, at most 10 (${liteCalls})`);
+  assert.ok(viaLite.funnel.keywordTop <= 10, JSON.stringify(viaLite.funnel));
+  assert.ok(viaLite.jobs.some((j) => !j.rough), "Nana Lite's reads are scored, not rough");
+  const noLite = await S.runFor(db, "ada", { ...D, account: async () => null, lite: () => null }, { manual: true });
+  assert.ok(noLite.jobs.every((j) => j.rough) && !noLite.via, "no AI and no Nana Lite: keyword scores, marked rough");
 
   // ---- the cover note: only the shipped list (a made-up figure is taken out) ----
   const again = await S.runFor(db, "ada", D, { manual: true });

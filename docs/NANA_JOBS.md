@@ -25,7 +25,9 @@ All screens on one sheet: [all-screens.webp](mockups/nana-jobs/all-screens.webp)
 ## How it works
 
 - **Who.** Members 18 and up. Teens keep the normal job board. Free on every plan, because the member's own AI pays for the scoring.
-  Without an AI connected they get the free keyword ranking, marked "~ rough".
+  Without an AI connected, **Nana Lite** (our own small model, docs/NANA_LITE.md) reads their top 10, one opening per request, and the
+  run is marked `via: "lite"` ("read by Nana Lite"). Without Nana Lite either, they get the free keyword ranking, marked "~ rough".
+  The CV review and cover notes still need the member's own AI.
 - **Bring your own AI.** `lib/ai-connect.ts` today holds one Anthropic key per member, encrypted with `ACCOUNT_DATA_KEY`. It grows to
   several providers: `gemini`, `groq`, `anthropic`, and `openai` (any OpenAI-compatible base URL, such as OpenRouter or a reachable
   Ollama). Each is checked with a free call, only the last 4 characters are ever shown, and a paid provider is never chosen unless the
