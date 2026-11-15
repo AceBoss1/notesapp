@@ -1,4 +1,6 @@
 import { createHash } from "crypto";
+import { gateJournal } from "@/lib/content-checks-server";
+import { isContentCheckError } from "@/lib/content-checks";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { ApiAuth } from "@/lib/api-keys";
@@ -43,7 +45,18 @@ export const POST = v1("write:posts", async (req: NextRequest, auth: ApiAuth) =>
     author: u.displayName, author_role: roleLabelFor(u as never), author_avatar: u.avatar || "",
     authorUid: auth.uid, authorUsername: u.username, status: "draft", ...fields,
   } as Record<string, any>;
-  const ref = await db.collection("notes").add(note);
+  const ref = db.collection("notes").doc();
+  // AI content checks: a post published through the API is checked first; one that breaks the rules is saved as a draft instead.
+  let blocked: string | null = null;
+  if (note.status === "published") {
+    try { await gateJournal(db, auth.uid, note, ref.path); }
+    catch (e) { if (!isContentCheckError(e)) throw e; blocked = e.message; note.status = "draft"; }
+  }
+  await ref.set(note);
+  if (blocked) {
+    if (idemRef) await idemRef.set({ postId: ref.id, at: new Date().toISOString(), expireAt: new Date(Date.now() + 86_400_000) });
+    throw fail(422, "content_blocked", `${blocked} It was saved as a draft (id ${ref.id}).`);
+  }
   if (idemRef) await idemRef.set({ postId: ref.id, at: new Date().toISOString(), expireAt: new Date(Date.now() + 86_400_000) });
   if (note.status === "published") void emitWebhook(auth.uid, "post.published", postJson(ref.id, note));
   return NextResponse.json(postJson(ref.id, note, true), { status: 201 });

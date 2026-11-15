@@ -100,6 +100,12 @@ export function parseJsonObject(text: string): Record<string, unknown> {
   throw new ProviderError("the AI's answer wasn't the JSON we asked for");
 }
 
+// Output tokens added on top of the answer's own budget for a model that thinks first (Anthropic). Only what's used is billed.
+export const ANTHROPIC_THINKING_ROOM = 4000;
+// How long one call may take. Each API route's maxDuration (app/api/jobs/nana/*) must be longer than the calls it makes, or the platform
+// stops the function first and the browser gets a bare 504 instead of our message.
+export const AI_TIMEOUT_MS = { default: 60_000, cv: 90_000, cover: 60_000 } as const;
+
 export const modelOf = (a: Account) => (a.model || "").trim() || PROVIDER_INFO[a.provider].model;
 
 // One request; a free tier's 429 or a 5xx is tried once more after a pause. Anything else throws a ProviderError carrying the provider's
@@ -123,17 +129,29 @@ export async function completeJson(acct: Account, system: string, user: string, 
       },
     };
   } else if (acct.provider === "anthropic") {
+    // Claude's current models think before they answer, and that thinking counts against max_tokens. With only room for the answer, the
+    // JSON came back cut off (or not at all) and the CV review failed (v0.174.1). So: low effort (these are extraction jobs), room for the
+    // thinking on top of the answer, and a cut-off or a refusal said plainly instead of "not the JSON we asked for".
     req = {
       url: `${ANTHROPIC_BASE}/v1/messages`, headers: { "x-api-key": acct.apiKey, "anthropic-version": "2023-06-01" },
-      body: { model, max_tokens: max, system, messages: [{ role: "user", content: user }] },
-      read: (j) => ((j.content as { type: string; text?: string }[] | undefined) ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join(""),
+      body: { model, max_tokens: max + ANTHROPIC_THINKING_ROOM, output_config: { effort: "low" }, system, messages: [{ role: "user", content: user }] },
+      read: (j) => {
+        if (j.stop_reason === "refusal") throw new ProviderError("the AI declined to answer this one");
+        const text = ((j.content as { type: string; text?: string }[] | undefined) ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+        if (j.stop_reason === "max_tokens") throw new ProviderError("the answer was cut off before it finished (it hit the output limit)");
+        return text;
+      },
     };
   } else {
     const base = acct.provider === "groq" ? GROQ_BASE : (acct.baseUrl || OPENAI_BASE).replace(/\/+$/, "");
     req = {
       url: `${base}/chat/completions`, headers: { authorization: `Bearer ${acct.apiKey}` },
       body: { model, temperature: 0.2, max_tokens: max, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] },
-      read: (j) => String((j.choices as { message?: { content?: string } }[] | undefined)?.[0]?.message?.content ?? ""),
+      read: (j) => {
+        const c = (j.choices as { message?: { content?: string }; finish_reason?: string }[] | undefined)?.[0];
+        if (c?.finish_reason === "length") throw new ProviderError("the answer was cut off before it finished (it hit the output limit)");
+        return String(c?.message?.content ?? "");
+      },
     };
   }
   for (let attempt = 0; ; attempt++) {
@@ -141,7 +159,7 @@ export async function completeJson(acct: Account, system: string, user: string, 
     if (o.usage) { o.usage.calls++; o.usage.waitedMs += waited; }
     let res: Response;
     try {
-      res = await f(req.url, { method: "POST", headers: { "content-type": "application/json", accept: "application/json", ...req.headers }, body: JSON.stringify(req.body), signal: withTimeout(o.timeoutMs ?? 60_000) });
+      res = await f(req.url, { method: "POST", headers: { "content-type": "application/json", accept: "application/json", ...req.headers }, body: JSON.stringify(req.body), signal: withTimeout(o.timeoutMs ?? AI_TIMEOUT_MS.default) });
     } catch (e) {
       const why = e instanceof Error && e.name === "TimeoutError" ? "it took too long to answer" : "it couldn't be reached";
       throw new ProviderError(why);

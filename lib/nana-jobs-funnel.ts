@@ -25,7 +25,16 @@ export function toText(html: unknown): string {
 }
 export const norm = (s: unknown) => String(s ?? "").toLowerCase().replace(/[‐-―]/g, "-").replace(/\s+/g, " ").trim();
 const words = (s: unknown) => norm(s).replace(/[^a-z0-9+#.]+/g, " ").trim().split(" ").filter(Boolean);
-const has = (hay: string, term: string) => { const t = norm(term); if (!t) return false; const i = hay.indexOf(t); if (i < 0) return false; const before = hay[i - 1], after = hay[i + t.length]; return !(before && /[a-z0-9]/.test(before)) && !(after && /[a-z0-9]/.test(after)); };
+// A whole-word match. Every occurrence is tried: "engineering manager, engineer" still has "engineer" in it.
+const has = (hay: string, term: string) => {
+  const t = norm(term);
+  if (!t) return false;
+  for (let i = hay.indexOf(t); i >= 0; i = hay.indexOf(t, i + 1)) {
+    const before = hay[i - 1], after = hay[i + t.length];
+    if (!(before && /[a-z0-9]/.test(before)) && !(after && /[a-z0-9]/.test(after))) return true;
+  }
+  return false;
+};
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 // The same role listed on a company board and mirrored by a feed must collapse to one, so the source isn't part of the identity:
@@ -123,16 +132,22 @@ const BAND_ABOVE: Record<Seniority, RegExp | null> = {
 };
 
 export type Kept = PoolJob & { ageDays: number | null; locationFit: "eligible" | "unclear" };
-// The free hard filters: freshness, the title gate, deal-breakers and where the member can work. Rejections are counted by reason.
-export function hardFilter(jobs: PoolJob[], p: NjProfile, now = Date.now(), freshnessDays = 60): { kept: Kept[]; reasons: Record<string, number> } {
+// The free hard filters: freshness, the title gate, deal-breakers and where the member can work. Rejections are counted by reason, and
+// each cut opening keeps its own reason (the "See all collected jobs" view). With no roles there is no title gate: an empty profile
+// keeps every opening the other rules let through.
+export function hardFilter(jobs: PoolJob[], p: NjProfile, now = Date.now(), freshnessDays = 60): { kept: Kept[]; reasons: Record<string, number>; cuts: Map<string, string> } {
   const reasons: Record<string, number> = {};
-  const bump = (r: string) => { reasons[r] = (reasons[r] || 0) + 1; };
+  const cuts = new Map<string, string>();
+  let current: PoolJob | null = null;
+  const bump = (r: string) => { reasons[r] = (reasons[r] || 0) + 1; if (current) cuts.set(current.hash, r); };
   const gate = roleWords(p.roles);
-  const deal = p.dealBreakers.map(norm).filter(Boolean);
+  // A deal-breaker is a whole word or phrase of two letters or more: a stray "-" or "a" must never cut everything.
+  const deal = p.dealBreakers.map(norm).filter((d) => /[a-z0-9]{2}/.test(d));
   const { home, matches, strict } = homeOf(p);
   const band = BAND_ABOVE[(SENIORITY as readonly string[]).includes(p.seniority) ? p.seniority : "mid"];
   const kept: Kept[] = [];
   for (const job of jobs) {
+    current = job;
     if (!job.title || !job.url || !job.company) { bump("incomplete"); continue; }
     const age = daysAgo(job.postedAt, now);
     if (age !== null && age > freshnessDays) { bump(`older than ${freshnessDays} days`); continue; }
@@ -142,7 +157,7 @@ export function hardFilter(jobs: PoolJob[], p: NjProfile, now = Date.now(), fres
     if (gate.length && !gate.some((w) => has(title, w))) { bump("title isn't a role you want"); continue; }
     const desc = norm(job.description);
     const hay = `${title} ${desc}`;
-    const hit = deal.find((d) => hay.includes(d));
+    const hit = deal.find((d) => has(hay, d));
     if (hit) { bump(`deal-breaker: ${hit}`); continue; }
     const lock = LOCKS.find((l) => hay.includes(l.phrase) && home?.name !== l.country && !(l.country === "germany" && home?.region === "europe"));
     if (lock) { bump("needs citizenship or residence you don't have"); continue; }
@@ -161,7 +176,7 @@ export function hardFilter(jobs: PoolJob[], p: NjProfile, now = Date.now(), fres
     // A city we don't know, with no country, passes as "unclear": the AI's location score judges it.
     kept.push({ ...job, ageDays: age, locationFit: atHome || global ? "eligible" : "unclear" });
   }
-  return { kept, reasons };
+  return { kept, reasons, cuts };
 }
 
 // ---- the keyword prescore: free, crude on purpose. It decides which openings the member's AI reads, not who gets shortlisted. ----

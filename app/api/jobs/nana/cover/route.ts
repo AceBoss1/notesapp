@@ -5,7 +5,8 @@ import { liveDeps, me, njFail, noStore } from "@/lib/nana-jobs-api";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Longer than the cover note's wait for the member's AI (AI_TIMEOUT_MS.cover).
+export const maxDuration = 90;
 
 // POST { hash } → a cover note for that shortlisted job, written by the member's own AI from their "shipped" list only. They edit it and
 // apply themselves: Nana never applies.

@@ -1,0 +1,220 @@
+{
+ "comments": "Himalayas API",
+ "updatedAt": 1794722400,
+ "offset": 0,
+ "limit": 20,
+ "totalCount": 9000,
+ "jobs": [
+  {
+   "title": "Software Engineer, Payments",
+   "excerpt": "Arcadia Pay is hiring a Software Engineer, Payments.",
+   "companyName": "Arcadia Pay",
+   "companySlug": "arcadia-pay",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "Nigeria",
+    "Kenya",
+    "Ghana"
+   ],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Engineering"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Software Engineer, Payments to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794628800,
+   "expiryDate": 1799812800,
+   "applicationLink": "https://himalayas.app/companies/arcadia-pay/jobs/software-engineer-payments",
+   "guid": "https://himalayas.app/companies/arcadia-pay/jobs/software-engineer-payments"
+  },
+  {
+   "title": "Senior Product Designer",
+   "excerpt": "Driftwood is hiring a Senior Product Designer.",
+   "companyName": "Driftwood",
+   "companySlug": "driftwood",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": 40000,
+   "maxSalary": 70000,
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Business"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Senior Product Designer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794538800,
+   "expiryDate": 1799722800,
+   "applicationLink": "https://himalayas.app/companies/driftwood/jobs/senior-product-designer",
+   "guid": "https://himalayas.app/companies/driftwood/jobs/senior-product-designer"
+  },
+  {
+   "title": "Customer Support Agent",
+   "excerpt": "Helio Learning is hiring a Customer Support Agent.",
+   "companyName": "Helio Learning",
+   "companySlug": "helio-learning",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "seniority": [
+    "Entry-level"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "Philippines"
+   ],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Business"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Customer Support Agent to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794448800,
+   "expiryDate": 1799632800,
+   "applicationLink": "https://himalayas.app/companies/helio-learning/jobs/customer-support-agent",
+   "guid": "https://himalayas.app/companies/helio-learning/jobs/customer-support-agent"
+  },
+  {
+   "title": "Machine Learning Engineer",
+   "excerpt": "Northstar AI is hiring a Machine Learning Engineer.",
+   "companyName": "Northstar AI",
+   "companySlug": "northstar-ai",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": 40000,
+   "maxSalary": 70000,
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Engineering"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Machine Learning Engineer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794186000,
+   "expiryDate": 1799370000,
+   "applicationLink": "https://himalayas.app/companies/northstar-ai/jobs/machine-learning-engineer",
+   "guid": "https://himalayas.app/companies/northstar-ai/jobs/machine-learning-engineer"
+  },
+  {
+   "title": "Operations Manager",
+   "excerpt": "Okapi Freight is hiring a Operations Manager.",
+   "companyName": "Okapi Freight",
+   "companySlug": "okapi-freight",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "seniority": [
+    "Manager"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "South Africa"
+   ],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Business"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Operations Manager to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794355200,
+   "expiryDate": 1799539200,
+   "applicationLink": "https://himalayas.app/companies/okapi-freight/jobs/operations-manager",
+   "guid": "https://himalayas.app/companies/okapi-freight/jobs/operations-manager"
+  },
+  {
+   "title": "Growth Marketer",
+   "excerpt": "Plover is hiring a Growth Marketer.",
+   "companyName": "Plover",
+   "companySlug": "plover",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": 40000,
+   "maxSalary": 70000,
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Business"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Growth Marketer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1793833200,
+   "expiryDate": 1799017200,
+   "applicationLink": "https://himalayas.app/companies/plover/jobs/growth-marketer",
+   "guid": "https://himalayas.app/companies/plover/jobs/growth-marketer"
+  },
+  {
+   "title": "Staff Engineer",
+   "excerpt": "Quarry is hiring a Staff Engineer.",
+   "companyName": "Quarry",
+   "companySlug": "quarry",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "seniority": [
+    "Senior"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Engineering"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Staff Engineer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794520800,
+   "expiryDate": 1799704800,
+   "applicationLink": "https://himalayas.app/companies/quarry/jobs/staff-engineer",
+   "guid": "https://himalayas.app/companies/quarry/jobs/staff-engineer"
+  },
+  {
+   "title": "Junior Frontend Developer",
+   "excerpt": "Riverstone is hiring a Junior Frontend Developer.",
+   "companyName": "Riverstone",
+   "companySlug": "riverstone",
+   "companyLogo": "",
+   "employmentType": "Full Time",
+   "minSalary": 40000,
+   "maxSalary": 70000,
+   "seniority": [
+    "Entry-level"
+   ],
+   "currency": "USD",
+   "locationRestrictions": [
+    "Germany",
+    "Netherlands"
+   ],
+   "timezoneRestrictions": [],
+   "categories": [
+    "Engineering"
+   ],
+   "parentCategories": [],
+   "description": "<p>We're hiring a Junior Frontend Developer to join a small, distributed team.</p><h3>What you'll do</h3><ul><li>Own projects end to end</li><li>Work closely with product and customers</li></ul><h3>Requirements</h3><ul><li>3+ years of relevant experience</li><li>Clear written English</li></ul>",
+   "pubDate": 1794603600,
+   "expiryDate": 1799787600,
+   "applicationLink": "https://himalayas.app/companies/riverstone/jobs/junior-frontend-developer",
+   "guid": "https://himalayas.app/companies/riverstone/jobs/junior-frontend-developer"
+  }
+ ]
+}

@@ -27,6 +27,8 @@ beforeEach(async () => {
     await setDoc(doc(db, "boosts/b1"), { publisherUid: "pub", impressionsPurchased: 1000 });
     await setDoc(doc(db, "gifts/g1"), { toUid: "pub", fromUid: "alice", amountKobo: 100 });
     await setDoc(doc(db, "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active" });
+    // AI content checks off for the older tests; the content-checks tests below switch them on (lib/content-checks-server.ts).
+    await setDoc(doc(db, "contentCheckSettings/current"), { enabled: false });
   });
 });
 
@@ -1052,7 +1054,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "cycleProfiles", "cycleLogs", "cycleNotes", "cycleChats", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "staffPassLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns", "cycleProfiles", "cycleLogs", "cycleNotes", "cycleChats", "aiProviderKeys", "nanaJobsProfiles", "nanaJobsRuns", "nanaJobsSeen", "nanaJobsStatuses", "nanaJobsCv", "nanaJobsBoards", "nanaJobsMeta", "jobPool"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
@@ -1641,10 +1643,10 @@ test("careers, applications, Nana-HR drafts and seed markers are server-only, ev
 test("Nana Jobs: the profile, shortlist, statuses, CV, pool and AI keys are server-only, even for the member they're about", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) await setDoc(doc(db, p), { uid: "alice" });
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsSeen/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) await setDoc(doc(db, p), { uid: "alice" });
   });
   for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
-    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) {
+    for (const p of ["nanaJobsProfiles/alice", "nanaJobsRuns/alice", "nanaJobsSeen/alice", "nanaJobsStatuses/alice", "nanaJobsCv/alice", "aiProviderKeys/alice_gemini", "jobPool/2026-11-12-0", "nanaJobsMeta/pool", "nanaJobsBoards/greenhouse_paystack"]) {
       await assertFails(getDoc(doc(db, p)));
       await assertFails(setDoc(doc(db, p), { uid: "alice", x: 1 }));
     }
@@ -1877,5 +1879,64 @@ test("growth measurement is server-only: sources, first values, returns and dail
     await assertFails(setDoc(doc(db, "growthDaily/20261116"), { day: "2026-11-16", installs: { ads: 99 } }));
     await assertFails(setDoc(doc(db, "growthCreators/alice_202611"), { opens: 1000 }));
     await assertFails(deleteDoc(doc(db, "growthMembers/alice")));
+  }
+});
+
+test("AI content checks: publishing a journal, or changing a shop item's or profile's words or pictures, needs a check pass", async () => {
+  const hour = (h) => new Date(Date.now() + h * 3_600_000);
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await deleteDoc(doc(d, "contentCheckSettings/current")); // on by default
+    await setDoc(doc(d, "contentPasses/jp"), { uid: "pub", kind: "journal", title: "Hello", content: "Words", image: "", poster: "", expiresAt: hour(1) });
+    await setDoc(doc(d, "contentPasses/old"), { uid: "pub", kind: "journal", title: "Hello", content: "Words", image: "", poster: "", expiresAt: hour(-1) });
+    await setDoc(doc(d, "contentPasses/alicep"), { uid: "alice", kind: "journal", title: "Hello", content: "Words", image: "", poster: "", expiresAt: hour(1) });
+    await setDoc(doc(d, "contentPasses/sp"), { uid: "pub", kind: "store_item", title: "Book", subtitle: "", image: "/x.png", images: [], expiresAt: hour(1) });
+    await setDoc(doc(d, "contentPasses/pp"), { uid: "alice", kind: "profile", displayName: "Alice", bio: "New bio", avatar: "", expiresAt: hour(1) });
+    await setDoc(doc(d, "notes/live"), { authorUid: "pub", title: "Live", content: "Old words", status: "published", viewCount: 0 });
+  });
+  const pub = as("pub");
+  const note = { authorUid: "pub", title: "Hello", content: "Words", featured_image: "" };
+  // Journals: drafts need nothing; publishing needs this member's own, unexpired pass for exactly this title, text and pictures.
+  await assertSucceeds(setDoc(doc(pub, "notes/d1"), { ...note, status: "draft" }));
+  await assertFails(setDoc(doc(pub, "notes/p0"), { ...note, status: "published" }));
+  await assertSucceeds(setDoc(doc(pub, "notes/p1"), { ...note, status: "published", checkPass: "jp" }));
+  await assertFails(setDoc(doc(pub, "notes/p2"), { ...note, title: "Something else", status: "published", checkPass: "jp" }));
+  await assertFails(setDoc(doc(pub, "notes/p3"), { ...note, status: "published", checkPass: "old" }), "an expired pass");
+  await assertFails(setDoc(doc(pub, "notes/p4"), { ...note, status: "published", checkPass: "alicep" }), "someone else's pass");
+  await assertFails(setDoc(doc(pub, "notes/p5"), { ...note, status: "published", checkPass: "sp" }), "a pass for another kind");
+  await assertSucceeds(updateDoc(doc(pub, "notes/d1"), { status: "published", checkPass: "jp" }));
+  // A published journal: new words need a pass; anything else (counts, topics) doesn't; unpublishing never does.
+  await assertFails(updateDoc(doc(pub, "notes/live"), { content: "New words" }));
+  await assertSucceeds(updateDoc(doc(pub, "notes/live"), { topics: ["tech"] }));
+  await assertSucceeds(updateDoc(doc(anon(), "notes/live"), { viewCount: 1 }));
+  await assertSucceeds(updateDoc(doc(pub, "notes/live"), { content: "New words", status: "draft" }));
+  // Shop items.
+  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 4 };
+  await assertFails(setDoc(doc(pub, "storeItems/s0"), item));
+  await assertSucceeds(setDoc(doc(pub, "storeItems/s1"), { ...item, checkPass: "sp" }));
+  await assertFails(setDoc(doc(pub, "storeItems/s2"), { ...item, image: "/other.png", checkPass: "sp" }));
+  await assertSucceeds(updateDoc(doc(pub, "storeItems/s1"), { stock: 9 }), "stock and price don't need a check");
+  await assertFails(updateDoc(doc(pub, "storeItems/s1"), { title: "Book two" }));
+  // Profiles: a new name, bio or picture needs a pass; other settings don't.
+  const alice = as("alice");
+  await assertFails(updateDoc(doc(alice, "users/alice"), { bio: "New bio" }));
+  await assertSucceeds(updateDoc(doc(alice, "users/alice"), { bio: "New bio", checkPass: "pp" }));
+  await assertFails(updateDoc(doc(alice, "users/alice"), { avatar: "https://x/y.jpg", checkPass: "pp" }));
+  await assertSucceeds(updateDoc(doc(alice, "users/alice"), { showOnline: false }));
+  // Switched off in Admin: no pass is asked for.
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), "contentCheckSettings/current"), { enabled: false }));
+  await assertSucceeds(setDoc(doc(pub, "notes/p6"), { ...note, status: "published" }));
+});
+
+test("AI content checks: settings, flags, strikes, the cache, numbers, passes, community steps and the Legal queue are server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    for (const p of ["contentFlags/f1", "contentStanding/pub", "contentCheckCache/h1", "contentCheckStats/2026-11-15", "contentPasses/x", "communityChecks/c1", "legalQueue/f1"]) await setDoc(doc(d, p), { uid: "pub" });
+  });
+  for (const db of [as("pub"), as("boss", { admin: true }), anon()]) {
+    for (const p of ["contentCheckSettings/current", "contentFlags/f1", "contentStanding/pub", "contentCheckCache/h1", "contentCheckStats/2026-11-15", "contentPasses/x", "communityChecks/c1", "legalQueue/f1"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "pub", enabled: false }));
+    }
   }
 });

@@ -22,6 +22,7 @@ import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
 import PasskeySettings from "@/components/PasskeySettings";
+import ContentStanding from "@/components/content-checks/ContentStanding";
 import SignInMethods from "@/components/SignInMethods";
 import { ROOT_DOMAIN } from "@/lib/host";
 
@@ -148,6 +149,9 @@ export default function AccountPage() {
         <p>Your name, bio, photo and work are on <Link href="/profile/edit" className="text-crimson">Edit profile</Link>, and so are your <Link href="/profile/edit#links" className="text-crimson">social links</Link> (LinkedIn, Instagram, Facebook, X, TikTok, WhatsApp and your website).</p>
       </PageHero>
       <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-10">
+
+      {/* AI content checks: strikes, a suspension from posting, appeals (shows a short line when there are none) */}
+      <ContentStanding uid={user.uid} />
 
       <form onSubmit={changeUsername} className="card mt-8 p-6">
         <h2 className="font-display text-xl">Username</h2>

@@ -78,6 +78,7 @@ jobs:
       - run: npm run test:pii
       - run: npm run test:backups
       - run: npm run test:community
+      - run: npm run test:content-checks
       # audio rooms: rooms, the relay and Live mode (tests/community/rooms*.test.ts)
       - run: npm run test:rooms
       - run: npm run test:fans
@@ -96,6 +97,8 @@ jobs:
       - run: npm run test:courses-server
       - run: npm run test:quizzes-server
       - run: npm run test:team-server
+      # Careers and Nana-HR: the drafting templates (offer, the contract agreements, grant, announcement), then hiring on the emulators
+      - run: npm run test:hr
       - run: npm run test:maintenance
       - run: npm run test:ops-server
       - run: npm run test:pii-server
@@ -133,6 +136,7 @@ jobs:
       - run: npm run test:hotel-server
       - run: npm run test:books-server
       - run: npm run test:community-server
+      - run: npm run test:content-checks-server
       # audio rooms against the emulator: the relay and Live mode (video on/off, the budget) with a stand-in Cloudflare
       - run: npm run test:rooms-server
       - run: npm run test:fans-server
