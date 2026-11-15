@@ -971,6 +971,11 @@ service cloud.firestore {
     match /cycleLogs/{id} { allow read, write: if false; }
     match /cycleNotes/{id} { allow read, write: if false; }
     match /cycleChats/{document=**} { allow read, write: if false; }
+    // My Calendar (lib/my-calendar-server.ts): her choices and the hash of her private calendar link, the link's lookup by that hash, and
+    // the bells already sent. Server only, even for her and for staff: she reads and changes them through /api/calendar.
+    match /myCalendar/{id} { allow read, write: if false; }
+    match /calendarFeeds/{id} { allow read, write: if false; }
+    match /calendarBells/{id} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

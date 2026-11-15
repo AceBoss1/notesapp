@@ -257,6 +257,31 @@ A passkey lets you sign in with your fingerprint, face, phone screen lock or a s
 **Your data:** everything is encrypted on our server and only you can open it. It isn't part of your account download, ads, analytics or other Nana chats, and staff can't see it. **Download my data** and **Delete everything** are in My Cycle's settings, and closing your account deletes it all.
 
 **Not medical advice:** My Cycle is not contraception and not a medical device. Predictions are estimates from your own logs.`),
+    A("my-calendar", "My Calendar: everything you've booked, synced to your phone", "Getting started", `
+[My Calendar](/calendar) is one calendar for everything you've booked, bought or been invited to on #NotesApp. Open it from your account menu (on a phone, from the menu behind your picture): **📅 My Calendar** shows how many things you have today. [How it works](/my-calendar).
+
+**What's in it:** 1:1 sessions and pay-per-minute calls (as the client or the host), hotel stays (check-in, your nights shaded, check-out; hotel staff who handle bookings see their hotel's arrivals and departures), event tickets, paid live tickets, events you said you're going to and events you host, interviews from Notes Jobs, and money due from [Business books](/books) (what customers owe you by a date, and what you owe suppliers). Each entry is read from where it lives, every time, so a change or a cancellation shows at once.
+
+**Using it:** the month has a coloured dot for each kind on a day; tap a kind under the month to hide or show it. Tap a day to see its list, and tap an entry to see when and where, your reminder, **Open** (the booking, ticket, job or stay it came from) and **Add to my calendar**. Times are in Lagos time (WAT), like bookings.
+
+**Add to my calendar:** downloads an invite (.ics) that your phone opens in its own calendar, for one entry. It's also on the booking confirmation, a hotel booking's page and each ticket in [My tickets](/tickets).
+
+**Sync with your phone:** in My Calendar, tap **🔄 Sync with your phone**, then **Make my link**.
+- **On your phone:** tap **Add to this phone's calendar**. iPhone Calendar, Google Calendar on Android and Outlook subscribe and keep themselves up to date. iPhone checks about every hour; Google can take a few hours.
+- **Google Calendar on a computer:** **Copy my private calendar link**, then in Google Calendar choose Other calendars **+** → **From URL** and paste it.
+- **Outlook:** Add calendar → **Subscribe from web**, and paste the link.
+- **What goes out:** choose sessions and calls, hotel stays, events and lives, interviews, and money due (off until you turn it on). The link carries titles and times only, never amounts or notes.
+- **Keep it private:** anyone with the link can see those events. **Make a new link** stops the old one at once; **Stop syncing** turns it off.
+
+**Reminders (⚙️ Settings):** a bell shortly before sessions and calls (5 to 30 minutes, or off; 10 by default), an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Bookings, interviews, events you're going to and paid lives still remind you a day and an hour before, as they always have.
+
+**My Cycle** isn't in My Calendar yet: its dates are locked with your passkey and encrypted, so the calendar can't read them.
+
+**Teen mode and child profiles:** teens see what teen mode allows (no Business books money). Child profiles don't have a calendar.
+
+**In the #NotesApp app:** once the app update with calendar access is out, Add to my calendar puts an entry straight into your phone's calendar, after you allow it.
+
+**Coming later:** connecting Google or Outlook both ways, so times you're busy there are blocked on your booking calendar.`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

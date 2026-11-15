@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.166.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "📅 My Calendar, in the account menu and the phone menu with today's count: your 1:1 sessions and pay-per-minute calls, hotel stays (and, for hotel staff, the hotel's arrivals and departures), event and paid live tickets, events you're going to or host, Notes Jobs interviews and money due from Business books, in one month view with a coloured dot for each kind and the day's list below. Each entry opens where it came from. Times are in Lagos time." },
+      { kind: "added", text: "Add to my calendar: an invite your phone opens in its own calendar, on every entry, the booking confirmation, a hotel booking's page and each ticket in My tickets." },
+      { kind: "added", text: "Sync with your phone: a private calendar link that iPhone Calendar, Google Calendar and Outlook subscribe to and keep up to date. Choose what goes out (money due starts off); it carries titles and times only, and Make a new link stops the old one at once." },
+      { kind: "added", text: "Calendar reminders: a bell shortly before sessions and calls, an hour before events you have a ticket for, the day before a hotel check-in, and an optional Monday email of the week ahead. Reminders that already came stay as they were." },
+    ],
+  },
+  {
     version: "v0.165.1",
     bump: "patch",
     date: "2026-11-14",
