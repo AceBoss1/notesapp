@@ -27,11 +27,12 @@ export default function CampusOverviewPage() {
   const month = data ? new Date(`${data.month}-01T12:00:00Z`).toLocaleDateString("en-GB", { month: "long" }) : "this month";
 
   if (ambassador && me?.member) {
-    const s = data?.ambassadors[0];
+    const s = data?.ambassadors.find((a) => a.uid === me.member!.uid) ?? data?.ambassadors[0];
+    const mates = me.member.campusLead ? (data?.ambassadors ?? []) : [];
     const link = origin ? referralLink(origin, me.member.username) : "";
     return (
       <CampusPage title="My campus" me={me} denied={denied}
-        intro={<>You&apos;re a #NotesApp campus ambassador at <b className="text-ink">{placeOf(me.member)}</b>{me.coordinator ? <> with <b className="text-ink">{me.coordinator.name}</b> as your coordinator</> : null}.</>}>
+        intro={<>You&apos;re {me.member.campusLead ? "the #NotesApp Campus Lead" : "a #NotesApp campus ambassador"} at <b className="text-ink">{placeOf(me.member)}</b>{me.coordinator ? <> with <b className="text-ink">{me.coordinator.name}</b> as your coordinator</> : null}.</>}>
         {error && <p className="mb-4 font-ui text-sm text-crimson" role="alert">{error}</p>}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label={`Sign-ups in ${month}`} value={s?.signupsMonth ?? "…"} note="With your link or code" />
@@ -47,7 +48,28 @@ export default function CampusOverviewPage() {
             <button type="button" onClick={() => void navigator.clipboard?.writeText(link)} className="rounded-full border border-rule bg-card px-4 py-2 font-ui text-sm font-semibold text-ink hover:border-crimson">Copy</button>
           </div>
         </div>
+        {s && (
+          <Link href="/admin/campus/leaderboard" className="mt-4 flex items-center gap-4 rounded-[14px] bg-gradient-to-br from-crimson-deep via-crimson to-crimson-bright p-5 text-white shadow-lg">
+            <span aria-hidden className="text-4xl">{s.level.emoji}</span>
+            <span className="min-w-0 flex-1 font-ui"><b className="block font-display text-2xl font-medium">{s.level.name}</b><span className="text-sm opacity-90">{s.pointsMonth} points in {month} · {s.pointsAll} in all</span></span>
+            <span className="shrink-0 font-ui text-sm font-semibold">Leaderboard →</span>
+          </Link>
+        )}
+        {me.member.campusLead && (
+          <section className={`${card} mt-4 p-0`} aria-labelledby="mates">
+            <h2 id="mates" className="p-5 pb-3 font-ui text-base font-semibold text-ink">You lead {me.member.campus}: everyone on your campus</h2>
+            <ul className="divide-y divide-rule border-t border-rule">
+              {mates.map((a) => (
+                <li key={a.uid} className="px-5 py-3 font-ui text-sm">
+                  <div className="flex items-baseline justify-between gap-3"><b className="truncate text-ink">{a.name}{a.uid === me.member!.uid ? " (you)" : ""}</b><span className="shrink-0 font-semibold text-ink">{a.signupsMonth} <span className="font-normal text-slate">this month</span></span></div>
+                  <p className="mt-0.5 text-xs text-slate"><span aria-hidden>{a.level.emoji}</span> {a.level.name} · {a.signupsAll} in all · {a.done} done · {a.open} open{a.overdue ? <b className="text-red-700"> · {a.overdue} overdue</b> : null} · checked in {ago(a.lastCheckIn)}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <Link href="/admin/campus/tasks" className="mt-4 inline-block font-ui text-sm font-semibold text-crimson">Your tasks →</Link>
+        <Link href="/admin/campus/rewards" className="ml-5 mt-4 inline-block font-ui text-sm font-semibold text-crimson">Rewards →</Link>
       </CampusPage>
     );
   }
@@ -84,7 +106,7 @@ export default function CampusOverviewPage() {
                 <li key={a.uid} className="p-4 font-ui text-sm">
                   <div className="flex items-baseline justify-between gap-3"><b className="truncate text-ink">{i + 1}. {a.name}</b><span className="shrink-0 font-semibold text-ink">{a.signupsMonth} <span className="font-normal text-slate">this month</span></span></div>
                   <p className="mt-0.5 truncate text-xs text-slate">{placeOf(a)} · checked in {ago(a.lastCheckIn)}</p>
-                  <p className="mt-1 text-xs text-slate">{a.signupsAll} in all · {a.done} done · {a.open} open{a.overdue ? <b className="text-red-700"> · {a.overdue} overdue</b> : null}</p>
+                  <p className="mt-1 text-xs text-slate"><span aria-hidden>{a.level.emoji}</span> {a.level.name} · {a.pointsMonth} pts · {a.signupsAll} in all · {a.done} done · {a.open} open{a.overdue ? <b className="text-red-700"> · {a.overdue} overdue</b> : null}</p>
                 </li>
               ))}
             </ul>
@@ -96,7 +118,7 @@ export default function CampusOverviewPage() {
                 {data.ambassadors.map((a, i) => (
                   <tr key={a.uid}>
                     <td className="px-4 py-3 text-slate">{i + 1}</td>
-                    <td className="px-4 py-3"><Link href={`/u/${a.username}`} className="font-semibold hover:text-crimson">{a.name}</Link><span className="block text-xs text-slate">@{a.username}</span></td>
+                    <td className="px-4 py-3"><Link href={`/u/${a.username}`} className="font-semibold hover:text-crimson">{a.name}</Link><span className="block text-xs text-slate">@{a.username} · <span aria-hidden>{a.level.emoji}</span> {a.level.name} · {a.pointsMonth} pts</span></td>
                     <td className="px-4 py-3 text-slate">{placeOf(a)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{a.signupsMonth}</td>
                     <td className="px-4 py-3 text-right">{a.signupsAll}</td>
@@ -109,7 +131,7 @@ export default function CampusOverviewPage() {
           </>
         )}
       </section>
-      <p className="mt-3 font-ui text-xs text-slate">Sign-ups are new members who joined with the ambassador&apos;s link or code, counted by the day in Lagos time. &ldquo;Checked in&rdquo; is the last time they opened Campus or reported on a task, not when they were last online.</p>
+      <p className="mt-3 font-ui text-xs text-slate">Sign-ups are new members who joined with the ambassador&apos;s link or code, counted by the country&apos;s own day. &ldquo;Checked in&rdquo; is the last time they opened Campus or reported on a task, not when they were last online.</p>
     </CampusPage>
   );
 }

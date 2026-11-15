@@ -6,19 +6,21 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell } from "@/lib/email";
 import {
-  CampusError, addAmbassador, appointCoordinator, createTask, deleteTask, me, moveTeam, overview, removeMember, report, review, tasks, team,
-  updateTask, viewerOf, type Notify,
+  CampusError, addAmbassador, appointCoordinator, claimReward, closeReward, createTask, decideClaim, deleteTask, leaderboard, me, moveTeam, overview,
+  removeMember, report, review, rewards, saveReward, setCampusLead, tasks, team, updateTask, viewerOf, type Notify,
 } from "@/lib/campus-server";
 
 export const dynamic = "force-dynamic";
 
 // Campus (lib/campus.ts): coordinators, their ambassadors and their tasks. Any signed-in account may ask; what it gets follows its
 // campus record and, for leads, its staff access.
-//   GET ?view=me | team | tasks | overview   (&country=NG &coordinator=<uid> for leads)
+//   GET ?view=me | team | tasks | overview | rewards | leaderboard (&scope=team|country &period=month|all)   (&country=NG &coordinator=<uid> for leads)
 //   POST { action: "coordinator", who, country, campus?, state? } · { action: "ambassador", who, campus, state?, coordinatorUid? }
 //        { action: "remove", uid } · { action: "move", from, to }
 //        { action: "task", title, details, kind, target?, due, assignees: "all" | uid[] } · { action: "edit", id, ... } · { action: "delete", id }
 //        { action: "report", id, status, note?, proofUrl? } · { action: "review", id, uid, verdict: "approved" | "redo", note? }
+//        { action: "campusLead", uid, on } · { action: "reward", id?, ...reward } · { action: "closeReward", id }
+//        { action: "claim", id, note?, size?, address? } · { action: "decide", id, verdict: "approved" | "declined", note? }
 async function who(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new CampusError("Sign in first.", 401);
@@ -38,6 +40,8 @@ export async function GET(req: NextRequest) {
     const body = view === "team" ? { team: await team(db, v, opts) }
       : view === "tasks" ? { tasks: await tasks(db, v, opts) }
       : view === "overview" ? await overview(db, v, opts)
+      : view === "rewards" ? await rewards(db, v)
+      : view === "leaderboard" ? await leaderboard(db, v, { ...opts, scope: sp.get("scope") ?? undefined, period: sp.get("period") ?? undefined })
       : await me(db, v);
     return NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return fail(e); }
@@ -61,6 +65,11 @@ export async function POST(req: NextRequest) {
       case "delete": return NextResponse.json(await deleteTask(db, v, b.id));
       case "report": return NextResponse.json(await report(db, v, b.id, b, notify));
       case "review": return NextResponse.json(await review(db, v, b.id, b.uid, b.verdict, b.note, notify));
+      case "campusLead": return NextResponse.json(await setCampusLead(db, v, b.uid, b.on, notify));
+      case "reward": return NextResponse.json(await saveReward(db, v, b, notify));
+      case "closeReward": return NextResponse.json(await closeReward(db, v, b.id));
+      case "claim": return NextResponse.json(await claimReward(db, v, b.id, b, notify));
+      case "decide": return NextResponse.json(await decideClaim(db, auth, v, b.id, b.verdict, b.note, notify));
       default: return NextResponse.json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (e) { return fail(e); }

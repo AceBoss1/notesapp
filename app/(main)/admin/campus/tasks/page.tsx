@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CampusPage, Notice, btn, btnGhost, card, input, useCampus, useCampusView } from "@/components/campus/CampusKit";
 import SelectBox from "@/components/ui/SelectBox";
-import { PROGRESS_LABEL, TASK_KINDS, isOverdue, lagosDay, taskKindLabel, type CampusMember, type CampusTask, type Progress, type ProgressStatus, type TaskKind } from "@/lib/campus";
+import { PROGRESS_LABEL, TASK_KINDS, isOverdue, campusDay, taskKindLabel, type CampusMember, type CampusTask, type Progress, type ProgressStatus, type TaskKind } from "@/lib/campus";
 
 // Admin → Campus → Tasks (lib/campus.ts). A coordinator gives tasks to some or all of her ambassadors and reviews what they hand in; an
 // ambassador reports on hers (to do, in progress, done, with a note and a link as proof); a lead reads a country's or a team's.
@@ -21,7 +21,7 @@ export default function CampusTasksPage() {
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const today = lagosDay();
+  const today = campusDay(me?.member?.country);
 
   const act = async (body: Record<string, unknown>, done: string) => {
     setBusy(true); setErr(""); setNote("");
@@ -32,7 +32,7 @@ export default function CampusTasksPage() {
     <CampusPage title="Tasks" me={me} denied={denied}
       intro={ambassador ? "What your coordinator asked you to do. Mark each one as you go, and when it's done add a note and a link that shows it (a post, a photo album, a form)." : coordinator ? "Give tasks to all your ambassadors or some of them, then review what they hand in." : "Every task in the country and how each ambassador is getting on."}>
       <Notice error={err || error} note={note} />
-      {coordinator && <NewTask people={mine} busy={busy} onCreate={(b) => act({ action: "task", ...b }, "Task sent. Your ambassadors have been told.")} />}
+      {coordinator && <NewTask people={mine} today={today} busy={busy} onCreate={(b) => act({ action: "task", ...b }, "Task sent. Your ambassadors have been told.")} />}
       {!data ? <p className="font-ui text-sm text-slate">Loading…</p> : data.tasks.length === 0 ? (
         <p className={`${card} font-ui text-sm text-slate`}>{ambassador ? "No tasks yet. Your coordinator will add them here." : "No tasks yet."}</p>
       ) : (
@@ -49,7 +49,7 @@ export default function CampusTasksPage() {
   );
 }
 
-function NewTask({ people, busy, onCreate }: { people: CampusMember[]; busy: boolean; onCreate: (b: Record<string, unknown>) => Promise<boolean> }) {
+function NewTask({ people, today, busy, onCreate }: { people: CampusMember[]; today: string; busy: boolean; onCreate: (b: Record<string, unknown>) => Promise<boolean> }) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ title: "", details: "", kind: "signups" as TaskKind, target: "10", due: "", all: true, pick: [] as string[] });
   if (!open) return <button type="button" onClick={() => setOpen(true)} className={`${btn} mb-5`}>+ New task</button>;
@@ -63,7 +63,7 @@ function NewTask({ people, busy, onCreate }: { people: CampusMember[]; busy: boo
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="block sm:col-span-2"><span className="mb-1.5 block font-ui text-[13px] text-slate">Title</span><input className={input} value={f.title} maxLength={120} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Bring 10 sign-ups from your faculty" /></label>
         <SelectBox label="Kind" value={f.kind} onChange={(kind) => setF({ ...f, kind })} options={TASK_KINDS.map((k) => ({ value: k.id, label: `${k.label}: ${k.hint}` }))} />
-        <label className="block"><span className="mb-1.5 block font-ui text-[13px] text-slate">Due</span><input type="date" className={input} value={f.due} min={lagosDay()} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
+        <label className="block"><span className="mb-1.5 block font-ui text-[13px] text-slate">Due</span><input type="date" className={input} value={f.due} min={today} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
         {f.kind === "signups" && <label className="block"><span className="mb-1.5 block font-ui text-[13px] text-slate">Sign-ups each ambassador should bring</span><input type="number" min={1} className={input} value={f.target} onChange={(e) => setF({ ...f, target: e.target.value })} /></label>}
         <label className="block sm:col-span-2"><span className="mb-1.5 block font-ui text-[13px] text-slate">Details (optional)</span><textarea rows={3} className={input} value={f.details} maxLength={2000} onChange={(e) => setF({ ...f, details: e.target.value })} placeholder="What to do, and what to send as proof" /></label>
       </div>

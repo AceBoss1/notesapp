@@ -24,7 +24,7 @@ const db = getFirestore();
   await assert.rejects(C.appointCoordinator(db, auth, await view("chi"), { who: "ada@example.test", country: "NG" }, notify), /Only super admins/);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "nobody@example.test", country: "NG" }, notify), /sign up first/);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "@kid", country: "NG" }, notify), /adults/);
-  await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "GH" }, notify), /country/);
+  await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "ZA" }, notify), /country/);
   await C.appointCoordinator(db, auth, lead, { who: "ada@example.test", country: "NG" }, notify);
   await C.appointCoordinator(db, auth, lead, { who: "@bola", country: "NG" }, notify);
   await assert.rejects(C.appointCoordinator(db, auth, lead, { who: "@ada", country: "NG" }, notify), /already a coordinator/);
@@ -98,6 +98,103 @@ const db = getFirestore();
   await assert.rejects(C.me(db, await view("dayo")), /coordinators and ambassadors/);
   // Editing and deleting stay with the task's coordinator.
   await assert.rejects(C.deleteTask(db, bola, t1.id), /wasn't found/);
+
+  // The leaderboard: every ambassador sees it, ranked by points; ambassadors see short names and no uids; ties share a rank.
+  C.clearSignupCache();
+  for (const u of ["wanjiru", "otieno", "akinyi", "kofi"]) { await db.doc(`users/${u}`).set({ username: u, displayName: `${u[0].toUpperCase()}${u.slice(1)} Test` }); await db.doc(`usernames/${u}`).set({ uid: u }); }
+  await C.appointCoordinator(db, auth, lead, { who: "@wanjiru", country: "KE" }, notify);
+  const wan = await view("wanjiru");
+  await C.addAmbassador(db, auth, wan, { who: "@otieno", campus: "University of Nairobi" }, notify);
+  await C.addAmbassador(db, auth, wan, { who: "@akinyi", campus: "Kenyatta University" }, notify);
+  await assert.rejects(C.addAmbassador(db, auth, wan, { who: "@chi", campus: "X Uni" }, notify), /already on a campus team/);
+  const kt = await C.createTask(db, wan, { title: "Campus stand", kind: "event", due: "2026-11-20", assignees: "all" }, notify, now);
+  const oti = await view("otieno"), aki = await view("akinyi");
+  await C.report(db, oti, kt.id, { status: "done" }, notify, new Date("2026-11-19T10:00:00Z"));
+  await C.review(db, wan, kt.id, "otieno", "approved", "", notify, new Date("2026-11-19T12:00:00Z"));
+  for (const [id, by, at] of [["k1", "akinyi", "2026-11-03T09:00:00Z"], ["k2", "akinyi", "2026-11-04T09:00:00Z"], ["k3", "otieno", "2026-09-04T09:00:00Z"]]) await db.doc(`referrals/${id}`).set({ uid: id, referredBy: by, referredAt: at });
+  const later = new Date("2026-11-19T13:00:00Z");
+  const b = await C.leaderboard(db, aki, { scope: "team", period: "month" }, later);
+  assert.equal(b.country, "KE"); assert.equal(b.scope, "team");
+  // Otieno: approved on time this month = 20 + 10 = 30; Akinyi: 2 sign-ups this month = 20.
+  assert.deepEqual(b.rows.map((r) => [r.rank, r.name, r.points]), [[1, "Otieno T.", 30], [2, "Akinyi T.", 20]]);
+  assert.equal(b.rows[0].medal, "🥇");
+  assert.ok(b.rows.every((r) => r.uid === undefined), "ambassadors never get uids");
+  assert.equal(b.rows[1].me, true);
+  assert.equal(b.standing!.rank, 2); assert.equal(b.standing!.level.name, "Rookie"); assert.equal(b.standing!.toNext, 80);
+  const all = await C.leaderboard(db, aki, { scope: "country", period: "all" }, later);
+  assert.deepEqual(all.rows.map((r) => [r.name, r.points]), [["Otieno T.", 40], ["Akinyi T.", 20]], "all time: Otieno's September sign-up counts too");
+  assert.equal(all.scope, "country");
+  // A coordinator sees full names and uids; Nigeria's board doesn't mix in Kenya.
+  const wb = await C.leaderboard(db, wan, { scope: "team" }, later);
+  assert.equal(wb.rows[0].name, "Otieno Test"); assert.equal(wb.rows[0].uid, "otieno");
+  const ng = await C.leaderboard(db, lead, { scope: "country", country: "NG" }, later);
+  assert.ok(!ng.rows.some((r) => r.name.startsWith("Otieno")));
+  assert.deepEqual((await C.leaderboard(db, lead, { scope: "country", country: "KE" }, later)).rows.map((r) => r.name), ["Otieno Test", "Akinyi Test"]);
+  // Ties share a rank.
+  await db.doc("referrals/k4").set({ uid: "k4", referredBy: "akinyi", referredAt: "2026-11-05T09:00:00Z" });
+  C.clearSignupCache();
+  const tie = await C.leaderboard(db, oti, {}, later);
+  assert.deepEqual(tie.rows.map((r) => r.rank), [1, 1]);
+  // Kenya's due dates are Nairobi days.
+  await assert.rejects(C.createTask(db, wan, { title: "Too late", due: "2026-11-30" }, notify, new Date("2026-11-30T21:30:00Z")), /passed/);
+  await assert.rejects(C.leaderboard(db, await view("kofi")), /coordinators and ambassadors/);
+
+  // Badges follow the role: coordinators the team mark, ambassadors the white one, Campus Leads too; gone when they leave.
+  const badge = async (u: string) => (await db.doc(`users/${u}`).get()).data()?.campusBadge;
+  assert.equal(await badge("wanjiru"), "coordinator");
+  assert.equal(await badge("otieno"), "ambassador");
+  assert.equal(await badge("ada"), undefined, "removed earlier");
+  // Campus Lead: chosen by her own coordinator, sees her campus mates (not other campuses).
+  for (const u of ["amani", "baraka"]) { await db.doc(`users/${u}`).set({ username: u, displayName: `${u} Test` }); await db.doc(`usernames/${u}`).set({ uid: u }); }
+  await C.addAmbassador(db, auth, wan, { who: "@amani", campus: "University of Nairobi" }, notify);
+  await assert.rejects(C.setCampusLead(db, bola, "otieno", true, notify), /own team/);
+  await assert.rejects(C.setCampusLead(db, wan, "wanjiru", true, notify), /not an ambassador/);
+  await C.setCampusLead(db, wan, "otieno", true, notify);
+  assert.equal(await badge("otieno"), "lead");
+  const leadView = await C.overview(db, await view("otieno"), {}, later);
+  assert.deepEqual(leadView.ambassadors.map((a) => a.uid).sort(), ["amani", "otieno"], "her campus, not Kenyatta");
+  assert.equal((await C.overview(db, await view("amani"), {}, later)).ambassadors.length, 1, "others see only themselves");
+  assert.equal((await C.leaderboard(db, aki, {}, later)).rows.find((r) => r.name === "Otieno T.")!.campusLead, true);
+
+  // Rewards: leads post them; ambassadors claim what they qualify for; merch becomes a free merch order when approved.
+  await assert.rejects(C.saveReward(db, wan, { country: "KE", kind: "perk", title: "Pass", closesOn: "2026-12-01" }, notify, later), /Only super admins/);
+  const tee = await C.saveReward(db, lead, { country: "KE", kind: "merch", merchItemId: "tshirt", title: "Ambassador tee", closesOn: "2026-12-01", slots: 1 }, notify, later);
+  const intern = await C.saveReward(db, lead, { country: "all", kind: "internship", partner: "Acme Ltd", title: "Summer internship", minLevel: "Rising", closesOn: "2026-12-01" }, notify, later);
+  const leadsOnly = await C.saveReward(db, lead, { country: "KE", kind: "perk", title: "Leads dinner", leadsOnly: true, closesOn: "2026-12-01" }, notify, later);
+  assert.ok(sent.some((x) => x.uid === "akinyi" && /Ambassador tee/.test(x.message)));
+  assert.ok(!sent.some((x) => x.uid === "akinyi" && /Leads dinner/.test(x.message)), "leads-only rewards tell leads only");
+  const seen = await C.rewards(db, aki, later);
+  assert.equal(seen.eligible[tee.id].ok, true);
+  assert.match(seen.eligible[intern.id].why!, /Rising/);
+  assert.match(seen.eligible[leadsOnly.id].why!, /Campus Leads/);
+  await assert.rejects(C.claimReward(db, aki, tee.id, {}, notify, later), /size/);
+  await assert.rejects(C.claimReward(db, aki, tee.id, { size: "M", address: { fullName: "Akinyi T", phone: "0712", street: "x", city: "Nairobi", state: "Nairobi" } }, notify, later), /phone/);
+  const addr = { fullName: "Akinyi Test", phone: "+254712345678", street: "1 University Way", city: "Nairobi", state: "Nairobi County, Kenya" };
+  await C.claimReward(db, aki, tee.id, { size: "M", address: addr, note: "For the stand" }, notify, later);
+  await assert.rejects(C.claimReward(db, aki, tee.id, { size: "M", address: addr }, notify, later), /already claimed/);
+  await assert.rejects(C.claimReward(db, oti, tee.id, { size: "L", address: addr }, notify, later), /All places are taken/);
+  await assert.rejects(C.claimReward(db, aki, intern.id, {}, notify, later), /Rising/);
+  await C.claimReward(db, await view("otieno"), leadsOnly.id, {}, notify, later);
+  assert.ok(sent.some((x) => x.uid === "wanjiru" && /claimed "Ambassador tee"/.test(x.message)));
+  // Coordinators see their team's claims; leads decide.
+  assert.equal((await C.rewards(db, wan, later)).claims.length, 2);
+  await assert.rejects(C.decideClaim(db, { getUser: async () => ({ email: "a@example.test" }) } as never, wan, `${tee.id}_akinyi`, "approved", "", notify), /Only the programme's leads/);
+  const gu = { getUser: async () => ({ email: "akinyi@example.test" }) } as never;
+  await assert.rejects(C.decideClaim(db, gu, lead, `${leadsOnly.id}_otieno`, "declined", "", notify), /Say why/);
+  const ok = await C.decideClaim(db, gu, lead, `${tee.id}_akinyi`, "approved", "", notify, later);
+  const order = (await db.doc(`merchOrders/${ok.merchReference}`).get()).data()!;
+  assert.equal(order.amountKobo, 0); assert.equal(order.status, "preordered"); assert.equal(order.size, "M"); assert.equal(order.source, "campus");
+  assert.equal(order.itemName, "T-Shirt"); assert.equal(order.email, "akinyi@example.test"); assert.deepEqual(order.address, addr);
+  await assert.rejects(C.decideClaim(db, gu, lead, `${tee.id}_akinyi`, "declined", "x", notify), /already been decided/);
+  await C.decideClaim(db, gu, lead, `${leadsOnly.id}_otieno`, "declined", "The dinner is full", notify, later);
+  assert.ok(sent.some((x) => x.uid === "otieno" && /wasn't approved: The dinner is full/.test(x.message)));
+  // Closed rewards drop out for ambassadors; leads still see them.
+  await C.closeReward(db, lead, intern.id);
+  assert.ok(!(await C.rewards(db, aki, later)).rewards.some((r) => r.id === intern.id));
+  assert.ok((await C.rewards(db, lead, later)).rewards.some((r) => r.id === intern.id));
+  // Leaving the team takes the badge away.
+  await C.removeMember(db, wan, "akinyi", notify);
+  assert.equal(await badge("akinyi"), undefined);
 
   console.log("CAMPUS OK");
   process.exit(0);

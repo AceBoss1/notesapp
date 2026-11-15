@@ -209,7 +209,7 @@ You see how many times each code was used, how much it took off and what buyers 
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
     A("campus-ambassadors", "The campus programme: coordinators and ambassadors", "Company", `
-#NotesApp campus ambassadors bring students to #NotesApp at their university or college, led by a **campus coordinator** for their country. We start with **Nigeria**.
+#NotesApp campus ambassadors bring students to #NotesApp at their university or college, led by a **campus coordinator** for their country: **Nigeria, Kenya, Botswana and Ghana**. Due dates and months run in each country's own time.
 
 **Becoming an ambassador:** watch [Careers](/careers) for the Campus Ambassador role, or ask a coordinator. You need your own #NotesApp account first (it's free); your coordinator then adds you with your @username or email, and you get a notification. Open **Campus** from it, or from **Campus team** in your My account menu.
 
@@ -217,7 +217,15 @@ Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store
 - **My campus:** your sign-ups this month and in all, your tasks done and open, and your **link and code**. Everyone who joins with your link, or types your code (your username) at checkout, counts as your sign-up, and you earn from the plans they pay for, as in the [referral programme](/help/referral-milestones).
 - **Tasks:** what your coordinator asked you to do, with the due date. Mark each one To do, In progress or Done, and add a note and a link that shows it (a post, a photo album, a form). Your coordinator approves it, or sends it back with a note saying what to add.
 
-Ambassadors see only their own tasks and numbers, never other ambassadors' or anything else in the admin area.
+- **Leaderboard:** your team or your whole country, this month or all time. You earn points for every member who joins with your link or code, every task your coordinator approves, and a bonus for finishing a task by its due date (the page shows how many). The top three get medals, the board starts again each month, and your **level** (Rookie, Rising, Star, Champion, Legend) comes from all your points and never goes down. On the leaderboard ambassadors see each other by first name and initial with their campus.
+
+- **Rewards:** internships and scholarships from our partners, perks, and **#NotesApp merch**. Each reward says who can claim it (everyone, a level and up, the top few on the country's board this month, or Campus Leads), until when, and how many places are left. If you can't claim one yet, it says what's missing. Merch is free: choose your size and where to send it, and once it's approved you get a tracking link when it ships. You'll get a notification when a claim is decided.
+
+**Campus Leads:** your coordinator can make one ambassador on each campus its **Campus Lead**. A Campus Lead also sees how everyone on that campus is doing (sign-ups, tasks and check-ins), and some rewards are for Campus Leads only.
+
+**Badges:** campus coordinators wear the maroon #NotesApp team mark by their name; ambassadors and Campus Leads wear the white #NotesApp mark with a maroon shadow. The badge comes and goes with the role.
+
+Apart from the leaderboard, ambassadors see only their own tasks, numbers and claims, never other ambassadors' or anything else in the admin area (a Campus Lead also sees her campus).
 
 **What a coordinator does:** gives her ambassadors access (and takes it away), sends tasks to all of them or some, reviews what they hand in, and sees each ambassador's sign-ups, tasks done, open and overdue, and when they last checked in (the last time they opened Campus or reported on a task, not when they were last online). A coordinator sees only her own team.
 
