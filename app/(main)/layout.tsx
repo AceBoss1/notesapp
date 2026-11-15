@@ -88,6 +88,7 @@ const COMPANY = [
   { href: "/docs", label: "API Docs" },
   { href: "/changelog", label: "Changelog" },
   { href: "/security", label: "Trust & Security" },
+  { href: "/content-rules", label: "Content rules" },
   { href: "/teams", label: "Team hub" },
   { href: "/domains", label: "Buy Domains" },
   { href: "/merchstore", label: "Merch Store" },

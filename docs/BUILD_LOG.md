@@ -3297,3 +3297,18 @@ tap after it is check-out, a tap on or before check-in starts again, and the nig
 show as a summary ("Mon 16 Nov → Thu 19 Nov · 3 nights", Change) that opens the calendar and closes once check-out is picked. Dates
 are written out by hand (`dayLabel`) rather than with `toLocaleDateString`, which printed "Sun 15 Nov" on the server and "Sun, 15 Nov"
 in Chrome and broke hydration.
+
+**AI content checks (v0.168.0)** — every photo, video frame and text that people other than the author can see is checked before it is
+published (owner's decisions and approved mockups, 15 Nov 2026: `docs/CONTENT_CHECKS.md`, `docs/mockups/content-checks/`). Pure rules
+`lib/content-checks.ts` (settings with the owner's defaults, `decide`: pass, hold for a person, block with a strike, child safety; news,
+medical and art in context; teens stricter; strikes, pauses, bans, community steps, the words). The checker `lib/content-checks-ai.ts`: one
+structured call per post through the Anthropic SDK and `ANTHROPIC_API_KEY` (smallest current model, `CONTENT_CHECK_MODEL`), pictures shrunk
+to 768 px WebP, Stream posters and frames for video; no key, an error or a timeout publishes and queues. `lib/content-checks-server.ts`:
+`gateContent` (called by journals' pass and server publishes, journal comments, communities, community posts and comments, Moments, Media
+pictures, captions and videos before they show, events, shop items' and profiles' passes), the answer cache, strikes and pauses
+(`contentStanding`), bans through the existing suspension records, the Legal queue, appeals, reviews, `recheckQueued` (cron
+`contentRechecks`), check passes (`contentPasses`, required by `firestore.rules` to publish a journal or change a shop item's or profile's
+words or pictures). UI: the rules card (community About, journal editor, Media studio, `/content-rules`, Terms 2e), the blocked message
+with Remove the photo / Ask for a review, the account page's Content checks, Admin → Reports → Content checks. Tests: `test:content-checks`,
+`test:content-checks-server` (AI stubbed by injection), rules.
+
