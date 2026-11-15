@@ -1,0 +1,215 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:860px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px}
+.item{width:330px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}
+.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.cam{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.face{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:120px;height:150px;border-radius:50% 50% 45% 45%;background:radial-gradient(ellipse at 45% 40%,#b7795a,#6d3a28 70%);opacity:.85}
+.body{position:absolute;left:50%;top:44%;transform:translateX(-50%);width:230px;height:260px;border-radius:120px 120px 0 0;background:linear-gradient(#5b1426,#2a0811)}
+.pill{background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.live{background:#E0123E;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.chat{position:absolute;left:12px;right:70px;bottom:70px;display:flex;flex-direction:column;gap:6px}
+.msg{color:#fff;font-size:12.5px;line-height:1.35;text-shadow:0 1px 2px #000}.msg b{color:#FFD6E0}
+.rail{position:absolute;right:10px;bottom:76px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.rb{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px)}
+.rb small{display:block}
+.bar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;align-items:center}
+.input{flex:1;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;border:1px solid rgba(255,255,255,.25)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.lbl{font-size:12px;font-weight:700;color:var(--ink);margin:10px 0 6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg span{border:1px solid var(--rule);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;background:#fff}
+.seg .on{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.tg{width:34px;height:20px;border-radius:999px;background:var(--crimson);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#cfc3bc}.tg.off:after{right:auto;left:2px}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ring{width:84px;height:84px;border-radius:50%;padding:3px;background:conic-gradient(#E0123E,#ff6a88,#E0123E);position:relative}
+.ring>div{width:100%;height:100%;border-radius:50%;border:3px solid var(--paper);background:radial-gradient(#b7795a,#5b1426)}
+.ring .lv{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:14px;padding:11px;margin-top:8px}
+.opt.hl{border-color:var(--crimson);background:#fbf0f3}
+.opt i{font-style:normal;font-size:20px}.opt b{font-size:13.5px;display:block}.opt span{font-size:11.5px;color:var(--slate)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:20px;display:block;font-family:Fraunces,serif}.stat span{font-size:11.5px;color:var(--slate)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.gift{position:absolute;left:12px;top:150px;background:linear-gradient(90deg,rgba(122,3,40,.9),rgba(166,9,61,.75));color:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12px;display:flex;gap:8px;align-items:center}
+.gift i{font-style:normal;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.seats{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:8px}
+.seat{width:58px;height:74px;border-radius:12px;background:rgba(0,0,0,.35);border:1.5px dashed rgba(255,255,255,.55);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.seat.f{border:2px solid #3ddc84;background:radial-gradient(#8a5b45,#2a120b)}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600}
+.sub{font-size:12px;color:var(--slate);line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.lock{position:absolute;inset:0;background:linear-gradient(160deg,#4E0119,#A6093D);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.fp{width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:46px;background:rgba(255,255,255,.08)}
+.cring{width:150px;height:150px;border-radius:50%;margin:4px auto;background:conic-gradient(#E0123E 0 17%,#F6B3C3 17% 40%,#2FA37A 40% 58%,#F2C14E 58% 61%,#C9A7E8 61% 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.cring>div{width:112px;height:112px;border-radius:50%;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cring b{font-family:Fraunces,serif;font-size:30px}.cring span{font-size:11px;color:var(--slate)}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:11.5px}
+.cal span{padding:6px 0;border-radius:8px;position:relative}.cal .hd{font-size:10px;color:var(--slate);padding:2px 0}
+.p{background:#FBD3DC;color:#8c0026;font-weight:700}.pp{background:#fff;border:1.5px dashed #E0123E;color:#8c0026}.fw{background:#D6F0E4;color:#17694a}.ov{background:#F2C14E;color:#4d3800;font-weight:800}.td{outline:2px solid var(--ink)}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:10.5px;color:var(--slate)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.drops{display:flex;gap:4px;font-size:18px}
+.slider{height:6px;border-radius:9px;background:linear-gradient(90deg,var(--crimson) 0 40%,#e5d9d3 40%);position:relative;margin:8px 0}.slider:after{content:"";position:absolute;left:40%;top:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--crimson);transform:translateX(-50%)}
+.nana{background:linear-gradient(135deg,#fff,#fbeff3);border:1px solid #f0cbd6;border-radius:16px;padding:10px 12px;font-size:12px;line-height:1.45}.nana b{color:var(--crimson)}
+.bars{display:flex;align-items:flex-end;gap:7px;height:70px}.bars div{flex:1;background:var(--crimson);border-radius:5px 5px 0 0;opacity:.85;position:relative}.bars div span{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:10px;color:var(--slate)}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.35}
+.desk{width:100%;}
+.kcol{flex:1;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px}
+.kcol h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate)}
+.tk{border:1px solid var(--rule);border-radius:10px;padding:6px 7px;font-size:11px;line-height:1.35;background:#fff}.tk b{font-size:11.5px}
+.late{border-color:#E0123E;background:#fff1f3}
+.tier{border:1px solid var(--rule);border-radius:14px;padding:9px 10px;background:#fff;font-size:11.5px;line-height:1.4}.tier h3{font-size:13.5px;display:flex;justify-content:space-between}
+.tier.hl{border:2px solid var(--crimson)}
+.job{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px;font-size:12px;line-height:1.4}
+.score{font-family:Fraunces,serif;font-size:20px;font-weight:600;color:var(--crimson)}
+.why{color:#17694a}.risk{color:#8c4a00}
+.fun{display:flex;flex-direction:column;gap:4px;font-size:11.5px}.fun div{display:flex;align-items:center;gap:8px}.fun i{height:14px;background:var(--crimson);border-radius:4px;opacity:.85}
+.hotelhero{height:150px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.65)),linear-gradient(135deg,#b07a4f,#5a3420 55%,#24140c);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.room{display:flex;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:8px;font-size:12px}.room .im{width:72px;height:60px;border-radius:10px;background:linear-gradient(135deg,#d9b48f,#8a5a3c);flex:none}
+.food{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:7px;font-size:12px}.food .im{width:48px;height:48px;border-radius:10px;flex:none;background:radial-gradient(#f0a03c,#a8451b)}
+.qty{margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:700}.qty i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.pad>*{flex-shrink:0}
+
+.dotrow{display:flex;gap:2px;justify-content:center;margin-top:1px}.dotrow i{width:5px;height:5px;border-radius:50%;display:block}
+.c-book{background:#A6093D}.c-hotel{background:#b07a4f}.c-event{background:#2FA37A}.c-live{background:#E0123E}.c-job{background:#3b6fd8}.c-books{background:#F2C14E}.c-cycle{background:#C9A7E8}
+.ag{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:9px 10px;font-size:12px;line-height:1.35}
+.ag .t{font-weight:700;min-width:46px;color:var(--ink)}.ag .bar{width:4px;align-self:stretch;border-radius:4px}
+.ag b{font-size:12.5px}
+.sys{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:22px}
+.sysbox{background:#f4f4f6;border-radius:16px;padding:16px;text-align:center;font-size:12.5px;line-height:1.45;width:100%}
+.sysbox b{display:block;font-size:14px;margin-bottom:4px}
+.sysbtn{display:flex;border-top:1px solid #d4d4d8;margin:12px -16px -16px}.sysbtn span{flex:1;padding:11px;color:#2563eb;font-weight:600}.sysbtn span+span{border-left:1px solid #d4d4d8}
+.menu{background:#fff;border-radius:16px;border:1px solid var(--rule);overflow:hidden}.menu div{padding:10px 12px;font-size:13px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:center}.menu div:first-child{border-top:0}
+.menu .hl{background:#fbf0f3;color:var(--crimson);font-weight:700}
+.vid{position:relative;border-radius:14px;overflow:hidden;height:150px;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.vid .dur{position:absolute;right:8px;bottom:8px}
+.wave{display:flex;align-items:center;gap:2px;height:54px;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:6px 8px}
+.wave i{flex:1;border-radius:2px;background:var(--crimson)}.wave i.q{background:#d9cdc6;height:4px!important}
+.cut{position:relative}.cut:after{content:"✂";position:absolute;top:-9px;font-size:9px;color:var(--slate)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ba div{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 10px;font-size:11.5px;color:var(--slate)}.ba b{display:block;font-family:Fraunces,serif;font-size:19px;color:var(--ink)}
+.ln{display:flex;gap:8px;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:7px 9px;font-size:12.5px;line-height:1.4}.ln small{color:var(--slate);min-width:30px;font-size:10.5px;padding-top:2px}.ln u{text-decoration:underline wavy #E0123E;text-underline-offset:3px}
+.ln.ed{border:2px solid var(--crimson)}
+.capt{position:absolute;left:14px;right:14px;text-align:center;font-weight:800;font-size:19px;line-height:1.3;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.85)}
+.capt em{font-style:normal;background:#FFD23F;color:#1A1210;border-radius:6px;padding:0 5px;text-shadow:none}
+.sty{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.sty div{border:1px solid var(--rule);border-radius:10px;background:#2a1712;color:#fff;font-size:11px;font-weight:800;text-align:center;padding:12px 4px}.sty .on{outline:2px solid var(--crimson);outline-offset:1px}
+.sty .b em{font-style:normal;background:#FFD23F;color:#1A1210;border-radius:4px;padding:0 3px}.sty .c{font-weight:600}.sty .k em{font-style:normal;color:#FFD23F}
+.pbar{position:absolute;left:10px;right:10px;top:10px;display:flex;gap:4px}.pbar i{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.35)}.pbar i.f{background:#fff}
+</style></head><body>
+<h1>🎬 Moments: tidy up and captions</h1>
+<p class="lede">Two helpers for video moments and voice-overs. <b>Trim the pauses</b> takes the silences out of a recording, so one take sounds like a clean edit. <b>Captions</b> writes what you said and shows each word as you say it, so people can follow with the sound off. Both are optional, and you check everything before you share.</p>
+<div class="grid">
+
+<!-- 1 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> New moment <span style="margin-left:auto">✕</span></div>
+  <div class="pad" style="gap:8px">
+    <div class="seg"><span>Text</span><span>Picture</span><span class="on">Video</span></div>
+    <div class="vid"><span class="pill dur">1:42</span></div>
+    <div class="lbl" style="margin:0">Tidy up</div>
+    <div class="card" style="padding:4px 10px">
+      <div class="row" style="border:0"><span>✂️ Trim the pauses<br><span class="mini">Saves 21 seconds</span></span><span class="tg"></span></div>
+      <div class="row"><span>💬 Add captions<br><span class="mini">Shows each word as you say it</span></span><span class="tg"></span></div>
+    </div>
+    <div class="ba"><div>Before<b>1:42</b>2 moments</div><div style="border-color:var(--crimson)">After<b>1:21</b>1 moment</div></div>
+    <div class="note">Trimmed, your video fits in one moment, so it uses 1 of your 7 video moments this week, not 2.</div>
+    <button class="btn pri">Next: check it</button>
+  </div>
+</div></div><p class="cap"><b>1 · In the composer</b>After a video is chosen, two switches appear. The page listens to the recording on the phone itself and says how much the trim saves. A shorter video can need fewer moments, so it uses less of the week's video moments.</p></div>
+
+<!-- 2 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Trim the pauses</div>
+  <div class="pad" style="gap:8px">
+    <div class="vid" style="height:120px"><span class="pill" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:18px">▶</span><span class="pill dur">1:21</span></div>
+    <div class="wave">
+      <i style="height:60%"></i><i style="height:90%"></i><i style="height:70%"></i><i style="height:40%"></i><i class="q"></i><i class="q"></i><i class="q"></i><i style="height:80%"></i><i style="height:100%"></i><i style="height:55%"></i><i style="height:75%"></i><i class="q"></i><i class="q"></i><i style="height:65%"></i><i style="height:95%"></i><i style="height:50%"></i><i style="height:85%"></i><i style="height:45%"></i><i class="q"></i><i class="q"></i><i class="q"></i><i class="q"></i><i style="height:70%"></i><i style="height:90%"></i><i style="height:60%"></i><i class="q"></i><i class="q"></i><i style="height:80%"></i><i style="height:55%"></i><i style="height:95%"></i>
+    </div>
+    <div class="leg"><span><i style="background:var(--crimson)"></i>You speaking</span><span><i style="background:#d9cdc6"></i>Pauses taken out (11)</span></div>
+    <div class="lbl" style="margin:0">Take out pauses longer than</div>
+    <div class="seg"><span>¼ second</span><span class="on">½ second</span><span>1 second</span></div>
+    <div class="sub">A short breath is kept on each side, so it never cuts inside a word.</div>
+    <div class="card" style="padding:4px 10px"><div class="row" style="border:0"><span>Keep the pause at 0:48</span><span class="tg off"></span></div></div>
+    <div style="display:flex;gap:8px;margin-top:auto"><button class="btn sec" style="flex:1">Undo the trim</button><button class="btn pri" style="flex:1">Looks good</button></div>
+  </div>
+</div></div><p class="cap"><b>2 · Check the trim</b>The pauses show grey on the sound wave. Play it to hear the result, choose how tight the cut is, and keep any pause that matters. Nothing is deleted: the full video is still uploaded once, and the moment simply skips the grey parts when it plays.</p></div>
+
+<!-- 3 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Check your captions</div>
+  <div class="pad" style="gap:6px">
+    <div class="sub">Tap a line to fix a word. Names and places are the usual slips.</div>
+    <div class="ln"><small>0:00</small><span>So you have six days to price your work properly.</span></div>
+    <div class="ln ed"><small>0:04</small><span>Most tailors in <u>Shomolu</u> charge for cloth, not for time.</span></div>
+    <div class="ln"><small>0:09</small><span>Here are three things I changed this month.</span></div>
+    <div class="ln"><small>0:13</small><span>One. Every order pays half before I cut.</span></div>
+    <div class="lbl" style="margin:2px 0 0">Look</div>
+    <div class="sty"><div class="c">Clean</div><div class="b on">Bold <em>word</em></div><div class="k">Colour <em>word</em></div></div>
+    <div class="lbl" style="margin:2px 0 0">Where</div>
+    <div class="seg"><span>Middle</span><span class="on">Lower third</span></div>
+    <div class="note">Captions are written by AI and can be wrong. You are sharing them, so please read them through.</div>
+    <button class="btn pri">Share moment</button>
+  </div>
+</div></div><p class="cap"><b>3 · Check your captions</b>What you said, line by line, with the time. Tap to correct a word; the timing stays. Choose one of three looks and where it sits. Words the AI was unsure of are underlined.</p></div>
+
+<!-- 4 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#000">
+  <div class="cam"></div><div class="face"></div><div class="body"></div>
+  <div class="pbar"><i class="f"></i><i class="f" style="background:linear-gradient(90deg,#fff 40%,rgba(255,255,255,.35) 40%)"></i><i></i></div>
+  <div style="position:absolute;left:12px;top:24px;display:flex;gap:8px;align-items:center;color:#fff;font-size:12.5px;font-weight:700"><span style="width:30px;height:30px;border-radius:50%;background:radial-gradient(#b7795a,#5b1426);display:block"></span>@ngozi.sews <span style="font-weight:500;opacity:.8">19h left</span></div>
+  <div class="capt" style="bottom:170px">Every order pays <em>half</em><br>before I cut.</div>
+  <div class="rail" style="bottom:90px"><span class="rb" style="font-size:13px;font-weight:800;border:2px solid #fff">CC</span><span class="rb">🔊</span><span class="rb">↗</span></div>
+  <div class="bar"><div class="input">Reply to @ngozi.sews…</div><span class="rb">❤</span></div>
+</div></div><p class="cap"><b>4 · Watching</b>Each word lights up as it is spoken, so the moment works with the sound off. Viewers can turn captions off with CC. Captions are drawn by the player, not burnt into the video, so they stay sharp and can be corrected after sharing.</p></div>
+
+<!-- 5 -->
+<div class="item"><div class="ph"><div class="sc" style="background:#000">
+  <div style="position:absolute;inset:0;background:linear-gradient(160deg,#d9b48f,#8a5a3c 55%,#3b2019)"></div>
+  <div class="pbar"><i class="f" style="background:linear-gradient(90deg,#fff 65%,rgba(255,255,255,.35) 65%)"></i></div>
+  <div style="position:absolute;left:12px;top:24px;display:flex;gap:8px;align-items:center;color:#fff;font-size:12.5px;font-weight:700"><span style="width:30px;height:30px;border-radius:50%;background:radial-gradient(#b7795a,#5b1426);display:block"></span>@ngozi.sews <span class="pill" style="font-size:10.5px">🎙 Voice-over</span></div>
+  <div class="capt" style="bottom:190px;font-weight:600;font-size:17px">This one took four days,<br>and she paid before I started.</div>
+  <div class="rail" style="bottom:90px"><span class="rb" style="font-size:13px;font-weight:800;border:2px solid #fff">CC</span><span class="rb">🔊</span></div>
+  <div class="bar"><div class="input">Reply…</div><span class="rb">❤</span></div>
+</div></div><p class="cap"><b>5 · Voice-overs too</b>A voice-over recorded over a picture or text gets the same two helpers: pauses trimmed and captions on the picture. Shown here in the Clean look.</p></div>
+
+<!-- 6 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Moment settings</div>
+  <div class="pad" style="gap:7px">
+    <div class="lbl" style="margin:0">When I make a video moment</div>
+    <div class="card" style="padding:4px 10px">
+      <div class="row" style="border:0"><span>✂️ Offer to trim the pauses</span><span class="tg"></span></div>
+      <div class="row"><span>💬 Add captions</span><span class="tg"></span></div>
+      <div class="row"><span>Caption look</span><b>Bold word ›</b></div>
+    </div>
+    <div class="lbl" style="margin:0">When I watch</div>
+    <div class="card" style="padding:4px 10px"><div class="row" style="border:0"><span>Show captions when there are any</span><span class="tg"></span></div></div>
+    <div class="lbl" style="margin:0">Good to know</div>
+    <div class="card" style="font-size:12px;line-height:1.5;color:var(--slate)">
+      ✂️ Trimming happens <b style="color:var(--ink)">on your phone</b>. Nothing is sent anywhere.<br>
+      💬 For captions, <b style="color:var(--ink)">only the sound</b> is sent to be written down. It isn't kept afterwards.<br>
+      🗣 English first. Pidgin works but makes more mistakes.<br>
+      🎵 A moment with a song and no speech has no captions.
+    </div>
+    <div class="note">Captions are checked like any other words on #NotesApp before a moment is shared.</div>
+  </div>
+</div></div><p class="cap"><b>6 · Settings and limits</b>Your choices are remembered. Trimming is free for everyone and runs on the device. Captions come with every video moment and voice-over your plan already allows. Captions go through the same content checks as a moment's text.</p></div>
+
+</div></body></html>
