@@ -3319,3 +3319,13 @@ pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest 
 ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
+
+**Onboarding drafts for contract roles (v0.169.1, 15 Nov 2026)** — The owner reported that "draft documents should draft from templates
+but it's not happening", for a Campus Ambassador. Team hub → Nana-HR & hiring (`app/(main)/admin/team/hr/page.tsx`): the terms form now
+opens under the applicant, scrolls into view with the heading "Onboarding documents for <name>" focused, hides salary fields for contract
+roles, shows errors in place, and the drafts open there too (before, it opened at the top of the page, out of sight on a phone).
+`lib/hr-drafts.ts`: the Campus Ambassador Agreement (`ambassadorAgreement`) and the Contractor (Consulting) Agreement
+(`contractorAgreement`), both independent contractors, with the DRAFT FOR COUNSEL REVIEW banner and company details from `COMPANY_INFO`;
+`draftsFor` returns them (kind `agreement`) with the option grant and the announcement for contract arrangements; a `campus-ambassador`
+preset from its listing (about 5 hours a week). No referral rates are written in (the agreement points at the programme's published
+terms). Both are staff-library templates. Tests: `test:hr` (extended, now in CI).
