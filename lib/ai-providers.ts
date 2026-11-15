@@ -130,7 +130,7 @@ export async function completeJson(acct: Account, system: string, user: string, 
     };
   } else if (acct.provider === "anthropic") {
     // Claude's current models think before they answer, and that thinking counts against max_tokens. With only room for the answer, the
-    // JSON came back cut off (or not at all) and the CV review failed (v0.173.1). So: low effort (these are extraction jobs), room for the
+    // JSON came back cut off (or not at all) and the CV review failed (v0.174.1). So: low effort (these are extraction jobs), room for the
     // thinking on top of the answer, and a cut-off or a refusal said plainly instead of "not the JSON we asked for".
     req = {
       url: `${ANTHROPIC_BASE}/v1/messages`, headers: { "x-api-key": acct.apiKey, "anthropic-version": "2023-06-01" },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkReply } from "@/lib/content-checks-reply";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
@@ -8,6 +9,8 @@ import { EventError, cancelEvent, createEvent, getEvent, listedEvents, rsvp, upd
 export const dynamic = "force-dynamic";
 const viewer = async (req: NextRequest) => (await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null))?.uid ?? null;
 const fail = (err: unknown, what: string) => {
+  const cc = checkReply(err);
+  if (cc) return cc;
   if (err instanceof EventError || err instanceof CommunityError) return NextResponse.json({ error: err.message }, { status: err.status });
   const f = friendlyMessage(err, what);
   return NextResponse.json({ error: f.message }, { status: f.status });

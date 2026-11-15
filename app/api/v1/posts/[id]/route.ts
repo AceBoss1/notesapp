@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { gateJournal } from "@/lib/content-checks-server";
+import { isContentCheckError } from "@/lib/content-checks";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { fail, parsePostBody, postJson, v1 } from "@/lib/api-v1";
 import { emitWebhook } from "@/lib/webhooks";
@@ -25,8 +27,19 @@ export const PATCH = v1("write:posts", async (req, { uid }, { params }) => {
   if (!body || typeof body !== "object") throw fail(400, "invalid_request", "Send a JSON body.");
   const fields = parsePostBody(body, true);
   if (!Object.keys(fields).length) throw fail(400, "invalid_request", "Nothing to change.");
-  await ref.update(fields);
   const next = { ...n, ...fields };
+  // AI content checks: publishing, or changing a published post's words or picture, is checked first; if it breaks the rules the post
+  // is saved as a draft.
+  const changed = ["title", "content", "featured_image"].some((k) => k in fields && fields[k as keyof typeof fields] !== n[k]);
+  if (next.status === "published" && (n.status !== "published" || changed)) {
+    try { await gateJournal(getAdminDb(), uid, next, ref.path); }
+    catch (e) {
+      if (!isContentCheckError(e)) throw e;
+      await ref.update({ ...fields, status: "draft" });
+      throw fail(422, "content_blocked", `${e.message} It was saved as a draft.`);
+    }
+  }
+  await ref.update(fields);
   if (n.status !== "published" && next.status === "published") void emitWebhook(uid, "post.published", postJson(params.id, next));
   return NextResponse.json(postJson(params.id, next, true));
 });

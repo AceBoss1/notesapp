@@ -1,3 +1,4 @@
+import { gateContent } from "./content-checks-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { NA_NOTESAPP_PROFILE, resolveAuthorUsername } from "./journals-directory";
 import { notifyMentions } from "./mentions-server";
@@ -69,10 +70,14 @@ export async function postComment(db: Firestore, uid: string, input: { noteId?: 
     ? { uid, username: NA_NOTESAPP_PROFILE.username, displayName: NA_NOTESAPP_PROFILE.displayName, avatar: NA_NOTESAPP_PROFILE.avatar }
     : me;
   const title = String(note.title ?? "");
-  const ref = await noteRef.collection("comments").add({
+  const ref = noteRef.collection("comments").doc();
+  const data = {
     authorUid: uid, authorUsername: shown.username, authorDisplayName: shown.displayName, authorAvatar: shown.avatar,
     content, createdAt: new Date().toISOString(), noteId, noteSlug: String(note.slug ?? noteId), noteTitle: title, parentCommentId: parentId, likeCount: 0,
-  });
+  };
+  // AI content checks (lib/content-checks-server.ts): checked before anyone sees it; the brand's own replies aren't.
+  if (shown === me) await gateContent(db, { uid, kind: "journal_comment", label: content, text: content, path: ref.path, restore: { set: data }, takedown: { delete: true }, where: { href: `/journals/${String(note.slug ?? noteId)}#comments` } });
+  await ref.set(data);
 
   const href = `/journals/${String(note.slug ?? noteId)}#comments`;
   const jobs: Promise<unknown>[] = [];
