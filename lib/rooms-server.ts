@@ -24,6 +24,7 @@ import { liveEntrance } from "./fans-server";
 import { holdsLiveTicket, markLiveEnded } from "./live-door-server";
 import { flushJoins, handleOf, noteJoin, oncePerPerson, postRoomEvent } from "./room-events-server";
 import type { LiveRecordChoice } from "./live-tickets";
+import { STUDIO_CLOSED, STUDIO_FOLDER, STUDIO_MAX, applyStudioPatch, cleanComment, cleanLine, clipKindOf, ownStudioFile, queueWith, studioAllowed, studioOf, type StudioState } from "./studio";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -347,6 +348,7 @@ const NO_PERM: Record<ModPerm, string> = {
   chatMute: "Only the host or a moderator can mute people in the chat.", ban: "Only the host or a moderator allowed to remove people can do that.",
   mode: "Only the host changes the stage mode.", slow: "Only the host sets slow mode.", pin: "Only the host or a moderator allowed to pin can do that.",
   poster: "Only the host chooses the poster.", video: "Only the host decides who can use video.", consent: "Only the host or a moderator allowed to manage the recording prompts can do that.",
+  studio: "Only the host or an editor runs the studio.", onair: "Only the host or a moderator allowed to put comments on air can do that.",
   end: "Only the host or an admin can end the room.",
 };
 function need(r: RoomDoc, uid: string, perm: ModPerm, extra: readonly ModPerm[] = []) {
@@ -1058,4 +1060,95 @@ export async function markRoomEvent(db: Firestore, uid: string, id: unknown, kin
   }
   const likes = kind === "like" ? Number(((await ref.get()).data() as RoomDoc | undefined)?.likes ?? 0) : undefined;
   return { ok: true, posted: first, ...(likes !== undefined ? { likes } : {}) };
+}
+
+// ── Notes Live Studio (lib/studio.ts) ──
+// One step in the studio, checked here and written to the room's `studio` object, which every screen in the room draws from.
+//   { op: "on", on }                      the host switches the studio on or off (while the team tests it: only in a live on the staff pass)
+//   { op: "set", patch }                  the graphics: layout, theme, focus, logo, lower third, ticker, subtitle line, sponsor spot ("studio")
+//   { op: "clip", url, label?, ad? }      play a clip for everyone, or stop it with url "" ("studio")
+//   { op: "comment", message | null }     put a viewer's comment on air, or take it off ("onair")
+//   { op: "queue", message } · { op: "unqueue", messageId }   the on-air queue ("onair")
+//   { op: "screen", on }                  someone on stage says their camera track is now their screen (or no longer is)
+// Pictures, videos and sounds must be files this person uploaded from the studio (their own posters/ or studio/ folder in our storage).
+export async function studioStep(db: Firestore, uid: string, id: unknown, body: Record<string, unknown>, now = new Date()): Promise<{ studio: StudioState }> {
+  const ref = db.doc(`communityRooms/${String(id ?? "")}`);
+  const op = String(body.op ?? "");
+  let base = "";
+  try { base = r2PublicUrl(""); } catch { /* no storage set up: every file is refused below */ }
+  const file = (url: unknown) => ownStudioFile(url, base, uid, [POSTER_FOLDER, STUDIO_FOLDER]);
+  // A comment is taken from the room's chat when the message is kept there (rooms without the live-rooms worker), so nobody is quoted
+  // saying something they didn't; on the worker the chat isn't stored, and the moderator's copy is used (and their name is in the log).
+  let sent = op === "comment" || op === "queue" ? cleanComment(body.message, uid) : null;
+  if (sent) {
+    const kept = (await ref.collection("chat").doc(sent.id).get().catch(() => null))?.data() as RoomChat | undefined;
+    if (kept && !kept.ev) sent = cleanComment({ id: sent.id, from: kept.from, name: kept.name, avatar: kept.avatar, text: kept.text }, uid);
+  }
+  let logged = "";
+  let seen: RoomDoc | null = null;
+  const studio = await db.runTransaction(async (tx) => {
+    const r = (await tx.get(ref)).data() as RoomDoc | undefined;
+    if (!r) throw new CommunityError(404, "That room wasn't found.");
+    if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+    seen = r;
+    const cur = studioOf(r);
+    let next: StudioState = cur;
+    if (op === "on") {
+      if (uid !== r.hostUid) throw new CommunityError(403, "Only the host switches the studio on or off.");
+      if (body.on === true && !studioAllowed(r)) throw new CommunityError(403, STUDIO_CLOSED);
+      next = { ...cur, on: body.on === true };
+    } else {
+      if (!cur.on) throw new CommunityError(409, "The host hasn't switched the studio on.");
+      const stage = [r.hostUid, ...r.speakers];
+      switch (op) {
+        case "set": {
+          need(r, uid, "studio");
+          const out = applyStudioPatch(cur, body.patch, { file, stage });
+          if (!out.ok) throw new CommunityError(400, out.error);
+          next = out.studio; logged = "change the studio's graphics";
+          break;
+        }
+        case "clip": {
+          need(r, uid, "studio");
+          const url = file(body.url);
+          if (url === null) throw new CommunityError(400, "Upload the clip from the studio first.");
+          next = { ...cur, clip: url ? { url, kind: clipKindOf(url), label: cleanLine(body.label, STUDIO_MAX.label), at: now.toISOString(), ad: body.ad === true, by: uid } : null };
+          logged = url ? "play a clip" : "stop the clip";
+          break;
+        }
+        case "comment": {
+          need(r, uid, "onair");
+          if (body.message && !sent) throw new CommunityError(400, "Choose a comment from the chat.");
+          next = { ...cur, comment: sent, queue: sent ? cur.queue.filter((q) => q.id !== sent!.id) : cur.queue };
+          logged = sent ? "put a comment on air" : "take the comment off air";
+          break;
+        }
+        case "queue": {
+          need(r, uid, "onair");
+          if (!sent) throw new CommunityError(400, "Choose a comment from the chat.");
+          next = { ...cur, queue: queueWith(cur.queue, sent) };
+          break;
+        }
+        case "unqueue": {
+          need(r, uid, "onair");
+          next = { ...cur, queue: cur.queue.filter((q) => q.id !== String(body.messageId ?? "")) };
+          break;
+        }
+        case "screen": {
+          // Their own camera track carries the screen, so the same rule as a camera: on stage, and the host lets speakers use video.
+          if (!stage.includes(uid)) throw new CommunityError(403, "Come on stage to share your screen.");
+          if (uid !== r.hostUid && !r.stageVideo && !roomCan(r, uid, "studio")) throw new CommunityError(403, "The host hasn't let speakers use video.");
+          if (body.on === true) next = { ...cur, screen: uid };
+          else if (cur.screen === uid) next = { ...cur, screen: "" };
+          break;
+        }
+        default: throw new CommunityError(400, "Unknown studio step.");
+      }
+    }
+    next = { ...next, at: now.toISOString() };
+    tx.update(ref, { studio: next });
+    return next;
+  });
+  if (logged && seen) await logMod(db, ref.id, seen, uid, logged);
+  return { studio };
 }
