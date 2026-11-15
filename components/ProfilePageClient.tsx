@@ -300,7 +300,7 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
           {realProfile && <SocialLinksRow social={realProfile.social} editable={isOwnProfile} className="justify-center sm:justify-start" />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
-            <p className="mt-2 flex flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:justify-start">
+            <p className="mt-2 hidden flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:flex sm:justify-start">
               {canPublish(realProfile) && <Link href="/write">Write</Link>}
               <Link href={`/u/${realProfile.username}/store`}>My store</Link>
               <Link href="/profile/edit">Edit profile</Link>
@@ -327,12 +327,24 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} toName={profile.displayName} label="🎁 Gift me" />}
           {!synthetic && <GiftShowWatcher uid={realProfile?.uid} toName={profile.displayName} />}
           {(hasPremium || (!synthetic && !suspended)) && (
-            <div id="subscribe" className="scroll-mt-28 rounded-full">
+            <div id="subscribe" className="scroll-mt-28 rounded-full max-sm:order-first max-sm:w-full max-sm:[&_button]:w-full max-sm:[&_a]:w-full">
               <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} creatorName={profile.displayName} />
             </div>
           )}
           {!synthetic && !suspended && (
             <Link href={`/u/${profile.username}/fans`} className="inline-flex items-center gap-1 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-semibold text-ink hover:border-crimson">🏆 Top fans</Link>
+          )}
+          {/* Your own profile: what you'd change, in one menu (Moda user dashboard redesign). */}
+          {viewer && realProfile && viewer.uid === realProfile.uid && (
+            <details className="relative">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-semibold text-ink hover:border-crimson [&::-webkit-details-marker]:hidden">⚙ Manage profile <span aria-hidden className="text-slate">⌄</span></summary>
+              <div className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-2xl border border-rule bg-card py-1 text-left shadow-xl">
+                {[...(canPublish(realProfile) ? [["/write", "Write"]] : []), [`/u/${realProfile.username}/store`, "My store"], ["/profile/edit", "Edit profile"], ["/profile/publishing", "Rates & payouts"],
+                  ...(realProfile.accountKind === "organisation" ? [["/organisation", "Organisation"]] : []), ["/profile/analytics", "Analytics"]].map(([href, label]) => (
+                  <Link key={href} href={href} className="block px-4 py-2.5 font-ui text-sm text-ink hover:bg-field">{label}</Link>
+                ))}
+              </div>
+            </details>
           )}
         </div>
       </div>

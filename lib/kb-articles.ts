@@ -208,6 +208,19 @@ You see how many times each code was used, how much it took off and what buyers 
 **One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
+    A("my-account-menu", "Finding your way around My account", "Getting started", `
+Everything about your own account sits under **My account**, in four groups:
+
+- **Profile:** My journal, Edit profile, Media and Sounds.
+- **Money:** Wallet, Rates & payouts and Analytics.
+- **Store:** Business books, Inventory, Bookings and Your hotel.
+- **Growth:** Discount codes, My coupons, Referrals and Boost.
+
+**On a computer** the groups are down the left side: tap a group to open it, then the page. The page you're on is highlighted, and the small number beside each group is how many pages it has. At the bottom you can switch between **Day, Night and Auto** and **Sign out**, and **Back to NotesApp** takes you to your feed.
+
+**On a phone** a bar at the top says where you are, for example *My account / Money / Analytics*. Tap it to open the same menu.
+
+On pages with many tabs (Analytics, Business books, Explore), a phone shows a dropdown instead of the row of tabs: tap it to pick another. On your own profile, **Manage profile** has Write, My store, Edit profile, Rates & payouts and Analytics. Account settings, Family and your site are in the menu under your picture.`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). The quickest way is **Sign up with Google** (or **with LinkedIn**): you still choose your username, accept the Terms and say you are 18 or older, but there is no password to make and your email is already verified. See [Signing in with Google or LinkedIn](/help/google-linkedin-sign-in).
 
@@ -1688,6 +1701,14 @@ None of them can be switched on yet, and there are no prices or dates. When they
 You can block anyone in Messages (from the menu at the top of the conversation), mute a conversation you don't want alerts from, and report a post, account, moment or conversation with the Report button, or through the [contact form](/contact). Our team reviews reports; anything marked as nudity or violence is reviewed within 24 hours. In a group, admins can also ban a member who misbehaves.
 
 Accounts can be suspended for a set time or until lifted. A suspended member sees the reason and can submit an appeal, which an admin reviews. For a problem with a payment, gift or order, contact us with the details and an admin will review it.`),
+    A("throwaway-email-addresses", "Temporary (throwaway) email addresses", "Safety and your data", `
+#NotesApp accounts need an email address you own. Temporary or "throwaway" inboxes (services that hand out an address for a few minutes) can't be used to join, because nobody can reach the account again, recover it or get its receipts, and they're often used for spam and fake referrals.
+
+**Signing up:** if the sign-up form says *"Temporary (throwaway) email addresses can't join NotesApp"*, use your own email address instead: Gmail, Yahoo, Outlook, iCloud, your work or school address, or any other you keep. Ordinary email providers are never blocked. You can also join with Google or LinkedIn.
+
+**If your account was suspended for this:** the reason on your account says *"This account uses a temporary (throwaway) email address"*. Your posts, purchases and earnings are kept. [Contact us](/contact) from the email address you want to use, with your @username, and our team will move the account to it and lift the suspension. You can also submit an appeal from the suspension notice.
+
+Our trust & safety team keeps the list of blocked domains; an address at any part of a blocked domain (for example mail.example.com when example.com is blocked) is refused too.`),
     A("payment-safety", "How your money is kept safe", "Safety and your data", `
 Payments run through Paystack's hosted checkout, so card and bank details never touch our servers. Money is held until it is earned: store payments until delivery is confirmed, session earnings for 24 hours after the session, and subscriptions, gifts and downloads for a short dispute window. You need a verified email to pay. Refund rules are shown before you pay and in the [Terms](/terms). The full picture is on [Trust & security](/security).`),
     A("your-data", "Downloading or deleting your data", "Safety and your data", `

@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken } from "@/lib/users";
+import { throwawayError } from "@/lib/throwaway-emails-client";
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, isReservedUsername } from "@/lib/journals-directory";
 import { useSite } from "./SiteContext";
@@ -85,6 +86,8 @@ function AuthModal({ mode, setMode, onDone, onClose }: { mode: Mode; setMode: (m
     setBusy(true);
     try {
       if (await isUsernameTaken(clean)) { setError("That username is already taken."); return; }
+      const throwaway = await throwawayError(email);
+      if (throwaway) { setError(throwaway); return; }
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await signUpProfile({ uid: cred.user.uid, email, username: clean, displayName: displayName || clean });
       // Same starting follows as every new account, plus this site's owner.

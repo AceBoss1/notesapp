@@ -33,7 +33,7 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   await refused(S.getState(db, "teen"), 403, /18 and over/);
   await refused(S.getState(db, "org"), 403, /personal accounts/);
   const first = await S.getState(db, "ada");
-  assert.deepEqual(first.profile.roles, [], "the account's job title is never a role by itself (v0.167.1)");
+  assert.deepEqual(first.profile.roles, [], "the account's job title is never a role by itself (v0.169.1)");
   assert.equal(first.suggestedRole, "Backend engineer", "…it's offered as a one-tap suggestion");
   assert.deepEqual(first.profile.cities, ["Lagos"], "and from \"I need a job\"");
   assert.equal(first.settings.bell, true); assert.equal(first.settings.email, false);
@@ -171,7 +171,7 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   assert.equal(await S.runDue(db, { ...D, now: () => new Date("2026-11-13T07:01:00Z") }), 1);
   assert.equal(mails.length, 1, "email when they switch it on");
 
-  // ---- v0.167.1, fault A: a profile never filled in. Before, the account's job title was saved as the only role with the first change,
+  // ---- v0.169.1, fault A: a profile never filled in. Before, the account's job title was saved as the only role with the first change,
   // and a title gate of "Founder & CEO" kept nothing ("Fit your rules 0"). Now that seeded role doesn't count, an empty profile has no
   // title gate, the run says so, and every collected opening can be seen with the reason it was cut. ----
   await db.doc("users/bola").set({ username: "bola", displayName: "Bola", jobTitle: "Founder & CEO" });
@@ -205,7 +205,7 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
   await S.saveSetup(db, "cleo", { finish: true }, now);
   assert.equal((await S.getState(db, "cleo")).setupDone, true);
 
-  // ---- v0.167.1, fault B: the CV review with Claude. Claude thinks before it answers and that counts against max_tokens, so the old
+  // ---- v0.169.1, fault B: the CV review with Claude. Claude thinks before it answers and that counts against max_tokens, so the old
   // 2000-token request came back cut off; a slow answer outlived the function. The provider is a stand-in, injected; no network. ----
   await db.doc("aiConnections/bola").set({ uid: "bola", provider: "anthropic", secret: "x", last4: "abcd", createdAt: now.toISOString() });
   await S.saveSetup(db, "bola", { settings: { provider: "anthropic" } }, now);

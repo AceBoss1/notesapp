@@ -56,7 +56,7 @@ async function readDoc(db: Firestore, uid: string): Promise<Doc & { exists: bool
   const d = (await db.doc(`${PROFILES}/${uid}`).get()).data();
   if (d) {
     const profile: NjProfile = { ...DEFAULT_PROFILE, ...d.profile };
-    // Before v0.167.1 the account's job title was copied in as the only role on the first visit and saved with the first change
+    // Before v0.169.1 the account's job title was copied in as the only role on the first visit and saved with the first change
     // (connecting an AI), so a member who never opened the profile screen had a title gate made of "Founder & CEO", which keeps nothing.
     // A role the member never chose is not a role: with no rolesSetAt and the roles exactly that title, they count as empty.
     if (!d.rolesSetAt && profile.roles.length === 1 && profile.roles[0].toLowerCase() === (await accountTitle(db, uid)).toLowerCase()) profile.roles = [];
@@ -104,7 +104,7 @@ export async function saveSetup(db: Firestore, uid: string, b: Record<string, un
   const settings = b.settings && typeof b.settings === "object" ? cleanSettings(b.settings as Record<string, unknown>, cur.settings) : cur.settings;
   const steps = { ...cur.steps, ...(b.step === "sources" ? { sources: true } : {}), ...(b.step === "when" ? { when: true } : {}) };
   const setupDone = cur.setupDone || b.finish === true;
-  // No roles is allowed (v0.167.1): the run then uses the roles from the CV review, or no title gate at all, and says so.
+  // No roles is allowed (v0.169.1): the run then uses the roles from the CV review, or no title gate at all, and says so.
   if (b.finish === true && !profile.remote && !profile.cities.length) throw new NanaJobsError("Say where you can work first: remote, or a city.");
   const rolesChosen = !!(b.profile && typeof b.profile === "object" && (b.profile as Record<string, unknown>).roles !== undefined);
   const rolesSetAt = rolesChosen ? now.toISOString() : cur.rolesSetAt ?? null;

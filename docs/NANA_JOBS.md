@@ -3,7 +3,7 @@
 A new tab in `/jobs`. A member connects their own AI. Nana then collects openings from Notes Jobs and public job boards, cuts the ones
 that don't fit, scores the rest against what the member has actually done, and gives a short ranked list. Each job comes with why it
 fits and the strongest reason they might not get it. **It finds and ranks. It never applies on anyone's behalf.** The owner asked for it
-on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.162.0; fixes in v0.167.1** (mockups approved 12 Nov 2026,
+on 12 Nov 2026, adopting Shortlist (github.com/vicintel/shortlist-engine). **Status: built in v0.162.0; fixes in v0.169.1** (mockups approved 12 Nov 2026,
 with the CV review added by the owner when approving).
 
 Shortlist is MIT-licensed (© 2026 Victor Dickson), so its approach and code may be adapted. Any file that takes code from it keeps the
@@ -82,7 +82,7 @@ with". Step 2 of the set-up starts with the CV, right after Connect your AI.
 Tests: `npm run test:nana-jobs` and `npm run test:nana-jobs-server`. Files that adapt Shortlist keep its MIT notice; the full notice is in
 `THIRD_PARTY_NOTICES`.
 
-## Fixes in v0.167.1 (owner's reports, 15 Nov 2026)
+## Fixes in v0.169.1 (owner's reports, 15 Nov 2026)
 
 - **"No job ever fits" (Collected 455, Fit your rules 0).** Root cause: on the first visit the account's job title (`users.jobTitle`,
   e.g. "Founder & CEO") was copied in as the only role, and the first save of anything (connecting an AI) stored it. A member who never

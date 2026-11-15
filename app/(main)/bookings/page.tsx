@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
-import { PAYOUT_HOLD_HOURS, POLICY_TEXT, RESCHEDULE_MAX, canReschedule, refundFraction } from "@/lib/cancellation";
+import { PAYOUT_HOLD_HOURS, RESCHEDULE_MAX, RESCHEDULE_MAX_DAYS, RESCHEDULE_MIN_HOURS, canReschedule, refundFraction } from "@/lib/cancellation";
 import { sessionEnd } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
 import MonthCalendar from "@/components/MonthCalendar";
@@ -37,6 +37,36 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled_by_publisher: "Cancelled by publisher",
   refunded: "Refunded",
 };
+
+// The booking policy as three cards (lib/cancellation.ts; Moda user dashboard redesign): cancelling with its three refunds, rescheduling,
+// and when the publisher is paid.
+function Policy() {
+  const refunds = [
+    { when: "48+ hours before", cls: "text-green-700", f: refundFraction(48, "client") },
+    { when: "24–48 hours before", cls: "text-amber-700", f: refundFraction(24, "client") },
+    { when: "Under 24 hours", cls: "text-red-700", f: refundFraction(0, "client") },
+  ];
+  const card = "rounded-[14px] border border-rule bg-card p-5";
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <div className={`${card} md:col-span-3 lg:col-span-1`}>
+        <h2 className="font-ui text-base font-semibold text-ink">Cancelling</h2>
+        <ul className="mt-3 space-y-2 font-ui text-sm">
+          {refunds.map((r) => <li key={r.when} className="flex items-center justify-between gap-3 rounded-[10px] bg-paper px-3 py-2.5"><span className="text-ink">{r.when}</span><b className={r.cls}>{r.f === 1 ? "Full refund" : r.f === 0 ? "No refund" : `${Math.round(r.f * 100)}% refund`}</b></li>)}
+        </ul>
+        <p className="mt-3 text-sm text-slate">If the publisher cancels, you always get a full refund.</p>
+      </div>
+      <div className={card}>
+        <h2 className="font-ui text-base font-semibold text-ink">Rescheduling</h2>
+        <p className="mt-3 text-sm leading-relaxed text-slate">You can reschedule free up to {RESCHEDULE_MAX} times, at least {RESCHEDULE_MIN_HOURS} hours before the session, to another open time (within {RESCHEDULE_MAX_DAYS} days); inside {RESCHEDULE_MIN_HOURS} hours a session can only be cancelled.</p>
+      </div>
+      <div className={card}>
+        <h2 className="font-ui text-base font-semibold text-ink">Payouts</h2>
+        <p className="mt-3 text-sm leading-relaxed text-slate">The publisher is paid automatically {PAYOUT_HOLD_HOURS} hours after the session ends; if something went wrong, report it within that time and we&apos;ll review before any payout.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -225,12 +255,11 @@ export default function BookingsPage() {
 
   return (
     <>
-      <PageHero compact max="max-w-3xl" eyebrow="Your sessions" title={<>Bookings</>}>
-        <p>{POLICY_TEXT}</p>
-      </PageHero>
-      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <PageHero compact max="max-w-4xl" eyebrow="Your sessions" title={<>Bookings</>} />
+      <section className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+      <Policy />
       {/* Publishers only (it renders nothing for someone who can't publish): what comes off the sessions they're booked for. */}
-      <MyCommission kind="session" className="rounded-xl2 border border-rule bg-paper px-4 py-3 text-sm text-ink" extra="Sessions already booked keep the rate they were booked at. See Rates & payouts for your earnings." />
+      <MyCommission kind="session" className="mt-4 rounded-[14px] bg-crimson-bright/10 px-4 py-3.5 text-sm leading-relaxed text-ink [&_a]:font-semibold [&_a]:text-crimson-bright" extra="Sessions already booked keep the rate they were booked at. See Rates & payouts for your earnings." />
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       <h2 className="mt-10 font-display text-xl">Upcoming</h2>

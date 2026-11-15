@@ -1,4 +1,4 @@
-// Nana Jobs, the two production faults of 15 Nov 2026 (v0.167.1), with real-looking feed data saved as fixtures (tests/nana-jobs/fixtures:
+// Nana Jobs, the two production faults of 15 Nov 2026 (v0.169.1), with real-looking feed data saved as fixtures (tests/nana-jobs/fixtures:
 // the shapes RemoteOK, Remotive, Himalayas and Arbeitnow really send, with their own date formats). Nothing here reaches the network.
 //   A. "No job ever fits": 455 collected, 0 fit your rules.
 //   B. "The CV review fails": Claude's answer was cut off, or the platform stopped the function first, and the browser said "Something
