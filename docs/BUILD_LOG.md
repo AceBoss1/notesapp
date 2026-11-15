@@ -3319,7 +3319,7 @@ pure, `lib/my-calendar-server.ts` reads; a failing source is named and the rest 
 ticket holders not going, the day before a hotel check-in, and a Monday week-ahead email. My Cycle is left out (its dates are only kept
 encrypted); the installed app's calendar plugin is an owner step (web bridge `lib/native-calendar.ts`). Tests `test:my-calendar`,
 `test:my-calendar-server`, and the rules test for `myCalendar`, `calendarFeeds`, `calendarBells`.
-**Growth measurement (v0.171.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
+**Growth measurement (v0.175.0)** — step 1 of the six-step growth plan, built from the approved mockups (`docs/GROWTH.md`,
 `docs/mockups/growth/`). A visitor's first page sets a first-party `na_src` cookie with the channel that brought them (`?by=`, `?src=`,
 utm tags, the referring host, the landing page: `classifyTouch` in `lib/growth.ts`, set in `middleware.ts`); `?by=<username>` also works
 like `/r/<username>` for referrals. The referral claim at sign-up now also writes `growthMembers/{uid}` (channel and a small detail; the

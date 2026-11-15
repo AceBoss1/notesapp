@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { hasDept, isSuper } from "@/lib/admin-access";
-import { RevealError, reveal, viewLog } from "@/lib/pii-server";
+import { RevealError, findByEmail, reveal, viewLog } from "@/lib/pii-server";
+import { getAuth } from "firebase-admin/auth";
+import { getAdminApp } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-// Masked contact details in admin pages (lib/pii.ts). POST { kind, subject, reason, note?, page } → { value }: the real email or
+// Masked contact details in admin pages (lib/pii.ts). POST { kind, subject, reason, note?, page } → { value }. POST { find: "email",
+// email, reason, note? } → { uid }: Admin → Users "Find by email", logged the same way.: the real email or
 // phone, for a department allowed to see it, logged in adminViewLog with the reason. 30 reveals per 10 minutes per staff member.
 // GET → { log } the view log, newest first (?subject=<uid or reference> or ?admin=<uid>): super admins and Legal & compliance.
 const token = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -19,7 +22,11 @@ export async function POST(req: NextRequest) {
   const db = getAdminDb();
   const name = String((await db.doc(`users/${a.uid}`).get()).data()?.displayName ?? "") || a.email;
   try {
-    const out = await reveal(db, { uid: a.uid, name, access: a.access }, await req.json().catch(() => ({})));
+    const body = await req.json().catch(() => ({}));
+    const who = { uid: a.uid, name, access: a.access };
+    const out = body.find === "email"
+      ? await findByEmail(db, who, body, (email) => getAuth(getAdminApp()).getUserByEmail(email).then((u) => u.uid).catch(() => null))
+      : await reveal(db, who, body);
     return NextResponse.json(out, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     if (e instanceof RevealError) return NextResponse.json({ error: e.message }, { status: e.status });

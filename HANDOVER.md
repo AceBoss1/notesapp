@@ -17,7 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
-| `push/growth-measure` | **v0.171.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
+| `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
@@ -1077,7 +1077,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     then an app release. Check after deploy: subscribe to a link from a real iPhone and from Google Calendar on a computer. Not built: My
     Cycle in the calendar (its dates are only kept encrypted), the app writing straight into the phone's calendar and keeping it in step,
     a time-zone setting, `.ics` in emails. Tests: `test:my-calendar`, `test:my-calendar-server` (new), rules.
-135. **Growth measurement, step 1 of the growth plan (v0.171.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
+135. **Growth measurement, step 1 of the growth plan (v0.175.0, branch `push/growth-measure`; owner approved the mockups 15 Nov 2026,
     `docs/GROWTH.md`):** where members come from (first touch in the `na_src` cookie, set in `middleware.ts`), first value per kind of
     member, returns in weeks 1 to 4 with what brought them (`?r=` on bells, push, the digest, reminders, Nana Jobs), installs, and
     Admin → Growth (`/admin/growth`, Marketing, Sales & partnerships and Finance). Members get "Your invite link" on My account → Growth → Referrals.

@@ -21,9 +21,10 @@ export function useAdminAuth() {
       }
       const a = await adminAccess(u);
       if (!a) {
-        // signed in, but not one of the two admin accounts — not for them
+        // Signed in, but not staff: a campus coordinator or ambassador goes to Campus (lib/campus.ts), anyone else home.
         setUser(null);
-        router.replace("/");
+        const campus = await u.getIdToken().then((t) => fetch("/api/campus?view=me", { headers: { Authorization: `Bearer ${t}` } })).then((r) => r.ok).catch(() => false);
+        router.replace(campus ? "/admin/campus" : "/");
         return;
       }
       setAccess(a);

@@ -156,6 +156,7 @@ export default function AdminMerchPage() {
                 <p className="font-semibold text-ink">
                   {o.quantity} × {o.itemName}{o.size ? ` (${o.size})` : ""} · {o.logoLabel}
                   <span className="ml-2 font-mono text-xs text-slate">{formatNaira(o.amountKobo)}</span>
+                  {o.source === "campus" && <span className="ml-2 rounded-full bg-crimson/10 px-2 py-0.5 font-ui text-[11px] font-semibold text-crimson" title="A free campus reward (Admin → Campus → Rewards)">🎓 Campus reward</span>}
                 </p>
                 <span className="rounded-full bg-paper px-3 py-0.5 font-mono text-[11px] uppercase">{o.status}</span>
               </div>

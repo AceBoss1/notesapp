@@ -1,6 +1,6 @@
 # Growth: measuring where members come from and whether they stay
 
-> Status: **step 1 built in v0.171.0** (branch `push/growth-measure`). The owner approved the mockups on 15 November 2026
+> Status: **step 1 built in v0.175.0** (branch `push/growth-measure`). The owner approved the mockups on 15 November 2026
 > ([mockups](mockups/growth/mockups.html), all four screens in [all-screens.webp](mockups/growth/all-screens.webp)).
 
 ![The four approved screens](mockups/growth/all-screens.webp)
@@ -9,7 +9,7 @@
 
 | Step | What | Status |
 |---|---|---|
-| 1 | **Measurement.** Know where every member comes from (a creator's link, Jobs, Academy, Exam Prep, Notes Life, the install page, an ad, search or WhatsApp) and follow them through install → sign-up → first value → back in week 1 and week 4 → paid, on Admin → Growth. | **Built (v0.171.0)** |
+| 1 | **Measurement.** Know where every member comes from (a creator's link, Jobs, Academy, Exam Prep, Notes Life, the install page, an ad, search or WhatsApp) and follow them through install → sign-up → first value → back in week 1 and week 4 → paid, on Admin → Growth. | **Built (v0.175.0)** |
 | 2 | **Install-page positioning.** What the install page says, and to whom. | Next |
 | 3 | **Creator-led installs.** Creators share their invite link; organic installs through creators. | Planned |
 | 4 | **The install page converting.** More visitors to the install page actually install. | Planned |
@@ -17,7 +17,7 @@
 | 6 | **Retention loops.** Bells, the digest, reminders and shortlists that bring members back. | Planned |
 
 Every later step is judged against the numbers step 1 records: the channel table and funnel for steps 2 to 5, Creator links for step 3,
-the weekly cohorts and "What brings them back" for step 6. Measuring began with v0.171.0: members who joined before it have no source and
+the weekly cohorts and "What brings them back" for step 6. Measuring began with v0.175.0: members who joined before it have no source and
 aren't in the numbers.
 
 ## What is recorded

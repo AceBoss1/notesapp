@@ -16,7 +16,7 @@ set-up steps outside the code are in `docs/OWNER_SETUP.md`.
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to naapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
-| `docs/GROWTH.md` | Growth measurement (step 1 of the growth plan, v0.171.0): channels, first value, returns, Admin → Growth, the invite link, privacy |
+| `docs/GROWTH.md` | Growth measurement (step 1 of the growth plan, v0.175.0): channels, first value, returns, Admin → Growth, the invite link, privacy |
 | `docs/REFERRALS.md` | Discount codes (#NotesApp and every publisher), referral links and affiliates: the owner's decisions, how plans are billed, what was built |
 | `docs/FUNDING.md` | Funding applications (internal drafts): the .tech startup programme for naapp.tech, the pitch.tech answers (due 20 Nov 2026), Emergent Ventures, and a reusable company summary |
 | `docs/NOTES-LIFE-LOOKS.md` | Notes Life's two looks (plan): a pixel look (what Low res becomes) and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map with properties; the build steps |
