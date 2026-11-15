@@ -1094,6 +1094,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (NPF-NCCC, NAPTIP) with counsel; give the Legal lead the Legal department in Admin → Access. (f) Counsel: Terms section 2e. Video:
     Media and Moments by poster and frames; journal videos by their poster only. Tests: `test:content-checks`, `test:content-checks-server`
     (new), rules (two new tests).
+136. **Onboarding drafts for contract roles (v0.174.2, branch `push/admin-menus-drafts`; owner, 15 Nov 2026):** Nana-HR & hiring's
+    terms form opens under the applicant, scrolled into view and focused; contract roles now get the Campus Ambassador Agreement or the
+    Contractor (Consulting) Agreement (`lib/hr-drafts.ts`, kind `agreement`) plus the option grant and announcement; both are templates
+    in the staff library (seeded on the next library load). **Owner steps:** nothing to deploy. Have Legal review the two agreements
+    (each [Counsel: …] point: withholding tax, consideration for options-only work, the data clause, disputes). Test: `test:hr` (now in CI).
 
 ## 3. How the work is done (please keep these)
 
@@ -1174,6 +1179,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Content checks | pure rules `lib/content-checks.ts`, the checker `lib/content-checks-ai.ts` (one structured call per post, pictures shrunk to WebP; never called against the emulators), the gate, strikes, appeals, reviews, re-check and passes `lib/content-checks-server.ts` (`gateContent` in every create path), `lib/content-checks-client.ts`, `lib/content-checks-reply.ts`, routes `/api/content-checks`, `/api/admin/content-checks`, `components/content-checks/*` (RulesCard, BlockedNotice, ContentStanding), `components/admin/ContentChecksAdmin.tsx` on `/admin/content-checks` (People & Trust in `ADMIN_SECTIONS`, a tab of Reports), page `/content-rules`, `docs/CONTENT_CHECKS.md` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
 | Notes Life | rules and catalogue `lib/life/catalog.ts` · server economy `lib/life/server.ts` (`act`, `mutate`, `LifeError`) · needs, activities, saves `lib/life/play.ts`, `components/life/save.ts` · 3D scenes `components/life/world.ts` (three.js) · UI `components/life/LifeGame.tsx` · sound `components/life/sound.ts` (Web Audio, no files) · friend chat `components/life/FriendChat.tsx` · presence `components/life/presence.ts` · VIP bar view `components/life/VipPano.tsx` |
+| Hiring drafts | `lib/hr-drafts.ts` (offer, Campus Ambassador Agreement, Contractor (Consulting) Agreement, option grant, announcement; `ROLE_PRESETS`), `lib/careers-server.ts` (`makeDrafts`), `app/(main)/admin/team/hr/page.tsx`; test `npm run test:hr` |
 | Game time | a game day is 48 real minutes, a game hour 2 real minutes (`worldTime`, `WORLD_EPOCH`, `GAME_HOUR_MS`) |
 
 - **Booking calendars (v0.164.1):** `components/MonthCalendar.tsx` (Monday-first month view in My Cycle's look; `isOpen` tints the
@@ -1205,6 +1211,7 @@ npm run test:content-checks-server # the gate, holds, blocks, pauses, bans, appe
 npm run test:hotel-server      # the Hotel kit's money rules against the emulators (webhooks simulated, signed); "ALL OK"
 npm run test:my-calendar       # My Calendar: agenda, dots, choices, bells, the .ics writer and folding; "ALL OK"
 npm run test:my-calendar-server # My Calendar on the emulator: every source, a failing one, teen and kids, the private link and feed, bells, Monday email
+npm run test:hr                # careers and Nana-HR drafts (offer, the contract agreements, grant), then hiring on the emulators
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

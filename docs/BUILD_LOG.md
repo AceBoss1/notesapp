@@ -3345,3 +3345,14 @@ Claude thinks before answering and that counts against the output limit, so the 
 outlive the 60-second function, and the browser turned the platform's timeout page into "Something went wrong". Low effort, room for the
 thinking, plain errors for cut-offs, a 120-second route and real error text in the browser fix it, with tests that stub the provider.
 Every shortlisted job also got a clear Apply button and Mark as applied.
+
+
+**Onboarding drafts for contract roles (v0.174.2, 15 Nov 2026)** — The owner reported that "draft documents should draft from templates
+but it's not happening", for a Campus Ambassador. Team hub → Nana-HR & hiring (`app/(main)/admin/team/hr/page.tsx`): the terms form now
+opens under the applicant, scrolls into view with the heading "Onboarding documents for <name>" focused, hides salary fields for contract
+roles, shows errors in place, and the drafts open there too (before, it opened at the top of the page, out of sight on a phone).
+`lib/hr-drafts.ts`: the Campus Ambassador Agreement (`ambassadorAgreement`) and the Contractor (Consulting) Agreement
+(`contractorAgreement`), both independent contractors, with the DRAFT FOR COUNSEL REVIEW banner and company details from `COMPANY_INFO`;
+`draftsFor` returns them (kind `agreement`) with the option grant and the announcement for contract arrangements; a `campus-ambassador`
+preset from its listing (about 5 hours a week). No referral rates are written in (the agreement points at the programme's published
+terms). Both are staff-library templates. Tests: `test:hr` (extended, now in CI).

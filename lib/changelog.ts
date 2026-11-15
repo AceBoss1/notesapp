@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.174.2",
+    bump: "patch",
+    date: "2026-11-15",
+    changes: [
+      { kind: "fixed", text: "Careers at #NotesApp: the team's onboarding drafts for a new Campus Ambassador now include a proper ambassador agreement, so offers for contract roles are ready for review sooner. Nothing changes for applicants." },
+    ],
+  },
+  {
     version: "v0.174.1",
     bump: "patch",
     date: "2026-11-15",
