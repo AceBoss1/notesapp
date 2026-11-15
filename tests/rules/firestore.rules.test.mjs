@@ -136,6 +136,18 @@ test("throwaway emails: no profile with a sign-in email at a blocked domain or i
   await assertFails(setDoc(doc(as("alice"), "settings/emailBlocklist"), { domains: [] }));
 });
 
+test("campus: the team and its tasks are server-only (lib/campus-server.ts)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "campusTeam/alice"), { uid: "alice", role: "ambassador", country: "NG" });
+    await setDoc(doc(db, "campusTasks/t1"), { assignees: ["alice"], coordinatorUid: "pub" });
+  });
+  await assertFails(getDoc(doc(as("alice"), "campusTeam/alice")));
+  await assertFails(setDoc(doc(as("alice"), "campusTeam/alice"), { role: "coordinator" }));
+  await assertFails(getDoc(doc(as("alice"), "campusTasks/t1")));
+  await assertFails(updateDoc(doc(as("pub"), "campusTasks/t1"), { assignees: [] }));
+});
+
 test("a founder email without the admin claim is no longer an admin", async () => {
   await assertFails(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
   await assertFails(getDoc(doc(as("x", { email: "someone@else.com" }), "ledger/ref1")));

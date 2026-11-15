@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.170.0",
+    bump: "minor",
+    date: "2026-11-15",
+    changes: [
+      { kind: "added", text: "🎓 The campus programme, starting in Nigeria: campus ambassadors open Campus to see the tasks their coordinator gave them, report progress with a note and a link as proof, and see their sign-ups this month and in all with their link and code. See The campus programme in the Help Centre." },
+      { kind: "added", text: "For our team: Campus in the admin area. Campus coordinators (appointed per country by super admins, the Chief of Staff and Marketing) give their ambassadors access, send tasks to all or some of them, approve or send back what they hand in, and follow each one's sign-ups, tasks and check-ins. Ambassadors get the Campus pages only." },
+    ],
+  },
+  {
     version: "v0.169.0",
     bump: "minor",
     date: "2026-11-15",

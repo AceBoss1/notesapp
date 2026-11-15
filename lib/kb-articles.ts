@@ -208,6 +208,20 @@ You see how many times each code was used, how much it took off and what buyers 
 **One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."
 
 Your saved coupons are under [My coupons](/profile/coupons). For sellers, [Store selling](/store-selling#discount-codes) sums it up; for affiliates, see [Referrals and affiliates](/help/referrals).`),
+    A("campus-ambassadors", "The campus programme: coordinators and ambassadors", "Company", `
+#NotesApp campus ambassadors bring students to #NotesApp at their university or college, led by a **campus coordinator** for their country. We start with **Nigeria**.
+
+**Becoming an ambassador:** watch [Careers](/careers) for the Campus Ambassador role, or ask a coordinator. You need your own #NotesApp account first (it's free); your coordinator then adds you with your @username or email, and you get a notification. Open **Campus** from it, or from **Campus team** in your My account menu.
+
+**What an ambassador sees in Campus:**
+- **My campus:** your sign-ups this month and in all, your tasks done and open, and your **link and code**. Everyone who joins with your link, or types your code (your username) at checkout, counts as your sign-up, and you earn from the plans they pay for, as in the [referral programme](/help/referral-milestones).
+- **Tasks:** what your coordinator asked you to do, with the due date. Mark each one To do, In progress or Done, and add a note and a link that shows it (a post, a photo album, a form). Your coordinator approves it, or sends it back with a note saying what to add.
+
+Ambassadors see only their own tasks and numbers, never other ambassadors' or anything else in the admin area.
+
+**What a coordinator does:** gives her ambassadors access (and takes it away), sends tasks to all of them or some, reviews what they hand in, and sees each ambassador's sign-ups, tasks done, open and overdue, and when they last checked in (the last time they opened Campus or reported on a task, not when they were last online). A coordinator sees only her own team.
+
+If you were added but don't see Campus, sign out and back in. If you leave the programme, your coordinator removes you; your account and your referral earnings stay yours.`),
     A("my-account-menu", "Finding your way around My account", "Getting started", `
 Everything about your own account sits under **My account**, in four groups:
 

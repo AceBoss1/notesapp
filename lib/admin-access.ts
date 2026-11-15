@@ -125,12 +125,14 @@ export const sectionFor = (pathname: string): Section | undefined =>
 // The login page is open to everyone; every other admin page needs its section's access. A page we have no section for is for super admins only.
 export function pathAllowed(a: Access | null | undefined, pathname: string): boolean {
   if (pathname.startsWith("/admin/login")) return true;
+  // Campus (lib/campus.ts) decides for itself: coordinators and ambassadors aren't staff, and the API checks every request.
+  if (pathname === "/admin/campus" || pathname.startsWith("/admin/campus/")) return true;
   const s = sectionFor(pathname);
   return canOpen(a, s ? s.need : "super");
 }
 
 // The menu shows related pages together: groups in this order, pages within a group in the order listed above.
-export const GROUP_ORDER = ["Workspace", "Content", "People & Trust", "Money", "Growth", "Platform", "Admin"];
+export const GROUP_ORDER = ["Workspace", "Content", "People & Trust", "Money", "Growth", "Campus", "Platform", "Admin"];
 export const allowedSections = (a: Access | null | undefined) =>
   ADMIN_SECTIONS.filter((s) => canOpen(a, s.need)).sort((x, y) => GROUP_ORDER.indexOf(x.group) - GROUP_ORDER.indexOf(y.group));
 
