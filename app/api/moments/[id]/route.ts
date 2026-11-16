@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { MomentError, deleteMoment, listViewers, momentPlayer, pinMoment, recordView, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
+import { MomentError, deleteMoment, listViewers, momentPlayer, pinMoment, recordView, removeCaptions, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
 import { authed, fail, momentDeps } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
 
-// POST { action: "like" | "view" | "reshare" | "reply" | "pin" | "unpin" | "play", text? }; "play" → { player }: a signed Stream player link
+// POST { action: "like" | "view" | "reshare" | "reply" | "pin" | "unpin" | "play" | "uncaption" (the owner takes captions off), text? }; "play" → { player }: a signed Stream player link
 // for a moment's video, for someone in its audience
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (action === "view") { await recordView(db, me.uid, params.id); return NextResponse.json({ ok: true }); }
     if (action === "reshare") return NextResponse.json({ moment: await reshare(db, me, params.id, momentDeps) });
     if (action === "pin" || action === "unpin") return NextResponse.json(await pinMoment(db, me.uid, params.id, action === "pin", momentDeps));
+    if (action === "uncaption") { await removeCaptions(db, me.uid, params.id); return NextResponse.json({ ok: true }); }
     if (action === "reply") return NextResponse.json(await replyToMoment(db, me.uid, params.id, String(body.text ?? "")));
     throw new MomentError(400, "Unknown action.");
   } catch (err) {

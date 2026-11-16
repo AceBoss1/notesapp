@@ -1,5 +1,6 @@
 import { addFanPointsByUsername } from "./fans-server";
 import { countPlay, countUse, songIdOk } from "./sounds-server";
+import { MOMENT_TIDY_LIVE, captionText, cleanCaptions, cleanSpans, partsForSpans, spanTotal, type Captions, type Span } from "./moments-tidy";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -54,6 +55,10 @@ type MomentDoc = {
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
   clipStart?: number; clipEnd?: number; splitGroup?: string; // a part of a longer video: this moment plays clipStart to clipEnd of the shared file
   audioKey?: string; audioDurationSec?: number; // voice-over
+  // Tidy up and captions (lib/moments-tidy.ts): the stretches of the video (or of the voice-over) that play, with the pauses between
+  // them skipped, and the words that were said with their times. Firestore can't keep a list of lists, so stretches are kept flat:
+  // [start, end, start, end, …].
+  spans?: number[]; audioSpans?: number[]; captions?: Captions;
   songId?: string; // a NotesApp Sounds song (lib/songs.ts), played while the moment shows
   link?: MomentLink; // kind "link": the card of what was shared (Share to Moments)
   hours: MomentHours; createdAt: string; expiresAt: string;
@@ -71,6 +76,7 @@ export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
   clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number; songId?: string;
+  spans?: Span[]; audioSpans?: Span[]; captions?: Captions; // tidy up and captions (lib/moments-tidy.ts)
   streamVideo?: boolean; // the video is on Cloudflare Stream (signed): the viewer asks for a player link (POST action "play")
   link?: MomentLink;
   hours: MomentHours; createdAt: string; expiresAt: string;
@@ -146,6 +152,12 @@ async function mentionGate(db: Firestore, author: { uid: string; username: strin
   }
 }
 
+const pairs = (flat: number[]): Span[] => Array.from({ length: Math.floor(flat.length / 2) }, (_, i) => [flat[i * 2], flat[i * 2 + 1]] as Span);
+// A trim sent by the page, checked (lib/moments-tidy.ts cleanSpans), or a 400 saying what to do.
+function spansOf(raw: unknown, duration: number): Span[] | null {
+  try { return cleanSpans(raw, duration); } catch (e) { throw new MomentError(400, e instanceof Error ? e.message : "That trim isn't valid."); }
+}
+
 function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
   return {
     id, ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, kind: m.kind,
@@ -153,6 +165,9 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
     ...(m.videoKey ? { ...(streamUidOf(m.videoKey) ? { streamVideo: true } : { videoUrl: deps.publicUrl(m.videoKey) }), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
+    ...(m.spans?.length ? { spans: pairs(m.spans) } : {}),
+    ...(m.audioSpans?.length ? { audioSpans: pairs(m.audioSpans) } : {}),
+    ...(m.captions?.words?.length ? { captions: m.captions } : {}),
     ...(m.songId ? { songId: m.songId } : {}),
     ...(m.link ? { link: m.link } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
@@ -166,7 +181,10 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
 // Still showing: its time isn't up, or it is pinned (then it stays until it is unpinned or deleted).
 const isShowing = (m: MomentDoc, now: Date) => m.pinned === true || !isMomentExpired(m.expiresAt, now);
 
-export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown; songId?: unknown };
+export type CreateInput = {
+  kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown; songId?: unknown;
+  spans?: unknown; audioSpans?: unknown; captions?: unknown; // tidy up and captions: taken only while MOMENT_TIDY_LIVE is on
+};
 
 export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
@@ -228,10 +246,15 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     const start = input.clipStart === undefined ? 0 : Number(input.clipStart);
     const end = input.clipEnd === undefined ? Math.min(up.durationSec, MOMENT_VIDEO_MAX_SECONDS) : Number(input.clipEnd);
     if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > up.durationSec + 1) throw new MomentError(400, "That part of the video isn't valid.");
-    if (end - start > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Each moment can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
+    // Trimmed (lib/moments-tidy.ts): the stretches that play, inside this moment's part of the file. What counts against the 90
+    // seconds is what plays, so the part of the file they come from may be longer.
+    const spans = MOMENT_TIDY_LIVE ? spansOf(input.spans, up.durationSec) : null;
+    if (spans && (spans[0][0] < start - 0.05 || spans[spans.length - 1][1] > end + 0.05)) throw new MomentError(400, "That trim isn't valid. Try trimming again.");
+    if ((spans ? spanTotal(spans) : end - start) > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Each moment can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
     doc.videoKey = videoKey;
     doc.durationSec = up.durationSec;
     if (up.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1 || input.clipEnd !== undefined) { doc.clipStart = start; doc.clipEnd = end; }
+    if (spans) { doc.spans = spans.flat(); doc.clipStart = spans[0][0]; doc.clipEnd = spans[spans.length - 1][1]; }
     doc.splitGroup = String(input.videoUploadId);
     videoRef = db.doc(`videoUploads/${String(input.videoUploadId)}`);
     partsAllowed = (up.partsAllowed as number | undefined) ?? 1;
@@ -247,7 +270,16 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     if (au.durationSec > MOMENT_AUDIO_MAX_SECONDS + 1) throw new MomentError(413, `Voice-overs can be up to ${MOMENT_AUDIO_MAX_SECONDS} seconds.`);
     doc.audioKey = au.key;
     doc.audioDurationSec = au.durationSec;
+    const audioSpans = MOMENT_TIDY_LIVE ? spansOf(input.audioSpans, au.durationSec) : null;
+    if (audioSpans) doc.audioSpans = audioSpans.flat();
   }
+  // Captions: of the voice-over when there is one (it is what's heard), else of the video's own sound. Checked like the moment's text.
+  if (MOMENT_TIDY_LIVE && input.captions !== undefined && input.captions !== null) {
+    const of = doc.audioKey ? "voice" : doc.videoKey ? "video" : null;
+    const caps = of ? cleanCaptions(input.captions, of, of === "voice" ? doc.audioDurationSec ?? 0 : doc.clipEnd ?? doc.durationSec ?? 0) : null;
+    if (caps) doc.captions = caps;
+  }
+  const said = captionText(doc.captions);
 
   const id = randomBytes(8).toString("hex");
   const createdAt = now.toISOString();
@@ -255,7 +287,7 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   // AI content checks: the text, the picture (the marked copy) and the video's poster and frames, before anyone sees it.
   const sUid = full.videoKey ? streamUidOf(full.videoKey) : null;
   await gateContent(db, {
-    uid: owner.uid, kind: "moment", label: text || (full.imageKey ? "a picture" : "a video"), text,
+    uid: owner.uid, kind: "moment", label: text || (full.imageKey ? "a picture" : "a video"), text: [text, said].filter(Boolean).join("\n"),
     pictures: full.imageKey ? [deps.publicUrl(full.imageKey)] : [], videos: sUid ? [{ streamUid: sUid, durationSec: full.durationSec, signed: true }] : [],
     where: { href: `/u/${owner.username}` }, path: `moments/${id}`, restore: { set: { ...full, expireAt: new Date(full.expiresAt) } }, takedown: { delete: true },
   });
@@ -593,7 +625,7 @@ export async function momentVideoQuota(db: Firestore, uid: string, tier: Account
 // into parts, one moment each, all playing their own stretch of the one Stream video; the parts it needs come out of the allowance, and if
 // there isn't room for all of them only the first 90 seconds of as many parts as there is room for are used (`partsAllowed`).
 export async function startMomentVideo(
-  db: Firestore, owner: { uid: string; username: string }, tier: AccountTier, input: { size: number; contentType: string; durationSec: number; width?: unknown; height?: unknown },
+  db: Firestore, owner: { uid: string; username: string }, tier: AccountTier, input: { size: number; contentType: string; durationSec: number; width?: unknown; height?: unknown; playSec?: unknown },
   deps: Pick<MomentDeps, "stream">, now = new Date()
 ): Promise<{ id: string; uploadURL: string; partsAllowed: number; partsNeeded: number }> {
   const uid = owner.uid;
@@ -605,7 +637,10 @@ export async function startMomentVideo(
   if (input.size > VIDEO_MAX_BYTES) throw new MomentError(413, "That video is too large.");
   if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the video's length.");
   if (input.durationSec > MOMENT_VIDEO_SOURCE_MAX_SECONDS + 1) throw new MomentError(413, `Videos can be up to ${MOMENT_VIDEO_SOURCE_MAX_SECONDS / 60} minutes.`);
-  const partsNeeded = momentVideoParts(input.durationSec);
+  // Trimmed on the device (lib/moments-tidy.ts): what will play is shorter than the file, so it may need fewer moments. Each moment
+  // is still held to 90 seconds of playing time when it is made, so a wrong number here can't buy more than the parts it was allowed.
+  const play = MOMENT_TIDY_LIVE ? Number(input.playSec) : NaN;
+  const partsNeeded = Number.isFinite(play) && play > 0 && play < input.durationSec ? partsForSpans([[0, play]]) : momentVideoParts(input.durationSec);
   const limit = await weeklyVideoLimit(db, tier);
   const quotaDoc = `videoUsage/${uid}_${isoWeekKey(now)}_moment`;
   const usageRef = db.doc(quotaDoc);
@@ -727,6 +762,14 @@ export async function adminRemoveMoment(db: Firestore, id: string, deps: MomentD
   const root = (await db.doc(`moments/${rootId}`).get()).data() as MomentDoc | undefined;
   if (root) await removeMoment(db, rootId, { ...root, reported: false }, deps);
   if (rootId !== id) await removeMoment(db, id, { ...m, reported: false }, deps);
+}
+
+// The owner takes the captions off a moment already shared (a wrong word they'd rather not show).
+export async function removeCaptions(db: Firestore, uid: string, id: string): Promise<void> {
+  const ref = db.doc(`moments/${id}`);
+  const m = (await ref.get()).data() as MomentDoc | undefined;
+  if (!m || m.ownerUid !== uid) throw new MomentError(404, "That moment isn't yours, or it has gone.");
+  if (m.captions) await ref.update({ captions: FieldValue.delete() });
 }
 
 export type Viewer = { uid: string; username: string; displayName: string; avatar: string; at: string };
