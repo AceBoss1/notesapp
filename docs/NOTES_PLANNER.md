@@ -5,7 +5,7 @@ their next 12 months the way a product team plans a launch: one goal, three numb
 every day and a Sunday review. The plan lands in My Calendar beside their bookings, stays and tickets.
 
 The owner asked for it on 15 Nov 2026 ("new product built on top of my calendar called my personal planner", then "start with Notes
-Planner"). **Status: built in v0.177.0 (15 Nov 2026)**, from the mockups the owner approved that day ("planner approved build"). What was
+Planner"). **Status: built in v0.178.0 (16 Nov 2026)**, from the mockups the owner approved that day ("planner approved build"). What was
 built, and what wasn't, is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (build 4, "Plan your 2027 like a product launch").
@@ -112,7 +112,7 @@ My Calendar reads everything from where it already lives. The plan is the first 
 - Ready-made plan templates.
 - Nana changing the plan on her own. She can suggest a change at a review; the member makes it.
 
-## Built in v0.177.0
+## Built in v0.178.0
 
 - **The pure rules** `lib/planner.ts`: plan dates, `cleanPlan`, Nana's reply markers, the interview's progress, ticks and the
   streak, the Sunday review, `planEntries`, her choices, the bells. **What Nana is told** `lib/planner-nana.ts`.

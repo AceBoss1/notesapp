@@ -3369,7 +3369,7 @@ a channel's funnel with the biggest drop, weekly cohorts with what brings them b
 Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
 (`test:growth`, `test:growth-server`, rules).
 
-**Notes Planner (v0.177.0, 15 Nov 2026)** — the owner shared Charlie Hills' article "5 things to build with Fable 5.2" and asked where
+**Notes Planner (v0.178.0, 16 Nov 2026)** — the owner shared Charlie Hills' article "5 things to build with Fable 5.2" and asked where
 it could make #NotesApp better; build 4 ("plan your year like a product launch") became a personal planner on My Calendar. Mockups
 were approved the same day ("planner approved build"). Only the idea is used; the questions and Nana's instructions are our own words.
 `lib/planner.ts` (pure): the plan's dates (the 1st of next month, 12 months; a teen may plan one term), `cleanPlan` (what Nana wrote

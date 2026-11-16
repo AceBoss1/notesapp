@@ -1497,6 +1497,37 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Book a session:** if the host offers paid sessions, **📅 Book a session** stays at the top of the room, with or without video; it opens their booking card in a new tab, so you don't leave the room.
 
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
+    A("notes-live-studio", "Notes Live Studio: a broadcast look for your live", "Teams and organisations", `
+**Notes Live Studio** gives a live a newsroom's finish: your logo and a LIVE badge, a lower third with the headline and the speaker's name, a scrolling ticker, a subtitle line, and viewers' comments on air. Everyone watching sees the same picture. The #NotesApp team is testing it now and it opens to everyone soon; you can try the controls at [Notes Live Studio](/studio).
+
+**Switching it on:** in your live, the host taps **🎬 Studio**, then **Switch the studio on**. Switching it off takes the room back to how it was; what you set up is kept for when you switch it on again.
+
+**Who does what:**
+- **Host:** everything, and names the editors and moderators (**🛡 Editors and moderators**).
+- **Editor:** runs the picture: layout, logo, lower third, ticker, subtitles, clips and the sponsor spot. Choose the **Editor** preset when you name them.
+- **Moderator:** looks after the chat. With **Put viewers' comments on air** ticked, they choose comments for the air.
+- **Guest:** on stage with a microphone and, when the host lets speakers use video, a camera or a shared screen.
+- **Viewer:** watches and comments.
+
+**The picture:** choose a layout (Auto, Solo, Spotlight, Grid, Picture in picture), a theme, and who is in focus. Someone whose camera is off shows as their profile picture with their name.
+
+**Lower third:** type a headline, the speaker's name and who they are, then **Show**. **Breaking** is for news that can't wait; **Name only** shows just the speaker.
+
+**Ticker:** up to 8 lines that scroll along the bottom, one per line, with a tag and three speeds.
+
+**Subtitle line:** type what was said, or a translation, and press Enter. It stays until you clear it or send the next line. Automatic subtitles from speech come later.
+
+**Comments on air:** point at a comment in the chat and choose **On air**, or **Queue** to line it up. Take it off when you move on.
+
+**Clips:** upload an intro, an outro, a video (MP4 or WebM, up to 100 MB), a sound (up to 20 MB) or a picture before you need it, then **▶ Play**. It plays for everyone and the picture comes back when it ends. Microphones on stage stay as they are, so mute yours while a clip with sound plays.
+
+**Sponsor spot:** a picture (it can be animated) or a video, always without sound, as a corner card or a banner above the ticker. A video clip can also play full screen marked **Advertisement**.
+
+**Share your screen:** on stage, tap **🖥 Share screen**. Your screen takes the place of your camera and is shown large and whole.
+
+**LinkedIn Live:** sending the same programme to LinkedIn at the same time is being built. For now the studio is seen by everyone in your live on #NotesApp.
+
+**Recordings:** a [recorded live](/help/live-recording-and-replays) keeps the sound and the cameras. The studio's graphics and clips aren't in the replay yet.`),
     A("live-recording-and-replays", "Recording a live, and replays", "Teams and organisations", `
 **Recording is off unless the host switches it on.** ${rec.available ? "" : "Recording isn't available on #NotesApp yet; this is how it will work. "}When you start an [audio room](/help/community-audio-rooms), tick **Record this live** before **Go live** (hosts on ${planList("liveRecording")} can). Only rooms that run through our relay can be recorded; if a room runs phone to phone, it isn't, and the host is told.${rec.forced ? " For now every relay room is recorded for safety review, whatever the host chooses, and everyone is told the same way." : ""}
 

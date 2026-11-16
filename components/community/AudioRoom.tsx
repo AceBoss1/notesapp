@@ -26,6 +26,9 @@ import { useSongs } from "@/lib/sounds-client";
 import { SongTag } from "@/components/media/SongPicker";
 import FollowButton from "@/components/FollowButton";
 import PersonActions from "@/components/gifts/PersonActions";
+import ProgramFrame from "@/components/studio/ProgramFrame";
+import StudioControls from "@/components/studio/StudioControls";
+import { studioOf, studioOn } from "@/lib/studio";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -153,13 +156,15 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [posterOpen, setPosterOpen] = useState(false);
   // Music (lib/songs.ts): the host plays NotesApp Sounds into their microphone mix, so listeners and the recording hear it.
   const [musicOpen, setMusicOpen] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [myScreen, setMyScreen] = useState(false);
   const [songOn, setSongOn] = useState("");
   const [songVol, setSongVol] = useState(0.5);
   const songVolRef = useRef(0.5); songVolRef.current = songVol;
   const songs = useSongs(); // house songs and approved artist songs
   const songsRef = useRef(songs); songsRef.current = songs;
   const songRef = useRef<{ play: (id: string) => boolean; stop: () => void; volume: (v: number) => void }>({ play: () => false, stop: () => {}, volume: () => {} });
-  const liveRef = useRef<{ startVideo: () => Promise<void>; stopVideo: (tell?: boolean) => Promise<void>; resync: () => void }>({ startVideo: async () => {}, stopVideo: async () => {}, resync: () => {} });
+  const liveRef = useRef<{ startVideo: (screen?: boolean) => Promise<void>; stopVideo: (tell?: boolean) => Promise<void>; resync: () => void }>({ startVideo: async () => {}, stopVideo: async () => {}, resync: () => {} });
   const tookLive = useCallback((h: HostLive | undefined) => { if (!h) return; setHostLive(h); if (h.prompt) setPrompt(h.prompt); }, []);
   useEffect(() => { const a = readAudioOnly(); audioOnlyRef.current = a; setAudioOnly(a); }, []);
 
@@ -194,6 +199,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     const vpulled = new Map<string, { uid: string; mid: string }>();
     const videoMap = new Map<string, MediaStream>();
     const showVideo = () => setVideos(Object.fromEntries(videoMap));
+    let camScreen = false; // my video track is my screen, not my camera (Notes Live Studio, lib/studio.ts)
     let cam: MediaStream | null = null, camTx: RTCRtpTransceiver | null = null, camAt = 0, vcfg: VideoCfg = { on: false, kbps: 0, fps: 0, height: 0 };
     const show = () => setStreams({ ...Object.fromEntries([...conns].filter(([, c]) => c.stream).map(([u, c]) => [u, c.stream!])), ...Object.fromEntries(relayStreams) });
     const audio = () => {
@@ -401,9 +407,11 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       await takeOffer(res);
     }).catch(() => {});
     // My camera: a second track on the same connection, capped by the settings; off again without reconnecting.
-    const startVideo = () => serial(async () => {
+    const startVideo = (screen = false) => serial(async () => {
       if (camTx || over || !relayMode) return;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints({ videoHeight: vcfg.height, videoFps: vcfg.fps }) });
+      // screen: the same video track carries a window or the whole screen instead of the camera (the studio shows it whole).
+      const stream = screen ? await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: vcfg.fps || 15 }, audio: false })
+        : await navigator.mediaDevices.getUserMedia({ video: videoConstraints({ videoHeight: vcfg.height, videoFps: vcfg.fps }) });
       const pc = relayPc();
       const tx = pc.addTransceiver(stream.getVideoTracks()[0], { direction: "sendonly", streams: [stream], sendEncodings: [videoEncoding({ videoKbps: vcfg.kbps, videoFps: vcfg.fps })] });
       try {
@@ -412,6 +420,11 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         const r = await relay({ op: "video", offer: { type: offer.type, sdp: offer.sdp ?? "" }, mid: tx.mid });
         if (r.answer) await pc.setRemoteDescription(r.answer);
         cam = stream; camTx = tx; camAt = Date.now(); setMyCam(stream); tookLive(r.host);
+        camScreen = screen; setMyScreen(screen);
+        if (screen) {
+          stream.getVideoTracks()[0].addEventListener("ended", () => { void stopVideo(); }); // "Stop sharing" in the browser's own bar
+          void capi("/api/community/rooms", { action: "studio", id, op: "screen", on: true }).catch(() => {});
+        }
       } catch (e) {
         await tx.sender.replaceTrack(null).catch(() => {});
         stream.getTracks().forEach((t) => t.stop());
@@ -423,6 +436,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       if (!camTx) return;
       await camTx.sender.replaceTrack(null).catch(() => {});
       camTx = null; cam?.getTracks().forEach((t) => t.stop()); cam = null; setMyCam(null);
+      if (camScreen) { camScreen = false; setMyScreen(false); if (!over) void capi("/api/community/rooms", { action: "studio", id, op: "screen", on: false }).catch(() => {}); }
       if (tell && !over) tookLive((await relay({ op: "unvideo" }).catch(() => null as RelayRes | null))?.host);
     });
     liveRef.current = { startVideo, stopVideo, resync: () => { if (latest && relayMode) void videoSync(latest); } };
@@ -593,6 +607,15 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     catch (e) { flash(e instanceof Error && /Permission|NotAllowed/i.test(e.name + e.message) ? "Allow the camera to turn video on." : e instanceof Error ? e.message : "Couldn't turn video on."); }
     finally { setCamBusy(false); }
   };
+  // Notes Live Studio: my screen in place of my camera, on the same video track (one or the other at a time).
+  const toggleScreen = async () => {
+    setCamBusy(true);
+    try {
+      if (myCam) await liveRef.current.stopVideo();
+      if (!myScreen) await liveRef.current.startVideo(true);
+    } catch (e) { flash(e instanceof Error && /Permission|NotAllowed/i.test(e.name + e.message) ? "Sharing was cancelled." : e instanceof Error ? e.message : "Couldn't share the screen."); }
+    finally { setCamBusy(false); }
+  };
   // Every camera down: mine, and the speakers' (by taking back their permission to use video).
   const backToAudio = async () => {
     if (myCam) await liveRef.current.stopVideo().catch(() => {});
@@ -634,11 +657,19 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             {prompt.kind !== "budget" && <button type="button" onClick={() => setPrompt(null)} className="text-xs text-white/60 underline">{prompt.kind === "drop" ? "Not now" : "Keep video"}</button>}
           </div>
         )}
-        {room && (relayRoom || room.poster) && (
+        {room && studioOn(room) && (
+          <div className="mx-auto mb-5 w-full max-w-5xl">
+            <ProgramFrame studio={studioOf(room)} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
+              person={(u) => ({ name: room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest"), avatar: room.joined[u]?.avatar ?? "" })}
+              sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} />
+          </div>
+        )}
+        {room && !studioOn(room) && (relayRoom || room.poster) && (
           <LiveScreen videos={videos} myCam={myCam} poster={room.poster ?? ""} audioOnly={audioOnly} videoUp={videoUp} nameOf={(u) => (u === me ? "You" : room.joined[u]?.name ?? "")} />
         )}
-        {room && (role === "host" || may("poster") || may("video")) && (
+        {room && (role === "host" || may("poster") || may("video") || may("studio") || may("onair")) && (
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs">
+            {(role === "host" || ((may("studio") || may("onair")) && studioOn(room))) && <button type="button" onClick={() => setStudioOpen((v) => !v)} aria-expanded={studioOpen} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${studioOpen ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎬 Studio{studioOn(room) ? " · on" : ""}</button>}
             {role === "host" && <button type="button" onClick={() => void openMods()} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🛡 Moderators{room.mods && Object.keys(room.mods).length ? ` · ${Object.keys(room.mods).length}` : ""}</button>}
             {role === "host" && room.mods && Object.keys(room.mods).length > 0 && <button type="button" onClick={() => act<{ log: ModLogEntry[] }>({ action: "modlog" }).then((r) => setLog(r?.log ?? []))} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">📋 Moderators&apos; log</button>}
             {role === "host" && <button type="button" onClick={() => setMusicOpen((v) => !v)} aria-expanded={musicOpen} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${songOn ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎵 Music{songOn ? " · on" : ""}</button>}
@@ -664,6 +695,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
                 </ul>
                 <label className="mt-2 flex items-center gap-2 text-white/70">Music volume
                   <input type="range" min={0} max={100} value={Math.round(songVol * 100)} onChange={(e) => { const v = Number(e.target.value) / 100; setSongVol(v); songRef.current.volume(v); }} className="w-40 accent-white" aria-label="Music volume" /></label>
+              </div>
+            )}
+            {studioOpen && (
+              <div className="w-full">
+                <StudioControls studio={studioOf(room)} isHost={role === "host"} canEdit={may("studio")} canAir={may("onair")} stage={stage} nameOf={(u) => room.joined[u]?.name ?? "Guest"}
+                  act={(body) => act(body, "studio")} onError={flash} onModerators={() => void openMods()} />
               </div>
             )}
             {posterOpen && <div className="w-full"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
@@ -758,7 +795,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         ) : (
           <>
             <MuteButton muted={muted || silenced} locked={silenced} onToggle={toggleMute} />
-            {mayVideo && <button type="button" disabled={camBusy} onClick={() => void toggleVideo()} aria-pressed={!!myCam} className={`rounded-full px-4 py-3 font-ui text-sm font-semibold ${myCam ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"} disabled:opacity-40`}>{myCam ? "🎥 Video off" : "🎥 Video"}</button>}
+            {mayVideo && <button type="button" disabled={camBusy} onClick={() => void toggleVideo()} aria-pressed={!!myCam} className={`rounded-full px-4 py-3 font-ui text-sm font-semibold ${myCam ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"} disabled:opacity-40`}>{myCam && !myScreen ? "🎥 Video off" : "🎥 Video"}</button>}
+            {mayVideo && room && studioOn(room) && typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia && <button type="button" disabled={camBusy} onClick={() => void toggleScreen()} aria-pressed={myScreen} className={`rounded-full px-4 py-3 font-ui text-sm font-semibold ${myScreen ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"} disabled:opacity-40`}>{myScreen ? "🖥 Stop sharing" : "🖥 Share screen"}</button>}
             {role === "speaker" && <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-3 font-ui text-sm hover:bg-white/20">Back to listening</button>}
           </>
         )}
@@ -789,6 +827,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 // remove from the live, slow mode, pin. Each control shows only to those who hold it, and never against someone with as much say.
 function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; perms: ModPerm[]; act: (body: Record<string, unknown>, tag?: string) => Promise<unknown>; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
   const canRemove = perms.includes("chatRemove"), canMute = perms.includes("chatMute"), canBan = perms.includes("ban"), canPin = perms.includes("pin"), canSlow = perms.includes("slow");
+  // Notes Live Studio (lib/studio.ts): put this comment on the programme, or keep it in the on-air queue.
+  const canAir = perms.includes("onair") && studioOn(room);
+  const onAirId = room.studio?.comment?.id;
+  const air = (m: { id: string; from: string; name: string; avatar: string; text: string }, op: "comment" | "queue") => void act({ action: "studio", op, message: { id: m.id, from: m.from, name: m.name, avatar: m.avatar, text: m.text } });
   const over = (u: string) => mayActOn(room, me, u, perms);
   const [pinText, setPinText] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
@@ -873,8 +915,12 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
               <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{m.from !== me && room.profile?.gifts !== false && <span className="ml-1 inline-block align-middle"><PersonActions uid={m.from} name={m.name} toKind={m.from === room.hostUid ? "host" : room.speakers.includes(m.from) ? "speaker" : "commenter"} context="live" liveId={id} where="a live's chat" text={m.text} dark compact /></span>}{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
               <p className="whitespace-pre-line break-words text-sm text-white/85">{m.text}</p>
             </div>
-            {(canPin || (m.from !== me && over(m.from) && (canRemove || canMute || canBan))) && (
-              <span className="flex flex-col items-end gap-0.5 self-start opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+            {(canPin || canAir || (m.from !== me && over(m.from) && (canRemove || canMute || canBan))) && (
+              <span className={`flex flex-col items-end gap-0.5 self-start focus-within:opacity-100 group-hover:opacity-100 ${canAir ? "opacity-70" : "opacity-0"}`}>
+                {canAir && (onAirId === m.id
+                  ? <button type="button" onClick={() => void act({ action: "studio", op: "comment", message: null })} className="rounded bg-[#E5122F] px-1.5 py-0.5 text-[10px] font-extrabold text-white">ON AIR · take off</button>
+                  : <button type="button" onClick={() => air(m, "comment")} className="rounded bg-white px-1.5 py-0.5 text-[10px] font-extrabold text-ink">On air</button>)}
+                {canAir && onAirId !== m.id && <button type="button" onClick={() => air(m, "queue")} className="text-[11px] text-white/40 hover:text-white">Queue</button>}
                 {canPin && <button type="button" onClick={() => void act({ action: "pin", text: m.text })} className="text-[11px] text-white/40 hover:text-white">Pin</button>}
                 {m.from !== me && over(m.from) && canRemove && <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>}
                 {m.from !== me && over(m.from) && canMute && live.status === "live" && (live.mutedList.includes(m.from)

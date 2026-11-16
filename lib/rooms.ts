@@ -93,6 +93,8 @@ export type RoomDoc = {
   profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean };
   // ❤️ likes in this live, one per person (lib/room-events-server.ts).
   likes?: number;
+  // Notes Live Studio (v0.177.0, lib/studio.ts): the broadcast graphics every screen draws over the live. Server-written.
+  studio?: import("./studio").StudioState;
 };
 export const PROFILE_LIVE_AUDIENCES = ["everyone", "followers", "subscribers"] as const;
 export type ProfileLiveAudience = (typeof PROFILE_LIVE_AUDIENCES)[number];
@@ -123,7 +125,7 @@ export const STAGE_MODES: { id: StageMode; label: string; hint: string }[] = [
 export const isStageMode = (v: unknown): v is StageMode => v === "solo" || v === "approve" || v === "open";
 export const stageModeOf = (r: Pick<RoomDoc, "stageMode">): StageMode => (isStageMode(r.stageMode) ? r.stageMode : "approve");
 export const ROOM_MODS_MAX = 10;
-export type ModPerm = "approve" | "invite" | "down" | "mic" | "camera" | "chatRemove" | "chatMute" | "ban" | "mode" | "slow" | "pin" | "poster" | "video" | "consent" | "end";
+export type ModPerm = "approve" | "invite" | "down" | "mic" | "camera" | "chatRemove" | "chatMute" | "ban" | "mode" | "slow" | "pin" | "poster" | "video" | "consent" | "studio" | "onair" | "end";
 export const MOD_PERMS: { id: ModPerm; label: string }[] = [
   { id: "approve", label: "Approve stage requests" },
   { id: "invite", label: "Invite people on stage" },
@@ -139,12 +141,17 @@ export const MOD_PERMS: { id: ModPerm; label: string }[] = [
   { id: "poster", label: "Change the poster" },
   { id: "video", label: "Let speakers use video, or take the room back to audio" },
   { id: "consent", label: "Remind speakers to agree to the recording" },
+  // Notes Live Studio (lib/studio.ts): an editor runs the graphics; a moderator puts viewers' comments on air.
+  { id: "studio", label: "Run the studio: layout, logo, lower third, ticker, subtitles, clips" },
+  { id: "onair", label: "Put viewers' comments on air" },
   { id: "end", label: "End the live" },
 ];
 export const ALL_MOD_PERMS: ModPerm[] = MOD_PERMS.map((p) => p.id);
-export const MOD_PRESETS: { id: "basic" | "full"; label: string; perms: ModPerm[] }[] = [
+export const MOD_PRESETS: { id: "basic" | "full" | "editor"; label: string; perms: ModPerm[] }[] = [
   { id: "basic", label: "Basic", perms: ["approve", "invite", "down", "mic", "chatRemove"] },
   { id: "full", label: "Full", perms: ALL_MOD_PERMS.filter((p) => p !== "end") }, // ending the live stays with the host unless ticked
+  // The studio's editor (lib/studio.ts): the graphics and the comments on air, with no say over people.
+  { id: "editor", label: "Editor", perms: ["pin", "poster", "studio", "onair"] },
 ];
 export const BASIC_PERMS = MOD_PRESETS[0].perms;
 // The community's own moderators (not named for this live) keep the chat powers they had: remove, mute in the chat, remove from the live.
