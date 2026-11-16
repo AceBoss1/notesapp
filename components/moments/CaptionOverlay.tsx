@@ -11,7 +11,7 @@ export function CaptionOverlay({ captions, time }: { captions: Captions; time: n
   if (!now) return null;
   const { style, place } = captions;
   return (
-    <p aria-live="off" className={`pointer-events-none absolute inset-x-4 z-[5] text-center leading-snug text-white ${place === "middle" ? "top-1/2 -translate-y-1/2" : "bottom-44"} ${style === "clean" ? "text-lg font-semibold" : "text-xl font-extrabold"}`}
+    <p aria-live="off" className={`pointer-events-none absolute inset-x-4 z-[5] text-center leading-snug text-white ${place === "middle" ? "top-1/2 -translate-y-1/2" : "bottom-10"} ${style === "clean" ? "text-lg font-semibold" : "text-xl font-extrabold"}`}
       style={{ textShadow: "0 2px 6px rgba(0,0,0,.85)" }}>
       {now.line.words.map((w, i) => {
         const on = i === now.word;
@@ -22,12 +22,12 @@ export function CaptionOverlay({ captions, time }: { captions: Captions; time: n
 }
 
 // A voice-over, played over a picture, a video or text. With a trim it skips its pauses, as a trimmed video does.
-export function VoiceOver({ src, spans, onTime }: { src: string; spans?: Span[]; onTime?: (t: number) => void }) {
+export function VoiceOver({ src, spans, muted, onTime }: { src: string; spans?: Span[]; muted?: boolean; onTime?: (t: number) => void }) {
   const el = useRef<HTMLAudioElement>(null);
   const cb = useRef(onTime); cb.current = onTime;
   useEffect(() => { const a = el.current; if (a && spans?.length && spans[0][0] > 0.05) a.currentTime = spans[0][0]; }, [src, spans]);
   return (
-    <audio ref={el} src={src} autoPlay
+    <audio ref={el} src={src} autoPlay muted={muted}
       onTimeUpdate={(e) => {
         const a = e.currentTarget;
         cb.current?.(a.currentTime);
