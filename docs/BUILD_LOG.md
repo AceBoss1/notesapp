@@ -3384,3 +3384,15 @@ when Nana can't reply), by-hand plans and edits, ticks, reviews, the optional pa
 `/calendar/planner/settings`; `PlannerDay` puts the month's project and the tick boxes above the day in My Calendar, which gains
 Calendar | Planner tabs. The private feed gets a "Notes Planner" switch, off by default, titled "Planner" unless she chooses titles.
 Tests: `test:planner`, `test:planner-server`, rules. Still to measure: what one interview costs on the real model.
+
+**Moments: tidy up and captions (v0.179.0, 16 Nov 2026)** — second item from Charlie Hills' article (build 3), built from the approved
+mockups (`docs/MOMENTS_TIDY.md`). Behind `NEXT_PUBLIC_MOMENT_TIDY_LIVE` (off). **Trim the pauses:** the browser decodes the
+recording's sound (`lib/moments-tidy-client.ts` `readSound`), `findPauses` marks stretches quieter than this recording's own speech
+for longer than ¼, ½ or 1 second, less a breath each side, and `playSpans` gives the stretches that play. Nothing is re-made: a moment
+keeps `spans` (flat in Firestore) and the viewer skips between them (`playhead`); a long recording is dealt out over moments by playing
+time (`splitSpans`), and `/api/video` takes `playSec` so a trim can use fewer of the week's video moments (each moment is still held to
+90 seconds of playing time when it is made). **Captions:** 16 kHz mono WAV pieces of at most 45 seconds go to `/api/moments/captions`,
+then to Workers AI Whisper (`lib/moments-captions-server.ts`); nothing is kept but a daily count (`momentCaptionUse`). Timed words
+are corrected in `components/moments/TidyPanel.tsx`, stored on the moment (`captions`), checked with the moment's text by the content
+checks, and drawn by `CaptionOverlay` with the current word marked. Voice-overs get both (`audioSpans`). Tests: `test:moments-tidy`
+(pure and emulator), rules. Verified in a browser on a plain video; not on Stream's player or the real speech model (HANDOVER 141).

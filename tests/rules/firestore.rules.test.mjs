@@ -1769,6 +1769,15 @@ test("Notes Planner is server-only, even for her and for staff: her interview an
   }
 });
 
+test("Moment captions: the count of sound written down per member per day is server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "momentCaptionUse/alice_2026-11-16"), { uid: "alice", day: "2026-11-16", count: 3 }); });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "momentCaptionUse/alice_2026-11-16")));
+    await assertFails(setDoc(doc(db, "momentCaptionUse/alice_2026-11-16"), { count: 0 }));
+    await assertFails(deleteDoc(doc(db, "momentCaptionUse/alice_2026-11-16")));
+  }
+});
+
 test("Google and LinkedIn sign-in links, states, tickets and their log are server-only, even for the account's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

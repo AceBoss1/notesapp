@@ -376,6 +376,28 @@ Every photo, video frame and text that people other than you can see is checked 
 **Not therapy:** Notes Planner is for planning. Nana isn't a counsellor or a doctor. If you're in distress or unsafe, please talk to someone you trust, a doctor, or emergency services.
 
 **Teen mode and child profiles:** teens get a gentler version for a school term (3 months) or a year: exams, a skill, habits. A parent never sees the answers or the plan. Child profiles don't have a Planner.`),
+    A("moments-tidy-and-captions", "Moments: trim the pauses and add captions", "Getting started", `
+Two helpers for video moments and voice-overs. They appear under your video or voice-over in **New moment** once they are switched on for #NotesApp.
+
+**✂️ Trim the pauses:** #NotesApp listens to your recording on your own device and finds the silences. Nothing is sent anywhere for this.
+- The switch says how much it saves ("Saves 21 seconds"). Tap **Check the trim** to play the result and see the pauses in grey on the sound wave.
+- Choose how tight it is: pauses longer than ¼ second, ½ second or 1 second. A short breath is kept each side, so it never cuts inside a word.
+- **Keep a pause** leaves one in.
+- Nothing is deleted. Your full video is uploaded once and the moment skips the pauses when it plays.
+- A trimmed video is as long as what plays, so a 1:42 recording that trims to 1:21 is one moment, not two, and uses one of your week's video moments.
+
+**💬 Captions:** tap **Write captions**. Only the sound is sent to be written down, and it isn't kept.
+- Read them through. Tap a line to fix a word; names and places are the usual slips. Words the AI was unsure of are underlined.
+- Choose a look (Clean, Bold word, Colour word) and where they sit (middle or lower third).
+- Captions are written by AI and can be wrong. You are sharing them, and they are checked like any other words on #NotesApp.
+- English first. Pidgin works but makes more mistakes. A moment with a song and no speech has no captions.
+- With a voice-over, the captions are of the voice-over.
+
+**Watching:** each word lights up as it's said. Tap **CC** to hide or show captions; your choice is remembered on that device. On your own moment, **Remove captions** takes them off for everyone.
+
+**Settings:** Profile → Edit profile → Moments: whether to trim when you add a video, your caption look, and whether you see captions when you watch.
+
+**Limits:** captions come with the video moments and voice-overs your plan already allows. There is a daily limit on how much sound can be written down (about 90 minutes).`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

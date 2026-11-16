@@ -49,6 +49,8 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (https://media.notesapp.name.ng). |
 | `CLOUDFLARE_STREAM_TOKEN` | **yes** | Cloudflare API token with Stream: Edit, for video lessons of view-only items and courses. Without it only PDF lessons work. |
 | `CLOUDFLARE_ACCOUNT_ID` | no | Cloudflare account for Stream when it isn't R2_ACCOUNT_ID. |
+| `CLOUDFLARE_AI_TOKEN` | **yes** | Cloudflare API token with Workers AI: Read, for moment captions (speech to text). Without it captions aren't offered; trimming pauses still works. |
+| `MOMENT_CAPTIONS_MODEL` | no | The Workers AI speech model for moment captions. Defaults to @cf/openai/whisper-large-v3-turbo. |
 
 ## Payments
 
@@ -202,6 +204,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 |---|---|---|
 | `NEXT_PUBLIC_MESSAGES_LIVE` | no | Messages, group chats and the Conversation button: off unless set to true (also on when moments are). |
 | `NEXT_PUBLIC_MOMENTS_LIVE` | no | Moments: off unless set to true (turns messages on too). |
+| `NEXT_PUBLIC_MOMENT_TIDY_LIVE` | no | Moments tidy up (trim the pauses) and captions: off unless set to true. Captions also need CLOUDFLARE_AI_TOKEN. |
 | `NEXT_PUBLIC_CALLS_LIVE` | no | Voice and video calls: on whenever messages are, unless set to false. |
 | `NEXT_PUBLIC_MEDIA_LIVE` | no | Media (the Media tab on profiles, /u/{username}/media and the /profile/media studio): on unless set to false. Videos also need CLOUDFLARE_STREAM_TOKEN. |
 | `NEXT_PUBLIC_WALLET_LIVE` | no | The NotesApp Credit wallet: on unless set to false. |
