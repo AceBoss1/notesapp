@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.180.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "changed", text: "Moments: a new look for making a moment. New moment is now a full page: choose Text, Picture or Video, then open Note, Sound or Disappears after to set them. It says there that a moment can last 24, 48 or 72 hours." },
+      { kind: "changed", text: "Moments: a new look for watching. The moment sits on a rounded stage on a light page. Your views, likes and reposts, Pin and Delete are under it on a phone and beside it on a computer; on someone else's moment, reply, like and repost are there." },
+      { kind: "added", text: "Moments: a sound button on moments with a voice-over, a song or a plain video." },
+    ],
+  },
+  {
     version: "v0.179.0",
     bump: "minor",
     date: "2026-11-16",

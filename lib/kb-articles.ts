@@ -377,16 +377,16 @@ Every photo, video frame and text that people other than you can see is checked 
 
 **Teen mode and child profiles:** teens get a gentler version for a school term (3 months) or a year: exams, a skill, habits. A parent never sees the answers or the plan. Child profiles don't have a Planner.`),
     A("moments-tidy-and-captions", "Moments: trim the pauses and add captions", "Getting started", `
-Two helpers for video moments and voice-overs. They appear under your video or voice-over in **New moment** once they are switched on for #NotesApp.
+Two helpers for video moments and voice-overs. Their switches appear on the **New moment** page once they are switched on for #NotesApp. With a switch on, **Next: check it** takes you to a step for the trim and a step for the captions before you share.
 
 **✂️ Trim the pauses:** #NotesApp listens to your recording on your own device and finds the silences. Nothing is sent anywhere for this.
 - The switch says how much it saves ("Saves 21 seconds"). Tap **Check the trim** to play the result and see the pauses in grey on the sound wave.
 - Choose how tight it is: pauses longer than ¼ second, ½ second or 1 second. A short breath is kept each side, so it never cuts inside a word.
-- **Keep a pause** leaves one in.
+- **Keep the pause at…** leaves one in.
 - Nothing is deleted. Your full video is uploaded once and the moment skips the pauses when it plays.
 - A trimmed video is as long as what plays, so a 1:42 recording that trims to 1:21 is one moment, not two, and uses one of your week's video moments.
 
-**💬 Captions:** tap **Write captions**. Only the sound is sent to be written down, and it isn't kept.
+**💬 Captions:** turn on **Add captions**. When you reach the captions step, only the sound is sent to be written down, and it isn't kept.
 - Read them through. Tap a line to fix a word; names and places are the usual slips. Words the AI was unsure of are underlined.
 - Choose a look (Clean, Bold word, Colour word) and where they sit (middle or lower third).
 - Captions are written by AI and can be wrong. You are sharing them, and they are checked like any other words on #NotesApp.
