@@ -3,7 +3,7 @@
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
 decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.64.0), phase 2 (sections, the Clean look, colour sets and the first kits,
 v0.65.0), phase 3 (the Scholar look and the academic sections, v0.66.0), phase 4 (more kits and the cover photo, v0.70.0) and phase 5
-(the storefront, the Luxe look, community and courses inside the site, v0.72.0 to v0.78.0) are built. [What's live and what's
+(the storefront, the Luxe look, community and courses inside the site, v0.72.0 to v0.78.0) and phase 6 (the International organisations kit and sites we set up, v0.178.0) are built. [What's live and what's
 planned](#whats-live-and-whats-planned) is the summary; updated 2 Nov 2026 (v0.117.0).
 
 ## Decisions (owner, 20 Oct 2026)
@@ -144,6 +144,31 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   menu (`communityPage`, a switch under Choose what shows).
 - **Day, Night and Auto** (v0.100.0): members' sites keep their own look; the app-wide switch doesn't change them.
 
+## Phase 6: international organisations, and sites we set up (built, v0.178.0)
+
+- **Kit** `intl`, International organisations and associations (Business and Enterprise; owner, 16 Nov 2026): the Clean look with a full
+  photo, ocean blue, the sections banner, strip, programmes (the menu, in tabs), leadership, gallery and questions, with Journals and
+  Courses on. `siteWords(kit)` in `lib/site-kits.ts` gives a site its words: for this kit Notes is **News**, Courses is **Academy**, the
+  menu is **Our work** (opening on its first tab) and the team is **Leadership**; every other kit keeps the usual words. The menu's button
+  is **Get involved** (to Contact). It is in `COMMUNITY_KITS`, so Community opens under the kits.
+- **Members, fellows and alumni** are the linked community's Spaces (public, or for all members). A closed group is a Circle (50 people).
+  Not built: Spaces for some members only, paid membership dues, a directory of ambassadors by country, Events as a section of the site.
+- **The banner** `public/images/sites/world-map.svg` (`scripts/site-art.ts`, from the Talks globe's land data): our own drawing. It must
+  never be made to look like the emblem of the United Nations or of any other body.
+- **The starter answers** say the organisation is independent and not part of a government or of the United Nations system. An
+  organisation for which that isn't true changes it; nobody's site should let a visitor take it for a body it is not (Terms: accounts that
+  misrepresent who they are).
+- **Preview** (`sites/{uid}.preview`): a notice on every page ("This is a proposed site and is not yet the official website of …") and
+  `noindex`. Only `scripts/site-setup.ts` sets it and takes it off (`--live`); `siteDocOf` reads it, `saveSite` keeps it, and no route
+  accepts it from a member.
+- **Set it up for me** (`lib/site-setup-server.ts`, `scripts/site-setup.ts <preset>`): fills an existing account's site, About and
+  Contact, a community with Spaces, Academy courses and news from `scripts/site-presets/<name>.ts`, through `applyKit`, `saveSite`,
+  `createCommunity`, `createCourse` and the journal content check, so every plan and content check applies. A dry run unless `--apply`; it
+  never creates an account, changes a plan or sets a picture; it keeps what is already written (`--force` replaces the sections and
+  pages); courses and news are drafts unless `--publish`. Against the emulators, `--demo-account` makes the account for screenshots.
+- **First preset: `unipa`** (a proposal the owner is taking to UNIPA; see the notes at the top of `scripts/site-presets/unipa.ts` for where
+  its words come from and what was left out). Tests: `test:sites`, `test:sites-server` (`setup.emulator.ts`).
+
 ## The "Powered by #NotesApp" link (v0.117.0)
 
 The footer mark ("Name is powered by #NotesApp" on Business, "Name, powered by [na]" on Enterprise), the legal pages' Powered by block
@@ -163,7 +188,8 @@ So once `NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` is set in Vercel, every member's ow
 | Looks: Legacy, Clean, Scholar (Free Basic); Luxe, Aurora, Maroon (Pro); colour sets; brand colour (Pro); white, paper or Night background | Live |
 | Sections: banner, info strip, services menu, gallery, testimonials, team (with @tags), FAQ, academic sections with import | Live |
 | Pages: Journals (with topic links), Shop (storefront, basket), Courses, Track (Business), About, Contact, Terms and Privacy (own domain) | Live |
-| 19 kits (`KITS` in `lib/site-kits.ts`; Beauty and wellness in four flavours), including Schools, Churches and NGOs, and Hotels | Live |
+| 20 kits (`KITS` in `lib/site-kits.ts`; Beauty and wellness in four flavours), including Schools, Churches and NGOs, Hotels, and International organisations | Live |
+| Sites set up by our team from a preset, shown as a Preview until taken over (`scripts/site-setup.ts`) | Live (v0.178.0) |
 | Community inside the site (`/community`), on the own domain too | Live |
 | The Hotels kit and the hotel's own `/hotel` page (rooms, booking, ordering; `docs/HOTEL_KIT.md`) | Live (v0.164.0) |
 | Analytics (visits by page and source on Business and above) | Live |

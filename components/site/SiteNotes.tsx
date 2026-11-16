@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { isCrimsonTheme } from "@/lib/site-themes";
 import { topicLabel, topicsOf } from "@/lib/topics";
+import { siteWords } from "@/lib/site-kits";
 import { useSite } from "./SiteContext";
 import { useOwnNotes } from "./useOwnNotes";
 import NoteCard from "./NoteCard";
@@ -10,7 +11,8 @@ import SiteFeed from "./SiteFeed";
 import AuroraBand from "./AuroraBand";
 
 export default function SiteNotes() {
-  const { base, theme } = useSite();
+  const { base, theme, kit } = useSite();
+  const title = siteWords(kit).notes; // "News" on an international organisation's site
   const notes = useOwnNotes();
   const crimson = isCrimsonTheme(theme);
   // Links to the topics they write about most (owner, 22 Oct 2026: from what the publisher actually posts), most used first.
@@ -21,10 +23,10 @@ export default function SiteNotes() {
   const shown = topic ? (notes ?? []).filter((n) => topicsOf(n).includes(topic)) : notes ?? [];
   return (
     <div>
-      {crimson && <AuroraBand eyebrow="Notes"><h1 className="mt-3 font-display text-4xl sm:text-5xl">Notes</h1></AuroraBand>}
+      {crimson && <AuroraBand eyebrow={title}><h1 className="mt-3 font-display text-4xl sm:text-5xl">{title}</h1></AuroraBand>}
     <div className={`mx-auto px-4 sm:px-6 ${theme === "maroon" ? "max-w-3xl" : "max-w-5xl"} ${crimson ? "pb-14 pt-8" : "py-14"}`}>
-      {!crimson && <><p className="eyebrow">Notes</p>
-      <h1 className="mt-2 font-display text-4xl text-ink">Notes</h1></>}
+      {!crimson && <><p className="eyebrow">{title}</p>
+      <h1 className="mt-2 font-display text-4xl text-ink">{title}</h1></>}
       {top.length > 1 && (
         <nav className="-mx-4 mt-6 flex gap-6 overflow-x-auto px-4 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-ink sm:mx-0 sm:gap-10 sm:px-0" aria-label="Topics">
           {[["", "All"] as const, ...top.map(([t]) => [t, topicLabel(t)] as const)].map(([t, label]) => (

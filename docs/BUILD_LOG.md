@@ -3368,3 +3368,12 @@ digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads 
 a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
 Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
 (`test:growth`, `test:growth-server`, rules).
+
+**International organisations kit, and sites we set up (v0.178.0)** — a kit for associations, alliances and NGOs that work across
+countries (`intl` in `lib/site-kits.ts`, Business and Enterprise): programmes as the menu under Our work, Leadership, News for journals and
+Academy for courses (`siteWords`), Community under the kits, a world-map banner of our own (`scripts/site-art.ts`,
+`public/images/sites/world-map.svg`). A Preview notice and `noindex` for a site our team sets up before the organisation takes it over
+(`sites/{uid}.preview`, the site layout). `lib/site-setup-server.ts` and `scripts/site-setup.ts <preset>` fill an existing account's site,
+pages, community, courses and news through the usual server functions (dry run, `--apply`, `--publish`, `--force`, `--live`). First
+preset: `scripts/site-presets/unipa.ts`, from UNIPA's own public pages. Help, changelog, roadmap, SITES.md. Tests: `test:sites`,
+`test:sites-server` (`setup.emulator.ts`).

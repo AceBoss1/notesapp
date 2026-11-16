@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import BookingCard from "@/components/BookingCard";
 import { recordView } from "@/lib/track";
 import { isCleanLike, isCrimsonTheme } from "@/lib/site-themes";
-import { isBeautyKit, shopStyleOf, sortItems } from "@/lib/site-kits";
+import { isBeautyKit, shopStyleOf, siteWords, sortItems } from "@/lib/site-kits";
 import { STORE_CATEGORIES, categoryOf } from "@/lib/store-meta";
 import type { StoreItem } from "@/lib/store";
 import { ProductGrid } from "./Storefront";
@@ -38,6 +38,7 @@ export default function SiteHome() {
   const items = useOwnItems();
   const courseList = useAcademy(site.username, COURSES_LIVE && courses);
   const [viewer, setViewer] = useState<User | null | undefined>(undefined);
+  const words = siteWords(site.kit); // News and Academy on an international organisation's site
 
   useEffect(() => {
     recordView("profile", site.username);
@@ -62,8 +63,8 @@ export default function SiteHome() {
   const notesSection = hasNotes && (
         <section className="mt-14">
           <div className="flex items-center justify-between">
-            <p className="eyebrow">{full || focus === "notes" ? "Notes" : "Latest notes"}</p>
-            {!full && <Link href={`${site.base}/notes`} className={seeAll}>See all notes →</Link>}
+            <p className="eyebrow">{full || focus === "notes" ? words.notes : words.latestNotes}</p>
+            {!full && <Link href={`${site.base}/notes`} className={seeAll}>{words.allNotes} →</Link>}
           </div>
           {site.theme === "maroon" ? (
             <div className="mt-5"><SiteFeed notes={full ? shownNotes : shownNotes.slice(0, focus === "notes" ? 9 : 3)} /></div>
@@ -101,8 +102,8 @@ export default function SiteHome() {
   const coursesSection = hasCourses ? (
         <section className="mt-14">
           <div className="flex items-center justify-between">
-            <p className="eyebrow">Courses</p>
-            {!full && shownCourses.length > (focus === "courses" ? 9 : 3) && <Link href={`${site.base}/courses`} className={seeAll}>See all courses →</Link>}
+            <p className="eyebrow">{words.courses}</p>
+            {!full && shownCourses.length > (focus === "courses" ? 9 : 3) && <Link href={`${site.base}/courses`} className={seeAll}>{words.allCourses} →</Link>}
           </div>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(full ? shownCourses : shownCourses.slice(0, focus === "courses" ? 9 : 3)).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={`${site.base}/courses/${c.slug}`} />)}

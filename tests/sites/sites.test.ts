@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, menuActionOf, collectionKey, shopCollections, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
+import { COMMUNITY_KITS, KITS, siteWords, applyKitTo, menuActionOf, collectionKey, shopCollections, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -58,10 +58,27 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
-assert.equal(KITS.length, 19);
+assert.equal(KITS.length, 20);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "hotel", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 19);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 20);
+// International organisations (Business): programmes as the menu, News and Academy as the words, Community under the kits, and a plain
+// answer about what the organisation is not.
+{
+  const intl = kitOf("intl")!;
+  assert.equal(kitAllowed(intl, "pro"), false); assert.equal(kitAllowed(intl, "business"), true); assert.equal(kitAllowed(intl, "enterprise"), true);
+  assert.ok(COMMUNITY_KITS.includes("intl"), "choosing it opens Community");
+  assert.deepEqual(menuActionOf("intl"), { label: "Get involved", to: "contact" });
+  assert.deepEqual([siteWords("intl").notes, siteWords("intl").courses, siteWords("intl").menu, siteWords("intl").team, siteWords("intl").menuOpensOn], ["News", "Academy", "Our work", "Leadership", "first"]);
+  assert.deepEqual([siteWords("food").notes, siteWords("").courses, siteWords("church").menu, siteWords("school").menuOpensOn], ["Notes", "Courses", "Services", "all"], "every other kit keeps the usual words");
+  const made = applyKitTo(siteDocOf({}), intl, "enterprise");
+  assert.deepEqual(made.sections, { journals: true, shop: false, courses: true, track: false });
+  assert.equal(made.theme, "clean"); assert.equal(made.site.blocks.hero.style, "photo");
+  assert.ok(made.site.blocks.faq.items.some((x) => /United Nations/.test(x.q) && /^No\. We are an independent/.test(x.a) && /not part of any government or of the United Nations system/.test(x.a)), "the starter says plainly it is not a UN or government body");
+  assert.ok(!/united nations|\bUN\b/i.test(`${intl.name} ${intl.blurb} ${intl.starter.headline} ${intl.starter.subline}`), "the kit itself never uses the UN's name");
+}
+// A preview (a site our team set up before the organisation took it over): only ever true when stored as true.
+assert.equal(siteDocOf({ preview: true }).preview, true); assert.equal(siteDocOf({ preview: "yes" }).preview, undefined); assert.equal(siteDocOf({}).preview, undefined);
 // Shop collections: the publisher's own labels (badge, else subcategory), spellings grouped, most used first, in their most used spelling.
 assert.equal(collectionKey("OCASION WEAR"), collectionKey("Occasion wears"));
 assert.equal(collectionKey("Dress"), collectionKey("Dresses"));

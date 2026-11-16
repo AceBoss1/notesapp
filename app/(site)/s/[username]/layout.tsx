@@ -37,10 +37,13 @@ export async function generateMetadata({ params }: { params: { username: string 
   const p = await getUserByUsername(params.username).catch(() => null);
   if (!p || p.suspended) return { title: "Not found" };
   const description = p.bio || `${p.displayName} — notes, bookings and shop.`;
+  // A site our team set up before the organisation took it over (lib/site-kits.ts SiteDoc.preview): kept out of search engines.
+  const preview = (await readSite(getAdminDb(), p.uid).catch(() => null))?.preview === true;
   const images = p.avatar ? [p.avatar] : undefined; // an empty address would make a broken <link> and stop the page from loading
   return {
     title: { default: p.displayName, template: `%s — ${p.displayName}` },
     description,
+    ...(preview ? { robots: { index: false, follow: false } } : {}),
     ...(p.avatar ? { icons: { icon: p.avatar } } : {}), // their logo is the tab icon
     openGraph: { siteName: p.displayName, title: p.displayName, description, images },
     twitter: { card: "summary_large_image", title: p.displayName, description, images },
@@ -107,6 +110,8 @@ export default async function SiteLayout({ children, params }: Props) {
       <div data-site-theme={info.theme} {...(night ? { "data-site-dark": "true" } : {})} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties} suppressHydrationWarning>
         {/* Scholar: light or dark before the first paint, from the visitor's last choice or their device's setting. */}
         {scholar && <script dangerouslySetInnerHTML={{ __html: `try{var e=document.currentScript.parentElement,v=localStorage.getItem(${JSON.stringify(SITE_DARK_KEY)});e.setAttribute("data-site-dark",v==="true"||v==="false"?v:String(matchMedia("(prefers-color-scheme: dark)").matches))}catch(_){}` }} />}
+        {/* A preview (lib/site-kits.ts SiteDoc.preview): said plainly on every page, above everything else. */}
+        {site?.preview && <p role="note" data-site-preview className="border-b border-amber-300 bg-amber-100 px-4 py-2 text-center font-ui text-xs font-semibold text-amber-950">Preview. This is a proposed site and is not yet the official website of {p.displayName}.</p>}
         {site?.announce && <p className="bg-ink px-4 py-2 text-center font-ui text-[11px] font-semibold uppercase tracking-[0.18em] text-paper sm:text-xs">{site.announce}</p>}
         <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">

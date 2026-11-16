@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import SocialLinksRow from "@/components/SocialLinksRow";
-import { buttonHref, byYear, durationText, menuActionOf, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
+import { buttonHref, byYear, durationText, menuActionOf, resolveButton, siteWords, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
 import { useMainSiteUrl } from "@/lib/use-family-url";
 import { useSite } from "./SiteContext";
@@ -120,11 +120,12 @@ function Heading({ children }: { children: React.ReactNode }) {
 function Services() {
   const { blocks, booking, base, kit, username } = useSite();
   const action = menuActionOf(kit);
+  const words = siteWords(kit); // "What we do" and "Our work" for an international organisation's programmes
   // Each service can be shared to Moments and Journals ("<username>~<n>", lib/share-targets.ts), or to another app.
   const share = (x: (typeof blocks.services.items)[number], cls?: string) => <ShareButton shareRef={{ kind: "service", id: `${username}~${blocks.services.items.indexOf(x)}` }} path={`${base}/#services`} title={x.name} label="" className={cls ?? "rounded-full px-2 py-1 text-base leading-none text-slate hover:bg-paper hover:text-crimson"} />;
   const items = blocks.services.items;
-  const [tab, setTab] = useState("All");
   const menu = items.some((x) => x.minutes || x.group || x.image);
+  const [tab, setTab] = useState(() => (words.menuOpensOn === "first" && items[0]?.group) || "All");
   if (!menu) {
     return (
       <section id="services" className="mt-14 scroll-mt-28">
@@ -144,8 +145,8 @@ function Services() {
   const shown = tab === "All" ? items : items.filter((x) => x.group === tab);
   return (
     <section id="services" className="mt-16 scroll-mt-28" aria-labelledby="menu-h">
-      <p className="text-center font-ui text-xs font-semibold uppercase tracking-[0.3em] text-crimson">Our menu</p>
-      <h2 id="menu-h" className="mt-2 text-center font-display text-4xl text-ink">Services</h2>
+      <p className="text-center font-ui text-xs font-semibold uppercase tracking-[0.3em] text-crimson">{words.menuEyebrow}</p>
+      <h2 id="menu-h" className="mt-2 text-center font-display text-4xl text-ink">{words.menu}</h2>
       {groups.length > 1 && (
         <div className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0" role="tablist" aria-label="Kinds of service">
           {["All", ...groups].map((g) => (
@@ -221,11 +222,11 @@ function Testimonials() {
   );
 }
 function Team() {
-  const { blocks } = useSite();
+  const { blocks, kit } = useSite();
   const main = useMainSiteUrl();
   return (
     <section className="mt-14">
-      <Heading>Our team</Heading>
+      <Heading>{siteWords(kit).team}</Heading>
       <ul className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {blocks.team.items.map((x, n) => (
           <li key={n} className="card p-4 text-center">

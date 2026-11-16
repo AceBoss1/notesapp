@@ -19,6 +19,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
+| `claude/dazzling-ritchie-p7o1tw` | **v0.178.0:** the International organisations kit, the Preview notice and "Set it up for me" from a preset, with UNIPA's as the first (item 140; `docs/SITES.md` phase 6). Pushed; no pull request yet. Screenshots (phone and desktop, from the real code against the emulators) were shown to the owner on 16 Nov 2026 and wait for his approval. |
 | `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
 | `push/content-checks` | **v0.174.0:** AI content checks (`docs/CONTENT_CHECKS.md`; mockups approved by the owner on 15 Nov 2026). Not pushed or merged yet. |
 | `push/my-cycle` | **v0.163.0:** My Cycle (`docs/MY_CYCLE.md`), built on the approved plan branch `push/cycle-hotel-plan`. Not pushed or merged yet. |
@@ -1133,6 +1134,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     built:** LinkedIn Live at the same time (shown as coming soon; needs LinkedIn Live approval for the stream key), graphics in the
     recording, automatic subtitles, background blur, network ads. Home, About, the footer and Status were left as they are until the
     studio opens to everyone. Tests: `test:studio`, `test:rooms-server` (`studio.emulator.ts`).
+
+140. **🌍 International organisations kit and UNIPA's site (v0.178.0, branch `claude/dazzling-ritchie-p7o1tw`; owner, 16 Nov 2026;
+    `docs/SITES.md` phase 6):** the owner applied to be UNIPA's Country Ambassador for Nigeria and wants to offer UNIPA a rebuilt site
+    at `/s/unipa`, with its Academy on Notes Academy and its members, fellows and alumni in Community, for UNIPA to take over on
+    Enterprise and its own domain. Built: the `intl` kit, `siteWords`, the world-map banner, the Preview notice, and
+    `scripts/site-setup.ts unipa` (preset `scripts/site-presets/unipa.ts`). **Nothing is live:** it ran only against the emulators.
+    **Owner steps, in order:** (1) approve the screenshots; (2) merge; (3) sign up the organisation account `unipa` and put it on
+    Enterprise; (4) `FIREBASE_SERVICE_ACCOUNT_KEY=… npx -y tsx scripts/site-setup.ts unipa`, read the dry run, then `--apply`
+    (courses and news stay drafts; the site says Preview and is not indexed); (5) once UNIPA agrees in writing and has uploaded its
+    own picture: verify the organisation, hand over the account, connect its domain, then `--apply --live`. **Raised with the owner,
+    still open:** UNIPA is a private non-profit (registered in Sweden and the UK), not a United Nations body, and says so in its own
+    FAQ; its name and logo borrow from the UN's, which only the UN may authorise, so the preset leaves the logo out, says "not a
+    United Nations agency" in four places, and uses none of the wording that suggests an organisation of governments. Its published
+    Executive Council list repeats names, its pages give two founding days, its donate button is a PayPal.me link and its social
+    links open another organisation's pages: all left out, for UNIPA to confirm. **Not built:** Spaces for some members only, paid
+    membership dues, a directory of ambassadors by country, Events on the site's Home, the page title "Academy" in the browser tab
+    (it still says Courses), and room for the site's name beside four menu links on a phone.
 
 ## 3. How the work is done (please keep these)
 

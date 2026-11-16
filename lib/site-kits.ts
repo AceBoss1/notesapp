@@ -85,9 +85,11 @@ export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.i
 // Churches and NGOs kit should open Community: start one there, or link the one they run). The site's menu then has a Community link.
 // communityPage: the linked community shows inside their site at <site>/community, on their own domain too (owner, 22 Oct 2026); on by
 // default, switched off under "Choose what shows".
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; communityPage?: boolean; updatedAt?: string };
+// preview: a site our team set up for an organisation before it has taken it over (scripts/site-setup.ts). It carries a notice on every
+// page saying so and is kept out of search engines; only the set-up script switches it on or off, never a request from the member.
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; communityPage?: boolean; preview?: boolean; updatedAt?: string };
 // The kits that open Community on "Your site" (start one, or link one you run).
-export const COMMUNITY_KITS = ["church"];
+export const COMMUNITY_KITS = ["church", "intl"];
 export const cleanCommunityLink = (v: unknown) => { const s = String(v ?? ""); return /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/.test(s) ? s : ""; };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
@@ -188,7 +190,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), communityPage: o.communityPage !== false, updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), communityPage: o.communityPage !== false, ...(o.preview === true ? { preview: true } : {}), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
@@ -587,6 +589,33 @@ export const KITS: Kit[] = [
         { q: "How can I get involved?", a: "Join a fellowship, volunteer at an outreach, or tell us how you'd like to help through our Contact page." },
       ] },
   },
+  {
+    // International organisations (owner, 16 Nov 2026): associations, alliances, federations and NGOs that work across countries. Their
+    // programmes are the menu ("Our work"), their journals are News, their courses are the Academy, and their members, fellows and alumni
+    // are a Community with members-only Spaces (siteWords below; COMMUNITY_KITS).
+    id: "intl", name: "International organisations and associations", emoji: "🌍", minTier: "business", theme: "clean", palette: "ocean",
+    bestFor: "International associations, alliances, federations, professional bodies, foundations and NGOs with chapters in several countries.",
+    blurb: "Opens with a photo and your mission, then your programmes in tabs, your leadership, news from your journals, an Academy for your courses and certificates, and answers about who you are. Opens Community too: members, fellows, ambassadors and alumni each get their own Space, with events, and Giving for donations.",
+    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "info", "services", "team", "gallery", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Working across borders for people and peace.", subline: "What we stand for, the programmes we run, and how you can join, learn and serve with us.", button: btn("contact", "Get involved"), second: btn("services", "Our work"),
+      hours: "Secretariat: Mon–Fri, 9am to 5pm",
+      services: [
+        { group: "Programmes", name: "Human rights", price: "", note: "Awareness, training and support for people whose rights are at risk" },
+        { group: "Programmes", name: "Youth and education", price: "", note: "Leadership training, mentoring and learning for young people" },
+        { group: "Programmes", name: "Environment and climate", price: "", note: "Community projects and advocacy for a liveable planet" },
+        { group: "Programmes", name: "Peace and dialogue", price: "", note: "Forums, mediation and exchange between cultures" },
+        { group: "Get involved", name: "Membership", price: "", note: "For people and organisations who share our aims" },
+        { group: "Get involved", name: "Fellowship", price: "", note: "A year of study and service with a mentor" },
+        { group: "Get involved", name: "Start a chapter", price: "", note: "Bring our work to your country, city or campus" },
+        { group: "Get involved", name: "Volunteer", price: "", note: "Give your time and skills, from wherever you are" },
+      ],
+      faq: [
+        { q: "Who can become a member?", a: "People, institutions and organisations who share our aims. Tell us about yourself through our Contact page, or ask to join in our Community." },
+        { q: "Is there a fee, and are roles paid?", a: "Membership terms and any fees are set out before you apply. Ambassador, chapter and volunteer roles are voluntary and unpaid unless we say otherwise." },
+        { q: "Are you part of a government or of the United Nations?", a: "No. We are an independent, non-governmental association, registered where our About page says. We are not part of any government or of the United Nations system." },
+        { q: "How do I start a chapter?", a: "Write to us with who is in your team and what you plan to do in your first year. We'll arrange a call and send the starter pack." },
+      ] },
+  },
 ];
 export const kitOf = (id: unknown) => KITS.find((k) => k.id === (typeof id === "string" && OLD_KITS[id] ? OLD_KITS[id] : id)) ?? null;
 // A beauty and wellness site (any flavour, or the kits before them): the services menu and the side booking tab.
@@ -622,14 +651,23 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
 // white (product shots); food and everything else as square photos. Sorting and filtering are the same everywhere (sortItems).
 export type ShopStyle = { ratio: "portrait" | "square"; fit: "cover" | "contain" };
 // What the button on each card of a services menu says and where it goes, by kit: Book now (to the booking card, while sessions are on) for
-// most; Order (to the shop) for food; Apply (to Contact) for schools; none for churches and NGOs, whose "menu" is their programme.
+// most; Order (to the shop) for food; Apply (to Contact) for schools; Get involved (to Contact) for international organisations; none for
+// churches and NGOs, whose "menu" is their programme.
 export type MenuAction = { label: string; to: "book" | "shop" | "contact" } | null;
 export function menuActionOf(kit: string): MenuAction {
   if (kit === "food") return { label: "Order", to: "shop" };
   if (kit === "school") return { label: "Apply", to: "contact" };
   if (kit === "church") return null;
+  if (kit === "intl") return { label: "Get involved", to: "contact" };
   return { label: "Book now", to: "book" };
 }
+// What a site calls its pages and sections, by kit: an international organisation's journals are its News, its courses its Academy, its
+// menu its programmes ("Our work") and its team its Leadership. Every other kit keeps the usual words.
+// menuOpensOn: the tab the menu opens on. "first" for an organisation: its programmes, with Get involved and the rest a tap away.
+export type SiteWords = { notes: string; latestNotes: string; allNotes: string; courses: string; allCourses: string; menuEyebrow: string; menu: string; team: string; menuOpensOn: "all" | "first" };
+const WORDS: SiteWords = { notes: "Notes", latestNotes: "Latest notes", allNotes: "See all notes", courses: "Courses", allCourses: "See all courses", menuEyebrow: "Our menu", menu: "Services", team: "Our team", menuOpensOn: "all" };
+const INTL_WORDS: SiteWords = { notes: "News", latestNotes: "Latest news", allNotes: "All news", courses: "Academy", allCourses: "All courses", menuEyebrow: "What we do", menu: "Our work", team: "Leadership", menuOpensOn: "first" };
+export const siteWords = (kit: string): SiteWords => (kit === "intl" ? INTL_WORDS : WORDS);
 export function shopStyleOf(kit: string): ShopStyle {
   if (kit === "fashion" || isBeautyKit(kit)) return { ratio: "portrait", fit: "cover" };
   if (kit === "electronics" || kit === "motor" || kit === "solar") return { ratio: "square", fit: "contain" };

@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.178.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "added", text: "Your site: a new kit, International organisations and associations (Business and Enterprise), for associations, alliances, federations, professional bodies and NGOs that work across countries. It opens with a photo and your mission, then your programmes in tabs under Our work, your leadership, and answers about who you are. Your journals show as News and your courses as your Academy." },
+      { kind: "added", text: "International organisations kit: Community opens under the kits, as it does for Churches and NGOs. Give members, ambassadors, chapters, fellows and alumni a Space each, approve who joins with your own questions, and take donations with Giving." },
+      { kind: "added", text: "International organisations kit: a world-map banner you can use until you add your own photo, and a starter answer that says plainly what you are, so nobody takes you for a government or a United Nations body." },
+      { kind: "added", text: "Sites set up by the #NotesApp team for an organisation show a Preview notice on every page and stay out of search engines until the organisation takes the site over." },
+    ],
+  },
+  {
     version: "v0.177.0",
     bump: "minor",
     date: "2026-11-15",

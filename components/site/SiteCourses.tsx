@@ -5,20 +5,22 @@ import { isCrimsonTheme } from "@/lib/site-themes";
 import { COURSES_LIVE } from "@/lib/site-settings";
 import { useAcademy } from "@/lib/courses-client";
 import { byRecent } from "@/lib/discovery";
+import { siteWords } from "@/lib/site-kits";
 import { useSite } from "./SiteContext";
 import AuroraBand from "./AuroraBand";
 
 // The courses the member teaches on Notes Academy (published ones), newest first. A course opens inside their site
 // (courses/[slug]); its lessons open on #NotesApp, where learners keep their progress. While Notes Academy is switched off this page says courses are coming.
 export default function SiteCourses() {
-  const { base, displayName, theme, username } = useSite();
+  const { base, displayName, theme, username, kit } = useSite();
+  const title = siteWords(kit).courses; // "Academy" on an international organisation's site
   const crimson = isCrimsonTheme(theme);
   const courses = useAcademy(username, COURSES_LIVE);
   return (
     <div>
-      {crimson && <AuroraBand eyebrow="Courses"><h1 className="mt-3 font-display text-4xl sm:text-5xl">Courses</h1></AuroraBand>}
+      {crimson && <AuroraBand eyebrow={title}><h1 className="mt-3 font-display text-4xl sm:text-5xl">{title}</h1></AuroraBand>}
       <div className={`mx-auto max-w-5xl px-4 sm:px-6 ${crimson ? "pb-14 pt-8" : "py-14"}`}>
-        {!crimson && <><p className="eyebrow">Courses</p><h1 className="mt-2 font-display text-4xl text-ink">Courses</h1></>}
+        {!crimson && <><p className="eyebrow">{title}</p><h1 className="mt-2 font-display text-4xl text-ink">{title}</h1></>}
         {!COURSES_LIVE ? (
           <div className="card mt-8 p-6">
             <p className="font-display text-xl text-ink">Courses are coming soon</p>
