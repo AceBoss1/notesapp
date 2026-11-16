@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.178.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "added", text: "Notes Planner, a new tab in My Calendar. Nana interviews you one question at a time, checks she understood you, then writes your next 12 months: one goal, three numbers to track, a project for every month, two or three moves for every day and a Sunday review. Or write the plan yourself, free." },
+      { kind: "added", text: "My Calendar: your plan shows beside your bookings. The month's project sits on top of the day, today's moves are tick boxes, and each month's deadline and the Sunday review appear as a new kind, Plan, that you can hide." },
+      { kind: "added", text: "Notes Planner is private: your answers, plan, ticks and reviews are encrypted, staff can't read them, and they're never used for ads. It stays off your phone's calendar unless you turn it on, with an optional passkey lock, Download my plan and Delete." },
+      { kind: "added", text: "Notes Planner for teens: a gentler version for a school term or year. Child profiles don't have it." },
+    ],
+  },
+  {
     version: "v0.177.0",
     bump: "minor",
     date: "2026-11-15",

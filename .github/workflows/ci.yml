@@ -74,6 +74,7 @@ jobs:
       - run: npm run test:books
       - run: npm run test:calendar
       - run: npm run test:my-calendar
+      - run: npm run test:planner
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups
@@ -153,6 +154,8 @@ jobs:
       - run: npm run test:cycle
       # My Calendar against the emulator: every source, the private link and feed, the bells and the Monday email
       - run: npm run test:my-calendar-server
+      # Notes Planner against the emulator: the interview, Nana writing the plan, encryption, ticks, reviews, the lock, the calendar, bells
+      - run: npm run test:planner-server
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 

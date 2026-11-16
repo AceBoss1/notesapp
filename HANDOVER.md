@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.178.0:** Notes Planner (`docs/NOTES_PLANNER.md`), built from the mockups the owner approved on 15 Nov 2026 ("planner approved build"). Pushed; not merged, no pull request yet. **Also here, plan only:** Moments tidy up and captions (`docs/MOMENTS_TIDY.md`, six mockups in `docs/mockups/moments-tidy/`), waiting for the owner's approval. After it, with mockups first: Themes and kits, then Merch. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
@@ -1133,6 +1134,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     built:** LinkedIn Live at the same time (shown as coming soon; needs LinkedIn Live approval for the stream key), graphics in the
     recording, automatic subtitles, background blur, network ads. Home, About, the footer and Status were left as they are until the
     studio opens to everyone. Tests: `test:studio`, `test:rooms-server` (`studio.emulator.ts`).
+140. **Notes Planner (v0.178.0, branch `claude/vigilant-franklin-xgf9ee`; owner, 15 Nov 2026, "planner approved build"; plan and
+    mockups in `docs/NOTES_PLANNER.md`):** a Planner tab in My Calendar. Nana interviews the member one question at a time, sums up in
+    five lines, then writes 12 months: one goal, three numbers, a project a month, daily moves, a Sunday review. Or the member writes it
+    by hand. **Deploy:** `firebase deploy --only firestore` (three new server-only collections: `plannerPlans`, `plannerDays`,
+    `plannerReviews`; no new indexes). **Needs `ACCOUNT_DATA_KEY`** (already set for My Cycle and payouts); without it the Planner says
+    it isn't switched on. No new settings. The bells run in the existing 15-minute reminders job (`plannerBells`).
+    **To check after deploy:** the cost of one interview on the real model. It is metered through the member's Nana allowance
+    (`lib/nana-meter.ts`, Pearl, Quick) with a cap of 90 Planner calls a day per member, but the Naira cost of about 30 questions plus
+    the plan hasn't been measured, so no price or separate limit is set. A Free Standard member's allowance may not cover a whole
+    interview: their answers are kept and they can carry on after the reset or write the plan by hand.
+    **Not built:** sharing a plan, team plans, templates, Nana changing a plan by herself, a public explainer page of its own (it
+    is described on `/my-calendar`, About, the roadmap and in the help article `notes-planner`).
 
 ## 3. How the work is done (please keep these)
 
