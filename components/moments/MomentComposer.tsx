@@ -318,7 +318,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
                 </div>
                 <div>
                   <button type="button" onClick={() => setOpen(open === "hours" ? "" : "hours")} aria-expanded={open === "hours"} className="flex w-full items-center gap-3 py-3.5 text-left">
-                    <IconTimer className="shrink-0 text-ink" /><span className="flex-1 font-ui text-[16px] font-semibold text-ink">Disappears after</span>
+                    <IconTimer className="shrink-0 text-ink" /><span className="flex-1 font-ui text-[16px] font-semibold text-ink">Disappears after<span className="block text-[13px] font-normal text-slate">{hours === 24 ? "You can also choose 48 or 72 hours" : "24, 48 or 72 hours"}</span></span>
                     <span className="font-ui text-[14px] text-slate">{hours} hours</span><IconChevron size={18} className={`text-slate transition-transform ${open === "hours" ? "rotate-90" : ""}`} />
                   </button>
                   {open === "hours" && <div className="flex gap-2 pb-4">{MOMENT_HOURS.map((h) => <button key={h} type="button" aria-pressed={hours === h} onClick={() => setHours(h)} className={`h-10 flex-1 rounded-full border font-ui text-sm ${hours === h ? "border-crimson bg-crimson font-bold text-white" : "border-rule bg-card text-ink"}`}>{h} hours</button>)}</div>}
