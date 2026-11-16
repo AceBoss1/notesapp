@@ -108,4 +108,15 @@ assert.deepEqual(wordsFromSpeech({ segments: [{ start: 0, end: 1, text: "x", wor
 const seg = wordsFromSpeech({ segments: [{ start: 2, end: 4, text: " pays half " }] });
 assert.deepEqual(seg.map((w) => [w.w, w.s, w.e, w.u]), [["pays", 2, 3, true], ["half", 3, 4, true]]);
 assert.equal(wordsFromSpeech({ text: "no times at all" }).length, 0); assert.equal(wordsFromSpeech(null).length, 0);
+
+// ── Pieces of sound for captions: at most 45 seconds, broken at a pause where there is one ──
+import { captionPieces, wavOf } from "../../lib/moments-tidy-client";
+assert.deepEqual(captionPieces([[0, 20], [22, 40], [43, 60]]), [[0, 40], [43, 60]]);
+assert.deepEqual(captionPieces([[0, 100]]), [[0, 45], [45, 90], [90, 100]], "one long stretch is cut at 45 seconds");
+assert.deepEqual(captionPieces([[5, 30]]), [[5, 30]]); assert.deepEqual(captionPieces([]), []);
+assert.ok(captionPieces([[0, 30], [31, 80], [81, 200]]).every(([a, b]) => b - a <= 45.01));
+// A WAV file: the header, then 16-bit samples at 16 kHz.
+const w = wavOf(new Float32Array(32_000).fill(0.5), 0.5, 1.5);
+assert.equal(w.length, 44 + 16_000 * 2); assert.equal(String.fromCharCode(...w.slice(0, 4)), "RIFF"); assert.equal(String.fromCharCode(...w.slice(8, 12)), "WAVE");
+assert.equal(new DataView(w.buffer).getUint32(24, true), 16_000); assert.equal(new DataView(w.buffer).getInt16(44, true), Math.floor(0.5 * 0x7fff));
 console.log("ALL OK");

@@ -2,6 +2,9 @@
 
 import { SongPlayer, SongTag } from "@/components/media/SongPicker";
 import { useEffect, useRef, useState } from "react";
+import { playedAt, playhead, spanTotal, type Span } from "@/lib/moments-tidy";
+import { saveTidyPrefs, tidyPrefs } from "@/lib/moments-tidy-client";
+import { CaptionOverlay, VoiceOver, loadStreamSdk } from "./CaptionOverlay";
 import Link from "next/link";
 import LinkedText from "@/components/LinkedText";
 import { api } from "@/lib/moments-client";
@@ -35,6 +38,10 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
   const [showViewers, setShowViewers] = useState(false);
   const [paused, setPaused] = useState(false); // you've started replying, reporting or looking at who saw it: stills stop moving on
   const [frac, setFrac] = useState(0); // how much of the moment now showing has played (0 to 1): fills its bar
+  // Captions (lib/moments-tidy.ts): where the sound that carries them has got to, and whether this viewer wants to see them.
+  const [heard, setHeard] = useState(0);
+  const [cc, setCc] = useState(true);
+  useEffect(() => { setCc(tidyPrefs().cc); }, []);
   const videoEl = useRef<HTMLVideoElement>(null);
   const viewed = useRef(new Set<string>()); // a moment is counted as seen once per time the viewer is open, however often this re-renders
   const advances = useRef<number[]>([]); // when we last moved on: a runaway loop closes the viewer instead of hammering the device
@@ -44,7 +51,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
   const nextGroup = groups && gi >= 0 ? groups[gi + 1] : undefined;
   const prevGroup = groups && gi > 0 ? groups[gi - 1] : undefined;
 
-  useEffect(() => { setShowViewers(false); setPaused(false); setFrac(0); }, [i]);
+  useEffect(() => { setShowViewers(false); setPaused(false); setFrac(0); setHeard(0); }, [i]);
   const next = () => {
     const now = Date.now();
     advances.current = advances.current.filter((t) => now - t < 3000).concat(now);
@@ -68,7 +75,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m?.id]);
   // Pictures and text move on by themselves, long enough for the voice-over to finish if there is one; the bar fills as time passes.
-  const stillMs = m ? Math.max(STILL_MS, ((m.audioDurationSec ?? 0) + 1) * 1000) : STILL_MS;
+  const stillMs = m ? Math.max(STILL_MS, ((m.audioSpans ? spanTotal(m.audioSpans) : m.audioDurationSec ?? 0) + 1) * 1000) : STILL_MS;
   useEffect(() => {
     if (!m || m.kind === "video" || paused) return;
     const started = Date.now(); // each moment starts its bar from empty (a pause is never resumed, so there is nothing to carry over)
@@ -200,7 +207,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
           {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="h-full w-full object-contain" />}
           {m.kind === "video" && m.streamVideo && (
             // On Cloudflare Stream with the NotesApp mark burned in (signed: a player link only for the moment's audience).
-            <StreamMoment key={m.id} id={m.id} clipStart={m.clipStart ?? 0} clipEnd={m.clipEnd}
+            <StreamMoment key={m.id} id={m.id} clipStart={m.clipStart ?? 0} clipEnd={m.clipEnd} spans={m.spans} onTime={m.captions?.of === "video" ? setHeard : undefined}
               onProgress={(f) => setFrac((p) => (p === f ? p : f))}
               onDone={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
               onError={(t) => setNote(t)} />
@@ -212,6 +219,15 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
               onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
               onTimeUpdate={(e) => {
                 const v = e.currentTarget, from = m.clipStart ?? 0, to = m.clipEnd ?? v.duration;
+                if (m.captions?.of === "video") setHeard(v.currentTime);
+                if (m.spans?.length) {
+                  // Trimmed: skip the pauses, and fill the bar by what has played.
+                  const h = playhead(m.spans, v.currentTime), all = spanTotal(m.spans);
+                  if (all > 0) { const f = Math.round(Math.min(1, playedAt(m.spans, v.currentTime) / all) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
+                  if (h.seek !== undefined) v.currentTime = h.seek;
+                  else if (h.done && advanced.current !== m.id) { advanced.current = m.id; next(); }
+                  return;
+                }
                 if (to > from && Number.isFinite(to)) { const f = Math.round(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
                 if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); }
               }}
@@ -221,11 +237,19 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
           )}
           {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6 pb-24"><ShareLinkCard link={m.link} /></div>}
           {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
-          {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
+          {m.audioUrl && <VoiceOver key={m.id} src={m.audioUrl} spans={m.audioSpans} onTime={m.captions?.of === "voice" ? setHeard : undefined} />}
+          {m.captions && cc && <CaptionOverlay captions={m.captions} time={heard} />}
           {/* A NotesApp Sounds song: softer under a video or a voice-over, paused with the moment. A moment in a run of parts restarts it. */}
           {m.songId && <SongPlayer key={`song-${m.id}`} songId={m.songId} under={m.kind === "video" || !!m.audioUrl} paused={paused} />}
         </div>
 
+        {m.captions && (
+          <div className="absolute right-3 top-1/2 z-10 flex flex-col items-end gap-1.5">
+            <button type="button" onClick={() => { setCc(!cc); saveTidyPrefs({ cc: !cc }); }} aria-pressed={cc} aria-label={cc ? "Hide captions" : "Show captions"} title={cc ? "Hide captions" : "Show captions"}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-ui text-[13px] font-extrabold backdrop-blur ${cc ? "border-white bg-black/40 text-white" : "border-white/40 bg-black/30 text-white/50 line-through"}`}>CC</button>
+            {m.mine && <button type="button" disabled={busy} onClick={() => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "uncaption" } }); setItems(items.map((x) => (x.id === m.id ? { ...x, captions: undefined } : x))); })} className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur">Remove captions</button>}
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-20">
           {m.songId && <p className="flex justify-center font-ui text-xs font-semibold text-white/90 drop-shadow"><SongTag songId={m.songId} /></p>}
           {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow"><LinkedText text={m.text} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
@@ -337,11 +361,22 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
 // A moment's video on Cloudflare Stream: Stream's player (no controls), started at the part's own start and moved on from at its end,
 // from the player's timeupdate messages (as the course player reads them). Taps go to the transparent layer over it, so tapping still
 // moves between moments.
-function StreamMoment({ id, clipStart, clipEnd, onProgress, onDone, onError }: { id: string; clipStart: number; clipEnd?: number; onProgress: (f: number) => void; onDone: () => void; onError: (t: string) => void }) {
+function StreamMoment({ id, clipStart, clipEnd, spans, onTime, onProgress, onDone, onError }: { id: string; clipStart: number; clipEnd?: number; spans?: Span[]; onTime?: (t: number) => void; onProgress: (f: number) => void; onDone: () => void; onError: (t: string) => void }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [player, setPlayer] = useState<string | null>(null);
-  const cb = useRef({ onProgress, onDone });
-  cb.current = { onProgress, onDone };
+  const cb = useRef({ onProgress, onDone, onTime });
+  cb.current = { onProgress, onDone, onTime };
+  // A trimmed video (lib/moments-tidy.ts): Stream's player SDK moves the player past each pause. If the SDK can't load, the video
+  // plays its pauses and still ends at the end of its last stretch.
+  const control = useRef<{ currentTime: number } | null>(null);
+  const sought = useRef({ to: -1, at: 0 });
+  const trimmed = !!spans?.length;
+  useEffect(() => {
+    if (!trimmed || !player) return;
+    let live = true;
+    loadStreamSdk().then((Stream) => { if (live && frame.current) control.current = Stream(frame.current); }).catch(() => {});
+    return () => { live = false; control.current = null; };
+  }, [trimmed, player]);
   useEffect(() => {
     let live = true;
     api<{ player: string }>(`/api/moments/${id}`, { body: { action: "play" } }).then((r) => { if (live) setPlayer(r.player); }, () => { if (live) onError("This video couldn't be loaded. Check your connection and try again."); });
@@ -357,6 +392,18 @@ function StreamMoment({ id, clipStart, clipEnd, onProgress, onDone, onError }: {
       if (typeof v.duration === "number") duration = v.duration;
       if (ev === "ended") return cb.current.onDone();
       if ((ev === "timeupdate" || ev === "propertyChange") && typeof v.currentTime === "number") {
+        cb.current.onTime?.(v.currentTime);
+        if (spans?.length) {
+          const all = spanTotal(spans), h = playhead(spans, v.currentTime);
+          if (all > 0) cb.current.onProgress(Math.round(Math.min(1, playedAt(spans, v.currentTime) / all) * 100) / 100);
+          if (h.done) return cb.current.onDone();
+          // Ask once for each jump (the player reports the time several times before it has moved).
+          if (h.seek !== undefined && control.current && (sought.current.to !== h.seek || Date.now() - sought.current.at > 1500)) {
+            sought.current = { to: h.seek, at: Date.now() };
+            try { control.current.currentTime = h.seek; } catch { /* the player has gone */ }
+          }
+          return;
+        }
         const to = clipEnd ?? duration;
         if (to > clipStart) cb.current.onProgress(Math.round(Math.min(1, Math.max(0, (v.currentTime - clipStart) / (to - clipStart))) * 100) / 100);
         if (clipEnd && v.currentTime >= clipEnd - 0.05) cb.current.onDone();
@@ -364,7 +411,7 @@ function StreamMoment({ id, clipStart, clipEnd, onProgress, onDone, onError }: {
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [player, clipStart, clipEnd]);
+  }, [player, clipStart, clipEnd, spans]);
   if (!player) return <p className="text-sm text-white/70">Loading the video…</p>;
   return (
     <div className="relative h-full w-full">

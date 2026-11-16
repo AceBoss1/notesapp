@@ -1,7 +1,7 @@
 "use client";
 
 import SongPicker from "@/components/media/SongPicker";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
 import { uploadToR2WithKey } from "@/lib/upload";
@@ -11,6 +11,9 @@ import { contentCheckOf, type CheckDetail } from "@/lib/content-checks";
 import { sendToStream, videoInfo } from "@/lib/media-client";
 import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoClips, momentVideoParts, type MomentHours, type ComposedMomentKind as MomentKind } from "@/lib/moments-rules";
 import { VIDEO_ACCEPT } from "@/lib/video-rules";
+import { partsForSpans, splitSpans, spanTotal, wordsIn, type Span } from "@/lib/moments-tidy";
+import { tidyStatus } from "@/lib/moments-tidy-client";
+import TidyPanel, { type Tidied } from "./TidyPanel";
 import VoiceOverRecorder, { uploadVoiceOver, type VoiceOver } from "./VoiceOverRecorder";
 
 const readDuration = (file: File) =>
@@ -41,11 +44,17 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   const [duration, setDuration] = useState<number | null>(null);
   const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const [doneNote, setDoneNote] = useState<string | null>(null); // shown after a video was shared, before closing
+  // Tidy up and captions (components/moments/TidyPanel.tsx): offered when switched on. What the panels hand back is what gets shared.
+  const [tidyOn, setTidyOn] = useState({ tidy: false, captions: false });
+  const [vTidy, setVTidy] = useState<Tidied | null>(null); // the video
+  const [aTidy, setATidy] = useState<Tidied | null>(null); // the voice-over
+  useEffect(() => { tidyStatus().then(setTidyOn); }, []);
+  useEffect(() => { if (!voice) setATidy(null); }, [voice]);
 
   // Choosing a video: read its length, and if it needs more than one moment, ask how many the plan has left so the member is told
   // what will happen before pressing Share.
   async function pickFile(f: File | null) {
-    setFile(f); setDuration(null); setQuota(null); setError(null);
+    setFile(f); setDuration(null); setQuota(null); setError(null); setVTidy(null);
     if (!f || kind !== "video") return;
     try {
       const d = await readDuration(f);
@@ -55,7 +64,10 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
       setError(e instanceof Error ? e.message : "We couldn't read that video.");
     }
   }
-  const needed = duration ? momentVideoParts(duration) : 1;
+  // Trimmed, a video is as long as what plays, so it may need fewer moments.
+  const trimmed = kind === "video" && vTidy?.spans ? vTidy.spans : null;
+  const untrimmedParts = duration ? momentVideoParts(duration) : 1;
+  const needed = duration ? (trimmed ? partsForSpans(trimmed) : untrimmedParts) : 1;
   const allowed = quota ? Math.min(needed, quota.remaining) : needed;
 
   async function post() {
@@ -70,17 +82,30 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         const info = await videoInfo(file).catch(() => null);
         const durationSec = duration ?? info?.durationSec ?? (await readDuration(file));
         // Straight to Cloudflare Stream, which burns in the NotesApp mark (your @username) as the video arrives; only that copy is kept.
-        const start = await api<{ id: string; uploadURL: string; partsAllowed: number; partsNeeded: number }>("/api/video", { body: { action: "start", purpose: "moment", size: file.size, contentType: file.type, durationSec, width: info?.width, height: info?.height } });
+        const start = await api<{ id: string; uploadURL: string; partsAllowed: number; partsNeeded: number }>("/api/video", { body: { action: "start", purpose: "moment", size: file.size, contentType: file.type, durationSec, width: info?.width, height: info?.height, ...(trimmed ? { playSec: spanTotal(trimmed) } : {}) } });
         await sendToStream(start.uploadURL, file, () => {});
         if (!auth.currentUser) throw new Error("Sign in first.");
         // One moment per part, in order (each waits for the one before, so they appear in the right order). A voice-over goes on the first.
-        const clips = momentVideoClips(durationSec, start.partsAllowed);
+        // Trimmed: the stretches that play, dealt out over the moments there is room for. Each moment gets its own stretches and the
+        // captions said inside them. Untrimmed: equal parts, as before.
+        const parts: Span[][] | null = trimmed ? splitSpans(trimmed, start.partsAllowed) : null;
+        const clips = parts ? parts.map((p) => ({ start: p[0][0], end: p[p.length - 1][1] })) : momentVideoClips(durationSec, start.partsAllowed);
         const voiceId = voice ? await uploadVoiceOver(voice) : undefined;
+        const tidyOf = (i: number): Record<string, unknown> => {
+          const span: Span[] = parts ? parts[i] : [[clips[i].start, clips[i].end]];
+          const said = !voice && vTidy?.captions ? wordsIn(vTidy.captions.words, span) : [];
+          return {
+            ...(parts ? { spans: parts[i] } : {}),
+            ...(said.length ? { captions: { ...vTidy!.captions, words: said } } : {}),
+            ...(i === 0 && voiceId && aTidy?.spans ? { audioSpans: aTidy.spans } : {}),
+            ...(i === 0 && voiceId && aTidy?.captions ? { captions: aTidy.captions } : {}),
+          };
+        };
         let made = 0;
         try {
           for (let i = 0; i < clips.length; i++) {
             const caption = clips.length === 1 ? text : text ? `${text} (${i + 1}/${clips.length})` : `Part ${i + 1} of ${clips.length}`;
-            await api("/api/moments", { body: { kind: "video", hours, text: caption, videoUploadId: start.id, clipStart: clips[i].start, clipEnd: clips[i].end, ...(i === 0 && voiceId ? { audioUploadId: voiceId } : {}), ...(songId ? { songId } : {}) } });
+            await api("/api/moments", { body: { kind: "video", hours, text: caption, videoUploadId: start.id, clipStart: clips[i].start, clipEnd: clips[i].end, ...(i === 0 && voiceId ? { audioUploadId: voiceId } : {}), ...(songId ? { songId } : {}), ...tidyOf(i) } });
             made++;
           }
         } catch (e) {
@@ -100,7 +125,11 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         onClose();
         return;
       }
-      if (voice) body.audioUploadId = await uploadVoiceOver(voice);
+      if (voice) {
+        body.audioUploadId = await uploadVoiceOver(voice);
+        if (aTidy?.spans) body.audioSpans = aTidy.spans;
+        if (aTidy?.captions) body.captions = aTidy.captions;
+      }
       if (songId) body.songId = songId;
       if (!auth.currentUser) throw new Error("Sign in first.");
       await api("/api/moments", { body });
@@ -116,7 +145,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   }
 
   const tab = (k: MomentKind, label: string) => (
-    <button type="button" onClick={() => { setKind(k); setFile(null); setDuration(null); setQuota(null); }} aria-pressed={kind === k}
+    <button type="button" onClick={() => { setKind(k); setFile(null); setDuration(null); setQuota(null); setVTidy(null); }} aria-pressed={kind === k}
       className={`rounded-full border px-4 py-1.5 text-sm ${kind === k ? "border-crimson bg-crimson text-white" : "border-rule text-ink"}`}>{label}</button>
   );
 
@@ -154,6 +183,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         {kind === "video" && duration !== null && (
           <div className="mt-3 rounded border border-rule bg-paper p-3 text-xs text-slate" role="status">
             {tooLong ? `That video is ${clock(duration)} long. We can use videos of up to ${MOMENT_VIDEO_SOURCE_MAX_SECONDS / 60} minutes.`
+              : needed === 1 && untrimmedParts > 1 ? `Trimmed, your ${clock(duration)} video fits in one moment, so it uses 1 of this week's video moments, not ${untrimmedParts}.`
               : needed === 1 ? `${clock(duration)}: it fits in one moment.`
               : !quota ? `That video is ${clock(duration)}. Checking how many video moments you have left this week…`
               : quota.remaining === 0 ? `That video is ${clock(duration)}, longer than the ${MOMENT_VIDEO_MAX_SECONDS} seconds a moment can be, and you've used all ${quota.limit} of this week's video moments${quota.limit === 0 ? " (video moments come with a paid plan)" : ""}. Pictures and text are still free.`
@@ -161,9 +191,11 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
               : `That video is ${clock(duration)}, longer than the ${MOMENT_VIDEO_MAX_SECONDS} seconds a moment can be, and you have ${quota.remaining === 1 ? "1 video moment" : `${quota.remaining} video moments`} left this week. Only the first ${clock(Math.min(duration, allowed * MOMENT_VIDEO_MAX_SECONDS))} will be shared; the rest will be left out.`}
           </div>
         )}
+        {kind === "video" && file && !tooLong && tidyOn.tidy && <TidyPanel source={file} kind="video" captionsOn={tidyOn.captions} allowCaptions={!voice} onChange={setVTidy} />}
         <div className="relative"><MentionPicker target={captionBox} value={text} onChange={setText} /><textarea ref={captionBox} value={text} onChange={(e) => setText(e.target.value)} maxLength={MOMENT_TEXT_MAX} rows={4} placeholder={MOMENT_HINT} className="mt-4 w-full rounded border border-rule p-3 text-sm" /></div>
         <p className="text-right text-xs text-slate">{text.length}/{MOMENT_TEXT_MAX}</p>
         <VoiceOverRecorder value={voice} onChange={setVoice} />
+        {voice && tidyOn.tidy && <TidyPanel source={voice.blob} kind="voice" captionsOn={tidyOn.captions} onChange={setATidy} />}
         <p className="mt-3 text-sm font-bold text-ink">Sound</p>
         <SongPicker value={songId} onChange={setSongId} />
         <fieldset className="mt-3">
