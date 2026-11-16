@@ -182,7 +182,10 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
     const h = playhead(tidy.spans, p.currentTime);
     if (h.seek !== undefined) p.currentTime = h.seek; else if (h.done) { p.pause(); p.currentTime = tidy.spans[0][0]; }
   };
-  const lines = useMemo(() => (tidy.words ? captionLines(tidy.words) : []), [tidy.words]);
+  // For checking, whole sentences read better than the short lines shown on the video.
+  const lines = useMemo(() => (tidy.words ? captionLines(tidy.words, 64) : []), [tidy.words]);
+  const page = useRef<HTMLDivElement>(null);
+  useEffect(() => { page.current?.scrollTo({ top: 0 }); }, [step]);
 
   if (doneNote) {
     return (
@@ -209,13 +212,13 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   );
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-paper lg:top-[4.5rem] lg:z-30" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 pb-8 pt-12 lg:max-w-5xl lg:px-8 lg:pt-8">
+    <div ref={page} className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-paper lg:top-[4.5rem] lg:z-30" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 pb-8 pt-12 lg:max-w-5xl lg:px-8 lg:pb-24 lg:pt-8">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button type="button" onClick={back} aria-label={at > 0 ? "Back" : "Close"} className="-ml-1 text-ink lg:hidden">{at > 0 ? <IconBack size={26} /> : <IconClose size={26} />}</button>
             {at > 0 && <button type="button" onClick={back} aria-label="Back" className="hidden text-ink lg:block"><IconBack size={24} /></button>}
-            <h2 className="font-display text-[28px] font-semibold leading-none text-ink lg:text-[32px]">{title}</h2>
+            <h2 className="whitespace-nowrap font-display text-[25px] font-semibold leading-none text-ink lg:text-[32px]">{title}</h2>
           </div>
           <Steps step={at + 1} of={steps.length} />
         </div>

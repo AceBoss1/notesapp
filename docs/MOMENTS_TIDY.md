@@ -103,3 +103,28 @@ These could not be tested where this was built:
    Stream's player SDK. If it doesn't skip, the video plays its pauses and still ends in the right place.
 2. **The real speech model:** its answer's shape, its accuracy on Nigerian English and Pidgin, and its cost.
 3. **Phones:** reading the sound of a large video uses memory; files over 300 MB are not tidied.
+
+## The redesign (owner's Moda design, 16 Nov 2026)
+
+After the build, the owner shared a Moda canvas, "Moments Redesign" (six phone and six desktop screens), and asked for all of it.
+Screenshots from the real code: [phone](mockups/moments-tidy/redesign-phone.webp) and [desktop](mockups/moments-tidy/redesign-desktop.webp).
+
+- **New moment is a full page in up to three steps**, not a window: make it, check the trim, check the captions. Steps 2 and 3
+  appear only when tidy up is switched on and she has the switch for them on; without them it is one page with Share moment.
+  Note, Sound and Disappears after are rows that open in place. `components/moments/MomentComposer.tsx`, `useTidy.ts`, `tidy-parts.tsx`.
+- **"Add captions" is a switch again**, as drawn. The sound is sent when she reaches step 3.
+- **The viewer is a light page** with the moment on a rounded stage: the owner's numbers, Pin and Delete (or the viewer's reply,
+  like and repost) under it on a phone and in a panel beside it on a wide screen, with a Captions card for the owner. A sound
+  button mutes a plain video, a voice-over and a song. `components/moments/MomentViewer.tsx`.
+- **Moment settings** are cards with switches, on Profile → Edit profile.
+- **This changes the look of composing and watching every moment**, whether or not tidy up is switched on.
+
+Different from the canvas:
+
+- **"Who watched", not "Responses".** Replies to a moment are private messages in the owner's inbox; there is no list of them on a
+  moment to show. The card shows who watched, as the viewer did before.
+- **On a wide screen the page sits under the header, without the left menu** beside it.
+- **Likes are shown** beside Views and Reposts.
+- **One recording is tidied:** the voice-over when there is one, else the video.
+- **The sound button isn't shown on a video played by Cloudflare Stream**, which this page can't mute.
+

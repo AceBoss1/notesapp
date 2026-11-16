@@ -3396,3 +3396,9 @@ then to Workers AI Whisper (`lib/moments-captions-server.ts`); nothing is kept b
 are corrected in `components/moments/TidyPanel.tsx`, stored on the moment (`captions`), checked with the moment's text by the content
 checks, and drawn by `CaptionOverlay` with the current word marked. Voice-overs get both (`audioSpans`). Tests: `test:moments-tidy`
 (pure and emulator), rules. Verified in a browser on a plain video; not on Stream's player or the real speech model (HANDOVER 141).
+
+**Moments redesign (16 Nov 2026)** — the owner shared a Moda canvas ("Moments Redesign", six phone and six desktop screens) and asked
+for all of it. `MomentComposer.tsx` is now a full page in up to three steps (New moment, Trim the pauses, Check your captions) with
+the tidy logic in `useTidy.ts` and the shared pieces in `tidy-parts.tsx` and `icons.tsx` (`TidyPanel.tsx` is gone); `MomentViewer.tsx`
+is a light page with a rounded stage and the owner's or viewer's controls under or beside it; the settings are cards with switches.
+Every behaviour is kept. Differences from the canvas are listed in `docs/MOMENTS_TIDY.md`.
