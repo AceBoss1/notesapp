@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.179.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "added", text: "Moments: Trim the pauses. Add a video or a voice-over and #NotesApp finds the silences on your own device and skips them when the moment plays. Check the trim, choose how tight it is, and keep any pause that matters. A shorter video can use fewer of your week's video moments. Appears once it is switched on." },
+      { kind: "added", text: "Moments: captions that show each word as you say it, in three looks. Read them and fix any word before you share; viewers can turn them off with CC, and you can take them off a moment afterwards. Only the sound is sent to write them, and it isn't kept. English first; Pidgin is less accurate. Appears once it is switched on." },
+    ],
+  },
+  {
     version: "v0.178.0",
     bump: "minor",
     date: "2026-11-16",

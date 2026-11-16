@@ -1,7 +1,8 @@
 # 🎬 Moments: tidy up and captions
 
 Two helpers for video moments and voice-overs: **Trim the pauses** and **Captions** that show each word as it's spoken. Second in the
-owner's order after Notes Planner (15 Nov 2026). **Status: mockups drawn, waiting for the owner's approval. Nothing is built.**
+owner's order after Notes Planner (15 Nov 2026). **Status: built in v0.179.0 (16 Nov 2026)** from the approved mockups ("moments approved build"), **switched off** until
+`NEXT_PUBLIC_MOMENT_TIDY_LIVE=true`. What was built, what changed and what still needs testing is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (build 3, where one raw take is cut and every graphic
 lands on its word). Only the idea is used. The article's full motion-graphics edit is left out: it takes several rounds per video and
@@ -74,3 +75,31 @@ Each has a recommendation. The build follows it unless the owner says otherwise.
 - Graphics that act out what is said.
 - Captions on Media posts, lives and replays (the same parts could serve them later).
 - Translating captions.
+
+## Built in v0.179.0
+
+- **Rules** `lib/moments-tidy.ts` (pure, tested): pauses from loudness, the stretches that play, long recordings as several
+  moments, what the server keeps, where the player should be, caption lines, the word being said, corrections, the speech answer.
+- **On the device** `lib/moments-tidy-client.ts`: reads the sound, makes the small WAV pieces, sends them, remembers her choices.
+- **Server:** `spans`, `audioSpans` and `captions` on a moment (`lib/moments-server.ts`); `playSec` on `/api/video`; the caption
+  route `/api/moments/captions` and `lib/moments-captions-server.ts`; the owner's "Remove captions".
+- **Screens:** `components/moments/TidyPanel.tsx` in the composer (one for the video, one for a voice-over),
+  `CaptionOverlay.tsx` and the CC button in the viewer, and the choices on Profile → Edit profile.
+- **Screenshot from the real code** (a test video of tone bursts and silences): [built-phone.webp](mockups/moments-tidy/built-phone.webp).
+
+## Changed from the mockups
+
+- **One panel in the composer**, not separate screens: "Check the trim" and the captions open in place.
+- **Captions are written when she taps "Write captions"**, not by a switch, so nothing is sent until she asks.
+- **Settings are remembered on the device**, not on the account.
+- **With a voice-over on a video**, captions are of the voice-over, since that is what is heard.
+- **After sharing, captions can be removed, not edited.**
+
+## Still to test before switching on
+
+These could not be tested where this was built:
+
+1. **Skipping pauses in Cloudflare Stream's player.** Verified on a plain video and on voice-overs only. On Stream it relies on
+   Stream's player SDK. If it doesn't skip, the video plays its pauses and still ends in the right place.
+2. **The real speech model:** its answer's shape, its accuracy on Nigerian English and Pidgin, and its cost.
+3. **Phones:** reading the sound of a large video uses memory; files over 300 MB are not tidied.

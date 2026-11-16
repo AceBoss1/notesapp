@@ -17,7 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
-| `claude/vigilant-franklin-xgf9ee` | **v0.178.0:** Notes Planner (`docs/NOTES_PLANNER.md`), built from the mockups the owner approved on 15 Nov 2026 ("planner approved build"). Pushed; not merged, no pull request yet. **Also here, plan only:** Moments tidy up and captions (`docs/MOMENTS_TIDY.md`, six mockups in `docs/mockups/moments-tidy/`), waiting for the owner's approval. After it, with mockups first: Themes and kits, then Merch. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.179.0:** Moments tidy up and captions (`docs/MOMENTS_TIDY.md`), built from the mockups the owner approved on 16 Nov 2026 ("moments approved build"). Notes Planner (v0.178.0) merged from this branch as #355. Next, each with mockups first: Themes and kits, then Merch. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
@@ -1146,6 +1146,24 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     interview: their answers are kept and they can carry on after the reset or write the plan by hand.
     **Not built:** sharing a plan, team plans, templates, Nana changing a plan by herself, a public explainer page of its own (it
     is described on `/my-calendar`, About, the roadmap and in the help article `notes-planner`).
+141. **Moments: tidy up and captions (v0.179.0, branch `claude/vigilant-franklin-xgf9ee`; owner, 16 Nov 2026, "moments approved
+    build"; `docs/MOMENTS_TIDY.md`):** Trim the pauses and word-by-word captions for video moments and voice-overs. **Off by default:**
+    nothing changes for members until `NEXT_PUBLIC_MOMENT_TIDY_LIVE=true` is set and the site redeployed. Captions also need
+    `CLOUDFLARE_AI_TOKEN` (a Cloudflare API token with Workers AI: Read; the account is `CLOUDFLARE_ACCOUNT_ID` or `R2_ACCOUNT_ID`);
+    without it only the trim is offered. `MOMENT_CAPTIONS_MODEL` changes the speech model. **Deploy:** `firebase deploy --only
+    firestore` (one new server-only collection, `momentCaptionUse`; add a TTL policy on its `expireAt`).
+    **Test on staging before switching on, because three things could not be tested in the build environment:**
+    (1) **A trimmed video on Cloudflare Stream.** Moment videos play in Stream's iframe player. Skipping pauses there uses Stream's
+    player SDK (`https://embed.cloudflarestream.com/embed/sdk.latest.js`, loaded only for a trimmed moment) to move the player. It was
+    written from the SDK's documented `currentTime` setter but never run against Stream. If it doesn't skip, the video plays its
+    pauses and still ends correctly. Skipping was verified only on a plain `<video>` and on voice-overs.
+    (2) **The speech model's answer.** `lib/moments-captions-server.ts` calls Workers AI (`@cf/openai/whisper-large-v3-turbo`) from a
+    web search's description of its input and output; the docs site was blocked. It accepts word times at the top level or inside
+    segments, and falls back to segment times. Check one real recording, and Pidgin.
+    (3) **Cost.** About $0.0005 a minute by Cloudflare's price list as reported by search; not measured.
+    **Not built:** removing false starts and repeated lines, editing captions after sharing (they can be removed), captions on Media
+    posts and lives, translation. The owner's choices (trim on, look, CC) are remembered on the device, not on the account.
+
 
 ## 3. How the work is done (please keep these)
 
