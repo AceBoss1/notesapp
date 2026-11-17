@@ -1,0 +1,561 @@
+<title>Nana AI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one screen, a single chat column. Header, the conversation (scrolls), then the composer pinned at the bottom. */
+:root {
+  --paper: #FBF6F2;
+  --card: #FFFFFF;
+  --field: #F3ECE7;
+  --ink: #1A1210;
+  --slate: #5C534E;
+  --rule: #E7DAD3;
+  --crimson: #7A0328;
+  --crimson-bright: #A6093D;
+  --on-crimson: #FBF6F2;
+  --accent-text: #7A0328;
+  --good: #1F6B45;
+  --warn: #8A5300;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #340515; --card: #48091F; --field: #58102A; --ink: #FBF6F2; --slate: #E2CAC6; --rule: #6C223A;
+    --crimson: #A6093D; --crimson-bright: #C41C56; --on-crimson: #FBF6F2; --accent-text: #F7A4BE; --good: #6EE7B7; --warn: #FCD34D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #340515; --card: #48091F; --field: #58102A; --ink: #FBF6F2; --slate: #E2CAC6; --rule: #6C223A;
+  --crimson: #A6093D; --crimson-bright: #C41C56; --on-crimson: #FBF6F2; --accent-text: #F7A4BE; --good: #6EE7B7; --warn: #FCD34D;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+*, *::before, *::after { box-sizing: border-box; }
+button, textarea { font: inherit; color: inherit; }
+a { color: var(--accent-text); }
+:focus-visible { outline: 2px solid var(--crimson-bright); outline-offset: 2px; }
+
+.app {
+  height: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
+  padding-block: 14px 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.top img { width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--field); }
+.who { min-width: 0; flex: 1 1 140px; }
+.who h1 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 26px; line-height: 1.1; letter-spacing: -0.01em; }
+.who p { margin: 2px 0 0; font-family: var(--font-ui); font-weight: 600; font-size: 12.5px; color: var(--slate); }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--card); font-family: var(--font-ui); font-weight: 700; font-size: 12px; white-space: nowrap;
+}
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--slate); }
+.chip[data-mode="claude"] i { background: var(--good); }
+.chip[data-mode="articles"] i { background: var(--warn); }
+.ghost {
+  border: 0; background: none; padding: 6px 4px; font-family: var(--font-ui); font-weight: 700; font-size: 12.5px;
+  color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+
+.log { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 8px; overscroll-behavior: contain; }
+.msg { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.msg.me { justify-content: flex-end; }
+.msg .face { width: 30px; height: 30px; border-radius: 50%; flex: none; margin-top: 2px; background: var(--field); }
+.stack { min-width: 0; max-width: min(85%, 600px); display: flex; flex-direction: column; gap: 6px; }
+.msg.me .stack { align-items: flex-end; }
+.bubble { min-width: 0; padding: 11px 15px; border-radius: var(--radius); overflow-wrap: anywhere; }
+.msg.nana .bubble { background: var(--card); border: 1px solid var(--rule); border-top-left-radius: 5px; }
+.msg.me .bubble { background: var(--crimson); color: var(--on-crimson); border-top-right-radius: 5px; white-space: pre-wrap; }
+.bubble > * { margin: 0; }
+.bubble > * + * { margin-top: 9px; }
+.bubble ul { padding-left: 20px; display: grid; gap: 4px; }
+.bubble li::marker { color: var(--accent-text); }
+.bubble a { font-weight: 600; text-underline-offset: 2px; }
+.bubble code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em; background: var(--field); padding: 1px 5px; border-radius: 5px; }
+.bubble .h { font-family: var(--font-ui); font-weight: 800; }
+.meta { font-family: var(--font-ui); font-weight: 600; font-size: 12px; color: var(--slate); padding-left: 4px; }
+.next { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-left: 2px; }
+.next span { font-family: var(--font-ui); font-weight: 600; font-size: 12.5px; color: var(--slate); }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--rule);
+  background: var(--card); color: var(--ink); font-family: var(--font-ui); font-weight: 700; font-size: 13px; text-decoration: none; cursor: pointer;
+}
+.pill:hover { border-color: var(--crimson-bright); }
+.pill.solid { background: var(--crimson); border-color: var(--crimson); color: var(--on-crimson); }
+.dots { display: inline-flex; gap: 5px; align-items: center; height: 22px; }
+.dots b { width: 7px; height: 7px; border-radius: 50%; background: var(--slate); animation: bob 1.1s ease-in-out infinite; }
+.dots b:nth-child(2) { animation-delay: 0.15s; } .dots b:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bob { 0%, 60%, 100% { opacity: 0.35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .dots b { animation: none; opacity: 0.7; } }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.starters { display: flex; flex-wrap: wrap; gap: 8px; }
+.starters p { flex-basis: 100%; margin: 0; font-family: var(--font-ui); font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+
+.notice {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid var(--rule); border-radius: 14px;
+  background: var(--field); font-size: 13.5px;
+}
+.notice p { margin: 0; flex: 1 1 260px; min-width: 0; }
+
+.composer { display: flex; gap: 8px; align-items: flex-end; padding: 6px; border: 1px solid var(--rule); border-radius: 22px; background: var(--card); }
+.composer:focus-within { border-color: var(--crimson-bright); }
+.composer textarea {
+  flex: 1 1 auto; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; padding: 9px 10px; max-height: 132px; line-height: 1.45; font-size: 16px;
+}
+.composer textarea::placeholder { color: var(--slate); opacity: 0.85; }
+.send {
+  flex: none; border: 0; border-radius: 999px; padding: 10px 18px; background: var(--crimson); color: var(--on-crimson);
+  font-family: var(--font-ui); font-weight: 800; font-size: 14px; cursor: pointer;
+}
+.send:hover { background: var(--crimson-bright); }
+.send:disabled { opacity: 0.5; cursor: default; }
+.avatar { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--card); max-height: 70%; overflow-y: auto; }
+.avatar h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+.avatar p { margin: 0; font-size: 13.5px; color: var(--slate); }
+.avatar .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.avatar input[type="file"] { max-width: 100%; font-size: 13px; }
+.avatar canvas { width: min(100%, 300px); height: auto; aspect-ratio: 1; border-radius: 16px; border: 1px solid var(--rule); background: var(--field); }
+.avatar .status { font-family: var(--font-ui); font-weight: 700; font-size: 13px; color: var(--ink); }
+.update { display: grid; justify-items: center; gap: 6px; }
+.update .notice { justify-self: stretch; }
+.foot { margin: 0; font-size: 12px; line-height: 1.45; color: var(--slate); text-align: center; text-wrap: balance; }
+</style>
+
+<div class="app">
+  <header class="top">
+    <img src="__AVATAR__" alt="" width="48" height="48">
+    <div class="who">
+      <h1>Nana AI</h1>
+      <p>Your #NotesApp helper</p>
+    </div>
+    <span class="chip" id="mode-chip" data-mode="checking"><i></i><span id="mode-text">Checking for Claude</span></span>
+    <button type="button" class="ghost" id="avatar-open" hidden>Make my avatar</button>
+    <button type="button" class="ghost" id="new-chat" hidden>New chat</button>
+  </header>
+
+  <main class="log" id="log" role="log" aria-live="polite" aria-label="Conversation with Nana" tabindex="0"></main>
+
+  <div class="starters" id="starters">
+    <p>People often ask</p>
+  </div>
+
+  <section class="avatar" id="avatar" hidden aria-labelledby="avatar-title">
+    <h2 id="avatar-title">Make my avatar</h2>
+    <p>Choose a clear photo of yourself and I'll draw a flat illustrated portrait from it. It's a drawing in my own style, not an exact likeness. Your photo goes to Claude to be drawn and isn't kept on this page. Use your own photo only.</p>
+    <div class="row">
+      <label class="sr" for="avatar-file">Your photo</label>
+      <input type="file" id="avatar-file">
+      <button type="button" class="pill solid" id="avatar-go" disabled>Draw my avatar</button>
+      <button type="button" class="pill" id="avatar-close">Close</button>
+    </div>
+    <p class="status" id="avatar-status" role="status"></p>
+    <canvas id="avatar-canvas" width="1024" height="1024" hidden aria-label="Your illustrated avatar"></canvas>
+    <div class="row" id="avatar-actions" hidden>
+      <button type="button" class="pill solid" id="avatar-save">Save picture</button>
+      <a class="pill" id="avatar-profile" target="_blank" rel="noopener noreferrer">Set it on #NotesApp</a>
+    </div>
+  </section>
+
+  <div class="notice" id="notice" hidden>
+    <p>Claude isn't switched on here, so I'm answering straight from our help articles. For a full conversation, chat with me on #NotesApp.</p>
+    <a class="pill solid" id="main-nana" target="_blank" rel="noopener noreferrer">Open Nana on #NotesApp</a>
+  </div>
+
+  <form class="composer" id="composer" autocomplete="off">
+    <label class="sr" for="nana-input">Your question for Nana</label>
+    <textarea id="nana-input" rows="1" placeholder="Ask about plans, payouts, bookings, selling…"></textarea>
+    <button type="submit" class="send" id="send-btn">Send</button>
+  </form>
+  <p class="foot" id="foot"></p>
+  <div class="update" id="update" hidden>
+    <button type="button" class="ghost" id="update-open">Update help articles</button>
+    <label class="sr" for="update-file">A copy file from Admin, Help and Nana</label>
+    <input type="file" id="update-file" accept="application/json,.json" hidden>
+    <div class="notice" id="update-confirm" hidden>
+      <p id="update-text"></p>
+      <button type="button" class="pill solid" id="update-yes">Replace the articles</button>
+      <button type="button" class="pill" id="update-no">Cancel</button>
+    </div>
+    <p class="foot" id="update-status" role="status"></p>
+  </div>
+</div>
+
+<script type="application/json" id="nana-data">/*__DATA__*/</script>
+<script>/*__LIB__*/</script>
+<script>
+(function () {
+  "use strict";
+  var PRISTINE = document.body.innerHTML; // the page as published, before anything is drawn: what a self-update is rebuilt from
+  var DATA = JSON.parse(document.getElementById("nana-data").textContent);
+  var L = NanaLib;
+  var SITE = DATA.siteUrl;
+  var ARTS = DATA.articles.map(function (a) { return { slug: a.slug, title: a.title, category: a.category, body: a.body, source: "built-in" }; });
+  var PATHS = L.knownPaths(ARTS);
+  var AVATAR = document.querySelector(".top img").src;
+  var STORE = "nana-chat-v1";
+  var KEEP = 60;
+
+  // Nana's own instructions from the app, then what is different about answering here.
+  var RULES = DATA.system + "\n\nWhere this chat is happening (this replaces anything above that disagrees)\n" +
+    "- You are answering inside a page shared on Claude, outside #NotesApp. The person is a visitor there: not signed in to #NotesApp, and you do not know their name or email, so do not use a name. Nobody on the #NotesApp team sees this chat.\n" +
+    "- Never say the team will follow up, that you have passed anything on, or that an email is on file. When a person is needed, say so, share any self-service steps, send them to [Contact the team](/contact), and still end with [[HANDOFF]].\n" +
+    "- No NOTES JOBS block is ever given here and you cannot see open jobs. For a job search, link [Explore → Jobs](/explore?tab=jobs) and [Careers](/careers).\n" +
+    "- Links you write as paths open on #NotesApp in a new tab.\n" +
+    "- The help articles were copied from the help centre on " + DATA.copied + ". For a figure that must be exact today, give it and link the article's page.";
+
+  var el = function (id) { return document.getElementById(id); };
+  var log = el("log"), input = el("nana-input"), sendBtn = el("send-btn"), chip = el("mode-chip"), modeText = el("mode-text");
+  var starters = el("starters"), notice = el("notice"), foot = el("foot"), newChat = el("new-chat");
+  el("main-nana").href = SITE + "/nana";
+
+  var turns = [];      // { role, content, via?, note?, handoff?, gap?, retry?, local? }
+  var mode = "checking"; // checking | claude | articles
+  var busy = false, ctl = null, live = null;
+
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE) || "[]");
+    if (Array.isArray(saved)) turns = saved.filter(function (t) { return t && (t.role === "user" || t.role === "assistant") && typeof t.content === "string" && t.content; }).slice(-KEEP);
+  } catch (e) { turns = []; }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(turns.slice(-KEEP))); } catch (e) { /* the chat still works without it */ } }
+
+  // ---- drawing
+  function node(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function inline(parent, text) {
+    var re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)\s]+)\)|`([^`]+)`/g, last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parent.append(text.slice(last, m.index));
+      if (m[1] !== undefined) parent.append(node("strong", "", m[1]));
+      else if (m[4] !== undefined) parent.append(node("code", "", m[4]));
+      else if (m[3].charAt(0) === "/" && m[3].charAt(1) !== "/") {
+        var a = node("a", "", m[2]); a.href = SITE + m[3]; a.target = "_blank"; a.rel = "noopener noreferrer"; parent.append(a);
+      } else parent.append(m[2]);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) parent.append(text.slice(last));
+  }
+  function lines(parent, ls) { ls.forEach(function (l, i) { if (i) parent.append(node("br")); inline(parent, l); }); }
+  function rich(parent, text) {
+    parent.textContent = "";
+    text.replace(/\r\n/g, "\n").split(/\n{2,}/).forEach(function (block) {
+      var ls = block.split("\n").map(function (l) { return l.trim(); }).filter(Boolean);
+      if (!ls.length) return;
+      if (ls.length === 1 && /^#{1,3}\s+\S/.test(ls[0])) { var h = node("p", "h"); inline(h, ls[0].replace(/^#+\s+/, "")); parent.append(h); return; }
+      var first = ls.findIndex(function (l) { return /^[-•] /.test(l); });
+      if (first > 0 || first === -1) { var p = node("p"); lines(p, first === -1 ? ls : ls.slice(0, first)); parent.append(p); }
+      if (first !== -1) {
+        var ul = node("ul");
+        ls.slice(first).forEach(function (l) { var li = node("li"); inline(li, l.replace(/^[-•] /, "")); ul.append(li); });
+        parent.append(ul);
+      }
+    });
+  }
+  function nanaRow() {
+    var row = node("div", "msg nana"), face = node("img", "face"), stack = node("div", "stack"), bubble = node("div", "bubble");
+    face.src = AVATAR; face.alt = ""; face.width = 30; face.height = 30;
+    stack.append(bubble); row.append(face, stack);
+    return { row: row, stack: stack, bubble: bubble };
+  }
+  function link(label, path, solid) { var a = node("a", "pill" + (solid ? " solid" : ""), label); a.href = SITE + path; a.target = "_blank"; a.rel = "noopener noreferrer"; return a; }
+  function draw() {
+    log.textContent = "";
+    var hi = nanaRow();
+    rich(hi.bubble, "Hi! I'm Nana, your #NotesApp helper. Ask me about plans and prices, payouts, bookings, selling, courses, communities or lives, and I'll give you the answer with the right page.");
+    log.append(hi.row);
+    turns.forEach(function (t, i) {
+      if (t.role === "user") {
+        var row = node("div", "msg me"), stack = node("div", "stack");
+        stack.append(node("div", "bubble", t.content)); row.append(stack); log.append(row);
+        return;
+      }
+      var r = nanaRow();
+      rich(r.bubble, t.content);
+      var meta = [t.via === "articles" ? "From the help articles" : "", t.note || ""].filter(Boolean).join(" · ");
+      if (meta) r.stack.append(node("div", "meta", meta));
+      if (t.handoff || t.gap || (t.retry && i === turns.length - 1)) {
+        var next = node("div", "next");
+        if (t.handoff) next.append(node("span", "", "This one needs a person:"), link("Contact the team", "/contact", true), link("Open Nana on #NotesApp", "/nana"));
+        else if (t.gap) next.append(link("Browse the Help centre", "/help"), link("Contact the team", "/contact"));
+        if (t.retry && i === turns.length - 1 && mode !== "articles") {
+          var again = node("button", "pill", "Ask Claude again"); again.type = "button";
+          again.addEventListener("click", function () { if (busy) return; turns.pop(); ask(); });
+          next.append(again);
+        }
+        r.stack.append(next);
+      }
+      log.append(r.row);
+    });
+    if (busy) {
+      live = nanaRow();
+      var dots = node("span", "dots"); dots.append(node("b"), node("b"), node("b"));
+      live.bubble.append(dots, node("span", "sr", "Nana is thinking"));
+      log.append(live.row);
+    } else live = null;
+    starters.hidden = turns.length > 0 || busy || !el("avatar").hidden;
+    newChat.hidden = turns.length === 0;
+    notice.hidden = mode !== "articles";
+    sendBtn.textContent = busy ? "Stop" : "Send";
+    sendBtn.disabled = busy && !ctl;
+    chip.dataset.mode = mode;
+    modeText.textContent = mode === "claude" ? "Answers by Claude" : mode === "articles" ? "Help articles only" : "Checking for Claude";
+    foot.textContent = (mode === "articles"
+      ? "Answers come from #NotesApp's help articles, copied on " + DATA.copied + "."
+      : "Nana answers with Claude on your own Claude plan; Claude asks you once before the first reply. Help articles copied on " + DATA.copied + ".")
+      + " Nana can't see your #NotesApp account here.";
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ---- Nana without Claude: the best help article for the question, as the app does when its AI is down.
+  var GREET = /^\s*(hi|hello|hey|hiya|howdy|good (morning|afternoon|evening)|how far|sup|yo)\b[\s!,.?]*(nana)?[\s!.?]*$/i;
+  var THANKS = /\b(thanks|thank you|thx|cheers|appreciate)\b/i;
+  var PERSON = /\b(talk to (a )?(person|human|someone|agent)|speak (to|with) (a )?(person|human|someone|agent)|real person|human agent|customer (care|service)|call me|representative)\b/i;
+  var TROUBLE = /\b(refund|chargeback|scam|fraud|hacked|locked out|can'?t (log ?in|sign ?in)|cannot (log ?in|sign ?in)|didn'?t (receive|get)|not received|payment (failed|issue|problem)|money (is )?(missing|gone)|wrong charge|charged twice|double charge|suspended|report (a|an) )\b/i;
+  function clip(text, max) { return text.length <= max ? text : text.slice(0, max).replace(/\s+\S*$/, "") + "…"; }
+  function excerpt(body, question) {
+    var paras = body.split(/\n{2,}/).map(function (p) { return p.trim(); }).filter(Boolean);
+    if (paras.length <= 1) return clip(paras[0] || "", 600);
+    var ws = L.queryWords(question), score = function (p) { return L.countMatches(p, ws); }, best = 0;
+    paras.forEach(function (p, i) { if (score(p) > score(paras[best])) best = i; });
+    var out = best > 0 && paras[0].length < 260 && score(paras[best]) > 0 ? [paras[0], paras[best]] : [paras[best]];
+    return clip(out.join("\n\n"), 600);
+  }
+  function fromArticles(question) {
+    var q = question.trim();
+    if (GREET.test(q)) return { text: "Hi! Ask me about plans and prices, payouts, bookings and refunds, selling, badges or organisations, and I'll find the right help article. What would you like to know?" };
+    if (THANKS.test(q) && q.length < 60) return { text: "You're welcome! Anything else about #NotesApp I can help with?" };
+    var asked = turns.filter(function (t) { return t.role === "user"; }).map(function (t) { return t.content; });
+    var prior = asked.slice().reverse().find(function (c) { return c !== q; }) || "";
+    var topic = L.queryWords(q).length <= 2 && prior ? prior + " " + q : q;
+    var found = L.searchArticles(ARTS, topic, 4);
+    if (!found.length && topic !== q) { topic = q; found = L.searchArticles(ARTS, q, 4); }
+    var handoff = PERSON.test(q) || TROUBLE.test(q);
+    if (!found.length) {
+      return handoff
+        ? { text: "I'm sorry about that. This one needs a person on the team, and they can't see this chat, so please write to them on the [Contact page](/contact).", handoff: true }
+        : { text: "I couldn't find that in our help articles, and I don't want to guess. You can browse the [Help centre](/help) or ask the team on the [Contact page](/contact).", gap: true };
+    }
+    var top = found[0], related = found.slice(1, 3).map(function (a) { return "[" + a.title + "](" + L.articlePath(a.slug) + ")"; });
+    var intro = handoff ? "I'm sorry you're dealing with that. The team can help on the [Contact page](/contact). Meanwhile, this may help:" : "Here's what we have on **" + top.title + "**:";
+    return {
+      text: intro + "\n\n" + excerpt(top.body, topic) + "\n\nFull article: [" + top.title + "](" + L.articlePath(top.slug) + ")" + (related.length ? "\n\nYou might also like: " + related.join(" · ") : ""),
+      handoff: handoff,
+    };
+  }
+  function answerFromArticles(note, retry) {
+    var q = lastQuestion(), r = fromArticles(q);
+    turns.push({ role: "assistant", content: L.sanitizeLinks(r.text, PATHS), via: "articles", note: note || "", handoff: !!r.handoff, gap: !!r.gap, retry: !!retry });
+  }
+  function lastQuestion() { for (var i = turns.length - 1; i >= 0; i--) if (turns[i].role === "user") return turns[i].content; return ""; }
+
+  // ---- asking Claude
+  var samplePromise = window.claude && typeof window.claude.use === "function"
+    ? window.claude.use("sample").catch(function () { return null; })
+    : Promise.resolve(null);
+  samplePromise.then(function (s) { if (mode === "checking") { mode = s ? "claude" : "articles"; draw(); } });
+
+  var GONE = { not_granted: 1, sampling_disabled: 1, not_declared: 1, capability_disabled: 1, capability_removed: 1 };
+  function clean(raw) { var p = L.parseReply(raw); p.text = L.sanitizeLinks(p.text, PATHS); return p; }
+
+  async function ask() {
+    busy = true; ctl = null; draw();
+    var sample = mode === "articles" ? null : await samplePromise;
+    if (!sample) { mode = "articles"; answerFromArticles(); return done(); }
+    mode = "claude";
+    ctl = new AbortController(); draw();
+    var asked = turns.filter(function (t) { return t.role === "user"; }).map(function (t) { return t.content; });
+    var head = RULES + "\n\n" + L.knowledgeBlock(L.pickArticles(ARTS, asked)) + "\n\nThe conversation follows. Reply as Nana to the person's latest message.";
+    var hist = turns.filter(function (t) { return !t.local; }).slice(-L.NANA_HISTORY_MAX).map(function (t) { return { role: t.role, content: t.content }; });
+    while (hist.length && hist[0].role !== "user") hist.shift();
+    try {
+      var res = await sample([{ role: "user", content: head }].concat(hist), {
+        modelTier: "quick", cache: false, signal: ctl.signal,
+        onText: function (u) {
+          if (!live) return;
+          // Hide the control tags, and a half-written one at the end, while the answer streams.
+          rich(live.bubble, u.text.replace(/\[\[(?:HANDOFF|GAP)\]\]/gi, "").replace(/\s*\[{1,2}[A-Z]*\]{0,2}\s*$/, ""));
+          log.scrollTop = log.scrollHeight;
+        },
+      });
+      var p = clean(res.text);
+      turns.push({ role: "assistant", content: p.text || "Sorry, I didn't catch that. Could you say it another way?", via: "claude", handoff: p.handoff, gap: p.gap, note: res.truncated ? "Cut short. Ask for less at a time." : "" });
+    } catch (e) {
+      var code = (e && e.code) || "upstream_error", part = e && typeof e.text === "string" ? clean(e.text).text : "";
+      if (code === "cancelled") { if (part) turns.push({ role: "assistant", content: part, via: "claude", note: "Stopped." }); }
+      else if (GONE[code]) { mode = "articles"; answerFromArticles(); }
+      else if (code === "refused") turns.push({ role: "assistant", content: "I couldn't answer that one. Could you ask it another way?", via: "claude", local: true });
+      else if (code === "rate_limited") answerFromArticles("Claude is busy, or you've reached your usage limit. Try again in a while.", true);
+      else if (code === "session_expired") answerFromArticles("Sign in to Claude again to get Nana's full answers.", true);
+      else if (part) turns.push({ role: "assistant", content: part, via: "claude", note: "Interrupted. The rest didn't arrive.", retry: true });
+      else answerFromArticles("Couldn't reach Claude just now.", true);
+    }
+    done();
+  }
+  function done() { busy = false; ctl = null; save(); draw(); input.focus(); }
+
+  function send(text) {
+    text = String(text || "").trim().slice(0, L.NANA_USER_MAX);
+    if (!text || busy) return;
+    turns.push({ role: "user", content: text });
+    input.value = ""; grow(); save();
+    ask();
+  }
+
+  // ---- controls
+  function grow() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 132) + "px"; }
+  input.maxLength = L.NANA_USER_MAX;
+  input.addEventListener("input", grow);
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); } });
+  el("composer").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy) { if (ctl) ctl.abort(); return; }
+    send(input.value);
+  });
+  newChat.addEventListener("click", function () { if (busy) return; turns = []; save(); draw(); input.focus(); });
+  ["What is #NotesApp?", "What do the plans cost?", "How do I get paid?", "How do bookings work?", "What is Notes Live Studio?"].forEach(function (q) {
+    var b = node("button", "pill", q); b.type = "button";
+    b.addEventListener("click", function () { send(q); });
+    starters.append(b);
+  });
+  draw();
+
+  // ---- Make my avatar: Claude looks at a photo and writes a flat vector portrait; the page checks it, draws it and adds the mark.
+  var av = { panel: el("avatar"), open: el("avatar-open"), file: el("avatar-file"), go: el("avatar-go"), status: el("avatar-status"), canvas: el("avatar-canvas"), actions: el("avatar-actions"), save: el("avatar-save"), busy: false, ctl: null };
+  el("avatar-profile").href = SITE + "/profile/edit";
+  var MARK = "__MARK__";
+  var AVATAR_PROMPT = "The attached image is a photo of a person who wants an illustrated avatar of themselves. Draw a head-and-shoulders portrait of them as flat vector art, in the style of modern African editorial illustration: clean confident shapes, warm skin tones built from a base colour plus two or three darker and lighter planes for the cheeks, nose, neck and jaw, simple expressive eyes with brows and lashes, a friendly closed or open smile, and hair drawn as bold shapes with a few lines for texture. Keep what makes them recognisable: skin tone, hair style and hairline, any beard, glasses, headwrap, cap or jewellery, and the colours and pattern of their clothes (draw a simple repeating pattern if the clothes have one). Use one solid, vivid background colour that suits their clothes. Centre the face in the upper two thirds; the shoulders run off the bottom edge.\n\nReply with ONLY one SVG document and nothing else: <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">…</svg>. Use only path, circle, ellipse, rect, polygon, polyline, line, g, defs, linearGradient, radialGradient, stop and clipPath. No text, no images, no scripts, no styles, no links. At most about 180 shapes. If the image is not a photo of one person, reply with only the word NOPHOTO.";
+  var OK_TAGS = { svg: 1, g: 1, path: 1, circle: 1, ellipse: 1, rect: 1, polygon: 1, polyline: 1, line: 1, defs: 1, lineargradient: 1, radialgradient: 1, stop: 1, clippath: 1 };
+  // Only plain shapes survive: no scripts, styles, images, links or anything that loads from elsewhere.
+  function safeSvg(text) {
+    var m = /<svg[\s\S]*<\/svg>/i.exec(text || "");
+    if (!m) return null;
+    var doc = new DOMParser().parseFromString(m[0], "image/svg+xml"), root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== "svg" || doc.getElementsByTagName("parsererror").length) return null;
+    var all = [root].concat(Array.prototype.slice.call(root.getElementsByTagName("*")));
+    all.forEach(function (n) {
+      if (!OK_TAGS[n.nodeName.toLowerCase()]) { if (n !== root && n.parentNode) n.parentNode.removeChild(n); return; }
+      Array.prototype.slice.call(n.attributes).forEach(function (a) {
+        var name = a.name.toLowerCase(), v = a.value;
+        if (name.indexOf("on") === 0 || name === "style" || name === "href" || name === "xlink:href" || /url\(\s*[^#)\s]/i.test(v) || /javascript:|data:|https?:/i.test(v)) n.removeAttribute(a.name);
+      });
+    });
+    if (root.getElementsByTagName("*").length < 6) return null;
+    root.setAttribute("xmlns", "http://www.w3.org/2000/svg"); root.setAttribute("viewBox", "0 0 512 512"); root.setAttribute("width", "1024"); root.setAttribute("height", "1024");
+    return new XMLSerializer().serializeToString(root);
+  }
+  function loadImage(src) { return new Promise(function (ok, bad) { var i = new Image(); i.onload = function () { ok(i); }; i.onerror = function () { bad(new Error("image")); }; i.src = src; }); }
+  async function paint(svg) {
+    var url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    try {
+      var art = await loadImage(url), mark = await loadImage(MARK).catch(function () { return null; });
+      var c = av.canvas.getContext("2d");
+      c.clearRect(0, 0, 1024, 1024); c.fillStyle = "#FBF6F2"; c.fillRect(0, 0, 1024, 1024); c.drawImage(art, 0, 0, 1024, 1024);
+      c.font = "800 30px Manrope, system-ui, sans-serif";
+      // Nothing behind the mark: the icon, and the words in white with a soft shadow so they read on any colour.
+      var label = "Made with Nana AI", x = 32, y = 1024 - 56 - 32;
+      if (mark) c.drawImage(mark, x, y, 56, 56);
+      c.shadowColor = "rgba(0,0,0,0.55)"; c.shadowBlur = 6; c.shadowOffsetY = 2;
+      c.fillStyle = "#FFFFFF"; c.textBaseline = "middle"; c.fillText(label, x + (mark ? 56 + 14 : 0), y + 30);
+      c.shadowColor = "transparent"; c.shadowBlur = 0; c.shadowOffsetY = 0;
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function avState(text, done) { av.status.textContent = text; av.go.textContent = av.busy ? "Stop" : (done ? "Draw another" : "Draw my avatar"); av.go.disabled = !av.busy && !av.file.files.length; }
+  samplePromise.then(async function (sample) {
+    if (!sample || !sample.limits) return;
+    var lim = await sample.limits().catch(function () { return null; });
+    if (!lim || !lim.images) return;
+    av.file.accept = lim.images.mediaTypes.join(",");
+    av.open.hidden = false;
+    var downloads = await (window.claude.use("downloads").catch(function () { return null; }));
+    av.open.addEventListener("click", function () { av.panel.hidden = !av.panel.hidden; draw(); if (!av.panel.hidden) av.file.focus(); });
+    el("avatar-close").addEventListener("click", function () { av.panel.hidden = true; draw(); });
+    av.file.addEventListener("change", function () { avState("", false); });
+    av.go.addEventListener("click", async function () {
+      if (av.busy) { if (av.ctl) av.ctl.abort(); return; }
+      var photo = av.file.files[0];
+      if (!photo) return;
+      av.busy = true; av.ctl = new AbortController(); avState("Drawing your portrait. This can take a minute or two…", false);
+      try {
+        var res = await sample(AVATAR_PROMPT, { images: [photo], modelTier: "complex", cache: false, signal: av.ctl.signal });
+        var svg = /NOPHOTO/.test(res.text) && !/<svg/i.test(res.text) ? null : safeSvg(res.text);
+        if (!svg) { av.busy = false; avState(/NOPHOTO/.test(res.text) ? "I need a clear photo of one person. Try another picture." : res.truncated ? "The drawing was cut short. Try again." : "The drawing didn't come out right. Try again.", false); return; }
+        await paint(svg);
+        av.canvas.hidden = false; av.actions.hidden = false; av.save.hidden = !downloads;
+        av.busy = false; avState(downloads ? "Here you are. Save it, then set it as your picture on #NotesApp." : "Here you are. Press and hold (or right-click) the picture to save it.", true);
+      } catch (e) {
+        var code = (e && e.code) || "upstream_error"; av.busy = false;
+        if (GONE[code] || code === "images_unavailable") { av.panel.hidden = true; av.open.hidden = true; return; }
+        avState(code === "cancelled" ? "" : code === "image_rejected" ? "That file didn't work. Choose a JPEG or PNG photo." : code === "refused" ? "I couldn't draw from that photo. Try another one." : code === "rate_limited" ? "Claude is busy, or you've reached your usage limit. Try again in a while." : code === "session_expired" ? "Sign in to Claude again, then try once more." : "Something went wrong reaching Claude. Try again.", false);
+      }
+    });
+    av.save.addEventListener("click", function () {
+      av.canvas.toBlob(function (blob) {
+        if (!blob || !downloads) return;
+        downloads.save({ filename: "nana-avatar.png", data: blob }).then(function () { av.status.textContent = "Saved."; }).catch(function (e) {
+          av.status.textContent = e && e.code === "declined" ? "Not saved." : e && e.code === "rate_limited" ? "One moment, then try Save again." : "Couldn't save here. Press and hold (or right-click) the picture to save it.";
+        });
+      }, "image/png");
+    });
+  });
+
+  // ---- Update help articles: the page's owner picks the copy file from Admin → Help & Nana, and the page republishes itself with it.
+  (async function () {
+    var use = window.claude && typeof window.claude.use === "function" ? window.claude.use : null;
+    var artifact = use ? await window.claude.use("artifact").catch(function () { return null; }) : null;
+    if (!artifact) return;
+    var who = await window.claude.use("user").catch(function () { return null; });
+    if (!artifact.publish) return;
+    if (who && typeof who.canEdit === "function" && !(await who.canEdit().catch(function () { return false; }))) return;
+    var box = el("update"), pick = el("update-file"), confirmBox = el("update-confirm"), text = el("update-text"), status = el("update-status"), next = null;
+    box.hidden = false;
+    el("update-open").addEventListener("click", function () { status.textContent = ""; pick.click(); });
+    el("update-no").addEventListener("click", function () { next = null; confirmBox.hidden = true; });
+    pick.addEventListener("change", async function () {
+      var file = pick.files[0]; pick.value = ""; next = null; confirmBox.hidden = true;
+      if (!file) return;
+      try {
+        if (file.size > L.COPY_BYTES_MAX) throw new Error("That file is too large to be a copy of the help articles.");
+        var parsed; try { parsed = JSON.parse(await file.text()); } catch (e) { throw new Error("That isn't a Nana on Claude copy file. Download a fresh one from Admin → Help & Nana."); }
+        var copy = L.readCopy(parsed), g = L.copyGaps(L.copyHashes(DATA.articles, DATA.system), copy.articles, copy.system);
+        if (g.upToDate && copy.copied === DATA.copied) { status.textContent = "The page already has this copy (" + copy.copied + ")."; return; }
+        next = copy;
+        var n = function (k, word) { return k + " " + word; };
+        text.textContent = "This copy was taken on " + copy.copied + " and holds " + copy.articles.length + " articles. Against what the page has now: " +
+          (g.upToDate ? "nothing changed, only the date." : [n(g.changed.length, "changed"), n(g.added.length, "new"), n(g.removed.length, "removed")].join(", ") + (g.instructions ? ", and Nana's instructions changed." : "."));
+        confirmBox.hidden = false;
+      } catch (e) { status.textContent = e && e.message ? e.message : "That file couldn't be read."; }
+    });
+    function rebuilt(copy) {
+      var end = "</scr" + "ipt>", open = "<scr" + "ipt type=\"application/json\" id=\"nana-data\">";
+      var a = PRISTINE.indexOf("<title>"), z = PRISTINE.lastIndexOf(end);
+      if (a < 0 || z < 0) return null;
+      var content = PRISTINE.slice(a, z + end.length), i = content.indexOf(open), j = i < 0 ? -1 : content.indexOf(end, i);
+      if (i < 0 || j < 0) return null;
+      var data = { siteUrl: copy.siteUrl, version: DATA.version, date: copy.copiedAt.slice(0, 10), system: copy.system, articles: copy.articles, copied: copy.copied };
+      content = content.slice(0, i + open.length) + JSON.stringify(data).replace(/</g, "\\u003c") + content.slice(j);
+      var style = document.head && document.head.querySelector("style");
+      var reset = style ? style.textContent : ":root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}";
+      return "<!doctype html><html><head><meta charset=utf8><meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><style>" + reset + "</style></head><body>" + content + "</body></html>";
+    }
+    el("update-yes").addEventListener("click", async function () {
+      if (!next) return;
+      var html = rebuilt(next);
+      if (!html) { status.textContent = "This page can't update itself. Ask Claude to refresh it instead."; confirmBox.hidden = true; return; }
+      confirmBox.hidden = true; status.textContent = "Saving the new copy…";
+      try { await artifact.publish(html); status.textContent = "Saved. The page reloads with the new articles."; }
+      catch (e) {
+        var code = e && e.code;
+        if (code === "not_writer" || code === "not_granted") { status.textContent = "Only the page's owner or an editor can update the articles."; el("update-open").hidden = true; }
+        else if (code === "conflict") status.textContent = "Someone else just updated the page. It reloads with their version.";
+        else status.textContent = "Couldn't save the new copy. Try again in a moment.";
+      }
+    });
+  })();
+})();
+</script>

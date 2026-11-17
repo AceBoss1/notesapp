@@ -1181,6 +1181,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     added: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive and JS Remotely publish no feed (or forbid automated
     reading), and workwave.com is a software company, not a job board. Members with Open job feeds on get the new ones at the next
     daily run. Nothing to deploy. Tests: `test:nana-jobs` (fixtures `weworkremotely.xml`, `workingnomads.json`, `remotewoman.xml`).
+144. **Nana's avatar maker and the Nana on Claude copy (v0.182.0, branch `claude/beautiful-albattani-crgkzb-avatar`; owner, 17 Nov
+    2026; `docs/AVATAR_MAKER.md`, `docs/NANA_ON_CLAUDE.md`):** (a) **Avatar maker:** Edit profile → ✨ Make an avatar with Nana: a
+    photo in, an illustrated portrait out, marked "Made with Nana AI" by our server, kept under `avatars/{uid}/` and used like any
+    uploaded picture. An image model draws it (Claude can't): OpenAI or Google, chosen by `AVATAR_IMAGE_PROVIDER` with
+    `AVATAR_IMAGE_KEY` (`lib/avatar-providers.ts`). **Never run against a real key:** the owner asked for a provider-neutral build.
+    **Gate:** the team on the staff test pass (`AVATAR_MAKER_FOR_EVERYONE` in `lib/avatar-maker.ts`), 10 a day each. **Owner steps:**
+    `firebase deploy --only firestore:rules` (`avatarCounts`, server-only); to try it, set the two settings in Vercel and switch the
+    staff pass on. Before opening it: a price or plan limit, safeguards for young members and other people's photos, screenshots
+    (the doc's "Before it opens"). (b) **Nana on Claude:** the owner's page on claude.ai where Nana answers from a copy of the help
+    centre on each visitor's own Claude plan. Admin → Help & Nana → **Nana on Claude** runs a dry run (what changed since the last
+    copy) and downloads a fresh copy (`lib/nana-claude.ts`, `lib/nana-claude-server.ts`, `serverConfig/nanaClaudeCopy`); on the
+    page the owner picks that file under **Update help articles** and the page republishes itself. The page's source and build
+    script are in `scripts/nana-on-claude/`. Tests: `test:avatar`, `test:avatar-server`, `test:nana-claude`, `test:nana-claude-server`.
 
 ## 3. How the work is done (please keep these)
 

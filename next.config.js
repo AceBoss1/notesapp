@@ -6,6 +6,7 @@ const nextConfig = {
     outputFileTracingIncludes: {
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
       // Course covers made with Nana (lib/cover-render.tsx): the fonts, our mark, and Next's own WebP encoder (WebAssembly).
+      "/api/avatar-maker": ["./assets/fonts/Inter-800.ttf", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],
       "/api/academy/covers": ["./assets/fonts/**", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],
       // The permanent NotesApp mark (lib/media-watermark.tsx): Next's own picture codecs (WebAssembly) and the Inter fonts, wherever a
       // picture is marked, a video's watermark profile is drawn, or the re-marking job runs.

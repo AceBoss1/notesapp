@@ -6,6 +6,7 @@ import { KB_CATEGORIES, KbError } from "@/lib/kb";
 import { builtInArticles } from "@/lib/kb-articles";
 import { deleteArticle, loadKbLive, saveArticle, setPublished, staffArticles } from "@/lib/kb-server";
 import { rateLimit } from "@/lib/rate-limit";
+import { claudeCopyCheck, claudeCopyExport } from "@/lib/nana-claude-server";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -22,7 +23,9 @@ const fail = (err: unknown, fallback: string) => {
 };
 
 // Support and product: GET → the help articles (built-in and staff), GET ?view=chats → recent Nana chats, GET ?chat=<id> → one transcript.
+// GET ?view=claude → what a fresh copy for Nana on Claude would change (lib/nana-claude-server.ts); nothing is written.
 // POST { action: "save" | "publish" | "delete" | "handled", … } → write articles; mark a chat as followed up.
+// POST { action: "claude-copy" } → { copy }: a fresh copy of the help centre for the Nana on Claude page, remembered as the last one taken.
 export async function GET(req: NextRequest) {
   try {
     await staff(req);
@@ -33,6 +36,7 @@ export async function GET(req: NextRequest) {
       if (!d.exists) throw new KbError("That chat wasn't found.", 404);
       return NextResponse.json({ chat: { id: d.id, ...d.data() } }, { headers: { "Cache-Control": "no-store" } });
     }
+    if (q.get("view") === "claude") return NextResponse.json(await claudeCopyCheck(db), { headers: { "Cache-Control": "no-store" } });
     if (q.get("view") === "chats") {
       const snap = await db.collection("nanaChats").orderBy("lastAt", "desc").limit(150).get();
       const chats = snap.docs.map((d) => {
@@ -64,6 +68,7 @@ export async function POST(req: NextRequest) {
       case "publish": await setPublished(db, String(b.slug), b.published === true, me.email); return NextResponse.json({ ok: true });
       case "delete": await deleteArticle(db, String(b.slug)); return NextResponse.json({ ok: true });
       case "handled": await db.doc(`nanaChats/${String(b.id)}`).update({ handled: b.handled !== false, handledBy: me.email }); return NextResponse.json({ ok: true });
+      case "claude-copy": return NextResponse.json({ copy: await claudeCopyExport(db, me.email) }, { headers: { "Cache-Control": "no-store" } });
       default: throw new KbError("Unknown action.");
     }
   } catch (err) {

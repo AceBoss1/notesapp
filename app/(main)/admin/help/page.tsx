@@ -19,9 +19,11 @@ const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "nume
 
 // The help centre and Nana's brain. Articles here are what visitors read at /help and what Nana answers from. A staff article with the
 // same address (slug) as a built-in one replaces it; take it down and the built-in text returns. Chats are what people asked Nana.
+type CopyCheck = import("@/lib/nana-claude-server").CopyCheck;
 export default function AdminHelpPage() {
   const { user, loading } = useAdminAuth();
-  const [tab, setTab] = useState<"articles" | "chats">("articles");
+  const [tab, setTab] = useState<"articles" | "chats" | "claude">("articles");
+  const [check, setCheck] = useState<CopyCheck | null>(null);
   const [cats, setCats] = useState<Cat[]>([]);
   const [built, setBuilt] = useState<Built[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -53,6 +55,17 @@ export default function AdminHelpPage() {
   const overridden = useMemo(() => new Set(staff.filter((s) => s.published).map((s) => s.slug)), [staff]);
   const edit = (a: Built, published = true) => { setDraft({ slug: a.slug, title: a.title, category: a.category, body: a.body, published, slugTouched: true }); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const save = () => run(async () => { await call({ action: "save", article: { slug: draft!.slug, title: draft!.title, category: draft!.category, body: draft!.body, published: draft!.published } }); setDraft(null); return "Saved. It is live on the help centre and Nana knows it within a minute."; });
+  const checkCopy = () => run(async () => { setCheck(await call(undefined, "?view=claude")); });
+  const downloadCopy = () => run(async () => {
+    const { copy } = await call({ action: "claude-copy" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(copy)], { type: "application/json" }));
+    a.download = `nana-on-claude-${String(copy.copiedAt).slice(0, 10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+    setCheck(await call(undefined, "?view=claude"));
+    return `A copy of ${copy.articles.length} articles was saved to this device. Now update the Nana on Claude page with it.`;
+  });
+  const gapCount = check ? check.gaps.added.length + check.gaps.changed.length + check.gaps.removed.length + (check.gaps.instructions ? 1 : 0) : 0;
   async function open(id: string) { try { setChat((await call(undefined, `?chat=${id}`)).chat); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't open that chat"); } }
 
   const shown = (chats ?? []).filter((c) => filter === "all" || (filter === "person" && c.handoff) || (filter === "gap" && c.gap) || (filter === "open" && (c.handoff || c.gap) && !c.handled));
@@ -67,7 +80,7 @@ export default function AdminHelpPage() {
       {note && <p className="mt-4 text-sm text-green-700" role="status">{note}</p>}
 
       <div className="mt-6 flex gap-2">
-        {([["articles", "Articles"], ["chats", `Chats${chats ? ` (${chats.filter((c) => (c.handoff || c.gap) && !c.handled).length} to look at)` : ""}`]] as const).map(([id, label]) => (
+        {([["articles", "Articles"], ["chats", `Chats${chats ? ` (${chats.filter((c) => (c.handoff || c.gap) && !c.handled).length} to look at)` : ""}`], ["claude", "Nana on Claude"]] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id} className={`border px-4 py-2 font-ui text-xs font-semibold ${tab === id ? "border-ink bg-ink text-paper" : "border-rule hover:border-crimson"}`}>{label}</button>
         ))}
       </div>
@@ -120,6 +133,36 @@ export default function AdminHelpPage() {
             ))}
           </ul>
         </>
+      )}
+
+      {tab === "claude" && (
+        <section className="mt-6 max-w-3xl space-y-4 text-sm">
+          <p className="text-slate">Nana on Claude is a page on claude.ai where Nana answers from a <strong className="text-ink">copy</strong> of these articles. It can&apos;t read this site, so the copy goes out of date when articles, prices or limits change. Check here, and take a fresh copy when something has changed.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-ghost" disabled={busy} onClick={checkCopy}>Check for changes</button>
+            <button type="button" className="btn-primary" disabled={busy} onClick={downloadCopy}>Download a fresh copy</button>
+          </div>
+          {check && (
+            <div className="card p-4" role="status">
+              <p className="font-ui font-bold text-ink">{check.gaps.never ? "No copy has been taken from here yet." : check.gaps.upToDate ? "Nothing has changed since the last copy." : `${gapCount} change${gapCount === 1 ? "" : "s"} since the last copy.`}</p>
+              <p className="mt-1 text-slate">{check.total} articles now.{check.last ? ` Last copy: ${new Date(check.last.at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })} by ${check.last.byEmail} (${check.last.total} articles).` : ""}</p>
+              {!check.gaps.never && !check.gaps.upToDate && (
+                <ul className="mt-3 list-disc space-y-1 pl-5">
+                  {check.gaps.changed.map((t) => <li key={`c${t}`}><strong>Changed:</strong> {t}</li>)}
+                  {check.gaps.added.map((t) => <li key={`a${t}`}><strong>New:</strong> {t}</li>)}
+                  {check.gaps.removed.map((t) => <li key={`r${t}`}><strong>Removed:</strong> {t}</li>)}
+                  {check.gaps.instructions && <li><strong>Changed:</strong> Nana&apos;s instructions (the pages she may link to, or the list of articles)</li>}
+                </ul>
+              )}
+            </div>
+          )}
+          <ol className="list-decimal space-y-1 pl-5 text-slate">
+            <li>Press <strong className="text-ink">Download a fresh copy</strong>. A file is saved to this device.</li>
+            <li>Open the Nana on Claude page as its owner and press <strong className="text-ink">Update help articles</strong> at the bottom.</li>
+            <li>Choose the file. The page shows what will change, and republishes itself when you confirm.</li>
+          </ol>
+          <p className="text-xs text-slate">The check compares with the last copy downloaded here, so download only when you mean to update the page.</p>
+        </section>
       )}
 
       {tab === "chats" && (
