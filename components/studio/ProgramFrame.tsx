@@ -67,7 +67,7 @@ export default function ProgramFrame({ studio, stage, hostUid, me, person, video
             {subs.map(({ line, word, name }, k) => (
               <p key={subKey(line)} className="nls-sub">
                 {name && <b data-second={k === 1 ? "1" : "0"}>{name}</b>}
-                <span>{line.text.split(" ").map((w, i) => <i key={i} data-on={i === word ? "1" : "0"}>{w}{" "}</i>)}</span>
+                <span>{line.text.split(" ").map((w, i) => <span key={i}><i data-on={i === word ? "1" : "0"}>{w}</i>{" "}</span>)}</span>
               </p>
             ))}
           </div>

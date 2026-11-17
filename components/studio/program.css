@@ -42,10 +42,10 @@
 .nls-sub { display: flex; align-items: stretch; max-width: 100%; margin: 0; animation: nls-in .25s ease-out both; }
 .nls-sub b { flex: none; display: flex; align-items: center; background: #fff; color: var(--accent2); font-size: 1cqw; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 0 0.85cqw; white-space: nowrap; }
 .nls-sub b[data-second="1"] { background: #FFD23F; color: #1A1210; }
-.nls-sub span { background: rgba(0,0,0,.8); color: #fff; padding: 0.55cqw 1.3cqw; font-size: 1.55cqw; font-weight: 500; line-height: 1.3; text-align: center; }
+.nls-sub > span { background: rgba(0,0,0,.8); color: #fff; padding: 0.55cqw 1.3cqw; font-size: 1.55cqw; font-weight: 500; line-height: 1.3; text-align: center; }
 .nls-sub i { font-style: normal; }
-.nls-subs[data-look="bold"] span, .nls-subs[data-look="colour"] span { font-weight: 800; }
-.nls-subs[data-look="bold"] i[data-on="1"] { background: #FFD23F; color: #1A1210; border-radius: 0.4cqw; padding: 0 0.35cqw; margin: 0 -0.1cqw 0 -0.35cqw; }
+.nls-subs[data-look="bold"] .nls-sub > span, .nls-subs[data-look="colour"] .nls-sub > span { font-weight: 800; }
+.nls-subs[data-look="bold"] i[data-on="1"] { background: #FFD23F; color: #1A1210; border-radius: 0.35cqw; box-shadow: 0 0 0 0.1cqw #FFD23F; }
 .nls-subs[data-look="colour"] i[data-on="1"] { color: #FFD23F; }
 .nls-low { flex: none; display: flex; align-items: flex-end; gap: 2cqw; padding: 0 2.5cqw 1.2cqw; }
 .nls-l3 { flex: 1.5; min-width: 0; animation: nls-in .45s ease-out both; }

@@ -41,9 +41,10 @@ async function uploadClip(file: File): Promise<string> {
   return String(j.publicUrl);
 }
 
-export default function StudioControls({ studio, isHost, canEdit, canAir, stage, nameOf, act, onError, onModerators }: {
+export default function StudioControls({ studio, isHost, canEdit, canAir, stage, nameOf, act, onError, onModerators, tryOut }: {
   studio: StudioState; isHost: boolean; canEdit: boolean; canAir: boolean; stage: string[]; nameOf: (uid: string) => string;
   act: Act; onError: (m: string) => void; onModerators?: () => void;
+  tryOut?: boolean; // the try-out on /studio: nothing is sent, so the speech service isn't asked about
 }) {
   const [busy, setBusy] = useState("");
   const run = async (tag: string, body: Record<string, unknown>) => {
@@ -59,7 +60,7 @@ export default function StudioControls({ studio, isHost, canEdit, canAir, stage,
   const [caption, setCaption] = useState("");
   // Automatic subtitles need the speech service's keys (CLOUDFLARE_AI_TOKEN); until they are set, the switch says so.
   const [speech, setSpeech] = useState<boolean | null>(null);
-  useEffect(() => { fetch("/api/studio/subtitles", { cache: "no-store" }).then((r) => r.json()).then((j) => setSpeech(j.ready === true)).catch(() => setSpeech(false)); }, []);
+  useEffect(() => { if (tryOut) { setSpeech(true); return; } fetch("/api/studio/subtitles", { cache: "no-store" }).then((r) => r.json()).then((j) => setSpeech(j.ready === true)).catch(() => setSpeech(false)); }, [tryOut]);
   const [show, setShow] = useState(studio.bug.show);
   const [place, setPlace] = useState(studio.bug.place);
   const [saved, setSaved] = useState<Saved[]>([]);

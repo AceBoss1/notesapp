@@ -3402,3 +3402,10 @@ for all of it. `MomentComposer.tsx` is now a full page in up to three steps (New
 the tidy logic in `useTidy.ts` and the shared pieces in `tidy-parts.tsx` and `icons.tsx` (`TidyPanel.tsx` is gone); `MomentViewer.tsx`
 is a light page with a rounded stage and the owner's or viewer's controls under or beside it; the settings are cards with switches.
 Every behaviour is kept. Differences from the canvas are listed in `docs/MOMENTS_TIDY.md`.
+
+**Notes Live Studio: automatic subtitles (v0.181.0, 17 Nov 2026)** — the owner asked whether the Cloudflare transcription built
+for Moments could drive subtitles in the studio, approved the mockups and added a rule: a lone voice has no name
+(`docs/STUDIO_SUBTITLES.md`). Each speaker's own device listens to its own microphone (`useLiveSubtitles.ts`), sends a few seconds
+at a time to `/api/studio/subtitles`, and posts the words as a line (`studioStep` `say`); the room's document carries up to two
+lines (`studio.said`) and `ProgramFrame` draws them in Clean, Bold word or Colour word, the highlight moving evenly through the
+line. `voiceAlone` leaves the name off when nobody else's microphone is on. Tests: `test:studio`, `studio.emulator.ts`.

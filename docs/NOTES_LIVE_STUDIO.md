@@ -50,6 +50,10 @@ The owner asked for host, editor, guest, moderator and viewer privileges. They s
 - **Lower third:** a small line above, a headline, the speaker's name and who they are; styles Headline + name, Name only, Breaking.
 - **Ticker:** up to 8 lines scrolling along the bottom, a tag, three speeds.
 - **Subtitle line:** typed by the editor (what was said, or a translation), shown until cleared.
+- **Automatic subtitles (v0.181.0, `docs/STUDIO_SUBTITLES.md`):** each speaker's own device writes down their own microphone and posts
+  their lines (`op: "say"`); the programme shows up to two, with the name unless theirs is the only microphone on, in Clean, Bold word
+  or Colour word. The editor switches them on (`set` with `subs`) and can switch a speaker off (`subsfor`); a speaker can turn theirs
+  off (`mysubs`). A typed subtitle line takes over while it is up.
 - **Comments on air:** **On air** and **Queue** beside each chat message for those holding `onair`. Where the room keeps its chat in
   Firestore the server uses the chat's own copy, so nobody is quoted saying something they didn't; on the live-rooms worker (chat not
   stored) the moderator's copy is used and their name is in the log.
@@ -77,7 +81,7 @@ While the team tests it, the studio can be switched on only in a live started on
   comments into the chat needs their Live Events API access, granted separately.
 - **Graphics in the recording.** A recorded live keeps the stage's sound and picture as before; the studio's graphics and clips are
   not in the replay yet. The same programme page fixes both this and LinkedIn.
-- **Automatic subtitles from speech**, and translation.
+- **Translation** of subtitles, and subtitles in the recording.
 - **Background blur, crop or replacement** on a camera.
 - **Ads from the NotesApp ad network** in the sponsor spot and ad breaks (today the editor uploads the sponsor's file).
 - **Sharing a document** other than as a picture or a shared screen.
