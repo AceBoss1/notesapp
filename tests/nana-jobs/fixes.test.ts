@@ -25,7 +25,7 @@ const fixture: Fetch = async (url) => {
   const feeds = await fetchFeeds(fixture);
   assert.deepEqual(feeds.errors, {});
   assert.deepEqual(feeds.counts, { remoteok: 12, remotive: 10, himalayas: 8, arbeitnow: 6, weworkremotely: 5, workingnomads: 3, remotewoman: 3 }, "RemoteOK's legal notice isn't a job");
-  // The RSS feeds (v0.178.0): We Work Remotely puts the company in the title; Remote Woman names it in its own tag.
+  // The RSS feeds (v0.181.0): We Work Remotely puts the company in the title; Remote Woman names it in its own tag.
   const wwr = feeds.jobs.filter((j) => j.source === "weworkremotely"), rw = feeds.jobs.filter((j) => j.source === "remotewoman"), wn = feeds.jobs.filter((j) => j.source === "workingnomads");
   for (const j of [...wwr, ...rw, ...wn]) { assert.ok(j.company && j.title && j.postedAt && /^https:\/\//.test(j.url), `${j.source}: ${j.title}`); assert.doesNotMatch(j.description, /<[a-z]|&lt;|CDATA/i, "the description is plain text"); }
   assert.ok(wwr.every((j) => !j.title.startsWith(`${j.company}:`)), "the company is taken out of the title");

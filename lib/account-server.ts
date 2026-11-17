@@ -319,6 +319,10 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     // My Cycle (lib/cycle-server.ts eraseCycle): her check-ins, settings, answer, notes and private chat with Nana, all of it.
     ...(await own("cycleLogs", "uid", uid)),
     ...(await Promise.all([`cycleProfiles/${uid}`, `cycleNotes/${uid}`, `cycleChats/${uid}`].map((x) => db.doc(x).get()))).filter((d) => d.exists),
+    // Notes Planner (lib/planner-server.ts erasePlanner): the interview, the plan, ticks, reviews and choices, all of it.
+    ...(await own("plannerDays", "uid", uid)),
+    ...(await own("plannerReviews", "uid", uid)),
+    ...(await db.doc(`plannerPlans/${uid}`).get().then((d) => (d.exists ? [d] : []))),
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
   for (const r of await own("storeReviews", "uid", uid)) await deleteReview(db, uid, r.id).catch(() => {}); // takes the stars off the item totals too

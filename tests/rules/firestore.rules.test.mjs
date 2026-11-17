@@ -1751,6 +1751,33 @@ test("My Calendar is server-only, even for her and for staff: her choices, the p
   }
 });
 
+test("Notes Planner is server-only, even for her and for staff: her interview and plan, the moves she ticked and her reviews", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "plannerPlans/alice"), { uid: "alice", has: true, data: "x" });
+    await setDoc(doc(db, "plannerDays/alice_2027-01-12"), { uid: "alice", day: "2027-01-12", data: "x" });
+    await setDoc(doc(db, "plannerReviews/alice_2027-01-17"), { uid: "alice", week: "2027-01-17", data: "x" });
+  });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["plannerPlans/alice", "plannerDays/alice_2027-01-12", "plannerReviews/alice_2027-01-17"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice" }));
+      await assertFails(deleteDoc(doc(db, p)));
+    }
+    await assertFails(getDocs(query(collection(db, "plannerDays"), where("uid", "==", "alice"))));
+    await assertFails(getDocs(query(collection(db, "plannerPlans"), where("has", "==", true))));
+  }
+});
+
+test("Moment captions: the count of sound written down per member per day is server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "momentCaptionUse/alice_2026-11-16"), { uid: "alice", day: "2026-11-16", count: 3 }); });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "momentCaptionUse/alice_2026-11-16")));
+    await assertFails(setDoc(doc(db, "momentCaptionUse/alice_2026-11-16"), { count: 0 }));
+    await assertFails(deleteDoc(doc(db, "momentCaptionUse/alice_2026-11-16")));
+  }
+});
+
 test("Google and LinkedIn sign-in links, states, tickets and their log are server-only, even for the account's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

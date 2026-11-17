@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.178.0",
+    version: "v0.181.0",
     bump: "minor",
     date: "2026-11-17",
     changes: [
@@ -19,7 +19,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.177.1",
+    version: "v0.180.2",
     bump: "patch",
     date: "2026-11-17",
     changes: [
@@ -27,6 +27,45 @@ export const CHANGELOG: Release[] = [
       { kind: "fixed", text: "Discount codes and coupons on a plan: the saving shown before you pay is now always worked out on the plan's current price." },
       { kind: "fixed", text: "Hotel kit: a payment taken on the card machine now always uses the current hold days and Inventory add-on settings when it settles." },
       { kind: "fixed", text: "Teach: the note under your courses now shows how many courses your plan allows, and the roadmap shows the gold badge's current prices." },
+    ],
+  },
+  {
+    version: "v0.180.1",
+    bump: "patch",
+    date: "2026-11-17",
+    changes: [
+      { kind: "fixed", text: "Moments: a video with a voice-over and captions got stuck on \"Loading the video…\", repeated across the screen. It plays now." },
+      { kind: "fixed", text: "Moments: when you check the trim or the captions of a voice-over, you see the video or picture it goes over, not a grey card, and the length no longer covers the audio controls." },
+    ],
+  },
+  {
+    version: "v0.180.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "changed", text: "Moments: a new look for making a moment. New moment is now a full page: choose Text, Picture or Video, then open Note, Sound or Disappears after to set them. It says there that a moment can last 24, 48 or 72 hours." },
+      { kind: "changed", text: "Moments: a new look for watching. The moment sits on a rounded stage on a light page. Your views, likes and reposts, Pin and Delete are under it on a phone and beside it on a computer; on someone else's moment, reply, like and repost are there." },
+      { kind: "added", text: "Moments: a sound button on moments with a voice-over, a song or a plain video." },
+    ],
+  },
+  {
+    version: "v0.179.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "added", text: "Moments: Trim the pauses. Add a video or a voice-over and #NotesApp finds the silences on your own device and skips them when the moment plays. Check the trim, choose how tight it is, and keep any pause that matters. A shorter video can use fewer of your week's video moments. Appears once it is switched on." },
+      { kind: "added", text: "Moments: captions that show each word as you say it, in three looks. Read them and fix any word before you share; viewers can turn them off with CC, and you can take them off a moment afterwards. Only the sound is sent to write them, and it isn't kept. English first; Pidgin is less accurate. Appears once it is switched on." },
+    ],
+  },
+  {
+    version: "v0.178.0",
+    bump: "minor",
+    date: "2026-11-16",
+    changes: [
+      { kind: "added", text: "Notes Planner, a new tab in My Calendar. Nana interviews you one question at a time, checks she understood you, then writes your next 12 months: one goal, three numbers to track, a project for every month, two or three moves for every day and a Sunday review. Or write the plan yourself, free." },
+      { kind: "added", text: "My Calendar: your plan shows beside your bookings. The month's project sits on top of the day, today's moves are tick boxes, and each month's deadline and the Sunday review appear as a new kind, Plan, that you can hide." },
+      { kind: "added", text: "Notes Planner is private: your answers, plan, ticks and reviews are encrypted, staff can't read them, and they're never used for ads. It stays off your phone's calendar unless you turn it on, with an optional passkey lock, Download my plan and Delete." },
+      { kind: "added", text: "Notes Planner for teens: a gentler version for a school term or year. Child profiles don't have it." },
     ],
   },
   {

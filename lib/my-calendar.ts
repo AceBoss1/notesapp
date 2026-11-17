@@ -7,11 +7,11 @@
 // hand, never with toLocaleDateString, so the server and every browser print the same words (it broke hydration once).
 import { dayLabel } from "./month-calendar";
 
-export type CalKind = "session" | "hotel" | "event" | "live" | "interview" | "money";
-export const KINDS: CalKind[] = ["session", "hotel", "event", "live", "interview", "money"];
-export const KIND_LABEL: Record<CalKind, string> = { session: "Sessions", hotel: "Hotel", event: "Events", live: "Lives", interview: "Interviews", money: "Money due" };
+export type CalKind = "session" | "hotel" | "event" | "live" | "interview" | "money" | "plan";
+export const KINDS: CalKind[] = ["session", "hotel", "event", "live", "interview", "money", "plan"];
+export const KIND_LABEL: Record<CalKind, string> = { session: "Sessions", hotel: "Hotel", event: "Events", live: "Lives", interview: "Interviews", money: "Money due", plan: "Plan" };
 // The dot colours, as drawn in the mockups.
-export const KIND_COLOUR: Record<CalKind, string> = { session: "#A6093D", hotel: "#B07A4F", event: "#2FA37A", live: "#E0123E", interview: "#3B6FD8", money: "#F2C14E" };
+export const KIND_COLOUR: Record<CalKind, string> = { session: "#A6093D", hotel: "#B07A4F", event: "#2FA37A", live: "#E0123E", interview: "#3B6FD8", money: "#F2C14E", plan: "#0F8B8D" };
 
 export type CalEntry = {
   id: string; // stable and unique: "<source>:<id>", e.g. "booking:NA-123"
@@ -65,7 +65,7 @@ export function whenText(e: Pick<CalEntry, "start" | "end" | "allDay">): string 
 }
 
 // ── Merging, sorting and filtering ───────────────────────────────────────────────────────────────────────────────────────────────
-const ORDER: Record<CalKind, number> = { session: 0, interview: 1, live: 2, event: 3, hotel: 4, money: 5 };
+const ORDER: Record<CalKind, number> = { session: 0, interview: 1, live: 2, event: 3, hotel: 4, money: 5, plan: 6 };
 export const byTime = (a: CalEntry, b: CalEntry) => a.start.localeCompare(b.start) || ORDER[a.kind] - ORDER[b.kind] || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
 // Every source's entries in one list, soonest first. The same thing from two sources (a ticket and "going" to that event) keeps the first.
 export function mergeEntries(lists: CalEntry[][]): CalEntry[] {
@@ -124,13 +124,15 @@ export function stayNights(entries: CalEntry[]): Set<string> {
 // ── The member's choices ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 // What goes to the phone (the private feed), as drawn: money due and My Cycle are off until she turns them on. My Cycle isn't in this
 // release (its dates are only kept encrypted, lib/cycle-server.ts), so it has no switch yet.
-export type FeedGroup = "sessions" | "hotel" | "events" | "interviews" | "money";
+export type FeedGroup = "sessions" | "hotel" | "events" | "interviews" | "money" | "plan";
 export const FEED_GROUPS: { id: FeedGroup; label: string; kinds: CalKind[]; on: boolean }[] = [
   { id: "sessions", label: "Sessions and calls", kinds: ["session"], on: true },
   { id: "hotel", label: "Hotel stays", kinds: ["hotel"], on: true },
   { id: "events", label: "Events and lives", kinds: ["event", "live"], on: true },
   { id: "interviews", label: "Interviews", kinds: ["interview"], on: true },
   { id: "money", label: "Money due (Business books)", kinds: ["money"], on: false },
+  // Notes Planner (lib/planner.ts): each month's project and the Sunday review. Titled "Planner" unless she chose titles there.
+  { id: "plan", label: "Notes Planner (shows as \"Planner\")", kinds: ["plan"], on: false },
 ];
 export const SESSION_BELL_MINUTES = [0, 5, 10, 15, 30] as const; // 0 = off. Never an hour: bookings already remind an hour before.
 export type CalPrefs = {

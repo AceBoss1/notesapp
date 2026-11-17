@@ -344,9 +344,60 @@ Every photo, video frame and text that people other than you can see is checked 
 
 **Teen mode and child profiles:** teens see what teen mode allows (no Business books money). Child profiles don't have a calendar.
 
+**Notes Planner:** the **🗓 Planner** tab plans your next 12 months with Nana. Its monthly projects and Sunday review show here as the kind Plan, and today's moves are tick boxes above the day's list. [How Notes Planner works](/help/notes-planner).
+
 **In the #NotesApp app:** once the app update with calendar access is out, Add to my calendar puts an entry straight into your phone's calendar, after you allow it.
 
 **Coming later:** connecting Google or Outlook both ways, so times you're busy there are blocked on your booking calendar.`),
+    A("notes-planner", "Notes Planner: plan your next 12 months with Nana", "Getting started", `
+[Notes Planner](/calendar/planner) is the **🗓 Planner** tab in [My Calendar](/calendar). Nana interviews you, then writes your next 12 months the way a product team plans a launch. Your plan then shows in your calendar beside your bookings.
+
+**Starting:** tap **✨ Start with Nana**, or **✍️ Write it myself** for the same plan as a form (free, no Nana). A plan starts on the 1st of next month and runs 12 months.
+
+**The interview:** about 25 questions, 20 to 30 minutes, one at a time, in three parts: where you are now, where things go if nothing changes, and what you want. When an answer is vague, Nana asks once for an example, a number or a date. She gives no advice until the plan.
+- **Skip this one** skips a question. **Go gentler** softens the questions.
+- Your answers save as you go, so you can stop and carry on later.
+- At the end Nana sums up what she heard in five lines. Correct anything, then tap **Yes, write my plan**. Writing it takes about a minute.
+- Nana's questions use your [Nana allowance](/help/nana-gems-and-credit) like any chat with her. If it runs out, your answers are kept: carry on later or write the plan yourself.
+
+**Your plan:** one goal with a date; who you're becoming; the life you're building and the one you refuse; three numbers with targets; what you'll stop and what you won't give up; one project a month with what "finished" means; the three habits most likely to stop you, each with its early warning sign and what you'll do; two or three daily moves; your first three tasks; and three Sunday questions. **✏️ Edit my plan** changes any line. Where a project is something #NotesApp does (your site, Booking, your store, Business books, Notes Academy), Nana links it.
+
+**In My Calendar:** the month's project sits above the day, today's moves are tick boxes, and each month's deadline and the Sunday review show as the kind **Plan**. Tap Plan under the month to hide it. You can tick a move on the day or afterwards, not ahead. A 🔥 count shows your days in a row.
+
+**Sunday review:** from the first Sunday of your plan, answer three questions, update your three numbers and tick any warning sign you saw; your plan reminds you what you said you'd do. Nana adds one short note (you can switch it off). A week's review stays open until the next Saturday.
+
+**Reminders (⚙️ Settings):** a bell with today's moves each morning (7 AM by default) and one for the Sunday review (5 PM), in Lagos time. Change the hour or turn either off. The bells never say what's in your plan.
+
+**Privacy:** your answers, plan, ticks and reviews are encrypted. Staff can't read them, and they're never used for ads or by Nana anywhere else.
+- **Your phone's calendar:** off until you turn it on in Settings. Entries then go out through your private calendar link titled only "Planner", unless you also choose real titles.
+- **Lock Planner with my passkey:** optional. With it on, opening the Planner asks for your fingerprint, face or screen lock, and your plan stays out of My Calendar and your phone.
+- **Download my plan** and **Delete my plan and answers** are in Settings. Closing your account deletes everything.
+
+**Not therapy:** Notes Planner is for planning. Nana isn't a counsellor or a doctor. If you're in distress or unsafe, please talk to someone you trust, a doctor, or emergency services.
+
+**Teen mode and child profiles:** teens get a gentler version for a school term (3 months) or a year: exams, a skill, habits. A parent never sees the answers or the plan. Child profiles don't have a Planner.`),
+    A("moments-tidy-and-captions", "Moments: trim the pauses and add captions", "Getting started", `
+Two helpers for video moments and voice-overs. Their switches appear on the **New moment** page once they are switched on for #NotesApp. With a switch on, **Next: check it** takes you to a step for the trim and a step for the captions before you share.
+
+**✂️ Trim the pauses:** #NotesApp listens to your recording on your own device and finds the silences. Nothing is sent anywhere for this.
+- The switch says how much it saves ("Saves 21 seconds"). Tap **Check the trim** to play the result and see the pauses in grey on the sound wave.
+- Choose how tight it is: pauses longer than ¼ second, ½ second or 1 second. A short breath is kept each side, so it never cuts inside a word.
+- **Keep the pause at…** leaves one in.
+- Nothing is deleted. Your full video is uploaded once and the moment skips the pauses when it plays.
+- A trimmed video is as long as what plays, so a 1:42 recording that trims to 1:21 is one moment, not two, and uses one of your week's video moments.
+
+**💬 Captions:** turn on **Add captions**. When you reach the captions step, only the sound is sent to be written down, and it isn't kept.
+- Read them through. Tap a line to fix a word; names and places are the usual slips. Words the AI was unsure of are underlined.
+- Choose a look (Clean, Bold word, Colour word) and where they sit (middle or lower third).
+- Captions are written by AI and can be wrong. You are sharing them, and they are checked like any other words on #NotesApp.
+- English first. Pidgin works but makes more mistakes. A moment with a song and no speech has no captions.
+- With a voice-over, the captions are of the voice-over.
+
+**Watching:** each word lights up as it's said. Tap **CC** to hide or show captions; your choice is remembered on that device. On your own moment, **Remove captions** takes them off for everyone.
+
+**Settings:** Profile → Edit profile → Moments: whether to trim when you add a video, your caption look, and whether you see captions when you watch.
+
+**Limits:** captions come with the video moments and voice-overs your plan already allows. There is a daily limit on how much sound can be written down (about 90 minutes).`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
 NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 

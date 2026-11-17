@@ -3368,3 +3368,44 @@ digest, reminders and Nana Jobs links. Admin → Growth (`/admin/growth`) reads 
 a channel's funnel with the biggest drop, weekly cohorts with what brings them back, and creator links joined with the referral data.
 Members get "Your invite link" on My account → Growth → Referrals. Privacy Policy line, help article `invite-link`, server-only rules and tests
 (`test:growth`, `test:growth-server`, rules).
+
+**Notes Planner (v0.178.0, 16 Nov 2026)** — the owner shared Charlie Hills' article "5 things to build with Fable 5.2" and asked where
+it could make #NotesApp better; build 4 ("plan your year like a product launch") became a personal planner on My Calendar. Mockups
+were approved the same day ("planner approved build"). Only the idea is used; the questions and Nana's instructions are our own words.
+`lib/planner.ts` (pure): the plan's dates (the 1st of next month, 12 months; a teen may plan one term), `cleanPlan` (what Nana wrote
+or the member typed, checked), Nana's reply markers (`[[PART n]]`, `[[SUMMARY]]`), the interview's progress, ticks and the streak, the
+Sunday review, `planEntries` (each month's project on its last day and the Sunday review, as the calendar's new `plan` kind), her
+choices and when the bells are due. `lib/planner-nana.ts`: what Nana is told for the interview, the plan (JSON, our own tools first,
+never invented facts) and the review note, with the teen wording and the care rules. `lib/planner-server.ts`: encrypted storage
+(`ACCOUNT_DATA_KEY`) in server-only `plannerPlans`, `plannerDays` and `plannerReviews`, Nana through the meter (her answer is kept even
+when Nana can't reply), by-hand plans and edits, ticks, reviews, the optional passkey lock (a signed httpOnly cookie for `/api/planner`),
+`planCalendar` as a My Calendar source (left out when locked), Download, Delete, account closure and `plannerBells`. Routes:
+`/api/planner` and `/api/planner/unlock`. Screens in `components/planner/`: `/calendar/planner`, `/calendar/planner/review`,
+`/calendar/planner/settings`; `PlannerDay` puts the month's project and the tick boxes above the day in My Calendar, which gains
+Calendar | Planner tabs. The private feed gets a "Notes Planner" switch, off by default, titled "Planner" unless she chooses titles.
+Tests: `test:planner`, `test:planner-server`, rules. Still to measure: what one interview costs on the real model.
+
+**Moments: tidy up and captions (v0.179.0, 16 Nov 2026)** — second item from Charlie Hills' article (build 3), built from the approved
+mockups (`docs/MOMENTS_TIDY.md`). Behind `NEXT_PUBLIC_MOMENT_TIDY_LIVE` (off). **Trim the pauses:** the browser decodes the
+recording's sound (`lib/moments-tidy-client.ts` `readSound`), `findPauses` marks stretches quieter than this recording's own speech
+for longer than ¼, ½ or 1 second, less a breath each side, and `playSpans` gives the stretches that play. Nothing is re-made: a moment
+keeps `spans` (flat in Firestore) and the viewer skips between them (`playhead`); a long recording is dealt out over moments by playing
+time (`splitSpans`), and `/api/video` takes `playSec` so a trim can use fewer of the week's video moments (each moment is still held to
+90 seconds of playing time when it is made). **Captions:** 16 kHz mono WAV pieces of at most 45 seconds go to `/api/moments/captions`,
+then to Workers AI Whisper (`lib/moments-captions-server.ts`); nothing is kept but a daily count (`momentCaptionUse`). Timed words
+are corrected in `components/moments/TidyPanel.tsx`, stored on the moment (`captions`), checked with the moment's text by the content
+checks, and drawn by `CaptionOverlay` with the current word marked. Voice-overs get both (`audioSpans`). Tests: `test:moments-tidy`
+(pure and emulator), rules. Verified in a browser on a plain video; not on Stream's player or the real speech model (HANDOVER 141).
+
+**Moments redesign (16 Nov 2026)** — the owner shared a Moda canvas ("Moments Redesign", six phone and six desktop screens) and asked
+for all of it. `MomentComposer.tsx` is now a full page in up to three steps (New moment, Trim the pauses, Check your captions) with
+the tidy logic in `useTidy.ts` and the shared pieces in `tidy-parts.tsx` and `icons.tsx` (`TidyPanel.tsx` is gone); `MomentViewer.tsx`
+is a light page with a rounded stage and the owner's or viewer's controls under or beside it; the settings are cards with switches.
+Every behaviour is kept. Differences from the canvas are listed in `docs/MOMENTS_TIDY.md`.
+
+**Moments fixes (v0.180.1, 17 Nov 2026)** — the owner reported from the live site that "the audio removes the video". In
+`MomentViewer.tsx` the Stream video and the voice-over were siblings with the same React key (the moment's id). That was harmless
+while the viewer rarely re-rendered; captions made it re-render several times a second (`setHeard`), and React duplicated the
+"Loading the video…" placeholder on each one and never mounted the player. The voice-over now has its own key (reproduced on the
+emulators: 21 copies before, 1 after). In `MomentComposer.tsx` the trim and caption steps for a voice-over now show the video or
+picture it goes over, with the voice-over's controls under it.

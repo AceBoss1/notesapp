@@ -45,6 +45,7 @@ import { runDue as nanaJobsDue } from "@/lib/nana-jobs-server";
 import { liveDeps as nanaJobsDeps } from "@/lib/nana-jobs-api";
 import { withReturn } from "@/lib/growth";
 import { calendarBells, weekAheadEmails } from "@/lib/my-calendar-server";
+import { plannerBells } from "@/lib/planner-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -173,6 +174,9 @@ async function run() {
   // then, on Mondays from 7 AM Lagos, the optional week-ahead email, a few per run.
   await job("calendarBells", () => calendarBells(db));
   await job("weekAhead", () => weekAheadEmails(db));
+  // Notes Planner (lib/planner-server.ts): today's moves each morning and the Sunday review, at the hours she chose, as bells that
+  // say only that the Planner is ready.
+  await job("plannerBells", () => plannerBells(db));
   await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
   // The 1st of each month from 08:00 Lagos, in batches: last month's referrals report to members who had activity (lib/referral-report-server.ts).
   await job("referralReports", () => monthlyReferralReports(db));

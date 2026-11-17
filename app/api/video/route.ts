@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       // sends the file to uploadURL (a form post), then posts the moment(s); there is no "finish" step for a moment's video.
       const out = await startMomentVideo(
         db, { uid, username: String(mu?.username ?? "") }, effectiveTier({ username: mu?.username ?? "", role: mu?.role ?? "reader", accountTier: mu?.accountTier ?? "standard" }),
-        { size: Number(body.size), contentType: String(body.contentType || ""), durationSec: Number(body.durationSec), width: body.width, height: body.height },
+        { size: Number(body.size), contentType: String(body.contentType || ""), durationSec: Number(body.durationSec), width: body.width, height: body.height, playSec: body.playSec },
         momentDeps,
       );
       return NextResponse.json(out);

@@ -17,6 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
+| `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
@@ -1133,7 +1134,37 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     built:** LinkedIn Live at the same time (shown as coming soon; needs LinkedIn Live approval for the stream key), graphics in the
     recording, automatic subtitles, background blur, network ads. Home, About, the footer and Status were left as they are until the
     studio opens to everyone. Tests: `test:studio`, `test:rooms-server` (`studio.emulator.ts`).
-140. **Admin settings everywhere (v0.177.1; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
+140. **Notes Planner (v0.178.0, branch `claude/vigilant-franklin-xgf9ee`; owner, 15 Nov 2026, "planner approved build"; plan and
+    mockups in `docs/NOTES_PLANNER.md`):** a Planner tab in My Calendar. Nana interviews the member one question at a time, sums up in
+    five lines, then writes 12 months: one goal, three numbers, a project a month, daily moves, a Sunday review. Or the member writes it
+    by hand. **Deploy:** `firebase deploy --only firestore` (three new server-only collections: `plannerPlans`, `plannerDays`,
+    `plannerReviews`; no new indexes). **Needs `ACCOUNT_DATA_KEY`** (already set for My Cycle and payouts); without it the Planner says
+    it isn't switched on. No new settings. The bells run in the existing 15-minute reminders job (`plannerBells`).
+    **To check after deploy:** the cost of one interview on the real model. It is metered through the member's Nana allowance
+    (`lib/nana-meter.ts`, Pearl, Quick) with a cap of 90 Planner calls a day per member, but the Naira cost of about 30 questions plus
+    the plan hasn't been measured, so no price or separate limit is set. A Free Standard member's allowance may not cover a whole
+    interview: their answers are kept and they can carry on after the reset or write the plan by hand.
+    **Not built:** sharing a plan, team plans, templates, Nana changing a plan by herself, a public explainer page of its own (it
+    is described on `/my-calendar`, About, the roadmap and in the help article `notes-planner`).
+141. **Moments: tidy up and captions (v0.179.0, branch `claude/vigilant-franklin-xgf9ee`; owner, 16 Nov 2026, "moments approved
+    build"; `docs/MOMENTS_TIDY.md`):** Trim the pauses and word-by-word captions for video moments and voice-overs. **Off by default:**
+    nothing changes for members until `NEXT_PUBLIC_MOMENT_TIDY_LIVE=true` is set and the site redeployed. Captions also need
+    `CLOUDFLARE_AI_TOKEN` (a Cloudflare API token with Workers AI: Read; the account is `CLOUDFLARE_ACCOUNT_ID` or `R2_ACCOUNT_ID`);
+    without it only the trim is offered. `MOMENT_CAPTIONS_MODEL` changes the speech model. **Deploy:** `firebase deploy --only
+    firestore` (one new server-only collection, `momentCaptionUse`; add a TTL policy on its `expireAt`).
+    **Test on staging before switching on, because three things could not be tested in the build environment:**
+    (1) **A trimmed video on Cloudflare Stream.** Moment videos play in Stream's iframe player. Skipping pauses there uses Stream's
+    player SDK (`https://embed.cloudflarestream.com/embed/sdk.latest.js`, loaded only for a trimmed moment) to move the player. It was
+    written from the SDK's documented `currentTime` setter but never run against Stream. If it doesn't skip, the video plays its
+    pauses and still ends correctly. Skipping was verified only on a plain `<video>` and on voice-overs.
+    (2) **The speech model's answer.** `lib/moments-captions-server.ts` calls Workers AI (`@cf/openai/whisper-large-v3-turbo`) from a
+    web search's description of its input and output; the docs site was blocked. It accepts word times at the top level or inside
+    segments, and falls back to segment times. Check one real recording, and Pidgin.
+    (3) **Cost.** About $0.0005 a minute by Cloudflare's price list as reported by search; not measured.
+    **Not built:** removing false starts and repeated lines, editing captions after sharing (they can be removed), captions on Media
+    posts and lives, translation. The owner's choices (trim on, look, CC) are remembered on the device, not on the account.
+
+142. **Admin settings everywhere (v0.180.2; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
     audit of every route for code that reads a value from Admin → Pricing or Admin → Limits without loading it first. A server that has
     just started holds the built-in values until `ensurePricing()` (or `getFanSettings()`) runs, so a route that skips it can use them.
     Pages are safe (the root layout applies the saved prices). Fixed: `lib/global-pay-server.ts` (a subscription paid in another
@@ -1144,7 +1175,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     roadmap's gold badge prices (from `GOLD_PRICING`). Not changed: the built-in values themselves; they still differ from what is
     saved (commission 35/25/15% built in, 20/15/8% saved, for one) and show only if the settings can't be read. Nothing to deploy.
     Tests: `test:global` (new `tests/global/admin-rates.emulator.ts`).
-141. **Nana Jobs: three more feeds (v0.178.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
+143. **Nana Jobs: three more feeds (v0.181.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
     gains We Work Remotely (RSS), Working Nomads (JSON) and Remote Woman (RSS, its job feed), read once a day with the others; a feed
     marked `rss` is read as text by `rssItems` (a small reader for flat job items, no new dependency). RemoteOK was already there. Not
     added: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive and JS Remotely publish no feed (or forbid automated

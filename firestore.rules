@@ -1075,6 +1075,13 @@ service cloud.firestore {
     match /myCalendar/{id} { allow read, write: if false; }
     match /calendarFeeds/{id} { allow read, write: if false; }
     match /calendarBells/{id} { allow read, write: if false; }
+    // Notes Planner (lib/planner-server.ts): her interview with Nana, her plan, the moves she ticked and her Sunday reviews, all
+    // encrypted. Server only, even for her and for staff: she reads and changes them through /api/planner.
+    match /plannerPlans/{id} { allow read, write: if false; }
+    match /plannerDays/{id} { allow read, write: if false; }
+    match /plannerReviews/{id} { allow read, write: if false; }
+    // Moment captions (lib/moments-captions-server.ts): how many pieces of sound a member had written down today. Server only.
+    match /momentCaptionUse/{id} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

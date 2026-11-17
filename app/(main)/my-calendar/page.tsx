@@ -14,6 +14,7 @@ const WHAT = [
   { e: "🏨", t: "Hotel stays", d: "Check-in and check-out, with your nights shaded. Hotel staff who handle bookings see their hotel's arrivals and departures." },
   { e: "🎟", t: "Events and paid lives", d: "Event tickets, paid live tickets, events you said you're going to, and the ones you host." },
   { e: "💼", t: "Interviews", d: "Interviews booked from Notes Jobs, as the applicant or on the hiring team, with the room to join." },
+  { e: "🗓", t: "Your plan", d: "From Notes Planner: each month's project, the Sunday review, and today's moves as tick boxes. Private to you, and never sent to your phone unless you choose." },
   { e: "📒", t: "Money due", d: "From Business books: when customers said they'd pay you, and when you pay your suppliers. Yours only, and never sent to your phone unless you choose." },
 ];
 
@@ -27,6 +28,7 @@ const FAQ = [
   { q: "Is anything copied?", a: "No. Each entry is read from where it lives (the booking, the ticket, the stay, the job) every time you open your calendar, so a change or a cancellation shows everywhere at once." },
   { q: "Who can see my calendar link?", a: "Anyone who has it, so keep it to yourself. It carries titles and times only: never amounts, private notes or who paid what. Make a new link at any time and the old one stops at once." },
   { q: "Can I choose what goes to my phone?", a: "Yes: sessions and calls, hotel stays, events and lives, interviews, and money due, each on or off. Money due starts off." },
+  { q: "What is Notes Planner?", a: "The Planner tab in My Calendar. Nana interviews you one question at a time, then writes your next 12 months: one goal, three numbers, a project for every month, a few moves for every day and a Sunday review. Or write it yourself. Your answers and plan are encrypted, and teens get a gentler version for school." },
   { q: "What about My Cycle?", a: "Not yet. My Cycle keeps your dates locked with your passkey and encrypted, so the calendar can't read them. If it comes, it will be off unless you turn it on, and only ever say \"Private\"." },
   { q: "Will I get reminders?", a: "Bookings, interviews, events you're going to and paid lives already remind you a day and an hour before. My Calendar adds a bell shortly before sessions and calls, an hour before events you have a ticket for, the day before a hotel check-in, and, if you want it, a Monday email of the week ahead." },
   { q: "What time zone are the times in?", a: "Lagos time (WAT), the same as bookings, tickets and interviews." },
@@ -75,6 +77,7 @@ export default function MyCalendarExplainer() {
         </div>
         <div className="mt-10 flex flex-wrap gap-3">
           <Link href="/calendar" className="btn-primary">Open My Calendar</Link>
+          <Link href="/calendar/planner" className="btn-ghost">Open Notes Planner</Link>
           <Link href="/help/my-calendar" className="btn-ghost">Read the help article</Link>
           <Link href="/booking" className="btn-ghost">Booking</Link>
         </div>
