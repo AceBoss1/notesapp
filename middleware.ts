@@ -176,7 +176,7 @@ function firstTouch(req: NextRequest, res: NextResponse) {
 async function handle(req: NextRequest): Promise<NextResponse> {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\\d+$/, "");
   if (!host) return NextResponse.next();
-  if (host === "arcade.naapp.tech" || host === "arcade.notesapp.com.ng") {
+  if (host === "arcade.naapp.tech" || host === "arcade.notesapp.name.ng") {
     if (req.nextUrl.pathname === "/") return NextResponse.rewrite(new URL(`/snake${req.nextUrl.search}`, req.url));
     return NextResponse.next();
   }
