@@ -3402,3 +3402,10 @@ for all of it. `MomentComposer.tsx` is now a full page in up to three steps (New
 the tidy logic in `useTidy.ts` and the shared pieces in `tidy-parts.tsx` and `icons.tsx` (`TidyPanel.tsx` is gone); `MomentViewer.tsx`
 is a light page with a rounded stage and the owner's or viewer's controls under or beside it; the settings are cards with switches.
 Every behaviour is kept. Differences from the canvas are listed in `docs/MOMENTS_TIDY.md`.
+
+**Moments fixes (v0.180.1, 17 Nov 2026)** — the owner reported from the live site that "the audio removes the video". In
+`MomentViewer.tsx` the Stream video and the voice-over were siblings with the same React key (the moment's id). That was harmless
+while the viewer rarely re-rendered; captions made it re-render several times a second (`setHeard`), and React duplicated the
+"Loading the video…" placeholder on each one and never mounted the player. The voice-over now has its own key (reproduced on the
+emulators: 21 copies before, 1 after). In `MomentComposer.tsx` the trim and caption steps for a voice-over now show the video or
+picture it goes over, with the voice-over's controls under it.

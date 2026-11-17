@@ -255,7 +255,8 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
             )}
             {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6"><ShareLinkCard link={m.link} /></div>}
             {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
-            {m.audioUrl && <VoiceOver key={m.id} src={m.audioUrl} spans={m.audioSpans} muted={muted} onTime={m.captions?.of === "voice" ? setHeard : undefined} />}
+            {/* Its own key: the video beside it is keyed by the moment too, and two children with one key get duplicated or dropped. */}
+            {m.audioUrl && <VoiceOver key={`voice-${m.id}`} src={m.audioUrl} spans={m.audioSpans} muted={muted} onTime={m.captions?.of === "voice" ? setHeard : undefined} />}
             {/* A NotesApp Sounds song: softer under a video or a voice-over, paused with the moment. A moment in a run of parts restarts it. */}
             {m.songId && <SongPlayer key={`song-${m.id}`} songId={m.songId} under={m.kind === "video" || !!m.audioUrl} paused={paused || muted} />}
           </div>
