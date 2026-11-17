@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
       case "modlog": return NextResponse.json(await roomModLog(db, me.uid, body.id), { headers: { "Cache-Control": "no-store" } });
       // Notes Live Studio (lib/studio.ts): the broadcast graphics, comments on air, clips. { action: "studio", id, op, … }.
       case "studio": {
-        const limited = await rateLimit(req, "room-studio", me.uid, 120, 600);
+        // A speaker's subtitle lines come every few seconds, so they have their own, larger allowance.
+        const limited = body.op === "say" ? await rateLimit(req, "room-subs", me.uid, 400, 600) : await rateLimit(req, "room-studio", me.uid, 120, 600);
         if (limited) return limited;
         return NextResponse.json(await studioStep(db, me.uid, body.id, body));
       }

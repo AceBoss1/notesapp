@@ -49,7 +49,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (https://media.notesapp.name.ng). |
 | `CLOUDFLARE_STREAM_TOKEN` | **yes** | Cloudflare API token with Stream: Edit, for video lessons of view-only items and courses. Without it only PDF lessons work. |
 | `CLOUDFLARE_ACCOUNT_ID` | no | Cloudflare account for Stream when it isn't R2_ACCOUNT_ID. |
-| `CLOUDFLARE_AI_TOKEN` | **yes** | Cloudflare API token with Workers AI: Read, for moment captions (speech to text). Without it captions aren't offered; trimming pauses still works. |
+| `CLOUDFLARE_AI_TOKEN` | **yes** | Cloudflare API token with Workers AI: Read, for moment captions and automatic subtitles in Notes Live Studio (speech to text). Without it neither is offered; trimming pauses still works. |
 | `MOMENT_CAPTIONS_MODEL` | no | The Workers AI speech model for moment captions. Defaults to @cf/openai/whisper-large-v3-turbo. |
 
 ## Payments

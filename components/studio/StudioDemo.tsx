@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ProgramFrame from "./ProgramFrame";
 import StudioControls from "./StudioControls";
-import { DEFAULT_STUDIO, applyStudioPatch, cleanComment, queueWith, type StudioState } from "@/lib/studio";
+import { DEFAULT_STUDIO, applyStudioPatch, cleanComment, queueWith, sayLine, subsFor, type StudioState } from "@/lib/studio";
 
 // The studio to try on /studio: the real programme picture and desk, changed only on this screen (uploads are left out: the logo,
 // clips and sponsor spot need a live). The same rules clean what is typed as in a real live (lib/studio.ts).
@@ -21,12 +21,30 @@ const START: StudioState = {
   bug: { ...DEFAULT_STUDIO.bug, show: "The Emerging Voices", place: "Lagos · Johannesburg · London" },
   lower: { on: true, style: "headline", kicker: "Tonight's question", head: "African Mental Freedom: reclaiming the levers through history", name: "Dr. Naledi Mokoena", role: "Historian and author" },
   ticker: { on: true, tag: "NOTES LIVE", speed: "normal", lines: ["Join the conversation: comment and the moderators may put you on air", "Next week: the Oyo Empire and what it teaches about institutions", "The replay is on NotesApp straight after"] },
-  caption: "…and if we do not teach our own history, someone else will teach it for us.",
+  subs: { ...DEFAULT_STUDIO.subs, on: true },
   comment: cleanComment(SAMPLE[0], "host"),
 };
 
+// What the people on stage "say" in the try-out, so automatic subtitles can be seen: one voice, then two at once.
+const SPEECH: [who: string, text: string][] = [
+  ["g1", "and if we do not teach our own history"], ["g1", "someone else will teach it for us"], ["host", "but who decides what is taught?"],
+  ["g1", "that is exactly the question"], ["host", "let us take a comment from Accra"],
+];
+
 export default function StudioDemo() {
   const [studio, setStudio] = useState<StudioState>(START);
+  const subsOn = studio.on && studio.subs.on;
+  useEffect(() => {
+    if (!subsOn) return;
+    let i = 0;
+    const speak = () => {
+      const [uid, text] = SPEECH[i++ % SPEECH.length];
+      setStudio((cur) => { const out = sayLine(cur, { uid, name: PEOPLE[uid].name, text, ms: 3200 }, { stage: STAGE, now: new Date() }); return out.ok ? out.studio : cur; });
+    };
+    speak();
+    const t = setInterval(speak, 3400);
+    return () => clearInterval(t);
+  }, [subsOn]);
   const [note, setNote] = useState("");
   const act = async (body: Record<string, unknown>) => {
     setNote("");
@@ -38,6 +56,7 @@ export default function StudioDemo() {
         case "queue": { const c = cleanComment(body.message, "host"); return c ? { ...cur, queue: queueWith(cur.queue, c) } : cur; }
         case "unqueue": return { ...cur, queue: cur.queue.filter((q) => q.id !== body.messageId) };
         case "clip": return { ...cur, clip: null };
+        case "subsfor": return subsFor(cur, String(body.uid), body.off === true);
         default: return cur;
       }
     });
@@ -48,7 +67,7 @@ export default function StudioDemo() {
         <div className="min-w-0 space-y-4">
           <ProgramFrame studio={studio} stage={STAGE} hostUid="host" me="" person={(u) => PEOPLE[u]} videos={{}} myCam={null} talking={{ g1: true }} sub={(u) => (u === "host" ? "Host" : "")} />
           {note && <p className="text-xs text-[#FFB4A2]" role="alert">{note}</p>}
-          <StudioControls studio={studio} isHost canEdit canAir stage={STAGE} nameOf={(u) => PEOPLE[u].name} act={act} onError={(m) => setNote(/upload|sign in/i.test(m) ? "Uploads work in a real live: this is a try-out." : m)} />
+          <StudioControls studio={studio} isHost canEdit canAir stage={STAGE} nameOf={(u) => PEOPLE[u].name} act={act} tryOut onError={(m) => setNote(/upload|sign in/i.test(m) ? "Uploads work in a real live: this is a try-out." : m)} />
         </div>
         <div className="min-w-0">
           <p className="font-ui text-sm font-bold">Chat</p>

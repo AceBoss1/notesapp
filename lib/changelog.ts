@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.181.0",
+    bump: "minor",
+    date: "2026-11-17",
+    changes: [
+      { kind: "added", text: "Notes Live Studio: automatic subtitles. What each person on stage says appears on the programme a few seconds later, in one of three looks: Clean, Bold word or Colour word. Each speaker's own device writes down only their own microphone, so voices are never mixed. The name shows beside the line, and is left off when only one microphone is on. Two people speaking at once get a line each." },
+      { kind: "added", text: "Notes Live Studio: the editor switches subtitles on, picks the look and the language, and can switch any speaker off. Speakers are told and can turn their own off. Viewers can hide subtitles with CC. A line the editor types takes over while it is up. Only the sound is sent to write them, and it isn't kept." },
+    ],
+  },
+  {
     version: "v0.180.1",
     bump: "patch",
     date: "2026-11-17",

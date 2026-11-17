@@ -89,6 +89,43 @@ const EDITOR = MOD_PRESETS.find((p) => p.id === "editor")!.perms;
   await fails(step("shost", { op: "nonsense" }), 400);
 
   // ── the host switches it off: everything stays as it was for next time, and steps are refused; then the room ends ──
+  // ── automatic subtitles: the editor switches them on; each person on stage posts their own lines; a lone voice has no name ──
+  await fails(step("sguest", { op: "say", text: "hello", ms: 3000 }), 403, /switched off/);
+  await fails(step("sbasic", { op: "set", patch: { subs: { on: true } } }), 403);
+  s = (await step("sed", { op: "set", patch: { subs: { on: true, look: "bold" } } })).studio;
+  assert.deepEqual([s.subs.on, s.subs.look, s.subs.names], [true, "bold", true]);
+  await fails(step("sview", { op: "say", text: "I'm only watching", ms: 3000 }), 403, /on stage/);
+  const stageNow = [(await roomDoc(id)).hostUid, ...(await roomDoc(id)).speakers];
+  const guestOn = stageNow.includes("sguest");
+  s = (await step("shost", { op: "say", text: "  good evening\nand welcome ", ms: 3500, name: "Someone Else" })).studio;
+  assert.deepEqual([s.said[0].uid, s.said[0].text, s.said[0].ms], ["shost", "good evening and welcome", 3500]);
+  assert.notEqual(s.said[0].name, "Someone Else", "the name is the room's, never what was sent");
+  assert.equal(s.said[0].solo, stageNow.length === 1, "alone on stage: no name");
+  await fails(step("shost", { op: "say", text: "too soon", ms: 3000 }), 429);
+  await fails(step("shost", { op: "say", text: "   ", ms: 3000 }), 400);
+  if (guestOn) {
+    s = (await step("sguest", { op: "say", text: "thank you for having me", ms: 3000 })).studio;
+    assert.deepEqual(s.said.map((l) => [l.uid, l.solo]), [["shost", false], ["sguest", false]].slice(-s.said.length));
+    // The guest mutes themselves: the host's next line goes out alone, without a name. Unmuted, the name is back.
+    await step("sguest", { op: "mymic", quiet: true });
+    s = (await R.studioStep(db, "shost", id, { op: "say", text: "back to our question", ms: 3000 }, new Date(Date.now() + 5000))).studio;
+    assert.equal(s.said.find((l) => l.uid === "shost")!.solo, stageNow.length === 2);
+    await step("sguest", { op: "mymic", quiet: false });
+    // A speaker turns their own off; the editor can do it too, and it is logged; then they can't post.
+    s = (await step("sguest", { op: "mysubs", off: true })).studio;
+    assert.ok(s.subs.off.includes("sguest") && !s.said.some((l) => l.uid === "sguest"));
+    await fails(step("sguest", { op: "say", text: "can you hear me", ms: 3000 }), 403, /Your subtitles are switched off/);
+    s = (await step("sed", { op: "subsfor", uid: "sguest", off: false })).studio;
+    assert.ok(!s.subs.off.includes("sguest"));
+    await fails(step("smod", { op: "subsfor", uid: "sguest", off: true }), 403);
+  }
+  await fails(step("sed", { op: "subsfor", uid: "sview", off: true }), 400, /isn't on stage/);
+  await fails(step("sview", { op: "mysubs", off: true }), 403);
+  await fails(step("sview", { op: "mymic", quiet: true }), 403);
+  // Switched off, the lines go at once; a line the editor types is still theirs to show.
+  s = (await step("sed", { op: "set", patch: { subs: { on: false } } })).studio;
+  assert.deepEqual([s.subs.on, s.said.length], [false, 0]);
+
   s = (await step("shost", { op: "on", on: false })).studio;
   assert.equal(s.on, false); assert.equal(s.layout, "spotlight");
   await fails(step("sed", { op: "set", patch: { layout: "grid" } }), 409);

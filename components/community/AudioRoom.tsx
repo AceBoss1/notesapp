@@ -28,6 +28,8 @@ import FollowButton from "@/components/FollowButton";
 import PersonActions from "@/components/gifts/PersonActions";
 import ProgramFrame from "@/components/studio/ProgramFrame";
 import StudioControls from "@/components/studio/StudioControls";
+import { useLiveSubtitles } from "@/components/studio/useLiveSubtitles";
+import { saveTidyPrefs, tidyPrefs } from "@/lib/moments-tidy-client";
 import { studioOf, studioOn } from "@/lib/studio";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
@@ -559,6 +561,19 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const handUp = live.hands ? !!live.hands[me] : !!room?.hands?.[me];
   const silenced = !!room && isMicMuted(room, me);
   const toggleMute = () => { if (silenced) return; const m = !muted; userMutedRef.current = m; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
+  // Automatic subtitles (docs/STUDIO_SUBTITLES.md): while the editor has them on and I am on stage with mine on, my own microphone
+  // is written down on this device and my lines posted to the room. Muting myself is told to the room, so a lone voice has no name.
+  const sub = room && studioOn(room) ? studioOf(room).subs : null;
+  const onStage = stage.includes(me);
+  const subsMine = !!sub?.on && onStage && !sub.off.includes(me) && !silenced;
+  const subtitles = useLiveSubtitles({ roomId: id, on: subsMine, micRef, lang: sub?.lang ?? "en", say: (text, ms) => capi("/api/community/rooms", { id, action: "studio", op: "say", text, ms }) });
+  const toldQuiet = !!sub?.quiet.includes(me);
+  useEffect(() => {
+    if (!sub?.on || !onStage || toldQuiet === muted) return;
+    capi("/api/community/rooms", { id, action: "studio", op: "mymic", quiet: muted }).catch(() => {});
+  }, [sub?.on, onStage, toldQuiet, muted, id]);
+  const [cc, setCc] = useState(true);
+  useEffect(() => { setCc(tidyPrefs().cc); }, []);
   // Live mode.
   const flash = (m: string) => { setNote(m); setTimeout(() => setNote(""), 3000); };
   // The stage (lib/rooms.ts "Stage seats"): my permissions (the host all, a moderator what the host ticked), the mode, the seats.
@@ -661,7 +676,18 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           <div className="mx-auto mb-5 w-full max-w-5xl">
             <ProgramFrame studio={studioOf(room)} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
               person={(u) => ({ name: room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest"), avatar: room.joined[u]?.avatar ?? "" })}
-              sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} />
+              sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} hideSubs={!cc} />
+            {sub?.on && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.06] px-3 py-2 text-xs text-white/75">
+                {onStage ? (
+                  <span className="min-w-0 flex-1">
+                    {sub.off.includes(me) ? "Your subtitles are off." : silenced ? "Your microphone is off, so you aren't subtitled." : subtitles.error ? subtitles.error : <>💬 <b className="text-white">Your words are being subtitled.</b> Only your own microphone, a few seconds behind. Nothing is kept.</>}
+                  </span>
+                ) : <span className="min-w-0 flex-1">Subtitles are automatic. They can be a few seconds late and may have mistakes.</span>}
+                {onStage && !silenced && <button type="button" onClick={() => void act({ action: "studio", op: "mysubs", off: !sub.off.includes(me) })} className="shrink-0 rounded-full border border-white/40 px-3 py-1 font-ui font-bold text-white">{sub.off.includes(me) ? "Turn mine on" : "Turn mine off"}</button>}
+                <button type="button" onClick={() => { setCc(!cc); saveTidyPrefs({ cc: !cc }); }} aria-pressed={cc} aria-label={cc ? "Hide subtitles on my screen" : "Show subtitles on my screen"} className={`shrink-0 rounded-full px-3 py-1 font-ui font-extrabold ${cc ? "bg-white text-ink" : "border border-white/40 text-white/60 line-through"}`}>CC</button>
+              </div>
+            )}
           </div>
         )}
         {room && !studioOn(room) && (relayRoom || room.poster) && (

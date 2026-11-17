@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TICKER_SECONDS, clipOffset, layoutFor, programTiles, type StudioClip, type StudioState } from "@/lib/studio";
+import { TICKER_SECONDS, clipOffset, layoutFor, programTiles, shownSubs, subKey, type StudioClip, type StudioState } from "@/lib/studio";
 import "./program.css";
 
 // The programme: what everyone in a live sees when the host has the studio on (lib/studio.ts). The cameras (or each person's picture
@@ -12,13 +12,27 @@ export type ProgramPerson = { name: string; avatar: string };
 const NA_MARK = "/images/brand/icon-192.png";
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "•";
 
-export default function ProgramFrame({ studio, stage, hostUid, me, person, videos, myCam, talking, sub }: {
+export default function ProgramFrame({ studio, stage, hostUid, me, person, videos, myCam, talking, sub, hideSubs }: {
   studio: StudioState; stage: string[]; hostUid: string; me: string;
   person: (uid: string) => ProgramPerson;
   videos: Record<string, MediaStream>; myCam: MediaStream | null;
   talking?: Record<string, boolean>;
   sub?: (uid: string) => string; // the small line beside a name on its tile ("Host", "Moderator")
+  hideSubs?: boolean; // this viewer turned automatic subtitles off on their own screen (CC)
 }) {
+  // Automatic subtitles (lib/studio.ts shownSubs): each line is timed from when this screen first saw it, and clears by itself.
+  const seen = useRef<Record<string, number>>({});
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const keys = new Set(studio.said.map(subKey));
+    for (const k of keys) if (seen.current[k] === undefined) seen.current[k] = Date.now();
+    for (const k of Object.keys(seen.current)) if (!keys.has(k)) delete seen.current[k];
+    if (!studio.said.length || !studio.subs.on) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(t);
+  }, [studio.said, studio.subs.on]);
+  const subs = hideSubs ? [] : shownSubs(studio, seen.current, now);
   const tiles = programTiles(studio, stage, hostUid);
   const layout = layoutFor(studio.layout, tiles.length, !!studio.screen);
   const streamOf = (u: string) => (u === me ? myCam : videos[u] ?? null);
@@ -48,6 +62,16 @@ export default function ProgramFrame({ studio, stage, hostUid, me, person, video
           {!tiles.length && <div className="nls-tile"><div className="nls-face"><span>•</span></div></div>}
         </div>
         {studio.caption && <p className="nls-cap" aria-live="polite">{studio.caption}</p>}
+        {subs.length > 0 && (
+          <div className="nls-subs" data-look={studio.subs.look} aria-live="off">
+            {subs.map(({ line, word, name }, k) => (
+              <p key={subKey(line)} className="nls-sub">
+                {name && <b data-second={k === 1 ? "1" : "0"}>{name}</b>}
+                <span>{line.text.split(" ").map((w, i) => <span key={i}><i data-on={i === word ? "1" : "0"}>{w}</i>{" "}</span>)}</span>
+              </p>
+            ))}
+          </div>
+        )}
         {studio.sponsor?.slot === "banner" && <Sponsor s={studio.sponsor} />}
         {(showLower || studio.comment) && (
           <div className="nls-low">

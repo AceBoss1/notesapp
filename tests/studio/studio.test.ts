@@ -94,4 +94,80 @@ assert.equal(layoutFor("auto", 3, true), "spotlight"); assert.equal(layoutFor("p
 // a clip joined late starts where it has reached
 assert.equal(clipOffset({ at: new Date(10_000).toISOString() }, 25_000), 15); assert.equal(clipOffset({ at: new Date(10_000).toISOString() }, 5_000), 0);
 
+// ── Automatic subtitles (docs/STUDIO_SUBTITLES.md) ──
+import { SUBS, maySay, sayLine, shownSubs, subKey, subsFor, subsQuiet, voiceAlone } from "../../lib/studio";
+{
+  const stage = ["h", "a", "b"], T = (ms: number) => new Date(1_800_000_000_000 + ms);
+  // Off until the editor switches it on; old rooms read as the defaults; switching off clears the lines at once.
+  assert.deepEqual(studioOf({}).subs, { on: false, look: "clean", names: true, lang: "en", off: [], quiet: [] });
+  assert.deepEqual(studioOf({ studio: { subs: { on: true } as never } }).subs.off, []);
+  let s = { ...DEFAULT_STUDIO, on: true };
+  assert.equal(maySay(s, stage, {}, "a"), "Subtitles are switched off.");
+  let out = applyStudioPatch(s, { subs: { on: true, look: "neon", lang: "pcm", names: "yes" } }, opts);
+  assert.ok(out.ok); s = out.ok ? out.studio : s;
+  assert.deepEqual([s.subs.on, s.subs.look, s.subs.lang, s.subs.names], [true, "clean", "pcm", true], "an unknown look or a non-boolean is ignored");
+  out = applyStudioPatch(s, { subs: { look: "bold" } }, opts); s = out.ok ? out.studio : s;
+  assert.deepEqual([s.subs.on, s.subs.look], [true, "bold"], "a look alone doesn't switch it off");
+  // Who may be subtitled: on stage, not switched off, microphone not turned off by the host.
+  assert.equal(maySay(s, stage, {}, "a"), null);
+  assert.match(maySay(s, stage, {}, "viewer")!, /on stage/);
+  assert.match(maySay(s, stage, { a: true }, "a")!, /microphone is off/);
+  assert.match(maySay({ ...s, on: false }, stage, {}, "a")!, /switched off/);
+  // A voice alone: nobody else on stage, or everyone else muted by the host or by themselves.
+  assert.equal(voiceAlone(["h"], {}, [], "h"), true);
+  assert.equal(voiceAlone(stage, {}, [], "h"), false);
+  assert.equal(voiceAlone(stage, { a: true }, ["b"], "h"), true, "one muted by the host, one muted themselves");
+  assert.equal(voiceAlone(stage, { a: true }, [], "h"), false);
+  assert.equal(voiceAlone(stage, undefined, ["a", "b", "h"], "h"), true, "her own mute doesn't count against her");
+  // A line: cleaned and cut, the name from the room, the time it took kept within bounds.
+  const say = (st: typeof s, uid: string, text: unknown, at: number, extra: object = {}) => sayLine(st, { uid, name: uid === "h" ? "Tunde Bakare" : uid === "a" ? "Dr. Naledi Mokoena" : "", text, ms: 4000 }, { stage, now: T(at), ...extra });
+  let r = say(s, "h", "  but who decides\nwhat is taught?  ", 0);
+  assert.ok(r.ok); s = r.ok ? r.studio : s;
+  assert.deepEqual(s.said, [{ uid: "h", name: "Tunde Bakare", text: "but who decides what is taught?", at: T(0).toISOString(), ms: 4000, solo: false }]);
+  assert.equal((sayLine(s, { uid: "b", name: "", text: "x".repeat(400), ms: 99_999 }, { stage, now: T(0) }) as { studio: typeof s }).studio.said[1].text.length, SUBS.line);
+  assert.equal((sayLine(s, { uid: "b", name: "", text: "hi", ms: 99_999 }, { stage, now: T(0) }) as { studio: typeof s }).studio.said[1].ms, SUBS.maxPieceSec * 1000);
+  assert.equal((sayLine(s, { uid: "b", name: "", text: "hi", ms: "x" }, { stage, now: T(0) }) as { studio: typeof s }).studio.said[1].name, "Speaker");
+  // Refused: nothing said, too soon after her last line, not allowed.
+  assert.deepEqual(say(s, "a", "   ", 100), { ok: false, status: 400, error: "Nothing was said." });
+  assert.equal((say(s, "h", "again", SUBS.gapMs - 1) as { status: number }).status, 429);
+  assert.equal((say(s, "viewer", "hello", 100) as { status: number }).status, 403);
+  // Two people at once: two lines, each with its name. Her next line replaces her last. A third voice pushes the oldest out.
+  r = say(s, "a", "that is exactly the question", 1500); s = r.ok ? r.studio : s;
+  assert.deepEqual(s.said.map((l) => l.uid), ["h", "a"]);
+  r = say(s, "h", "and who pays for it", 4200); s = r.ok ? r.studio : s;
+  assert.deepEqual(s.said.map((l) => [l.uid, l.text]), [["a", "that is exactly the question"], ["h", "and who pays for it"]]);
+  r = say(s, "b", "may I come in", 4400); s = r.ok ? r.studio : s;
+  assert.deepEqual(s.said.map((l) => l.uid), ["h", "b"], "two lines at most");
+  // A stale line is dropped when the next one comes.
+  r = say(s, "a", "much later", 60_000); s = r.ok ? r.studio : s;
+  assert.deepEqual(s.said.map((l) => l.uid), ["a"]);
+  // Solo: with the others muted, the line carries no name.
+  let quiet = subsQuiet(subsQuiet(s, "a", true), "b", true);
+  assert.deepEqual(quiet.subs.quiet, ["a", "b"]);
+  r = say(quiet, "h", "good evening and welcome", 70_000);
+  assert.equal(r.ok && r.studio.said[r.studio.said.length - 1].solo, true);
+  quiet = subsQuiet(quiet, "a", false);
+  r = say(quiet, "h", "good evening and welcome", 70_000);
+  assert.equal(r.ok && r.studio.said[r.studio.said.length - 1].solo, false, "one other microphone back on");
+  assert.equal((say(s, "h", "muted by the host", 70_000, { hostMuted: { a: true, b: true } }) as { studio: typeof s }).studio.said.slice(-1)[0].solo, true);
+  // A speaker's subtitles off: their line goes, and they can't post until it's back on.
+  const off = subsFor(s, "a", true);
+  assert.deepEqual([off.subs.off, off.said.length], [["a"], 0]);
+  assert.match(maySay(off, stage, {}, "a")!, /Your subtitles are switched off/);
+  assert.equal(maySay(subsFor(off, "a", false), stage, {}, "a"), null);
+  // What a screen shows: by its own clock from when it first saw the line; the highlight moves evenly, then rests on the last word.
+  const line = { uid: "a", name: "Dr. Naledi Mokoena", text: "someone else will teach it for us", at: T(0).toISOString(), ms: 4000, solo: false };
+  const st = { caption: "", subs: { ...DEFAULT_STUDIO.subs, on: true }, said: [line] };
+  const seen = { [subKey(line)]: 1000 };
+  assert.deepEqual(shownSubs(st, {}, 1000), [], "not yet seen by this screen");
+  assert.deepEqual(shownSubs(st, seen, 1000).map((x) => [x.word, x.name]), [[0, "Dr. Naledi Mokoena"]]);
+  assert.equal(shownSubs(st, seen, 3000)[0].word, 3); assert.equal(shownSubs(st, seen, 4999)[0].word, 6);
+  assert.equal(shownSubs(st, seen, 6000)[0].word, 6, "it rests on the last word");
+  assert.equal(shownSubs(st, seen, 1000 + 4000 + SUBS.holdMs).length, 0, "then it clears");
+  assert.equal(shownSubs({ ...st, said: [{ ...line, solo: true }] }, seen, 1000)[0].name, "", "a lone voice has no name");
+  assert.equal(shownSubs({ ...st, subs: { ...st.subs, names: false } }, seen, 1000)[0].name, "", "names switched off");
+  assert.equal(shownSubs({ ...st, caption: "Typed by the editor" }, seen, 1000).length, 0, "a typed line takes over");
+  assert.equal(shownSubs({ ...st, subs: { ...st.subs, on: false } }, seen, 1000).length, 0);
+}
+
 console.log("studio: ok");
