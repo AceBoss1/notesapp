@@ -1165,6 +1165,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **Not built:** removing false starts and repeated lines, editing captions after sharing (they can be removed), captions on Media
     posts and lives, translation. The owner's choices (trim on, look, CC) are remembered on the device, not on the account.
 
+142. **Admin settings everywhere (v0.181.1; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
+    audit of every route for code that reads a value from Admin → Pricing or Admin → Limits without loading it first. A server that has
+    just started holds the built-in values until `ensurePricing()` (or `getFanSettings()`) runs, so a route that skips it can use them.
+    Pages are safe (the root layout applies the saved prices). Fixed: `lib/global-pay-server.ts` (a subscription paid in another
+    currency recorded `commissionRate` from the built-in plan rate and the built-in VIP/VVIP share; it now loads both, as
+    `lib/payments.ts` does), `/api/coupons/best` and `/api/discounts/check` (the plan price behind a preview),
+    `lib/hotel-pos-server.ts` (the Moniepoint callback settles with the saved hold days and Inventory trial), `/api/replays?all=1`
+    (admins' recordings list now gets the live keep days), the Teach dashboard's footnote (the plan's course limit, not 30) and the
+    roadmap's gold badge prices (from `GOLD_PRICING`). Not changed: the built-in values themselves; they still differ from what is
+    saved (commission 35/25/15% built in, 20/15/8% saved, for one) and show only if the settings can't be read. Nothing to deploy.
+    Tests: `test:global` (new `tests/global/admin-rates.emulator.ts`).
+143. **Nana Jobs: three more feeds (v0.182.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
+    gains We Work Remotely (RSS), Working Nomads (JSON) and Remote Woman (RSS, its job feed), read once a day with the others; a feed
+    marked `rss` is read as text by `rssItems` (a small reader for flat job items, no new dependency). RemoteOK was already there. Not
+    added: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive and JS Remotely publish no feed (or forbid automated
+    reading), and workwave.com is a software company, not a job board. Members with Open job feeds on get the new ones at the next
+    daily run. Nothing to deploy. Tests: `test:nana-jobs` (fixtures `weworkremotely.xml`, `workingnomads.json`, `remotewoman.xml`).
 
 ## 3. How the work is done (please keep these)
 

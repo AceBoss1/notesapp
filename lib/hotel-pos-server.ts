@@ -4,6 +4,7 @@ import { setting } from "./config";
 import { addonOn, type Order } from "./hotel";
 import { HotelError, bumpPulse, tillOrder, type TillCtx } from "./hotel-server";
 import { afterSettle, readSettle, writeSettle } from "./hotel-pay-server";
+import { ensurePricing } from "./pricing-server";
 import { hotelChat, type NanaHotelDeps } from "./hotel-nana-server";
 
 // Two add-ons that need outside accounts (docs/HOTEL_KIT.md). Both stay "not set up yet" until their settings are in place (lib/config.ts,
@@ -84,6 +85,7 @@ export async function processMoniepoint(db: Firestore, h: { id?: string | null; 
     throw e;
   }
   if (!merchantRef) return { status: 200, result: "recorded" };
+  await ensurePricing(db); // settling reads the hold days and the Inventory add-on from Admin → Pricing
   const o = await db.doc(`hotelOrders/${merchantRef}`).get();
   if (!o.exists || o.get("machineRef") !== merchantRef) return { status: 200, result: "recorded" };
   if (declined) {

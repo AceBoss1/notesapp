@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 // The public explainer for Nana Jobs (the feature itself is /jobs/nana; docs/NANA_JOBS.md). No figures that Admin can change.
 const FUNNEL = [
-  ["Collect", "Openings from Notes Jobs, RemoteOK, Remotive, Himalayas and Arbeitnow, and the public Greenhouse, Lever and Ashby boards of companies you watch. Fetched once a day for everyone, so each board is asked once."],
+  ["Collect", "Openings from Notes Jobs, RemoteOK, Remotive, Himalayas, Arbeitnow, We Work Remotely, Working Nomads and Remote Woman, and the public Greenhouse, Lever and Ashby boards of companies you watch. Fetched once a day for everyone, so each board is asked once."],
   ["Remove repeats", "The same role on a company board and a feed becomes one."],
   ["Your rules, free", "Too old, not a role you want, a deal-breaker, or somewhere you can't work (\"remote, but only from the US\" is dropped for someone in Lagos)."],
   ["Keyword ranking, free", "Your skills, roles and what you've shipped, matched against each posting, so your AI reads the most likely ones first."],

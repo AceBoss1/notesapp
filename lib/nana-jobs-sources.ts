@@ -1,4 +1,5 @@
-// Nana Jobs: where openings come from. Open job feeds (RemoteOK, Remotive, Himalayas, Arbeitnow) and the public board APIs of companies
+// Nana Jobs: where openings come from. Open job feeds (RemoteOK, Remotive, Himalayas, Arbeitnow, We Work Remotely, Working Nomads and
+// Remote Woman: each one a feed the site publishes for this, JSON or RSS) and the public board APIs of companies
 // members watch (Greenhouse, Lever, Ashby). Notes Jobs is added by lib/nana-jobs-server.ts. No LinkedIn or Indeed scraping: both forbid it.
 // Every fetch has a timeout and fails open: a source that's down is skipped and named in the run, never fatal. `fetch` is injected.
 //
@@ -16,6 +17,23 @@ export async function getJSON(f: Fetch, url: string, timeoutMs = 15_000): Promis
   if (!res.ok) throw new Error(`${res.status} ${res.statusText || ""}`.trim());
   return res.json();
 }
+export async function getText(f: Fetch, url: string, timeoutMs = 15_000): Promise<string> {
+  const res = await f(url, { headers: { "user-agent": UA, accept: "application/rss+xml, application/xml, text/xml" }, signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText || ""}`.trim());
+  return res.text();
+}
+// An RSS feed's items, each as tag → text (CDATA unwrapped, the five XML entities and numeric ones read). Only what job feeds send:
+// flat items with simple tags; nothing else in the document is looked at. A feed that isn't RSS gives no items.
+const XML_ENT: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+const xmlText = (v: string) => v.replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, "$1").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) =>
+  e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : +e.slice(1)) : XML_ENT[e.toLowerCase()] ?? m).trim();
+export function rssItems(xml: unknown): Record<string, string>[] {
+  return [...String(xml ?? "").matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/g)].map((m) => {
+    const out: Record<string, string> = {};
+    for (const t of m[1].matchAll(/<([A-Za-z_][\w:.-]*)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/g)) if (!(t[1] in out)) out[t[1]] = xmlText(t[2]);
+    return out;
+  });
+}
 
 type Raw = Omit<PoolJob, "hash" | "source" | "sourceLabel">;
 type J = Record<string, unknown>;
@@ -28,7 +46,8 @@ const freshest = (...ds: unknown[]) => { const t = ds.map(iso).filter(Boolean).m
 const DESC_MAX = 6000;
 const desc = (v: unknown) => toText(v).slice(0, DESC_MAX);
 
-export const FEEDS: Record<string, { label: string; url: string; read: (d: unknown) => Raw[] }> = {
+// `rss`: the feed is RSS and `read` gets its text; otherwise it is JSON.
+export const FEEDS: Record<string, { label: string; url: string; rss?: true; read: (d: unknown) => Raw[] }> = {
   remoteok: {
     label: "RemoteOK", url: "https://remoteok.com/api",
     // The first element is a legal notice, not a job.
@@ -46,6 +65,19 @@ export const FEEDS: Record<string, { label: string; url: string; read: (d: unkno
   arbeitnow: {
     label: "Arbeitnow", url: "https://www.arbeitnow.com/api/job-board-api",
     read: (d) => arr((d as J)?.data).map((j) => ({ company: s(j.company_name), title: s(j.title), location: s(j.location) || (j.remote ? "Remote" : ""), url: s(j.url), postedAt: iso(j.created_at), description: desc(j.description), salaryText: "", tags: tags(j.tags, j.job_types), remoteHint: j.remote === true ? true : null })),
+  },
+  // "Company: Job title" in the title; the region is where the person may live.
+  weworkremotely: {
+    label: "We Work Remotely", url: "https://weworkremotely.com/remote-jobs.rss", rss: true,
+    read: (d) => rssItems(d).map((j) => { const cut = j.title?.indexOf(": ") ?? -1; return { company: cut > 0 ? j.title.slice(0, cut) : "", title: cut > 0 ? j.title.slice(cut + 2) : s(j.title), location: s(j.region) || "Remote", url: s(j.link || j.guid), postedAt: iso(j.pubDate), description: desc(j.description), salaryText: "", remoteHint: true, tags: tags(j.category, j.type, s(j.skills).split(",").map((x) => x.trim())) }; }),
+  },
+  workingnomads: {
+    label: "Working Nomads", url: "https://www.workingnomads.com/api/exposed_jobs/",
+    read: (d) => arr(d).map((j) => ({ company: s(j.company_name), title: s(j.title), location: s(j.location) || "Remote", url: s(j.url), postedAt: iso(j.pub_date), description: desc(j.description), salaryText: "", remoteHint: true, tags: tags(j.category_name, s(j.tags).split(",").map((x) => x.trim())) })),
+  },
+  remotewoman: {
+    label: "Remote Woman", url: "https://remotewoman.com/?feed=job_feed", rss: true,
+    read: (d) => rssItems(d).map((j) => ({ company: s(j["job_listing:company"]), title: s(j.title), location: s(j["job_listing:location"]) || "Remote", url: s(j.link), postedAt: iso(j.pubDate), description: desc(j["content:encoded"] || j.description), salaryText: "", remoteHint: true, tags: tags(j["job_listing:job_category"], j["job_listing:job_type"]) })),
   },
 };
 
@@ -81,7 +113,7 @@ async function settle(tasks: { key: string; run: () => Promise<PoolJob[]> }[]): 
 }
 
 export function fetchFeeds(f: Fetch, timeoutMs?: number): Promise<Fetched> {
-  return settle(Object.entries(FEEDS).map(([key, feed]) => ({ key, run: async () => finish(feed.read(await getJSON(f, feed.url, timeoutMs)), key, feed.label) })));
+  return settle(Object.entries(FEEDS).map(([key, feed]) => ({ key, run: async () => finish(feed.read(feed.rss ? await getText(f, feed.url, timeoutMs) : await getJSON(f, feed.url, timeoutMs)), key, feed.label) })));
 }
 export function fetchBoards(f: Fetch, boards: { ats: Ats; slug: string; name: string }[], timeoutMs?: number): Promise<Fetched> {
   return settle(boards.map((b) => ({
