@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { uploadToR2 } from "@/lib/upload";
 import {
-  LOWER_STYLES, SPONSOR_SLOTS, STUDIO_CLIP_MAX, STUDIO_CLIP_TYPES, STUDIO_LAYOUTS, STUDIO_MAX, STUDIO_THEMES, TICKER_SPEEDS, clipKindOf,
+  LOWER_STYLES, SPONSOR_SLOTS, STUDIO_CLIP_MAX, STUDIO_CLIP_TYPES, STUDIO_LAYOUTS, STUDIO_MAX, STUDIO_THEMES, SUB_LOOKS, SUB_LOOK_LABEL, TICKER_SPEEDS, clipKindOf,
   type StudioClipKind, type StudioComment, type StudioPatch, type StudioState,
 } from "@/lib/studio";
 
@@ -57,6 +57,9 @@ export default function StudioControls({ studio, isHost, canEdit, canAir, stage,
   const [lines, setLines] = useState(studio.ticker.lines.join("\n"));
   const [tag, setTag] = useState(studio.ticker.tag);
   const [caption, setCaption] = useState("");
+  // Automatic subtitles need the speech service's keys (CLOUDFLARE_AI_TOKEN); until they are set, the switch says so.
+  const [speech, setSpeech] = useState<boolean | null>(null);
+  useEffect(() => { fetch("/api/studio/subtitles", { cache: "no-store" }).then((r) => r.json()).then((j) => setSpeech(j.ready === true)).catch(() => setSpeech(false)); }, []);
   const [show, setShow] = useState(studio.bug.show);
   const [place, setPlace] = useState(studio.bug.place);
   const [saved, setSaved] = useState<Saved[]>([]);
@@ -154,6 +157,37 @@ export default function StudioControls({ studio, isHost, canEdit, canAir, stage,
           </div>
 
           <div className={card}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-ui text-sm font-bold">Automatic subtitles<span className="block font-body text-[11px] font-normal text-white/50">{speech === false ? "Not set up yet on this site." : "What each speaker says, a few seconds behind."}</span></p>
+              <Toggle on={studio.subs.on} disabled={speech !== true && !studio.subs.on} onChange={(v) => void set("subs", { subs: { on: v } })} label="Automatic subtitles" />
+            </div>
+            {studio.subs.on && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="mb-1.5 text-white/60">Look</p>
+                  <div className="flex flex-wrap gap-1.5">{SUB_LOOKS.map((l) => <button key={l} type="button" aria-pressed={studio.subs.look === l} className={chip(studio.subs.look === l)} onClick={() => void set("subs", { subs: { look: l } })}>{SUB_LOOK_LABEL[l]}</button>)}</div>
+                </div>
+                <div className="flex items-center justify-between gap-2"><span>Show the speaker&apos;s name<span className="block text-[11px] text-white/45">Left off when only one microphone is on.</span></span><Toggle on={studio.subs.names} onChange={(v) => void set("subs", { subs: { names: v } })} label="Show the speaker's name" /></div>
+                <div>
+                  <p className="mb-1.5 text-white/60">Language</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" aria-pressed={studio.subs.lang === "en"} className={chip(studio.subs.lang === "en")} onClick={() => void set("subs", { subs: { lang: "en" } })}>English</button>
+                    <button type="button" aria-pressed={studio.subs.lang === "pcm"} className={chip(studio.subs.lang === "pcm")} onClick={() => void set("subs", { subs: { lang: "pcm" } })}>Pidgin (less accurate)</button>
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-white/60">Who is subtitled</p>
+                  {stage.map((u) => {
+                    const off = studio.subs.off.includes(u);
+                    return <div key={u} className="flex items-center justify-between gap-2 border-t border-white/10 py-1.5 first:border-t-0"><span className="min-w-0 truncate">{nameOf(u)}{studio.subs.quiet.includes(u) && <span className="ml-1.5 text-[11px] text-white/45">muted</span>}</span><Toggle on={!off} onChange={(v) => void run("subsfor", { op: "subsfor", uid: u, off: !v })} label={`Subtitle ${nameOf(u)}`} /></div>;
+                  })}
+                </div>
+                <p className="text-white/45">Each speaker&apos;s own device writes down their own microphone. Subtitles go out unchecked and can be wrong: type a line below to take over, or switch a speaker off.</p>
+              </div>
+            )}
+          </div>
+
+          <div className={card}>
             <p className="mb-2 font-ui text-sm font-bold">Subtitle line</p>
             <form className="flex gap-1.5" onSubmit={(e) => { e.preventDefault(); if (caption.trim()) void set("caption", { caption }).then(() => setCaption("")); }}>
               <input className={input} value={caption} maxLength={STUDIO_MAX.caption} onChange={(e) => setCaption(e.target.value)} placeholder="Type what was said, or a translation, and press Enter" aria-label="Subtitle line" />
@@ -161,7 +195,7 @@ export default function StudioControls({ studio, isHost, canEdit, canAir, stage,
             </form>
             {studio.caption
               ? <p className="mt-2 flex items-start gap-2 text-white/70"><span className="min-w-0 flex-1">On air: “{studio.caption}”</span><button type="button" onClick={() => void set("caption", { caption: "" })} className="shrink-0 underline">Clear</button></p>
-              : <p className="mt-2 text-white/45">Shown under the picture until you clear it or send the next line. Automatic subtitles from speech come in a later version.</p>}
+              : <p className="mt-2 text-white/45">Shown under the picture until you clear it or send the next line. While a typed line is up, it takes the place of automatic subtitles.</p>}
           </div>
 
           <div className={card}>
