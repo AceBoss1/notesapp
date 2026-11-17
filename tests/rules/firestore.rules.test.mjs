@@ -1778,6 +1778,15 @@ test("Moment captions: the count of sound written down per member per day is ser
   }
 });
 
+test("Nana sets up your site: answers, draft and the site before are server-only (lib/site-nana-server.ts)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "siteSetups/alice"), { uid: "alice", answers: { what: "Cakes" } }); });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "siteSetups/alice")));
+    await assertFails(setDoc(doc(db, "siteSetups/alice"), { uid: "alice" }));
+    await assertFails(deleteDoc(doc(db, "siteSetups/alice")));
+  }
+});
+
 test("Google and LinkedIn sign-in links, states, tickets and their log are server-only, even for the account's owner and staff", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

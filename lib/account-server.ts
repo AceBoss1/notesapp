@@ -323,6 +323,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("plannerDays", "uid", uid)),
     ...(await own("plannerReviews", "uid", uid)),
     ...(await db.doc(`plannerPlans/${uid}`).get().then((d) => (d.exists ? [d] : []))),
+    ...(await db.doc(`siteSetups/${uid}`).get().then((d) => (d.exists ? [d] : []))), // Nana sets up your site: answers, draft, the site before
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
   for (const r of await own("storeReviews", "uid", uid)) await deleteReview(db, uid, r.id).catch(() => {}); // takes the stars off the item totals too

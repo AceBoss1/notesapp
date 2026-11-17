@@ -1674,6 +1674,24 @@ Every Free Basic, Pro, Business and Enterprise member has their own website at $
 Your site's visits count in [Analytics](/profile/analytics). Use only pictures and words you have the right to use.
 
 **More:** [Looks, colours, kits and Home](/help/site-looks-and-kits), [The shop and basket](/help/site-shop-and-basket), [Beauty and wellness kit](/help/beauty-and-wellness-kit), [Courses on your site](/help/courses-on-your-site), [Academic sites and publications](/help/academic-sites-and-publications), [Pictures you upload](/help/pictures-and-uploads).`),
+    A("nana-site-setup", "Nana sets up your site, and Review my site", "Publishing and earning", `
+Two helpers on [Your site](/profile/site), above the kits.
+
+**Let Nana set it up.** Tap **Start with Nana** and answer about eight questions, one at a time: what you do and who for, where, what people buy or book and what it costs, your hours and how to reach you, what makes you different, the one thing you want a visitor to do, what people ask you most, and anything your site must not say. Skip any question, or stop and finish later: your answers are saved as you go. If you already have things in your shop or a booking calendar, Nana asks whether to use them so you don't type them twice.
+
+Then Nana chooses a kit, a look, colours and your main button, and says why. Change any of them. Next comes her draft, part by part (the banner, your services and prices, questions and answers, hours and contacts, and your About page): **Keep**, **Edit**, **Skip** or **Try another** for each.
+
+**Nana only uses what you told her.** A price you didn't give stays empty, with **Add a price**. She never writes a review, an award, a number you didn't give or a claim about health or results, and a phone number or email you didn't type is left out. Testimonials stay yours to add.
+
+**See it first.** Before anything changes you see your site with the draft, and a list of exactly what will change. Empty parts are filled in. Words you wrote yourself are only replaced where you switch it on; words a kit put there are replaced by default. Nothing reaches your site until you tap **Put it on my site**, and for 30 days you can tap **Put my old site back**.
+
+**Review my site** lists what is stopping visitors from booking, buying or getting in touch, most important first: no button at the top, a button that leads nowhere (Book with bookings off, Shop with nothing in it), prices missing, the kit's sample words or prices still there, a photo look with no photo, no way to reach you, no hours or address, an empty About page, or a section switched on with nothing in it. Each has a link to the place to fix it. The checklist is **free** for everyone with a site.
+
+**Nana's read**, on the second tab, is optional: Nana reads the words on your site, what the checklist found and your last 30 days (visits, looks at your shop, orders and bookings), then suggests a better headline or line under it, shown old against new, and a few tips. Nothing changes unless you tap **Use this**. Visits by page come with Business.
+
+**What it costs:** the questions and the checklist are free. Nana's draft, **Try another** and Nana's read come out of your normal Nana allowance, like any Nana chat (or your own AI account, if you connected one). Kits and looks keep their plans: Nana suggests within yours and shows what Pro or Business would add.
+
+**Privacy:** your answers and Nana's draft are kept on our server for this only, not shown to anyone, and deleted with your account. Nana's read sees only what is already public on your site, and your visit numbers.`),
     A("site-shop-and-basket", "The shop and basket on your site", "Selling", `
 When your site shows the **Shop** page ([Your own site](/help/your-site)), it looks and works like an online shop, on every look.
 

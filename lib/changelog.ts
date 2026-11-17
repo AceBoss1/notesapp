@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.185.0",
+    bump: "minor",
+    date: "2026-11-17",
+    changes: [
+      { kind: "added", text: "Your site: Let Nana set it up. Answer about eight questions and Nana chooses a kit, look, colours and main button, then drafts your banner, prices, questions and answers, hours and About page. Keep, edit, skip or try another for each part." },
+      { kind: "added", text: "Nana only uses what you told her: a price, number, phone or email you didn't give is left out, and she never writes reviews. You see your site with the draft and exactly what will change before anything goes on, and can put your old site back for 30 days." },
+      { kind: "added", text: "Review my site: a free checklist of what is stopping visitors from booking, buying or getting in touch, most important first, each with a link to the fix. Plus Nana's read: better lines for your banner and a few tips, from your site's words and your last 30 days." },
+    ],
+  },
+  {
     version: "v0.184.0",
     bump: "minor",
     date: "2026-11-17",

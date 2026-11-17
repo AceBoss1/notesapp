@@ -75,6 +75,7 @@ jobs:
       - run: npm run test:calendar
       - run: npm run test:my-calendar
       - run: npm run test:planner
+      - run: npm run test:site-nana
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups
@@ -156,6 +157,8 @@ jobs:
       - run: npm run test:my-calendar-server
       # Notes Planner against the emulator: the interview, Nana writing the plan, encryption, ticks, reviews, the lock, the calendar, bells
       - run: npm run test:planner-server
+      # Nana sets up your site against the emulator: answers, Nana's draft kept to the facts, putting it on and back, the review
+      - run: npm run test:site-nana-server
       # Moments tidy up and captions: the pure rules, then trims and captions on a moment and the caption service on the emulator
       - run: npm run test:moments-tidy
       # the link-preview safety test listens on port 80, which needs root on the runner
