@@ -1519,6 +1519,16 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Book a session:** if the host offers paid sessions, **📅 Book a session** stays at the top of the room, with or without video; it opens their booking card in a new tab, so you don't leave the room.
 
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
+    A("nana-avatar-maker", "Nana's avatar maker: an illustrated profile picture", "Getting started", `
+**Nana's avatar maker** turns a photo of you into an illustrated portrait you can use as your profile picture. The #NotesApp team is testing it now and it opens to everyone soon.
+
+**How it works:** on [Edit profile](/profile/edit), under your avatar, open **✨ Make an avatar with Nana** and choose a clear photo of yourself (JPEG, PNG or WebP, up to 8 MB). In up to a minute you get the portrait; tap **Use this picture**, then **Save**, and it's your profile picture. You can make more and pick the one you like.
+
+**The mark:** every avatar carries the [na] icon and the words "Made with Nana AI" in the bottom left corner, so people can tell it's an illustration.
+
+**Your photo:** it is sent to our image partner to be drawn and isn't kept by #NotesApp; only the finished avatar is. Use your own photo only.
+
+**Your old pictures** stay in your picture history as usual; see [Your profile picture](/help/profile-pictures-and-links).`),
     A("notes-live-studio", "Notes Live Studio: a broadcast look for your live", "Teams and organisations", `
 **Notes Live Studio** gives a live a newsroom's finish: your logo and a LIVE badge, a lower third with the headline and the speaker's name, a scrolling ticker, a subtitle line, and viewers' comments on air. Everyone watching sees the same picture. The #NotesApp team is testing it now and it opens to everyone soon; you can try the controls at [Notes Live Studio](/studio).
 

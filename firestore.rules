@@ -1622,6 +1622,8 @@ service cloud.firestore {
     // by the server, through /api/academy/covers, which checks the member teaches the course. No browser reads them directly.
     match /courseCovers/{courseId} { allow read, write: if false; }
     match /coverCounts/{countId} { allow read, write: if false; }
+    // Nana's avatar maker (lib/avatar-maker-server.ts): the day's count per member. Server only.
+    match /avatarCounts/{countId} { allow read, write: if false; }
     match /coverImages/{imageId} { allow read, write: if false; }
 
     // ============================================================

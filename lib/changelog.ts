@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.183.0",
+    bump: "minor",
+    date: "2026-11-17",
+    changes: [
+      { kind: "added", text: "Nana's avatar maker: turn a photo of yourself into an illustrated portrait and use it as your profile picture, marked \"Made with Nana AI\". The #NotesApp team is testing it now; it opens to everyone soon." },
+      { kind: "added", text: "For our team: Admin → Help & Nana → Nana on Claude checks whether the copy of the help centre on our Nana on Claude page is out of date, and downloads a fresh copy to update it with." },
+    ],
+  },
+  {
     version: "v0.182.0",
     bump: "minor",
     date: "2026-11-17",

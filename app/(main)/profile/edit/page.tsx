@@ -16,6 +16,7 @@ import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
 import { cleanSocial } from "@/lib/social-links";
 import { notePictureChange } from "@/lib/profile-pictures-client";
+import AvatarMaker from "@/components/AvatarMaker";
 import BadgeCard from "@/components/BadgeCard";
 import PageHero from "@/components/PageHero";
 import ScrollToHash from "@/components/ScrollToHash";
@@ -177,6 +178,7 @@ export default function ProfileEditPage() {
           {uploading && <p className="text-xs text-slate mt-1">Uploading…</p>}
           {uploadError && <p className="text-xs text-crimson mt-1">{uploadError}</p>}
         </label>
+        <AvatarMaker onUse={setAvatar} />
 
         <div id="links" className="scroll-mt-28">
           <p className="eyebrow">Social Links</p>
