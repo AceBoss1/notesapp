@@ -1,0 +1,270 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:860px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px}
+.item{width:330px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}
+.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.cam{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,#c58a6b 0,#8a4f3a 22%,#3b2019 52%,#120807 80%)}
+.face{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:120px;height:150px;border-radius:50% 50% 45% 45%;background:radial-gradient(ellipse at 45% 40%,#b7795a,#6d3a28 70%);opacity:.85}
+.body{position:absolute;left:50%;top:44%;transform:translateX(-50%);width:230px;height:260px;border-radius:120px 120px 0 0;background:linear-gradient(#5b1426,#2a0811)}
+.pill{background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
+.live{background:#E0123E;color:#fff;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.chat{position:absolute;left:12px;right:70px;bottom:70px;display:flex;flex-direction:column;gap:6px}
+.msg{color:#fff;font-size:12.5px;line-height:1.35;text-shadow:0 1px 2px #000}.msg b{color:#FFD6E0}
+.rail{position:absolute;right:10px;bottom:76px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.rb{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;backdrop-filter:blur(4px)}
+.rb small{display:block}
+.bar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;align-items:center}
+.input{flex:1;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:10px 14px;font-size:13px;border:1px solid rgba(255,255,255,.25)}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.lbl{font-size:12px;font-weight:700;color:var(--ink);margin:10px 0 6px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg span{border:1px solid var(--rule);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;background:#fff}
+.seg .on{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule)}
+.tg{width:34px;height:20px;border-radius:999px;background:var(--crimson);position:relative}.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#cfc3bc}.tg.off:after{right:auto;left:2px}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ring{width:84px;height:84px;border-radius:50%;padding:3px;background:conic-gradient(#E0123E,#ff6a88,#E0123E);position:relative}
+.ring>div{width:100%;height:100%;border-radius:50%;border:3px solid var(--paper);background:radial-gradient(#b7795a,#5b1426)}
+.ring .lv{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:14px;padding:11px;margin-top:8px}
+.opt.hl{border-color:var(--crimson);background:#fbf0f3}
+.opt i{font-style:normal;font-size:20px}.opt b{font-size:13.5px;display:block}.opt span{font-size:11.5px;color:var(--slate)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:20px;display:block;font-family:Fraunces,serif}.stat span{font-size:11.5px;color:var(--slate)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.gift{position:absolute;left:12px;top:150px;background:linear-gradient(90deg,rgba(122,3,40,.9),rgba(166,9,61,.75));color:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12px;display:flex;gap:8px;align-items:center}
+.gift i{font-style:normal;background:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.seats{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:8px}
+.seat{width:58px;height:74px;border-radius:12px;background:rgba(0,0,0,.35);border:1.5px dashed rgba(255,255,255,.55);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.seat.f{border:2px solid #3ddc84;background:radial-gradient(#8a5b45,#2a120b)}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600}
+.sub{font-size:12px;color:var(--slate);line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:12px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.lock{position:absolute;inset:0;background:linear-gradient(160deg,#4E0119,#A6093D);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.fp{width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:46px;background:rgba(255,255,255,.08)}
+.cring{width:150px;height:150px;border-radius:50%;margin:4px auto;background:conic-gradient(#E0123E 0 17%,#F6B3C3 17% 40%,#2FA37A 40% 58%,#F2C14E 58% 61%,#C9A7E8 61% 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.cring>div{width:112px;height:112px;border-radius:50%;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cring b{font-family:Fraunces,serif;font-size:30px}.cring span{font-size:11px;color:var(--slate)}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:11.5px}
+.cal span{padding:6px 0;border-radius:8px;position:relative}.cal .hd{font-size:10px;color:var(--slate);padding:2px 0}
+.p{background:#FBD3DC;color:#8c0026;font-weight:700}.pp{background:#fff;border:1.5px dashed #E0123E;color:#8c0026}.fw{background:#D6F0E4;color:#17694a}.ov{background:#F2C14E;color:#4d3800;font-weight:800}.td{outline:2px solid var(--ink)}
+.leg{display:flex;flex-wrap:wrap;gap:8px;font-size:10.5px;color:var(--slate)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.drops{display:flex;gap:4px;font-size:18px}
+.slider{height:6px;border-radius:9px;background:linear-gradient(90deg,var(--crimson) 0 40%,#e5d9d3 40%);position:relative;margin:8px 0}.slider:after{content:"";position:absolute;left:40%;top:-6px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--crimson);transform:translateX(-50%)}
+.nana{background:linear-gradient(135deg,#fff,#fbeff3);border:1px solid #f0cbd6;border-radius:16px;padding:10px 12px;font-size:12px;line-height:1.45}.nana b{color:var(--crimson)}
+.bars{display:flex;align-items:flex-end;gap:7px;height:70px}.bars div{flex:1;background:var(--crimson);border-radius:5px 5px 0 0;opacity:.85;position:relative}.bars div span{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:10px;color:var(--slate)}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.35}
+.desk{width:100%;}
+.kcol{flex:1;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px}
+.kcol h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate)}
+.tk{border:1px solid var(--rule);border-radius:10px;padding:6px 7px;font-size:11px;line-height:1.35;background:#fff}.tk b{font-size:11.5px}
+.late{border-color:#E0123E;background:#fff1f3}
+.tier{border:1px solid var(--rule);border-radius:14px;padding:9px 10px;background:#fff;font-size:11.5px;line-height:1.4}.tier h3{font-size:13.5px;display:flex;justify-content:space-between}
+.tier.hl{border:2px solid var(--crimson)}
+.job{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px;font-size:12px;line-height:1.4}
+.score{font-family:Fraunces,serif;font-size:20px;font-weight:600;color:var(--crimson)}
+.why{color:#17694a}.risk{color:#8c4a00}
+.fun{display:flex;flex-direction:column;gap:4px;font-size:11.5px}.fun div{display:flex;align-items:center;gap:8px}.fun i{height:14px;background:var(--crimson);border-radius:4px;opacity:.85}
+.hotelhero{height:150px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.65)),linear-gradient(135deg,#b07a4f,#5a3420 55%,#24140c);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.room{display:flex;gap:10px;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:8px;font-size:12px}.room .im{width:72px;height:60px;border-radius:10px;background:linear-gradient(135deg,#d9b48f,#8a5a3c);flex:none}
+.food{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:7px;font-size:12px}.food .im{width:48px;height:48px;border-radius:10px;flex:none;background:radial-gradient(#f0a03c,#a8451b)}
+.qty{margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:700}.qty i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.pad>*{flex-shrink:0}
+
+.dotrow{display:flex;gap:2px;justify-content:center;margin-top:1px}.dotrow i{width:5px;height:5px;border-radius:50%;display:block}
+.c-book{background:#A6093D}.c-hotel{background:#b07a4f}.c-event{background:#2FA37A}.c-live{background:#E0123E}.c-job{background:#3b6fd8}.c-books{background:#F2C14E}.c-cycle{background:#C9A7E8}
+.ag{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:9px 10px;font-size:12px;line-height:1.35}
+.ag .t{font-weight:700;min-width:46px;color:var(--ink)}.ag .bar{width:4px;align-self:stretch;border-radius:4px}
+.ag b{font-size:12.5px}
+.sys{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:22px}
+.sysbox{background:#f4f4f6;border-radius:16px;padding:16px;text-align:center;font-size:12.5px;line-height:1.45;width:100%}
+.sysbox b{display:block;font-size:14px;margin-bottom:4px}
+.sysbtn{display:flex;border-top:1px solid #d4d4d8;margin:12px -16px -16px}.sysbtn span{flex:1;padding:11px;color:#2563eb;font-weight:600}.sysbtn span+span{border-left:1px solid #d4d4d8}
+.menu{background:#fff;border-radius:16px;border:1px solid var(--rule);overflow:hidden}.menu div{padding:10px 12px;font-size:13px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:center}.menu div:first-child{border-top:0}
+.menu .hl{background:#fbf0f3;color:var(--crimson);font-weight:700}
+.c-plan{background:#0F8B8D}
+.ptabs{display:flex;background:var(--field);border-radius:999px;padding:3px;font-size:12.5px;font-weight:700}.ptabs span{flex:1;text-align:center;padding:7px 0;border-radius:999px;color:var(--slate)}.ptabs .on{background:#fff;color:var(--crimson);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.li{display:flex;gap:8px;font-size:12.5px;line-height:1.4}.li i{font-style:normal}
+.prog{height:5px;border-radius:9px;background:#e5d9d3;overflow:hidden}.prog i{display:block;height:100%;background:var(--crimson);border-radius:9px}
+.nq{align-self:flex-start;max-width:88%;background:linear-gradient(135deg,#fff,#fbeff3);border:1px solid #f0cbd6;border-radius:16px 16px 16px 4px;padding:9px 11px;font-size:12.5px;line-height:1.45}
+.nq b{color:var(--crimson);display:block;font-size:11px;margin-bottom:2px}
+.ma{align-self:flex-end;max-width:84%;background:var(--crimson);color:#fff;border-radius:16px 16px 4px 16px;padding:9px 11px;font-size:12.5px;line-height:1.45}
+.inp{display:flex;gap:8px;align-items:center;margin-top:auto}.inp div{flex:1;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:10px 14px;font-size:12.5px;color:var(--slate)}.inp span{width:38px;height:38px;border-radius:50%;background:var(--crimson);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.goal{background:linear-gradient(135deg,var(--deep),var(--bright));color:#fff;border-radius:16px;padding:12px;font-size:12px;line-height:1.4}.goal small{opacity:.8;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}.goal b{display:block;font-family:Fraunces,serif;font-size:17px;font-weight:600;line-height:1.25;margin-top:3px}
+.num{display:flex;flex-direction:column;gap:4px;font-size:12px}.num div:first-child{display:flex;justify-content:space-between}.num b{font-size:12.5px}
+.mo{display:flex;gap:9px;align-items:center;font-size:11.5px;line-height:1.3;padding:5px 8px;border-radius:10px;background:#fff;border:1px solid var(--rule)}.mo b{min-width:30px;color:var(--slate);font-size:11px}.mo.now{border:2px solid var(--crimson);background:#fbf0f3}.mo.now b{color:var(--crimson)}.mo.done{opacity:.6}.mo .mk{margin-left:auto}
+.ag .bar{position:static;flex:none}
+.tick{display:flex;gap:9px;align-items:center;background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 10px;font-size:12.5px;line-height:1.35}
+.tick i{font-style:normal;width:20px;height:20px;border-radius:6px;border:2px solid #cfc3bc;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.tick.ok i{background:#0F8B8D;border-color:#0F8B8D}.tick.ok span{color:var(--slate);text-decoration:line-through}
+.ans{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.4}.ans b{display:block;font-size:11.5px;color:var(--slate);font-weight:600;margin-bottom:2px}
+.warn{background:#FFF1E6;border:1px solid #F3C8A2;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a2e00}
+.kit{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:9px 10px;font-size:11.5px;line-height:1.35}.kit i{font-style:normal;font-size:20px}.kit b{font-size:12.5px;display:block}
+.kit.hl{border:2px solid var(--crimson);background:linear-gradient(135deg,#fff,#fbeff3)}
+.dr{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:9px 10px;font-size:12px;line-height:1.4}
+.dr small{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);font-weight:700;margin-bottom:3px}
+.dr .hd{font-family:Fraunces,serif;font-size:16px;font-weight:600;line-height:1.25}
+.acts{display:flex;gap:6px;margin-top:7px}.acts span{border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;border:1px solid var(--rule);background:#fff}.acts .k{background:#0F8B8D;border-color:#0F8B8D;color:#fff}
+.sv{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px dashed var(--rule);font-size:12px}.sv:first-of-type{border-top:0}.sv em{font-style:normal;color:#8c4a00;font-weight:700}
+.fd{display:flex;gap:9px;align-items:flex-start;background:#fff;border:1px solid var(--rule);border-radius:14px;padding:9px 10px;font-size:11.5px;line-height:1.4}
+.fd .n{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:#E0123E}
+.fd .n.m{background:#D98A1E}.fd .n.l{background:#8a7f79}
+.fd b{font-size:12.5px;display:block}.fd u{text-decoration:none;color:var(--crimson);font-weight:700;display:inline-block;margin-top:3px}
+.was{background:#fff1f3;border:1px solid #f3c6cf;border-radius:10px;padding:7px 9px;font-size:11.5px;line-height:1.4;color:#6b2a37;text-decoration:line-through}
+.now{background:#e9f7f1;border:1px solid #b9e2d1;border-radius:10px;padding:7px 9px;font-size:11.5px;line-height:1.4;color:#17694a;font-weight:600}
+.site{border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:#fff}
+.site .hero{height:120px;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.7)),linear-gradient(135deg,#e7b06a,#a8551f 55%,#3a1a0a);color:#fff;padding:10px;display:flex;flex-direction:column;justify-content:flex-end}
+.site .hero b{font-family:Fraunces,serif;font-size:16px;line-height:1.2}.site .hero span{font-size:10.5px;opacity:.9}
+.site .in{padding:8px 10px;font-size:11px;line-height:1.4}
+</style></head><body>
+<h1>🎨 Themes and kits: Nana sets up your site, and Review my site</h1>
+<p class="lede">Two additions to Your site. <b>Nana asks a few questions about what you do, picks a kit and look, and drafts the words for each section; you keep, change or skip each one, and nothing goes on your site until you say so.</b> Then <b>Review my site</b> lists what is stopping visitors from booking, buying or getting in touch, most important first, each with a button that takes you to the fix. Sample screens only: the example is a home baker in Enugu.</p>
+<div class="grid">
+
+<!-- 1 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Your site</div>
+  <div class="pad">
+    <div class="h2">1. Choose a kit</div>
+    <div class="sub">A kit sets the look, the sections and starter words. You can change everything after.</div>
+    <div class="kit hl"><i>✨</i><div><b>Let Nana set it up</b>Answer about eight questions. Nana picks the kit and look that suit you and drafts your words. About 5 minutes.<div style="margin-top:7px"><span class="btn pri" style="padding:6px 12px;font-size:12px">Start with Nana</span></div></div></div>
+    <div class="sub" style="font-weight:700;color:var(--ink)">Or pick one yourself</div>
+    <div class="kit"><i>✍️</i><div><b>Personal and creators</b>Who you are, your journals, your work in pictures.</div></div>
+    <div class="kit"><i>🧁</i><div><b>Food and baking</b>Your menu in tabs, pictures, orders and delivery.</div></div>
+    <div class="kit"><i>👗</i><div><b>Fashion</b>Clothes, bags, shoes and jewellery in a shop.</div></div>
+    <div class="card" style="display:flex;gap:10px;align-items:center;margin-top:auto"><span style="font-size:20px">🔎</span><div style="font-size:11.5px;line-height:1.35"><b style="font-size:12.5px;display:block">Already have a site?</b>See what is stopping visitors.</div><span class="btn sec" style="margin-left:auto;padding:6px 11px;font-size:12px">Review my site</span></div>
+  </div>
+</div></div><div class="cap"><b>1. Where it starts</b>A new first card in the kit picker on Your site, and a <b>Review my site</b> button for members who already have one. Picking a kit by hand works as it does today.</div></div>
+
+<!-- 2 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Nana sets up your site <span style="margin-left:auto;font-weight:500">3 of 8</span></div>
+  <div class="pad">
+    <div class="prog"><i style="width:37%"></i></div>
+    <div class="nq"><b>NANA</b>What do you do, and who is it for?</div>
+    <div class="ma">I bake cakes and small chops for birthdays and weddings in Enugu.</div>
+    <div class="nq"><b>NANA</b>What do people order most, and what does each cost? Leave out any price you'd rather not show.</div>
+    <div class="ma">Birthday cakes from 25k. Cupcakes 12k for a box of 12. Wedding cakes depend on the tiers.</div>
+    <div class="nq"><b>NANA</b>I found 6 items in your shop and your booking hours (Tue to Sat, 9 to 5). Shall I use them?</div>
+    <div class="chips"><span class="chip on">Yes, use them</span><span class="chip">No, start fresh</span></div>
+    <div class="inp"><div>Type your answer…</div><span>➤</span></div>
+    <div class="mini" style="text-align:center">Skip a question · Stop and finish later</div>
+  </div>
+</div></div><div class="cap"><b>2. A short interview</b>About eight questions, one at a time: what you do, who for, where, what you sell and its prices, hours, what sets you apart, and the one thing a visitor should do. Nana uses what is already in your shop, booking calendar and profile, so you don't type it twice.</div></div>
+
+<!-- 3 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Nana's suggestion</div>
+  <div class="pad">
+    <div class="h2">Here's what I'd choose</div>
+    <div class="dr"><small>Kit</small><b>🧁 Food and baking</b><div class="sub">You sell by order and by occasion: this kit has a menu in tabs and a shop.</div><div class="acts"><span>Change</span></div></div>
+    <div class="dr"><small>Look and colours</small><b>Luxe, on Sunset</b><div class="sub">A full photo up top suits cakes. Sunset is warm without fighting your pictures.</div>
+      <div style="display:flex;gap:6px;margin-top:6px"><i style="width:22px;height:22px;border-radius:50%;background:#C2410C;outline:2px solid var(--ink);outline-offset:2px"></i><i style="width:22px;height:22px;border-radius:50%;background:#7A0328"></i><i style="width:22px;height:22px;border-radius:50%;background:#1F6F4A"></i><i style="width:22px;height:22px;border-radius:50%;background:#B8860B"></i></div></div>
+    <div class="dr"><small>Main button</small><b>Order a cake → your shop</b><div class="sub">Second button: Call us. <b style="color:var(--crimson)">Change</b></div></div>
+    <div class="dr"><small>Sections, in order</small><div class="sub" style="color:var(--ink)">Banner · Menu and prices · Gallery · What customers say · Hours and contacts · Questions</div></div>
+    <div class="warn">🔒 Food and baking and the Luxe look are on <b>Pro</b>. On Free Basic I'd use Personal and creators with the Clean look. <b>See Pro</b></div>
+    <span class="btn pri" style="margin-top:auto">Looks right: draft my words</span>
+  </div>
+</div></div><div class="cap"><b>3. Nana picks, and says why</b>The kit, look, colour set, main button and section order, each with one line of reasoning and a Change button. A choice the plan doesn't cover is shown with what it needs, and the nearest choice that is covered.</div></div>
+
+<!-- 4 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Your draft <span style="margin-left:auto;font-weight:500">2 of 6 kept</span></div>
+  <div class="pad">
+    <div class="dr"><small>Top banner</small><div class="hd">Cakes worth the photo, baked in Enugu.</div><div class="sub">Birthday and wedding cakes, cupcakes and small chops, made to order and delivered.</div><div class="acts"><span class="k">✓ Kept</span><span>Edit</span><span>Try another</span></div></div>
+    <div class="dr"><small>Menu and prices</small>
+      <div class="sv"><span>Birthday cake</span><b>From ₦25,000</b></div>
+      <div class="sv"><span>Cupcakes, box of 12</span><b>₦12,000</b></div>
+      <div class="sv"><span>Wedding cake</span><em>Add a price</em></div>
+      <div class="sv"><span>Small chops platter</span><em>Add a price</em></div>
+      <div class="acts"><span class="k">Keep</span><span>Edit</span><span>Skip</span></div></div>
+    <div class="dr"><small>Questions and answers</small><b>How far ahead should I order?</b><div class="sub">At least 3 days for cakes, 2 weeks for weddings.</div><div class="mini" style="margin-top:3px">+ 3 more</div><div class="acts"><span class="k">Keep</span><span>Edit</span><span>Skip</span></div></div>
+    <div class="dr"><small>What customers say</small><div class="sub">I don't write reviews for you. Add real ones, or send a customer a link to leave theirs.</div><div class="acts"><span>Send a link</span><span>Skip</span></div></div>
+  </div>
+</div></div><div class="cap"><b>4. The draft, section by section</b>Keep, edit, skip or ask for another version of each. <b>Nana only uses what you told her:</b> a price you didn't give stays empty with "Add a price", and she never writes a customer's review, an award or a number you didn't state.</div></div>
+
+<!-- 5 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Before it goes on your site</div>
+  <div class="pad">
+    <div class="ptabs"><span>Now</span><span class="on">With Nana's draft</span></div>
+    <div class="site"><div class="hero"><span>WELCOME TO ADA'S OVEN</span><b>Cakes worth the photo, baked in Enugu.</b><div style="margin-top:6px;display:flex;gap:6px"><span class="btn pri" style="padding:5px 10px;font-size:11px;background:#C2410C">Order a cake</span><span class="btn sec" style="padding:5px 10px;font-size:11px">Call us</span></div></div>
+      <div class="in"><b>Menu</b> · Cakes · Cupcakes · Small chops<br>Birthday cake <b style="float:right">From ₦25,000</b><br>Cupcakes, box of 12 <b style="float:right">₦12,000</b></div></div>
+    <div class="card" style="font-size:12px;line-height:1.45"><b>What will change</b><div class="li"><i>➕</i><span>4 sections filled in that were empty</span></div><div class="li"><i>✏️</i><span>1 line of yours replaced: the banner headline</span></div>
+      <div class="was" style="margin-top:5px">Welcome to my page</div><div class="now" style="margin-top:4px">Cakes worth the photo, baked in Enugu.</div>
+      <div class="row" style="margin-top:6px"><span>Replace my headline</span><span class="tg"></span></div></div>
+    <span class="btn pri" style="margin-top:auto">Put it on my site</span>
+    <div class="mini" style="text-align:center">You can undo this for 30 days.</div>
+  </div>
+</div></div><div class="cap"><b>5. See it first</b>A preview with the draft, and a list of exactly what will change. Empty sections are filled; <b>words you already wrote are only replaced where you leave the switch on</b>. Nothing reaches the site before "Put it on my site", and the site before is kept so it can be put back.</div></div>
+
+<!-- 6 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Review my site</div>
+  <div class="pad">
+    <div class="h2">5 things are holding visitors back</div>
+    <div class="sub">Most important first. Checked just now against your live site.</div>
+    <div class="fd"><span class="n">1</span><div><b>There's no button at the top</b>A visitor has to scroll to find how to order.<br><u>Add "Order a cake" →</u></div></div>
+    <div class="fd"><span class="n">2</span><div><b>3 of 5 menu items have no price</b>People leave to ask on WhatsApp, and many don't come back.<br><u>Add prices →</u></div></div>
+    <div class="fd"><span class="n m">3</span><div><b>Your banner has no photo</b>The Luxe look is built around one.<br><u>Add a photo →</u></div></div>
+    <div class="fd"><span class="n m">4</span><div><b>No opening hours or phone number</b><u>Fill in hours and contacts →</u></div></div>
+    <div class="fd"><span class="n l">5</span><div><b>Your About page is empty</b><u>Write it →</u> · <u>Ask Nana to draft it</u></div></div>
+    <div class="card" style="font-size:11.5px;line-height:1.4;color:#17694a;background:#e9f7f1;border-color:#b9e2d1">✓ 6 things are fine: gallery, questions, shop, colours, links, your Contact page.</div>
+  </div>
+</div></div><div class="cap"><b>6. Review my site</b>A checklist read from the live site: no button, missing prices, no photo, no contacts, empty pages, a button that leads nowhere, a section switched on but empty. Each line opens the exact place to fix it. <b>This part is free for everyone and uses no Nana.</b></div></div>
+
+<!-- 7 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> Review my site</div>
+  <div class="pad">
+    <div class="ptabs"><span>Checklist</span><span class="on">Nana's read</span></div>
+    <div class="card"><div class="lbl" style="margin-top:0">Last 30 days</div>
+      <div class="fun"><div><i style="width:150px"></i>412 visits</div><div><i style="width:52px"></i>38 opened the shop</div><div><i style="width:9px"></i>6 orders</div></div>
+      <div class="mini" style="margin-top:6px">Most visitors leave on the home page, before the menu.</div></div>
+    <div class="nana"><b>Nana:</b> Your headline says who you are, not what a visitor gets. Say the thing and the place.</div>
+    <div class="was">Welcome to my page</div>
+    <div class="now">Cakes worth the photo, baked in Enugu.</div>
+    <div class="acts" style="margin-top:0"><span class="k">Use this</span><span>Another</span><span>No thanks</span></div>
+    <div class="nana"><b>Nana:</b> Your menu lists "Wedding cake" with no price. If it depends, say "From ₦…" so people know whether to ask.</div>
+    <div class="mini" style="margin-top:auto;text-align:center">Nana's read uses your Nana allowance. She reads only what is public on your site, and your visit numbers.</div>
+  </div>
+</div></div><div class="cap"><b>7. Nana's read</b>Optional, on top of the checklist: where visitors drop off (from the Analytics you already have), and Nana's rewrite of the lines that matter, shown old against new. Each is a suggestion you accept or not. Visits by page are on Business and above; other plans see totals.</div></div>
+
+<!-- 8 -->
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">N</span> How it works</div>
+  <div class="pad">
+    <div class="h2">What Nana does, and doesn't</div>
+    <div class="li"><i>✅</i><span>Uses <b>only what you told her</b> and what is already in your shop, calendar and profile.</div>
+    <div class="li"><i>✅</i><span>Shows every word before it goes on your site. You press the button.</span></div>
+    <div class="li"><i>✅</i><span>Keeps your site as it was for 30 days, to put back.</span></div>
+    <div class="li"><i>🚫</i><span>Never invents a price, a review, an award, a number or a claim about health or results.</span></div>
+    <div class="li"><i>🚫</i><span>Never changes your site on her own, now or later.</span></div>
+    <div class="li"><i>🚫</i><span>Never sends you to an outside tool for something #NotesApp does.</span></div>
+    <div class="card"><div class="lbl" style="margin-top:0">Who gets what</div>
+      <div class="row" style="border-top:0"><span>Review checklist</span><b>Everyone with a site</b></div>
+      <div class="row"><span>Nana sets it up</span><b>Your Nana allowance</b></div>
+      <div class="row"><span>Nana's read</span><b>Your Nana allowance</b></div>
+      <div class="row"><span>Visits by page</span><b>Business and above</b></div></div>
+    <div class="note">Kits and looks keep their plans: Nana suggests within your plan and shows what Pro or Business would add.</div>
+  </div>
+</div></div><div class="cap"><b>8. The rules, and who gets it</b>The checklist is free. The interview, the draft and Nana's read come out of the member's normal Nana allowance, like any Nana chat. Kits and looks stay on the plans they are on today.</div></div>
+
+</div></body></html>
