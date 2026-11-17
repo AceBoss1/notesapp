@@ -26,7 +26,7 @@ export async function markAvatar(picture: Buffer, type: string): Promise<{ bytes
         <div style={{ display: "flex", alignItems: "center", position: "absolute", left: 32, bottom: 32, height: 56 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={icon} width={56} height={56} style={{ borderRadius: 14 }} alt="" />
-          <span style={{ marginLeft: 14, fontFamily: "Inter", fontWeight: 800, fontSize: 30, color: "#FFFFFF", textShadow: "0 2px 6px rgba(0,0,0,0.55)" }}>{AVATAR_MARK}</span>
+          <span style={{ marginLeft: 14, fontFamily: "Inter", fontWeight: 800, fontSize: 30, color: "#FFFFFF", textShadow: "0 0 3px rgba(26,18,16,0.95), 0 0 8px rgba(26,18,16,0.8), 0 2px 6px rgba(0,0,0,0.5)" }}>{AVATAR_MARK}</span>
         </div>
       </div>
     ),

@@ -29,8 +29,8 @@ export class AvatarError extends Error {
 // What the image model is asked for. The look the owner approved (17 Nov 2026): flat editorial illustration, warm and friendly.
 export const AVATAR_PROMPT = [
   "Redraw the person in this photo as a flat vector-style illustrated portrait, head and shoulders, facing the viewer.",
-  "Style: modern African editorial illustration. Clean confident shapes, soft cel shading with two or three tones on the skin, simple expressive eyes, a warm friendly smile, hair drawn as bold shapes with a little texture.",
-  "Keep them recognisable: the same skin tone, face shape, hair style and hairline, any beard, glasses, headwrap, cap or jewellery, and the colours and pattern of their clothes.",
+  "Style: modern African editorial illustration. Clean confident shapes, soft cel shading with two or three tones on the skin, simple expressive eyes, the same expression they have in the photo (do not add a smile they are not showing), hair drawn as bold shapes with a little texture.",
+  "Keep them recognisable: the same skin tone, face shape, hair style and hairline, any beard or moustache in the shape they wear it, glasses, headwrap or cap, and the colours and pattern of their clothes. Draw jewellery as it is in the photo, with the same pendant shape, and add nothing they are not wearing.",
   "Background: one solid, vivid colour that suits their clothes. Square picture, the face centred in the upper two thirds, the shoulders running off the bottom edge.",
   "No text, no logo, no watermark, no border, no other people. Leave the bottom left corner free of important detail.",
 ].join(" ");
