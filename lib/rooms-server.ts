@@ -24,7 +24,7 @@ import { liveEntrance } from "./fans-server";
 import { holdsLiveTicket, markLiveEnded } from "./live-door-server";
 import { flushJoins, handleOf, noteJoin, oncePerPerson, postRoomEvent } from "./room-events-server";
 import type { LiveRecordChoice } from "./live-tickets";
-import { STUDIO_CLOSED, STUDIO_FOLDER, STUDIO_MAX, applyStudioPatch, cleanComment, cleanLine, clipKindOf, ownStudioFile, queueWith, studioAllowed, studioOf, type StudioState } from "./studio";
+import { STUDIO_CLOSED, STUDIO_FOLDER, STUDIO_MAX, applyStudioPatch, cleanComment, cleanLine, clipKindOf, ownStudioFile, queueWith, studioAllowed, studioOf, type StudioState, sayLine, subsFor, subsQuiet } from "./studio";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -1140,6 +1140,34 @@ export async function studioStep(db: Firestore, uid: string, id: unknown, body: 
           if (uid !== r.hostUid && !r.stageVideo && !roomCan(r, uid, "studio")) throw new CommunityError(403, "The host hasn't let speakers use video.");
           if (body.on === true) next = { ...cur, screen: uid };
           else if (cur.screen === uid) next = { ...cur, screen: "" };
+          break;
+        }
+        // Automatic subtitles (docs/STUDIO_SUBTITLES.md). "say": a line this person's own device wrote down from their own
+        // microphone; the name is theirs, from the room, never from what was sent. "mysubs": their own subtitles off or on.
+        // "subsfor": the editor switches a speaker's off or on. "mymic": they muted or unmuted themselves, so a lone voice
+        // goes out without a name.
+        case "say": {
+          const out = sayLine(cur, { uid, name: r.joined?.[uid]?.name, text: body.text, ms: body.ms }, { stage, hostMuted: r.micMuted, now });
+          if (!out.ok) throw new CommunityError(out.status, out.error);
+          next = out.studio;
+          break;
+        }
+        case "mysubs": {
+          if (!stage.includes(uid)) throw new CommunityError(403, "Only people on stage are subtitled.");
+          next = subsFor(cur, uid, body.off === true);
+          break;
+        }
+        case "subsfor": {
+          need(r, uid, "studio");
+          const who = String(body.uid ?? "");
+          if (!stage.includes(who)) throw new CommunityError(400, "That person isn't on stage.");
+          next = subsFor(cur, who, body.off === true);
+          logged = body.off === true ? "switch a speaker's subtitles off" : "switch a speaker's subtitles on";
+          break;
+        }
+        case "mymic": {
+          if (!stage.includes(uid)) throw new CommunityError(403, "Only people on stage have a microphone.");
+          next = subsQuiet(cur, uid, body.quiet === true);
           break;
         }
         default: throw new CommunityError(400, "Unknown studio step.");

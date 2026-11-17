@@ -3409,8 +3409,14 @@ while the viewer rarely re-rendered; captions made it re-render several times a 
 "Loading the video…" placeholder on each one and never mounted the player. The voice-over now has its own key (reproduced on the
 emulators: 21 copies before, 1 after). In `MomentComposer.tsx` the trim and caption steps for a voice-over now show the video or
 picture it goes over, with the voice-over's controls under it.
+**Notes Live Studio: automatic subtitles (v0.181.0, 17 Nov 2026)** — the owner asked whether the Cloudflare transcription built
+for Moments could drive subtitles in the studio, approved the mockups and added a rule: a lone voice has no name
+(`docs/STUDIO_SUBTITLES.md`). Each speaker's own device listens to its own microphone (`useLiveSubtitles.ts`), sends a few seconds
+at a time to `/api/studio/subtitles`, and posts the words as a line (`studioStep` `say`); the room's document carries up to two
+lines (`studio.said`) and `ProgramFrame` draws them in Clean, Bold word or Colour word, the highlight moving evenly through the
+line. `voiceAlone` leaves the name off when nobody else's microphone is on. Tests: `test:studio`, `studio.emulator.ts`.
 
-**Moments captions froze on the first word (v0.180.2, 17 Nov 2026)** — reported by the owner from the live site. Captions follow the
+**Moments captions froze on the first word (v0.181.1, 17 Nov 2026)** — reported by the owner from the live site. Captions follow the
 time the Stream player reports; the viewer read that from the player's messages in one shape only, and on the real player got a single
 reading. `StreamMoment` now keeps time three ways: the messages read in every shape (`playerNews`), the player SDK asked five times
 a second, and a clock from when the video started when both are silent (`playClock`, `lib/moments-tidy.ts`). Not verified against
