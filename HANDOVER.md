@@ -17,7 +17,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | | State |
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
-| `claude/vigilant-franklin-xgf9ee` | **v0.184.0:** Themes and kits: Nana sets up your site, and Review my site (`docs/SITE_NANA.md`), built on the owner's "approved, build" (17 Nov 2026). Needs `firebase deploy --only firestore:rules` (`siteSetups`). Cost of a draft not measured. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.185.0:** Themes and kits: Nana sets up your site, and Review my site (`docs/SITE_NANA.md`), built on the owner's "approved, build" (17 Nov 2026). Needs `firebase deploy --only firestore:rules` (`siteSetups`). Cost of a draft not measured. |
 | `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
 | `claude/studio-subtitles-plan` | **v0.181.0:** automatic subtitles in Notes Live Studio (`docs/STUDIO_SUBTITLES.md`), built on the owner's "build now" (17 Nov 2026). Needs `CLOUDFLARE_AI_TOKEN`; nothing to deploy for Firestore beyond the Moments rules. **Untested:** the real speech service and the microphone capture in a real room; try it on the staff test pass with two people on stage. Next: Themes and kits, then Merch last. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
@@ -1196,6 +1196,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     copy) and downloads a fresh copy (`lib/nana-claude.ts`, `lib/nana-claude-server.ts`, `serverConfig/nanaClaudeCopy`); on the
     page the owner picks that file under **Update help articles** and the page republishes itself. The page's source and build
     script are in `scripts/nana-on-claude/`. Tests: `test:avatar`, `test:avatar-server`, `test:nana-claude`, `test:nana-claude-server`.
+145. **Nana AI, the portrait studio, moved into the main app (v0.184.0; owner, 17 Nov 2026: "Option B"; `docs/NANA_PORTRAIT_STUDIO.md`):**
+    `nana.<domain>` is a host role like `prep.` (`lib/host.ts`, `middleware.ts`): the studio at `/` (`app/nana-studio`,
+    `components/nana/PortraitStudio.tsx`, the owner's v0 design ported and scoped under `.nana-app`), its own sign-in at `/signin`.
+    `/api/portrait/access` and `/api/portrait/generate` run on the avatar maker's engine, gate and daily number (`makePortrait` in
+    `lib/avatar-maker-server.ts`; looks and prompt in `lib/nana-portrait.ts`); free plans' portraits are marked by our server, paid plans'
+    aren't; nothing is kept. **Owner steps:** move `nana.notesapp.name.ng` and `nana.naapp.tech` from the v0 Vercel project to this one;
+    add both to Firebase Authorized domains. Same gate as the avatar maker (staff pass). Not ported: the v0 sample photo (on v0's
+    storage). **Free image model:** `AVATAR_IMAGE_PROVIDER=cloudflare` + a Cloudflare API token (Workers AI permission) in
+    `AVATAR_IMAGE_KEY`: FLUX.2 [klein] 4B on Workers AI within the free daily allowance; the photo is made 512 px first (`fitPhoto`);
+    "used up for today" is a 429 with a plain message (`docs/AVATAR_MAKER.md` "The free option"). Not yet tried against Cloudflare.
+    Tests: `test:nana-portrait`, `test:nana-portrait-server`, `test:avatar`.
 
 ## 3. How the work is done (please keep these)
 

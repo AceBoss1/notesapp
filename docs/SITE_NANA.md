@@ -5,7 +5,7 @@ words for each section; the member keeps, changes or skips each one. **Review my
 booking, buying or getting in touch, each with a button to the fix.
 
 The owner put it third in their order on 15 Nov 2026 ("Themes and kits"), after Notes Planner and Moments, with Merch last.
-**Status: built in v0.184.0 (17 Nov 2026)** from the mockups the owner approved that day ("approved, build"). What was built, and what
+**Status: built in v0.185.0 (17 Nov 2026)** from the mockups the owner approved that day ("approved, build"). What was built, and what
 wasn't, is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (an interview that drafts a landing page, and a
@@ -81,7 +81,7 @@ returns a few rewrites, each shown old against new and applied only when the mem
 - Counting taps on the main button (the drop-off uses visits and orders only).
 - Nana changing a site on her own, or on a schedule.
 
-## Built in v0.184.0
+## Built in v0.185.0
 
 - **The checklist** `lib/site-review.ts` (pure): no banner, no main button, a button that leads nowhere (Book with bookings off, Shop
   with nothing to buy, Call with no number, Contact with nothing behind it), the kit's sample headline or prices left in, prices

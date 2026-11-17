@@ -18,7 +18,7 @@ const rejects = (p: Promise<unknown>, status: number, re: RegExp) => assert.reje
   refused(() => checkPhoto(Buffer.from("GIF89a" + "x".repeat(50))), 400, /JPEG, PNG or WebP/);
   refused(() => checkPhoto(Buffer.concat([JPG, Buffer.alloc(AVATAR_PHOTO_MAX)])), 400, /under 8 MB/);
   assert.equal(checkPhoto(JPG), "image/jpeg");
-  assert.ok(isAvatarProvider("openai") && isAvatarProvider("gemini") && !isAvatarProvider("claude"));
+  assert.ok(isAvatarProvider("openai") && isAvatarProvider("gemini") && isAvatarProvider("cloudflare") && !isAvatarProvider("claude"));
   assert.match(AVATAR_PROMPT, /No text, no logo, no watermark/);
   // the day turns over at midnight in Lagos (UTC+1)
   assert.equal(avatarDay(new Date("2026-11-17T22:59:00Z")), "2026-11-17"); assert.equal(avatarDay(new Date("2026-11-17T23:00:00Z")), "2026-11-18");
@@ -50,5 +50,25 @@ const rejects = (p: Promise<unknown>, status: number, re: RegExp) => assert.reje
   await rejects(drawAvatar(answer(400, { error: { message: "Your request was rejected by the safety system." } }), { provider: "openai", key: "k", model: "" }, { bytes: PNG, type: "image/png" }), 422, /clear photo/);
   await rejects(drawAvatar(answer(401, { error: { message: "Incorrect API key provided: sk-test" } }), { provider: "openai", key: "sk-test", model: "" }, { bytes: PNG, type: "image/png" }), 502, /^The picture couldn't be made just now/);
   await rejects(drawAvatar(async () => { throw new Error("socket hang up"); }, { provider: "gemini", key: "k", model: "" }, { bytes: PNG, type: "image/png" }), 502, /try again/);
+  // ---- Cloudflare Workers AI: a form to the account's ai/run endpoint; the picture comes back as base64 inside { result } ----
+  const cf = { provider: "cloudflare" as const, key: "cf-token", model: "", account: "acc123" };
+  const cfOk = async (url: string, init?: RequestInit) => { seen = { url, init }; return new Response(JSON.stringify({ success: true, result: { image: picture.toString("base64") } }), { status: 200, headers: { "content-type": "application/json" } }); };
+  assert.deepEqual(await drawAvatar(cfOk, cf, { bytes: JPG, type: "image/jpeg" }, "a portrait"), picture);
+  assert.equal(seen!.url, "https://api.cloudflare.com/client/v4/accounts/acc123/ai/run/@cf/black-forest-labs/flux-2-klein-4b", "the default model, slashes kept");
+  assert.equal(AVATAR_MODEL.cloudflare, "@cf/black-forest-labs/flux-2-klein-4b");
+  assert.equal((seen!.init!.headers as Record<string, string>).authorization, "Bearer cf-token");
+  const cform = seen!.init!.body as FormData;
+  assert.equal(cform.get("prompt"), "a portrait"); assert.equal((cform.get("input_image_0") as File).size, JPG.length); assert.equal(cform.get("width"), "1024");
+  // the bare { image } shape, and the picture itself, are taken too
+  assert.deepEqual(await drawAvatar(answer(200, { image: picture.toString("base64") }), cf, { bytes: JPG, type: "image/jpeg" }), picture);
+  assert.deepEqual(await drawAvatar(async () => new Response(new Uint8Array(picture), { status: 200, headers: { "content-type": "image/png" } }), cf, { bytes: JPG, type: "image/jpeg" }), picture);
+  // the day's free allowance used up: "try tomorrow", not a fault; a refusal: a clearer photo; anything else: try again; never the token
+  await rejects(drawAvatar(answer(429, { success: false, errors: [{ code: 4006, message: "you have used up your daily free allocation of 10,000 neurons" }] }), cf, { bytes: JPG, type: "image/jpeg" }), 429, /all the pictures it can for today/);
+  await rejects(drawAvatar(answer(400, { success: false, errors: [{ message: "Input flagged as NSFW" }] }), cf, { bytes: JPG, type: "image/jpeg" }), 422, /clear photo/);
+  await rejects(drawAvatar(answer(401, { success: false, errors: [{ message: "Authentication error cf-token" }] }), cf, { bytes: JPG, type: "image/jpeg" }), 502, /^The picture couldn't be made/);
+  await rejects(drawAvatar(answer(200, { success: true, result: {} }), cf, { bytes: JPG, type: "image/jpeg" }), 422, /clear photo/);
+  await rejects(drawAvatar(cfOk, { ...cf, account: undefined }, { bytes: JPG, type: "image/jpeg" }), 502, /try again/);
+  await rejects(drawAvatar(cfOk, { ...cf, model: "@cf/x/../../evil?y=1" }, { bytes: JPG, type: "image/jpeg" }), 502, /try again/);
+  await rejects(drawAvatar(cfOk, { ...cf, model: "@cf/../../accounts" }, { bytes: JPG, type: "image/jpeg" }), 502, /try again/);
   console.log("AVATAR OK");
 })().catch((e) => { console.error(e); process.exit(1); });

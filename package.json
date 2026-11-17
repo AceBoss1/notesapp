@@ -49,6 +49,8 @@
     "test:nana-claude": "npx -y tsx tests/nana-claude/copy.test.ts",
     "test:nana-claude-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/nana-claude/copy.emulator.ts\"",
     "test:avatar": "npx -y tsx tests/avatar/avatar.test.ts",
+    "test:nana-portrait": "npx -y tsx tests/nana-portrait/portrait.test.ts",
+    "test:nana-portrait-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/nana-portrait/portrait.emulator.ts\"",
     "test:avatar-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/avatar/avatar.emulator.ts\"",
     "test:covers-server": "ANTHROPIC_API_KEY=sk-ant-test-standin NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/covers/covers.emulator.ts\"",
     "test:nana-jobs": "npx -y tsx tests/nana-jobs/funnel.test.ts && npx -y tsx tests/nana-jobs/fixes.test.ts",
