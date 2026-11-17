@@ -3409,3 +3409,9 @@ while the viewer rarely re-rendered; captions made it re-render several times a 
 "Loading the video…" placeholder on each one and never mounted the player. The voice-over now has its own key (reproduced on the
 emulators: 21 copies before, 1 after). In `MomentComposer.tsx` the trim and caption steps for a voice-over now show the video or
 picture it goes over, with the voice-over's controls under it.
+
+**Moments captions froze on the first word (v0.180.2, 17 Nov 2026)** — reported by the owner from the live site. Captions follow the
+time the Stream player reports; the viewer read that from the player's messages in one shape only, and on the real player got a single
+reading. `StreamMoment` now keeps time three ways: the messages read in every shape (`playerNews`), the player SDK asked five times
+a second, and a clock from when the video started when both are silent (`playClock`, `lib/moments-tidy.ts`). Not verified against
+the real player from the build environment.
