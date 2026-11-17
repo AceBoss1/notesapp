@@ -34,7 +34,7 @@ export default function AdminMaintenancePage() {
     setBusy(label); setError("");
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); } finally { setBusy(""); }
   }, []);
-  useEffect(() => { if (user) void run("load", async () => { const j = await call(); setJobs(j.jobs); setRuns(j.runs); setBank(j.bank); }); }, [user, call, run]);
+  useEffect(() => { if (user) void run("load", async () => { const j = await call(); setJobs(j.jobs ?? {}); setRuns(j.runs ?? []); setBank(j.bank ?? null); if (j.problems?.length) setError(`Some parts couldn\u2019t load: ${j.problems.join(" · ")}`); }); }, [user, call, run]);
 
   const dry = async (job: Backfill) => {
     const r = await call({ job, apply: false });

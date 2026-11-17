@@ -28,12 +28,36 @@ async function status() {
 
 const bank = async () => ({ ...(await bankStats(getAdminDb(), new Date())), days: bankDays() });
 
+// Each part loads on its own: one that fails (a read error, a timeout) is logged with its name and reported in `problems`, and the
+// rest still show, instead of the whole page failing with a bare 500.
+async function part<T>(name: string, fn: () => Promise<T>, fallback: T, problems: string[]): Promise<T> {
+  try { return await fn(); } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[admin/maintenance] ${name} failed:`, e);
+    problems.push(`${name}: ${msg}`);
+    return fallback;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try { await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
-  return NextResponse.json({ jobs: await status(), runs: await listRuns(getAdminDb()), bank: await bank() }, { headers: { "Cache-Control": "no-store" } });
+  const problems: string[] = [];
+  const [jobs, runs, bankNow] = await Promise.all([
+    part("Backfills", status, {} as Awaited<ReturnType<typeof status>>, problems),
+    part("Recent runs", () => listRuns(getAdminDb()), [] as Awaited<ReturnType<typeof listRuns>>, problems),
+    part("Nana's answer bank", bank, null, problems),
+  ]);
+  return NextResponse.json({ jobs, runs, bank: bankNow, problems }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: NextRequest) {
+  try { return await post(req); } catch (e) {
+    console.error("[admin/maintenance] POST failed:", e);
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Something went wrong." }, { status: 500 });
+  }
+}
+
+async function post(req: NextRequest) {
   let uid: string;
   try { uid = await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
   const { job, apply, planHash, backupConfirmed, runId } = (await req.json().catch(() => ({}))) as { job?: unknown; apply?: unknown; planHash?: unknown; backupConfirmed?: unknown; runId?: unknown };
