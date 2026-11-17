@@ -20,6 +20,7 @@ import CommunityPageCard from "@/components/site-settings/CommunityPageCard";
 import PalettePicker from "@/components/site-settings/PalettePicker";
 import BlockEditors, { Picture } from "@/components/site-settings/BlockEditors";
 import { missingPagesText } from "@/components/SiteReminder";
+import NanaCards from "@/components/site-setup/NanaCards";
 
 // "Your site" (Free Basic and above; docs/SITES.md): where the site lives, then five steps: start from a kit, the look and its colours, what
 // shows (the page sections and the content sections, in order), the content, and the About and Contact pages. Everything saves through the
@@ -181,6 +182,7 @@ export default function YourSitePage() {
           <a href={siteHref} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 inline-block !px-4 !py-2 text-xs">View your site</a>
         </div>
 
+        <NanaCards />
         <KitPicker tier={tier} current={site?.kit ?? ""} onApply={applyKit} />
         {user && site && COMMUNITY_KITS.includes(site.kit) && (
           <CommunityPanel linked={site.community ?? ""} name={profile.displayName ?? ""} username={profile.username ?? ""} tagline={blocks.hero.subline ?? ""}
