@@ -174,8 +174,12 @@ function firstTouch(req: NextRequest, res: NextResponse) {
 }
 
 async function handle(req: NextRequest): Promise<NextResponse> {
-  const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
+  const host = (req.headers.get("host") || "").toLowerCase().replace(/:\\d+$/, "");
   if (!host) return NextResponse.next();
+  if (host === "arcade.naapp.tech" || host === "arcade.notesapp.com.ng") {
+    if (req.nextUrl.pathname === "/") return NextResponse.rewrite(new URL(`/snake${req.nextUrl.search}`, req.url));
+    return NextResponse.next();
+  }
   // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.
   const wk = /^\/\.well-known\/oauth-(authorization-server|protected-resource)(\/.*)?$/.exec(req.nextUrl.pathname);
   if (wk && (ourRoot(host) || isMainHost(host))) return NextResponse.rewrite(new URL(`/api/agents/oauth/metadata?kind=${wk[1] === "protected-resource" ? "resource" : "server"}`, req.url));

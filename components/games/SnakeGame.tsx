@@ -11,6 +11,7 @@ const START_SNAKE: Point[] = [
   { x: 7, y: 10 },
   { x: 6, y: 10 },
 ];
+const START_FOOD: Point = { x: 14, y: 10 };
 const VECTORS: Record<Direction, Point> = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -36,7 +37,7 @@ function makeFood(snake: Point[]): Point {
 
 export default function SnakeGame() {
   const [snake, setSnake] = useState<Point[]>(START_SNAKE);
-  const [food, setFood] = useState<Point>(() => makeFood(START_SNAKE));
+  const [food, setFood] = useState<Point>(START_FOOD);
   const [direction, setDirection] = useState<Direction>("right");
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
@@ -48,7 +49,7 @@ export default function SnakeGame() {
   const startGame = useCallback(() => {
     const initial = START_SNAKE.map((part) => ({ ...part }));
     setSnake(initial);
-    setFood(makeFood(initial));
+    setFood(START_FOOD);
     setScore(0);
     setDirection("right");
     directionRef.current = "right";
@@ -185,8 +186,8 @@ export default function SnakeGame() {
             {status !== "playing" && (
               <div className="snake-overlay">
                 <div className="snake-overlay-icon">{status === "over" ? "×" : "S"}</div>
-                <p className="snake-overlay-kicker">{status === "over" ? "THAT&apos;S A WRAP" : "READY WHEN YOU ARE"}</p>
-                <h2>{status === "over" ? "Nice run." : "Let&apos;s play."}</h2>
+                <p className="snake-overlay-kicker">{status === "over" ? "THAT'S A WRAP" : "READY WHEN YOU ARE"}</p>
+                <h2>{status === "over" ? "Nice run." : "Let's play."}</h2>
                 <p>{status === "over" ? `You scored ${score} points.` : "Your next favorite high score starts here."}</p>
                 <button type="button" className="snake-play" onClick={startGame}>{status === "over" ? "PLAY AGAIN" : "START GAME"}<span aria-hidden="true">↗</span></button>
                 <span className="snake-overlay-hint">OR PRESS SPACE</span>
