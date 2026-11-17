@@ -3421,3 +3421,20 @@ time the Stream player reports; the viewer read that from the player's messages 
 reading. `StreamMoment` now keeps time three ways: the messages read in every shape (`playerNews`), the player SDK asked five times
 a second, and a clock from when the video started when both are silent (`playClock`, `lib/moments-tidy.ts`). Not verified against
 the real player from the build environment.
+
+## Console fixes: app → main-site navigation, Admin → Maintenance, web-app meta (v0.183.1, 17 Nov 2026)
+
+The owner sent the browser console from Admin → Maintenance on app.naapp.tech.
+
+- **Blocked RSC fetch.** A link inside the app to a main-site page (`/challenge` and the rest of `APP_TO_MAIN` in `middleware.ts`) is
+  followed by the router with a background fetch for the page's RSC payload. The middleware redirected that fetch to www., which the
+  browser blocks as a cross-origin request ("Request header field rsc is not allowed"), then fell back to a full page load. Next.js hides
+  its RSC headers and `?_rsc` from middleware (`server/web/adapter.js` strips `FLIGHT_PARAMETERS`) and only rewrites redirects for the
+  pages router, so the middleware now tells the router's fetch apart by the browser's fetch metadata. A `Sec-Fetch-Mode` other than
+  `navigate` with a `Sec-Fetch-Dest` other than `document` gets an empty 204 on the same origin, and the router does a full load of the
+  same address, which is then redirected as before. Browsers without fetch metadata keep the old behaviour.
+- **Admin → Maintenance 500.** `GET /api/admin/maintenance` read the backfill status, the recent runs and Nana's answer bank with no
+  error handling, so any failing read took down the whole page. Each part now loads on its own: a failure is logged with its name
+  (`[admin/maintenance] … failed`) and returned in `problems`, which the page shows; POST failures return their message. The cause in
+  production is not known yet: the Vercel log line, or the page's message, will name it.
+- **Meta tag.** `mobile-web-app-capable` is added beside Apple's `apple-mobile-web-app-capable` (Chrome's deprecation warning).
