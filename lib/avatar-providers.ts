@@ -23,10 +23,10 @@ async function readJson(res: Response, who: string): Promise<Record<string, unkn
 }
 
 // OpenAI: the image edits endpoint takes the photo and the prompt as a form and answers with the picture as base64.
-async function openai(f: Fetch, c: AvatarConfig, p: Photo): Promise<Buffer> {
+async function openai(f: Fetch, c: AvatarConfig, p: Photo, prompt: string): Promise<Buffer> {
   const form = new FormData();
   form.set("model", c.model);
-  form.set("prompt", AVATAR_PROMPT);
+  form.set("prompt", prompt);
   form.set("size", `${AVATAR_SIZE}x${AVATAR_SIZE}`);
   form.set("image", new Blob([new Uint8Array(p.bytes)], { type: p.type }), `photo.${p.type.split("/")[1]}`);
   const res = await f("https://api.openai.com/v1/images/edits", { method: "POST", headers: { authorization: `Bearer ${c.key}` }, body: form, signal: AbortSignal.timeout(TIMEOUT_MS) });
@@ -37,10 +37,10 @@ async function openai(f: Fetch, c: AvatarConfig, p: Photo): Promise<Buffer> {
 }
 
 // Google: generateContent with the photo inline; the picture comes back as an inline part beside any words.
-async function gemini(f: Fetch, c: AvatarConfig, p: Photo): Promise<Buffer> {
+async function gemini(f: Fetch, c: AvatarConfig, p: Photo, prompt: string): Promise<Buffer> {
   const res = await f(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`, {
     method: "POST", headers: { "x-goog-api-key": c.key, "content-type": "application/json" }, signal: AbortSignal.timeout(TIMEOUT_MS),
-    body: JSON.stringify({ contents: [{ parts: [{ text: AVATAR_PROMPT }, { inline_data: { mime_type: p.type, data: p.bytes.toString("base64") } }] }] }),
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: p.type, data: p.bytes.toString("base64") } }] }] }),
   });
   const j = await readJson(res, "Google");
   type Part = { inlineData?: { data?: unknown }; inline_data?: { data?: unknown } };
@@ -49,9 +49,10 @@ async function gemini(f: Fetch, c: AvatarConfig, p: Photo): Promise<Buffer> {
   throw new AvatarError(DECLINED, 422);
 }
 
-export async function drawAvatar(f: Fetch, c: AvatarConfig, p: Photo): Promise<Buffer> {
+// prompt: what to draw (the avatar maker's illustration by default; the portrait studio sends its own, lib/nana-portrait.ts).
+export async function drawAvatar(f: Fetch, c: AvatarConfig, p: Photo, prompt: string = AVATAR_PROMPT): Promise<Buffer> {
   try {
-    return await (c.provider === "openai" ? openai : gemini)(f, { ...c, model: c.model || AVATAR_MODEL[c.provider] }, p);
+    return await (c.provider === "openai" ? openai : gemini)(f, { ...c, model: c.model || AVATAR_MODEL[c.provider] }, p, prompt);
   } catch (e) {
     if (e instanceof AvatarError) throw e;
     console.error("[avatar] the image model couldn't be reached", e instanceof Error ? e.message : e);

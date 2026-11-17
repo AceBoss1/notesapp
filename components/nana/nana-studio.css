@@ -1,0 +1,110 @@
+/* Nana AI, the portrait studio (app/nana-studio). The design from the owner's v0 project (nana-ai-av, 17 Nov 2026), every rule kept
+   inside .nana-app so it can't touch the rest of NotesApp. */
+.nana-app{--background:#f7f0e7;--foreground:#2d1a22;background:var(--background);color:var(--foreground);font-family:Arial,Helvetica,sans-serif}
+.nana-app button{font:inherit;cursor:pointer}
+.nana-app .sr-only{clip-path:inset(50%);white-space:nowrap;border-width:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}
+/* Undo what the app's global styles would add here: Tailwind's reset makes icons blocks; a global .eyebrow is monospace. */
+.nana-app svg{display:inline-block;vertical-align:-0.2em;flex:none}
+.nana-app .eyebrow,.nana-app .step-label{font-family:Arial,Helvetica,sans-serif;text-transform:none;display:block}
+.nana-app h1,.nana-app h2,.nana-app p{font-weight:inherit}
+@keyframes nana-spin{to{transform:rotate(360deg)}}
+.nana-app{min-height:100vh}
+.nana-app .topbar{background:#fffefae6;border-bottom:1px solid #eceae3;justify-content:space-between;align-items:center;height:66px;padding:0 5.8%;display:flex}
+.nana-app .brand{color:#232521;letter-spacing:-.9px;align-items:center;gap:9px;font-size:21px;font-weight:750;text-decoration:none;display:flex}
+.nana-app .brand-mascot{object-fit:contain;width:39px;height:39px}
+.nana-app .brand-copy{flex-direction:column;gap:1px;display:flex}
+.nana-app .brand-copy small{color:#777971;letter-spacing:0;font-size:9px;font-weight:450}
+.nana-app .topbar-center{color:#777971;align-items:center;gap:8px;font-size:12px;display:flex}
+.nana-app .status-dot,.nana-app .live-indicator{background:#5dbb91;border-radius:100%;width:7px;height:7px;box-shadow:0 0 0 3px #5dbb9125}
+.nana-app .top-action{color:#383a34;background:#fffefa;border:1px solid #e6e4dd;border-radius:9px;align-items:center;gap:8px;height:36px;padding:0 13px;font-size:12px;font-weight:600;display:flex}
+.nana-app .top-action:hover,.nana-app .download-small:hover{background:#f4f2eb}
+.nana-app .topbar-actions{align-items:center;gap:8px;display:flex}
+.nana-app .top-action:disabled,.nana-app .download-small:disabled{opacity:.5;cursor:not-allowed}
+.nana-app .editor-shell{width:min(1120px,100% - 56px);margin:0 auto;padding:37px 0 25px}
+.nana-app .editor-heading{justify-content:space-between;align-items:end;margin-bottom:23px;display:flex}
+.nana-app .eyebrow,.nana-app .step-label{color:#8b8a80;letter-spacing:1.25px;font-size:9px;font-weight:700}
+.nana-app .eyebrow{color:#9a3657;margin:0 0 7px}
+.nana-app .editor-heading h1{letter-spacing:-1.7px;margin:0;font-family:Georgia,Times New Roman,serif;font-size:35px;font-weight:500;line-height:1.08}
+.nana-app .editor-heading h1 span{color:#85002e;font-style:italic}
+.nana-app .intro{color:#797b74;margin:8px 0 0;font-size:12px}
+.nana-app .step-pill{color:#74766f;background:#fffefa;border:1px solid #e8e6df;border-radius:20px;align-items:center;gap:8px;padding:7px 11px 7px 7px;font-size:10px;display:flex}
+.nana-app .step-number{color:#7d153a;background:#f4e1e6;border-radius:50%;place-items:center;width:20px;height:20px;font-weight:700;display:grid}
+.nana-app .editor-layout{grid-template-columns:316px minmax(0,1fr);align-items:stretch;gap:17px;display:grid}
+.nana-app .controls-panel,.nana-app .preview-panel{background:#fffefa;border:1px solid #e8e6df;border-radius:14px;box-shadow:0 6px 22px #332d1710}
+.nana-app .controls-panel{padding:20px 20px 15px}
+.nana-app .panel-title-row{justify-content:space-between;align-items:start;margin-bottom:14px;display:flex}
+.nana-app .panel-title-row h2{letter-spacing:-.35px;margin:4px 0 0;font-size:17px;font-weight:650}
+.nana-app .icon-button{color:#85867e;background:#fffefa;border:1px solid #eceae4;border-radius:8px;place-items:center;width:30px;height:30px;display:grid}
+.nana-app .upload-box{text-align:left;color:#33362f;background:#fafbf7;border:1px dashed #dfc5cb;border-radius:10px;align-items:center;gap:10px;width:100%;padding:11px 10px;display:flex}
+.nana-app .upload-box:hover{background:#fff6f7;border-color:#85002e}
+.nana-app .upload-icon{color:#85002e;background:#f7e4e8;border-radius:9px;flex:none;place-items:center;width:34px;height:34px;display:grid}
+.nana-app .upload-copy{flex-direction:column;flex:1;gap:4px;display:flex}
+.nana-app .upload-copy strong{font-size:11px;font-weight:650}
+.nana-app .upload-copy small{color:#898a83;font-size:9px}
+.nana-app .upload-arrow{color:#8a8c84}
+.nana-app .sample-link{color:#85002e;background:0 0;border:0;align-items:center;gap:5px;padding:8px 0 0;font-size:10px;display:flex}
+.nana-app .sample-link svg{transform:rotate(180deg)}
+.nana-app .form-divider{background:#efede7;height:1px;margin:16px 0 14px}
+.nana-app .section-label{color:#34362f;align-items:center;gap:10px;margin-bottom:8px;font-size:11px;font-weight:650;display:flex}
+.nana-app .style-list{flex-direction:column;gap:5px;display:flex}
+.nana-app .style-swatch{border-radius:7px;flex:none;width:36px;height:36px;display:block;box-shadow:inset 0 0 0 1px #fff5}
+.nana-app .style-option:first-child .style-swatch{background:linear-gradient(145deg,#f2dfd1,#bd8e72)!important}
+.nana-app .style-option:nth-child(2) .style-swatch{background:linear-gradient(145deg,#e6d2bf,#7d7769)!important}
+.nana-app .style-option:nth-child(3) .style-swatch{background:linear-gradient(145deg,#e8e2d0,#75857d)!important}
+.nana-app .style-copy{flex-direction:column;flex:1;gap:3px;display:flex}
+.nana-app .style-copy strong{font-size:10px;font-weight:650}
+.nana-app .style-copy small{color:#888981;font-size:9px}
+.nana-app .radio-check{color:#fff;border:1px solid #d9d9d1;border-radius:50%;place-items:center;width:16px;height:16px;display:grid}
+.nana-app .selected .radio-check{background:#85002e;border-color:#85002e}
+.nana-app .prompt-divider{margin:14px 0 12px}
+.nana-app .prompt-label{color:#3b3d37;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:10px;font-weight:650;display:flex}
+.nana-app .prompt-label span{color:#92938b;letter-spacing:.7px;font-size:8px}
+.nana-app .range-row{color:#696b64;justify-content:space-between;align-items:center;margin-top:11px;font-size:9px;display:flex}
+.nana-app .range-row span{color:#85002e;font-weight:650}
+.nana-app .strength-range{accent-color:#85002e;cursor:pointer;width:100%;height:3px;margin:10px 0 0}
+.nana-app .generate-button{color:#fff;background:#85002e;border:0;border-radius:9px;justify-content:center;align-items:center;gap:8px;width:100%;height:42px;margin-top:13px;font-size:11px;font-weight:650;display:flex;box-shadow:0 4px 9px #85002e26}
+.nana-app .generate-button:hover{background:#650021}
+.nana-app .generate-button:disabled{opacity:.82;cursor:wait}
+.nana-app .button-sparkle{color:#f5cbd6;margin-left:3px;display:flex}
+.nana-app .privacy-note{color:#9a9b94;text-align:center;margin:9px 0 0;font-size:9px;line-height:1.45}
+.nana-app .plan-note{color:#6d5a56;background:#fbf6f1;border:1px solid #eadfd8;border-radius:9px;margin:0 0 13px;padding:9px 10px;font-size:10px;line-height:1.45}
+.nana-app .plan-note strong{color:#54233a;margin-bottom:2px;font-size:10px;display:block}
+.nana-app .plan-note p{margin:0}
+.nana-app .plan-note a{color:#85002e;text-underline-offset:2px;margin-top:4px;font-weight:650;text-decoration:underline;display:inline-block}
+.nana-app .plan-badge{color:#754552;background:#f7eee9;border-radius:20px;padding:5px 8px;font-size:9px;font-weight:650}
+.nana-app .error-message{color:#b4423e;background:#fff4f2;border-radius:7px;padding:8px;font-size:10px;line-height:1.4}
+.nana-app .preview-panel{flex-direction:column;min-width:0;padding:14px;display:flex}
+.nana-app .preview-toolbar{justify-content:space-between;align-items:center;padding:1px 2px 12px;display:flex}
+.nana-app .preview-title{letter-spacing:1px;color:#73756f;align-items:center;gap:8px;font-size:9px;font-weight:700;display:flex}
+.nana-app .live-indicator{width:6px;height:6px;box-shadow:0 0 0 3px #5dbb911c}
+.nana-app .artboard{background:#790027;border-radius:9px;flex:1;justify-content:center;align-items:center;min-height:455px;padding:28px;display:flex;position:relative;overflow:hidden}
+.nana-app .artboard-grid{opacity:.09;background-image:radial-gradient(#f8eee0 1px,#0000 1px);background-size:17px 17px;position:absolute;inset:0}
+.nana-app .artboard:before,.nana-app .artboard:after{content:"";border:1px solid #f5dfe61d;border-radius:50%;width:460px;height:460px;position:absolute}
+.nana-app .artboard:after{width:570px;height:570px}
+.nana-app .portrait-frame{z-index:1;aspect-ratio:4/5;background:#790027;border-radius:5px;width:min(100%,360px);position:relative;overflow:hidden;box-shadow:0 20px 48px #3b001e48}
+.nana-app .portrait-frame:hover .portrait-image{transform:scale(1.025)}
+.nana-app .portrait-badge{color:#fff;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);background:#18241dc9;border-radius:20px;align-items:center;gap:5px;padding:6px 9px;font-size:9px;display:flex;position:absolute;top:12px;right:12px}
+.nana-app .canvas-watermark{color:#fff;text-shadow:0 1px 3px #0008;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);background:#16131466;border:1px solid #ffffff3b;border-radius:10px;align-items:center;gap:7px;padding:5px 9px 5px 5px;font-size:11px;font-weight:700;display:flex;position:absolute;bottom:12px;left:12px}
+.nana-app .watermark-mark{object-fit:contain;border-radius:7px;flex:none;width:27px;height:27px;display:block}
+.nana-app .canvas-caption{z-index:1;color:#e7f2e4;text-shadow:0 1px 4px #084f4a;align-items:center;gap:7px;font-size:9px;display:flex;position:absolute;bottom:14px;right:17px}
+.nana-app .caption-star{color:#e9d493;font-size:14px}
+.nana-app .preview-footer{justify-content:space-between;align-items:center;padding:12px 2px 1px;display:flex}
+.nana-app .preview-file{align-items:center;gap:9px;min-width:0;display:flex}
+.nana-app .file-thumb{border-radius:7px;flex:none;width:35px;height:35px;overflow:hidden}
+.nana-app .file-thumb img{object-fit:cover;width:100%;height:100%}
+.nana-app .preview-file>span:last-child{flex-direction:column;gap:4px;min-width:0;display:flex}
+.nana-app .preview-file strong{color:#51534d;text-overflow:ellipsis;white-space:nowrap;max-width:250px;font-size:10px;overflow:hidden}
+.nana-app .preview-file small{color:#92938b;font-size:9px}
+.nana-app .download-small{color:#5c615a;background:#fffefa;border:1px solid #e8e6df;border-radius:8px;place-items:center;width:32px;height:32px;display:grid}
+.nana-app .page-footer{color:#96978f;justify-content:space-between;align-items:center;padding:17px 2px 0;font-size:9px;display:flex}
+.nana-app .spin{animation:1s linear infinite nana-spin}
+@media (min-width:1300px){.nana-app .editor-shell{padding-top:48px}.nana-app .artboard{min-height:500px}.nana-app .portrait-frame{max-height:460px}}
+@media (max-width:760px){.nana-app .topbar{height:58px;padding:0 18px}.nana-app .topbar-center{display:none}.nana-app .topbar-actions{gap:5px}.nana-app .top-action{padding:0 9px}.nana-app .top-action span{display:none}.nana-app .editor-shell{width:calc(100% - 28px);padding-top:27px}.nana-app .editor-heading{align-items:flex-start;gap:10px}.nana-app .editor-heading h1{font-size:31px}.nana-app .intro{max-width:290px;line-height:1.5}.nana-app .step-pill{flex:none;gap:5px;margin-top:15px;font-size:0}.nana-app .step-number{font-size:10px}.nana-app .editor-layout{grid-template-columns:1fr}.nana-app .preview-panel{grid-row:1}.nana-app .artboard{aspect-ratio:auto;min-height:470px;padding:16px}.nana-app .portrait-frame{aspect-ratio:4/5;width:min(100%,340px);height:auto}.nana-app .controls-panel{padding:18px}.nana-app .page-footer{align-items:flex-start;gap:12px;line-height:1.5}}
+@media (max-width:390px){.nana-app .topbar-center{display:none}.nana-app .editor-heading h1{font-size:28px}.nana-app .step-pill{padding-right:8px}.nana-app .canvas-caption{display:none}}
+.nana-app .style-option{text-align:left;color:#383a35;background:0 0;border:1px solid #0000;border-radius:9px;align-items:center;gap:10px;width:100%;min-height:48px;padding:5px 8px;display:flex}
+.nana-app .style-option:hover{background:#faf9f4}
+.nana-app .style-option.selected{background:#fbf0f1;border-color:#e8cbd2}
+.nana-app textarea{resize:vertical;color:#5e6059;background:#fdfcf8;border:1px solid #e9e7e0;border-radius:8px;outline:none;width:100%;min-height:56px;padding:9px 10px;font-size:10px;line-height:1.5;display:block}
+.nana-app textarea:focus{border-color:#b7627c;box-shadow:0 0 0 3px #85002e14}
+.nana-app .portrait-image{object-fit:cover;width:100%;height:100%;transition:transform .45s;display:block}
+.nana-app .portrait-image{transform:scale(1.025)}

@@ -62,7 +62,7 @@ export function cleanDetail(v: unknown): string {
 const viaChannel = (s: Source): Channel => (s === "search" ? "search" : s === "whatsapp" ? "whatsapp" : SOCIAL.includes(s) ? "social" : "direct");
 
 // The product a landing page belongs to. `role` is the host's (lib/host.ts roleOf): Notes Life and Exam Prep have their own addresses.
-export function productOf(path: string, role: "app" | "life" | "prep" | "main" = "main"): { channel: Channel; detail: string } | null {
+export function productOf(path: string, role: import("./host").HostRole = "main"): { channel: Channel; detail: string } | null {
   if (role === "life") return { channel: "life", detail: "" };
   if (role === "prep") return { channel: "exam-prep", detail: "" };
   const p = String(path || "/").toLowerCase();
@@ -79,7 +79,7 @@ export function productOf(path: string, role: "app" | "life" | "prep" | "main" =
 // Where this first visit came from. Order: a creator's name (?by= or their link), a paid ad (utm_medium), a ?src= naming a channel,
 // the product the visitor landed on, then the referring site (search, WhatsApp, social), else Direct.
 export function classifyTouch(input: {
-  path: string; role?: "app" | "life" | "prep" | "main"; params: Record<string, string | null | undefined>; refHost?: string | null; ownHosts: string[]; now: Date;
+  path: string; role?: import("./host").HostRole; params: Record<string, string | null | undefined>; refHost?: string | null; ownHosts: string[]; now: Date;
 }): Touch {
   const q = (k: string) => String(input.params[k] ?? "").trim();
   const via = sourceOf(input.refHost ?? "", q("utm_source"), input.ownHosts);

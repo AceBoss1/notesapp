@@ -67,3 +67,34 @@ export async function makeAvatar(db: Firestore, uid: string, photo: Buffer, deps
   await ref.set({ uid, count: FieldValue.increment(1), lastAt: now.toISOString() }, { merge: true });
   return { url, left: Math.max(0, AVATAR_PER_DAY - used - 1) };
 }
+
+// ── Nana AI, the portrait studio (lib/nana-portrait.ts) ──
+// The same gate, engine and daily number as the avatar maker, a different picture: a photographic portrait in the chosen look. Free
+// plans get the mark drawn in here; paid plans get the picture as it came. The portrait is returned to the page (as a data address),
+// not kept: the member downloads it. The member's photo is not kept either.
+export type PortraitDeps = Omit<AvatarDeps, "store"> & { webp: (png: Buffer) => Promise<Buffer | null> };
+export const realPortraitDeps = (): PortraitDeps => {
+  const { store: _store, ...rest } = realAvatarDeps();
+  void _store;
+  return { ...rest, webp: async (png) => { const { toWebp } = await import("./cover-render"); return toWebp(png, 88); } };
+};
+export async function makePortrait(
+  db: Firestore, uid: string, photo: Buffer, opts: { prompt: string; paid: boolean }, deps: PortraitDeps = realPortraitDeps(), now = new Date(),
+): Promise<{ image: string; marked: boolean; left: number }> {
+  if (!(await allowed(db, uid, now))) throw new AvatarError(AVATAR_CLOSED.replace("Nana's avatar maker", "Nana AI"), 403);
+  const config = deps.config();
+  if (!config) throw new AvatarError(AVATAR_NOT_SET_UP.replace("The avatar maker", "Nana AI"), 503);
+  const input: Photo = { bytes: photo, type: checkPhoto(photo) };
+  const ref = countRef(db, uid, avatarDay(now));
+  const used = Number((await ref.get()).data()?.count) || 0;
+  if (used >= AVATAR_PER_DAY) throw new AvatarError(`You've made ${AVATAR_PER_DAY} Nana pictures today. You can make more tomorrow.`, 429);
+  const drawn = await drawAvatar(deps.fetch, config, input, opts.prompt);
+  const drawnType = photoType(drawn) ?? "image/png";
+  let out: { bytes: Buffer; type: string };
+  if (opts.paid) {
+    const webp = drawnType === "image/webp" ? drawn : await deps.webp(drawn).catch(() => null);
+    out = webp ? { bytes: webp, type: "image/webp" } : { bytes: drawn, type: drawnType };
+  } else out = await deps.mark(drawn, drawnType);
+  await ref.set({ uid, count: FieldValue.increment(1), lastAt: now.toISOString() }, { merge: true });
+  return { image: `data:${out.type};base64,${out.bytes.toString("base64")}`, marked: !opts.paid, left: Math.max(0, AVATAR_PER_DAY - used - 1) };
+}

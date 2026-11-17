@@ -1195,6 +1195,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     copy) and downloads a fresh copy (`lib/nana-claude.ts`, `lib/nana-claude-server.ts`, `serverConfig/nanaClaudeCopy`); on the
     page the owner picks that file under **Update help articles** and the page republishes itself. The page's source and build
     script are in `scripts/nana-on-claude/`. Tests: `test:avatar`, `test:avatar-server`, `test:nana-claude`, `test:nana-claude-server`.
+145. **Nana AI, the portrait studio, moved into the main app (v0.184.0; owner, 17 Nov 2026: "Option B"; `docs/NANA_PORTRAIT_STUDIO.md`):**
+    `nana.<domain>` is a host role like `prep.` (`lib/host.ts`, `middleware.ts`): the studio at `/` (`app/nana-studio`,
+    `components/nana/PortraitStudio.tsx`, the owner's v0 design ported and scoped under `.nana-app`), its own sign-in at `/signin`.
+    `/api/portrait/access` and `/api/portrait/generate` run on the avatar maker's engine, gate and daily number (`makePortrait` in
+    `lib/avatar-maker-server.ts`; looks and prompt in `lib/nana-portrait.ts`); free plans' portraits are marked by our server, paid plans'
+    aren't; nothing is kept. **Owner steps:** move `nana.notesapp.name.ng` and `nana.naapp.tech` from the v0 Vercel project to this one;
+    add both to Firebase Authorized domains. Same gate as the avatar maker (staff pass). Not ported: the v0 sample photo (on v0's
+    storage). Tests: `test:nana-portrait`, `test:nana-portrait-server`.
 
 ## 3. How the work is done (please keep these)
 

@@ -52,3 +52,8 @@ was made.
 
 `npm run test:avatar` (the rules and both providers, with a stand-in fetch) and `npm run test:avatar-server` (the gate, the daily
 number and the real mark, on the Firestore emulator).
+
+## Shared with the portrait studio (v0.184.0)
+
+Nana AI's portrait studio (`docs/NANA_PORTRAIT_STUDIO.md`) runs on this engine: the same image models, gate and daily number
+(`makePortrait`). `drawAvatar` takes the prompt as an argument; the avatar maker still sends `AVATAR_PROMPT`.

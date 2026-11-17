@@ -22,6 +22,7 @@ set-up steps outside the code are in `docs/OWNER_SETUP.md`.
 | `docs/NOTES-LIFE-LOOKS.md` | Notes Life's two looks (plan): a pixel look (what Low res becomes) and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map with properties; the build steps |
 | `docs/BUSINESS-BOOKS.md` | Business books (plan, for the owner's approval): walk-in sales, expenses, stock, money owed and profit for sellers, Nana entries, offline entry, what can be imported today and how we'd import from Excel, Tralo, Shopify, Paystack and the rest, pricing options |
 | `docs/PAYMENTS.md` | Who takes which payment: Paystack (cards, subscriptions, payout backup), Paylony (bank transfers, Tap2Pay), Flutterwave (across Africa, later); the one payment layer to build; NotesApp Inc |
+| `docs/NANA_PORTRAIT_STUDIO.md` | Nana AI, the portrait studio on nana.<domain>: moved into the main app from its v0 project, sign-in on its own address, the avatar maker's engine, owner steps (move the domains) |
 | `docs/NOTES_LIVE_STUDIO.md` | Notes Live Studio: broadcast graphics over a live (logo, lower third, ticker, subtitles, comments on air, clips, sponsor spot), the roles, the gate, and what comes next (LinkedIn Live) |
 | `docs/MOBILE-APPS.md` | The iOS and Android release plan (Capacitor around the app address, store rules, accounts under NotesApp Inc); scaffold in `mobile/` |
 | `docs/SEND-NA.md` | Send-Na by NotesApp: email, WhatsApp and SMS priced in Naira (plan only), and the WhatsApp and SMS channel booking reminders need |
