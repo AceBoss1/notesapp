@@ -40,6 +40,8 @@ export const metadata: Metadata = {
   description: DEFAULT_DESCRIPTION,
   icons: { icon: "/images/brand/notesapp-icon.webp", apple: "/images/brand/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "NotesApp", statusBarStyle: "default" },
+  // The standard name for apple-mobile-web-app-capable (Chrome warns that the Apple-only tag alone is deprecated).
+  other: { "mobile-web-app-capable": "yes" },
   openGraph: {
     siteName: "#NotesApp",
     type: "website",

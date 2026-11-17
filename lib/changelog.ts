@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.183.1",
+    bump: "patch",
+    date: "2026-11-17",
+    changes: [
+      { kind: "fixed", text: "Opening a main-site page (such as the Challenge) from inside the app no longer logs a blocked request in the browser before it loads." },
+      { kind: "fixed", text: "For our team: Admin → Maintenance loads even when one part of it can't be read, and says which part and why, instead of failing with a server error." },
+    ],
+  },
+  {
     version: "v0.183.0",
     bump: "minor",
     date: "2026-11-17",

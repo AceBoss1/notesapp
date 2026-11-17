@@ -114,7 +114,18 @@ function route(req: NextRequest, host: string, fam: Family) {
       if (next) u.searchParams.set("next", next);
       return NextResponse.rewrite(u);
     }
-    if (APP_TO_MAIN.test(pathname)) return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+    if (APP_TO_MAIN.test(pathname)) {
+      // A client-side navigation or prefetch (the router fetches the page's RSC payload) can't follow a redirect to another
+      // origin: the browser blocks it (CORS) and logs an error. Next.js hides its RSC headers and ?_rsc from middleware, so tell it
+      // by the browser's own fetch metadata: a real page load is Sec-Fetch-Mode "navigate" (document); the router's fetch isn't.
+      // Answer that fetch here with an empty non-RSC response, and the router falls back to a full page load of the same address,
+      // which is then redirected below like any visit. Browsers without these headers get the redirect as before.
+      const mode = req.headers.get("sec-fetch-mode");
+      if (mode && mode !== "navigate" && req.headers.get("sec-fetch-dest") !== "document") {
+        return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store", Vary: "RSC, Next-Router-Prefetch" } });
+      }
+      return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+    }
     return NextResponse.next();
   }
   return NextResponse.next();
