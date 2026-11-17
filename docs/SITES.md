@@ -172,4 +172,5 @@ So once `NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` is set in Vercel, every member's ow
 | Community live streaming as a paid add-on | Planned |
 | "Set it up for me" (our team fills a kit): a request form for the Hotel kit (`/hotels#setup`) | Live (v0.164.0) |
 | Premium looks | Planned, no date |
+| Nana sets up your site, and Review my site (`docs/SITE_NANA.md`) | Live (v0.184.0) |
 

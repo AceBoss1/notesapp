@@ -5,7 +5,8 @@ words for each section; the member keeps, changes or skips each one. **Review my
 booking, buying or getting in touch, each with a button to the fix.
 
 The owner put it third in their order on 15 Nov 2026 ("Themes and kits"), after Notes Planner and Moments, with Merch last.
-**Status: mockups drawn 17 Nov 2026, waiting for the owner's approval. Nothing is built.**
+**Status: built in v0.184.0 (17 Nov 2026)** from the mockups the owner approved that day ("approved, build"). What was built, and what
+wasn't, is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (an interview that drafts a landing page, and a
 review of what stops sign-ups). Only the idea is used; the questions and Nana's instructions are our own words.
@@ -79,6 +80,44 @@ returns a few rewrites, each shown old against new and applied only when the mem
 - Customers leaving reviews through a link.
 - Counting taps on the main button (the drop-off uses visits and orders only).
 - Nana changing a site on her own, or on a schedule.
+
+## Built in v0.184.0
+
+- **The checklist** `lib/site-review.ts` (pure): no banner, no main button, a button that leads nowhere (Book with bookings off, Shop
+  with nothing to buy, Call with no number, Contact with nothing behind it), the kit's sample headline or prices left in, prices
+  missing, a photo look with no photo, no way to reach them, no hours or address, an empty About page, sections on but empty.
+  Ordered by weight; each links to its step on Your site, `/shop` or `/profile/publishing`.
+- **Nana** `lib/site-nana.ts` (pure): the questions are ours and fixed (8, or 9 with "use what's on your account"), so the interview
+  costs nothing; **one Nana call** chooses and drafts from all the answers. `cleanDraft` keeps her to the facts in code: a price,
+  duration, number or sentence with a number the member didn't give is dropped, a phone or email they didn't type is dropped, no
+  testimonials, kits and looks the plan doesn't cover become the nearest covered choice with Nana's first choice shown as `wanted`, and
+  a button with nothing behind it becomes Contact us. The member's own edits aren't fact-checked.
+- **Putting it on** (`applyDraft`): the kit's look, colours and page sections as choosing it by hand does, but **none of the kit's
+  sample words or prices**; only kept parts, only where the part was empty, the member switched "Replace" on, or the words were the
+  kit's samples. A section is switched on only if it has something in it. Hours and contacts only fill empty fields.
+- **The server** `lib/site-nana-server.ts`, route `/api/site/nana`: `siteSetups/{uid}` (answers, draft, the site before and when),
+  server-only in `firestore.rules`, deleted with the account. Nana calls go through `runAi` with the member's Nana allowance (Pearl),
+  30 a day on our account, rate limited 30 an hour. Nana's read uses `ownerViews`, `storeOrders` and `bookings` for the last 30 days;
+  visits by page on Business and above.
+- **Screens** `components/site-setup/`: `/profile/site/nana`, `/profile/site/review`, and two cards above the kits on Your site.
+- **Tests:** `npm run test:site-nana` (pure) and `npm run test:site-nana-server` (Firestore emulator), both in CI, plus the rules test.
+
+Screenshots from the real code, with sample data on the emulators: [built.webp](mockups/site-nana/built.webp).
+
+## Changed from the mockups
+
+- **The questions are ours, not Nana's**, and fixed, so they open at once and cost nothing; Nana writes only once, at the end.
+  "Draft my site with what I've said" appears once there's enough to go on.
+- **No "Send a link" for reviews.** The testimonials card says Nana doesn't write them and where to add real ones.
+- **The preview** is a sketch of the banner and the first prices in the chosen colours, not the full site.
+
+## Not built, or still to do
+
+- **The cost of one draft isn't measured.** It needs the real model, which this build environment doesn't have. Measure a draft and
+  a read on staging.
+- **Nana's real replies aren't tested.** The tests use stand-in replies; how often the real model's choices survive the checks should
+  be watched on staging.
+- **Deploy:** `firebase deploy --only firestore:rules` for `siteSetups`.
 
 ## What comes after
 

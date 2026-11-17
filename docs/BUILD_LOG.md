@@ -3438,3 +3438,13 @@ The owner sent the browser console from Admin → Maintenance on app.naapp.tech.
   (`[admin/maintenance] … failed`) and returned in `problems`, which the page shows; POST failures return their message. The cause in
   production is not known yet: the Vercel log line, or the page's message, will name it.
 - **Meta tag.** `mobile-web-app-capable` is added beside Apple's `apple-mobile-web-app-capable` (Chrome's deprecation warning).
+
+**Themes and kits: Nana sets up your site, and Review my site (v0.184.0, 17 Nov 2026)** — third in the owner's order after Notes
+Planner and Moments; mockups approved the same day (`docs/SITE_NANA.md`). Fixed questions (no Nana until the end), then one Nana call
+chooses kit, look, colours and buttons and drafts the words. `cleanDraft` (`lib/site-nana.ts`) keeps her to the facts in code:
+`numbersIn` reads "25k" and "₦25,000" alike, and any price, duration or sentence with a number the member didn't give is dropped, as
+are phones and emails they didn't type. `applyDraft` uses the kit's look and sections but none of its sample prices, and replaces the
+member's own words only where they switch it on; the site before is kept 30 days (`putBack`). Review my site (`lib/site-review.ts`) is
+pure and free; Nana's read adds banner rewrites and the last 30 days' numbers. Two bugs caught by the emulator test: undefined fields
+in the saved copy of the site (now written through JSON), and merged writes that could leave old draft fields behind (now
+`mergeFields`). Tests: `test:site-nana`, `test:site-nana-server`.
