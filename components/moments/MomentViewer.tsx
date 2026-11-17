@@ -17,6 +17,8 @@ import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/messages/MessageButton";
 import ReportDialog from "./ReportDialog";
 import ShareLinkCard from "@/components/share/ShareLinkCard";
+import { IconCc, IconChevron, IconClose, IconEye, IconHeart, IconMic, IconRepost, IconSound } from "./icons";
+import { Switch } from "./tidy-parts";
 
 const STILL_MS = 6000; // how long an image or text moment stays before the next one
 
@@ -41,6 +43,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
   // Captions (lib/moments-tidy.ts): where the sound that carries them has got to, and whether this viewer wants to see them.
   const [heard, setHeard] = useState(0);
   const [cc, setCc] = useState(true);
+  const [muted, setMuted] = useState(false);
   useEffect(() => { setCc(tidyPrefs().cc); }, []);
   const videoEl = useRef<HTMLVideoElement>(null);
   const viewed = useRef(new Set<string>()); // a moment is counted as seen once per time the viewer is open, however often this re-renders
@@ -146,213 +149,197 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
     await api(`/api/moments/${m.id}`, { body: { action: "reply", text: emoji } });
     setNote(`Sent ${emoji} to @${m.ownerUsername}.`);
   });
-  const card = "rounded-2xl border border-white/10 bg-white/5 p-5";
-  const length = m.kind === "video" ? (m.clipEnd != null ? m.clipEnd - (m.clipStart ?? 0) : m.durationSec) : undefined;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#12060a]" role="dialog" aria-modal="true" aria-label={`Moments from @${m.ownerUsername}`}>
-      {/* Left (wide screens): who else has moments up, and a short note on how they work. */}
-      {groups && groups.length > 0 && (
-        <aside className="mr-6 hidden h-[88vh] w-72 shrink-0 flex-col gap-4 text-white xl:flex">
-          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Moments · from people you follow</p>
-          <ul className="flex-1 space-y-2 overflow-y-auto">
-            {groups.map((g) => (
-              <li key={g.ownerUid}>
-                <button type="button" onClick={() => (g.ownerUid === m.ownerUid ? undefined : onSelectGroup?.(g))} aria-current={g.ownerUid === m.ownerUid}
-                  className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left ${g.ownerUid === m.ownerUid ? "border-pink-400/50 bg-white/10" : "border-transparent hover:bg-white/5"}`}>
-                  <span className={`block bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><span className={`block bg-[#12060a] p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={40} square={!!g.isOrg} /></span></span>
-                  <span className="min-w-0"><span className="flex min-w-0 items-center text-sm font-bold"><span className="truncate">{g.displayName}</span><NameBadgeIcons username={g.ownerUsername} size={13} onDark /></span><span className="block text-xs text-white/60">{g.moments.length} moment{g.moments.length === 1 ? "" : "s"} · {timeLeftLabel(g.moments[g.moments.length - 1].expiresAt)}</span></span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {m.mine && items.length > 1 && (
-            <div className={card}>
-              <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Your moments</p>
-              <ul className="mt-3 space-y-1.5">
-                {items.map((x, k) => (
-                  <li key={x.id}><button type="button" onClick={() => setI(k)} aria-current={k === i} className={`flex w-full justify-between rounded-lg px-3 py-2 text-left text-sm ${k === i ? "bg-white/15" : "hover:bg-white/5"}`}><span>{k + 1}. {x.kind === "video" ? "Video" : x.kind === "image" ? "Picture" : "Text"}</span><span className="text-xs text-white/60">{timeLeftLabel(x.expiresAt)}</span></button></li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className={card}>
-            <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">How moments work</p>
-            <p className="mt-2 text-xs text-white/70">A picture, a short video or text that stays on a profile for 24, 48 or 72 hours. Only the publisher sees who watched.</p>
-          </div>
-        </aside>
-      )}
-      {prevGroup && onSelectGroup && <button type="button" onClick={() => onSelectGroup(prevGroup)} aria-label={`Previous: ${prevGroup.displayName}`} className="mr-3 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl text-white/70 hover:bg-white/10 lg:flex">‹</button>}
-      <div className="relative flex h-full w-full max-w-md flex-col bg-ink text-white sm:h-[90vh] sm:rounded-xl lg:h-[88vh] lg:max-w-[24rem] overflow-hidden">
-        <div className="relative z-10 bg-gradient-to-b from-black/75 via-black/30 to-transparent pb-6">
-        <div className="flex gap-1 p-2 pt-3" aria-hidden>
-          {/* One bar per moment: the maroon part is what has played, the rest is still to come. */}
-          {items.map((x, k) => (
-            <span key={x.id} className="h-1.5 flex-1 overflow-hidden rounded bg-white/70">
-              <span className="block h-full bg-crimson transition-[width] duration-300 ease-linear" style={{ width: `${k < i ? 100 : k === i ? Math.round(frac * 100) : 0}%` }} />
-            </span>
-          ))}
-        </div>
-        <div className="flex items-center justify-between px-3 pb-2 text-sm">
-          <Link href={`/u/${m.ownerUsername}`} className="flex items-center gap-2 font-bold hover:underline">{owner?.avatar ? <Avatar src={owner.avatar} alt="" size={32} square={!!owner.isOrg} /> : null}{owner?.displayName ? <span>{owner.displayName}</span> : null}<NameBadgeIcons username={m.ownerUsername} size={14} onDark /><span className="font-normal text-white/70">@{m.ownerUsername}</span></Link>
-          <span className="text-white/70">
-            {m.resharedFrom ? `reshared from @${m.resharedFrom.ownerUsername} · ` : ""}{m.pinned && timeLeftLabel(m.expiresAt) === "expired" ? "📌 Pinned" : timeLeftLabel(m.expiresAt)}
-          </span>
-          <button onClick={onClose} aria-label="Close" className="px-2 text-2xl leading-none">×</button>
-        </div>
-        </div>
-
-        {/* The picture or video is told its size (the whole stage) and letterboxed inside it, so a wide or very large file, such as a
-            side-by-side TikTok duet, can never spill past the edges of the window. */}
-        <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-black" onClick={tap}>
-          {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="h-full w-full object-contain" />}
-          {m.kind === "video" && m.streamVideo && (
-            // On Cloudflare Stream with the NotesApp mark burned in (signed: a player link only for the moment's audience).
-            <StreamMoment key={m.id} id={m.id} clipStart={m.clipStart ?? 0} clipEnd={m.clipEnd} spans={m.spans} onTime={m.captions?.of === "video" ? setHeard : undefined}
-              onProgress={(f) => setFrac((p) => (p === f ? p : f))}
-              onDone={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
-              onError={(t) => setNote(t)} />
-          )}
-          {m.kind === "video" && !m.streamVideo && (
-            // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
-            <video
-              key={m.videoUrl} ref={videoEl} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
-              onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
-              onTimeUpdate={(e) => {
-                const v = e.currentTarget, from = m.clipStart ?? 0, to = m.clipEnd ?? v.duration;
-                if (m.captions?.of === "video") setHeard(v.currentTime);
-                if (m.spans?.length) {
-                  // Trimmed: skip the pauses, and fill the bar by what has played.
-                  const h = playhead(m.spans, v.currentTime), all = spanTotal(m.spans);
-                  if (all > 0) { const f = Math.round(Math.min(1, playedAt(m.spans, v.currentTime) / all) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
-                  if (h.seek !== undefined) v.currentTime = h.seek;
-                  else if (h.done && advanced.current !== m.id) { advanced.current = m.id; next(); }
-                  return;
-                }
-                if (to > from && Number.isFinite(to)) { const f = Math.round(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
-                if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); }
-              }}
-              onError={() => setNote("This video couldn't be loaded. Check your connection and try again.")}
-              onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
-            />
-          )}
-          {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6 pb-24"><ShareLinkCard link={m.link} /></div>}
-          {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
-          {m.audioUrl && <VoiceOver key={m.id} src={m.audioUrl} spans={m.audioSpans} onTime={m.captions?.of === "voice" ? setHeard : undefined} />}
-          {m.captions && cc && <CaptionOverlay captions={m.captions} time={heard} />}
-          {/* A NotesApp Sounds song: softer under a video or a voice-over, paused with the moment. A moment in a run of parts restarts it. */}
-          {m.songId && <SongPlayer key={`song-${m.id}`} songId={m.songId} under={m.kind === "video" || !!m.audioUrl} paused={paused} />}
-        </div>
-
-        {m.captions && (
-          <div className="absolute right-3 top-1/2 z-10 flex flex-col items-end gap-1.5">
-            <button type="button" onClick={() => { setCc(!cc); saveTidyPrefs({ cc: !cc }); }} aria-pressed={cc} aria-label={cc ? "Hide captions" : "Show captions"} title={cc ? "Hide captions" : "Show captions"}
-              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 font-ui text-[13px] font-extrabold backdrop-blur ${cc ? "border-white bg-black/40 text-white" : "border-white/40 bg-black/30 text-white/50 line-through"}`}>CC</button>
-            {m.mine && <button type="button" disabled={busy} onClick={() => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "uncaption" } }); setItems(items.map((x) => (x.id === m.id ? { ...x, captions: undefined } : x))); })} className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] text-white/90 backdrop-blur">Remove captions</button>}
-          </div>
-        )}
-        <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-20">
-          {m.songId && <p className="flex justify-center font-ui text-xs font-semibold text-white/90 drop-shadow"><SongTag songId={m.songId} /></p>}
-          {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow"><LinkedText text={m.text} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
-          {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
-          {m.mine && showViewers && (
-            <div className="max-h-44 overflow-y-auto rounded-2xl border border-white/20 bg-black/60 p-3 text-sm backdrop-blur lg:hidden" role="region" aria-label="Who watched">
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Who watched</p>
-              {viewers === null ? "Loading…" : viewers.length === 0 ? "No one has seen it yet." : viewers.map((v) => <p key={v.uid} className="py-0.5">{v.displayName} <span className="text-white/60">@{v.username}</span></p>)}
-            </div>
-          )}
-          {m.mine ? (
-            <div className="flex items-center justify-between gap-3 text-sm text-white/90 lg:hidden">
-              <button type="button" onClick={() => { pause(); setShowViewers((v) => !v); }} aria-expanded={showViewers} className="rounded-full bg-white/15 px-4 py-2 font-semibold backdrop-blur">👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · 🔁 {m.reshareCount} {showViewers ? "▾" : "▴"}</button>
-              <span className="flex gap-2">
-                <button disabled={busy} onClick={togglePin} className="rounded-full border border-white/40 px-4 py-2 hover:bg-white/10">{m.pinned ? "Unpin" : "📌 Pin"}</button>
-                <button disabled={busy} onClick={removeMoment} className="rounded-full border border-white/40 px-4 py-2 hover:bg-white/10">Delete</button>
-              </span>
-            </div>
-          ) : (
-            <>
-              <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Quick reactions">
-                {REACTIONS.map((e) => <button key={e} type="button" disabled={busy} onClick={() => react(e)} aria-label={`React with ${e}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-lg backdrop-blur">{e}</button>)}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  disabled={busy}
-                  onClick={() => act(async () => {
-                    const r = await api<{ liked: boolean; likeCount: number }>(`/api/moments/${m.id}`, { body: { action: "like" } });
-                    setItems(items.map((x) => (x.id === m.id ? { ...x, liked: r.liked, likeCount: r.likeCount } : x)));
-                  })}
-                  className="rounded-full border border-white/40 px-4 py-1.5 text-sm backdrop-blur hover:bg-white/10"
-                  aria-pressed={m.liked}
-                >{m.liked ? "♥ Liked" : "♡ Like"}</button>
-                <button
-                  disabled={busy}
-                  onClick={() => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reshare" } }); setNote("Reshared to your moments."); onChanged?.(); })}
-                  className="rounded-full border border-white/40 px-4 py-1.5 text-sm backdrop-blur hover:bg-white/10"
-                >🔁 Reshare</button>
-                <button disabled={busy} onClick={() => { pause(); setReporting(true); }} className="ml-auto rounded-full border border-white/40 px-4 py-1.5 text-sm backdrop-blur hover:bg-white/10">Report</button>
-              </div>
-              <form
-                className="flex gap-2"
-                onSubmit={(e) => { e.preventDefault(); act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reply", text: reply } }); setReply(""); setNote("Sent to their inbox."); }); }}
-              >
-                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`💬 Reply a note to @${m.ownerUsername}`} maxLength={2000} className="min-w-0 flex-1 rounded-full border border-white/40 bg-black/30 px-4 py-2 text-sm placeholder:text-white/50" />
-                <button disabled={busy || !reply.trim()} className="rounded-full bg-crimson px-5 py-2 text-sm font-bold disabled:opacity-50">Send</button>
-              </form>
-            </>
-          )}
-        </div>
-      </div>
-      {nextGroup && onSelectGroup && <button type="button" onClick={() => onSelectGroup(nextGroup)} aria-label={`Next: ${nextGroup.displayName}`} className="ml-3 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl text-white/70 hover:bg-white/10 lg:flex">›</button>}
-      {/* Right (wide screens): who this is, quick reactions and details about this moment. */}
-      <aside className="ml-6 hidden h-[88vh] w-72 shrink-0 flex-col gap-4 overflow-y-auto text-white lg:flex">
-        <div className={card}>
-          <div className="flex items-center gap-3">
-            <Avatar src={owner?.avatar ?? ""} alt="" size={48} square={!!owner?.isOrg} />
-            <div className="min-w-0"><p className="flex min-w-0 items-center font-bold"><span className="truncate">{owner?.displayName ?? `@${m.ownerUsername}`}</span><NameBadgeIcons username={m.ownerUsername} size={14} onDark /></p><p className="truncate text-xs text-white/60">@{m.ownerUsername}</p></div>
-          </div>
-          {!m.mine && (
-            <>
-              <div className="mt-4 flex flex-wrap gap-2 [&_.btn-ghost]:!border-white/40 [&_.btn-ghost]:!bg-transparent [&_.btn-ghost]:!text-white [&_.btn-ghost:hover]:!bg-white/10"><FollowButton username={m.ownerUsername} /><MessageButton username={m.ownerUsername} profileUid={m.ownerUid} /></div>
-              <p className="mt-3 text-xs text-white/60">Your reply goes straight to @{m.ownerUsername}&apos;s inbox as a private message. Only they can see it.</p>
-            </>
-          )}
-        </div>
-        {!m.mine && (
-          <div className={card}>
-            <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Quick reactions</p>
-            <div className="mt-3 flex gap-2">
-              {REACTIONS.map((e) => <button key={e} type="button" disabled={busy} onClick={() => react(e)} aria-label={`React with ${e}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg hover:bg-white/20 disabled:opacity-50">{e}</button>)}
-            </div>
-            <p className="mt-3 text-xs text-white/60">Sends a like with the emoji. One tap, no typing.</p>
-          </div>
-        )}
-        {m.mine && (
+  const length = m.kind === "video" ? (m.spans?.length ? spanTotal(m.spans) : m.clipEnd != null ? m.clipEnd - (m.clipStart ?? 0) : m.durationSec) : undefined;
+  // The look is the owner's "Moments Redesign" (Moda, 16 Nov 2026): a light page with the moment on a rounded stage. On a phone the
+  // owner's numbers and actions, or the viewer's reply, sit under the stage; on a wide screen they are a panel beside it.
+  const card = "rounded-3xl border border-rule bg-card";
+  const round = "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-rule bg-card text-crimson disabled:opacity-50";
+  const timeLeft = `${m.resharedFrom ? `reshared from @${m.resharedFrom.ownerUsername} · ` : ""}${m.pinned && timeLeftLabel(m.expiresAt) === "expired" ? "📌 Pinned" : timeLeftLabel(m.expiresAt)}`;
+  const canMute = (m.kind === "video" && !m.streamVideo) || !!m.audioUrl;
+  const like = () => act(async () => {
+    const r = await api<{ liked: boolean; likeCount: number }>(`/api/moments/${m.id}`, { body: { action: "like" } });
+    setItems(items.map((x) => (x.id === m.id ? { ...x, liked: r.liked, likeCount: r.likeCount } : x)));
+  });
+  const repost = () => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reshare" } }); setNote("Reshared to your moments."); onChanged?.(); });
+  const uncaption = () => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "uncaption" } }); setItems(items.map((x) => (x.id === m.id ? { ...x, captions: undefined } : x))); });
+  const toggleCc = () => { setCc(!cc); saveTidyPrefs({ cc: !cc }); };
+  const bars = (onStage: boolean) => (
+    <div className={`flex gap-1.5 ${onStage ? "absolute inset-x-4 top-4 z-10 hidden lg:flex" : "lg:hidden"}`} aria-hidden>
+      {/* One bar per moment: the maroon part is what has played, the rest is still to come. */}
+      {items.map((x, k) => (
+        <span key={x.id} className={`h-1 flex-1 overflow-hidden rounded-full ${onStage ? "bg-white/40" : "bg-rule"}`}>
+          <span className={`block h-full transition-[width] duration-300 ease-linear ${onStage ? "bg-white" : "bg-crimson"}`} style={{ width: `${k < i ? 100 : k === i ? Math.round(frac * 100) : 0}%` }} />
+        </span>
+      ))}
+    </div>
+  );
+  const who = (
+    <div className="flex items-center gap-3">
+      <Link href={`/u/${m.ownerUsername}`} className="flex min-w-0 items-center gap-3">
+        <span className={`block shrink-0 border-2 border-crimson p-[2px] ${owner?.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={owner?.avatar ?? ""} alt="" size={40} square={!!owner?.isOrg} /></span>
+        <span className="min-w-0"><span className="flex min-w-0 items-center font-ui text-[16px] font-bold text-ink"><span className="truncate">@{m.ownerUsername}</span><NameBadgeIcons username={m.ownerUsername} size={14} /></span><span className="block font-ui text-[13px] text-slate">{timeLeft}</span></span>
+      </Link>
+      {m.audioUrl && <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-field px-3 py-1.5 font-ui text-[13px] font-bold text-crimson"><IconMic size={16} />Voice-over</span>}
+      <button onClick={onClose} aria-label="Close" className="ml-auto shrink-0 text-ink"><IconClose size={26} /></button>
+    </div>
+  );
+  const watched = m.mine && (
+    <div className={card}>
+      <button type="button" onClick={() => { pause(); setShowViewers((v) => !v); }} aria-expanded={showViewers} className="flex w-full items-center gap-3 px-4 py-3 text-left lg:pointer-events-none">
+        <span className="flex -space-x-2">{(viewers ?? []).slice(0, 2).map((v, k) => <span key={v.uid} className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-card font-ui text-xs font-bold text-white ${k ? "bg-[#5C534E]" : "bg-crimson"}`}>{v.displayName.slice(0, 2).toUpperCase()}</span>)}</span>
+        <span className="flex-1 font-ui text-[15px] font-bold text-ink">{viewers === null ? "Who watched" : `${viewers.length} watched`}</span>
+        <IconChevron size={18} className={`text-slate transition-transform lg:hidden ${showViewers ? "rotate-90" : ""}`} />
+      </button>
+      <ul className={`max-h-56 space-y-2 overflow-y-auto border-t border-rule px-4 py-3 font-ui text-sm text-ink ${showViewers ? "" : "hidden lg:block"}`}>
+        {viewers === null ? <li className="text-slate">Loading…</li> : viewers.length === 0 ? <li className="text-slate">No one has seen it yet.</li> : viewers.map((v) => <li key={v.uid}>{v.displayName} <span className="text-slate">@{v.username}</span></li>)}
+        <li className="pt-1 text-xs text-slate">Only you can see this list. Replies come to your Messages.</li>
+      </ul>
+    </div>
+  );
+  const replyForm = !m.mine && (
+    <>
+      <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (!reply.trim()) return; act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reply", text: reply } }); setReply(""); setNote("Sent to their inbox."); }); }}>
+        <input value={reply} onFocus={pause} onChange={(e) => setReply(e.target.value)} placeholder="Reply…" aria-label={`Reply to @${m.ownerUsername}`} maxLength={2000} className="h-12 min-w-0 flex-1 rounded-full border border-rule bg-card px-5 font-ui text-[15px] text-ink outline-none placeholder:text-slate focus:border-crimson" />
+        {reply.trim() ? <button disabled={busy} className="h-12 rounded-full bg-crimson px-5 font-ui text-sm font-bold text-white disabled:opacity-50">Send</button> : (
           <>
-            <div className={card}>
-              <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Your moment</p>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                {[["👁", m.viewCount ?? 0, "Views"], ["♥", m.likeCount, "Likes"], ["🔁", m.reshareCount, "Reshares"]].map(([ic, n, l]) => (
-                  <div key={String(l)} className="rounded-xl bg-white/10 py-3"><p className="font-display text-2xl">{n}</p><p className="mt-0.5 text-[10px] uppercase tracking-wide text-white/60">{ic} {l}</p></div>
-                ))}
-              </div>
-              <button disabled={busy} onClick={togglePin} className="mt-4 w-full rounded-full border border-white/40 py-2 text-sm hover:bg-white/10">{m.pinned ? "Unpin from my Media" : "📌 Pin to my Media"}</button>
-              <button disabled={busy} onClick={removeMoment} className="mt-2 w-full rounded-full border border-white/40 py-2 text-sm hover:bg-white/10">Delete this moment</button>
-            </div>
-            <div className={`${card} min-h-0 flex-1 overflow-y-auto`}>
-              <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Who watched</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                {viewers === null ? <li className="text-white/60">Loading…</li> : viewers.length === 0 ? <li className="text-white/60">No one has seen it yet.</li> : viewers.map((v) => <li key={v.uid}>{v.displayName} <span className="text-white/60">@{v.username}</span></li>)}
-              </ul>
-              <p className="mt-3 text-xs text-white/50">Only you can see this list.</p>
-            </div>
+            <button type="button" disabled={busy} onClick={like} aria-pressed={m.liked} aria-label={m.liked ? "Liked" : "Like"} className={`${round} lg:w-auto lg:gap-2 lg:px-5 ${m.liked ? "!border-crimson !bg-crimson !text-white" : ""}`}><IconHeart /><span className="hidden font-ui text-sm font-bold text-ink lg:inline">{m.liked ? "Liked" : "React"}</span></button>
+            <button type="button" disabled={busy} onClick={repost} aria-label="Repost to my moments" className={`${round} !text-ink lg:w-auto lg:gap-2 lg:px-5`}><IconRepost /><span className="hidden font-ui text-sm font-bold lg:inline">Repost</span></button>
           </>
         )}
-        <div className={card}>
-          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">This moment</p>
-          <p className="mt-2 font-display text-2xl">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : m.kind === "link" ? `Shared ${m.link?.label.toLowerCase() ?? "link"}` : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""}</p>
-          <p className="mt-2 text-xs text-white/60">Posted {ago(m.createdAt)} ago · lasts {m.hours} hours · {m.pinned ? "📌 pinned to Media, stays until unpinned" : timeLeftLabel(m.expiresAt)}</p>
+      </form>
+      <div className="flex items-center gap-2" aria-label="Quick reactions">
+        {REACTIONS.map((e) => <button key={e} type="button" disabled={busy} onClick={() => react(e)} aria-label={`React with ${e}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-field text-lg disabled:opacity-50">{e}</button>)}
+        <button type="button" disabled={busy} onClick={() => { pause(); setReporting(true); }} className="ml-auto font-ui text-xs text-slate underline">Report</button>
+      </div>
+    </>
+  );
+  return (
+    <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-paper text-ink lg:top-[4.5rem] lg:z-30" role="dialog" aria-modal="true" aria-label={`Moments from @${m.ownerUsername}`}>
+      <div className="mx-auto flex min-h-full w-full max-w-md flex-col gap-3 px-6 pb-6 pt-12 lg:max-w-5xl lg:flex-row lg:gap-8 lg:px-8 lg:pt-8">
+        <div className="space-y-3 lg:hidden">{bars(false)}{who}</div>
+
+        {/* The stage. The picture or video is letterboxed inside it, so a wide or very large file can never spill past its edges. */}
+        <div className="relative aspect-[3/4.8] w-full shrink-0 overflow-hidden rounded-3xl bg-black text-white lg:aspect-auto lg:h-[calc(100vh-9rem)] lg:w-[26rem]">
+          {bars(true)}
+          <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden" onClick={tap}>
+            {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="h-full w-full object-contain" />}
+            {m.kind === "video" && m.streamVideo && (
+              // On Cloudflare Stream with the NotesApp mark burned in (signed: a player link only for the moment's audience).
+              <StreamMoment key={m.id} id={m.id} clipStart={m.clipStart ?? 0} clipEnd={m.clipEnd} spans={m.spans} onTime={m.captions?.of === "video" ? setHeard : undefined}
+                onProgress={(f) => setFrac((p) => (p === f ? p : f))}
+                onDone={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+                onError={(t) => setNote(t)} />
+            )}
+            {m.kind === "video" && !m.streamVideo && (
+              // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
+              <video
+                key={m.videoUrl} ref={videoEl} src={m.videoUrl} autoPlay playsInline controls={false} muted={muted} className="h-full w-full object-contain"
+                onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget, from = m.clipStart ?? 0, to = m.clipEnd ?? v.duration;
+                  if (m.captions?.of === "video") setHeard(v.currentTime);
+                  if (m.spans?.length) {
+                    // Trimmed: skip the pauses, and fill the bar by what has played.
+                    const h = playhead(m.spans, v.currentTime), all = spanTotal(m.spans);
+                    if (all > 0) { const f = Math.round(Math.min(1, playedAt(m.spans, v.currentTime) / all) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
+                    if (h.seek !== undefined) v.currentTime = h.seek;
+                    else if (h.done && advanced.current !== m.id) { advanced.current = m.id; next(); }
+                    return;
+                  }
+                  if (to > from && Number.isFinite(to)) { const f = Math.round(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
+                  if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); }
+                }}
+                onError={() => setNote("This video couldn't be loaded. Check your connection and try again.")}
+                onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+              />
+            )}
+            {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6"><ShareLinkCard link={m.link} /></div>}
+            {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
+            {m.audioUrl && <VoiceOver key={m.id} src={m.audioUrl} spans={m.audioSpans} muted={muted} onTime={m.captions?.of === "voice" ? setHeard : undefined} />}
+            {/* A NotesApp Sounds song: softer under a video or a voice-over, paused with the moment. A moment in a run of parts restarts it. */}
+            {m.songId && <SongPlayer key={`song-${m.id}`} songId={m.songId} under={m.kind === "video" || !!m.audioUrl} paused={paused || muted} />}
+          </div>
+          {m.captions && cc && <><div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-2/5 bg-gradient-to-t from-black/70 to-transparent" /><CaptionOverlay captions={m.captions} time={heard} /></>}
+          {(m.captions || canMute) && (
+            <div className="absolute bottom-24 right-3 z-10 flex flex-col gap-2 lg:bottom-28">
+              {m.captions && <button type="button" onClick={toggleCc} aria-pressed={cc} aria-label={cc ? "Hide captions" : "Show captions"} title={cc ? "Hide captions" : "Show captions"} className={`flex h-11 w-11 items-center justify-center rounded-full bg-white shadow ${cc ? "text-crimson outline outline-2 outline-crimson" : "text-slate"}`}><IconCc /></button>}
+              {canMute && <button type="button" onClick={() => setMuted(!muted)} aria-pressed={muted} aria-label={muted ? "Turn the sound on" : "Turn the sound off"} className={`flex h-11 w-11 items-center justify-center rounded-full bg-white shadow ${muted ? "text-slate line-through" : "text-ink"}`}><IconSound /></button>}
+            </div>
+          )}
+          {m.songId && <p className="absolute inset-x-0 bottom-3 z-10 flex justify-center font-ui text-xs font-semibold text-white/90 drop-shadow"><SongTag songId={m.songId} /></p>}
         </div>
-        {nextGroup && onSelectGroup && <p className="text-center text-xs text-white/50">Moves on to {nextGroup.displayName} next</p>}
-      </aside>
+
+        {/* Under the stage on a phone. */}
+        <div className="space-y-3 lg:hidden">
+          {m.kind !== "text" && m.text && <p className="text-center font-ui text-[15px] text-ink"><LinkedText text={m.text} linkClass="font-semibold text-crimson underline underline-offset-2" /></p>}
+          {note && <p className="text-center font-ui text-xs text-crimson" role="status">{note}</p>}
+          {m.mine ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className={`${card} flex h-12 flex-1 items-center justify-around px-3 font-ui text-[15px] font-bold text-ink`}>
+                  <span className="flex items-center gap-1.5"><IconEye size={18} className="text-slate" />{m.viewCount ?? 0}</span><span className="flex items-center gap-1.5"><IconHeart size={18} className="text-crimson" />{m.likeCount}</span><span className="flex items-center gap-1.5"><IconRepost size={18} className="text-slate" />{m.reshareCount}</span>
+                </div>
+                <button disabled={busy} onClick={togglePin} aria-pressed={!!m.pinned} aria-label={m.pinned ? "Unpin from my Media" : "Pin to my Media"} className={`${round} ${m.pinned ? "!border-crimson !bg-[#FBF0F3]" : ""}`}>📌</button>
+                <button disabled={busy} onClick={removeMoment} className="h-12 rounded-full border border-crimson/60 bg-card px-5 font-ui text-[15px] font-bold text-crimson disabled:opacity-50">Delete</button>
+              </div>
+              {m.captions && <button type="button" disabled={busy} onClick={uncaption} className="font-ui text-xs text-slate underline">Remove captions from this moment</button>}
+              {watched}
+            </>
+          ) : replyForm}
+        </div>
+
+        {/* Beside the stage on a wide screen. */}
+        <aside className="hidden min-w-0 flex-1 flex-col gap-4 lg:flex">
+          {who}
+          {m.kind !== "text" && m.text && <p className="font-display text-[28px] font-semibold leading-tight text-ink"><LinkedText text={m.text} linkClass="text-crimson underline underline-offset-4" /></p>}
+          {note && <p className="font-ui text-sm text-crimson" role="status">{note}</p>}
+          {m.mine ? (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                {([[<IconEye key="e" size={16} />, "Views", m.viewCount ?? 0], [<IconHeart key="h" size={16} />, "Likes", m.likeCount], [<IconRepost key="r" size={16} />, "Reposts", m.reshareCount]] as const).map(([ic, l, n]) => (
+                  <div key={l} className={`${card} px-4 py-3`}><p className="flex items-center gap-1.5 font-ui text-[13px] text-slate">{ic}{l}</p><p className="font-display text-3xl text-ink">{n}</p></div>
+                ))}
+              </div>
+              {m.captions && (
+                <>
+                  <p className="font-ui text-sm font-semibold text-slate">Captions</p>
+                  <div className={`${card} divide-y divide-rule px-4`}>
+                    <div className="flex items-center gap-3 py-3"><IconCc className="text-crimson" /><span className="flex-1 font-ui text-[15px] text-ink">Show captions</span><Switch on={cc} onChange={toggleCc} label="Show captions" /></div>
+                    <button type="button" disabled={busy} onClick={uncaption} className="flex w-full items-center justify-between py-3.5 text-left font-ui text-[15px] text-ink">Remove captions<IconChevron size={18} className="text-slate" /></button>
+                  </div>
+                </>
+              )}
+              <div className="flex gap-3">
+                <button disabled={busy} onClick={togglePin} className="h-12 rounded-full border border-rule bg-card px-6 font-ui text-[15px] font-bold text-ink disabled:opacity-50">📌 {m.pinned ? "Unpin" : "Pin"}</button>
+                <button disabled={busy} onClick={removeMoment} className="h-12 rounded-full border border-crimson/60 bg-card px-6 font-ui text-[15px] font-bold text-crimson disabled:opacity-50">Delete</button>
+              </div>
+              {watched}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2"><FollowButton username={m.ownerUsername} /><MessageButton username={m.ownerUsername} profileUid={m.ownerUid} /></div>
+              {replyForm}
+              <p className="font-ui text-xs text-slate">Your reply goes straight to @{m.ownerUsername}&apos;s inbox as a private message. Only they can see it.</p>
+            </>
+          )}
+          <p className="font-ui text-xs text-slate">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : m.kind === "link" ? `Shared ${m.link?.label.toLowerCase() ?? "link"}` : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""} · posted {ago(m.createdAt)} ago · lasts {m.hours} hours{m.pinned ? " · 📌 pinned to Media, stays until unpinned" : ""}</p>
+          {/* Everyone with moments up: jump between people. */}
+          {groups && groups.length > 1 && (
+            <div className="mt-auto">
+              <p className="font-ui text-sm font-semibold text-slate">Moments from people you follow</p>
+              <ul className="mt-2 flex gap-3 overflow-x-auto pb-1">
+                {groups.map((g) => (
+                  <li key={g.ownerUid}>
+                    <button type="button" onClick={() => (g.ownerUid === m.ownerUid ? undefined : onSelectGroup?.(g))} aria-current={g.ownerUid === m.ownerUid} title={g.displayName}
+                      className={`block border-2 p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"} ${g.ownerUid === m.ownerUid ? "border-crimson" : "border-rule"}`}><Avatar src={g.avatar} alt={g.displayName} size={44} square={!!g.isOrg} /></button>
+                  </li>
+                ))}
+              </ul>
+              {nextGroup && onSelectGroup && <p className="mt-1 font-ui text-xs text-slate">Moves on to {nextGroup.displayName} next</p>}
+            </div>
+          )}
+        </aside>
+      </div>
       {reporting && <ReportDialog kind="moment" targetId={m.id} onClose={() => setReporting(false)} />}
     </div>
   );
