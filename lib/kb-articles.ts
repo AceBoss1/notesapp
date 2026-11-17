@@ -1537,7 +1537,16 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **Ticker:** up to 8 lines that scroll along the bottom, one per line, with a tag and three speeds.
 
-**Subtitle line:** type what was said, or a translation, and press Enter. It stays until you clear it or send the next line. Automatic subtitles from speech come later.
+**Subtitle line:** type what was said, or a translation, and press Enter. It stays until you clear it or send the next line, and takes the place of automatic subtitles while it is up.
+
+**Automatic subtitles:** in the studio's desk, switch on **Automatic subtitles**. What each person on stage says appears on the programme a few seconds later.
+- **Looks:** Clean, Bold word (a yellow block moves along the line) or Colour word (the word being said turns gold).
+- **Names:** each line carries the speaker's name. The name is left off when only one microphone is on, and you can switch names off altogether.
+- **Never mixed:** each speaker's own phone or computer writes down only their own microphone. Two people speaking at once get a line each.
+- **Speakers** are told their words are being subtitled and can tap **Turn mine off**. The editor can switch any speaker off under **Who is subtitled**.
+- **Viewers** can hide subtitles on their own screen with **CC**.
+- **Language:** English, or Pidgin (less accurate).
+- Subtitles are automatic, go out unchecked and can be wrong. Only the sound is sent to write them, and neither the sound nor the lines are kept. They aren't in the recording.
 
 **Comments on air:** point at a comment in the chat and choose **On air**, or **Queue** to line it up. Take it off when you move on.
 

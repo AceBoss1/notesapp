@@ -57,6 +57,20 @@ export type StudioClipKind = "video" | "audio" | "image";
 export type StudioClip = { url: string; kind: StudioClipKind; label: string; at: string; ad: boolean; by: string };
 // The sponsor spot: a picture (it may move) or a video with no sound, in one of the two marked places.
 export type StudioSponsor = { url: string; kind: "image" | "video"; slot: SponsorSlot; label: string };
+// Automatic subtitles (docs/STUDIO_SUBTITLES.md): each person on stage has their own device write down their own microphone, and
+// posts the line with their name. look: one of Moments' three. off: speakers who are not subtitled (their own choice, or the
+// editor's). quiet: speakers who have muted themselves, so a lone voice is shown without a name.
+export const SUB_LOOKS = ["clean", "bold", "colour"] as const;
+export type SubLook = (typeof SUB_LOOKS)[number];
+export const SUB_LOOK_LABEL: Record<SubLook, string> = { clean: "Clean", bold: "Bold word", colour: "Colour word" };
+export const SUB_LANGS = ["en", "pcm"] as const;
+export type SubLang = (typeof SUB_LANGS)[number];
+export type StudioSubs = { on: boolean; look: SubLook; names: boolean; lang: SubLang; off: string[]; quiet: string[] };
+// A line that was said. ms: how long it took to say, so the highlight can move through it. solo: nobody else's microphone was on,
+// so the name is left off.
+export type SubLine = { uid: string; name: string; text: string; at: string; ms: number; solo: boolean };
+export const SUBS = { line: 140, lines: 2, gapMs: 2000, holdMs: 4500, pieceSec: 4, maxPieceSec: 6, perLiveSec: 3 * 3600 } as const;
+
 export type StudioState = {
   on: boolean; layout: StudioLayout; theme: StudioTheme;
   focus: string; // who is large in Solo, Spotlight and Picture in picture ("" = the host)
@@ -65,6 +79,7 @@ export type StudioState = {
   comment: StudioComment | null; queue: StudioComment[];
   clip: StudioClip | null; sponsor: StudioSponsor | null;
   screen: string; // who is sharing their screen ("" = nobody): their tile is shown whole, never cropped
+  subs: StudioSubs; said: SubLine[]; // automatic subtitles, and the lines on screen (two at most)
   at: string;
 };
 
@@ -73,7 +88,8 @@ export const DEFAULT_STUDIO: StudioState = {
   bug: { on: true, logo: "", show: "NOTES LIVE", place: "", live: true, clock: true },
   lower: { on: false, style: "headline", kicker: "", head: "", name: "", role: "" },
   ticker: { on: false, tag: "NOTES LIVE", lines: [], speed: "normal" },
-  caption: "", comment: null, queue: [], clip: null, sponsor: null, screen: "", at: "",
+  caption: "", comment: null, queue: [], clip: null, sponsor: null, screen: "",
+  subs: { on: false, look: "clean", names: true, lang: "en", off: [], quiet: [] }, said: [], at: "",
 };
 // The room's studio with every field present (a room from before, or a half-written one, reads as the defaults).
 export function studioOf(r: { studio?: Partial<StudioState> | null } | null | undefined): StudioState {
@@ -83,6 +99,8 @@ export function studioOf(r: { studio?: Partial<StudioState> | null } | null | un
     bug: { ...DEFAULT_STUDIO.bug, ...(s.bug ?? {}) }, lower: { ...DEFAULT_STUDIO.lower, ...(s.lower ?? {}) },
     ticker: { ...DEFAULT_STUDIO.ticker, ...(s.ticker ?? {}), lines: Array.isArray(s.ticker?.lines) ? s.ticker!.lines : [] },
     queue: Array.isArray(s.queue) ? s.queue : [], comment: s.comment ?? null, clip: s.clip ?? null, sponsor: s.sponsor ?? null,
+    subs: { ...DEFAULT_STUDIO.subs, ...(s.subs ?? {}), off: Array.isArray(s.subs?.off) ? s.subs!.off : [], quiet: Array.isArray(s.subs?.quiet) ? s.subs!.quiet : [] },
+    said: Array.isArray(s.said) ? s.said : [],
   };
 }
 export const studioOn = (r: { studio?: Partial<StudioState> | null } | null | undefined) => r?.studio?.on === true;
@@ -116,7 +134,7 @@ export const clipKindOf = (url: string): StudioClipKind => (/\.(mp4|webm|mov)(\?
 
 // What an editor sent for the graphics, laid over the studio as it stands. Only the fields named here change; anything unknown is
 // dropped. `file`: checks an address (ownStudioFile, bound to the storage and the editor by the server).
-export type StudioPatch = Partial<Pick<StudioState, "layout" | "theme" | "focus" | "caption">> & { bug?: Partial<StudioBug>; lower?: Partial<StudioLower>; ticker?: Partial<StudioTicker>; sponsor?: Partial<StudioSponsor> | null };
+export type StudioPatch = Partial<Pick<StudioState, "layout" | "theme" | "focus" | "caption">> & { subs?: Partial<Pick<StudioSubs, "on" | "look" | "names" | "lang">>; bug?: Partial<StudioBug>; lower?: Partial<StudioLower>; ticker?: Partial<StudioTicker>; sponsor?: Partial<StudioSponsor> | null };
 export function applyStudioPatch(cur: StudioState, input: unknown, opts: { file: (url: unknown) => string | null; stage: readonly string[] }): { ok: true; studio: StudioState } | { ok: false; error: string } {
   const p = obj(input);
   const next: StudioState = { ...cur, bug: { ...cur.bug }, lower: { ...cur.lower }, ticker: { ...cur.ticker, lines: [...cur.ticker.lines] } };
@@ -124,6 +142,11 @@ export function applyStudioPatch(cur: StudioState, input: unknown, opts: { file:
   if ("theme" in p) next.theme = pick(p.theme, STUDIO_THEMES.map((t) => t.id), cur.theme);
   if ("focus" in p) { const f = String(p.focus ?? ""); next.focus = f && opts.stage.includes(f) ? f : ""; }
   if ("caption" in p) next.caption = cleanLine(p.caption, STUDIO_MAX.caption);
+  if ("subs" in p) {
+    const b = obj(p.subs);
+    next.subs = { ...cur.subs, on: bool(b.on, cur.subs.on), look: pick(b.look, SUB_LOOKS, cur.subs.look), names: bool(b.names, cur.subs.names), lang: pick(b.lang, SUB_LANGS, cur.subs.lang) };
+    if (!next.subs.on) next.said = []; // switched off: the lines go at once
+  }
   if ("bug" in p) {
     const b = obj(p.bug);
     if ("logo" in b) { const logo = opts.file(b.logo); if (logo === null) return { ok: false, error: "Upload the logo from the studio first." }; next.bug.logo = logo; }
@@ -192,3 +215,49 @@ export function layoutFor(layout: StudioLayout, tiles: number, screen: boolean):
 }
 // Where a clip should be playing now, in seconds, for someone who joins late.
 export const clipOffset = (clip: Pick<StudioClip, "at">, now = Date.now()) => Math.max(0, (now - Date.parse(clip.at)) / 1000);
+
+// ── Automatic subtitles ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+const without = (list: readonly string[], uid: string) => list.filter((u) => u !== uid);
+const withUid = (list: readonly string[], uid: string, on: boolean) => (on ? [...without(list, uid), uid].slice(-60) : without(list, uid));
+// Nobody else's microphone is on: the others on stage are muted by the host, have muted themselves, or there is nobody else. Then
+// the line is shown without a name (owner, 17 Nov 2026: "in solo broadcast mode name is omitted").
+export function voiceAlone(stage: readonly string[], hostMuted: Readonly<Record<string, unknown>> | undefined, quiet: readonly string[], uid: string): boolean {
+  return !stage.some((u) => u !== uid && !hostMuted?.[u] && !quiet.includes(u));
+}
+// May this person's words go on screen? On stage, subtitles on, not switched off for them, microphone not turned off by the host.
+export function maySay(s: StudioState, stage: readonly string[], hostMuted: Readonly<Record<string, unknown>> | undefined, uid: string): string | null {
+  if (!s.on || !s.subs.on) return "Subtitles are switched off.";
+  if (!stage.includes(uid)) return "Only people on stage are subtitled.";
+  if (s.subs.off.includes(uid)) return "Your subtitles are switched off.";
+  if (hostMuted?.[uid]) return "Your microphone is off.";
+  return null;
+}
+// A line someone said, added to what is on screen: their newest line replaces their last, and at most two people's lines show.
+export function sayLine(s: StudioState, line: { uid: string; name: unknown; text: unknown; ms: unknown }, o: { stage: readonly string[]; hostMuted?: Readonly<Record<string, unknown>>; now: Date }): { ok: true; studio: StudioState } | { ok: false; status: number; error: string } {
+  const no = maySay(s, o.stage, o.hostMuted, line.uid);
+  if (no) return { ok: false, status: 403, error: no };
+  const text = cleanLine(line.text, SUBS.line);
+  if (!text) return { ok: false, status: 400, error: "Nothing was said." };
+  const last = s.said.find((l) => l.uid === line.uid);
+  if (last && o.now.getTime() - Date.parse(last.at) < SUBS.gapMs) return { ok: false, status: 429, error: "That line came too soon after the last one." };
+  const ms = Math.max(800, Math.min(SUBS.maxPieceSec * 1000, Math.round(Number(line.ms)) || SUBS.pieceSec * 1000));
+  const fresh = s.said.filter((l) => l.uid !== line.uid && o.now.getTime() - Date.parse(l.at) < l.ms + SUBS.holdMs);
+  const mine: SubLine = { uid: line.uid, name: cleanLine(line.name, STUDIO_MAX.name) || "Speaker", text, at: o.now.toISOString(), ms, solo: voiceAlone(o.stage, o.hostMuted, s.subs.quiet, line.uid) };
+  return { ok: true, studio: { ...s, said: [...fresh, mine].slice(-SUBS.lines) } };
+}
+// A speaker's own subtitles off or on (their choice, or the editor's), and whether they have muted themselves.
+export const subsFor = (s: StudioState, uid: string, off: boolean): StudioState => ({ ...s, subs: { ...s.subs, off: withUid(s.subs.off, uid, off) }, said: off ? s.said.filter((l) => l.uid !== uid) : s.said });
+export const subsQuiet = (s: StudioState, uid: string, quiet: boolean): StudioState => ({ ...s, subs: { ...s.subs, quiet: withUid(s.subs.quiet, uid, quiet) } });
+
+// What a screen shows now. A line the editor typed takes over. `seen` is when this screen first saw each line (its own clock, so a
+// phone whose clock is wrong still shows and clears lines on time).
+export const subKey = (l: Pick<SubLine, "uid" | "at">) => `${l.uid}@${l.at}`;
+export function shownSubs(s: Pick<StudioState, "caption" | "subs" | "said">, seen: Readonly<Record<string, number>>, now: number): { line: SubLine; word: number; name: string }[] {
+  if (s.caption || !s.subs.on) return [];
+  return s.said.filter((l) => seen[subKey(l)] !== undefined && now - seen[subKey(l)] < l.ms + SUBS.holdMs).slice(-SUBS.lines).map((line) => {
+    const words = line.text.split(" ").length, gone = now - seen[subKey(line)];
+    // The highlight moves through the line at an even pace while it was being said, then rests on the last word.
+    return { line, word: Math.min(words - 1, Math.floor((gone / line.ms) * words)), name: s.subs.names && !line.solo ? line.name : "" };
+  });
+}
+

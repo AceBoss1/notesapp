@@ -14,6 +14,8 @@ const DEFAULT_MODEL = "@cf/openai/whisper-large-v3-turbo";
 const account = () => (setting("CLOUDFLARE_ACCOUNT_ID") || setting("R2_ACCOUNT_ID") || "").trim();
 const token = () => (setting("CLOUDFLARE_AI_TOKEN") || "").trim();
 export const captionsOn = () => MOMENT_TIDY_LIVE && !!account() && !!token();
+// The speech service has its keys. Live subtitles (lib/studio.ts) need only this: the studio has its own switch.
+export const speechReady = () => !!account() && !!token();
 
 export type SpeechDeps = { transcribe: (wav: Uint8Array, lang: CaptionLang) => Promise<unknown> };
 
@@ -37,14 +39,18 @@ export const realSpeech = (): SpeechDeps => ({ transcribe: realTranscribe });
 export const looksLikeWav = (b: Uint8Array) => b.length > 44 && String.fromCharCode(b[0], b[1], b[2], b[3]) === "RIFF" && String.fromCharCode(b[8], b[9], b[10], b[11]) === "WAVE";
 const dayKey = (d: Date) => new Date(d.getTime() + 3_600_000).toISOString().slice(0, 10); // Lagos
 
-export async function captionPiece(db: Firestore, uid: string, wav: Uint8Array, lang: unknown, deps: SpeechDeps = realSpeech(), now = new Date(), on = captionsOn()): Promise<{ words: Word[] }> {
+// `use`: "moment" (captions for a moment) or "live" (a speaker's subtitles in Notes Live Studio, counted apart: a live sends a
+// short piece every few seconds, up to three hours of speech a day).
+export const LIVE_PIECES_PER_DAY = 2700;
+export async function captionPiece(db: Firestore, uid: string, wav: Uint8Array, lang: unknown, deps: SpeechDeps = realSpeech(), now = new Date(), on = captionsOn(), use: "moment" | "live" = "moment"): Promise<{ words: Word[] }> {
   if (!on) throw new MomentError(503, "Captions aren't switched on yet. You can still trim the pauses.");
   if (!looksLikeWav(wav)) throw new MomentError(400, "We couldn't read that sound.");
   if (wav.length > CAPTION_CHUNK_MAX_BYTES) throw new MomentError(413, "That piece of sound is too long.");
-  const ref = db.doc(`momentCaptionUse/${uid}_${dayKey(now)}`);
+  const ref = db.doc(`momentCaptionUse/${uid}_${dayKey(now)}${use === "live" ? "_live" : ""}`);
+  const cap = use === "live" ? LIVE_PIECES_PER_DAY : CAPTION_CHUNKS_PER_DAY;
   await db.runTransaction(async (t) => {
     const used = ((await t.get(ref)).data()?.count as number | undefined) ?? 0;
-    if (used >= CAPTION_CHUNKS_PER_DAY) throw new MomentError(429, "You've reached today's limit for captions. Try again tomorrow, or share without them.");
+    if (used >= cap) throw new MomentError(429, use === "live" ? "You've reached today's limit for subtitles." : "You've reached today's limit for captions. Try again tomorrow, or share without them.");
     t.set(ref, { uid, day: dayKey(now), count: used + 1, expireAt: new Date(now.getTime() + 3 * 86_400_000) }, { merge: true });
   });
   let result: unknown;
