@@ -8,7 +8,7 @@ import { DEFAULT_PROFILE, DEFAULT_SETTINGS, cleanProfile, cleanSettings, nextRun
 import {
   dedupe, fitToBudget, groundCoverNote, hardFilter, inCv, jobHash, pickShortlist, prescoreAll, toShort, toText, validateCvReview, validateVerdicts, verifyOne, verifyAll, type Candidate,
 } from "../../lib/nana-jobs-funnel";
-import { checkBoard, fetchBoards, fetchFeeds, slugsFor } from "../../lib/nana-jobs-sources";
+import { FEEDS, checkBoard, fetchBoards, fetchFeeds, slugsFor } from "../../lib/nana-jobs-sources";
 import { docxText, docxXmlText } from "../../lib/cv-extract";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -113,7 +113,7 @@ const alive = setInterval(() => {}, 1000);
   assert.equal(dedupe(feeds.jobs).length, 1, "the same role on two feeds is one");
   const slow: Fetch = (_url, init) => new Promise((_, rej) => init?.signal?.addEventListener("abort", () => rej(Object.assign(new Error("timed out"), { name: "TimeoutError" }))));
   const timedOut = await fetchFeeds(slow, 30);
-  assert.equal(timedOut.jobs.length, 0); assert.equal(Object.keys(timedOut.errors).length, 4, "every feed times out and is skipped");
+  assert.equal(timedOut.jobs.length, 0); assert.equal(Object.keys(timedOut.errors).length, Object.keys(FEEDS).length, "every feed times out and is skipped");
 
   assert.deepEqual(slugsFor("Moniepoint Inc."), ["moniepoint"]); assert.deepEqual(slugsFor("Mono Labs"), ["monolabs", "mono-labs"]);
   const boards = stub((url) => {

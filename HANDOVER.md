@@ -1144,6 +1144,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     roadmap's gold badge prices (from `GOLD_PRICING`). Not changed: the built-in values themselves; they still differ from what is
     saved (commission 35/25/15% built in, 20/15/8% saved, for one) and show only if the settings can't be read. Nothing to deploy.
     Tests: `test:global` (new `tests/global/admin-rates.emulator.ts`).
+141. **Nana Jobs: three more feeds (v0.178.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
+    gains We Work Remotely (RSS), Working Nomads (JSON) and Remote Woman (RSS, its job feed), read once a day with the others; a feed
+    marked `rss` is read as text by `rssItems` (a small reader for flat job items, no new dependency). RemoteOK was already there. Not
+    added: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive and JS Remotely publish no feed (or forbid automated
+    reading), and workwave.com is a software company, not a job board. Members with Open job feeds on get the new ones at the next
+    daily run. Nothing to deploy. Tests: `test:nana-jobs` (fixtures `weworkremotely.xml`, `workingnomads.json`, `remotewoman.xml`).
 
 ## 3. How the work is done (please keep these)
 

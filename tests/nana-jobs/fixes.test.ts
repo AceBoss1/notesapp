@@ -10,22 +10,29 @@ import { join } from "node:path";
 import { AI_TIMEOUT_MS, ANTHROPIC_THINKING_ROOM, ProviderError, completeJson, type Fetch } from "../../lib/ai-providers";
 import { DEFAULT_PROFILE, apiErrorText, cleanProfile, cutSummary, cutText, effectiveProfile, profileEmpty, type NjProfile } from "../../lib/nana-jobs";
 import { daysAgo, hardFilter, prescoreAll } from "../../lib/nana-jobs-funnel";
-import { FEEDS, fetchFeeds } from "../../lib/nana-jobs-sources";
+import { FEEDS, fetchFeeds, rssItems } from "../../lib/nana-jobs-sources";
 
 const root = join(process.cwd(), "tests/nana-jobs/fixtures");
 const NOW = Date.parse("2026-11-15T07:00:00Z");
 const fixture: Fetch = async (url) => {
   const key = Object.keys(FEEDS).find((k) => FEEDS[k].url === url);
   if (!key) throw new Error(`no fixture for ${url}`);
-  return new Response(readFileSync(join(root, `${key}.json`), "utf8"), { status: 200, headers: { "content-type": "application/json" } });
+  return new Response(readFileSync(join(root, `${key}.${FEEDS[key].rss ? "xml" : "json"}`), "utf8"), { status: 200, headers: { "content-type": FEEDS[key].rss ? "application/rss+xml" : "application/json" } });
 };
 
 (async () => {
   // ---- A. the feeds as they really come ----
   const feeds = await fetchFeeds(fixture);
   assert.deepEqual(feeds.errors, {});
-  assert.deepEqual(feeds.counts, { remoteok: 12, remotive: 10, himalayas: 8, arbeitnow: 6 }, "RemoteOK's legal notice isn't a job");
-  const all = feeds.jobs;
+  assert.deepEqual(feeds.counts, { remoteok: 12, remotive: 10, himalayas: 8, arbeitnow: 6, weworkremotely: 5, workingnomads: 3, remotewoman: 3 }, "RemoteOK's legal notice isn't a job");
+  // The RSS feeds (v0.178.0): We Work Remotely puts the company in the title; Remote Woman names it in its own tag.
+  const wwr = feeds.jobs.filter((j) => j.source === "weworkremotely"), rw = feeds.jobs.filter((j) => j.source === "remotewoman"), wn = feeds.jobs.filter((j) => j.source === "workingnomads");
+  for (const j of [...wwr, ...rw, ...wn]) { assert.ok(j.company && j.title && j.postedAt && /^https:\/\//.test(j.url), `${j.source}: ${j.title}`); assert.doesNotMatch(j.description, /<[a-z]|&lt;|CDATA/i, "the description is plain text"); }
+  assert.ok(wwr.every((j) => !j.title.startsWith(`${j.company}:`)), "the company is taken out of the title");
+  assert.deepEqual(rssItems("<rss><channel><item><title><![CDATA[A &amp; B]]></title><link>https://x.test/1?a=1&amp;b=2</link></item></channel></rss>"), [{ title: "A & B", link: "https://x.test/1?a=1&b=2" }]);
+  assert.deepEqual(rssItems("<html>not a feed</html>"), []);
+  // The fixes below were measured on the first four feeds.
+  const all = feeds.jobs.filter((j) => ["remoteok", "remotive", "himalayas", "arbeitnow"].includes(j.source));
 
   // Freshness: every feed's date format is read (ISO with an offset, ISO with no zone, Unix seconds), and none lands in the future.
   for (const src of ["remoteok", "remotive", "himalayas", "arbeitnow"]) {

@@ -34,7 +34,9 @@ All screens on one sheet: [all-screens.webp](mockups/nana-jobs/all-screens.webp)
   member picks it. Requests to free tiers are paced to stay inside their rate limits.
 - **Sources.**
   - Notes Jobs: always on, with the Apply on #NotesApp button kept.
-  - Feeds: RemoteOK, Remotive, Himalayas and Arbeitnow.
+  - Feeds: RemoteOK, Remotive, Himalayas, Arbeitnow, We Work Remotely, Working Nomads and Remote Woman (JSON, or RSS for We Work Remotely and Remote Woman;
+    each is a feed the site publishes). Not added (owner's list, 17 Nov 2026), because they publish no feed or forbid
+    automated reading: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive, JS Remotely. WorkWave is not a job board.
   - Company boards: Greenhouse, Lever and Ashby public APIs, for companies the member adds. A board is checked before it's added.
   - Openings are collected **once a day for everyone** into a shared pool, so each board is asked once, not once per member. Each
     opening keeps its hash (company + title + location), but the pool is stored ~100 openings to a document (`jobPool/{day}-{n}`,

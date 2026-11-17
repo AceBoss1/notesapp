@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.178.0",
+    bump: "minor",
+    date: "2026-11-17",
+    changes: [
+      { kind: "added", text: "Nana Jobs: three more places to look. Your daily shortlist now also draws on We Work Remotely, Working Nomads and Remote Woman, beside RemoteOK, Remotive, Himalayas and Arbeitnow. Nothing to switch on if Open job feeds is already on." },
+    ],
+  },
+  {
     version: "v0.177.1",
     bump: "patch",
     date: "2026-11-17",
