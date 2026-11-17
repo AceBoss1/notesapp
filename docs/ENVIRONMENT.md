@@ -138,9 +138,9 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NANA_DAILY_LIMIT` | no | Nana's daily answers across the site. |
 | `NANA_CHAT_PER_USER_DAILY` | no | Nana chat answers per member a day. |
 | `NANA_ASSIST_DAILY` | no | Writing-help uses per member a day. |
-| `AVATAR_IMAGE_PROVIDER` | no | Nana's avatar maker (docs/AVATAR_MAKER.md): which image model draws the avatars, openai or gemini. Unset: the maker says it isn't set up. |
-| `AVATAR_IMAGE_KEY` | **yes** | The API key of AVATAR_IMAGE_PROVIDER's account (an OpenAI API key, or a Google AI key). |
-| `AVATAR_IMAGE_MODEL` | no | Only to change the image model (defaults: gpt-image-1 for openai, gemini-2.5-flash-image for gemini; lib/avatar-maker.ts). |
+| `AVATAR_IMAGE_PROVIDER` | no | Nana's avatar maker (docs/AVATAR_MAKER.md): which image model draws the avatars and Nana AI portraits: openai, gemini, or cloudflare (Workers AI, free within Cloudflare's daily allowance). Unset: the maker says it isn't set up. |
+| `AVATAR_IMAGE_KEY` | **yes** | The API key of AVATAR_IMAGE_PROVIDER's account: an OpenAI API key, a Google AI key, or a Cloudflare API token with the Workers AI permission (the account is CLOUDFLARE_ACCOUNT_ID, else R2_ACCOUNT_ID). |
+| `AVATAR_IMAGE_MODEL` | no | Only to change the image model (defaults: gpt-image-1 for openai, gemini-2.5-flash-image for gemini, @cf/black-forest-labs/flux-2-klein-4b for cloudflare; lib/avatar-maker.ts). |
 
 ## Identity (Dojah)
 

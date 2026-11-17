@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_HOST, APP_SHORT_DOMAINS, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
+import { APP_HOST, APP_SHORT_DOMAINS, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, NANA_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
 import { FIRST_TOUCH_COOKIE, FIRST_TOUCH_DAYS, PING_COOKIE, classifyTouch, cleanDetail, encodeTouch } from "@/lib/growth";
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS } from "@/lib/referrals";
 
@@ -54,7 +54,7 @@ function ours(req: NextRequest, host: string, fam: Family) {
   const { pathname } = req.nextUrl;
   if (fam.root !== ROOT_DOMAIN && !pathname.startsWith("/api/") && !pathname.startsWith("/_next") && !PUBLIC_FILE.test(pathname) && !res.headers.get("location")) {
     const role = roleOf(fam);
-    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : MAIN_HOST;
+    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "nana" ? NANA_HOST : MAIN_HOST;
     res.headers.set("Link", `<https://${primary}${pathname}>; rel="canonical"`);
   }
   return res;
@@ -95,6 +95,26 @@ function route(req: NextRequest, host: string, fam: Family) {
     }
     if (/^\/(jamb|waec|neco|saved|progress|pay|paid|confirm|review|signin|schools|class|reviewers)(\/|$)/.test(pathname)) return NextResponse.rewrite(new URL(`/exam-prep${pathname}${search}`, req.url));
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // nana.<domain>: the Nana AI portrait studio at its root (app/nana-studio). Its own sign-in and sign-up, like Exam Prep (Firebase
+  // sign-in belongs to one address); its files and API calls load as usual; anything else is the main site's. /nana there would be
+  // Nana chat, which lives on the main site, so it goes there too.
+  if (role === "nana") {
+    if (pathname === "/") return NextResponse.rewrite(new URL(`/nana-studio${search}`, req.url));
+    if (pathname === "/nana-studio" || pathname.startsWith("/nana-studio/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    if (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/signin") {
+      const u = new URL("/nana-studio/signin", req.url);
+      u.searchParams.set("auth", pathname === "/signup" ? "signup" : "signin");
+      const next = req.nextUrl.searchParams.get("next");
+      if (next) u.searchParams.set("next", next);
+      return NextResponse.rewrite(u);
+    }
+    return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // The main site and the app send the portrait studio to its own address (in production; one host on localhost and previews).
+  if (pathname === "/nana-studio" || pathname.startsWith("/nana-studio/")) {
+    const nana = familyHost(host, "nana");
+    if (nana !== host) return NextResponse.redirect(`https://${nana}${pathname.replace(/^\/nana-studio/, "") || "/"}${search}`, 308);
   }
   // The main site and the app send Exam Prep to its own address (in production; one host on localhost and previews).
   if (pathname === "/exam-prep" || pathname.startsWith("/exam-prep/")) {
