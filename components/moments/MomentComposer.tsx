@@ -200,14 +200,24 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
   }
 
   const title = step === "trim" ? "Trim the pauses" : step === "captions" ? "Check your captions" : "New moment";
+  // What she checks the trim and the captions against. With a voice-over, the picture or video it goes over is shown (the video
+  // silent, started and stopped with the voice-over) and the voice-over's own controls sit under it.
+  const backdrop = useRef<HTMLVideoElement>(null);
   const preview = (showCaptions: boolean) => (
-    <div className="relative overflow-hidden rounded-2xl bg-[#E4E1DF]">
-      {target === "voice" || kind !== "video"
-        ? <div className="flex aspect-[4/3] items-center justify-center p-4 lg:aspect-[3/4]">{kind === "image" && fileUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={fileUrl} alt="" className="max-h-full max-w-full rounded-xl object-contain" /> : <p className="px-4 text-center font-display text-xl text-ink">{text || "Your voice-over"}</p>}
-            {tidy.url && <audio ref={(el) => { player.current = el; }} src={tidy.url} controls onTimeUpdate={onTime} onPlay={onTime} className="absolute inset-x-3 bottom-3 h-9" />}</div>
-        : <video ref={(el) => { player.current = el; }} src={fileUrl} controls playsInline onTimeUpdate={onTime} onPlay={onTime} className="aspect-[4/3] w-full bg-black object-contain lg:aspect-[3/4]" />}
-      {showCaptions && caps && <CaptionOverlay captions={{ ...caps, of: target === "voice" ? "voice" : "video" }} time={previewAt} />}
-      {step === "trim" && tidy.sound && <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 font-ui text-xs font-bold text-white">{clock(tidy.after)}</span>}
+    <div>
+      <div className="relative overflow-hidden rounded-2xl bg-[#E4E1DF]">
+        {target === "voice" ? (
+          kind === "video" && fileUrl ? <video ref={backdrop} src={fileUrl} muted loop playsInline className="aspect-[4/3] w-full bg-black object-contain lg:aspect-[3/4]" />
+            : kind === "image" && fileUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={fileUrl} alt="" className="aspect-[4/3] w-full object-contain lg:aspect-[3/4]" />
+            : <div className="flex aspect-[4/3] items-center justify-center p-4 lg:aspect-[3/4]"><p className="px-4 text-center font-display text-xl text-ink">{text || "Your voice-over"}</p></div>
+        ) : <video ref={(el) => { player.current = el; }} src={fileUrl} controls playsInline onTimeUpdate={onTime} onPlay={onTime} className="aspect-[4/3] w-full bg-black object-contain lg:aspect-[3/4]" />}
+        {showCaptions && caps && <CaptionOverlay captions={{ ...caps, of: target === "voice" ? "voice" : "video" }} time={previewAt} />}
+        {step === "trim" && tidy.sound && <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 font-ui text-xs font-bold text-white">{clock(tidy.after)}</span>}
+      </div>
+      {target === "voice" && tidy.url && (
+        <audio ref={(el) => { player.current = el; }} src={tidy.url} controls onTimeUpdate={onTime}
+          onPlay={() => { onTime(); backdrop.current?.play().catch(() => {}); }} onPause={() => backdrop.current?.pause()} className="mt-2 h-10 w-full" aria-label="Your voice-over" />
+      )}
     </div>
   );
 

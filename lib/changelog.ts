@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.180.1",
+    bump: "patch",
+    date: "2026-11-17",
+    changes: [
+      { kind: "fixed", text: "Moments: a video with a voice-over and captions got stuck on \"Loading the video…\", repeated across the screen. It plays now." },
+      { kind: "fixed", text: "Moments: when you check the trim or the captions of a voice-over, you see the video or picture it goes over, not a grey card, and the length no longer covers the audio controls." },
+    ],
+  },
+  {
     version: "v0.180.0",
     bump: "minor",
     date: "2026-11-16",
