@@ -109,6 +109,36 @@ const seg = wordsFromSpeech({ segments: [{ start: 2, end: 4, text: " pays half "
 assert.deepEqual(seg.map((w) => [w.w, w.s, w.e, w.u]), [["pays", 2, 3, true], ["half", 3, 4, true]]);
 assert.equal(wordsFromSpeech({ text: "no times at all" }).length, 0); assert.equal(wordsFromSpeech(null).length, 0);
 
+// ── What the video player says, in every wording, and keeping time when it says little ──
+import { playClock, playerNews } from "../../lib/moments-tidy";
+assert.deepEqual(playerNews({ __privateUnstableMessageType: "timeupdate", value: { currentTime: 3.2, duration: 80 } }), { time: 3.2, duration: 80 });
+assert.deepEqual(playerNews({ event: "propertyChange", property: "currentTime", value: 4.5 }), { time: 4.5 });
+assert.deepEqual(playerNews(JSON.stringify({ type: "timeupdate", data: { currentTime: 1 } })), { time: 1 });
+assert.deepEqual(playerNews({ eventName: "timeupdate", currentTime: 7 }), { time: 7 });
+assert.deepEqual(playerNews({ name: "duration", value: 90 }), { duration: 90 });
+assert.deepEqual(playerNews({ __privateUnstableMessageType: "ended" }), { ended: true });
+assert.deepEqual(playerNews({ event: "play" }), {}); assert.deepEqual(playerNews("not json"), {}); assert.deepEqual(playerNews(null), {});
+assert.deepEqual(playerNews({ value: { currentTime: -1 } }), {}, "a nonsense time is ignored");
+{
+  // One reading at the start and then silence (what froze the captions): the clock carries on from when the video started.
+  const c = playClock(0);
+  assert.equal(c.at(5000), 0, "nothing until it starts");
+  c.feed(0.2, 1000);
+  assert.equal(c.at(1000), 0.2); assert.equal(c.at(4000), 3.2, "it keeps time by the clock"); assert.equal(c.at(31_000), 30.2);
+  // Regular readings: the gaps are filled, and it stops a second and a half after the last one (paused, or loading).
+  const d = playClock(10);
+  d.feed(10.0, 0); d.feed(10.25, 250); d.feed(10.5, 500);
+  assert.equal(d.at(600), 10.6); assert.equal(d.at(60_000), 12, "it doesn't run on while the video is paused");
+  d.feed(10.5, 9000);
+  assert.equal(d.readings, 3, "the same reading again isn't a new one");
+  // No readings at all: from the moment the video began.
+  const e = playClock(75);
+  e.begin(2000); e.begin(9000);
+  assert.equal(e.at(5000), 78);
+  // A jump past a pause.
+  e.jump(100, 5000); assert.equal(e.at(6000), 101);
+}
+
 // ── Pieces of sound for captions: at most 45 seconds, broken at a pause where there is one ──
 import { captionPieces, wavOf } from "../../lib/moments-tidy-client";
 assert.deepEqual(captionPieces([[0, 20], [22, 40], [43, 60]]), [[0, 40], [43, 60]]);

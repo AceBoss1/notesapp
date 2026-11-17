@@ -2,7 +2,7 @@
 
 import { SongPlayer, SongTag } from "@/components/media/SongPicker";
 import { useEffect, useRef, useState } from "react";
-import { playedAt, playhead, spanTotal, type Span } from "@/lib/moments-tidy";
+import { playClock, playedAt, playhead, playerNews, spanTotal, type Span } from "@/lib/moments-tidy";
 import { saveTidyPrefs, tidyPrefs } from "@/lib/moments-tidy-client";
 import { CaptionOverlay, VoiceOver, loadStreamSdk } from "./CaptionOverlay";
 import Link from "next/link";
@@ -354,56 +354,65 @@ function StreamMoment({ id, clipStart, clipEnd, spans, onTime, onProgress, onDon
   const [player, setPlayer] = useState<string | null>(null);
   const cb = useRef({ onProgress, onDone, onTime });
   cb.current = { onProgress, onDone, onTime };
-  // A trimmed video (lib/moments-tidy.ts): Stream's player SDK moves the player past each pause. If the SDK can't load, the video
-  // plays its pauses and still ends at the end of its last stretch.
+  // Where the video has got to. Stream's player is asked three ways, because any one of them can be silent: its messages, read in
+  // every shape (lib/moments-tidy.ts playerNews); its SDK, asked five times a second; and failing both, the clock from when it
+  // started (playClock). The SDK also moves the player past the pauses of a trimmed video; without it the video plays its pauses.
   const control = useRef<{ currentTime: number } | null>(null);
   const sought = useRef({ to: -1, at: 0 });
-  const trimmed = !!spans?.length;
+  const clock = useRef(playClock(clipStart));
+  const needTime = !!spans?.length || !!onTime;
   useEffect(() => {
-    if (!trimmed || !player) return;
+    if (!player) return;
     let live = true;
     loadStreamSdk().then((Stream) => { if (live && frame.current) control.current = Stream(frame.current); }).catch(() => {});
     return () => { live = false; control.current = null; };
-  }, [trimmed, player]);
+  }, [player]);
   useEffect(() => {
     let live = true;
     api<{ player: string }>(`/api/moments/${id}`, { body: { action: "play" } }).then((r) => { if (live) setPlayer(r.player); }, () => { if (live) onError("This video couldn't be loaded. Check your connection and try again."); });
     return () => { live = false; };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let duration = 0;
+    if (!player) return;
+    const c = clock.current = playClock(clipStart);
+    let duration = 0, done = false, lastSdk = -1;
+    const finish = () => { if (!done) { done = true; cb.current.onDone(); } };
     const onMsg = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return;
-      const d = typeof e.data === "string" ? (() => { try { return JSON.parse(e.data); } catch { return null; } })() : e.data;
-      const ev = d?.__privateUnstableMessageType ?? d?.event ?? d?.type;
-      const v = d?.value ?? d?.data ?? {};
-      if (typeof v.duration === "number") duration = v.duration;
-      if (ev === "ended") return cb.current.onDone();
-      if ((ev === "timeupdate" || ev === "propertyChange") && typeof v.currentTime === "number") {
-        cb.current.onTime?.(v.currentTime);
-        if (spans?.length) {
-          const all = spanTotal(spans), h = playhead(spans, v.currentTime);
-          if (all > 0) cb.current.onProgress(Math.round(Math.min(1, playedAt(spans, v.currentTime) / all) * 100) / 100);
-          if (h.done) return cb.current.onDone();
-          // Ask once for each jump (the player reports the time several times before it has moved).
-          if (h.seek !== undefined && control.current && (sought.current.to !== h.seek || Date.now() - sought.current.at > 1500)) {
-            sought.current = { to: h.seek, at: Date.now() };
-            try { control.current.currentTime = h.seek; } catch { /* the player has gone */ }
-          }
-          return;
-        }
-        const to = clipEnd ?? duration;
-        if (to > clipStart) cb.current.onProgress(Math.round(Math.min(1, Math.max(0, (v.currentTime - clipStart) / (to - clipStart))) * 100) / 100);
-        if (clipEnd && v.currentTime >= clipEnd - 0.05) cb.current.onDone();
-      }
+      const news = playerNews(e.data);
+      if (news.duration) duration = news.duration;
+      if (news.ended) return finish();
+      if (news.time !== undefined) c.feed(news.time, Date.now());
     };
     window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [player, clipStart, clipEnd, spans]);
+    const tick = setInterval(() => {
+      const now = Date.now();
+      // The SDK's own reading, when it has one that has moved.
+      try { const t = control.current?.currentTime; if (typeof t === "number" && Number.isFinite(t) && t !== lastSdk) { lastSdk = t; if (t > 0) c.feed(t, now); } } catch { /* the player has gone */ }
+      const t = c.at(now);
+      cb.current.onTime?.(t);
+      if (spans?.length) {
+        const all = spanTotal(spans), h = playhead(spans, t);
+        if (all > 0) cb.current.onProgress(Math.round(Math.min(1, playedAt(spans, t) / all) * 100) / 100);
+        if (h.done) return finish();
+        // Ask once for each jump (the player reports the time several times before it has moved).
+        if (h.seek !== undefined && control.current && (sought.current.to !== h.seek || now - sought.current.at > 1500)) {
+          sought.current = { to: h.seek, at: now };
+          try { control.current.currentTime = h.seek; c.jump(h.seek, now); } catch { /* the player has gone */ }
+        }
+        return;
+      }
+      const to = clipEnd ?? duration;
+      if (to > clipStart) cb.current.onProgress(Math.round(Math.min(1, Math.max(0, (t - clipStart) / (to - clipStart))) * 100) / 100);
+      if (clipEnd && t >= clipEnd - 0.05) finish();
+    }, 200);
+    return () => { window.removeEventListener("message", onMsg); clearInterval(tick); };
+  }, [player, clipStart, clipEnd, spans, needTime]);
   if (!player) return <p className="text-sm text-white/70">Loading the video…</p>;
   return (
     <div className="relative h-full w-full">
       <iframe ref={frame} src={`${player}?autoplay=true&controls=false&preload=auto${clipStart ? `&startTime=${Math.floor(clipStart)}s` : ""}`} title="Moment video"
+        onLoad={() => setTimeout(() => clock.current.begin(Date.now()), 900)}
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" className="absolute inset-0 h-full w-full border-0" />
       <div className="absolute inset-0" aria-hidden />
     </div>

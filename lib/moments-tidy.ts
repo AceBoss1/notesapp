@@ -106,6 +106,36 @@ export function playhead(spans: Span[], t: number): { seek?: number; done?: bool
   }
   return { done: true };
 }
+// What a message from the video player says, whichever way it is worded. Cloudflare Stream's player posts its time in more than one
+// shape (an object of properties, or one named property and its value), so every shape seen or documented is read.
+export function playerNews(data: unknown): { time?: number; duration?: number; ended?: boolean } {
+  let d: unknown = data;
+  if (typeof d === "string") { try { d = JSON.parse(d); } catch { return {}; } }
+  if (!d || typeof d !== "object") return {};
+  const o = d as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
+  const inner = [o.value, o.data, o.detail, o.payload].filter((x): x is Record<string, unknown> => !!x && typeof x === "object");
+  const named = (key: string) => ([o.property, o.key, o.name, o.propertyName, o.prop].includes(key) ? num(o.value ?? o.data) : undefined);
+  const find = (key: string) => named(key) ?? num(o[key]) ?? inner.map((x) => num(x[key])).find((x) => x !== undefined);
+  const words = [o.__privateUnstableMessageType, o.event, o.type, o.eventName, o.name].filter((x) => typeof x === "string");
+  const time = find("currentTime"), duration = find("duration");
+  return { ...(time !== undefined ? { time } : {}), ...(duration !== undefined ? { duration } : {}), ...(words.includes("ended") ? { ended: true } : {}) };
+}
+
+// Where the video has got to, between and without readings from the player. With regular readings it fills the gaps (and stops a
+// second and a half after the last one: the video has paused or is loading). With none, or only the first, it keeps time by the
+// clock from when the video started, so captions still move.
+export function playClock(start: number) {
+  let t = start, at = 0, readings = 0;
+  return {
+    begin(now: number) { if (!at) at = now; },
+    feed(time: number, now: number) { if (time !== t || !at) readings++; t = time; at = now; },
+    jump(time: number, now: number) { t = time; at = now; },
+    at(now: number) { if (!at) return t; const gone = (now - at) / 1000; return r2(t + (readings >= 3 ? Math.min(gone, 1.5) : gone)); },
+    get readings() { return readings; },
+  };
+}
+
 // How much has played by recording time `t`: for the progress bar, and to place captions.
 export function playedAt(spans: Span[], t: number): number {
   let s = 0;

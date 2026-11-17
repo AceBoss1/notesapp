@@ -3415,3 +3415,9 @@ for Moments could drive subtitles in the studio, approved the mockups and added 
 at a time to `/api/studio/subtitles`, and posts the words as a line (`studioStep` `say`); the room's document carries up to two
 lines (`studio.said`) and `ProgramFrame` draws them in Clean, Bold word or Colour word, the highlight moving evenly through the
 line. `voiceAlone` leaves the name off when nobody else's microphone is on. Tests: `test:studio`, `studio.emulator.ts`.
+
+**Moments captions froze on the first word (v0.181.1, 17 Nov 2026)** — reported by the owner from the live site. Captions follow the
+time the Stream player reports; the viewer read that from the player's messages in one shape only, and on the real player got a single
+reading. `StreamMoment` now keeps time three ways: the messages read in every shape (`playerNews`), the player SDK asked five times
+a second, and a clock from when the video started when both are silent (`playClock`, `lib/moments-tidy.ts`). Not verified against
+the real player from the build environment.

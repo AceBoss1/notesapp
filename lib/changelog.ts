@@ -32,6 +32,7 @@ export const CHANGELOG: Release[] = [
     bump: "patch",
     date: "2026-11-17",
     changes: [
+      { kind: "fixed", text: "Moments: captions on a video froze on the first word. They now follow the video to the end." },
       { kind: "fixed", text: "Subscriptions paid in another currency: #NotesApp's commission on them now always comes from the rates in force (the plan's rate, and the VIP or VVIP share). Before, a checkout could now and then start with the built-in rates instead." },
       { kind: "fixed", text: "Discount codes and coupons on a plan: the saving shown before you pay is now always worked out on the plan's current price." },
       { kind: "fixed", text: "Hotel kit: a payment taken on the card machine now always uses the current hold days and Inventory add-on settings when it settles." },
