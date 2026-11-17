@@ -32,7 +32,7 @@ export const AVATAR_PROMPT = [
   "Style: modern African editorial illustration. Clean confident shapes, soft cel shading with two or three tones on the skin, simple expressive eyes, the same expression they have in the photo (do not add a smile they are not showing), hair drawn as bold shapes with a little texture.",
   "Keep them recognisable: the same skin tone, face shape, hair style and hairline, any beard or moustache in the shape they wear it, glasses, headwrap or cap, and the colours and pattern of their clothes. Draw jewellery as it is in the photo, with the same pendant shape, and add nothing they are not wearing.",
   "Background: one solid, vivid colour that suits their clothes. Square picture, the face centred in the upper two thirds, the shoulders running off the bottom edge.",
-  "Proportions: a short, natural neck, about half as wide as the face and no taller than a quarter of the face's height, so the chin sits close to the collar; broad shoulders that reach both side edges of the picture. Never a long or thin neck.",
+  "Proportions: copy the person's real proportions from the photo and do not change their build. Measure in the photo how wide the neck is against the jaw and how wide the shoulders are against the head, and draw the same ratios. A real neck is thick: nearly as wide as the jaw (at least three quarters of the face's width at the cheeks), with its sides dropping almost straight down from just inside the ears, never a narrow column under the chin. Keep the neck short, with the chin close to the collar. Do not widen or enlarge the shoulders or body beyond what the photo shows.",
   "No text, no logo, no watermark, no border, no other people. Leave the bottom left corner free of important detail.",
 ].join(" ");
 
