@@ -33,7 +33,7 @@ export const SETTINGS = {
   NEXT_PUBLIC_R2_PUBLIC_URL: { group: "Storage", secret: false, about: "Public URL of the media bucket (https://media.notesapp.name.ng)." },
   CLOUDFLARE_STREAM_TOKEN: { group: "Storage", secret: true, about: "Cloudflare API token with Stream: Edit, for video lessons of view-only items and courses. Without it only PDF lessons work." },
   CLOUDFLARE_ACCOUNT_ID: { group: "Storage", secret: false, about: "Cloudflare account for Stream when it isn't R2_ACCOUNT_ID." },
-  CLOUDFLARE_AI_TOKEN: { group: "Storage", secret: true, about: "Cloudflare API token with Workers AI: Read, for moment captions (speech to text). Without it captions aren't offered; trimming pauses still works." },
+  CLOUDFLARE_AI_TOKEN: { group: "Storage", secret: true, about: "Cloudflare API token with Workers AI: Read, for moment captions and automatic subtitles in Notes Live Studio (speech to text). Without it neither is offered; trimming pauses still works." },
   MOMENT_CAPTIONS_MODEL: { group: "Storage", secret: false, about: "The Workers AI speech model for moment captions. Defaults to @cf/openai/whisper-large-v3-turbo." },
   PAYSTACK_SECRET_KEY: { group: "Payments", secret: true, about: "Paystack API key (also verifies webhook signatures)." },
   STRIPE_SECRET_KEY: { group: "Payments", secret: true, about: "Stripe (NotesApp Inc): readers paying in USD, GBP, EUR and CAD (lib/stripe.ts). sk_test_\u2026 in the sandbox, sk_live_\u2026 once the account is activated. Never in code or chat." },

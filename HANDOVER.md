@@ -18,6 +18,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
+| `claude/studio-subtitles-plan` | **v0.181.0:** automatic subtitles in Notes Live Studio (`docs/STUDIO_SUBTITLES.md`), built on the owner's "build now" (17 Nov 2026). Needs `CLOUDFLARE_AI_TOKEN`; nothing to deploy for Firestore beyond the Moments rules. **Untested:** the real speech service and the microphone capture in a real room; try it on the staff test pass with two people on stage. Next: Themes and kits, then Merch last. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
 | `push/my-calendar` | **v0.166.0:** My Calendar (`docs/MY_CALENDAR.md`), built on the approved plan branch `push/my-calendar-plan`. Not pushed or merged yet. |
 | `claude/festive-lovelace-r64np9` | **v0.177.0:** Notes Live Studio (`docs/NOTES_LIVE_STUDIO.md`; mockup approved by the owner on 15 Nov 2026). Pushed; no pull request yet. |
@@ -1164,7 +1165,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **Not built:** removing false starts and repeated lines, editing captions after sharing (they can be removed), captions on Media
     posts and lives, translation. The owner's choices (trim on, look, CC) are remembered on the device, not on the account.
 
-142. **Admin settings everywhere (v0.180.2; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
+142. **Admin settings everywhere (v0.181.1; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
     audit of every route for code that reads a value from Admin → Pricing or Admin → Limits without loading it first. A server that has
     just started holds the built-in values until `ensurePricing()` (or `getFanSettings()`) runs, so a route that skips it can use them.
     Pages are safe (the root layout applies the saved prices). Fixed: `lib/global-pay-server.ts` (a subscription paid in another
@@ -1175,13 +1176,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     roadmap's gold badge prices (from `GOLD_PRICING`). Not changed: the built-in values themselves; they still differ from what is
     saved (commission 35/25/15% built in, 20/15/8% saved, for one) and show only if the settings can't be read. Nothing to deploy.
     Tests: `test:global` (new `tests/global/admin-rates.emulator.ts`).
-143. **Nana Jobs: three more feeds (v0.181.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
+143. **Nana Jobs: three more feeds (v0.182.0; owner, 17 Nov 2026, a list of 12 remote job sites):** `lib/nana-jobs-sources.ts` `FEEDS`
     gains We Work Remotely (RSS), Working Nomads (JSON) and Remote Woman (RSS, its job feed), read once a day with the others; a feed
     marked `rss` is read as text by `rssItems` (a small reader for flat job items, no new dependency). RemoteOK was already there. Not
     added: FlexJobs, Wellfound, Toptal, Hubstaff Talent, JustRemote, SkipTheDrive and JS Remotely publish no feed (or forbid automated
     reading), and workwave.com is a software company, not a job board. Members with Open job feeds on get the new ones at the next
     daily run. Nothing to deploy. Tests: `test:nana-jobs` (fixtures `weworkremotely.xml`, `workingnomads.json`, `remotewoman.xml`).
-144. **Nana's avatar maker and the Nana on Claude copy (v0.182.0, branch `claude/beautiful-albattani-crgkzb-avatar`; owner, 17 Nov
+144. **Nana's avatar maker and the Nana on Claude copy (v0.183.0, branch `claude/beautiful-albattani-crgkzb-avatar`; owner, 17 Nov
     2026; `docs/AVATAR_MAKER.md`, `docs/NANA_ON_CLAUDE.md`):** (a) **Avatar maker:** Edit profile → ✨ Make an avatar with Nana: a
     photo in, an illustrated portrait out, marked "Made with Nana AI" by our server, kept under `avatars/{uid}/` and used like any
     uploaded picture. An image model draws it (Claude can't): OpenAI or Google, chosen by `AVATAR_IMAGE_PROVIDER` with
