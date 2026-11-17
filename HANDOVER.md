@@ -1133,6 +1133,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     built:** LinkedIn Live at the same time (shown as coming soon; needs LinkedIn Live approval for the stream key), graphics in the
     recording, automatic subtitles, background blur, network ads. Home, About, the footer and Status were left as they are until the
     studio opens to everyone. Tests: `test:studio`, `test:rooms-server` (`studio.emulator.ts`).
+140. **Admin settings everywhere (v0.177.1; owner, 16 Nov 2026: "everything should reflect whatever is set at admin/limits"):** an
+    audit of every route for code that reads a value from Admin → Pricing or Admin → Limits without loading it first. A server that has
+    just started holds the built-in values until `ensurePricing()` (or `getFanSettings()`) runs, so a route that skips it can use them.
+    Pages are safe (the root layout applies the saved prices). Fixed: `lib/global-pay-server.ts` (a subscription paid in another
+    currency recorded `commissionRate` from the built-in plan rate and the built-in VIP/VVIP share; it now loads both, as
+    `lib/payments.ts` does), `/api/coupons/best` and `/api/discounts/check` (the plan price behind a preview),
+    `lib/hotel-pos-server.ts` (the Moniepoint callback settles with the saved hold days and Inventory trial), `/api/replays?all=1`
+    (admins' recordings list now gets the live keep days), the Teach dashboard's footnote (the plan's course limit, not 30) and the
+    roadmap's gold badge prices (from `GOLD_PRICING`). Not changed: the built-in values themselves; they still differ from what is
+    saved (commission 35/25/15% built in, 20/15/8% saved, for one) and show only if the settings can't be read. Nothing to deploy.
+    Tests: `test:global` (new `tests/global/admin-rates.emulator.ts`).
 
 ## 3. How the work is done (please keep these)
 

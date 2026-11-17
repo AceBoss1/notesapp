@@ -7,7 +7,8 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { MEDIA_LIVE } from "@/lib/media-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
-import { certificateMin, liveTicketUpliftPct, ppmUpliftPct } from "@/lib/pricing";
+import { certificateMin, liveTicketUpliftPct, nairaText, ppmUpliftPct } from "@/lib/pricing";
+import { GOLD_PRICING } from "@/lib/gold";
 import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
@@ -109,7 +110,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Gold badge — endorsements and identity checks",
     tag: "Trust",
-    body: "The gold ✔ is live: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (₦1,999/month personal, ₦2,999/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — is built too, and its results now reach us automatically.",
+    get body() { return `The gold ✔ is live: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (${nairaText(GOLD_PRICING.personal.monthlyKobo)}/month personal, ${nairaText(GOLD_PRICING.corporate.monthlyKobo)}/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — is built too, and its results now reach us automatically.`; },
     detail:
       "Identity-check results arrive from Dojah by signed webhook and show next to the application (we store only pass/fail, never ID data); an admin still approves, and applicants get a bell notification and an email when their application is decided. An organisation whose corporate identity check passes is marked registration-confirmed when its gold subscription starts. Coming: approving fully passed checks automatically (built, switched off until we've watched real results).",
   },

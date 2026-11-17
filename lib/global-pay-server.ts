@@ -7,6 +7,8 @@ import {
 } from "./global-pay";
 import { SUB_TIERS, TIER_NAME, isSubTier, tierOffers, tierRate, type SubTier } from "./fans";
 import { commissionRateFor } from "./tiers";
+import { ensurePricing } from "./pricing-server";
+import { getFanSettings } from "./fans-server";
 import type { AccountTier } from "./users";
 import type { PublisherSettings } from "./booking-time";
 
@@ -46,6 +48,7 @@ export async function setRates(db: Firestore, by: string, body: Record<string, u
 }
 
 async function publisherFor(db: Firestore, username: string) {
+  await ensurePricing(db); // the commission saved in Admin → Pricing, not the built-in one (this server may not have loaded it yet)
   const uid = (await db.doc(`usernames/${username}`).get()).data()?.uid as string | undefined;
   if (!uid) throw new GlobalPayError("Journal not found.", 404);
   const [u, s, g] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`publisherSettings/${uid}`).get(), db.doc(`publisherGlobal/${uid}`).get()]);
@@ -99,7 +102,8 @@ export async function startCheckout(
   const rates = await getRates(db);
   if (offer.currency !== pay && !ratesFresh(rates, now)) throw new GlobalPayError("Paying in this currency is paused for a moment while we update exchange rates. Please try again later.", 503);
   const r = rates ?? { perUsd: { [pay]: 1 }, marginPct: 0, reservePct: 0, updatedAt: now.toISOString() };
-  const commissionRate = tierRate(pub.commissionRate, tier);
+  // The VIP and VVIP shares from Admin → Limits → Subscriptions and fans, as the naira checkout uses (lib/payments.ts).
+  const commissionRate = tierRate(pub.commissionRate, tier, await getFanSettings(db));
   const payment: GlobalPayment = {
     reference: newRef(), uid: me.uid, email: me.email, publisherUid: pub.uid, publisherUsername: b.username, tier,
     payCurrency: pay, payMinor: readerPrice(offer.minor, offer.currency, pay, r), provider: providerFor(pay),

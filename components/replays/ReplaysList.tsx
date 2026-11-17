@@ -29,7 +29,7 @@ export default function ReplaysList({ admin = false }: { admin?: boolean }) {
   useEffect(() => onAuthStateChanged(auth, (u) => setSignedIn(!!u)), []);
   const load = useCallback(async () => {
     try {
-      if (admin) { const j = await capi<{ recordings: RecordingRow[] }>("/api/replays?all=1"); setData({ recordings: j.recordings, replays: [], figures: DEFAULT_RECORDING_FIGURES }); }
+      if (admin) { const j = await capi<{ recordings: RecordingRow[]; figures?: RecordingFigures }>("/api/replays?all=1"); setData({ recordings: j.recordings, replays: [], figures: j.figures ?? DEFAULT_RECORDING_FIGURES }); }
       else setData(await capi<Mine>("/api/replays?mine=1"));
     } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't load your replays."); }
   }, [admin]);

@@ -3,6 +3,7 @@ import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { NOTESAPP_OWNER, isNotesAppTarget, isPublisherTarget } from "@/lib/discounts";
 import { bestCoupon } from "@/lib/discounts-server";
 import { tierPrice } from "@/lib/tier-billing";
+import { ensurePricing } from "@/lib/pricing-server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
   }
   if (!owner) return NextResponse.json({ best: null });
   // A plan is priced here, from its tier and interval; everything else from what the checkout shows (checked again at payment).
+  if (target === "plan") await ensurePricing(db); // the plan prices saved in Admin → Pricing, not the built-in ones
   const tier = b.tier === "business" ? "business" : "pro";
   const subtotalKobo = target === "plan" ? (tierPrice(tier, b.interval === "annually" ? "annually" : "monthly") ?? 0) : Math.max(0, Math.round(Number(b.subtotalKobo) || 0));
   const best = await bestCoupon(db, u.uid, owner, {
