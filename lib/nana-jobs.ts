@@ -42,7 +42,7 @@ export type NjProfile = {
 // Where to look, which AI, and when to send it.
 export type NjSettings = {
   provider: AiProvider | ""; // the AI the member chose ("" = a free one if connected, else the rough ranking)
-  feeds: boolean; // RemoteOK, Remotive, Himalayas, Arbeitnow
+  feeds: boolean; // the open feeds in lib/nana-jobs-sources.ts FEEDS
   boards: boolean; // the company boards below
   companies: Board[];
   bell: boolean; // on by default

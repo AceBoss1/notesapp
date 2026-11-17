@@ -4,6 +4,7 @@ import { DiscountError, NOTESAPP_OWNER, describeCode, isNotesAppTarget, isPublis
 import { applyCode } from "@/lib/discounts-server";
 import { rateLimit } from "@/lib/rate-limit";
 import { tierPrice } from "@/lib/tier-billing";
+import { ensurePricing } from "@/lib/pricing-server";
 import { ReferralError, referralByCode } from "@/lib/referrals-server";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
       if (!owner) return NextResponse.json({ error: "That code isn't valid here." }, { status: 404 });
     } else return NextResponse.json({ error: "Unknown checkout." }, { status: 400 });
     if (target === "plan") {
+      await ensurePricing(db); // the plan prices saved in Admin → Pricing, not the built-in ones
       const tier = b.tier === "business" ? "business" : "pro", interval = b.interval === "annually" ? "annually" : "monthly";
       const price = tierPrice(tier, interval) ?? 0, month = tierPrice(tier, "monthly") ?? 0;
       let notOurs: DiscountError | null = null;

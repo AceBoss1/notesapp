@@ -15,7 +15,7 @@ export const maxDuration = 60;
 // GET ?list=new            → { replays }                                Explore: the newest listed replays
 // GET ?list=trending&days= → { replays }                                Trending: the most watched in the period
 // GET ?mine=1              → { recordings, replays, figures }           the host's Media area
-// GET ?all=1               → { recordings }                             admins (Trust & safety): every recording, for safety review
+// GET ?all=1               → { recordings, figures }                           admins (Trust & safety): every recording, for safety review
 // POST { action: "play", id, admin? }       → { url, type }   a recording, for its host (or an admin with admin: true): a 15-minute link
 //      { action: "delete", id }                          the host deletes a recording (and its replay)
 //      { action: "publish", id, title, audience }        → { id, audience, why? }
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     }
     if (sp.get("all")) {
       await verifyAdminRequest(bearer(req), ["moderation", "legal"]);
-      return NextResponse.json({ recordings: await allRecordings(db) }, noStore);
+      return NextResponse.json({ recordings: await allRecordings(db), figures: await liveRecordingFigures(db) }, noStore);
     }
     const uid = await member(req);
     const [recordings, replays, figures] = await Promise.all([myRecordings(db, uid), myReplays(db, uid), liveRecordingFigures(db)]);

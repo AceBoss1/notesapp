@@ -377,7 +377,7 @@ function SourcesStep({ st, setSt, user, head, busy, flash, back, onSave }: { st:
       {head}
       <div className="card mt-4 divide-y divide-rule px-4">
         <div className="flex items-center justify-between gap-3 py-3 text-sm"><span>🟥 Notes Jobs (verified firms)</span><Toggle on label="Notes Jobs, always on" disabled /></div>
-        <div className="flex items-center justify-between gap-3 py-3 text-sm"><span>🌍 RemoteOK, Remotive, Himalayas, Arbeitnow</span><Toggle on={feeds} onChange={setFeeds} label="Open job feeds" /></div>
+        <div className="flex items-center justify-between gap-3 py-3 text-sm"><span>🌍 RemoteOK, Remotive, Himalayas, Arbeitnow, We Work Remotely, Working Nomads, Remote Woman</span><Toggle on={feeds} onChange={setFeeds} label="Open job feeds" /></div>
         <div className="flex items-center justify-between gap-3 py-3 text-sm"><span>🏢 Company job boards (Greenhouse, Lever, Ashby)</span><Toggle on={boards} onChange={setBoards} label="Company job boards" /></div>
       </div>
       <Companies st={st} setSt={setSt} user={user} />
