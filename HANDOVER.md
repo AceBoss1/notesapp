@@ -1202,7 +1202,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `lib/avatar-maker-server.ts`; looks and prompt in `lib/nana-portrait.ts`); free plans' portraits are marked by our server, paid plans'
     aren't; nothing is kept. **Owner steps:** move `nana.notesapp.name.ng` and `nana.naapp.tech` from the v0 Vercel project to this one;
     add both to Firebase Authorized domains. Same gate as the avatar maker (staff pass). Not ported: the v0 sample photo (on v0's
-    storage). Tests: `test:nana-portrait`, `test:nana-portrait-server`.
+    storage). **Free image model:** `AVATAR_IMAGE_PROVIDER=cloudflare` + a Cloudflare API token (Workers AI permission) in
+    `AVATAR_IMAGE_KEY`: FLUX.2 [klein] 4B on Workers AI within the free daily allowance; the photo is made 512 px first (`fitPhoto`);
+    "used up for today" is a 429 with a plain message (`docs/AVATAR_MAKER.md` "The free option"). Not yet tried against Cloudflare.
+    Tests: `test:nana-portrait`, `test:nana-portrait-server`, `test:avatar`.
 
 ## 3. How the work is done (please keep these)
 

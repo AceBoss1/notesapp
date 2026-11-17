@@ -18,6 +18,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Nana AI, the portrait studio, now runs on NotesApp itself at nana.notesapp.name.ng and nana.naapp.tech: upload a photo, pick Studio classic, Editorial light or Journal warmth, and get a polished professional portrait for your journal byline or profile. Sign in right there with your NotesApp account. The #NotesApp team is testing it now; it opens to everyone soon." },
       { kind: "changed", text: "Nana AI: free plans' portraits carry the Made with Nana AI mark; Pro, Business and Enterprise get them without. Your photo isn't kept." },
       { kind: "fixed", text: "Nana AI: signing in with NotesApp didn't work on the portrait studio. It now signs in on the studio's own address." },
+      { kind: "added", text: "Nana AI and Nana's avatar maker can now draw with Cloudflare Workers AI, inside Cloudflare's free daily allowance, as well as OpenAI or Google. When the day's free pictures are used up, Nana says so and asks you to come back tomorrow." },
     ],
   },
   {

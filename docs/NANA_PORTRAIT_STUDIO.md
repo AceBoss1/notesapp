@@ -49,7 +49,8 @@ The same as the avatar maker: the #NotesApp team while the **staff test pass** i
 2. **Firebase → Authentication → Settings → Authorized domains:** add `nana.notesapp.name.ng` and `nana.naapp.tech` (sign-in is refused
    on an address that isn't listed).
 3. **To try it:** set `AVATAR_IMAGE_PROVIDER` and `AVATAR_IMAGE_KEY` in Vercel (if not already done for the avatar maker), switch the
-   staff test pass on, and sign in with a team account.
+   staff test pass on, and sign in with a team account. **Free:** `AVATAR_IMAGE_PROVIDER=cloudflare` with a Cloudflare API token that
+   has the Workers AI permission (`docs/AVATAR_MAKER.md` "The free option"). `openai` and `gemini` need a paid API key.
 4. Nothing to deploy in Firestore: `avatarCounts` is already server-only.
 
 The storage upload list (`scripts/r2-cors.json`) doesn't need the Nana addresses: the studio never uploads to storage from the browser.

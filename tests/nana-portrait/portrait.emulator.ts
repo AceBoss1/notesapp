@@ -74,6 +74,26 @@ const db = getFirestore();
   await S.makeAvatar(db, "pstaff", photo, { ...deps(), store: async (k: string) => `https://media.test/${k}` }, new Date(now.getTime() + 2 * 86_400_000));
   assert.match(prompts[0], /flat vector-style illustrated portrait/);
 
+  // ---- Cloudflare: the photo is made small enough first (512 a side), for portraits and avatars alike ----
+  const fitted: number[] = [];
+  const cfDeps = deps({ config: () => ({ provider: "cloudflare" as const, key: "cf", model: "@cf/black-forest-labs/flux-2-klein-4b", account: "acc" }),
+    fit: async (p: { bytes: Buffer; type: "image/jpeg" | "image/png" | "image/webp" }, side: number) => { fitted.push(side); return p; },
+    fetch: async () => new Response(JSON.stringify({ success: true, result: { image: drawn.toString("base64") } }), { status: 200, headers: { "content-type": "application/json" } }) });
+  await S.makePortrait(db, "pstaff", photo, { prompt, paid: true }, cfDeps, new Date(now.getTime() + 2 * 86_400_000 + 3_600_000));
+  assert.deepEqual(fitted, [512]);
+  fitted.length = 0;
+  await S.makePortrait(db, "pstaff", photo, { prompt, paid: true }, deps(), new Date(now.getTime() + 2 * 86_400_000 + 3_600_000));
+  assert.deepEqual(fitted, [], "OpenAI and Google get the photo as it is");
+  // the real shrinking, with the encoder Next.js ships: a 1200 x 900 picture becomes 512 x 384 JPEG; a small one is left alone
+  const big = Buffer.from(await new ImageResponse(React.createElement("div", { style: { display: "flex", width: 1200, height: 900, background: "#A6093D" } }), { width: 1200, height: 900 }).arrayBuffer());
+  const small = await S.fitPhoto({ bytes: big, type: "image/png" }, 512);
+  assert.equal(small.type, "image/jpeg");
+  const req = eval("require") as NodeRequire;
+  const meta = await (req("next/dist/server/lib/squoosh/main") as { getMetadata: (b: Buffer) => Promise<{ width: number; height: number }> }).getMetadata(small.bytes);
+  assert.deepEqual([meta.width, meta.height], [512, 384]);
+  const tiny = { bytes: drawn, type: "image/png" as const };
+  assert.equal(await S.fitPhoto(tiny, 512), tiny, "512 x 512 already fits");
+
   console.log("PORTRAIT SERVER OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

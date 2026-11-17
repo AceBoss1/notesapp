@@ -14,11 +14,14 @@ export const AVATAR_SIZE = 1024;
 export const AVATAR_MARK = "Made with Nana AI";
 export const AVATAR_FOLDER = "avatars";
 
-export const AVATAR_PROVIDERS = ["openai", "gemini"] as const;
+// cloudflare: Workers AI on the NotesApp Cloudflare account, inside its free daily allowance (owner, 17 Nov 2026: "any free option").
+export const AVATAR_PROVIDERS = ["openai", "gemini", "cloudflare"] as const;
 export type AvatarProvider = (typeof AVATAR_PROVIDERS)[number];
 export const isAvatarProvider = (v: unknown): v is AvatarProvider => typeof v === "string" && (AVATAR_PROVIDERS as readonly string[]).includes(v);
 // The model each provider uses unless AVATAR_IMAGE_MODEL names another.
-export const AVATAR_MODEL: Record<AvatarProvider, string> = { openai: "gpt-image-1", gemini: "gemini-2.5-flash-image" };
+export const AVATAR_MODEL: Record<AvatarProvider, string> = { openai: "gpt-image-1", gemini: "gemini-2.5-flash-image", cloudflare: "@cf/black-forest-labs/flux-2-klein-4b" };
+// Workers AI's FLUX.2 models take reference pictures of at most this many pixels a side; the photo is made this small first.
+export const CLOUDFLARE_INPUT_SIDE = 512;
 
 export class AvatarError extends Error {
   constructor(message: string, readonly status = 400) {
