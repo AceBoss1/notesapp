@@ -5,6 +5,7 @@ import { getLimitTable, saveLimitOverrides } from "@/lib/limits-server";
 import { getAgentSettings, saveAgentSettings } from "@/lib/agents/config-server";
 import { getRoomSettings, saveRoomSettings } from "@/lib/rooms-server";
 import { relayConfigured } from "@/lib/rooms-relay-server";
+import { guestStats } from "@/lib/live-guests-server";
 import { getWatermarkSettings, saveWatermarkSettings } from "@/lib/media-mark-server";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(bearer(req), ["product"]);
     const db = getAdminDb();
-    return NextResponse.json({ limits: await getLimitTable(db), agents: await getAgentSettings(db, 0), rooms: await getRoomSettings(db, 0), watermark: await getWatermarkSettings(db, 0), relayKeys: relayConfigured() });
+    return NextResponse.json({ limits: await getLimitTable(db), agents: await getAgentSettings(db, 0), rooms: await getRoomSettings(db, 0), guestStats: await guestStats(db).catch(() => null), watermark: await getWatermarkSettings(db, 0), relayKeys: relayConfigured() });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load the limits");
     return NextResponse.json({ error: f.message }, { status: f.status });

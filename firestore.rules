@@ -1085,6 +1085,8 @@ service cloud.firestore {
     // Nana sets up your site (lib/site-nana-server.ts): the member's answers, Nana's draft and their site as it was before the draft went
     // on (kept 30 days to put back). Server only: they reach it through /api/site/nana.
     match /siteSetups/{id} { allow read, write: if false; }
+    // The day's guest views, sign-ups and minutes in lives (lib/live-guests-server.ts), for Admin → Limits. Server only.
+    match /liveGuestStats/{day} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)
@@ -1180,6 +1182,8 @@ service cloud.firestore {
       // Relay rooms (lib/rooms.ts, mode "relay"): each person's Cloudflare session id and microphone track. Server-only: nobody can read
       // another's session (or their own), so the only way to send or receive sound is through the server's checks.
       match /relay/{uid} { allow read, write: if false; }
+      // Guests watching without an account (lib/live-guests-server.ts, docs/GUEST_LIVES.md): server only. Guests never read Firestore.
+      match /guests/{guestId} { allow read, write: if false; }
       // Live mode (lib/rooms-live.ts): the video minutes, the cameras up, the listener samples and the host's prompts. Server-only: the
       // host reads their minutes through the server, and nobody can reset the clock. Who has a camera up (videoOn), whether speakers may
       // (stageVideo) and the poster are on the room doc, which only the server writes.
