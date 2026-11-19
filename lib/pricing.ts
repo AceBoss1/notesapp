@@ -1,3 +1,4 @@
+import { MerchError, applyMerch, cleanMerch, currentMerch, type MerchSettings } from "./merch";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent, setBadgePriceKobo, type TierConfig } from "./tiers";
 import { GOLD_PRICING } from "./gold";
 import { BOOST_PACKAGES } from "./boost-config";
@@ -79,6 +80,9 @@ export type PricingConfig = {
   // Pay-per-minute sessions (docs/LIVE_ECONOMY.md 1b, lib/ppm.ts): #NotesApp takes the publisher's normal rate plus this % of it on each
   // session's charge, fixed on the session when it's booked (owner, 4 Nov 2026: "the VIP uplift").
   ppmUpliftPct: number;
+  // Official merch (lib/merch.ts, Admin → Merch; docs/MERCH_3D.md): the batch, delivery, each item's price, colours and on/off, the
+  // custom shirts, and the extras (front and back, XXL, wrapped all round, a name on the back).
+  merch: MerchSettings;
 };
 
 const tier = (t: string) => TIERS.find((x) => x.tier === t)!;
@@ -108,6 +112,7 @@ export function currentPricing(): PricingConfig {
     gifts: currentGiftSettings(),
     liveTicketUpliftPct: LIVE_TICKETS.upliftPct,
     ppmUpliftPct: PPM.upliftPct,
+    merch: currentMerch(),
   };
 }
 // Paid lives' ticket commission share (owner, 3 Nov 2026: "the same uplift as premium gifts").
@@ -204,6 +209,7 @@ export function applyPricing(c: PricingConfig): void {
   if (c.gifts) applyGiftSettings(c.gifts);
   if (typeof c.liveTicketUpliftPct === "number") LIVE_TICKETS.upliftPct = c.liveTicketUpliftPct;
   if (typeof c.ppmUpliftPct === "number") PPM.upliftPct = c.ppmUpliftPct;
+  if (c.merch) applyMerch(c.merch);
 }
 
 // ── Checking what an admin typed ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -322,6 +328,9 @@ export function cleanPricing(input: unknown): PricingConfig {
   // Added with paid lives (v0.141.0): a config saved before keeps the default.
   const lu = i.liveTicketUpliftPct === undefined || i.liveTicketUpliftPct === "" ? d.liveTicketUpliftPct : Math.round(Number(i.liveTicketUpliftPct));
   if (!Number.isFinite(lu) || lu < 0 || lu > 100) throw new PricingError("Paid-live tickets, extra commission: a whole percentage from 0 to 100.");
+  // Added with Merch in 3D (v0.186.0): a config saved before keeps the built-in merch settings.
+  let merch: MerchSettings;
+  try { merch = i.merch === undefined ? d.merch : cleanMerch(i.merch, d.merch); } catch (e) { throw e instanceof MerchError ? new PricingError(e.message) : e; }
   // Added with pay-per-minute sessions (v0.142.0): a config saved before keeps the default.
   const pu = i.ppmUpliftPct === undefined || i.ppmUpliftPct === "" ? d.ppmUpliftPct : Math.round(Number(i.ppmUpliftPct));
   if (!Number.isFinite(pu) || pu < 0 || pu > 100) throw new PricingError("Pay-per-minute sessions, extra commission: a whole percentage from 0 to 100.");
@@ -335,6 +344,7 @@ export function cleanPricing(input: unknown): PricingConfig {
     gifts,
     liveTicketUpliftPct: lu,
     ppmUpliftPct: pu,
+    merch,
   };
 }
 

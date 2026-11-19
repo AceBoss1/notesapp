@@ -19,6 +19,7 @@ import { tierOf, tierRate, type SubTier } from "./fans";
 import { addFanPoints, getFanSettings } from "./fans-server";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
+import { choiceText } from "./merch";
 import { creditTopup } from "./wallet-server";
 import { addNanaCredit } from "./nana-meter";
 import { issueInTransaction } from "./certificates-server";
@@ -78,6 +79,9 @@ export type PaymentRecord = {
     unitKobo: number;
     deliveryKobo: number;
     batchId: string;
+    // Merch in 3D (lib/merch.ts quoteMerch): what was chosen, and the price lines the buyer saw.
+    product?: string; colour?: string; colourName?: string; place?: import("./merch").MerchPlace; backName?: string; designId?: string;
+    lines?: { label: string; kobo: number }[];
     address: { fullName: string; phone: string; street: string; city: string; state: string };
   };
   store?: {
@@ -1026,7 +1030,7 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp merch pre-order is confirmed",
       bell: { uid: p.uid, type: "merch", linkHref: parcelId ? `/track/${parcelId}` : "/orders" },
-      text: `Thanks! ${m.quantity} × ${m.itemName}${m.size ? ` (${m.size})` : ""} with the ${m.logoLabel} logo — ${formatNaira(p.amountKobo)} including delivery.\nDelivering to ${m.address.fullName}, ${m.address.street}, ${m.address.city}, ${m.address.state}.\nWe print after the batch closes and deliver within about 3 weeks of closing. You can ask for a refund before the batch is printed.${parcelId ? `\nTrack it any time with parcel ID ${parcelId}.` : ""}\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `Thanks! ${m.quantity} × ${m.itemName}${m.product ? ` (${choiceText({ colourName: m.colourName, logoLabel: m.designId ? undefined : m.logoLabel, place: m.place, size: m.size, backName: m.backName })})` : `${m.size ? ` (${m.size})` : ""} with the ${m.logoLabel} logo`} — ${formatNaira(p.amountKobo)} including delivery.\nDelivering to ${m.address.fullName}, ${m.address.street}, ${m.address.city}, ${m.address.state}.\nWe print after the batch closes and deliver within about 3 weeks of closing. You can ask for a refund before the batch is printed.${parcelId ? `\nTrack it any time with parcel ID ${parcelId}.` : ""}\nReference: ${p.reference}\n\n#NotesApp`,
       ...(parcelId ? { action: { label: "Track your order", url: `${site}/track/${parcelId}` } } : {}),
     });
     return;

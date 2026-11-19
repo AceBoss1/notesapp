@@ -3,7 +3,8 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { notifyBell, sendEmail } from "@/lib/email";
 import { FieldValue } from "firebase-admin/firestore";
-import type { MerchOrder } from "@/lib/merch";
+import { currentMerch, type MerchOrder } from "@/lib/merch";
+import { ensurePricing } from "@/lib/pricing-server";
 import { cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
 import { maskContacts } from "@/lib/pii";
 import { ensureMerchParcel, expireLinks, hashToken, holderUrl, newLinkToken, parcelStatusForMerch, sendMerchStatusEmail } from "@/lib/orders-server";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 const FLOW = ["preordered", "printed", "shipped", "delivered"] as const;
 
-// GET → { orders }: every merch order, newest first, with the buyer's email and phone masked (lib/pii.ts). The delivery
+// GET → { orders, merch }: every merch order, newest first, with the buyer's email and phone masked (lib/pii.ts). The delivery
 // address stays readable for fulfilment; the real email or phone is shown with a reason through /api/admin/reveal.
 export async function GET(req: NextRequest) {
   try {
@@ -20,8 +21,10 @@ export async function GET(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Finance and customer care only." }, { status: 403 });
   }
-  const snap = await getAdminDb().collection("merchOrders").orderBy("createdAt", "desc").get();
-  return NextResponse.json({ orders: maskContacts(snap.docs.map((d) => d.data())) }, { headers: { "Cache-Control": "no-store" } });
+  const db = getAdminDb();
+  await ensurePricing(db); // the batch and prices Admin saved (lib/merch.ts), not the built-in ones
+  const snap = await db.collection("merchOrders").orderBy("createdAt", "desc").get();
+  return NextResponse.json({ orders: maskContacts(snap.docs.map((d) => d.data())), merch: currentMerch() }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // Admin-only: move a merch pre-order along preordered → printed → shipped →

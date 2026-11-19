@@ -5,8 +5,8 @@ import type { MerchItem } from "@/lib/merch";
 const STROKE = "#9a8f86";
 const FILL = "#fdfbf8";
 
-function Shape({ shape }: { shape: MerchItem["shape"] }) {
-  const p = { fill: FILL, stroke: STROKE, strokeWidth: 2.5, strokeLinejoin: "round" as const };
+function Shape({ shape, fill = FILL }: { shape: MerchItem["shape"]; fill?: string }) {
+  const p = { fill, stroke: STROKE, strokeWidth: 2.5, strokeLinejoin: "round" as const };
   switch (shape) {
     case "tshirt":
       return <path {...p} d="M62 28 L90 18 Q100 34 110 18 L138 28 L178 62 L156 88 L140 76 L140 174 L60 174 L60 76 L44 88 L22 62 Z" />;
@@ -53,7 +53,8 @@ function Shape({ shape }: { shape: MerchItem["shape"] }) {
   }
 }
 
-export default function MerchMockup({ item, logoSrc, logoAlt }: { item: MerchItem; logoSrc: string; logoAlt: string }) {
+// colour: the chosen colour of the item (Merch in 3D); the drawing's own cream when not given.
+export default function MerchMockup({ item, logoSrc, logoAlt, colour }: { item: MerchItem; logoSrc: string; logoAlt: string; colour?: string }) {
   return (
     <div className="relative aspect-square w-full overflow-hidden bg-paper">
       {item.photo ? (
@@ -62,14 +63,14 @@ export default function MerchMockup({ item, logoSrc, logoAlt }: { item: MerchIte
       ) : (
         <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full" role="img" aria-label={item.name}>
           <ellipse cx="100" cy="184" rx="58" ry="6" fill="#00000012" />
-          <Shape shape={item.shape} />
+          <Shape shape={item.shape} fill={colour} />
         </svg>
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={logoSrc}
         alt={logoAlt}
-        className="absolute object-contain mix-blend-multiply"
+        className={`absolute object-contain ${colour ? "" : "mix-blend-multiply"}`}
         style={{ left: `${item.print.left}%`, top: `${item.print.top}%`, width: `${item.print.size}%`, height: `${item.print.size}%` }}
       />
     </div>
