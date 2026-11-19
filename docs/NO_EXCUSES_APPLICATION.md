@@ -11,7 +11,7 @@
 | When | What | Team hub task |
 |---|---|---|
 | 2 Nov 2026 | Registered ✓ ("you're in", cohort one, 14:57). This is the registration, not a decision: we still submit by 8 Dec. The first part is saved (who we are, what NotesApp does, why us, the company), and the draft stops at "show us". | `fund-timeline` |
-| by 22 Nov | Pitch deck **or** walkthrough video (one is enough). **Not sent yet (19 Nov).** The script and the deck are below, under "Show us" | `fund-deck-video` |
+| by 22 Nov | Pitch deck **and/or** walkthrough video (one is enough). **Not sent yet (19 Nov).** The deck is ready; the video script is below, under "Show us" | `fund-deck-video` |
 | by 26 Nov | The remaining answers drafted (below) | `fund-answers` |
 | by 29 Nov | NotesApp checked working on **naapp.tech** | `fund-live-check`, `fund-site-live` |
 | **by 8 Dec** | Final read-through and **submit** (a week's margin) | `fund-final-review`, `fund-submit` |
@@ -58,7 +58,7 @@ Never send a figure we can't show (`docs/FUNDING.md`).
 
 ## Show us: the walkthrough video and the deck (added 19 November 2026)
 
-**Send the video; add the deck if there's time.** One is enough, but a video shows that the product works on naapp.tech, which is
+**Send the video and the deck.** The deck is ready (below). One is enough, but a video shows that the product works on naapp.tech, which is
 what the panel checks. The same video serves Vercel X (`docs/FUNDING.md` §25), and the deck serves the HubSpot pitch (§26), HBS Angels
 (§23) and YASR30 (§27).
 
@@ -92,20 +92,9 @@ switched on yet.
 3. Paste the link under **Show us** on the [dashboard](https://noexcuses.get.tech/apply/dashboard). Tick `fund-deck-video` on the
    team hub.
 
-### The deck: ten slides (the same story)
+### The deck
 
-1. **NotesApp**: "Africa's knowledge, shared, valued and rewarded." naapp.tech. Founder name and email on naapp.tech.
-2. **The problem**: five apps and a bank transfer; sales and trust lost in the gaps; dollar tools for naira businesses.
-3. **The product**: one account: site, journal, bookings, courses, shop with delivery, communities and lives, Business books,
-   payouts in naira. Three screenshots from naapp.tech.
-4. **Nana**: sets up the site, drafts replies and jobs for approval, books from a sentence, tutors students (Nana Lite); money never
-   moves through the AI.
-5. **Who it's for**: creators, tutors, coaches, consultants, small sellers; Nigeria first, Kenya live, M-Pesa next.
-6. **Traction**: the `/admin` numbers on the day (members, last 30 days, processed, commission), 2,150+ exam questions, the NKENNEAi
-   recognition. "Processed", never "revenue", for the money that passes through.
-7. **Business model**: plans (Free Basic, Pro, Business, Enterprise), commission on sales, bookings and courses, add-ons, Exam Prep.
-8. **Why now, why us**: mobile money and instant transfers everywhere; built end to end from Nigeria, bootstrapped, already live.
-9. **Team**: the founder and the three co-founders, one line each, with photos.
-10. **The ask**: what the grant pays for, in three lines, and what we'll show in twelve months. Live on naapp.tech, staying there.
-
-Make it in Google Slides (share it the same way as the video), or ask Claude to build it. Export a PDF for the forms that want a file.
+Use the **#NotesApp Pitch Deck** (https://claude.ai/artifact/HUL4xzNmksy1a9YXzRK3if), the one deck for every submission (`docs/FUNDING.md`, "The pitch deck"). Export it as PDF,
+upload it to Google Drive, set General access to **Restricted**, add `noexcuses@get.tech` as Viewer, and paste the link under **Show
+us** next to the video's. On slide 15, put "Applying for the No Excuses Fund" in the headline and keep "live on naapp.tech, and staying
+there". Refresh slide 10 from `/admin` first.
