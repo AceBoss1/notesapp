@@ -7,7 +7,8 @@ import { ROOM_SPEAKERS_MAX } from "./rooms";
 
 // Pages Nana may link to besides the help articles (a link to anything else is stripped before the reply is shown).
 export const NANA_PAGES: [path: string, what: string][] = [
-  ["/anya", "Anya smart glasses by #NotesApp (Anya Display, Anya Nana, Anya Audio): coming soon; register interest there"],
+  ["/devices", "Notes Smart Devices: the home of NotesPhone and Anya smart glasses. Nothing on sale yet; reserve any device free there (NotesPhone E Pro first, E Ultra, E Ultra+ and E Prestige in 2027; Anya Display, Nana and Audio coming soon)"],
+  ["/anya", "Anya smart glasses by #NotesApp (Anya Display, Anya Nana, Anya Audio): coming soon; reserve one free on /devices"],
   ["/", "Home"], ["/journals", "The journal feed (For you, Following, Latest, Top this week)"], ["/trending", "Most visited publishers and posts"], ["/signup", "Create an account"], ["/login", "Sign in"],
   ["/forgot-password", "Reset a password"], ["/pricing", "Plans, prices and what each includes"], ["/booking", "How paid sessions and bookings work"], ["/bookings", "A member's own bookings"],
   ["/gifts", "Gifts"], ["/boost", "Boost packages and prices"], ["/coauthoring", "Co-authoring"], ["/advertise", "Advertise on #NotesApp"], ["/advertise/specifications", "Advert sizes, spots, rotation and the Notes Life billboard"], ["/badges", "Verified and gold badges"],

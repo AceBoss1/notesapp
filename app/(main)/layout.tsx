@@ -93,6 +93,7 @@ const COMPANY = [
   { href: "/teams", label: "Team hub" },
   { href: "/domains", label: "Buy Domains" },
   { href: "/merchstore", label: "Merch Store" },
+  { href: "/devices", label: "Notes Smart Devices" },
   { href: "/anya", label: "Anya smart glasses" },
   { href: "/challenge", label: "#1MillionNairaNotes" },
 ];
