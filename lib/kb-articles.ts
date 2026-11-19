@@ -1938,8 +1938,12 @@ Not live yet, with no promised dates: the Enterprise course packages; the Notes 
 **Getting paid across borders** is being explored, with no date: paying and being paid between African countries and from abroad without losing so much to exchange rates and slow transfers, through a licensed payment partner's faster settlement network. You'd still pay and be paid in your own currency, with no crypto to hold, and nothing changes until lawyers confirm what each country allows. See the [Roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
-    A("notesphone", "NotesPhone: a phone with #NotesApp built in (reserve free)", "Company", `
-**NotesPhone** is a phone in #NotesApp's name, made with a phone maker we're partnering with, with #NotesApp built into the phone itself: your journal, calls, Market, Academy, Jobs and Nana from the moment you switch it on. Nothing is on sale yet. See it at [NotesPhone](/devices).
+    A("notes-smart-devices", "Notes Smart Devices: NotesPhone and Anya (reserve free)", "Company", `
+**Notes Smart Devices** is the home of #NotesApp's own devices, at [Notes Smart Devices](/devices): **NotesPhone** and **Anya smart glasses** today, and any new #NotesApp device in future. Nothing is on sale yet. You can reserve any of them there, free, on one list.
+
+**Anya smart glasses:** Anya Display, Anya Nana and Anya Audio, coming soon. See [Anya smart glasses](/help/anya-smart-glasses) and the [Anya page](/anya).
+
+**NotesPhone** is a phone in #NotesApp's name, made with a phone maker we're partnering with, with #NotesApp built into the phone itself: your journal, calls, Market, Academy, Jobs and Nana from the moment you switch it on.
 
 **The phones:**
 - **NotesPhone E Pro**, our first phone: a fast 5G flagship with a 200 MP camera, a 6.7" AMOLED screen and a 5000 mAh battery with 67 W fast charging. The specification may change before launch.
@@ -1949,9 +1953,9 @@ ${ADD_ONS_LINE}`),
 
 E Ultra, E Ultra+ and E Prestige are being designed now; their launch dates will be announced in 2027.
 
-**Reserving is free** and doesn't commit you to buy. Choose the phone, the colour you'd like (ivory, crimson, maroon, silver, gold or black, not confirmed yet), your name, email and city. You can reserve more than one phone; reserving the same phone again just updates it.
+**Reserving is free** and doesn't commit you to buy. Choose the device, the colour you'd like (for NotesPhone: ivory, crimson, maroon, silver, gold or black, not confirmed yet), your name, email and city. You can reserve more than one device; reserving the same one again just updates it.
 
-**How we order:** the factory makes a phone in batches of 500. When 500 people have reserved a phone, we place the order, and before anyone pays we email everyone who reserved it with the price, the colours and the delivery date. There's no price or date yet, so please don't trust anyone who asks you to pay for a NotesPhone today.`),
+**How we order:** the factory makes a phone in batches of 500. When 500 people have reserved a phone, we place the order. Before anyone pays for any device, we email everyone who reserved it with the price, the colours and the delivery date. There's no price or date yet, so please don't trust anyone who asks you to pay for a NotesPhone or Anya today.`),
     A("anya-smart-glasses", "Anya smart glasses: Display, Nana and Audio (coming soon)", "Company", `
 Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are three models:
 
@@ -1961,7 +1965,7 @@ Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are th
 
 Anya Display and Anya Nana charge in their cases while they're stored.
 
-**Price and pre-orders:** not announced yet. To be among the first to try Anya, open [Anya](/anya) and tap **Register your interest**; it opens the contact form on the Anya topic. Registering is free and doesn't commit you to buy. We'll contact you before pre-orders open.
+**Price and pre-orders:** not announced yet. To be among the first to try Anya, reserve the model you want on [Notes Smart Devices](/devices), Anya's home with NotesPhone. Reserving is free and doesn't commit you to buy. We'll contact you before pre-orders open.
 `),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `
 A coming-soon challenge for influencers: reach 100,000 views and 10,000 new followers to unlock live video, then reach 2,000 registered members watching one live for at least 5 minutes to open a ₦1,000,000 giveaway (₦250,000 in Bonus Credits for followers you choose, ₦250,000 in NotesApp Credit for you, and ₦500,000 cash). The first ten influencers to qualify each month are paid, each influencer can win once, and fake accounts and bots are disqualified. It is not live yet; see [the challenge page](/challenge).`),

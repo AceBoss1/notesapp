@@ -1,6 +1,12 @@
-# NotesPhone (devices.<domain>)
+# Notes Smart Devices (devices.<domain>)
 
-Owner, 19 Nov 2026: a white-label phone partnership. Phones in #NotesApp's name, made by a partner on their operating system, with
+Owner, 19 Nov 2026: devices.<domain> is the permanent home of #NotesApp's own devices, with one free reservation list for all of
+them: **NotesPhone** and **Anya smart glasses** today (Anya keeps its own page, now at devices.<domain>/anya), and any future device as
+one more entry in `DEVICES` (`lib/devices.ts`, with its `family`, its colours, and `moq` when ordering waits for reservations).
+
+## NotesPhone
+
+A white-label phone partnership. Phones in #NotesApp's name, made by a partner on their operating system, with
 #NotesApp built in. The partner is not named on the site until the agreement is signed (`PARTNER_NAMED` in `lib/devices.ts`).
 
 ## The plan agreed so far (from the owner's messages with the partner)
@@ -19,15 +25,17 @@ phones is fine with them, and the R&D cost of the expandable lens.
 
 ## What the site does
 
-- `devices.<domain>` serves `/devices` (`app/(main)/devices/page.tsx`); the main site and the app send `/devices` there
-  (`middleware.ts`, `lib/host.ts` `DEVICES_HOST`). No sign-in of its own.
-- What each phone is (`lib/devices.ts` `DEVICES`), E Pro's planned specification, and the colours asked for.
+- `devices.<domain>` serves `/devices` at its root (`app/(main)/devices/page.tsx`) and `/anya` beside it; the main site and the app
+  send `/devices` and `/anya` there (`middleware.ts`, `lib/host.ts` `DEVICES_HOST`). No sign-in of its own.
+- NotesPhone: what each phone is, E Pro's planned specification and the colours asked for. Anya: the three models, each linking to
+  the Anya page and to its reservation. The Anya page's buttons open the reservation form with that model (`?model=anya-display#reserve`).
 - **Free reservations** (`components/devices/ReserveForm.tsx` → `POST /api/devices/reserve` → `submitDeviceReservation` in
-  `lib/leads-server.ts`): a lead of category `device-reservation`, one per phone per email. A thank-you email, and a bell for a
+  `lib/leads-server.ts`): a lead of category `device-reservation`, one per device per email (a colour is checked against that device's own colours). A thank-you email, and a bell for a
   signed-in member. Rate limited to 6 an hour per address and per member. Browsers can't write these leads directly (`firestore.rules`).
-- **Admin → Leads → NotesPhone:** each phone's reservations against the 500 (counted on the server), and the colours asked for.
+- **Admin → Leads → Smart devices:** each device's reservations (counted on the server), the phones' against the 500, and the colours asked for.
+- Anya's old interest leads (contact topic "anya") stay in Admin → Leads; the topic still exists on the contact form.
 - No price, no date and no payment anywhere until the partner confirms them. The help article says not to trust anyone asking for
-  money for a NotesPhone today.
+  money for a NotesPhone or Anya today.
 
 ## Owner steps
 

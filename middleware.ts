@@ -111,15 +111,17 @@ function route(req: NextRequest, host: string, fam: Family) {
     }
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
   }
-  // devices.<domain>: NotesPhone at its root (app/(main)/devices, docs/DEVICES.md). No sign-in of its own: reserving needs only a
-  // name and an email. Its files and API calls load as usual; anything else is the main site's.
+  // devices.<domain>: Notes Smart Devices at its root (app/(main)/devices, docs/DEVICES.md), the home of #NotesApp's own devices, with
+  // their own pages beside it (/anya). No sign-in of its own: reserving needs only a name and an email. Its files and API calls load as
+  // usual; anything else is the main site's.
   if (role === "devices") {
     if (pathname === "/") return NextResponse.rewrite(new URL(`/devices${search}`, req.url));
-    if (pathname === "/devices" || pathname.startsWith("/devices/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    if (pathname === "/devices" || pathname.startsWith("/devices/") || pathname === "/anya" || pathname.startsWith("/anya/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
   }
-  // The main site and the app send NotesPhone to its own address (in production; one host on localhost and previews).
-  if (pathname === "/devices" || pathname.startsWith("/devices/")) {
+  // The main site and the app send Notes Smart Devices, and the devices' own pages, to its address (in production; one host on
+  // localhost and previews).
+  if (pathname === "/devices" || pathname.startsWith("/devices/") || pathname === "/anya" || pathname.startsWith("/anya/")) {
     const devices = familyHost(host, "devices");
     if (devices !== host) return NextResponse.redirect(`https://${devices}${pathname.replace(/^\/devices/, "") || "/"}${search}`, 308);
   }

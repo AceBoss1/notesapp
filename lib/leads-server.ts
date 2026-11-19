@@ -6,7 +6,7 @@ import { notifyBell, sendEmail } from "./email";
 import { PREP_URL, SITE_URL } from "./host";
 import { checkFeedback, feedbackMessage } from "./feedback";
 import { BOOKS_PATH, checkWaitlist, waitlistMessage } from "./books-waitlist";
-import { DEVICES, DEVICES_PATH, MOQ, checkReservation, colourLabel, deviceName, reservationMessage } from "./devices";
+import { DEVICES, DEVICES_NAME, DEVICES_PATH, checkReservation, colourLabel, deviceById, reservationMessage } from "./devices";
 import { DEVICES_URL } from "./host";
 import { REVIEWERS_COMMUNITY, REVIEWERS_COMMUNITY_ID, REVIEWERS_COMMUNITY_SEED, checkVolunteer, examsLabel, subjectKeysFor, subjectName, volunteerMessage } from "./prep-reviewers";
 import { allSubjects, createInvite, ensureCatalog, type Reviewer } from "./exam-prep-server";
@@ -59,9 +59,9 @@ export async function submitBooksWaitlist(db: Firestore, raw: unknown, who: Who,
   return { id: r.id, again: !!first };
 }
 
-// ---- NotesPhone reservations (devices.<domain>, lib/devices.ts) ----
-// Free, and commits no one. One reservation per email per phone: reserving the same phone again updates the first and keeps its
-// place (createdAt); reserving another phone adds a second. A thank-you email always, and a bell for a signed-in member.
+// ---- Notes Smart Devices reservations (devices.<domain>, lib/devices.ts): NotesPhone, Anya and what comes next ----
+// Free, and commits no one. One reservation per email per device: reserving the same device again updates the first and keeps its
+// place (createdAt); reserving another adds a second. A thank-you email always, and a bell for a signed-in member.
 export async function submitDeviceReservation(db: Firestore, raw: unknown, who: Who, send: Send = sendEmail, now = new Date()): Promise<{ id: string; again: boolean }> {
   const c = checkReservation(raw);
   if (!c.ok) throw new LeadError(400, c.error);
@@ -71,18 +71,19 @@ export async function submitDeviceReservation(db: Firestore, raw: unknown, who: 
   const doc = { name, email, category: "device-reservation", message: reservationMessage(device), device, status: "new", ...(who.uid ? { uid: who.uid } : {}) };
   const r = first ? first.ref : db.collection("leads").doc();
   await r.set({ ...doc, createdAt: first ? String(first.data().createdAt) : iso(now), ...(first ? { updatedAt: iso(now) } : {}) }, { merge: !!first });
-  const phone = deviceName(device.model);
-  const later = DEVICES.find((d) => d.id === device.model)?.status === "2027";
+  const d = deviceById(device.model)!;
+  const when = d.status === "2027" ? "It's still being designed, and its launch date will be announced in 2027. " : d.status === "first" ? "It's our first phone. " : "";
+  const order = d.moq ? `We order it from the factory once ${d.moq} people have reserved it, and we'll tell you the price and the date before anyone pays anything.` : "We'll tell you the price and the date before anyone pays anything.";
   await send({
     to: email,
-    subject: `Your ${phone} is reserved`,
-    text: `Hello ${name.split(/\s+/)[0]},\n\nThank you for reserving ${phone}${device.colour === "any" ? "" : ` in ${colourLabel(device.colour)}`}.\n\nReserving is free and you don't have to buy. ${later ? "This phone is still being designed, and its launch date will be announced in 2027." : "It's our first phone."} We order a phone from the factory once ${MOQ} people have reserved it, and we'll tell you the price and the date before anyone pays anything.${device.notify ? "\n\nWe'll email you when there's news." : ""}\n\nThe #NotesApp team`,
-    action: { label: "See NotesPhone", url: DEVICES_URL },
+    subject: `Your ${d.name} is reserved`,
+    text: `Hello ${name.split(/\s+/)[0]},\n\nThank you for reserving ${d.name}${device.colour === "any" ? "" : ` in ${colourLabel(device.colour, device.model)}`}.\n\nReserving is free and you don't have to buy. ${when}${order}${device.notify ? "\n\nWe'll email you when there's news." : ""}\n\nThe #NotesApp team`,
+    action: { label: `See ${DEVICES_NAME}`, url: DEVICES_URL },
   }).catch(() => false);
-  if (who.uid) await notifyBell({ uid: who.uid, type: "devices", linkHref: DEVICES_PATH, message: `${phone} is reserved for you. Reserving is free; we'll tell you the price and date before anyone pays.` });
+  if (who.uid) await notifyBell({ uid: who.uid, type: "devices", linkHref: DEVICES_PATH, message: `${d.name} is reserved for you. Reserving is free; we'll tell you the price and date before anyone pays.` });
   return { id: r.id, again: !!first };
 }
-// How many have reserved each phone (Admin → Leads → NotesPhone): counted on the server, so it isn't capped by the list's 500.
+// How many have reserved each device (Admin → Leads → Smart devices): counted on the server, so it isn't capped by the list's 500.
 export async function deviceCounts(db: Firestore): Promise<Record<string, number>> {
   const q = db.collection("leads").where("category", "==", "device-reservation");
   const counts = await Promise.all(DEVICES.map(async (d) => [d.id, (await q.where("device.model", "==", d.id).count().get()).data().count] as const));

@@ -37,7 +37,11 @@ const db = getFirestore();
   // bad input is refused and nothing is written
   await assert.rejects(S.submitDeviceReservation(db, { ...base, model: "x" }, { uid: null }, send as never), (e: unknown) => e instanceof S.LeadError && e.status === 400);
 
-  assert.deepEqual(await S.deviceCounts(db), { "e-pro": 2, "e-ultra": 1, "e-ultra-plus": 0, "e-prestige": 0 });
+  // Anya on the same list: its own colours, and an email without the phones' minimum order
+  await S.submitDeviceReservation(db, { ...base, model: "anya-nana", colour: "pink" }, { uid: null }, send as never);
+  const last = sent[sent.length - 1];
+  assert.match(last.subject, /Anya Nana is reserved/); assert.match(last.text, /in Pink/); assert.doesNotMatch(last.text, /500/);
+  assert.deepEqual(await S.deviceCounts(db), { "e-pro": 2, "e-ultra": 1, "e-ultra-plus": 0, "e-prestige": 0, "anya-display": 0, "anya-nana": 1, "anya-audio": 0 });
   console.log("DEVICES SERVER OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

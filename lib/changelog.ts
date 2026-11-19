@@ -15,7 +15,8 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-19",
     changes: [
-      { kind: "added", text: "NotesPhone: phones with #NotesApp built in, at devices.naapp.tech. NotesPhone E Pro comes first; E Ultra, E Ultra+ and E Prestige follow in 2027. Nothing is on sale yet: reserve the phone you want, free, and we'll tell you the price and date before anyone pays." },
+      { kind: "added", text: "Notes Smart Devices at devices.naapp.tech: the home of #NotesApp's own devices, with one free reservation list for all of them. NotesPhone, phones with #NotesApp built in: E Pro comes first; E Ultra, E Ultra+ and E Prestige follow in 2027. Nothing is on sale yet: we'll tell you the price and date before anyone pays." },
+      { kind: "changed", text: "Anya smart glasses moved to devices.naapp.tech/anya, beside NotesPhone. Reserve Anya Display, Nana or Audio there, free, instead of the contact form." },
     ],
   },
   {

@@ -9,11 +9,11 @@ import { Lead, LEAD_LABEL } from "@/lib/leads";
 import { MOOD_SCALE, average, nps } from "@/lib/feedback";
 import { BACKGROUNDS, examsLabel, subjectName } from "@/lib/prep-reviewers";
 import { BUSINESS_TYPES, businessTypeLabel, keepsBooksLabel } from "@/lib/books-waitlist";
-import { DEVICES, DEVICES_PATH, MOQ, colourLabel, moqProgress } from "@/lib/devices";
+import { DEVICES, DEVICES_PATH, colourLabel, deviceName } from "@/lib/devices";
 
 type Kind = "all" | "messages" | "feedback" | "volunteers" | "books" | "devices";
 const KINDS: { id: Kind; label: string }[] = [
-  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" }, { id: "books", label: "Business books waitlist" }, { id: "devices", label: "NotesPhone" },
+  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" }, { id: "books", label: "Business books waitlist" }, { id: "devices", label: "Smart devices" },
 ];
 const SERVER_KINDS: Record<string, Kind> = { feedback: "feedback", volunteer: "volunteers", "books-waitlist": "books", "device-reservation": "devices" };
 const ofKind = (l: Lead, k: Kind) => k === "all" || (k === "messages" ? !(l.category in SERVER_KINDS) : SERVER_KINDS[l.category] === k);
@@ -135,19 +135,19 @@ export default function AdminLeadsPage() {
 
       {kind === "devices" && (
         <div className="card mt-6 space-y-4 p-5 text-sm">
-          <p className="eyebrow">Reservations toward the factory&apos;s minimum order ({MOQ} a phone)</p>
+          <p className="eyebrow">Reservations, and for phones the factory&apos;s minimum order</p>
           {!deviceCounts ? <p className="text-slate">Couldn&apos;t count them just now.</p> : (
             <ul className="grid gap-3 sm:grid-cols-2">
-              {DEVICES.map((d) => { const p = moqProgress(deviceCounts[d.id] ?? 0); return (
+              {DEVICES.map((d) => { const n = deviceCounts[d.id] ?? 0; const pct = d.moq ? Math.min(100, Math.round((n / d.moq) * 100)) : 0; const reached = !!d.moq && n >= d.moq; return (
                 <li key={d.id}>
-                  <p className="flex justify-between gap-2"><b className="text-ink">{d.name}</b><span className="text-slate">{p.count} of {MOQ}{p.reached ? ": reached" : ""}</span></p>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-field" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.name}: ${p.count} of ${MOQ}`}><div className={`h-full ${p.reached ? "bg-emerald-600" : "bg-crimson"}`} style={{ width: `${p.pct}%` }} /></div>
+                  <p className="flex justify-between gap-2"><b className="text-ink">{d.name}</b><span className="text-slate">{d.moq ? `${n} of ${d.moq}${reached ? ": reached" : ""}` : `${n} reserved`}</span></p>
+                  {d.moq && <div className="mt-1 h-2 overflow-hidden rounded-full bg-field" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.name}: ${n} of ${d.moq}`}><div className={`h-full ${reached ? "bg-emerald-600" : "bg-crimson"}`} style={{ width: `${pct}%` }} /></div>}
                 </li>
               ); })}
             </ul>
           )}
-          <div><p className="eyebrow">Colours asked for (in the list below)</p><ul className="mt-1 flex flex-wrap gap-x-4 text-slate">{Object.entries(devices.reduce<Record<string, number>>((m, l) => { const k = colourLabel(l.device!.colour); m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
-          <p className="text-xs text-slate">From <a className="text-crimson underline" href={DEVICES_PATH}>NotesPhone</a> (devices.&lt;domain&gt;). Free reservations, binding on no one. The counts are exact; the list below shows the latest 500 leads.</p>
+          <div><p className="eyebrow">Colours asked for (in the list below)</p><ul className="mt-1 flex flex-wrap gap-x-4 text-slate">{Object.entries(devices.reduce<Record<string, number>>((m, l) => { const k = `${deviceName(l.device!.model)}: ${colourLabel(l.device!.colour, l.device!.model)}`; m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
+          <p className="text-xs text-slate">From <a className="text-crimson underline" href={DEVICES_PATH}>Notes Smart Devices</a> (devices.&lt;domain&gt;). Free reservations, binding on no one. The counts are exact; the list below shows the latest 500 leads.</p>
         </div>
       )}
 

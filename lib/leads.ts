@@ -37,7 +37,7 @@ export const LEAD_CATEGORIES = [
 // feedback form instead of the message box.
 export const SERVER_LEAD_CATEGORIES = ["feedback", "volunteer", "books-waitlist", "hotel-setup", "device-reservation"] as const;
 export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"] | "volunteer" | "books-waitlist" | "hotel-setup" | "device-reservation";
-export const LEAD_LABEL: Record<string, string> = { ...Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label])), feedback: "Feedback", volunteer: "Exam Prep reviewer", "device-reservation": "NotesPhone reservation", "books-waitlist": "Business books waitlist", "hotel-setup": "Hotel kit: Set it up for me" };
+export const LEAD_LABEL: Record<string, string> = { ...Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label])), feedback: "Feedback", volunteer: "Exam Prep reviewer", "device-reservation": "Smart device reservation", "books-waitlist": "Business books waitlist", "hotel-setup": "Hotel kit: Set it up for me" };
 
 export type Lead = {
   id: string;
@@ -51,7 +51,7 @@ export type Lead = {
   feedback?: import("./feedback").FeedbackAnswers; // category "feedback"
   volunteer?: import("./prep-reviewers").VolunteerAnswers; // category "volunteer"
   booksWaitlist?: import("./books-waitlist").WaitlistAnswers; // category "books-waitlist"
-  device?: import("./devices").Reservation; // category "device-reservation" (NotesPhone, lib/devices.ts)
+  device?: import("./devices").Reservation; // category "device-reservation" (Notes Smart Devices, lib/devices.ts)
   approval?: { status: "approved" | "declined"; at: string; byUid: string; byName: string; how: "granted" | "invited" | "declined"; subjects: string[]; note?: string };
 };
 
