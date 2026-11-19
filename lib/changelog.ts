@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.187.1",
+    bump: "patch",
+    date: "2026-11-19",
+    changes: [
+      { kind: "changed", text: "A tidier footer: the links are grouped into Products, Business, Community, For you, Devices & play and Company, which fold into dropdowns on a phone. Social links and a Legal dropdown sit at the bottom, with a Menu button beside Nana." },
+      { kind: "added", text: "Notes Arcade in the footer, below Notes Life." },
+    ],
+  },
+  {
     version: "v0.187.0",
     bump: "minor",
     date: "2026-11-19",

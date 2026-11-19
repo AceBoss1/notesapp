@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { NANA_NAME } from "@/lib/nana";
 import NanaPanel from "./NanaPanel";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
+import { NANA_FLOATING, OPEN_NANA } from "@/components/shell/FooterActions";
 
 // The Nana AI button in the corner of every page; it opens the chat. Hidden in the admin area (the team hub has its own Nana) and on the
 // pages where Nana is already on screen (her own page, and Messages, where she is pinned at the top of the list).
@@ -13,6 +14,16 @@ export default function NanaChat() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const tabs = useBottomTabs();
+  // The footer's Ask Nana button opens this chat (components/shell/FooterActions.tsx); where the chat isn't shown, it goes to /nana.
+  const hidden = pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/cycle" || pathname === "/messages" || pathname.startsWith("/messages/");
+  useEffect(() => {
+    const w = window as unknown as { __nanaChat?: boolean };
+    w.__nanaChat = !hidden;
+    window.dispatchEvent(new Event(NANA_FLOATING));
+    const show = () => setOpen(true);
+    window.addEventListener(OPEN_NANA, show);
+    return () => { window.removeEventListener(OPEN_NANA, show); w.__nanaChat = false; window.dispatchEvent(new Event(NANA_FLOATING)); };
+  }, [hidden]);
   useEffect(() => {
     if (!open) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -21,7 +32,7 @@ export default function NanaChat() {
   }, [open]);
   // Messages has Nana pinned at the top of the list, and the button would sit on the composer's Send.
   // My Cycle has its own private Nana, kept apart from this one.
-  if (pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/cycle" || pathname === "/messages" || pathname.startsWith("/messages/")) return null;
+  if (hidden) return null;
   // On a phone the button sits above the tab bar, on the left (the write button is on the right).
   const spot = tabs ? "bottom-[5.25rem] left-4 lg:left-auto" : "bottom-4";
   return (

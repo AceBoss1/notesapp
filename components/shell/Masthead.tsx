@@ -1,7 +1,8 @@
 "use client";
 
 import ThemeQuick from "@/components/theme/ThemeQuick";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { OPEN_MENU } from "./FooterActions";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -33,6 +34,8 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
   const pathname = usePathname();
   const { user, profile, appHost } = useMember();
   const [sheet, setSheet] = useState(false);
+  // The footer's Menu button opens this same menu (components/shell/FooterActions.tsx).
+  useEffect(() => { const open = () => setSheet(true); window.addEventListener(OPEN_MENU, open); return () => window.removeEventListener(OPEN_MENU, open); }, []);
   const close = useCallback(() => setSheet(false), []);
   const app = usesAppHeader(pathname, appHost);
 
