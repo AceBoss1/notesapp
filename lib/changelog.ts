@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.188.0",
+    bump: "minor",
+    date: "2026-11-19",
+    changes: [
+      { kind: "added", text: "Lives: anyone can watch a live that's open to everyone, without an account. Open the link and tap Watch: the live plays, with the chat to read. Chatting, hearts, gifts and following ask you to join, then bring you straight back." },
+      { kind: "added", text: "Lives: a live's link now shows who is live, the title and a picture when you share it, and says when no account is needed to watch. Guests can share it too." },
+      { kind: "added", text: "Going live: \"People without an account can watch\" for lives open to everyone (on unless you switch it off). You see how many are watching as guests, and afterwards how many joined #NotesApp from your live." },
+      { kind: "changed", text: "Lives: a teen's own live stays with people who have an account, a live guests can watch never brings a teen on stage, and teens' chat messages aren't shown to guests." },
+      { kind: "added", text: "For our team: Admin → Limits has Guests in lives: switch them off everywhere, set the most guests in one live, and see the week's guest views, sign-ups and minutes." },
+    ],
+  },
+  {
     version: "v0.187.0",
     bump: "minor",
     date: "2026-11-19",

@@ -174,7 +174,7 @@ export default function GuestLive({ id }: { id: string }) {
         )}
       </div>
       {!watching && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/35">
+        <div className="absolute inset-0 flex flex-col items-center justify-start gap-2 bg-black/35 pt-[38%]">
           <button type="button" onClick={() => { setTrouble(""); setWatching(true); }} className="rounded-full bg-white px-6 py-3 font-ui text-base font-bold text-crimson shadow-lg">▶ Watch {v.stage.some((s) => s.video) ? "" : "and listen"}</button>
           <span className="text-xs opacity-90">No account needed to watch</span>
           {trouble && <span className="max-w-xs text-center text-xs text-[#ffd6e0]" role="alert">{trouble}</span>}

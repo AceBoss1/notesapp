@@ -12,7 +12,7 @@ replays. The owner approved the six mockups as drawn (7 Nov 2026) and it was bui
   Owner, 7 Nov 2026: "the gate is to stop non-team members from starting a live". When the owner opens it to everyone, this rule changes in
   one place.
 - **Joining:** anyone can join a live its host made public (Everyone). Followers-only and subscribers-only lives are for those people.
-  Signed-out visitors can watch a public live and are asked to sign in to chat or send a gift.
+  Signed-out visitors can watch a public live and are asked to sign in to chat or send a gift (built in v0.188.0, `docs/GUEST_LIVES.md`).
 - Paid lives (`/lives`) and community rooms are not changed by this gate.
 
 ## What already shipped (v0.151.0, PR #304)
@@ -74,7 +74,8 @@ A live together with another creator (split screen), live shopping, and scheduli
   now on the feed and Explore and Join the live on profiles (screen 4), `/live/[id]` (the lobby), the summary (screen 6).
 - Owner steps: deploy the Firestore indexes (`firebase deploy --only firestore:indexes`, for new followers in the summary); switch the staff
   test pass on to try it.
-- Differences from the mockups: signed-out visitors are asked to sign in before joining (rooms are read by signed-in members only); the
+- Differences from the mockups: signed-out visitors were asked to sign in before joining (rooms are read by signed-in members only; since
+  v0.188.0 they can watch as guests, `docs/GUEST_LIVES.md`); the
   LIVE ring sits in a Live now row just above the Moments strip rather than inside it.
 
 ## Notes Live Studio (v0.177.0)

@@ -5,7 +5,8 @@ hearts, gifts, following and coming on stage need a free account, and signing in
 
 The owner asked for it on 17 Nov 2026 ("our live links that are not private links can allow non logged in viewers who don't have
 notesapp account to view/share, but can only interact once they login") and put it after Merch; on 19 Nov 2026 they asked for it next,
-with sample screens first. **Status: mockups drawn 19 Nov 2026, waiting for the owner's approval. Nothing is built.**
+with sample screens first. **Status: built in v0.188.0 (19 Nov 2026)** after the owner's "approve build, hope admin can set guest number limits". What was
+built, and what wasn't, is at the end of this page.
 
 ## Today
 
@@ -77,3 +78,40 @@ Each has a recommendation. The build follows it unless the owner says otherwise.
 - Guests watching paid, followers-only or community lives.
 - Big-audience broadcasting (HLS / Stream Live, `docs/COMMUNITY.md`): guests use the relay like members.
 - Guests chatting under a nickname.
+
+## Built in v0.188.0
+
+- **The rules** `lib/live-guests.ts` (pure, tested): `guestNo` (why a guest can't watch: ended, followers, subscribers, paid,
+  community, off, teen, phone, full), `guestLimit`, `openToGuests`, `guestChat` (never a teen's line, never an account id) and the
+  link preview. **The pass** `lib/live-guest-pass.ts` (server only): a random `g_` id, signed with a key derived from
+  `ACCOUNT_DATA_KEY` (or `LIVE_ROOMS_SECRET`), six hours, in an http-only cookie on `/api/lives/watch`.
+- **Admin's limits** (owner: "hope admin can set guest number limits"): Admin → Limits → **Guests in lives**: `guestsOn` (switch them
+  off everywhere) and `guestsPerLive` (300 to start; 0 lets none in), with the last seven days' guest views, sign-ups and minutes.
+  Guests also stop when members and guests together reach the room's listener limit, so members always have room.
+- **The server** `lib/live-guests-server.ts`, route `/api/lives/watch` (no sign-in; limited by address): the guest view (shared by every
+  guest of a live for two seconds), joining (`communityRooms/{id}/guests/{gid}`, server-only), the beat, leaving, **receive-only**
+  relay steps on the guest's own Cloudflare session (pull, answer, close; never push), the guest count on the live, and counting a
+  guest who joins or signs in (`guestJoins`, `guestSignIns`; `liveGuestStats/{day}`). Guests never read Firestore.
+- **Teens:** a teen host's live is never open to guests; `stageBarred` keeps a teen off the stage of a live guests can watch; a teen's
+  chat lines are marked `teen` when sent there and never shown to guests.
+- **Screens:** `/live/<id>` renders `components/lives/GuestLive.tsx` for anyone not signed in: the live with ▶ Watch, the read-only chat,
+  the count and likes, the join sheet (sign up or sign in, back to the live), Share, and the states for lives a guest can't watch or
+  that have ended. The page now has a real link preview (Open Graph and X). Going live has "People without an account can watch"; the
+  room shows "N as guests"; the summary shows who joined from the live. Back from signing in, the member goes straight into the live.
+- **Tests:** `npm run test:live-guests` and `npm run test:live-guests-server` (both in CI), the rules test, and the room tests updated.
+
+Screenshots from the real code, with sample data on the emulators: [built.webp](mockups/guest-lives/built.webp).
+
+## Changed from the mockups
+
+- **"Watch" needs a tap.** Phones don't play a live's sound until the visitor taps, so the live opens with ▶ Watch over it.
+- **The join sheet** offers "Create a free account" and "I have an account: sign in"; the Google button is on the sign-in page itself.
+- **Admin shows guest minutes** and the per-minute cost from `docs/LIVE_ECONOMY.md`, not a naira total.
+
+## Not built, or still to do
+
+- **Not tried on a real relay.** The tests use a stand-in Cloudflare relay; watch a real live as a guest on staging (the relay keys must
+  be set, and `ACCOUNT_DATA_KEY`, which is already set for My Cycle and the Planner).
+- **Deploy:** `firebase deploy --only firestore:rules` for the guest seats and the daily figures.
+- **A guest's view refreshes every three seconds** through the server, not the live-rooms worker, so the chat a guest reads can lag the
+  room by a few seconds.
