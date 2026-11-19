@@ -24,7 +24,7 @@ import { currentPricing } from "@/lib/pricing";
 import { ADDONS } from "@/lib/hotel";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
-import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
+import { MerchError, merchBatchOpen, merchOrderInfo, quoteMerch, validateAddress } from "@/lib/merch";
 import { TIERS, badgeIncluded, digitalCommissionRateFor, physicalCommissionRateFor } from "@/lib/tiers";
 import { privateFilesConfigured } from "@/lib/private-files";
 import { STORE_ITEM_MAX_KOBO, STORE_MAX_QTY } from "@/lib/orders";
@@ -648,16 +648,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (kind === "merch") {
-      const item = getMerchItem(String(body.itemId));
-      const logo = LOGO_OPTIONS.find((l) => l.id === body.logoId);
-      if (!item || !logo) return NextResponse.json({ error: "Unknown item or logo." }, { status: 400 });
-      if (!merchBatchOpen()) return NextResponse.json({ error: "This batch has closed." }, { status: 409 });
-      const quantity = Number(body.quantity);
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > MERCH_MAX_QTY) {
-        return NextResponse.json({ error: `Choose a quantity from 1 to ${MERCH_MAX_QTY}.` }, { status: 400 });
+      // Merch in 3D (lib/merch.ts quoteMerch): the same price the item page showed, worked out again here from Admin's settings.
+      if (!merchBatchOpen()) return NextResponse.json({ error: "Orders aren't open right now: the next batch opens soon." }, { status: 409 });
+      let q: ReturnType<typeof quoteMerch>;
+      try {
+        q = quoteMerch({ product: typeof body.product === "string" ? body.product : `item:${String(body.itemId ?? "")}`, colour: body.colour, logoId: body.logoId, place: body.place, size: body.size, name: body.name, quantity: Number(body.quantity) });
+      } catch (e) {
+        if (e instanceof MerchError) return NextResponse.json({ error: e.message }, { status: e.status });
+        throw e;
       }
-      const size = item.sizes ? String(body.size) : undefined;
-      if (item.sizes && !item.sizes.includes(size as string)) return NextResponse.json({ error: "Choose a size." }, { status: 400 });
+      const { r, quote } = q;
       const addrProblem = validateAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const a = body.address;
@@ -668,23 +668,20 @@ export async function POST(req: NextRequest) {
         city: String(a.city).trim(),
         state: String(a.state),
       };
-      const code = await codeFor(NOTESAPP_OWNER, "merch", item.priceKobo * quantity, { itemId: item.id, extraKobo: MERCH_DELIVERY_KOBO });
-      const amountKobo = item.priceKobo * quantity - (code?.discountKobo ?? 0) + MERCH_DELIVERY_KOBO;
+      const itemId = r.kind === "item" ? r.item.id : `design-${r.design.id}`; // what a discount code can be limited to
+      const code = await codeFor(NOTESAPP_OWNER, "merch", quote.subtotalKobo, { itemId, extraKobo: quote.deliveryKobo });
+      const amountKobo = quote.subtotalKobo - (code?.discountKobo ?? 0) + quote.deliveryKobo;
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({
         email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
-        metadata: { kind, itemId: item.id, uid: user.uid },
+        metadata: { kind, itemId, uid: user.uid },
       });
       const record: PaymentRecord = {
         reference, kind: "merch", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
-        ...(code ? { discount: paymentDiscount(code, item.priceKobo * quantity + MERCH_DELIVERY_KOBO) } : {}),
-        merch: {
-          itemId: item.id, itemName: item.name, logoId: logo.id, logoLabel: logo.label,
-          ...(size ? { size } : {}), quantity, unitKobo: item.priceKobo, deliveryKobo: MERCH_DELIVERY_KOBO,
-          batchId: MERCH_BATCH.id, address,
-        },
+        ...(code ? { discount: paymentDiscount(code, quote.subtotalKobo + quote.deliveryKobo) } : {}),
+        merch: merchOrderInfo(q, address),
         createdAt: new Date().toISOString(),
       };
       await savePayment(record);

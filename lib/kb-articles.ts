@@ -7,7 +7,7 @@ import { GOLD_KIND_LIVE } from "./badges";
 import { POLICY_TEXT } from "./cancellation";
 import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT, MIN_VIEW_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
-import { MERCH_DELIVERY_KOBO } from "./merch";
+import { merchDeliveryKobo } from "./merch";
 import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { MEDIA_LIVE, MEDIA_PICTURES_MAX, MEDIA_PINNED_MAX, MOMENTS_PINNED_MAX, secondsText } from "./media-rules";
@@ -1369,7 +1369,7 @@ Logistics businesses on #NotesApp list the states they cover and their prices, a
 
 **Who can be a provider:** Business and Enterprise include it. On Free Basic and Pro it's the **logistics add-on**: ${logisticsAddonPrice()} a month, with a ${logisticsTrialDays()}-day free trial and no card. The add-on also opens Shipments. API and webhooks for Enterprise come later.`),
     A("merch-store", "The official #NotesApp merch store", "Selling", `
-T-shirts, caps, mugs and more, with the core mark or a seasonal logo from the [Brand page](/brand). You pre-order and pay with Paystack; we print after the batch closes and deliver anywhere in Nigeria for a flat ${money(MERCH_DELIVERY_KOBO)}. See the [Merch store](/merchstore). Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
+T-shirts, caps, mugs and more, with the core mark or a seasonal logo from the [Brand page](/brand). You pre-order and pay with Paystack; we print after the batch closes and deliver anywhere in Nigeria for a flat ${money(merchDeliveryKobo())}. See the [Merch store](/merchstore). Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
     // ── Badges and trust
     A("verified-badge", "The verified badge (maroon ✔)", "Badges and trust", `
 The maroon ✔ shows an account in good standing on an eligible plan, or with the badge subscription. **Business and Enterprise include it**; on other plans it is an add-on for ${money(BADGE_PRICE_KOBO)} a month. It is not an identity check. For organisations it also needs us to have confirmed the CAC registration.
