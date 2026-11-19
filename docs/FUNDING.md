@@ -93,26 +93,30 @@ get paid for it, in their own currency.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **12 November 2026**; the
-8 November figures in brackets):
+**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **19 November 2026**), with
+12 November beside it:
 
-| | As of 12 Nov 2026 |
-|---|---|
-| Registered members | 248, 232 joined in the last 30 days (8 Nov: 86); 65% women at the 8 November count (recount before quoting it again) |
-| Publishers | 233 (86) |
-| Sellers | 3, with 24 items listed |
-| Organisations | 7 |
-| Gold-verified accounts | 40 (38) |
-| Paid transactions | 84, from 5 paying customers (81) |
-| Money processed | ₦3,978,795 (₦3,768,298 in the last 30 days) |
-| Paid out to sellers and publishers | ₦170 in 1 payout |
-| Held in escrow | ₦1,140,095.96 (23 entries) |
-| **Commission earned (our revenue)** | **₦121,168.80**, on sessions, subscriptions, gifts and the store (about USD 81 at ₦1,500) |
+| | As of 19 Nov 2026 | 12 Nov 2026 |
+|---|---|---|
+| Registered members | **484**, 457 joined in the last 30 days | 248 (232 in 30 days) |
+| Publishers | 466 | 233 |
+| Sellers | 4, with 29 items listed | 3, 24 items |
+| Organisations | 8 | 7 |
+| Gold-verified accounts | 43 | 40 |
+| Paid transactions | 86, from 6 paying customers | 84, from 5 |
+| Money processed | ₦3,986,795 (₦2,542,099 in the last 30 days) | ₦3,978,795 |
+| Store orders / digital sales / sessions booked | 0 / 0 / 1 (held) | — |
+| Merch pre-orders | 5 | — |
+| Paid out to sellers and publishers | **₦823,072** in 9 payouts | ₦170 in 1 payout |
+| Held in escrow | ₦317,194 | ₦1,140,095.96 |
+| **Commission earned (our revenue)** | `[refresh from /admin]` | **₦121,168.80** (about USD 81 at ₦1,500) |
 
-**How to say it honestly:** we're early. The strong numbers are growth (232 of 248 members joined in the last 30 days) and money
-processed (₦4.0M, almost all in the last 30 days). Say "processed", never "revenue": our revenue is the commission we earned,
-**₦121,168.80** to 12 November. If an investor asks, 84 transactions came from 5 customers, so say so; don't present it as 84
-customers. Store and digital sales haven't started yet.
+(65% women was the 8 November count of 86 members; recount before quoting it again.)
+
+**How to say it honestly:** we're early. The strong numbers are growth (members nearly doubled in a week, 457 of 484 joined in the
+last 30 days) and money moving through to members (₦823K paid out). Say "processed", never "revenue": our revenue is the commission
+we earned (₦121,168.80 at 12 November; take the current figure before quoting). If asked, 86 transactions came from 6 customers, so
+say so; don't present it as 86 customers. Store orders and digital sales haven't started yet.
 
 ---
 
