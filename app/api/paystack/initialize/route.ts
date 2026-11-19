@@ -652,7 +652,7 @@ export async function POST(req: NextRequest) {
       if (!merchBatchOpen()) return NextResponse.json({ error: "Orders aren't open right now: the next batch opens soon." }, { status: 409 });
       let q: ReturnType<typeof quoteMerch>;
       try {
-        q = quoteMerch({ product: typeof body.product === "string" ? body.product : `item:${String(body.itemId ?? "")}`, colour: body.colour, logoId: body.logoId, place: body.place, size: body.size, name: body.name, quantity: Number(body.quantity) });
+        q = quoteMerch({ product: typeof body.product === "string" ? body.product : `item:${String(body.itemId ?? "")}`, colour: body.colour, logoId: body.logoId, place: body.place, size: body.size, name: body.name, pattern: typeof body.pattern === "string" && body.pattern ? body.pattern : undefined, quantity: Number(body.quantity) });
       } catch (e) {
         if (e instanceof MerchError) return NextResponse.json({ error: e.message }, { status: e.status });
         throw e;

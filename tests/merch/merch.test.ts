@@ -9,16 +9,16 @@ import { DEFAULT_PRICING, PricingError, applyPricing, cleanPricing, currentPrici
 
 const throwsMerch = (f: () => unknown, re: RegExp) => assert.throws(f, (e: unknown) => e instanceof MerchError && re.test(e.message));
 
-// ── The owner's custom shirts: ₦10,000, a name on the back ₦4,000 ──
+// ── The owner's custom shirts: ₦10,000, a name on the back ₦1,500 (19 Nov 2026, down from ₦4,000) ──
 assert.equal(MERCH_DESIGNS.length, 4);
 const plain = quoteMerch({ product: "design:black-drip", size: "L", quantity: 1 });
 assert.equal(plain.quote.eachKobo, 10_000_00);
 assert.deepEqual(plain.quote.lines.map((l) => l.label), ["Custom shirt: Black Drip"]);
 const named = quoteMerch({ product: "design:maroon-stripes", size: "M", name: "  ada  obi ", quantity: 2 });
 assert.equal(named.name, "ADA OBI");
-assert.deepEqual(named.quote.lines, [{ label: "Custom shirt: Maroon Stripes", kobo: 10_000_00 }, { label: "Name on the back: ADA OBI", kobo: 4_000_00 }]);
-assert.equal(named.quote.eachKobo, 14_000_00);
-assert.equal(named.quote.subtotalKobo, 28_000_00);
+assert.deepEqual(named.quote.lines, [{ label: "Custom shirt: Maroon Stripes", kobo: 10_000_00 }, { label: "Name on the back: ADA OBI", kobo: 1_500_00 }]);
+assert.equal(named.quote.eachKobo, 11_500_00);
+assert.equal(named.quote.subtotalKobo, 23_000_00);
 assert.equal(named.quote.deliveryKobo, merchDeliveryKobo());
 // A design ignores colour, logo and place: it's printed all over.
 assert.equal(quoteMerch({ product: "design:ivory-drip", size: "S", colour: "navy", place: "both", quantity: 1 }).quote.eachKobo, 10_000_00);
@@ -27,9 +27,9 @@ throwsMerch(() => quoteMerch({ product: "design:nope", size: "M", quantity: 1 })
 
 // ── A blank item: colour, logo, where it's printed, extras ──
 const tee = quoteMerch({ product: "item:tshirt", colour: "crimson", logoId: "core", place: "both", size: "XXL", name: "Tolu", quantity: 2 });
-assert.deepEqual(tee.quote.lines.map((l) => [l.label, l.kobo]), [["T-Shirt", 12_000_00], ["Front and back", 2_500_00], ["XXL", 1_000_00], ["Name on the back: TOLU", 4_000_00]]);
-assert.equal(tee.quote.eachKobo, 19_500_00);
-assert.equal(tee.quote.subtotalKobo, 39_000_00);
+assert.deepEqual(tee.quote.lines.map((l) => [l.label, l.kobo]), [["T-Shirt", 12_000_00], ["Front and back", 2_500_00], ["XXL", 1_000_00], ["Name on the back: TOLU", 1_500_00]]);
+assert.equal(tee.quote.eachKobo, 17_000_00);
+assert.equal(tee.quote.subtotalKobo, 34_000_00);
 const mug = quoteMerch({ product: "item:mug", colour: "white", logoId: "christmas", place: "wrap", quantity: 1 });
 assert.deepEqual(mug.quote.lines.map((l) => l.kobo), [6_500_00, 1_000_00]);
 assert.equal(mug.size, undefined);
@@ -59,7 +59,7 @@ const saved = cleanMerch({
   deliveryKobo: 3_500_00,
   items: [{ id: "tshirt", priceKobo: 11_000_00, on: true, colours: ["black", "black", "grey", "pink"] }, { id: "laptopbag", priceKobo: 25_000_00, on: false, colours: ["black"] }, { id: "spaceship", priceKobo: 1 }],
   designs: [{ id: "black-drip", priceKobo: 9_000_00, on: true }],
-  extras: { backKobo: 2_000_00, xxlKobo: 0, wrapKobo: 1_000_00, nameKobo: 4_000_00 },
+  extras: { backKobo: 2_000_00, xxlKobo: 0, wrapKobo: 1_000_00, nameKobo: 1_500_00, patternKobo: 500_00 },
 });
 assert.equal(saved.batch.id, "batch-2");
 assert.equal(saved.batch.note, DEFAULT_MERCH.batch.note, "an empty note keeps the default");
@@ -113,5 +113,37 @@ assert.equal(choiceText({ colourName: "White", logoLabel: "Core Mark", place: "f
 const k = (o: Record<string, string>) => printKey({ itemName: "T-Shirt", logoLabel: "Core Mark", size: "M", ...o });
 assert.equal(k({ colourName: "Black" }), k({ colourName: "Black", place: "front" }));
 assert.notEqual(k({ colourName: "Black" }), k({ colourName: "Black", backName: "ADA" }));
+
+// ── The owner's pattern backgrounds (19 Nov 2026) ──
+import { MERCH_PATTERNS, merchOrderInfo, patternWhere } from "../../lib/merch";
+assert.deepEqual(MERCH_PATTERNS.map((p) => p.id), ["maroon", "light"]);
+const where = (id: string) => patternWhere({ kind: "item", item: MERCH_ITEMS.find((i) => i.id === id)! });
+assert.deepEqual(["mug", "coffeecup", "stanley", "laptopbag", "mousepad", "tshirt", "cap"].map(where), ["all", "all", "all", "all", "all", "back", null]);
+assert.equal(patternWhere({ kind: "design" }), "back");
+const pm = quoteMerch({ product: "item:mug", logoId: "core", pattern: "maroon", quantity: 1 });
+assert.equal(pm.r.pattern?.id, "maroon");
+assert.deepEqual(pm.quote.lines.map((l) => l.label), ["Mug"], "free until the owner sets a price: no ₦0 line");
+const info = merchOrderInfo(pm, { fullName: "A", phone: "08031234567", street: "1 Road", city: "Enugu", state: "Enugu" });
+assert.deepEqual([info.pattern, info.patternName, "colour" in info], ["maroon", "Maroon pattern", false], "a pattern all over replaces the colour");
+assert.equal(choiceText({ patternName: info.patternName, logoLabel: info.logoLabel, place: "place" in info ? info.place : undefined }), "Maroon pattern · Core Mark");
+// A shirt's back: the pattern and the name, never a logo there.
+const back = quoteMerch({ product: "design:ivory-drip", size: "M", name: "Ada", pattern: "light", quantity: 1 });
+assert.equal(back.r.pattern?.id, "light");
+const backInfo = merchOrderInfo(back, { fullName: "A", phone: "08031234567", street: "1 Road", city: "Enugu", state: "Enugu" });
+assert.equal("designId" in backInfo && backInfo.designId, "ivory-drip");
+const plainBack = quoteMerch({ product: "item:tshirt", colour: "black", place: "chest", size: "L", pattern: "maroon", quantity: 1 });
+const plainInfo = merchOrderInfo(plainBack, { fullName: "A", phone: "08031234567", street: "1 Road", city: "Enugu", state: "Enugu" }) as { colourName?: string };
+assert.equal(plainInfo.colourName, "Black", "a shirt keeps its colour: the pattern is on the back");
+throwsMerch(() => quoteMerch({ product: "item:tshirt", colour: "black", place: "both", size: "L", pattern: "maroon", quantity: 1 }), /pattern on the back/);
+throwsMerch(() => quoteMerch({ product: "item:cap", pattern: "maroon", quantity: 1 }), /background isn't offered/);
+throwsMerch(() => quoteMerch({ product: "item:mug", pattern: "tartan", quantity: 1 }), /background isn't offered/);
+// With a price set in Admin, it shows as a line.
+applyMerch({ ...DEFAULT_MERCH, extras: { ...DEFAULT_MERCH.extras, patternKobo: 500_00 } });
+assert.deepEqual(quoteMerch({ product: "item:laptopbag", pattern: "light", quantity: 1 }).quote.lines, [{ label: "Laptop Bag", kobo: 25_000_00 }, { label: "Light pattern background", kobo: 500_00 }]);
+assert.deepEqual(quoteMerch({ product: "design:black-drip", size: "M", pattern: "maroon", quantity: 1 }).quote.lines.map((l) => l.label), ["Custom shirt: Black Drip", "Maroon pattern on the back"]);
+applyMerch(DEFAULT_MERCH);
+// A config saved before patterns existed keeps a free pattern.
+const { patternKobo: _p, ...oldExtras } = DEFAULT_MERCH.extras;
+assert.equal(cleanMerch({ ...DEFAULT_MERCH, extras: oldExtras }).extras.patternKobo, 0);
 
 console.log("ALL OK");

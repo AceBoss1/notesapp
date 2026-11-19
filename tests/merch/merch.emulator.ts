@@ -37,7 +37,7 @@ const address = { fullName: "Ada Obi", phone: "08031234567", street: "12 Zik Ave
     reference, kind: "merch", uid: "u_ada", email: "ada@x.ng", amountKobo: q.quote.subtotalKobo + q.quote.deliveryKobo, status: "pending",
     publisherUid: "u_ada", publisherUsername: "", commissionRate: 0, merch: merchOrderInfo(q, address), payWith: "wallet", createdAt: new Date().toISOString(),
   });
-  assert.equal(pay("M1", shirt).amountKobo, 2 * 14_000_00 + 3_500_00);
+  assert.equal(pay("M1", shirt).amountKobo, 2 * 11_500_00 + 3_500_00);
   await db.doc("payments/M1").set(pay("M1", shirt));
   await db.doc("payments/M2").set(pay("M2", tee));
   assert.equal((await fulfillPayment("M1")).status, "paid");
@@ -45,7 +45,7 @@ const address = { fullName: "Ada Obi", phone: "08031234567", street: "12 Zik Ave
 
   const o1 = (await db.doc("merchOrders/M1").get()).data() as MerchOrder & { lines: unknown };
   assert.deepEqual([o1.itemName, o1.designId, o1.backName, o1.size, o1.quantity, o1.batchId, o1.status], ["Custom shirt: Black Drip", "black-drip", "ADA 10", "XL", 2, "batch-2", "preordered"]);
-  assert.deepEqual(o1.lines, [{ label: "Custom shirt: Black Drip", kobo: 10_000_00 }, { label: "Name on the back: ADA 10", kobo: 4_000_00 }]);
+  assert.deepEqual(o1.lines, [{ label: "Custom shirt: Black Drip", kobo: 10_000_00 }, { label: "Name on the back: ADA 10", kobo: 1_500_00 }]);
   assert.equal((await db.doc(`parcels/${o1.parcelId}`).get()).exists, true, "the buyer can track it");
   const o2 = (await db.doc("merchOrders/M2").get()).data() as MerchOrder & { unitKobo: number };
   assert.deepEqual([o2.colour, o2.colourName, o2.place, o2.logoLabel, o2.unitKobo], ["crimson", "Crimson", "both", "Core Mark", 14_500_00]);

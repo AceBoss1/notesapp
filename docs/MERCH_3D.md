@@ -6,7 +6,7 @@ gets a print sheet for each batch.
 
 The owner put Merch last in their order on 15 Nov 2026, and on 18 Nov 2026 asked for it next, with sample screens first; signed-out
 viewing and sharing of public lives comes after it. **Status: built in v0.186.0 (19 Nov 2026)** after the owner's "approved build", with their four custom
-shirt designs at ₦10,000 and a name on the back for ₦4,000 more. What was built, and what wasn't, is at the end of this page.
+shirt designs at ₦10,000 and a name on the back (₦4,000 at first; ₦1,500 from the owner's message the same day). What was built, and what wasn't, is at the end of this page.
 
 The idea comes from Charlie Hills' article "5 things to build with Fable 5.2" (a 3D product view that turns). Only the idea is used.
 
@@ -80,7 +80,7 @@ Each has a recommendation. The build follows it unless the owner says otherwise.
 
 - **The owner's custom shirts** (19 Nov 2026): Maroon Splash, Black Drip, Ivory Drip and Maroon Stripes, cut out of the owner's
   pictures into `public/images/merch/designs/` (`MERCH_DESIGNS` in `lib/merch.ts`). ₦10,000 each; a name on the back of any shirt
-  ₦4,000. The owner sent the fronts only, so **the back is drawn in each shirt's main colour**, with the sleeves and collar from the
+  ₦1,500 (owner, 19 Nov 2026, down from ₦4,000). The owner sent the fronts only, so **the back is drawn in each shirt's main colour**, with the sleeves and collar from the
   picture, the name and a small mark; a back design can replace it later.
 - **The rules** `lib/merch.ts` (pure, tested): colours (`MERCH_COLOURS`), print places (`placesFor`), names on the back
   (`cleanBackName`: 12 characters, capitals, letters, numbers and . ' -), `quoteMerch` (the price, line by line, refusing any choice
@@ -102,7 +102,14 @@ Each has a recommendation. The build follows it unless the owner says otherwise.
   print sheet, Settings).
 - **Tests:** `npm run test:merch` (pure) and `npm run test:merch-server` (Firestore emulator), both in CI.
 
-Screenshots from the real code, with sample data on the emulators: [built.webp](mockups/merch-3d/built.webp).
+Screenshots from the real code, with sample data on the emulators: [built.webp](mockups/merch-3d/built.webp). The pattern backgrounds in 3D:
+[patterns-built.webp](mockups/merch-3d/patterns-built.webp).
+
+- **Pattern backgrounds** (owner, 19 Nov 2026, with their Moda canvas "notesapp Merch Pattern Backgrounds" and four pattern pictures in
+  `public/images/merch/patterns/`): maroon or light, all over the mug, coffee cup, Stanley-style cup, laptop bag (both faces) and mouse
+  pad with the logo on top (the colour choice gives way to the pattern); on the back of any shirt with no logo and the name if chosen
+  (a T-shirt's "Front and back" gives way to the front then). Free until a price is set in Admin (`extras.patternKobo`). Shirt backs
+  no longer carry a small logo at all.
 
 ## Changed from the mockups
 

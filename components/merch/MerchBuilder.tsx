@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
 import {
-  LOGO_OPTIONS, MERCH_COLOURS, MERCH_MAX_QTY, NAME_MAX, NIGERIAN_STATES, PLACE_NAME, SHIRT_SIZES, MerchError, applyMerch, colourOf, getMerchDesign,
+  LOGO_OPTIONS, MERCH_COLOURS, MERCH_MAX_QTY, MERCH_PATTERNS, patternOf, patternWhere, NAME_MAX, NIGERIAN_STATES, PLACE_NAME, SHIRT_SIZES, MerchError, applyMerch, colourOf, getMerchDesign,
   getMerchItem, placesFor, quoteMerch, validateAddress, type DeliveryAddress, type MerchPlace, type MerchSettings,
 } from "@/lib/merch";
 import MerchMockup from "@/components/MerchMockup";
@@ -21,6 +21,8 @@ import type { Side } from "./Merch3D";
 const Merch3D = dynamic(() => import("./Merch3D"), { ssr: false });
 const field = "mt-1 w-full rounded-lg border border-rule bg-card px-3 py-2 font-body text-sm focus:border-crimson outline-none";
 const EMPTY: DeliveryAddress = { fullName: "", phone: "", street: "", city: "", state: "" };
+// Words that read on a colour swatch.
+const onColour = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) > 150 ? "#1A1210" : "#ffffff"; };
 const chip = (on: boolean) => `rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-crimson bg-crimson text-paper" : "border-rule bg-card text-ink hover:border-crimson"}`;
 
 export default function MerchBuilder({ product, settings, state }: { product: string; settings: MerchSettings; state: "open" | "soon" | "closed" }) {
@@ -34,6 +36,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
   const [place, setPlace] = useState<MerchPlace>("front");
   const [size, setSize] = useState("M");
   const [name, setName] = useState("");
+  const [pattern, setPattern] = useState<string>("");
   const [qty, setQty] = useState(1);
   const [side, setSide] = useState<Side>("front");
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -46,12 +49,17 @@ export default function MerchBuilder({ product, settings, state }: { product: st
   const shirt = !!design || item?.shape === "tshirt";
   const logo = LOGO_OPTIONS.find((l) => l.id === logoId) ?? LOGO_OPTIONS[0];
   const hex = design ? design.base : colourOf(colour)?.hex ?? "#1d1b1c";
-  const choice = { product, colour, logoId, place, size, name, quantity: qty };
+  // Where a pattern background can go on this product: all over (cups, the bag, the pad), on the back (shirts), or not at all (the cap).
+  const patternAt = design ? "back" : item ? patternWhere({ kind: "item", item }) : null;
+  const pat = patternOf(pattern);
+  const choice = { product, colour, logoId, place, size, name, quantity: qty, ...(pat ? { pattern: pat.id } : {}) };
   let quote: ReturnType<typeof quoteMerch> | null = null, problem = "";
   try { quote = quoteMerch(choice); } catch (e) { problem = e instanceof MerchError ? e.message : "Check your choices."; }
   // Show the back when a choice puts something there.
-  useEffect(() => { if (name || place === "both") setSide("back"); }, [name, place]);
-  useEffect(() => { if (place !== "both" && !name) setSide("front"); }, [place, name]);
+  useEffect(() => { if (name || place === "both" || (pattern && patternAt === "back")) setSide("back"); }, [name, place, pattern, patternAt]);
+  useEffect(() => { if (place !== "both" && !name && !(pattern && patternAt === "back")) setSide("front"); }, [place, name, pattern, patternAt]);
+  // A shirt's back takes the pattern and the name only, so "Front and back" gives way to the front.
+  useEffect(() => { if (pattern && patternAt === "back" && place === "both") setPlace("front"); }, [pattern, patternAt, place]);
 
   const title = design ? `Custom shirt: ${design.name}` : item?.name ?? "";
   const flat = design
@@ -68,7 +76,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
     if (!user || !quote) return;
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "merch", product, ...(item ? { colour, logoId, place } : {}), ...(shirt ? { size, ...(name.trim() ? { name } : {}) } : {}), quantity: qty, address: addr, ...(disc ? { code: disc.code } : {}) });
+      await startCheckout(user, { kind: "merch", product, ...(item ? { colour, logoId, place } : {}), ...(pat ? { pattern: pat.id } : {}), ...(shirt ? { size, ...(name.trim() ? { name } : {}) } : {}), quantity: qty, address: addr, ...(disc ? { code: disc.code } : {}) });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -79,7 +87,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-        <Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place, name: name.trim().toUpperCase(), design }}
+        <Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place, name: name.trim().toUpperCase(), design, pattern: pat }}
           height={420} fallback={flat} label={`${title}, in 3D. Drag to turn it.`} side={side} onSide={setSide} />
       </div>
       <div className="min-w-0">
@@ -87,9 +95,23 @@ export default function MerchBuilder({ product, settings, state }: { product: st
           <h1 className="font-display text-3xl text-ink">{title}</h1>
           {quote && <p className="font-mono text-lg text-crimson-bright" aria-live="polite">{formatNaira(quote.quote.eachKobo)}</p>}
         </div>
-        {design && <p className="mt-1 text-sm text-slate">Printed all over, front and sleeves. The back is in the shirt&apos;s main colour, with your name if you add one.</p>}
+        {design && <p className="mt-1 text-sm text-slate">Printed all over, front and sleeves. The back is in the shirt&apos;s main colour or a #NotesApp pattern, with your name if you add one.</p>}
 
-        {item && offer && (
+        {patternAt && (
+          <fieldset className="mt-5 min-w-0">
+            <legend className="text-sm font-bold text-ink">{patternAt === "back" ? "Back" : "Background"} · {pat ? pat.name : patternAt === "back" && design ? "Main colour" : "Plain colour"}</legend>
+            <div className="mt-2 flex flex-wrap gap-2.5" role="radiogroup">
+              <button type="button" role="radio" aria-checked={!pat} onClick={() => setPattern("")} className={`h-14 w-14 rounded-xl border text-[10px] font-semibold ${!pat ? "ring-2 ring-ink ring-offset-2" : ""}`} style={{ background: hex, color: onColour(hex) }}>Plain</button>
+              {MERCH_PATTERNS.map((p) => (
+                <button key={p.id} type="button" role="radio" aria-checked={pattern === p.id} aria-label={p.name} onClick={() => setPattern(p.id)}
+                  className={`h-14 w-14 rounded-xl border border-rule bg-cover bg-center ${pattern === p.id ? "ring-2 ring-ink ring-offset-2" : ""}`} style={{ backgroundImage: `url(${p.wide})` }} />
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate">{patternAt === "back" ? "The pattern covers the back, with only your name on it if you add one." : "The pattern covers the item, with your logo on top."}{settings.extras.patternKobo ? ` +${formatNaira(settings.extras.patternKobo)}` : ""}</p>
+          </fieldset>
+        )}
+
+        {item && offer && !(pat && patternAt === "all") && (
           <fieldset className="mt-5 min-w-0">
             <legend className="text-sm font-bold text-ink">Colour · {colourOf(colour)?.name}</legend>
             <div className="mt-2 flex flex-wrap gap-2.5" role="radiogroup">
@@ -118,7 +140,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
           <fieldset className="mt-5 min-w-0">
             <legend className="text-sm font-bold text-ink">Where it&apos;s printed</legend>
             <div className="mt-2 flex flex-wrap gap-2">
-              {placesFor(item.shape).map((p) => {
+              {placesFor(item.shape).filter((p) => !(p === "both" && pat && patternAt === "back")).map((p) => {
                 const extra = p === "both" ? settings.extras.backKobo : p === "wrap" ? settings.extras.wrapKobo : 0;
                 return <button key={p} type="button" aria-pressed={place === p} onClick={() => setPlace(p)} className={chip(place === p)}>{PLACE_NAME[p]}{extra ? ` +${formatNaira(extra)}` : ""}</button>;
               })}

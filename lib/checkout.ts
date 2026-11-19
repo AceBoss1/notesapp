@@ -43,7 +43,7 @@ export async function startCheckout(
     | { kind: "ad"; packageId: string; advertiserName: string; title: string; text: string; image: string; href: string; placements: string[]; agreed: boolean }
     | { kind: "store"; itemId: string; quantity: number; variant?: string[]; address: import("./merch").DeliveryAddress }
     | { kind: "store_cart"; lines: import("./cart").CartLine[]; address: import("./merch").DeliveryAddress }
-    | { kind: "merch"; product: string; colour?: string; logoId?: string; place?: import("./merch").MerchPlace; size?: string; name?: string; quantity: number; address: import("./merch").DeliveryAddress }
+    | { kind: "merch"; product: string; colour?: string; logoId?: string; place?: import("./merch").MerchPlace; size?: string; name?: string; pattern?: string; quantity: number; address: import("./merch").DeliveryAddress }
     | { kind: "gift"; username: string; amountNaira: number; giftId?: string; noteId?: string; liveId?: string; message?: string; anonymous?: boolean; quantity?: number; toKind?: string; context?: string; mediaId?: string; replayId?: string }
     | { kind: "wallet_topup"; amountNaira: number }
     | { kind: "life_naira"; amountNaira: number }

@@ -2,9 +2,11 @@
 // from the chosen colour, with the logo (or a custom shirt's own picture) drawn onto a canvas and used as the texture.
 // Loaded only on an item page (components/merch/Merch3D.tsx imports this file dynamically).
 import * as THREE from "three";
-import type { MerchDesign, MerchPlace, MerchShape } from "@/lib/merch";
+import type { MerchDesign, MerchPattern, MerchPlace, MerchShape } from "@/lib/merch";
 
-export type Look = { shape: MerchShape | "design"; colour: string; logo?: string; place?: MerchPlace; name?: string; design?: MerchDesign };
+// pattern: one of the owner's pattern backgrounds: all over a cup, bag or pad (with the logo on top), or on the back of a shirt (with
+// only the name on it).
+export type Look = { shape: MerchShape | "design"; colour: string; logo?: string; place?: MerchPlace; name?: string; design?: MerchDesign; pattern?: MerchPattern | null };
 
 const images = new Map<string, Promise<HTMLImageElement>>();
 export function loadImage(src: string): Promise<HTMLImageElement> {
@@ -24,6 +26,17 @@ function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, c
   if (!img) return;
   const h = (w * img.height) / img.width / aspect;
   ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+}
+// A picture covering the whole of a canvas area, cropped to fit (like CSS background-size: cover).
+function cover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  const k = Math.max(w / img.width, h / img.height), iw = img.width * k, ih = img.height * k;
+  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+}
+// A pattern on everything already drawn on a canvas (it keeps the outline: only what is there is covered).
+async function patternOver(ctx: CanvasRenderingContext2D, pattern: MerchPattern, tall: boolean) {
+  const img = await loadImage(tall ? pattern.tall : pattern.wide).catch(() => null);
+  if (!img) return;
+  ctx.save(); ctx.globalCompositeOperation = "source-atop"; cover(ctx, img, 0, 0, ctx.canvas.width, ctx.canvas.height); ctx.restore();
 }
 function drawName(ctx: CanvasRenderingContext2D, name: string, cx: number, cy: number, width: number, ink: string) {
   if (!name) return;
@@ -49,11 +62,14 @@ async function shirtCanvases(look: Look): Promise<{ front: HTMLCanvasElement; ba
     // The back: the same outline (mirrored), the sleeves and collar from the picture, the body in the shirt's main colour, the name.
     const back = canvas(W, H), b = back.getContext("2d")!;
     b.translate(W, 0); b.scale(-1, 1); b.drawImage(img, 0, 0); b.setTransform(1, 0, 0, 1, 0, 0);
-    b.globalCompositeOperation = "source-atop";
-    b.fillStyle = look.design.base; b.fillRect(W * 0.24, H * 0.115, W * 0.52, H); b.fillRect(W * 0.17, H * 0.42, W * 0.66, H);
-    b.globalCompositeOperation = "source-over";
-    drawName(b, look.name ?? "", W / 2, H * 0.3, W, look.design.ink);
-    drawLogo(b, await loadImage("/images/brand/notesapp-icon.webp").catch(() => null), W / 2, H * (look.name ? 0.44 : 0.3), W * 0.09);
+    // No logo on the back of a shirt (owner, 19 Nov 2026): the shirt's main colour, or the chosen pattern, and the name.
+    if (look.pattern) await patternOver(b, look.pattern, true);
+    else {
+      b.globalCompositeOperation = "source-atop";
+      b.fillStyle = look.design.base; b.fillRect(W * 0.24, H * 0.115, W * 0.52, H); b.fillRect(W * 0.17, H * 0.42, W * 0.66, H);
+      b.globalCompositeOperation = "source-over";
+    }
+    drawName(b, look.name ?? "", W / 2, H * 0.3, W, look.pattern ? look.pattern.ink : look.design.ink);
     return { front, back };
   }
   const W = 1024, H = 1024, s = W / TEE_BOX.w;
@@ -73,9 +89,10 @@ async function shirtCanvases(look: Look): Promise<{ front: HTMLCanvasElement; ba
   const place = look.place ?? "front";
   if (place === "chest") drawLogo(f, logo, W * 0.62, H * 0.3, W * 0.12);
   else drawLogo(f, logo, W / 2, H * 0.4, W * 0.24);
-  const ink = inkFor(look.colour);
+  if (look.pattern) await patternOver(b, look.pattern, true);
+  const ink = look.pattern ? look.pattern.ink : inkFor(look.colour);
   drawName(b, look.name ?? "", W / 2, H * 0.28, W, ink);
-  if (place === "both") drawLogo(b, logo, W / 2, H * (look.name ? 0.5 : 0.42), W * 0.3);
+  if (place === "both" && !look.pattern) drawLogo(b, logo, W / 2, H * (look.name ? 0.5 : 0.42), W * 0.3);
   return { front, back };
 }
 
@@ -102,7 +119,8 @@ function shirt(front: HTMLCanvasElement, back: HTMLCanvasElement): THREE.Group {
 // ── Mugs and cups: a turned body with the logo on a wrap-around texture ───────────────────────────────────────────────────────
 async function wrap(look: Look, aspect: number): Promise<HTMLCanvasElement> {
   const W = 1024, H = Math.round(W / aspect), c = canvas(W, H), x = c.getContext("2d")!;
-  x.fillStyle = look.colour; x.fillRect(0, 0, W, H);
+  x.fillStyle = look.pattern?.base ?? look.colour; x.fillRect(0, 0, W, H);
+  if (look.pattern) await patternOver(x, look.pattern, false);
   const logo = look.logo ? await loadImage(look.logo).catch(() => null) : null;
   // The body's texture starts at the back (thetaStart -π), so the middle of the canvas faces the front.
   const at = look.place === "wrap" ? [0.125, 0.375, 0.625, 0.875] : [0.5];
@@ -145,10 +163,20 @@ async function decal(src: string | undefined, size: number): Promise<THREE.Mesh 
   return new THREE.Mesh(new THREE.PlaneGeometry(size, (size * c.height) / c.width), new THREE.MeshStandardMaterial({ map: texture(c), transparent: true, roughness: 0.6 }));
 }
 
+// A pattern panel for the face of a slab, with the slab's rounded corners.
+async function patternPanel(pattern: MerchPattern, w: number, h: number, r: number): Promise<THREE.Mesh | null> {
+  const img = await loadImage(pattern.wide).catch(() => null);
+  if (!img) return null;
+  const W = 1024, H = Math.round((W * h) / w), R = (r / w) * W, c = canvas(W, H), x = c.getContext("2d")!;
+  x.beginPath(); x.roundRect(0, 0, W, H, R); x.clip(); cover(x, img, 0, 0, W, H);
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: texture(c), transparent: true, roughness: 0.8 }));
+}
+
 // The product, centred on the origin, about 2 units across.
 export async function buildProduct(look: Look): Promise<THREE.Group> {
   const g = new THREE.Group();
-  const c = look.colour;
+  // With a pattern, the parts it doesn't cover (handles, rims, edges) take the pattern's own colour.
+  const c = look.pattern && look.shape !== "tshirt" && look.shape !== "design" ? look.pattern.base : look.colour;
   switch (look.shape) {
     case "design":
     case "tshirt": {
@@ -193,6 +221,8 @@ export async function buildProduct(look: Look): Promise<THREE.Group> {
     case "mousepad": {
       const pad = slab(2.2, 1.6, 0.06, c, 0.16);
       g.add(pad);
+      const face = look.pattern ? await patternPanel(look.pattern, 2.2, 1.6, 0.16) : null;
+      if (face) { face.position.z = 0.052; g.add(face); }
       const logo = await decal(look.logo, 0.6);
       if (logo) { logo.position.z = 0.06; g.add(logo); }
       g.rotation.x = -0.9;
@@ -200,6 +230,10 @@ export async function buildProduct(look: Look): Promise<THREE.Group> {
     }
     case "laptopbag": {
       g.add(slab(2.1, 1.5, 0.3, c, 0.14));
+      for (const side of look.pattern ? [1, -1] : []) {
+        const face = await patternPanel(look.pattern!, 2.1, 1.5, 0.14);
+        if (face) { face.position.z = 0.172 * side; if (side < 0) face.rotation.y = Math.PI; g.add(face); }
+      }
       const strap = handle(0.32, 0.04, new THREE.Color(c).multiplyScalar(0.7).getStyle(), 0, 0.75);
       strap.rotation.z = 0; g.add(strap);
       const logo = await decal(look.logo, 0.5);

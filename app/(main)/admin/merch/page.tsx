@@ -152,7 +152,7 @@ export default function AdminMerchPage() {
             <div key={o.reference} className="card p-4 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold text-ink">
-                  {o.quantity} × {o.itemName} · {o.product ? choiceText({ colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
+                  {o.quantity} × {o.itemName} · {o.product ? choiceText({ patternName: o.patternName, colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
                   <span className="ml-2 font-mono text-xs text-slate">{formatNaira(o.amountKobo)}</span>
                   {o.source === "campus" && <span className="ml-2 rounded-full bg-crimson/10 px-2 py-0.5 font-ui text-[11px] font-semibold text-crimson" title="A free campus reward (Admin → Campus → Rewards)">🎓 Campus reward</span>}
                 </p>

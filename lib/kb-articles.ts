@@ -1375,6 +1375,8 @@ The [Merch store](/merchstore) sells official #NotesApp merch: the **custom shir
 
 **Choose how you want it.** Pick the colour (each item comes in the colours shown on it), the logo and where it's printed: a T-shirt can have the logo on the front, small on the chest, or on the front and large on the back; a mug or coffee cup can have it once or wrapped all round. Shirts come in S to XXL, and can carry **a name on the back**: up to 12 letters or numbers, printed in capitals. Choices that cost more show their price on the button.
 
+**A pattern background.** Mugs, the coffee cup, the Stanley-style cup, the laptop bag and the mouse pad can be covered in the #NotesApp pattern, maroon or light, with your logo on top. On a shirt, the pattern goes on the back, with no logo there and your name on it if you add one.
+
 **The price updates as you choose**, line by line: the item, any extras, how many, and delivery anywhere in Nigeria for a flat ${money(merchDeliveryKobo())}. A discount code works too. The price is worked out again when you pay, so what you see is what you pay.
 
 **Pre-orders in batches.** You pay now with Paystack; we print after the batch closes and deliver within about three weeks. The store says when the batch is open and when it closes. You can ask for a refund until your order is printed. Your order, with a picture of what you chose that you can turn in 3D, is under [Orders](/orders), and you can follow it with its parcel ID.

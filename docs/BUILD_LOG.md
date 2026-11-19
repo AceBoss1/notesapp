@@ -3450,7 +3450,7 @@ in the saved copy of the site (now written through JSON), and merged writes that
 `mergeFields`). Tests: `test:site-nana`, `test:site-nana-server`.
 
 **Merch in 3D (v0.186.0, 19 Nov 2026)** — last in the owner's order; mockups approved with the owner's four custom shirt designs
-(₦10,000, a name on the back ₦4,000) (`docs/MERCH_3D.md`). The designs were cut out of their grey studio background (a flood fill of
+(₦10,000, a name on the back ₦1,500) (`docs/MERCH_3D.md`). The designs were cut out of their grey studio background (a flood fill of
 mid-grey neutral pixels from the edges and down the neck). The 3D view builds every model in code with `three`: shirts are two
 curved sheets cut to the outline by the texture's alpha, the back drawn in the shirt's main colour. Prices, colours, extras and the
 batch moved into the pricing settings (`merch`), so Admin → Merch sets them with a change log; `quoteMerch` prices the item page and

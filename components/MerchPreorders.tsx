@@ -6,7 +6,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
 import dynamic from "next/dynamic";
-import { LOGO_OPTIONS, MERCH_STEPS, choiceText, colourOf, getMerchDesign, getMerchItem, type MerchOrder } from "@/lib/merch";
+import { LOGO_OPTIONS, MERCH_STEPS, choiceText, colourOf, getMerchDesign, getMerchItem, patternOf, type MerchOrder } from "@/lib/merch";
 import MerchMockup from "@/components/MerchMockup";
 
 const Merch3D = dynamic(() => import("@/components/merch/Merch3D"), { ssr: false });
@@ -21,7 +21,7 @@ function Design({ o }: { o: MerchOrder }) {
   const hex = design ? design.base : colourOf(o.colour)?.hex ?? "#1d1b1c";
   // eslint-disable-next-line @next/next/no-img-element
   const flat = design ? <img src={design.image} alt="" className="h-full w-full object-contain" /> : <MerchMockup item={item!} logoSrc={logo.image} logoAlt={logo.label} colour={hex} />;
-  if (turn) return <div className="mt-3"><Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place: o.place, name: o.backName, design }} height={260} fallback={flat} label={`Your ${o.itemName}, in 3D`} /></div>;
+  if (turn) return <div className="mt-3"><Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place: o.place, name: o.backName, design, pattern: patternOf(o.pattern) }} height={260} fallback={flat} label={`Your ${o.itemName}, in 3D`} /></div>;
   return (
     <button type="button" onClick={() => setTurn(true)} className="group relative mt-3 block h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-paper" aria-label={`Turn your ${o.itemName} in 3D`}>
       {flat}<span className="absolute inset-x-0 bottom-0 bg-ink/60 py-0.5 text-center text-[10px] font-semibold text-white">Turn it</span>
@@ -54,7 +54,7 @@ export default function MerchPreorders({ uid }: { uid: string }) {
           return (
             <li key={o.reference} className="card p-4 text-sm">
               <p className="font-semibold text-ink">
-                {o.quantity} × {o.itemName} · {o.product ? choiceText({ colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
+                {o.quantity} × {o.itemName} · {o.product ? choiceText({ patternName: o.patternName, colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
                 <span className="ml-2 font-mono text-xs text-slate">{formatNaira(o.amountKobo)}</span>
               </p>
               <Design o={o} />

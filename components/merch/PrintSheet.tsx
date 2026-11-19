@@ -16,7 +16,7 @@ export function printRows(orders: MerchOrder[], batchId: string): PrintRow[] {
     const design = o.designId ? getMerchDesign(o.designId) : undefined;
     const row = m.get(k) ?? {
       key: k, item: o.itemName, picture: design?.image ?? "", swatch: MERCH_COLOURS.find((c) => c.id === o.colour)?.hex,
-      text: choiceText({ colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place }), size: o.size ?? "", name: o.backName ?? "", count: 0, refs: [],
+      text: choiceText({ patternName: o.patternName, colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place }), size: o.size ?? "", name: o.backName ?? "", count: 0, refs: [],
     };
     row.count += o.quantity; row.refs.push(o.reference);
     m.set(k, row);

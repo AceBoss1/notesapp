@@ -103,7 +103,7 @@ export type MerchOrder = {
   reference: string;
   // Merch in 3D (v0.186.0): what was chosen. Older orders have none of these.
   product?: string; // "item:tshirt" or "design:black-drip"
-  colour?: string; colourName?: string; place?: MerchPlace; backName?: string; designId?: string;
+  colour?: string; colourName?: string; place?: MerchPlace; backName?: string; designId?: string; pattern?: MerchPatternId; patternName?: string;
   parcelId?: string; // set at checkout (older orders get one on their first status change)
   uid: string;
   email: string;
@@ -146,7 +146,7 @@ export const MERCH_COLOURS = [
 export type MerchColourId = (typeof MERCH_COLOURS)[number]["id"];
 export const colourOf = (id: unknown) => MERCH_COLOURS.find((c) => c.id === id) ?? null;
 
-// The owner's custom shirts (19 Nov 2026): printed all over, ₦10,000 each, a name on the back ₦4,000 more. The picture is the front;
+// The owner's custom shirts (19 Nov 2026): printed all over, ₦10,000 each, a name on the back ₦1,500 more. The picture is the front;
 // the back is drawn in the shirt's main colour (`base`), with the name in `ink`, until a back design is supplied.
 export type MerchDesign = { id: string; name: string; image: string; base: string; ink: string; sleeves: string };
 export const MERCH_DESIGNS: MerchDesign[] = [
@@ -156,6 +156,23 @@ export const MERCH_DESIGNS: MerchDesign[] = [
   { id: "maroon-stripes", name: "Maroon Stripes", image: "/images/merch/designs/maroon-stripes.webp", base: "#4a0a1f", ink: "#ffffff", sleeves: "#ffffff" },
 ];
 export const getMerchDesign = (id: unknown) => MERCH_DESIGNS.find((d) => d.id === id);
+
+// The owner's two #NotesApp pattern backgrounds (19 Nov 2026; their Moda canvas "notesapp Merch Pattern Backgrounds"). Mugs, cups, the
+// Stanley cup, the laptop bag and the mouse pad take one all over, with the logo on top; a shirt takes one on its back, with no logo
+// there and the name on top if one is chosen. The tall picture is for shirt backs, the wide one for everything else.
+export const MERCH_PATTERNS = [
+  { id: "maroon", name: "Maroon pattern", tall: "/images/merch/patterns/maroon-tall.webp", wide: "/images/merch/patterns/maroon-wide.webp", base: "#4a0a1f", ink: "#ffffff" },
+  { id: "light", name: "Light pattern", tall: "/images/merch/patterns/light-tall.webp", wide: "/images/merch/patterns/light-wide.webp", base: "#f6ece6", ink: "#6b1230" },
+] as const;
+export type MerchPattern = (typeof MERCH_PATTERNS)[number];
+export type MerchPatternId = MerchPattern["id"];
+export const patternOf = (id: unknown): MerchPattern | null => MERCH_PATTERNS.find((p) => p.id === id) ?? null;
+const PATTERN_ALL_OVER: MerchShape[] = ["mug", "coffeecup", "stanley", "laptopbag", "mousepad"];
+// Where a pattern goes on a product: all over, on the back (shirts), or nowhere (the cap).
+export function patternWhere(p: { kind: "item"; item: MerchItem } | { kind: "design" }): "all" | "back" | null {
+  if (p.kind === "design" || p.item.shape === "tshirt") return "back";
+  return PATTERN_ALL_OVER.includes(p.item.shape) ? "all" : null;
+}
 
 // Where a logo can go on each item. The T-shirt: the front, small on the chest, or the front and a large one on the back (extra).
 // Mugs and coffee cups: the front, or wrapped all round (extra). Everything else: the front.
@@ -172,7 +189,7 @@ export type MerchSettings = {
   deliveryKobo: number;
   items: { id: string; priceKobo: number; on: boolean; colours: MerchColourId[] }[];
   designs: { id: string; priceKobo: number; on: boolean }[];
-  extras: { backKobo: number; xxlKobo: number; wrapKobo: number; nameKobo: number };
+  extras: { backKobo: number; xxlKobo: number; wrapKobo: number; nameKobo: number; patternKobo: number };
 };
 const DEFAULT_COLOURS: Record<string, MerchColourId[]> = {
   tshirt: ["black", "white", "crimson", "navy", "sand"], cap: ["crimson", "black", "white"], mug: ["white", "black"], stanley: ["black", "white", "crimson"],
@@ -180,8 +197,9 @@ const DEFAULT_COLOURS: Record<string, MerchColourId[]> = {
 };
 const ITEM_STATE: MerchSettings["items"] = MERCH_ITEMS.map((i) => ({ id: i.id, priceKobo: i.priceKobo, on: true, colours: [...(DEFAULT_COLOURS[i.id] ?? ["black"])] }));
 const DESIGN_STATE: MerchSettings["designs"] = MERCH_DESIGNS.map((d) => ({ id: d.id, priceKobo: 10_000_00, on: true }));
-// Extras: the back print, XXL and the mug wrap are placeholders until the owner sets them; the name on the back is the owner's ₦4,000.
-const EXTRAS: MerchSettings["extras"] = { backKobo: 2_500_00, xxlKobo: 1_000_00, wrapKobo: 1_000_00, nameKobo: 4_000_00 };
+// Extras: the back print, XXL and the mug wrap are placeholders until the owner sets them. The name on the back is the owner's ₦1,500
+// (19 Nov 2026, down from ₦4,000); a pattern background costs nothing extra until the owner sets a price.
+const EXTRAS: MerchSettings["extras"] = { backKobo: 2_500_00, xxlKobo: 1_000_00, wrapKobo: 1_000_00, nameKobo: 1_500_00, patternKobo: 0 };
 
 export function currentMerch(): MerchSettings {
   return {
@@ -236,7 +254,7 @@ export function cleanMerch(input: unknown, d: MerchSettings = DEFAULT_MERCH): Me
     batch: { id, label, opensOn, closesOn, note: String(b.note ?? "").replace(/\s+/g, " ").trim().slice(0, 200) || d.batch.note },
     deliveryKobo: koboOf(i.deliveryKobo, "Delivery"),
     items, designs,
-    extras: { backKobo: koboOf(e.backKobo, "Front and back"), xxlKobo: koboOf(e.xxlKobo, "XXL"), wrapKobo: koboOf(e.wrapKobo, "Wrapped all round"), nameKobo: koboOf(e.nameKobo, "Name on the back") },
+    extras: { backKobo: koboOf(e.backKobo, "Front and back"), xxlKobo: koboOf(e.xxlKobo, "XXL"), wrapKobo: koboOf(e.wrapKobo, "Wrapped all round"), nameKobo: koboOf(e.nameKobo, "Name on the back"), patternKobo: koboOf(e.patternKobo ?? d.extras.patternKobo, "Pattern background") },
   };
 }
 export const itemSettings = (id: string) => ITEM_STATE.find((i) => i.id === id);
@@ -245,11 +263,12 @@ export const merchExtras = () => ({ ...EXTRAS });
 
 // ── A choice, and its price ───────────────────────────────────────────────────────────────────────────────────────────────────
 // product: a blank item ("item:tshirt") or a custom design ("design:black-drip").
-export type MerchChoice = { product: string; colour?: string; logoId?: string; place?: MerchPlace; size?: string; name?: string; quantity: number };
+// pattern: one of the owner's two #NotesApp pattern backgrounds (19 Nov 2026), on the items that take one (patternFor).
+export type MerchChoice = { product: string; colour?: string; logoId?: string; place?: MerchPlace; size?: string; name?: string; pattern?: string; quantity: number };
 export type PriceLine = { label: string; kobo: number };
 export type MerchQuote = { lines: PriceLine[]; eachKobo: number; quantity: number; subtotalKobo: number; deliveryKobo: number };
-export type Resolved = { kind: "item"; item: MerchItem; colour: (typeof MERCH_COLOURS)[number]; logo: LogoOption; place: MerchPlace }
-  | { kind: "design"; design: MerchDesign };
+export type Resolved = ({ kind: "item"; item: MerchItem; colour: (typeof MERCH_COLOURS)[number]; logo: LogoOption; place: MerchPlace }
+  | { kind: "design"; design: MerchDesign }) & { pattern: MerchPattern | null };
 export const isShirt = (r: Resolved) => r.kind === "design" || r.item.shape === "tshirt";
 export const productName = (r: Resolved) => (r.kind === "design" ? `Custom shirt: ${r.design.name}` : r.item.name);
 
@@ -273,7 +292,7 @@ export function quoteMerch(c: MerchChoice): { r: Resolved; quote: MerchQuote; si
   if (kind === "design") {
     const design = getMerchDesign(id), s = designSettings(id ?? "");
     if (!design || !s?.on) throw new MerchError("That shirt isn't on offer.");
-    r = { kind: "design", design }; base = s.priceKobo;
+    r = { kind: "design", design, pattern: null }; base = s.priceKobo;
   } else if (kind === "item") {
     const item = getMerchItem(id ?? ""), s = itemSettings(id ?? "");
     if (!item || !s?.on) throw new MerchError("That item isn't on offer.");
@@ -283,9 +302,17 @@ export function quoteMerch(c: MerchChoice): { r: Resolved; quote: MerchQuote; si
     if (!logo) throw new MerchError("Choose a logo.");
     const place = c.place ?? "front";
     if (!placesFor(item.shape).includes(place)) throw new MerchError(`${item.name} can't be printed there.`);
-    r = { kind: "item", item, colour, logo, place }; base = s.priceKobo;
+    r = { kind: "item", item, colour, logo, place, pattern: null }; base = s.priceKobo;
   } else throw new MerchError("Choose an item.");
+  if (c.pattern) {
+    const pat = patternOf(c.pattern), where = patternWhere(r);
+    if (!pat || !where) throw new MerchError("That background isn't offered on this item.");
+    // The back of a shirt with a pattern carries the pattern and the name only: no logo there.
+    if (r.kind === "item" && r.place === "both") throw new MerchError("With a pattern on the back, choose Front or Chest for the logo.");
+    r.pattern = pat;
+  }
   const lines: PriceLine[] = [{ label: productName(r), kobo: base }];
+  if (r.pattern && ex.patternKobo) lines.push({ label: `${r.pattern.name} ${patternWhere(r) === "back" ? "on the back" : "background"}`, kobo: ex.patternKobo });
   if (r.kind === "item" && r.place === "both") lines.push({ label: PLACE_NAME.both, kobo: ex.backKobo });
   if (r.kind === "item" && r.place === "wrap") lines.push({ label: PLACE_NAME.wrap, kobo: ex.wrapKobo });
   let size: string | undefined;
@@ -301,12 +328,12 @@ export function quoteMerch(c: MerchChoice): { r: Resolved; quote: MerchQuote; si
 }
 
 // "Black · Core mark · Front and back" / "Maroon Splash · XL · Name: ADA".
-export function choiceText(o: { colourName?: string; logoLabel?: string; place?: string; size?: string; backName?: string }): string {
-  return [o.colourName, o.logoLabel && `${o.logoLabel}`, o.place && o.place !== "front" ? PLACE_NAME[o.place as MerchPlace] ?? o.place : "", o.size, o.backName && `Name: ${o.backName}`].filter(Boolean).join(" · ");
+export function choiceText(o: { colourName?: string; logoLabel?: string; place?: string; size?: string; backName?: string; patternName?: string }): string {
+  return [o.patternName, o.colourName, o.logoLabel && `${o.logoLabel}`, o.place && o.place !== "front" ? PLACE_NAME[o.place as MerchPlace] ?? o.place : "", o.size, o.backName && `Name: ${o.backName}`].filter(Boolean).join(" · ");
 }
 // The print sheet's grouping: one row per identical piece.
-export const printKey = (o: Pick<MerchOrder, "itemName" | "logoLabel" | "size"> & { colourName?: string; place?: string; backName?: string }) =>
-  [o.itemName, o.colourName ?? "", o.logoLabel, o.place ?? "front", o.size ?? "", o.backName ?? ""].join("|");
+export const printKey = (o: Pick<MerchOrder, "itemName" | "logoLabel" | "size"> & { colourName?: string; place?: string; backName?: string; patternName?: string }) =>
+  [o.itemName, o.colourName ?? "", o.patternName ?? "", o.logoLabel, o.place ?? "front", o.size ?? "", o.backName ?? ""].join("|");
 
 // What a paid order records (payments/{ref}.merch, then merchOrders/{ref}): checkout builds it from the quote, so the receipt, the
 // admin list and the print sheet carry exactly what the buyer chose and the price lines they saw.
@@ -318,8 +345,10 @@ export function merchOrderInfo(q: ReturnType<typeof quoteMerch>, address: Delive
     ...(q.size ? { size: q.size } : {}), quantity: quote.quantity, unitKobo: quote.eachKobo, deliveryKobo: quote.deliveryKobo,
     batchId: MERCH_BATCH.id, address,
     product: r.kind === "item" ? `item:${r.item.id}` : `design:${r.design.id}`,
-    ...(r.kind === "item" ? { colour: r.colour.id, colourName: r.colour.name, place: r.place } : { designId: r.design.id }),
+    // A pattern all over an item replaces its colour, so no colour is recorded then.
+    ...(r.kind === "item" ? { ...(r.pattern && patternWhere(r) === "all" ? {} : { colour: r.colour.id, colourName: r.colour.name }), place: r.place } : { designId: r.design.id }),
     ...(q.name ? { backName: q.name } : {}),
+    ...(r.pattern ? { pattern: r.pattern.id, patternName: r.pattern.name } : {}),
     lines: quote.lines,
   };
 }

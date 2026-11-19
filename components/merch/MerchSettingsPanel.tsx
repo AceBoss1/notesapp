@@ -110,7 +110,7 @@ export default function MerchSettingsPanel({ user, onSaved }: { user: User; onSa
 
       <h3 className="mt-6 text-sm font-bold">Extras</h3>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {([["nameKobo", "Name on the back of a shirt"], ["backKobo", "T-shirt: front and back"], ["xxlKobo", "Shirts: XXL"], ["wrapKobo", "Mug or coffee cup: wrapped all round"]] as const).map(([k, label]) => (
+        {([["nameKobo", "Name on the back of a shirt"], ["patternKobo", "A pattern background (0 for free)"], ["backKobo", "T-shirt: front and back"], ["xxlKobo", "Shirts: XXL"], ["wrapKobo", "Mug or coffee cup: wrapped all round"]] as const).map(([k, label]) => (
           <label key={k} className="flex items-center justify-between gap-2 text-xs text-slate">{label}, ₦<input className={`${field} w-24`} inputMode="numeric" value={naira(m.extras[k])} onChange={(e) => set({ extras: { ...m.extras, [k]: kobo(e.target.value) } })} /></label>
         ))}
       </div>
