@@ -52,12 +52,14 @@ const APP_NAV = [
 
 // The footer's link groups (owner, 19 Nov 2026: "rearrange the footer like ContiSX's, with dropdowns to group the menus"). Every link from
 // the old Product, Company and Connect columns is here, in themed groups; Notes Arcade sits below Notes Life. On a phone each group is a
-// dropdown; on a wide screen, a column. The legal pages sit in the Legal dropdown at the bottom.
+// dropdown, closed until tapped, on every screen (owner, 19 Nov 2026: "collapse each group into a dropdown"). The legal pages sit in the
+// Legal dropdown at the bottom.
 type FooterLink = { href: string; label: string };
 const FOOTER_GROUPS: { title: string; items: FooterLink[] }[] = [
   { title: "Products", items: [
     { href: "/journals", label: "Journals" }, { href: "/shop", label: "Notes Market" }, { href: "/academy", label: "Notes Academy" },
-    { href: "/booking", label: "Booking" }, { href: "/events", label: "Events" }, { href: "/lives", label: "Paid lives" },
+    { href: "/booking", label: "Booking" }, { href: "/lives", label: "Notes Live" }, { href: "/studio", label: "Live Media Studio Pro" },
+    { href: "/events", label: "Events" }, { href: "/lives", label: "Paid lives" },
     { href: "/ppm", label: "Pay-per-minute sessions" }, { href: "/gifts", label: "Gifts" }, { href: "/boost", label: "Boost" },
     { href: "/coauthoring", label: "Co-authoring" }, { href: "/badges", label: "Verification badges" }, { href: "/nana", label: "Nana AI" },
   ] },
@@ -131,43 +133,37 @@ const site = await getSiteSettingsCached();
         <footer className="mt-24 bg-crimson-deep text-paper" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
           <FooterCta />
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-            {/* The brand, what we are, and how to reach us (owner, 19 Nov 2026: laid out like ContiSX's footer). */}
-            <div className="max-w-xl">
-              <div className="flex items-center gap-2.5">
-                <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={40} height={40} className="h-10 w-10 rounded-xl" />
-                <span className="font-ui text-2xl font-extrabold">Notes<span className="text-crimson-bright">App</span></span>
+            {/* The brand, the partnership, and how to reach us: three parts side by side on a wide screen (owner, 19 Nov 2026). */}
+            <div className="grid gap-6 lg:grid-cols-3 lg:gap-10">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={40} height={40} className="h-10 w-10 rounded-xl" />
+                  <span className="font-ui text-2xl font-extrabold">Notes<span className="text-crimson-bright">App</span></span>
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-paper/70">Publish, connect and get paid in your local currency — one home for African creators, professionals and businesses.</p>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-paper/70">Publish, connect and get paid in your local currency — one home for African creators, professionals and businesses.</p>
-              <p className="mt-4 text-sm text-paper/55">
+              <p className="text-sm leading-relaxed text-paper/55 lg:pt-14">
                 Built in partnership with <PartnerIcon partner="precheks" /> Precheks (journal) and <PartnerIcon partner="apexglitz" /> ApexGlitz (shop) — our first reference customers. —{" "}
                 <Link href="/admin/login" className="text-paper/75 hover:text-paper">Staff Login</Link>
               </p>
-              <p className="mt-4 text-sm text-paper/75"><span className="font-semibold text-paper">Email:</span>{" "}<a href={`mailto:${site.email}`} className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{site.email}</a></p>
-              <p className="mt-1 text-sm text-paper/75"><span className="font-semibold text-paper">#NotesApp:</span>{" "}<Link href="/u/na-notesapp" className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{ROOT_DOMAIN}/u/na-notesapp</Link></p>
+              <div className="space-y-1 text-sm text-paper/75 lg:pt-14">
+                <p><span className="font-semibold text-paper">Email:</span>{" "}<a href={`mailto:${site.email}`} className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{site.email}</a></p>
+                <p><span className="font-semibold text-paper">#NotesApp:</span>{" "}<Link href="/u/na-notesapp" className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{ROOT_DOMAIN}/u/na-notesapp</Link></p>
+              </div>
             </div>
 
-            {/* The link groups: each folds into a dropdown on a phone, and stands as a column on a wide screen. */}
-            <div className="mt-10 lg:hidden">
+            {/* The link groups, each a dropdown closed until tapped: one list on a phone, six columns on a wide screen. */}
+            <div className="mt-10 lg:mt-12 lg:grid lg:grid-cols-6 lg:items-start lg:gap-8">
               {FOOTER_GROUPS.map((g) => (
-                <details key={g.title} className="group border-b border-paper/10">
-                  <summary className="flex cursor-pointer list-none items-center justify-between py-5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-paper/90 marker:hidden [&::-webkit-details-marker]:hidden">
+                <details key={g.title} className="group border-b border-paper/10 lg:border-0">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-paper/90 marker:hidden lg:justify-start lg:py-0 lg:text-xs lg:tracking-[0.2em] lg:text-paper/70 lg:hover:text-paper [&::-webkit-details-marker]:hidden">
                     {g.title}
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-paper/60 transition-transform group-open:rotate-180" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
                   </summary>
-                  <ul className="grid gap-x-6 gap-y-2.5 pb-5 text-sm text-paper/75 sm:grid-cols-2">
+                  <ul className="grid gap-x-6 gap-y-2.5 pb-5 text-sm text-paper/75 sm:grid-cols-2 lg:mt-4 lg:grid-cols-1 lg:gap-y-2 lg:pb-0">
                     {g.items.map((item) => <li key={item.label}><Link href={item.href} className="hover:text-paper">{item.label}</Link></li>)}
                   </ul>
                 </details>
-              ))}
-            </div>
-            <div className="mt-12 hidden gap-8 lg:grid lg:grid-cols-6">
-              {FOOTER_GROUPS.map((g) => (
-                <div key={g.title} className="min-w-0">
-                  <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-paper/60">{g.title}</p>
-                  <ul className="mt-4 space-y-2 text-sm text-paper/75">
-                    {g.items.map((item) => <li key={item.label}><Link href={item.href} className="hover:text-paper">{item.label}</Link></li>)}
-                  </ul>
-                </div>
               ))}
             </div>
           </div>

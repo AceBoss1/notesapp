@@ -15,8 +15,8 @@ export const CHANGELOG: Release[] = [
     bump: "patch",
     date: "2026-11-19",
     changes: [
-      { kind: "changed", text: "A tidier footer: the links are grouped into Products, Business, Community, For you, Devices & play and Company, which fold into dropdowns on a phone. Social links and a Legal dropdown sit at the bottom, with a Menu button beside Nana." },
-      { kind: "added", text: "Notes Arcade in the footer, below Notes Life." },
+      { kind: "changed", text: "A tidier footer: the brand, our partners and how to reach us in three parts across the top, then the links grouped into Products, Business, Community, For you, Devices & play and Company, each a dropdown you open. Social links and a Legal dropdown sit at the bottom, with a Menu button beside Nana." },
+      { kind: "added", text: "Notes Live, Live Media Studio Pro and Notes Arcade in the footer." },
     ],
   },
   {
