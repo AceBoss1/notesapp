@@ -70,7 +70,7 @@ export default function MerchMockup({ item, logoSrc, logoAlt, colour }: { item: 
       <img
         src={logoSrc}
         alt={logoAlt}
-        className="absolute object-contain mix-blend-multiply"
+        className={`absolute object-contain ${colour ? "" : "mix-blend-multiply"}`}
         style={{ left: `${item.print.left}%`, top: `${item.print.top}%`, width: `${item.print.size}%`, height: `${item.print.size}%` }}
       />
     </div>

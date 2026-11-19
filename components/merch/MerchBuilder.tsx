@@ -77,7 +77,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
   if (!item && !design) return null;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place, name: name.trim().toUpperCase(), design }}
           height={420} fallback={flat} label={`${title}, in 3D. Drag to turn it.`} side={side} onSide={setSide} />
@@ -90,7 +90,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
         {design && <p className="mt-1 text-sm text-slate">Printed all over, front and sleeves. The back is in the shirt&apos;s main colour, with your name if you add one.</p>}
 
         {item && offer && (
-          <fieldset className="mt-5">
+          <fieldset className="mt-5 min-w-0">
             <legend className="text-sm font-bold text-ink">Colour · {colourOf(colour)?.name}</legend>
             <div className="mt-2 flex flex-wrap gap-2.5" role="radiogroup">
               {MERCH_COLOURS.filter((c) => offer.colours.includes(c.id)).map((c) => (
@@ -101,7 +101,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
           </fieldset>
         )}
         {item && (
-          <fieldset className="mt-5">
+          <fieldset className="mt-5 min-w-0">
             <legend className="text-sm font-bold text-ink">Logo · {logo.label}</legend>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1" role="radiogroup">
               {LOGO_OPTIONS.map((l) => (
@@ -115,7 +115,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
           </fieldset>
         )}
         {item && placesFor(item.shape).length > 1 && (
-          <fieldset className="mt-5">
+          <fieldset className="mt-5 min-w-0">
             <legend className="text-sm font-bold text-ink">Where it&apos;s printed</legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {placesFor(item.shape).map((p) => {
@@ -127,7 +127,7 @@ export default function MerchBuilder({ product, settings, state }: { product: st
         )}
         {shirt && (
           <>
-            <fieldset className="mt-5">
+            <fieldset className="mt-5 min-w-0">
               <legend className="text-sm font-bold text-ink">Size</legend>
               <div className="mt-2 flex flex-wrap gap-2">
                 {SHIRT_SIZES.map((s) => <button key={s} type="button" aria-pressed={size === s} onClick={() => setSize(s)} className={chip(size === s)}>{s}{s === "XXL" && settings.extras.xxlKobo ? ` +${formatNaira(settings.extras.xxlKobo)}` : ""}</button>)}

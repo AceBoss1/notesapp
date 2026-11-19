@@ -47,7 +47,7 @@ const address = { fullName: "Ada Obi", phone: "08031234567", street: "12 Zik Ave
   assert.deepEqual([o1.itemName, o1.designId, o1.backName, o1.size, o1.quantity, o1.batchId, o1.status], ["Custom shirt: Black Drip", "black-drip", "ADA 10", "XL", 2, "batch-2", "preordered"]);
   assert.deepEqual(o1.lines, [{ label: "Custom shirt: Black Drip", kobo: 10_000_00 }, { label: "Name on the back: ADA 10", kobo: 4_000_00 }]);
   assert.equal((await db.doc(`parcels/${o1.parcelId}`).get()).exists, true, "the buyer can track it");
-  const o2 = (await db.doc("merchOrders/M2").get()).data() as MerchOrder;
+  const o2 = (await db.doc("merchOrders/M2").get()).data() as MerchOrder & { unitKobo: number };
   assert.deepEqual([o2.colour, o2.colourName, o2.place, o2.logoLabel, o2.unitKobo], ["crimson", "Crimson", "both", "Core Mark", 14_500_00]);
   assert.equal(((await db.doc("payments/M1").get()).data() as PaymentRecord).status, "paid");
 
