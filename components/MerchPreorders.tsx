@@ -5,7 +5,29 @@ import Link from "next/link";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
-import { MERCH_STEPS, MerchOrder } from "@/lib/merch";
+import dynamic from "next/dynamic";
+import { LOGO_OPTIONS, MERCH_STEPS, choiceText, colourOf, getMerchDesign, getMerchItem, patternOf, type MerchOrder } from "@/lib/merch";
+import MerchMockup from "@/components/MerchMockup";
+
+const Merch3D = dynamic(() => import("@/components/merch/Merch3D"), { ssr: false });
+
+// The design as it was chosen (Merch in 3D, v0.186.0): a picture, and "Turn it" to see it in 3D. Older orders have no picture.
+function Design({ o }: { o: MerchOrder }) {
+  const [turn, setTurn] = useState(false);
+  const design = o.designId ? getMerchDesign(o.designId) : undefined;
+  const item = !design && o.product?.startsWith("item:") ? getMerchItem(o.product.slice(5)) : undefined;
+  if (!design && !item) return null;
+  const logo = LOGO_OPTIONS.find((l) => l.label === o.logoLabel) ?? LOGO_OPTIONS[0];
+  const hex = design ? design.base : colourOf(o.colour)?.hex ?? "#1d1b1c";
+  // eslint-disable-next-line @next/next/no-img-element
+  const flat = design ? <img src={design.image} alt="" className="h-full w-full object-contain" /> : <MerchMockup item={item!} logoSrc={logo.image} logoAlt={logo.label} colour={hex} />;
+  if (turn) return <div className="mt-3"><Merch3D look={{ shape: design ? "design" : item!.shape, colour: hex, logo: item ? logo.image : undefined, place: o.place, name: o.backName, design, pattern: patternOf(o.pattern) }} height={260} fallback={flat} label={`Your ${o.itemName}, in 3D`} /></div>;
+  return (
+    <button type="button" onClick={() => setTurn(true)} className="group relative mt-3 block h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-paper" aria-label={`Turn your ${o.itemName} in 3D`}>
+      {flat}<span className="absolute inset-x-0 bottom-0 bg-ink/60 py-0.5 text-center text-[10px] font-semibold text-white">Turn it</span>
+    </button>
+  );
+}
 
 const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : "");
 
@@ -32,9 +54,10 @@ export default function MerchPreorders({ uid }: { uid: string }) {
           return (
             <li key={o.reference} className="card p-4 text-sm">
               <p className="font-semibold text-ink">
-                {o.quantity} × {o.itemName}{o.size ? ` (${o.size})` : ""} · {o.logoLabel}
+                {o.quantity} × {o.itemName} · {o.product ? choiceText({ patternName: o.patternName, colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
                 <span className="ml-2 font-mono text-xs text-slate">{formatNaira(o.amountKobo)}</span>
               </p>
+              <Design o={o} />
               {o.status === "refunded" ? (
                 <p className="mt-1 text-xs text-slate">Refunded — Paystack handles the rest of the refund and it can take a few business days to reach you.</p>
               ) : (

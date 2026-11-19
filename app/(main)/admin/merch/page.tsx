@@ -6,7 +6,9 @@ import { Masked } from "@/components/admin/Masked";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
-import { MERCH_BATCH, MerchOrder } from "@/lib/merch";
+import { MERCH_BATCH, choiceText, type MerchOrder, type MerchSettings } from "@/lib/merch";
+import PrintSheet from "@/components/merch/PrintSheet";
+import MerchSettingsPanel from "@/components/merch/MerchSettingsPanel";
 import { CustodyEntry, HOLDER_LABEL, HolderType } from "@/lib/orders";
 
 type Order = MerchOrder;
@@ -20,6 +22,8 @@ const NEXT: Record<string, { to: string; label: string } | undefined> = {
 export default function AdminMerchPage() {
   const { user, loading } = useAdminAuth();
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [merch, setMerch] = useState<MerchSettings | null>(null);
+  const [tab, setTab] = useState<"orders" | "settings">("orders");
   const [busy, setBusy] = useState<string | null>(null);
   // Which order is asking for courier details before being marked shipped.
   const [shipping, setShipping] = useState<{ reference: string; courier: string; trackingNumber: string; trackingUrl: string } | null>(null);
@@ -36,6 +40,7 @@ export default function AdminMerchPage() {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Couldn't load orders");
     setOrders(j.orders as Order[]);
+    if (j.merch) setMerch(j.merch as MerchSettings);
   }
   useEffect(() => {
     if (user) load().catch((e) => setError(e.message));
@@ -61,6 +66,19 @@ export default function AdminMerchPage() {
     } finally {
       setBusy(null);
     }
+  }
+
+  // "Mark all printed" on the print sheet: each order moves on as if marked one by one (the buyer's tracking and email follow).
+  async function markAll(refs: string[]) {
+    if (!user) return;
+    setBusy("all"); setError("");
+    try {
+      for (const reference of refs) {
+        const res = await fetch("/api/admin/merch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify({ reference, status: "printed" }) });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Couldn't mark ${reference} printed.`);
+      }
+    } catch (e) { setError(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(null); await load().catch(() => {}); }
   }
 
   async function loadCustody(o: Order) {
@@ -109,40 +127,20 @@ export default function AdminMerchPage() {
     }
   }
 
-  // What to print for the current batch: one line per item/logo/size.
-  const production = useMemo(() => {
-    const m = new Map<string, number>();
-    (orders ?? [])
-      .filter((o) => o.status === "preordered" && o.batchId === MERCH_BATCH.id)
-      .forEach((o) => {
-        const k = `${o.itemName}${o.size ? ` (${o.size})` : ""} — ${o.logoLabel}`;
-        m.set(k, (m.get(k) ?? 0) + o.quantity);
-      });
-    return [...m.entries()].sort();
-  }, [orders]);
-
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-14">
-      <h1 className="font-display text-4xl">Merch orders</h1>
+      <h1 className="font-display text-4xl">Merch</h1>
       <p className="mt-2 text-sm text-slate">
-        {MERCH_BATCH.label} closes {MERCH_BATCH.closesOn}. Refunds are done from Payments, and only before an order is printed.
+        {(merch?.batch ?? { label: MERCH_BATCH.label, closesOn: MERCH_BATCH.closesOn }).label} closes {(merch?.batch ?? MERCH_BATCH).closesOn}. Refunds are done from Payments, and only before an order is printed.
       </p>
-      {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
-
-      <div className="card mt-8 p-5">
-        <p className="font-ui text-sm font-bold">To print — {MERCH_BATCH.label} (paid, not yet printed)</p>
-        {production.length === 0 ? (
-          <p className="mt-2 text-sm text-slate">Nothing waiting.</p>
-        ) : (
-          <ul className="mt-3 space-y-1 text-sm">
-            {production.map(([k, n]) => (
-              <li key={k}><span className="font-mono text-crimson-bright">{n}×</span> {k}</li>
-            ))}
-          </ul>
-        )}
+      <div className="mt-4 flex gap-2" role="tablist">
+        {(["orders", "settings"] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${tab === t ? "border-crimson bg-crimson text-paper" : "border-rule"}`}>{t === "orders" ? "Orders and print sheet" : "Settings"}</button>)}
       </div>
+      {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
+      {tab === "settings" ? <MerchSettingsPanel user={user} onSaved={() => load().catch(() => {})} /> : <>
+      {merch && orders && <PrintSheet orders={orders} merch={merch} busy={busy === "all"} onMarkAll={markAll} />}
 
       <div className="mt-8 space-y-3">
         {orders === null ? (
@@ -154,7 +152,7 @@ export default function AdminMerchPage() {
             <div key={o.reference} className="card p-4 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold text-ink">
-                  {o.quantity} × {o.itemName}{o.size ? ` (${o.size})` : ""} · {o.logoLabel}
+                  {o.quantity} × {o.itemName} · {o.product ? choiceText({ patternName: o.patternName, colourName: o.colourName, logoLabel: o.designId ? undefined : o.logoLabel, place: o.place, size: o.size, backName: o.backName }) : `${o.size ? `${o.size} · ` : ""}${o.logoLabel}`}
                   <span className="ml-2 font-mono text-xs text-slate">{formatNaira(o.amountKobo)}</span>
                   {o.source === "campus" && <span className="ml-2 rounded-full bg-crimson/10 px-2 py-0.5 font-ui text-[11px] font-semibold text-crimson" title="A free campus reward (Admin → Campus → Rewards)">🎓 Campus reward</span>}
                 </p>
@@ -242,6 +240,7 @@ export default function AdminMerchPage() {
           ))
         )}
       </div>
+      </>}
     </section>
   );
 }

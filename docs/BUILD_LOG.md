@@ -3448,3 +3448,12 @@ member's own words only where they switch it on; the site before is kept 30 days
 pure and free; Nana's read adds banner rewrites and the last 30 days' numbers. Two bugs caught by the emulator test: undefined fields
 in the saved copy of the site (now written through JSON), and merged writes that could leave old draft fields behind (now
 `mergeFields`). Tests: `test:site-nana`, `test:site-nana-server`.
+
+**Merch in 3D (v0.186.0, 19 Nov 2026)** — last in the owner's order; mockups approved with the owner's four custom shirt designs
+(₦10,000, a name on the back ₦1,500) (`docs/MERCH_3D.md`). The designs were cut out of their grey studio background (a flood fill of
+mid-grey neutral pixels from the edges and down the neck). The 3D view builds every model in code with `three`: shirts are two
+curved sheets cut to the outline by the texture's alpha, the back drawn in the shirt's main colour. Prices, colours, extras and the
+batch moved into the pricing settings (`merch`), so Admin → Merch sets them with a change log; `quoteMerch` prices the item page and
+checkout alike. Found while testing: a name typed while the 3D view loaded could be lost (now the latest choice is built when the
+stage is ready), Front did nothing when the view was already on "front", and a long row of logos widened the page on phones.
+Tests: `test:merch`, `test:merch-server`.
