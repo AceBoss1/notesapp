@@ -1207,6 +1207,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `AVATAR_IMAGE_KEY`: FLUX.2 [klein] 4B on Workers AI within the free daily allowance; the photo is made 512 px first (`fitPhoto`);
     "used up for today" is a 429 with a plain message (`docs/AVATAR_MAKER.md` "The free option"). Not yet tried against Cloudflare.
     Tests: `test:nana-portrait`, `test:nana-portrait-server`, `test:avatar`.
+146. **NotesPhone at devices.<domain> (v0.186.0, branch `claude/beautiful-albattani-crgkzb-devices`; owner, 19 Nov 2026;
+    `docs/DEVICES.md`):** a white-label phone partnership: phones in #NotesApp's name with #NotesApp built in. The page lists
+    NotesPhone E Pro (first) and E Ultra, E Ultra+ and E Prestige (2027, after research and development) and takes **free reservations**
+    (`lib/devices.ts`, `/api/devices/reserve`, leads of category `device-reservation`, one per phone per email). The factory's minimum
+    order is 500 a phone: Admin → Leads → NotesPhone shows each phone against it. No price, date or payment until the partner confirms
+    them; the partner isn't named until the agreement is signed (`PARTNER_NAMED`). **Owner steps:** Vercel → Domains `devices.naapp.tech`;
+    `firebase deploy --only firestore:rules`. Tests: `test:devices`, `test:devices-server`, `test:host`, `test:rules`.
 
 ## 3. How the work is done (please keep these)
 

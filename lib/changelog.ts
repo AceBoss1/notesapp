@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.186.0",
+    bump: "minor",
+    date: "2026-11-19",
+    changes: [
+      { kind: "added", text: "NotesPhone: phones with #NotesApp built in, at devices.naapp.tech. NotesPhone E Pro comes first; E Ultra, E Ultra+ and E Prestige follow in 2027. Nothing is on sale yet: reserve the phone you want, free, and we'll tell you the price and date before anyone pays." },
+    ],
+  },
+  {
     version: "v0.185.0",
     bump: "minor",
     date: "2026-11-17",

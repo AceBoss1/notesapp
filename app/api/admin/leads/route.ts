@@ -3,7 +3,7 @@ import { getAdminDb, verifyAdminAccess, verifyAdminRequest } from "@/lib/firebas
 import { maskContacts } from "@/lib/pii";
 import { hasDept } from "@/lib/admin-access";
 import type { Lead } from "@/lib/leads";
-import { LeadError, approveVolunteer, declineVolunteer, reviewersCommunityLink, seedReviewersCommunity } from "@/lib/leads-server";
+import { LeadError, approveVolunteer, declineVolunteer, deviceCounts, reviewersCommunityLink, seedReviewersCommunity } from "@/lib/leads-server";
 import { PrepError } from "@/lib/exam-prep-server";
 
 export const dynamic = "force-dynamic";
@@ -25,10 +25,10 @@ export async function GET(req: NextRequest) {
   if (!(await staff(req))) return no();
   const db = getAdminDb();
   const caller = await verifyAdminAccess(bearer(req));
-  const [snap, community] = await Promise.all([db.collection("leads").orderBy("createdAt", "desc").limit(500).get(), reviewersCommunityLink(db).catch(() => null)]);
+  const [snap, community, devices] = await Promise.all([db.collection("leads").orderBy("createdAt", "desc").limit(500).get(), reviewersCommunityLink(db).catch(() => null), deviceCounts(db).catch(() => null)]);
   const leads = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Lead);
   return NextResponse.json({
-    leads: maskContacts(leads), community,
+    leads: maskContacts(leads), community, devices,
     can: { approve: hasDept(caller.access, "content"), seed: caller.access.role === "super" },
   }, { headers: { "Cache-Control": "no-store" } });
 }

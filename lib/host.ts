@@ -30,6 +30,9 @@ export const PREP_URL = `https://${PREP_HOST}`;
 // /nana on the main site is Nana chat, a different thing.
 export const NANA_HOST = `nana.${ROOT_DOMAIN}`;
 export const NANA_URL = `https://${NANA_HOST}`;
+// NotesPhone: its own address, served from /devices on the same app (middleware.ts; docs/DEVICES.md).
+export const DEVICES_HOST = `devices.${ROOT_DOMAIN}`;
+export const DEVICES_URL = `https://${DEVICES_HOST}`;
 
 // The primary address of the main site, always https://www.<root> on the live site. NEXT_PUBLIC_SITE_URL is only used for local
 // development and Vercel previews (localhost, 127.0.0.1, *.vercel.app); any other value is ignored, so the root is the only setting.
@@ -73,20 +76,21 @@ export function registrableDomain(host: string): string {
   return SECOND_LEVEL.has(two) && parts.length >= 3 ? parts.slice(-3).join(".") : two;
 }
 // What a host is for: the app address, Notes Life, Exam Prep, the Nana portrait studio, or the main site.
-export type HostRole = "app" | "life" | "prep" | "nana" | "main";
+export type HostRole = "app" | "life" | "prep" | "nana" | "devices" | "main";
 export function roleOf(f: Family): HostRole {
   if (f.sub === "app" || (APP_SHORT_DOMAINS.includes(f.root) && (f.sub === "" || f.sub === "www"))) return "app";
   if (f.sub === "prep" && !APP_SHORT_DOMAINS.includes(f.root)) return "prep";
   if (f.sub === "nana" && !APP_SHORT_DOMAINS.includes(f.root)) return "nana";
+  if (f.sub === "devices" && !APP_SHORT_DOMAINS.includes(f.root)) return "devices";
   return f.sub === "life" ? "life" : "main";
 }
 // The main site, the app or Notes Life in the same family as `hostname` (the short app domains' main site is the primary one).
 // On localhost and previews everything is one host, so that host is returned.
-export function familyHost(hostname: string, role: "main" | "app" | "life" | "prep" | "nana" | "mcp"): string {
+export function familyHost(hostname: string, role: "main" | "app" | "life" | "prep" | "nana" | "devices" | "mcp"): string {
   const h = bare(hostname);
   if (isLocal(h)) return hostname;
   const { root } = familyOf(h);
-  if (APP_SHORT_DOMAINS.includes(root)) return role === "app" ? h : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "nana" ? NANA_HOST : role === "mcp" ? MCP_HOST : MAIN_HOST;
+  if (APP_SHORT_DOMAINS.includes(root)) return role === "app" ? h : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "nana" ? NANA_HOST : role === "devices" ? DEVICES_HOST : role === "mcp" ? MCP_HOST : MAIN_HOST;
   return `${role === "main" ? "www" : role}.${root}`;
 }
 
@@ -120,6 +124,7 @@ export const isAppHost = (hostname: string) => { const f = ourRoot(hostname); re
 export const isLifeHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "life"; };
 export const isPrepHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "prep"; };
 export const isNanaHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "nana"; };
+export const isDevicesHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "devices"; };
 
 // True for the domains we know (every subdomain), local development and Vercel preview deployments. Anything else is a
 // member's own domain or a domain of ours added to Vercel later; middleware.ts tells them apart.

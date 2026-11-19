@@ -6,6 +6,8 @@ import { notifyBell, sendEmail } from "./email";
 import { PREP_URL, SITE_URL } from "./host";
 import { checkFeedback, feedbackMessage } from "./feedback";
 import { BOOKS_PATH, checkWaitlist, waitlistMessage } from "./books-waitlist";
+import { DEVICES, DEVICES_PATH, MOQ, checkReservation, colourLabel, deviceName, reservationMessage } from "./devices";
+import { DEVICES_URL } from "./host";
 import { REVIEWERS_COMMUNITY, REVIEWERS_COMMUNITY_ID, REVIEWERS_COMMUNITY_SEED, checkVolunteer, examsLabel, subjectKeysFor, subjectName, volunteerMessage } from "./prep-reviewers";
 import { allSubjects, createInvite, ensureCatalog, type Reviewer } from "./exam-prep-server";
 import { PREP_NAME } from "./exam-prep";
@@ -55,6 +57,36 @@ export async function submitBooksWaitlist(db: Firestore, raw: unknown, who: Who,
   }).catch(() => false);
   if (who.uid) await notifyBell({ uid: who.uid, type: "books", linkHref: BOOKS_PATH, message: `You're on the Business books waitlist.${answers.notify ? " We'll let you know when it opens." : ""}` });
   return { id: r.id, again: !!first };
+}
+
+// ---- NotesPhone reservations (devices.<domain>, lib/devices.ts) ----
+// Free, and commits no one. One reservation per email per phone: reserving the same phone again updates the first and keeps its
+// place (createdAt); reserving another phone adds a second. A thank-you email always, and a bell for a signed-in member.
+export async function submitDeviceReservation(db: Firestore, raw: unknown, who: Who, send: Send = sendEmail, now = new Date()): Promise<{ id: string; again: boolean }> {
+  const c = checkReservation(raw);
+  if (!c.ok) throw new LeadError(400, c.error);
+  const { name, email, ...device } = c.value;
+  const mine = await db.collection("leads").where("email", "==", email).where("category", "==", "device-reservation").limit(20).get();
+  const first = mine.docs.find((d) => d.data().device?.model === device.model);
+  const doc = { name, email, category: "device-reservation", message: reservationMessage(device), device, status: "new", ...(who.uid ? { uid: who.uid } : {}) };
+  const r = first ? first.ref : db.collection("leads").doc();
+  await r.set({ ...doc, createdAt: first ? String(first.data().createdAt) : iso(now), ...(first ? { updatedAt: iso(now) } : {}) }, { merge: !!first });
+  const phone = deviceName(device.model);
+  const later = DEVICES.find((d) => d.id === device.model)?.status === "2027";
+  await send({
+    to: email,
+    subject: `Your ${phone} is reserved`,
+    text: `Hello ${name.split(/\s+/)[0]},\n\nThank you for reserving ${phone}${device.colour === "any" ? "" : ` in ${colourLabel(device.colour)}`}.\n\nReserving is free and you don't have to buy. ${later ? "This phone is still being designed, and its launch date will be announced in 2027." : "It's our first phone."} We order a phone from the factory once ${MOQ} people have reserved it, and we'll tell you the price and the date before anyone pays anything.${device.notify ? "\n\nWe'll email you when there's news." : ""}\n\nThe #NotesApp team`,
+    action: { label: "See NotesPhone", url: DEVICES_URL },
+  }).catch(() => false);
+  if (who.uid) await notifyBell({ uid: who.uid, type: "devices", linkHref: DEVICES_PATH, message: `${phone} is reserved for you. Reserving is free; we'll tell you the price and date before anyone pays.` });
+  return { id: r.id, again: !!first };
+}
+// How many have reserved each phone (Admin → Leads → NotesPhone): counted on the server, so it isn't capped by the list's 500.
+export async function deviceCounts(db: Firestore): Promise<Record<string, number>> {
+  const q = db.collection("leads").where("category", "==", "device-reservation");
+  const counts = await Promise.all(DEVICES.map(async (d) => [d.id, (await q.where("device.model", "==", d.id).count().get()).data().count] as const));
+  return Object.fromEntries(counts);
 }
 
 // ---- the reviewer sign-up ----

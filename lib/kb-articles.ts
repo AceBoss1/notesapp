@@ -1938,6 +1938,20 @@ Not live yet, with no promised dates: the Enterprise course packages; the Notes 
 **Getting paid across borders** is being explored, with no date: paying and being paid between African countries and from abroad without losing so much to exchange rates and slow transfers, through a licensed payment partner's faster settlement network. You'd still pay and be paid in your own currency, with no crypto to hold, and nothing changes until lawyers confirm what each country allows. See the [Roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
+    A("notesphone", "NotesPhone: a phone with #NotesApp built in (reserve free)", "Company", `
+**NotesPhone** is a phone in #NotesApp's name, made with a phone maker we're partnering with, with #NotesApp built into the phone itself: your journal, calls, Market, Academy, Jobs and Nana from the moment you switch it on. Nothing is on sale yet. See it at [NotesPhone](/devices).
+
+**The phones:**
+- **NotesPhone E Pro**, our first phone: a fast 5G flagship with a 200 MP camera, a 6.7" AMOLED screen and a 5000 mAh battery with 67 W fast charging. The specification may change before launch.
+- **NotesPhone E Ultra**, for creators, with an expandable lens.
+- **NotesPhone E Ultra+**, E Ultra with a robotic camera module.
+- **NotesPhone E Prestige**, hand-finished, our most exclusive phone.
+
+E Ultra, E Ultra+ and E Prestige are being designed now; their launch dates will be announced in 2027.
+
+**Reserving is free** and doesn't commit you to buy. Choose the phone, the colour you'd like (ivory, crimson, maroon, silver, gold or black, not confirmed yet), your name, email and city. You can reserve more than one phone; reserving the same phone again just updates it.
+
+**How we order:** the factory makes a phone in batches of 500. When 500 people have reserved a phone, we place the order, and before anyone pays we email everyone who reserved it with the price, the colours and the delivery date. There's no price or date yet, so please don't trust anyone who asks you to pay for a NotesPhone today.`),
     A("anya-smart-glasses", "Anya smart glasses: Display, Nana and Audio (coming soon)", "Company", `
 Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are three models:
 
