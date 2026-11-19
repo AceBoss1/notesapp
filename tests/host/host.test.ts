@@ -3,7 +3,7 @@
 // (notesapp.name.ng) and with NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech (the script runs both).
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { APP_SHORT_DOMAINS, KNOWN_ROOTS, MAIN_HOST, ROOT_DOMAIN, familyHost, isPrepHost, mainSiteUrl, ourRoot, roleOf } from "../../lib/host";
+import { APP_SHORT_DOMAINS, KNOWN_ROOTS, MAIN_HOST, ROOT_DOMAIN, familyHost, isDevicesHost, isPrepHost, mainSiteUrl, ourRoot, roleOf } from "../../lib/host";
 
 const primary = `https://${MAIN_HOST}`;
 assert.equal(MAIN_HOST, `www.${ROOT_DOMAIN}`);
@@ -33,6 +33,14 @@ assert.equal(isPrepHost("prep.notesapp.name.ng"), true);
 assert.equal(isPrepHost("www.naapp.tech"), false);
 assert.equal(familyHost("prep.naapp.tech", "main"), "www.naapp.tech");
 assert.equal(familyHost("www.notesapp.name.ng", "prep"), "prep.notesapp.name.ng");
+// NotesPhone's own address (devices.<domain>, docs/DEVICES.md), in every family; the short app domains have none of their own.
+assert.equal(roleOf(ourRoot("devices.naapp.tech")!), "devices");
+assert.equal(isDevicesHost("devices.notesapp.name.ng"), true);
+assert.equal(isDevicesHost("www.naapp.tech"), false);
+assert.equal(familyHost("www.naapp.tech", "devices"), "devices.naapp.tech");
+assert.equal(familyHost("app.notesapp.name.ng", "devices"), "devices.notesapp.name.ng");
+assert.equal(familyHost("devices.naapp.tech", "main"), "www.naapp.tech");
+assert.equal(roleOf(ourRoot("devices.notesapp.ng")!), "main", "a short app domain's devices. is just the main site");
 assert.equal(familyHost("localhost:3290", "main"), "localhost:3290", "one host locally (middleware); mainSiteUrl differs on purpose");
 
 // The R2 buckets' CORS policy (scripts/r2-cors.json, pasted into both buckets in Cloudflare): the browser PUTs uploads straight to R2,

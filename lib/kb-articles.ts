@@ -7,7 +7,7 @@ import { GOLD_KIND_LIVE } from "./badges";
 import { POLICY_TEXT } from "./cancellation";
 import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT, MIN_VIEW_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
-import { MERCH_DELIVERY_KOBO } from "./merch";
+import { merchDeliveryKobo } from "./merch";
 import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { MEDIA_LIVE, MEDIA_PICTURES_MAX, MEDIA_PINNED_MAX, MOMENTS_PINNED_MAX, secondsText } from "./media-rules";
@@ -1369,7 +1369,19 @@ Logistics businesses on #NotesApp list the states they cover and their prices, a
 
 **Who can be a provider:** Business and Enterprise include it. On Free Basic and Pro it's the **logistics add-on**: ${logisticsAddonPrice()} a month, with a ${logisticsTrialDays()}-day free trial and no card. The add-on also opens Shipments. API and webhooks for Enterprise come later.`),
     A("merch-store", "The official #NotesApp merch store", "Selling", `
-T-shirts, caps, mugs and more, with the core mark or a seasonal logo from the [Brand page](/brand). You pre-order and pay with Paystack; we print after the batch closes and deliver anywhere in Nigeria for a flat ${money(MERCH_DELIVERY_KOBO)}. See the [Merch store](/merchstore). Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
+The [Merch store](/merchstore) sells official #NotesApp merch: the **custom shirts** (Maroon Splash, Black Drip, Ivory Drip and Maroon Stripes, printed all over), and T-shirts, caps, mugs, cups, a mouse pad and a laptop bag with the core mark or a seasonal logo from the [Brand page](/brand).
+
+**See it in 3D.** Open any item to turn it all the way round: drag to turn it, pinch or scroll to look closer, or tap **Front** and **Back**. It turns slowly by itself until you touch it. If your phone has **Reduce motion** on, it stays still and the arrows turn it; on a phone that can't show 3D you see a picture instead, with the same choices and price.
+
+**Choose how you want it.** Pick the colour (each item comes in the colours shown on it), the logo and where it's printed: a T-shirt can have the logo on the front, small on the chest, or on the front and large on the back; a mug or coffee cup can have it once or wrapped all round. Shirts come in S to XXL, and can carry **a name on the back**: up to 12 letters or numbers, printed in capitals. Choices that cost more show their price on the button.
+
+**A pattern background.** Mugs, the coffee cup, the Stanley-style cup, the laptop bag and the mouse pad can be covered in the #NotesApp pattern, maroon or light, with your logo on top. On a shirt, the pattern goes on the back, with no logo there and your name on it if you add one.
+
+**The price updates as you choose**, line by line: the item, any extras, how many, and delivery anywhere in Nigeria for a flat ${money(merchDeliveryKobo())}. A discount code works too. The price is worked out again when you pay, so what you see is what you pay.
+
+**Pre-orders in batches.** You pay now with Paystack; we print after the batch closes and deliver within about three weeks. The store says when the batch is open and when it closes. You can ask for a refund until your order is printed. Your order, with a picture of what you chose that you can turn in 3D, is under [Orders](/orders), and you can follow it with its parcel ID.
+
+Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
     // ── Badges and trust
     A("verified-badge", "The verified badge (maroon ✔)", "Badges and trust", `
 The maroon ✔ shows an account in good standing on an eligible plan, or with the badge subscription. **Business and Enterprise include it**; on other plans it is an add-on for ${money(BADGE_PRICE_KOBO)} a month. It is not an identity check. For organisations it also needs us to have confirmed the CAC registration.
@@ -1938,6 +1950,24 @@ Not live yet, with no promised dates: the Enterprise course packages; the Notes 
 **Getting paid across borders** is being explored, with no date: paying and being paid between African countries and from abroad without losing so much to exchange rates and slow transfers, through a licensed payment partner's faster settlement network. You'd still pay and be paid in your own currency, with no crypto to hold, and nothing changes until lawyers confirm what each country allows. See the [Roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
+    A("notes-smart-devices", "Notes Smart Devices: NotesPhone and Anya (reserve free)", "Company", `
+**Notes Smart Devices** is the home of #NotesApp's own devices, at [Notes Smart Devices](/devices): **NotesPhone** and **Anya smart glasses** today, and any new #NotesApp device in future. Nothing is on sale yet. You can reserve any of them there, free, on one list.
+
+**Anya smart glasses:** Anya Display, Anya Nana and Anya Audio, coming soon. See [Anya smart glasses](/help/anya-smart-glasses) and the [Anya page](/anya).
+
+**NotesPhone** is a phone in #NotesApp's name, made with a phone maker we're partnering with, with #NotesApp built into the phone itself: your journal, calls, Market, Academy, Jobs and Nana from the moment you switch it on.
+
+**The phones:**
+- **NotesPhone E Pro**, our first phone: a fast 5G flagship with a 200 MP camera, a 6.7" AMOLED screen and a 5000 mAh battery with 67 W fast charging. The specification may change before launch.
+- **NotesPhone E Ultra**, for creators, with an expandable lens.
+- **NotesPhone E Ultra+**, E Ultra with a robotic camera module.
+- **NotesPhone E Prestige**, hand-finished, our most exclusive phone.
+
+E Ultra, E Ultra+ and E Prestige are being designed now; their launch dates will be announced in 2027.
+
+**Reserving is free** and doesn't commit you to buy. Choose the device, the colour you'd like (for NotesPhone: ivory, crimson, maroon, silver, gold or black, not confirmed yet), your name, email and city. You can reserve more than one device; reserving the same one again just updates it.
+
+**How we order:** the factory makes a phone in batches of 500. When 500 people have reserved a phone, we place the order. Before anyone pays for any device, we email everyone who reserved it with the price, the colours and the delivery date. There's no price or date yet, so please don't trust anyone who asks you to pay for a NotesPhone or Anya today.`),
     A("anya-smart-glasses", "Anya smart glasses: Display, Nana and Audio (coming soon)", "Company", `
 Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are three models:
 
@@ -1947,7 +1977,7 @@ Anya ("eye" in Igbo) is the family of smart glasses from #NotesApp. There are th
 
 Anya Display and Anya Nana charge in their cases while they're stored.
 
-**Price and pre-orders:** not announced yet. To be among the first to try Anya, open [Anya](/anya) and tap **Register your interest**; it opens the contact form on the Anya topic. Registering is free and doesn't commit you to buy. We'll contact you before pre-orders open.
+**Price and pre-orders:** not announced yet. To be among the first to try Anya, reserve the model you want on [Notes Smart Devices](/devices), Anya's home with NotesPhone. Reserving is free and doesn't commit you to buy. We'll contact you before pre-orders open.
 `),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `
 A coming-soon challenge for influencers: reach 100,000 views and 10,000 new followers to unlock live video, then reach 2,000 registered members watching one live for at least 5 minutes to open a ₦1,000,000 giveaway (₦250,000 in Bonus Credits for followers you choose, ₦250,000 in NotesApp Credit for you, and ₦500,000 cash). The first ten influencers to qualify each month are paid, each influencer can win once, and fake accounts and bots are disqualified. It is not live yet; see [the challenge page](/challenge).`),

@@ -9,12 +9,13 @@ import { Lead, LEAD_LABEL } from "@/lib/leads";
 import { MOOD_SCALE, average, nps } from "@/lib/feedback";
 import { BACKGROUNDS, examsLabel, subjectName } from "@/lib/prep-reviewers";
 import { BUSINESS_TYPES, businessTypeLabel, keepsBooksLabel } from "@/lib/books-waitlist";
+import { DEVICES, DEVICES_PATH, colourLabel, deviceName } from "@/lib/devices";
 
-type Kind = "all" | "messages" | "feedback" | "volunteers" | "books";
+type Kind = "all" | "messages" | "feedback" | "volunteers" | "books" | "devices";
 const KINDS: { id: Kind; label: string }[] = [
-  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" }, { id: "books", label: "Business books waitlist" },
+  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" }, { id: "books", label: "Business books waitlist" }, { id: "devices", label: "Smart devices" },
 ];
-const SERVER_KINDS: Record<string, Kind> = { feedback: "feedback", volunteer: "volunteers", "books-waitlist": "books" };
+const SERVER_KINDS: Record<string, Kind> = { feedback: "feedback", volunteer: "volunteers", "books-waitlist": "books", "device-reservation": "devices" };
 const ofKind = (l: Lead, k: Kind) => k === "all" || (k === "messages" ? !(l.category in SERVER_KINDS) : SERVER_KINDS[l.category] === k);
 const pill = (on: boolean) => `rounded-full px-4 py-1.5 font-ui text-xs font-semibold transition-colors ${on ? "bg-crimson text-paper" : "border border-rule text-ink hover:border-crimson"}`;
 const small = "border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
@@ -30,11 +31,12 @@ export default function AdminLeadsPage() {
   const [busy, setBusy] = useState("");
   const [filter, setFilter] = useState<"all" | Lead["status"]>("all");
   const [kind, setKind] = useState<Kind>("all");
+  const [deviceCounts, setDeviceCounts] = useState<Record<string, number> | null>(null);
 
   // Through /api/admin/leads: senders' emails and phones arrive masked (lib/pii.ts); Show reveals an email with a logged reason.
   function reload() {
     call()
-      .then((j) => { setLeads(j.leads); setCommunity(j.community ?? null); setCan(j.can ?? { approve: false, seed: false }); })
+      .then((j) => { setLeads(j.leads); setCommunity(j.community ?? null); setCan(j.can ?? { approve: false, seed: false }); setDeviceCounts(j.devices ?? null); })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leads"));
   }
   const act = async (label: string, body: Record<string, unknown>, done?: (j: Record<string, unknown>) => string) => {
@@ -59,6 +61,7 @@ export default function AdminLeadsPage() {
 
   const visible = leads?.filter((l) => ofKind(l, kind) && (filter === "all" || l.status === filter)) || [];
   const feedback = (leads ?? []).filter((l) => l.category === "feedback" && l.feedback);
+  const devices = (leads ?? []).filter((l) => l.category === "device-reservation" && l.device);
   const moods = feedback.map((l) => l.feedback!.mood), recs = feedback.map((l) => l.feedback!.recommend);
   const npsNow = nps(recs);
   const waiting = (leads ?? []).filter((l) => l.category === "volunteer" && !l.approval).length;
@@ -127,6 +130,24 @@ export default function AdminLeadsPage() {
           <div><p className="eyebrow">Kinds of business</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => businessTypeLabel(l.booksWaitlist!.businessType)).slice(0, BUSINESS_TYPES.length).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
           <div><p className="eyebrow">Keep books today in</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => keepsBooksLabel(l.booksWaitlist!.keepsBooks)).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
           <p className="text-xs text-slate sm:col-span-3">From <Link className="text-crimson underline" href="/books">/books</Link>. The waitlist from before Business books opened (v0.118.0); the page no longer takes sign-ups, so these are kept for the record and for what to build next.</p>
+        </div>
+      )}
+
+      {kind === "devices" && (
+        <div className="card mt-6 space-y-4 p-5 text-sm">
+          <p className="eyebrow">Reservations, and for phones the factory&apos;s minimum order</p>
+          {!deviceCounts ? <p className="text-slate">Couldn&apos;t count them just now.</p> : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {DEVICES.map((d) => { const n = deviceCounts[d.id] ?? 0; const pct = d.moq ? Math.min(100, Math.round((n / d.moq) * 100)) : 0; const reached = !!d.moq && n >= d.moq; return (
+                <li key={d.id}>
+                  <p className="flex justify-between gap-2"><b className="text-ink">{d.name}</b><span className="text-slate">{d.moq ? `${n} of ${d.moq}${reached ? ": reached" : ""}` : `${n} reserved`}</span></p>
+                  {d.moq && <div className="mt-1 h-2 overflow-hidden rounded-full bg-field" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${d.name}: ${n} of ${d.moq}`}><div className={`h-full ${reached ? "bg-emerald-600" : "bg-crimson"}`} style={{ width: `${pct}%` }} /></div>}
+                </li>
+              ); })}
+            </ul>
+          )}
+          <div><p className="eyebrow">Colours asked for (in the list below)</p><ul className="mt-1 flex flex-wrap gap-x-4 text-slate">{Object.entries(devices.reduce<Record<string, number>>((m, l) => { const k = `${deviceName(l.device!.model)}: ${colourLabel(l.device!.colour, l.device!.model)}`; m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
+          <p className="text-xs text-slate">From <a className="text-crimson underline" href={DEVICES_PATH}>Notes Smart Devices</a> (devices.&lt;domain&gt;). Free reservations, binding on no one. The counts are exact; the list below shows the latest 500 leads.</p>
         </div>
       )}
 

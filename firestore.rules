@@ -1579,9 +1579,9 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.category is string
         // The one-month feedback, the Naija Exam Prep reviewer sign-up, the Business books waitlist and the Hotel kit's Set it up for
-        // me come only through their rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist,
-        // /api/public/hotel; lib/leads-server.ts, lib/hotel-server.ts), never straight from a browser.
-        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist', 'hotel-setup'])
+        // me and NotesPhone reservations come only through their rate-limited server routes (/api/feedback, /api/exam-prep/reviewers,
+        // /api/books/waitlist, /api/public/hotel, /api/devices/reserve; lib/leads-server.ts, lib/hotel-server.ts), never straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist', 'hotel-setup', 'device-reservation'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the

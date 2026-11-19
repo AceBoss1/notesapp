@@ -30,7 +30,7 @@ export default function ContactForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (category === "feedback" || category === "volunteer" || category === "books-waitlist" || category === "hotel-setup") return;
+    if (category === "feedback" || category === "volunteer" || category === "books-waitlist" || category === "hotel-setup" || category === "device-reservation") return;
     setError("");
     setSending(true);
     try {

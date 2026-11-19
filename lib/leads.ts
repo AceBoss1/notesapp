@@ -35,9 +35,9 @@ export const LEAD_CATEGORIES = [
 // them from a browser): the one-month feedback form (/contact?topic=feedback, lib/feedback.ts) and the Naija Exam Prep reviewer
 // sign-up (/exam-prep/reviewers, lib/prep-reviewers.ts), and the Business books waitlist (/books, lib/books-waitlist.ts), and the Hotel kit's Set it up for me (/hotels, lib/hotel-server.ts requestSetup). "feedback" is also in the contact form's list, where it opens the
 // feedback form instead of the message box.
-export const SERVER_LEAD_CATEGORIES = ["feedback", "volunteer", "books-waitlist", "hotel-setup"] as const;
-export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"] | "volunteer" | "books-waitlist" | "hotel-setup";
-export const LEAD_LABEL: Record<string, string> = { ...Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label])), feedback: "Feedback", volunteer: "Exam Prep reviewer", "books-waitlist": "Business books waitlist", "hotel-setup": "Hotel kit: Set it up for me" };
+export const SERVER_LEAD_CATEGORIES = ["feedback", "volunteer", "books-waitlist", "hotel-setup", "device-reservation"] as const;
+export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"] | "volunteer" | "books-waitlist" | "hotel-setup" | "device-reservation";
+export const LEAD_LABEL: Record<string, string> = { ...Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label])), feedback: "Feedback", volunteer: "Exam Prep reviewer", "device-reservation": "Smart device reservation", "books-waitlist": "Business books waitlist", "hotel-setup": "Hotel kit: Set it up for me" };
 
 export type Lead = {
   id: string;
@@ -51,13 +51,14 @@ export type Lead = {
   feedback?: import("./feedback").FeedbackAnswers; // category "feedback"
   volunteer?: import("./prep-reviewers").VolunteerAnswers; // category "volunteer"
   booksWaitlist?: import("./books-waitlist").WaitlistAnswers; // category "books-waitlist"
+  device?: import("./devices").Reservation; // category "device-reservation" (Notes Smart Devices, lib/devices.ts)
   approval?: { status: "approved" | "declined"; at: string; byUid: string; byName: string; how: "granted" | "invited" | "declined"; subjects: string[]; note?: string };
 };
 
 export async function submitLead(data: {
   name: string;
   email: string;
-  category: Exclude<LeadCategory, "feedback" | "volunteer" | "books-waitlist" | "hotel-setup">;
+  category: Exclude<LeadCategory, "feedback" | "volunteer" | "books-waitlist" | "hotel-setup" | "device-reservation">;
   message: string;
 }): Promise<void> {
   await addDoc(collection(db, LEADS), {

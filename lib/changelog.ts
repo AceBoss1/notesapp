@@ -11,6 +11,28 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.187.0",
+    bump: "minor",
+    date: "2026-11-19",
+    changes: [
+      { kind: "added", text: "Notes Smart Devices at devices.naapp.tech: the home of #NotesApp's own devices, with one free reservation list for all of them. NotesPhone, phones with #NotesApp built in: E Pro comes first; E Ultra, E Ultra+ and E Prestige follow in 2027. Nothing is on sale yet: we'll tell you the price and date before anyone pays." },
+      { kind: "changed", text: "Anya smart glasses moved to devices.naapp.tech/anya, beside NotesPhone. Reserve Anya Display, Nana or Audio there, free, instead of the contact form." },
+    ],
+  },
+  {
+    version: "v0.186.0",
+    bump: "minor",
+    date: "2026-11-19",
+    changes: [
+      { kind: "added", text: "Merch store: turn any item all the way round in 3D. Drag to turn it, pinch to look closer, or tap Front and Back. With Reduce motion on it stays still and the arrows turn it." },
+      { kind: "added", text: "Custom shirts: Maroon Splash, Black Drip, Ivory Drip and Maroon Stripes, printed all over, ₦10,000. Add a name on the back of any shirt for ₦1,500 more." },
+      { kind: "added", text: "Merch: choose the colour, the logo and where it's printed (front, small on the chest, or front and back; once or wrapped all round on a mug), and see the price update line by line as you choose." },
+      { kind: "added", text: "Merch: a #NotesApp pattern background, maroon or light, all over a mug, coffee cup, Stanley-style cup, laptop bag or mouse pad with your logo on top, or on the back of a shirt with just your name." },
+      { kind: "added", text: "Your merch orders show a picture of what you chose, which you can turn in 3D, beside where your order is." },
+      { kind: "added", text: "For our team: Admin → Merch now sets prices, colours, extras, the batch dates and the delivery fee, with a change log, and has a print sheet for each batch that you can download, then mark all printed in one tap." },
+    ],
+  },
+  {
     version: "v0.185.0",
     bump: "minor",
     date: "2026-11-17",

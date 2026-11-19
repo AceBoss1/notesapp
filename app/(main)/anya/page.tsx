@@ -11,12 +11,10 @@ export const metadata: Metadata = {
   openGraph: { images: [{ url: "/anya/anya-display-hero.webp", width: 1672, height: 941, alt: "Anya Display smart glasses by NotesApp" }] },
 };
 
-// Anya ("eye" in Igbo): NotesApp's own smart glasses, three models (HANDOVER 114). Nothing is on sale yet: pricing and pre-orders
-// come later, so the page's one action is registering interest through the contact form (lead topic "anya", lib/leads.ts).
-const INTEREST =
-  "/contact?topic=anya&message=" +
-  encodeURIComponent("I'd like to be among the first to try Anya.\n\nThe model I'm most interested in (Display, Nana or Audio): \nWhere I am (city, country): \nWhat I'd use it for: ") +
-  "#feedback";
+// Anya ("eye" in Igbo): NotesApp's own smart glasses, three models (HANDOVER 114), at home on Notes Smart Devices (devices.<domain>/anya,
+// lib/devices.ts). Nothing is on sale yet: pricing and pre-orders come later, so the page's one action is a free reservation on
+// devices.<domain> (the same list as NotesPhone; Admin → Leads → Smart devices).
+const INTEREST = "/devices?model=anya-display#reserve";
 
 // The hero pictures, shown one at a time with a dissolve between them (components/anya/AnyaHeroCarousel.tsx).
 const SLIDES: AnyaSlide[] = [
@@ -149,7 +147,7 @@ export default function AnyaPage() {
             <em>Anya</em> means &ldquo;eye&rdquo; in Igbo. Three pairs of smart glasses, designed for Africa: translation and HD video in your lens, Nana AI as your companion in your ear, or simply great sound.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href={INTEREST} className="rounded-full bg-crimson-bright px-6 py-3 font-ui text-sm font-bold text-paper shadow-lg shadow-crimson/40 hover:bg-crimson">Be among the first to try it</a>
+            <a href={INTEREST} className="rounded-full bg-crimson-bright px-6 py-3 font-ui text-sm font-bold text-paper shadow-lg shadow-crimson/40 hover:bg-crimson">Reserve yours, free</a>
             <a href="#models" className="rounded-full border border-paper/30 px-6 py-3 font-ui text-sm font-semibold text-paper hover:border-paper/60">Meet the three</a>
           </div>
           <div className="relative mt-12">
@@ -256,11 +254,11 @@ export default function AnyaPage() {
             <div>
               <h2 className="font-display text-4xl">Pricing and pre-orders are coming soon</h2>
               <p className="mt-4 max-w-xl text-paper/85">
-                Want to be among the first to try Anya? Tell us which model you&apos;d like and where you are. We&apos;ll contact you before pre-orders open. Registering interest is free and doesn&apos;t commit you to buy.
+                Want to be among the first to try Anya? Reserve the model you&apos;d like on Notes Smart Devices. We&apos;ll contact you before pre-orders open. Reserving is free and doesn&apos;t commit you to buy.
               </p>
             </div>
             <div className="flex flex-col items-start gap-3 lg:items-end">
-              <a href={INTEREST} className="rounded-full bg-paper px-7 py-3.5 font-ui text-sm font-bold text-crimson hover:bg-paper/90">Register your interest</a>
+              <a href={INTEREST} className="rounded-full bg-paper px-7 py-3.5 font-ui text-sm font-bold text-crimson hover:bg-paper/90">Reserve, free</a>
               <Link href="/contact" className="text-sm text-paper/80 underline">Other questions? Contact us</Link>
             </div>
           </div>

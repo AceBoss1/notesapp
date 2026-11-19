@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_HOST, APP_SHORT_DOMAINS, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, NANA_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
+import { APP_HOST, APP_SHORT_DOMAINS, DEVICES_HOST, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, NANA_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
 import { FIRST_TOUCH_COOKIE, FIRST_TOUCH_DAYS, PING_COOKIE, classifyTouch, cleanDetail, encodeTouch } from "@/lib/growth";
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS } from "@/lib/referrals";
 
@@ -54,7 +54,7 @@ function ours(req: NextRequest, host: string, fam: Family) {
   const { pathname } = req.nextUrl;
   if (fam.root !== ROOT_DOMAIN && !pathname.startsWith("/api/") && !pathname.startsWith("/_next") && !PUBLIC_FILE.test(pathname) && !res.headers.get("location")) {
     const role = roleOf(fam);
-    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "nana" ? NANA_HOST : MAIN_HOST;
+    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "nana" ? NANA_HOST : role === "devices" ? DEVICES_HOST : MAIN_HOST;
     res.headers.set("Link", `<https://${primary}${pathname}>; rel="canonical"`);
   }
   return res;
@@ -110,6 +110,20 @@ function route(req: NextRequest, host: string, fam: Family) {
       return NextResponse.rewrite(u);
     }
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // devices.<domain>: Notes Smart Devices at its root (app/(main)/devices, docs/DEVICES.md), the home of #NotesApp's own devices, with
+  // their own pages beside it (/anya). No sign-in of its own: reserving needs only a name and an email. Its files and API calls load as
+  // usual; anything else is the main site's.
+  if (role === "devices") {
+    if (pathname === "/") return NextResponse.rewrite(new URL(`/devices${search}`, req.url));
+    if (pathname === "/devices" || pathname.startsWith("/devices/") || pathname === "/anya" || pathname.startsWith("/anya/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // The main site and the app send Notes Smart Devices, and the devices' own pages, to its address (in production; one host on
+  // localhost and previews).
+  if (pathname === "/devices" || pathname.startsWith("/devices/") || pathname === "/anya" || pathname.startsWith("/anya/")) {
+    const devices = familyHost(host, "devices");
+    if (devices !== host) return NextResponse.redirect(`https://${devices}${pathname.replace(/^\/devices/, "") || "/"}${search}`, 308);
   }
   // The main site and the app send the portrait studio to its own address (in production; one host on localhost and previews).
   if (pathname === "/nana-studio" || pathname.startsWith("/nana-studio/")) {

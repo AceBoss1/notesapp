@@ -18,6 +18,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/vigilant-franklin-xgf9ee` | **v0.185.0:** Themes and kits: Nana sets up your site, and Review my site (`docs/SITE_NANA.md`), built on the owner's "approved, build" (17 Nov 2026). Needs `firebase deploy --only firestore:rules` (`siteSetups`). Cost of a draft not measured. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.186.0:** Merch in 3D (`docs/MERCH_3D.md`), built on the owner's "approved build" (19 Nov 2026) with their four custom shirts. **The store takes no orders until Batch 2's dates are set in Admin → Merch → Settings**; the extras are placeholders. |
 | `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
 | `claude/studio-subtitles-plan` | **v0.181.0:** automatic subtitles in Notes Live Studio (`docs/STUDIO_SUBTITLES.md`), built on the owner's "build now" (17 Nov 2026). Needs `CLOUDFLARE_AI_TOKEN`; nothing to deploy for Firestore beyond the Moments rules. **Untested:** the real speech service and the microphone capture in a real room; try it on the staff test pass with two people on stage. Next: Themes and kits, then Merch last. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
@@ -1207,6 +1208,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `AVATAR_IMAGE_KEY`: FLUX.2 [klein] 4B on Workers AI within the free daily allowance; the photo is made 512 px first (`fitPhoto`);
     "used up for today" is a 429 with a plain message (`docs/AVATAR_MAKER.md` "The free option"). Not yet tried against Cloudflare.
     Tests: `test:nana-portrait`, `test:nana-portrait-server`, `test:avatar`.
+146. **Notes Smart Devices at devices.<domain> (v0.187.0, branch `claude/beautiful-albattani-crgkzb-devices`; owner, 19 Nov 2026;
+    `docs/DEVICES.md`):** the permanent home of #NotesApp's own devices, with one free reservation list: **NotesPhone** (a white-label
+    phone partnership: E Pro first; E Ultra, E Ultra+ and E Prestige in 2027 after research and development) and **Anya** (its page moved
+    to devices.<domain>/anya; its buttons now reserve instead of opening the contact form). `lib/devices.ts`, `/api/devices/reserve`, leads
+    of category `device-reservation`, one per device per email. The factory's minimum order is 500 a phone: Admin → Leads → Smart devices
+    shows each device's count and the phones against it. No price, date or payment until the partner confirms
+    them; the partner isn't named until the agreement is signed (`PARTNER_NAMED`). **Owner steps:** Vercel → Domains `devices.naapp.tech`;
+    `firebase deploy --only firestore:rules`. Tests: `test:devices`, `test:devices-server`, `test:host`, `test:rules`.
 
 ## 3. How the work is done (please keep these)
 

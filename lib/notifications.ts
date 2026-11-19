@@ -52,6 +52,7 @@ export type NotificationType =
   | "announcement" // news from #NotesApp to every member (Admin → Announcements)
   | "volunteer" // a Naija Exam Prep reviewer sign-up: received, approved
   | "books" // Business books: a shop's receipt, a reminder of money owed, or the waitlist (lib/books-server.ts)
+  | "devices" // Notes Smart Devices (NotesPhone, Anya): a reservation was saved (lib/leads-server.ts submitDeviceReservation)
   | "hotel" // the Hotel kit: a booking, an order, late money, a request (lib/hotel-server.ts)
   | "referral" // the monthly referrals and affiliate report
   | "reminder" // a private reminder that never says what it's about (My Cycle, lib/cycle-server.ts)
