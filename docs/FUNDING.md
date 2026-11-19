@@ -3,7 +3,8 @@
 Startup perks, credits and the accelerators that aren't investment applications (cloud credits, PostHog, Stripe Atlas, Antler, the
 Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 
-> Status: **drafts for the owner to submit (30 October 2026; accelerators §5–§7 added 2 November 2026).** Nothing here has been
+> Status: **drafts for the owner to submit (30 October 2026; accelerators §5–§7 added 2 November 2026; Vercel X, the HubSpot for
+> Startups pitch, YASR30 and three LinkedIn leads §25–§28 added 19 November 2026).** Unless a row says applied, nothing here has been
 > sent. Fill the `[brackets]` with current numbers before submitting; never send a figure we can't show. Internal: not for the
 > changelog, the roadmap or public pages.
 
@@ -29,32 +30,48 @@ Nigeria Startup Act label and others): see `docs/STARTUP_PROGRAMMES.md`.
 | 18 | **Techstars Anywhere Accelerator** (Spring 2027; mostly remote, 3 in-person gatherings; USD 220k: USD 20k for 5% common + USD 200k uncapped MFN SAFE): §22 | [techstars.com/accelerators/anywhere](https://www.techstars.com/accelerators/anywhere) | **18 November 2026** | 5% common equity, plus the SAFE's dilution later | apply: NotesApp Inc is a Delaware C-corp; confirm a Lagos team is eligible |
 | 19 | **HBS Alumni Angels of Greater New York** Pitch Night (members have invested USD 48M+ in 170+ companies; no Harvard affiliation needed, per their post): §23 | [hbsangelsny.com/apply-to-pitch](https://www.hbsangelsny.com/apply-to-pitch) | **24 November 2026**, to pitch on **7 December 2026** | an application fee (USD 50 reported on Gust); angel terms if they invest | apply through NotesApp Inc |
 | 20 | **Mozilla Foundation Human-Scale AI Incubator** (non-dilutive: USD 300k for 12 months, up to USD 500k over 3 years; 7 projects; cohort from April 2027): §24 | [Mozilla call](https://www.mozillafoundation.org/en/what-we-do/grantmaking/incubator/human-scale-ai/call-for-proposals/faqs/), [apply](https://mozillafoundation.tfaforms.net/f/humanscaleai) | **20 November 2026, 11:59 p.m. PST** | nothing | only with an honest Small-AI plan (§24) |
+| 21 | **Vercel X** (Vercel's AI accelerator: 6 weeks in person in San Francisco, 19 Jan to 2 Mar 2027; **no equity**; partner credits, over USD 9M across the cohort; the Demo Day winner gets a Vercel Ventures cheque): §25 | [vercel.com/x](https://vercel.com/x), [apply](https://vercel.com/x/apply) | **29 November 2026, 11:59 p.m. PT** (30 Nov, 08:59 Lagos) | nothing; travel and 6 weeks in San Francisco | **apply**: up to three of us must be able to be there (§25) |
+| 22 | **HubSpot for Startups Global Pitch Competition** (with Global Startup Awards): USD 10,000; 5 finalists pitch live; every deck goes to a VC database: §26 | [offers.hubspot.com](https://offers.hubspot.com/startups/pitch-your-startup-for-a-chance-to-win-10000) (join HubSpot for Startups first: free) | **30 November 2026** (the page says both midnight CET and 2 p.m. PST, which disagree: send by **29 Nov**); finalists 1 Dec; live 8 Dec | nothing | apply with the deck (§26) |
+| 23 | **Yale Africa Startup Review, YASR30 2027** (30 startups building in and for Africa; investor introductions, innovation awards, the conference at Yale SOM on 3 April 2027): §27 | [Dira application](https://dirahq.com/apply/yale-africa-startup-review-yasr-asel) | **18 December 2026** | nothing found; a trip to New Haven only if we choose to attend | apply in December, after No Excuses (§27) |
+| 24 | **Stage 2 Capital, Catalyst IV** (USD 200k pre-seed cheques for **B2B AI**) and **Antler Lagos** (USD 100k for 10%): §28 | partners directly; [antler.co/apply](https://www.antler.co/apply) | none published | equity | **not now**: see §28 |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing) and **Capital Wings** (§7: nobody named, no registration number or licence, placeholder legal pages).
 
 ---
 
-### Deadlines at a glance (as of 14 November 2026)
+### Deadlines at a glance (as of Thursday 19 November 2026)
+
+Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
+registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
+
+**Still open in November, in order:**
+
+| When | What | What it needs from us | § |
+|---|---|---|---|
+| **Fri 20 Nov 2026 (tomorrow)** | .tech pitch competition | the form only (500-character problem box, drafted) | §3 |
+| **Fri 20 Nov 2026, 11:59 p.m. PST** (Sat 21 Nov, 08:59) | Mozilla Human-Scale AI Incubator | only if the Nana Lite pilot is running (§24) | §24 |
+| **Sun 22 Nov 2026** (our own date) | No Excuses Fund: the walkthrough video or deck | the script and the deck are in `docs/NO_EXCUSES_APPLICATION.md` | NEF |
+| **Mon 23 Nov 2026** (priority; final 4 Dec) | Obama Foundation Leaders Africa (the CEO, as a person) | personal essays | §20 |
+| **Tue 24 Nov 2026** (pitch Mon 7 Dec) | HBS Alumni Angels of Greater New York, Pitch Night | the deck, Gust profile, USD 50 fee | §23 |
+| **Wed 25 Nov 2026** | Atlas: the 83(b) postmarked (Atlas files; save the tracking number) | nothing to write | §5a |
+| **Sun 29 Nov 2026, 11:59 p.m. PT** (Mon 30 Nov, 08:59) | **Vercel X** (AI accelerator, San Francisco, no equity) | the answers in §25, a demo link, who travels | §25 |
+| **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
+| **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
+
+**December and later:**
 
 | When | What | § |
 |---|---|---|
-| **Thu 12 Nov 2026 (today)** | HBS Africa New Venture Competition 2027 | §19 |
-| **Sun 15 Nov 2026, 11:59 p.m. WAT** | USPF Changemaker Challenge (all five sectors) | §14 |
-| **Wed 18 Nov 2026** | Alliance accelerator, ALL19 (Regular Admission) | §5 |
-| **Fri 20 Nov 2026** | .tech pitch competition | §3 |
-| **Wed 18 Nov 2026** | Techstars Anywhere Accelerator (Spring 2027) | §22 |
-| **Fri 20 Nov 2026, 11:59 p.m. PST** | Mozilla Human-Scale AI Incubator | §24 |
-| **Tue 24 Nov 2026** (pitch Mon 7 Dec) | HBS Alumni Angels of Greater New York, Pitch Night | §23 |
-| **Mon 23 Nov 2026** (priority; final 4 Dec) | Obama Foundation Leaders Africa (the CEO, as a person) | §20 |
-| **Wed 25 Nov 2026** | Atlas: the 83(b) postmarked (Atlas files; save the tracking number when it appears) | §5a |
-| **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | §21 |
-| As soon as possible (deadline not published; event 8–10 Dec, Dubai) | AngelSpark at Expand North Star | §17 |
-| **Tue 15 Dec 2026, 23:59 US Pacific** | .tech No Excuses Fund | `docs/NO_EXCUSES_APPLICATION.md` |
+| As soon as possible (event 8–10 Dec, Dubai) | AngelSpark at Expand North Star | §17 |
+| **Tue 8 Dec 2026** (our own date) | No Excuses Fund: submit (closes **Tue 15 Dec, 23:59 US Pacific**, 16 Dec 08:59 Lagos) | `docs/NO_EXCUSES_APPLICATION.md` |
+| **Fri 18 Dec 2026** | Yale Africa Startup Review, YASR30 2027 | §27 |
 | January 2027 (date not confirmed) | Aurora Tech Award and Aurora Ventures | §13 |
-| Rolling (apply this month) | Awesome Foundation microgrant | §15 |
-| Rolling | The Pitch by Deel 2027 (pre-apply), Village Global Velocity, Emergent Ventures, the .tech domain programme | §16, §6, §4, §2 |
-| Check the portal | Global Startup Awards, Edition 12 | §9 |
+| Rolling | Awesome Foundation (this month), The Pitch by Deel 2027 (pre-apply), Village Global Velocity, Emergent Ventures, the .tech domain programme, Antler Lagos (cohort starts 15 Mar 2027) | §15, §16, §6, §4, §2, §28 |
+| Check the portal | Global Startup Awards, Edition 12 (the regional awards, separate from §26) | §9 |
+
+**Passed (log in §10 whether each was sent):** HBS Africa New Venture Competition (12 Nov, §19), USPF Changemaker Challenge (15 Nov,
+§14), Alliance ALL19 (18 Nov, §5), Techstars Anywhere (18 Nov, §22).
 
 ---
 
@@ -1400,3 +1417,149 @@ parts (riders' safety, vehicle checks). Get a short letter from each saying how 
 the deadline (a small model on our server answering Exam Prep questions for a test group of students). Otherwise, build it now and
 apply in the next round with a working pilot, which is what the call rewards. Do not describe the current Nana as small.
 
+
+---
+
+## 25. Vercel X: Vercel's AI accelerator (San Francisco)
+
+> Status: **apply by Sunday 29 November 2026, 11:59 p.m. PT** (Monday 30 November, 08:59 Lagos). From the owner's link
+> [vercel.com/x](https://vercel.com/x), read 19 November 2026. The form's questions weren't readable from here, so fit the drafts below
+> to it. No Vercel account is needed to apply.
+
+**What it is:**
+- Six weeks **in person at Vercel's San Francisco office**, **19 January to 2 March 2027** (Demo Day). Technical mentors, CEO
+  firesides, office hours, workshops and events.
+- **No equity.** The Demo Day winner gets a cheque from **Vercel Ventures** (size not published).
+- **Credits: "over USD 9M" is the total for the whole cohort, not per company.** Per participant, as listed: AWS USD 25k, Anthropic
+  USD 15k, OpenAI USD 10k API + USD 5k Codex, Auth0 USD 21.6k, Notion USD 12k, plus Vercel, v0, Supabase, WorkOS and Tavily (amounts
+  not all shown). Check whether "per participant" means per person or per company when accepted.
+- **Who:** AI-native companies at the **idea to pre-seed** stage, **before a traditional VC accelerator or an institutional seed
+  round**; solo founders or **up to three people per company**; open worldwide, but **everyone accepted must be in San Francisco for
+  the whole six weeks**.
+
+**Fit: good on paper, decided by travel.**
+- *For us:* pre-seed and bootstrapped; already built on Next.js and **hosted on Vercel**; Nana's portrait studio began as a **v0**
+  project (`docs/NANA_PORTRAIT_STUDIO.md`); AI runs through the product (below). Anthropic credits pay for Nana directly.
+- *"AI-native":* say what's true. NotesApp is a commerce and publishing platform where an AI agent does the routine work: Nana sets up
+  a member's site from an interview and reviews what stops visitors buying (`docs/SITE_NANA.md`), prepares replies and jobs for
+  approval (the agent layer, `docs/AGENT_LAYER.md`), turns a sentence into Business books entries, shortlists jobs with the member's
+  own AI (`docs/NANA_JOBS.md`), checks every public post before it goes up (`docs/CONTENT_CHECKS.md`), tutors students with small
+  open models on Cloudflare (`docs/NANA_LITE.md`), and lets outside agents (Claude, ChatGPT) work on a member's account through our
+  MCP server. Money never moves through an agent. Don't call it "an AI company that also sells"; call it **the AI business manager
+  for Africa's creators and small sellers**.
+- *The blocker is San Francisco.* Six weeks there means a US visa and roughly USD 6,000–10,000 per person (our estimate) for flights, rent and food
+  (Vercel doesn't say it pays travel or housing). **Before applying, decide who goes (up to three)**: the US-based co-founders need no
+  visa; anyone travelling on a Nigerian passport needs a **B-1/B-2 visa interview in Lagos or Abuja**, where waits have been long and
+  the rules for Nigerian passport holders changed in 2025–2026. Check the current rules and the earliest interview date
+  ([travel.state.gov](https://travel.state.gov)) **this week**, and book the Atlas perk's **Ellis** immigration consult (30 minutes,
+  free; `docs/STARTUP_PROGRAMMES.md`). If nobody can be in San Francisco from 19 January, don't apply this cohort.
+- *Conflicts:* if Alliance (§5) or Techstars (§22) say yes, we've been "through a traditional VC accelerator" and the dates clash
+  (Alliance starts 11 January in New York). Tell Vercel if either is pending.
+
+### Draft answers (fit them to the live form)
+
+**Company name / website:** NotesApp, [naapp.tech](https://www.naapp.tech) `[or notesapp.name.ng until the move]`.
+
+**One line:**
+> NotesApp is the AI business manager for Africa's creators and small sellers: one place to publish, take bookings, teach, sell and
+> get paid in naira, with Nana, our agent, doing the routine work.
+
+**What are you building? (short)**
+> Africa's creators, tutors, coaches and small sellers run their business across WhatsApp, Instagram, a booking link and bank
+> transfers, and lose sales in the gaps. NotesApp gives them one account: a site, a booking calendar, courses, a shop with delivery,
+> communities and lives, Business books and payouts in local currency. Nana, our agent, sets up their site from a short interview,
+> drafts replies and jobs for them to approve, turns "sold 3 wigs, ₦45k cash" into book entries, and tutors students for WAEC and
+> NECO on small open models. Outside agents (Claude, ChatGPT) can work on a member's account through our MCP server, with scopes and
+> an activity log; money never moves through an agent. Built on Next.js on Vercel, Firebase, Cloudflare and Paystack.
+
+**Why AI-native, and why now?**
+> Our members don't have staff. The work that loses them money (answering every "how much?", chasing payments, keeping books,
+> writing a website) is exactly what an agent can now do well, in English, Pidgin, Yoruba, Igbo, Hausa and Kiswahili. Global creator
+> tools assume a dollar card and a desk; ours assume a phone, naira and WhatsApp, and put the agent in the middle of the business
+> rather than beside it.
+
+**Traction:** (fill from `/admin` on the day; 12 November figures shown)
+> Live since `[launch month]` in Nigeria and Kenya. `[248]` members, `[232]` of them in the last 30 days; `[233]` publishers;
+> `[₦3.98M]` processed in `[84]` paid transactions from `[5]` paying customers; `[₦121,169]` earned in commission. 2,150+ WAEC and
+> NECO practice questions. Special Recognition, Build With NKENNEAi Hackathon (October 2026), for our Kiswahili translation and speech.
+
+(Say "processed", not revenue; our revenue is the commission. See §1, "How to say it honestly".)
+
+**Funding:** bootstrapped; no outside investment. Perks only (Claude for Startups, Stripe Atlas, Cloudflare applied). NotesApp
+Technologies Ltd (Nigeria, RC 9825642); NotesApp Inc (Delaware), incorporated 9 November 2026.
+
+**Team (who will attend):** `[up to three names, roles and where each lives]`. Emmanuel Adams, founder, CEO and CTO, built the
+platform end to end. `[The co-founders who will travel.]`
+
+**What will you build in the six weeks?** (pick one and say it plainly; this is the suggestion)
+> Nana for sellers, end to end: a seller runs their shop by chatting with Nana on WhatsApp or in the app (new orders, prices, stock,
+> replies, books), and any customer's agent can find, book and pay a NotesApp seller through our MCP server, with the seller's
+> approval and Paystack doing the money. Demo Day goal: `[a number]` sellers whose day-to-day runs through Nana.
+
+**Why Vercel X?**
+> We already ship on Vercel and v0 every week, from Lagos, with a small team. Six weeks next to the people who build the AI SDK and v0,
+> and in front of US investors at Demo Day, is the fastest way to take our agent from "drafts for approval" to "runs the shop".
+
+**Demo / video:** reuse the No Excuses walkthrough (`docs/NO_EXCUSES_APPLICATION.md`, "Show us"), trimmed to what the form allows.
+
+### Checklist
+- [ ] Decide who goes (up to three); check visas and interview dates this week.
+- [ ] Today's numbers from `/admin`.
+- [ ] The video link (from No Excuses) and the deck.
+- [ ] Submit by **Sun 29 Nov, 11:59 p.m. PT**; log it in §10.
+
+---
+
+## 26. HubSpot for Startups Global Pitch Competition (with Global Startup Awards)
+
+> Status: **send by Sunday 29 November 2026** (the page gives **Monday 30 November** as "midnight CET | 2 p.m. PST | 5 p.m. EDT",
+> which aren't the same moment; 2 p.m. PST is 11 p.m. Lagos). From the Global Startup Awards' LinkedIn post and the
+> [HubSpot page](https://offers.hubspot.com/startups/pitch-your-startup-for-a-chance-to-win-10000), read 19 November 2026.
+> Separate from the regional Global Startup Awards (§9).
+
+- **Prize:** USD 10,000. **Finalists** (five, per the post) chosen **1 December**; the **live competition** is **8 December, 6 p.m.
+  CET (6 p.m. Lagos)**, judged by Ron Levin (Alumni Ventures), Yazan Othman (Global Startup Awards), Ryan Nash (Gust) and Chris Wolfel
+  (Corsair). Online or in person isn't stated; the GSA post says "live".
+- **Who:** idea, pre-seed and seed startups, any industry; **only HubSpot for Startups members**. Joining is free with no purchase;
+  acceptance unlocks the submission form and an AI pitch-deck analyser. **Join today**: acceptance may not be instant.
+- **What we send:** the pitch deck (the No Excuses deck works; run it through their analyser first). Decks not picked go into a
+  database shared with VCs after the event, so send only figures we can show.
+- **Cost:** none found. **Fit: good**: free, no equity, investor visibility, and the deck is being made anyway.
+- **If chosen:** the 3-minute pitch in §3 ("If selected to pitch"), with the 12 November numbers updated.
+
+---
+
+## 27. Yale Africa Startup Review: YASR30 2027
+
+> Status: **apply by Friday 18 December 2026.** From YASR's LinkedIn post (November 2026). The application is on
+> [Dira](https://dirahq.com/apply/yale-africa-startup-review-yasr-asel); the form didn't load from here, so the questions are
+> unknown.
+
+- **What:** Yale's editors pick 30 startups building in and for Africa for the **YASR30** list; investors can contact them; entry to
+  the innovation awards; a seat at the **YASR 2027 conference, Yale School of Management, 3 April 2027**; a case competition and
+  hackathon working on the startups' problems.
+- **Who:** African and Africa-focused startups in any sector. Stage and other rules aren't stated.
+- **Cost:** none found; no equity. **Fit: good** (Africa-first, creator economy and edtech). Apply in December, after the No Excuses
+  submission, reusing §1, the deck and the 30-day numbers.
+
+---
+
+## 28. Three LinkedIn leads: what to take and what to leave (19 November 2026)
+
+**Antler (Anil Atmaramani's post: about 14,000 applied in Nigeria this year, about 50 teams entered the sandbox, roughly 1 in 280).**
+Not a deadline. Antler Lagos is already listed in `docs/STARTUP_PROGRAMMES.md` (USD 100k for 10%, eight weeks full-time in Lagos,
+next cohort 15 March 2027, built for individuals forming teams). **Not now:** we're a formed team with a live product, and 10% is
+expensive next to the non-dilutive options. **The lesson for every application:** the panel asks "why you?" more than "what idea?".
+Each form should say, in the founder's own words, what we've seen that others haven't and why we'll still be here in ten years:
+
+> `[Owner, in your words: the moment you saw the problem first-hand, what you'd done before NotesApp, and why you won't stop.]` We
+> built the whole platform ourselves, from Lagos, before raising a naira: payments, payouts, bookings, courses, delivery, encrypted
+> calls and an AI agent, live in Nigeria and Kenya, with paying customers.
+
+**Stage 2 Capital, Catalyst IV (Pavel Gvay's post).** USD 200k pre-seed cheques for **B2B AI**, with go-to-market help; Venture
+Fund IV writes USD 2–5M from seed to Series A. No application process: the post says to contact the partners (Jay Po, Mark Roberge,
+Mandy Cole, Sakib Dadi) directly; geography isn't stated. **Not now:** most of our members are individuals, not businesses. **Revisit**
+when the business tools (Business books, the hotel kit, Nana's operator for Business and Enterprise) have `[10+]` paying businesses;
+that's a B2B AI story they could fund.
+
+**Global Startup Awards × HubSpot:** see §26 (apply).
