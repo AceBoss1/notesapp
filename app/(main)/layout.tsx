@@ -25,7 +25,8 @@ import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
 import { getSiteSettingsCached } from "@/lib/settings";
 import { COMPANY_INFO, DISCORD_LABEL, SITE } from "@/lib/site";
-import { DiscordIcon, FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
+import { DiscordIcon, FacebookIcon, GlobeIcon, InstagramIcon, LinkedInIcon, NotesAppIcon, WhatsAppIcon, XIcon } from "@/components/ContactIcons";
+import FooterActions from "@/components/shell/FooterActions";
 import PartnerIcon from "@/components/PartnerIcon";
 import { ROOT_DOMAIN } from "@/lib/host";
 
@@ -49,76 +50,51 @@ const APP_NAV = [
   { href: "/trending", label: "Trending" },
 ];
 
-// The footer's link columns, in the owner's order (19 Oct 2026). The first column (logo, partners, contacts) is written out in
-// the footer itself; Terms of Service | Privacy Policy sit on the copyright line (20 Oct 2026).
-const PRODUCT = [
-  { href: "/journals", label: "Journals" },
-  { href: "/shop", label: "Notes Market" },
-  { href: "/academy", label: "Notes Academy" },
-  { href: "/booking", label: "Booking" },
-  { href: "/boost", label: "Boost" },
-  { href: "/coauthoring", label: "Co-authoring" },
-  { href: "/my-cycle", label: "My Cycle" },
-  { href: "/my-calendar", label: "My Calendar" },
-  { href: "/badges", label: "Verification badges" },
-  { href: "/advertise", label: "Advertise" },
-  { href: "/organisations", label: "Organisations" },
-  { href: "/events", label: "Events" },
-  { href: "/lives", label: "Paid lives" },
-  { href: "/ppm", label: "Pay-per-minute sessions" },
-  { href: "/store-selling", label: "Store selling" },
-  { href: "/hotels", label: "Hotel kit" },
-  { href: "/affiliates", label: "Affiliates" },
-  { href: "/partners", label: "Partner Network" },
-  { href: "/partners/directory", label: "Find a partner" },
-  { href: "/help/discount-codes", label: "Discount codes & coupons" },
-  { href: "/logistics", label: "Logistics" },
-  { href: "/logistics/network", label: "Logistics network" },
+// The footer's link groups (owner, 19 Nov 2026: "rearrange the footer like ContiSX's, with dropdowns to group the menus"). Every link from
+// the old Product, Company and Connect columns is here, in themed groups; Notes Arcade sits below Notes Life. On a phone each group is a
+// dropdown, closed until tapped, on every screen (owner, 19 Nov 2026: "collapse each group into a dropdown"). The legal pages sit in the
+// Legal dropdown at the bottom.
+type FooterLink = { href: string; label: string };
+const FOOTER_GROUPS: { title: string; items: FooterLink[] }[] = [
+  { title: "Products", items: [
+    { href: "/journals", label: "Journals" }, { href: "/shop", label: "Notes Market" }, { href: "/academy", label: "Notes Academy" },
+    { href: "/booking", label: "Booking" }, { href: "/lives", label: "Notes Live" }, { href: "/studio", label: "Live Media Studio Pro" },
+    { href: "/events", label: "Events" }, { href: "/lives", label: "Paid lives" },
+    { href: "/ppm", label: "Pay-per-minute sessions" }, { href: "/gifts", label: "Gifts" }, { href: "/boost", label: "Boost" },
+    { href: "/coauthoring", label: "Co-authoring" }, { href: "/badges", label: "Verification badges" }, { href: "/nana", label: "Nana AI" },
+  ] },
+  { title: "Business", items: [
+    { href: "/organisations", label: "Organisations" }, { href: "/store-selling", label: "Store selling" }, { href: "/hotels", label: "Hotel kit" },
+    { href: "/logistics", label: "Logistics" }, { href: "/logistics/network", label: "Logistics network" }, { href: "/advertise", label: "Advertise" },
+    { href: "/affiliates", label: "Affiliates" }, { href: "/partners", label: "Partner Network" }, { href: "/partners/directory", label: "Find a partner" },
+    { href: "/help/discount-codes", label: "Discount codes & coupons" }, { href: "/domains", label: "Buy Domains" }, { href: "/teams", label: "Team hub" },
+  ] },
+  { title: "Community", items: [
+    { href: "/community", label: "Community" }, { href: "/community/general", label: "General channel" }, { href: "/community/spaces", label: "Spaces" },
+    { href: "/community/circles", label: "Circles" }, { href: "/community/audio-rooms", label: "Audio rooms" }, { href: "/community/events", label: "Community events" },
+    { href: "/community#giving", label: "Community giving" }, { href: "/calls#one-to-one", label: "Encrypted 1-on-1 calls" }, { href: "/calls#group", label: "Encrypted group calls" },
+    { href: "/explore", label: "Explore" }, { href: "/trending", label: "Trending" },
+  ] },
+  { title: "For you", items: [
+    { href: "/my-cycle", label: "My Cycle" }, { href: "/my-calendar", label: "My Calendar" }, { href: "/tickets", label: "My tickets" },
+    { href: "/giving", label: "My giving" }, { href: "/profile/coupons", label: "My coupons" }, { href: "/track", label: "Track a Parcel" },
+    { href: "/certificates", label: "Check a certificate" }, { href: "/help", label: "Help centre" },
+  ] },
+  { title: "Devices & play", items: [
+    { href: "/devices", label: "Notes Smart Devices" }, { href: "/anya", label: "Anya smart glasses" },
+    { href: "/life", label: "Want to pass time; try Notes Life" }, { href: "/snake", label: "Notes Arcade" },
+    { href: "/merchstore", label: "Merch Store" }, { href: "/challenge", label: "#1MillionNairaNotes" },
+  ] },
+  { title: "Company", items: [
+    { href: "/about", label: "About Us" }, { href: "/brand", label: "Brand" }, { href: "/careers", label: "Careers" },
+    { href: "/explore?tab=jobs", label: "Notes Jobs" }, { href: "/nana-jobs", label: "Nana Jobs" }, { href: "/ventures", label: "Ventures: Rewrite the Playbook" },
+    { href: "/pricing", label: "Pricing" }, { href: "/roadmap", label: "Roadmap" }, { href: "/status", label: "Status" },
+    { href: "/changelog", label: "Changelog" }, { href: "/docs", label: "API Docs" }, { href: "/contact", label: "Contact" },
+  ] },
 ];
-const COMPANY = [
-  { href: "/brand", label: "Brand" },
-  { href: "/about", label: "About Us" },
-  { href: "/explore?tab=jobs", label: "Notes Jobs" },
-  { href: "/nana-jobs", label: "Nana Jobs" },
-  { href: "/careers", label: "Careers" },
-  { href: "/ventures", label: "Ventures: Rewrite the Playbook" },
-  { href: "/contact", label: "Contact" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/roadmap", label: "Roadmap" },
-  { href: "/status", label: "Status" },
-  { href: "/docs", label: "API Docs" },
-  { href: "/changelog", label: "Changelog" },
-  { href: "/security", label: "Trust & Security" },
-  { href: "/content-rules", label: "Content rules" },
-  { href: "/teams", label: "Team hub" },
-  { href: "/domains", label: "Buy Domains" },
-  { href: "/merchstore", label: "Merch Store" },
-  { href: "/devices", label: "Notes Smart Devices" },
-  { href: "/anya", label: "Anya smart glasses" },
-  { href: "/challenge", label: "#1MillionNairaNotes" },
-];
-// Calls are end-to-end encrypted, so the footer says so; both land on /calls.
-const CONNECT = [
-  { href: "/gifts", label: "Gifts" },
-  { href: "/nana", label: "Nana AI" },
-  { href: "/help", label: "Help centre" },
-  { href: "/community", label: "Community" },
-  { href: "/community/general", label: "General channel" },
-  { href: "/community/spaces", label: "Spaces" },
-  { href: "/community/circles", label: "Circles" },
-  { href: "/community/audio-rooms", label: "Audio rooms" },
-  { href: "/community/events", label: "Community events" },
-  { href: "/community#giving", label: "Community giving" },
-  { href: "/tickets", label: "My tickets" },
-  { href: "/giving", label: "My giving" },
-  { href: "/profile/coupons", label: "My coupons" },
-  { href: "/calls#one-to-one", label: "Encrypted 1-on-1 calls" },
-  { href: "/calls#group", label: "Encrypted group calls" },
-  { href: "/explore", label: "Explore" },
-  { href: "/trending", label: "Trending" },
-  { href: "/track", label: "Track a Parcel" },
-  { href: "/certificates", label: "Check a certificate" },
-  { href: "/life", label: "Want to pass time; try Notes Life" },
+const LEGAL: FooterLink[] = [
+  { href: "/terms", label: "Terms of Service" }, { href: "/privacy", label: "Privacy Policy" },
+  { href: "/content-rules", label: "Content rules" }, { href: "/security", label: "Trust & Security" },
 ];
 
 // The #NotesApp masthead and footer. The members' branded sites live in app/(site) and don't get these.
@@ -128,14 +104,6 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
 const site = await getSiteSettingsCached();
-  const social = [
-    { label: "LinkedIn", href: site.social.linkedin },
-    { label: "Facebook", href: site.social.facebook },
-    { label: "Instagram", href: site.social.instagram },
-    { label: "X / Twitter", href: site.social.twitter },
-    { label: "WhatsApp", href: site.whatsapp },
-    { label: "Website", href: site.social.website },
-  ].filter((l) => !!l.href);
 
   return (
     <MemberProvider>
@@ -164,102 +132,76 @@ const site = await getSiteSettingsCached();
         <FooterGate>
         <footer className="mt-24 bg-crimson-deep text-paper" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
           <FooterCta />
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 sm:gap-10 sm:px-6 sm:py-16 lg:grid-cols-4 lg:px-8">
-            <div className="col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2.5">
-                <Image
-                  src="/images/brand/notesapp-icon.webp"
-                  alt="#NotesApp"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-lg"
-                />
-                <span className="font-ui text-lg font-extrabold">
-                  Notes<span className="text-crimson-bright">App</span>
-                </span>
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+            {/* The brand, the partnership, and how to reach us: three parts side by side on a wide screen (owner, 19 Nov 2026). */}
+            <div className="grid gap-6 lg:grid-cols-3 lg:gap-10">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={40} height={40} className="h-10 w-10 rounded-xl" />
+                  <span className="font-ui text-2xl font-extrabold">Notes<span className="text-crimson-bright">App</span></span>
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-paper/70">Publish, connect and get paid in your local currency — one home for African creators, professionals and businesses.</p>
               </div>
-              <p className="mt-4 max-w-xs text-sm text-paper/65">
-                Publish, connect and get paid in your local currency — one home for
-                African creators, professionals and businesses.
+              <p className="text-sm leading-relaxed text-paper/55 lg:pt-14">
+                Built in partnership with <PartnerIcon partner="precheks" /> Precheks (journal) and <PartnerIcon partner="apexglitz" /> ApexGlitz (shop) — our first reference customers. —{" "}
+                <Link href="/admin/login" className="text-paper/75 hover:text-paper">Staff Login</Link>
               </p>
-              <p className="mt-6 max-w-xs text-sm text-paper/50">
-                Built in partnership with <PartnerIcon partner="precheks" /> Precheks (journal) and{" "}
-                <PartnerIcon partner="apexglitz" /> ApexGlitz (shop) — our first reference customers. —{" "}
-                <Link href="/admin/login" className="text-paper/70 hover:text-paper">
-                  Staff Login
-                </Link>
-              </p>
-              <ul className="mt-6 space-y-2 text-sm text-paper/75">
-                <li>
-                  <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 hover:text-paper">
-                    <MailIcon /> {site.email}
-                  </a>
-                </li>
-                {site.social.linkedin && (
-                  <li>
-                    <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
-                      <LinkedInIcon /> {site.social.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
-                    </a>
-                  </li>
-                )}
-                {site.social.facebook && (
-                  <li>
-                    <a href={site.social.facebook} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
-                      <FacebookIcon /> {site.social.facebook.replace(/^https?:\/\/(www\.|web\.)?/, "")}
-                    </a>
-                  </li>
-                )}
-                <li>
-                  <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
-                    <DiscordIcon /> {DISCORD_LABEL}
-                  </a>
-                </li>
-                <li>
-                  <Link href="/u/na-notesapp" className="inline-flex items-center gap-2 hover:text-paper">
-                    <NotesAppIcon /> {ROOT_DOMAIN}/u/na-notesapp
-                  </Link>
-                </li>
-                {social.filter((l) => !["LinkedIn", "Facebook"].includes(l.label)).map((l) => (
-                  <li key={l.label}>
-                    <a href={l.href} target="_blank" rel="noopener noreferrer" className="hover:text-paper">
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-1 text-sm text-paper/75 lg:pt-14">
+                <p><span className="font-semibold text-paper">Email:</span>{" "}<a href={`mailto:${site.email}`} className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{site.email}</a></p>
+                <p><span className="font-semibold text-paper">#NotesApp:</span>{" "}<Link href="/u/na-notesapp" className="underline decoration-paper/30 underline-offset-2 hover:text-paper">{ROOT_DOMAIN}/u/na-notesapp</Link></p>
+              </div>
             </div>
 
-            {([["Product", PRODUCT], ["Company", COMPANY], ["Connect", CONNECT]] as const).map(([title, items]) => (
-              <div key={title}>
-                <p className="eyebrow text-crimson-bright/90">{title}</p>
-                <ul className="mt-4 space-y-2 text-sm text-paper/75">
-                  {items.map((item) => (
-                    <li key={item.label}>
-                      <Link href={item.href} className="hover:text-paper">{item.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {/* The link groups, each a dropdown closed until tapped: one list on a phone, six columns on a wide screen. */}
+            <div className="mt-10 lg:mt-12 lg:grid lg:grid-cols-6 lg:items-start lg:gap-8">
+              {FOOTER_GROUPS.map((g) => (
+                <details key={g.title} className="group border-b border-paper/10 lg:border-0">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-paper/90 marker:hidden lg:justify-start lg:py-0 lg:text-xs lg:tracking-[0.2em] lg:text-paper/70 lg:hover:text-paper [&::-webkit-details-marker]:hidden">
+                    {g.title}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-paper/60 transition-transform group-open:rotate-180" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
+                  </summary>
+                  <ul className="grid gap-x-6 gap-y-2.5 pb-5 text-sm text-paper/75 sm:grid-cols-2 lg:mt-4 lg:grid-cols-1 lg:gap-y-2 lg:pb-0">
+                    {g.items.map((item) => <li key={item.label}><Link href={item.href} className="hover:text-paper">{item.label}</Link></li>)}
+                  </ul>
+                </details>
+              ))}
+            </div>
           </div>
 
-          <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
-            <p className="mb-3"><CurrencyPicker /></p>
-            <p>
-              © {new Date().getFullYear()} #NotesApp. All rights reserved.
-              <span className="mx-2 hidden text-paper/30 sm:inline" aria-hidden>·</span>
-              {/* On a phone the two links get their own line, so neither breaks in the middle. */}
-              <span className="mt-1 block whitespace-nowrap sm:mt-0 sm:inline">
-                <Link href="/terms" className="text-paper/70 underline-offset-2 hover:text-paper hover:underline">Terms of Service</Link>
-                <span className="mx-2 text-paper/30" aria-hidden>|</span>
-                <Link href="/privacy" className="text-paper/70 underline-offset-2 hover:text-paper hover:underline">Privacy Policy</Link>
-              </span>
-            </p>
-            <p className="mt-1 inline-flex flex-wrap items-center justify-center gap-1.5">
-              <NotesAppIcon />
-              {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}
-              {COMPANY_INFO.smedanId ? ` · SMEDAN ${COMPANY_INFO.smedanId}` : ""}
-            </p>
+          <div className="border-t border-paper/10">
+            <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+              <p className="text-sm text-paper/60">© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4 text-paper/75">
+                  {site.social.twitter && <a href={site.social.twitter} target="_blank" rel="noopener noreferrer" aria-label="X" className="hover:text-paper"><XIcon size={20} /></a>}
+                  {site.social.linkedin && <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-paper"><LinkedInIcon size={20} /></a>}
+                  {site.social.facebook && <a href={site.social.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-paper"><FacebookIcon size={20} /></a>}
+                  {site.social.instagram && <a href={site.social.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-paper"><InstagramIcon size={20} /></a>}
+                  {site.whatsapp && <a href={site.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="hover:text-paper"><WhatsAppIcon size={20} /></a>}
+                  <a href={SITE.discord} target="_blank" rel="noopener noreferrer" aria-label={DISCORD_LABEL} className="hover:text-paper"><DiscordIcon size={20} /></a>
+                  {site.social.website && <a href={site.social.website} target="_blank" rel="noopener noreferrer" aria-label="Website" className="hover:text-paper"><GlobeIcon size={20} /></a>}
+                  <details className="relative">
+                    <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm hover:text-paper [&::-webkit-details-marker]:hidden">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 3 5 6v6c0 4.5 3 7.7 7 9 4-1.3 7-4.5 7-9V6l-7-3Z" /></svg>
+                      Legal
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="m6 9 6 6 6-6" /></svg>
+                    </summary>
+                    <ul className="absolute bottom-full left-0 z-20 mb-2 w-56 space-y-1 rounded-xl bg-paper p-2 text-sm text-ink shadow-xl">
+                      {LEGAL.map((l) => <li key={l.href}><Link href={l.href} className="block rounded-lg px-3 py-2 hover:bg-field">{l.label}</Link></li>)}
+                    </ul>
+                  </details>
+                </div>
+                <FooterActions />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-paper/45">
+                <p className="inline-flex flex-wrap items-center gap-1.5">
+                  <NotesAppIcon />
+                  {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}
+                  {COMPANY_INFO.smedanId ? ` · SMEDAN ${COMPANY_INFO.smedanId}` : ""}
+                </p>
+                <CurrencyPicker />
+              </div>
+            </div>
           </div>
         </footer>
         </FooterGate>
