@@ -26,7 +26,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     slug: "ludo", path: "/arcade/ludo", name: "Ludo", kicker: "Board", headline: ["Roll", "home."],
     blurb: "Four colours, one die, race your four seeds home.",
     description: "The race game every Nigerian home knows. Roll the die, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard.",
-    howTo: ["Roll a six to bring a seed out of your yard.", "A six gives you another roll.", "Land on another player's seed to send it home. Star squares are safe.", "Get all four seeds home first to win."],
+    howTo: ["Roll a six to bring a seed out of your yard.", "A six gives you another roll.", "Land on another player's seed to send it back to its yard. Star and start squares are safe.", "Get all four seeds home first to win."],
     players: "You vs 3 computer players",
   },
   {
@@ -46,8 +46,8 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   {
     slug: "landlord", path: "/arcade/landlord", name: "Naija Landlord", kicker: "Board", headline: ["Buy the", "street."],
     blurb: "Buy plots across Naija's cities, build, collect rent.",
-    description: "Our own property-trading game. Roll round a board of Nigerian neighbourhoods, buy the plots you land on, own a whole city to build flats, and collect rent from everyone who stops on your street. The last player with money wins.",
-    howTo: ["Roll two dice and move. Buy any plot nobody owns.", "Land on someone's plot and pay them rent.", "Own every plot in a city to build flats; flats raise the rent.", "Pass Start to collect your salary. Market and Fortune squares draw a card.", "Run out of money and you're out. Last landlord standing wins."],
+    description: "Our own property-trading game. Roll round a board of Nigerian neighbourhoods, buy the plots you land on, own a whole city to build flats, and collect rent from everyone who stops on your street. The last player with money wins, or the richest after 80 rounds.",
+    howTo: ["Roll two dice and move. Buy any plot nobody owns.", "Land on someone's plot and pay them rent.", "Own every plot in a city to build flats; flats raise the rent.", "Pass Start to collect your salary. Market and Fortune squares draw a card.", "Run out of money and you're out. Last landlord standing wins, or the richest after 80 rounds."],
     players: "You vs 3 computer players",
   },
   {

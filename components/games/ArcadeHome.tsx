@@ -30,6 +30,21 @@ export default function ArcadeHome() {
             </a>
           </li>
         ))}
+        {/* Notes Life isn't an arcade game (its own world, at /life), but it's our biggest game: a card here so players find it. */}
+        <li>
+          <a className="arch-card" href="/life">
+            <span className="arch-shot">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/life/game-room.webp" alt="Notes Life" loading="lazy" width={800} height={500} />
+            </span>
+            <span className="arch-body">
+              <span className="arc-label">ALSO ON #NOTESAPP · LIFE GAME</span>
+              <span className="arch-name">Notes Life</span>
+              <span className="arch-blurb">Play free in Abuja: start in a face-me-I-face-you room, hustle, build and climb the Billionaires List.</span>
+              <span className="arch-meta"><span>With your #NotesApp account</span><span className="arch-play">PLAY ↗</span></span>
+            </span>
+          </a>
+        </li>
       </ul>
       <ArcadeFooter />
       <ArcadeStyles />
