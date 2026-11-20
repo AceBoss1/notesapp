@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { ARCADE_GAMES, arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import { applyMove, chooseMove, initialState, legalMoves, type Level, type NchoState, type NchoVariant } from "@/lib/arcade/ncho";
 
 type Phase = "ready" | "playing" | "over";
@@ -49,7 +50,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const mutedRef = useRef(false);
 
   useEffect(() => {
-    try { setWins(Number(window.localStorage.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
+    try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
   }, [WINS_KEY]);
 
   const clearTimers = useCallback(() => {
@@ -89,7 +90,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
       setStatus(next.winner === 0 ? `You win, ${a} to ${b}.` : next.winner === 1 ? `Computer wins, ${b} to ${a}.` : `A draw, ${a} each.`);
       if (next.winner === 0) {
         setWins((w) => {
-          try { window.localStorage.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ }
+          try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ }
           return w + 1;
         });
       }

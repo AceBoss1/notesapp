@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   SEAT_NAME, SUIT_NAME, applyMove, cardName, computerBid, computerMove, initialState, isLegal, rankLabel, teamOf,
   type Card, type Play, type Seat, type SpadesMove, type SpadesState, type Suit,
@@ -48,7 +49,7 @@ export default function SpadesGame() {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem(RECORD_KEY) ?? "null") as Record_ | null;
+      const saved = JSON.parse(arcadeStore.getItem(RECORD_KEY) ?? "null") as Record_ | null;
       if (saved && typeof saved.won === "number" && typeof saved.lost === "number") setRecord(saved);
     } catch { /* storage blocked: keep a fresh record */ }
   }, []);
@@ -76,7 +77,7 @@ export default function SpadesGame() {
     if (next.phase === "over") {
       setRecord((r) => {
         const updated = next.winner === 0 ? { ...r, won: r.won + 1 } : { ...r, lost: r.lost + 1 };
-        try { window.localStorage.setItem(RECORD_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+        try { arcadeStore.setItem(RECORD_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
         return updated;
       });
     }

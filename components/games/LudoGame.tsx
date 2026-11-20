@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   HOME, HOME_COLUMN, PLAYERS, START, STARS, TRACK, YARD, YARD_ORIGIN,
   applyMove, applyRoll, chooseMove, legalMoves, newGame, rollDie, seedCell,
@@ -165,7 +166,7 @@ export default function LudoGame() {
 
   useEffect(() => {
     try {
-      setWins(Number(window.localStorage.getItem(WINS_KEY)) || 0);
+      setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0);
     } catch {
       // storage blocked: just don't remember wins
     }
@@ -216,7 +217,7 @@ export default function LudoGame() {
     if (game.winner !== 0) return;
     setWins((w) => {
       const next = w + 1;
-      try { window.localStorage.setItem(WINS_KEY, String(next)); } catch { /* storage blocked */ }
+      try { arcadeStore.setItem(WINS_KEY, String(next)); } catch { /* storage blocked */ }
       return next;
     });
   }, [game.phase, game.winner]);

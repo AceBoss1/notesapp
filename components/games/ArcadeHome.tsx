@@ -13,7 +13,7 @@ export default function ArcadeHome() {
         <p className="arc-kicker"><span>{String(ARCADE_GAMES.length).padStart(2, "0")}</span> &nbsp; GAMES · FREE · IN YOUR BROWSER</p>
         <h1>Pass the time,<br /><em>play a game.</em></h1>
         <div className="arch-hero-row">
-          <p className="arc-description">Board games, card games and the classics, made for #NotesApp. No download: pick one and play, and sign in to keep your N$ and progress.</p>
+          <p className="arc-description">Board games, card games and the classics, made for #NotesApp. No download, no sign-in: pick one and play. Sign in with #NotesApp only to save your progress and N$.</p>
           <ArcadeWalletNote />
         </div>
       </div>

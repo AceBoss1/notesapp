@@ -126,16 +126,17 @@ export function ArcadeGallery({ game }: { game: ArcadeGame }) {
   );
 }
 
-// Arcade money and the #NotesApp account (owner, 20 Nov 2026): every upgrade or money in the Arcade is N$ (Notesville Naira), saved
-// with a #NotesApp login, the same profile and wallet as Notes Life. Saving to the account and player-vs-player come later: until then
-// scores and wins stay in the browser, and this note says so.
+// Arcade money and the #NotesApp account (owner, 20 Nov 2026): playing is free for everyone with no sign-in, but a guest's progress
+// isn't saved and every fresh page load starts afresh (lib/arcade/store.ts). Signing in with #NotesApp is for saving progress, N$ sync,
+// scores and referral bonus credit through the Notes Life wallet; the same profile and N$ balance as Notes Life. No game pays real naira.
 export function ArcadeWalletNote() {
   return (
     <div className="arc-wallet">
-      <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> ONE WALLET, ONE PROFILE</p>
-      <p>Money and upgrades in the Arcade are <strong>N$</strong>, Notesville Naira. Sign in with your #NotesApp account to keep them: your profile and N$ balance are the same as in Notes Life.</p>
-      <p className="arc-wallet-soon">Saving to your account and playing friends, from a chat or with your own playing group, are coming soon. For now your wins stay on this device.</p>
-      <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN WITH #NOTESAPP ↗</a>
+      <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> PLAY FREE · SIGN IN TO SAVE</p>
+      <p><strong>Play free, no sign-in needed.</strong> As a guest nothing is saved: every time the page loads, you start afresh.</p>
+      <p>Sign in with your #NotesApp account to save your progress, scores and <strong>N$</strong> (Notesville Naira), and earn bonus credit from referrals. Your profile and N$ wallet are the same as in Notes Life.</p>
+      <p className="arc-wallet-soon">N$ is game money: no game pays out real naira. Saving to your account and playing friends, from a chat or with your own playing group, are coming soon.</p>
+      <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN TO SAVE ↗</a>
       <style jsx global>{`
         .arc-wallet { max-width:340px; margin-top:22px; padding:14px 16px; border:1px solid #e3e6df; border-radius:12px; background:#fff; color:#5c685f; font-size:12px; line-height:1.65; }
         .arc-wallet p { margin:0 0 8px; }.arc-wallet strong { color:#17251f; }

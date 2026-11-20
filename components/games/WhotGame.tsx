@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   SHAPES, applyMove, canPlay, cardLabel, computerMove, initialState, shapeLabel, topCard,
   type Card, type Shape, type WhotMove, type WhotState,
@@ -55,7 +56,7 @@ export default function WhotGame() {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem(RECORD_KEY) ?? "null") as Record_ | null;
+      const saved = JSON.parse(arcadeStore.getItem(RECORD_KEY) ?? "null") as Record_ | null;
       if (saved && typeof saved.won === "number" && typeof saved.lost === "number") setRecord(saved);
     } catch { /* storage blocked: keep a fresh record */ }
   }, []);
@@ -79,7 +80,7 @@ export default function WhotGame() {
     beep(next.winner === 0 ? 880 : 196, 0.3);
     setRecord((r) => {
       const updated = next.winner === 0 ? { ...r, won: r.won + 1 } : { ...r, lost: r.lost + 1 };
-      try { window.localStorage.setItem(RECORD_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+      try { arcadeStore.setItem(RECORD_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
       return updated;
     });
   }, [beep]);

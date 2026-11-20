@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   BISHOP, KING, KNIGHT, QUEEN, ROOK, VALUE, applyMove, chooseMove, gameStatus, initialState, legalMoves, moveToSan,
   pieceColor, pieceType, squareName, type ChessState, type Color, type Level, type Move,
@@ -33,10 +34,10 @@ const DRAW_TEXT: Record<string, string> = {
 };
 
 function readPrefs(): { level?: Level; side?: Color; wins?: number } {
-  try { return JSON.parse(window.localStorage.getItem(PREFS_KEY) || "{}"); } catch { return {}; }
+  try { return JSON.parse(arcadeStore.getItem(PREFS_KEY) || "{}"); } catch { return {}; }
 }
 function writePrefs(p: { level: Level; side: Color; wins: number }) {
-  try { window.localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* storage blocked: fine */ }
+  try { arcadeStore.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* storage blocked: fine */ }
 }
 
 export default function ChessGame() {

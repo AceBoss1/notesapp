@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves,
   type Cell, type DraughtsState, type Level,
@@ -46,7 +47,7 @@ export default function DraughtsGame() {
   const mutedRef = useRef(false);
 
   useEffect(() => {
-    try { setWins(Number(window.localStorage.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
+    try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
   }, []);
   const clearTimers = useCallback(() => { timers.current.forEach((t) => window.clearTimeout(t)); timers.current = []; }, []);
   useEffect(() => clearTimers, [clearTimers]);
@@ -88,7 +89,7 @@ export default function DraughtsGame() {
     if (next.over) {
       setPhase("over");
       setStatus(next.winner === 0 ? "You win." : next.winner === 1 ? "Computer wins." : "A draw: 40 moves each with no capture.");
-      if (next.winner === 0) setWins((w) => { try { window.localStorage.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ } return w + 1; });
+      if (next.winner === 0) setWins((w) => { try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ } return w + 1; });
       return;
     }
     const took = m.captures.length ? `${mover} took ${m.captures.length}${m.crowns ? " and crowned a king" : ""}. ` : m.crowns ? `${mover} crowned a king. ` : "";

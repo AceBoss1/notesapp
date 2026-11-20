@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import { arcadeStore } from "@/lib/arcade/store";
 import {
   BOARD, CITIES, ROUND_CAP,
   aiAction, applyAction, buildable, canBuy, createGame, formatNaira, netWorth, rentFor, squareCell,
@@ -80,7 +81,7 @@ export default function LandlordGame() {
 
   useEffect(() => {
     try {
-      setWins(Number(window.localStorage.getItem(WINS_KEY)) || 0);
+      setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0);
     } catch {
       /* storage blocked: start from 0 */
     }
@@ -130,7 +131,7 @@ export default function LandlordGame() {
     setWins((w) => {
       const next = w + 1;
       try {
-        window.localStorage.setItem(WINS_KEY, String(next));
+        arcadeStore.setItem(WINS_KEY, String(next));
       } catch {
         /* storage blocked: keep the count for this visit */
       }
