@@ -12,7 +12,13 @@ export type ArcadeGame = {
   description: string; // the paragraph on the game page and the help article
   howTo: string[]; // the rules, short
   players: string; // "You vs the computer"…
+  // The gallery on the game page: one screenshot per level (games with an easy/medium/hard choice) or per stage of a game.
+  // Files are public/images/arcade/<slug>-1.png, -2.png… in this order (scripts/arcade-shots.mjs).
+  shots: { caption: string; level?: string }[];
 };
+
+const LEVELS = [{ caption: "Easy", level: "easy" }, { caption: "Medium", level: "medium" }, { caption: "Hard", level: "hard" }];
+const STAGES = [{ caption: "The start" }, { caption: "Mid-game" }, { caption: "Later on" }];
 
 export const ARCADE_GAMES: ArcadeGame[] = [
   {
@@ -21,6 +27,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "One little snake. A lot of snacks. Steer it round the board, eat to grow longer, and see how long you can keep going before you run into your own tail.",
     howTo: ["Arrow keys or W A S D to steer; the arrows on a phone.", "Each snack is 10 points and makes you longer.", "Hit yourself and the run ends. Pick a speed: chill, classic or fast."],
     players: "One player",
+    shots: [{ caption: "Chill", level: "chill" }, { caption: "Classic", level: "classic" }, { caption: "Fast", level: "fast" }],
   },
   {
     slug: "ludo", path: "/arcade/ludo", name: "Ludo", kicker: "Board", headline: ["Roll", "home."],
@@ -28,6 +35,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "The race game every Nigerian home knows. Roll the die, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard.",
     howTo: ["Roll a six to bring a seed out of your yard.", "A six gives you another roll.", "Land on another player's seed to send it back to its yard. Star and start squares are safe.", "Get all four seeds home first to win."],
     players: "You vs 3 computer players",
+    shots: STAGES,
   },
   {
     slug: "whot", path: "/arcade/whot", name: "Whot", kicker: "Cards", headline: ["Check", "up!"],
@@ -35,6 +43,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "The Naija card game of circles, triangles, crosses, squares and stars. Match the card on the pile by shape or number, use your specials to make the other player pick, and be the first to empty your hand.",
     howTo: ["Play a card that matches the top card's shape or number.", "1 Hold on: play again. 2 Pick two. 5 Pick three. 8 Suspension: the other player misses a turn. 14 General market: everyone else picks one.", "20 is Whot: play it on anything, then ask for a shape.", "No card to play? Go to market and pick one.", "First to empty their hand wins."],
     players: "You vs the computer",
+    shots: STAGES,
   },
   {
     slug: "spades", path: "/arcade/spades", name: "Ace of Spades", kicker: "Cards", headline: ["Spades", "are trumps."],
@@ -42,6 +51,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "A four-player trick-taking game: you and your partner across the table against two computer players. Bid how many tricks you'll take, follow suit when you can, and remember spades are always trumps.",
     howTo: ["Everyone gets 13 cards and bids how many tricks they'll win.", "Follow the suit that was led if you can. If you can't, play anything, including a spade.", "The highest spade wins the trick; with no spades, the highest card of the suit led.", "Spades can't be led until one has been played.", "Make your team's bid: 10 points a trick bid, 1 for each extra. Miss it and lose 10 a trick. First team to 250 wins."],
     players: "You and a partner vs 2 computer players",
+    shots: STAGES,
   },
   {
     slug: "landlord", path: "/arcade/landlord", name: "Naija Landlord", kicker: "Board", headline: ["Buy the", "street."],
@@ -49,6 +59,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "Our own property-trading game. Roll round a board of Nigerian neighbourhoods, buy the plots you land on, own a whole city to build flats, and collect rent from everyone who stops on your street. The last player with money wins, or the richest after 80 rounds.",
     howTo: ["Roll two dice and move. Buy any plot nobody owns.", "Land on someone's plot and pay them rent.", "Own every plot in a city to build flats; flats raise the rent.", "Pass Start to collect your salary. Market and Fortune squares draw a card.", "Run out of money and you're out. Last landlord standing wins, or the richest after 80 rounds."],
     players: "You vs 3 computer players",
+    shots: STAGES,
   },
   {
     slug: "ncho", path: "/arcade/ncho", name: "Ncho", kicker: "Board", headline: ["Sow", "and gather."],
@@ -56,6 +67,15 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "Ncho (also called Okwe) is the Igbo seed-sowing game played on a board of twelve holes. Pick up the seeds in one of your holes, sow them one by one round the board, and capture when your last seed makes two or three.",
     howTo: ["In the version we play, each side has six holes with four seeds each.", "Pick a hole on your side. Its seeds are sown one per hole, anticlockwise.", "If your last seed lands on the other side and makes 2 or 3, you capture them, and the holes before it that also have 2 or 3.", "You must leave the other player a move if you can.", "When no more moves are possible, the player with the most seeds wins."],
     players: "You vs the computer",
+    shots: LEVELS,
+  },
+  {
+    slug: "akahausa", path: "/arcade/akahausa", name: "Ncho Aka-Hausa", kicker: "Board", headline: ["The other", "way round."],
+    blurb: "The harder Ncho: sow clockwise against a sharper computer.",
+    description: "Aka-Hausa is the harder way to play Ncho. The seeds go round the other way, clockwise, so everything you know about the board turns around, and the computer thinks further ahead at every level.",
+    howTo: ["The same board: six holes a side, four seeds in each.", "Pick a hole on your side. Its seeds are sown one per hole, clockwise.", "If your last seed lands on the other side and makes 2 or 3, you capture them, and the holes sown just before it that also have 2 or 3.", "You must leave the other player a move if you can.", "When no more moves are possible, the player with the most seeds wins."],
+    players: "You vs the computer",
+    shots: LEVELS,
   },
   {
     slug: "chess", path: "/arcade/chess", name: "Chess", kicker: "Board", headline: ["Your", "move."],
@@ -63,6 +83,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "The full game of chess against the computer, with castling, en passant and promotion. Pick a level, play white or black, and see the moves you can make when you tap a piece.",
     howTo: ["Tap a piece to see where it can go, then tap a square.", "Checkmate the other king to win. Stalemate is a draw.", "Pawns promote when they reach the far side.", "Pick a level: easy, medium or hard."],
     players: "You vs the computer",
+    shots: LEVELS,
   },
   {
     slug: "draughts", path: "/arcade/draughts", name: "Draughts", kicker: "Board", headline: ["Jump", "and crown."],
@@ -70,6 +91,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     description: "Draughts on an 8×8 board. Move diagonally forward, jump the other player's pieces to capture them, and reach the far row to crown a king that moves both ways.",
     howTo: ["Pieces move one square diagonally forward onto dark squares.", "If you can jump, you must. Keep jumping while you can.", "Reach the far row to become a king; kings move and jump backwards too.", "Take every piece, or leave the other player with no move, to win."],
     players: "You vs the computer",
+    shots: LEVELS,
   },
 ];
 

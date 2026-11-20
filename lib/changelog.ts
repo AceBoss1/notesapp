@@ -15,8 +15,11 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-20",
     changes: [
-      { kind: "added", text: "Notes Arcade has a home page with every game, and seven new games to play in your browser against the computer: Ludo, Whot, Ace of Spades, Naija Landlord (our own property game set in Nigerian cities), Ncho, Chess and Draughts. Each has its own page with what it is, how to play and a screenshot." },
+      { kind: "added", text: "Notes Arcade has a home page with every game, and eight new games to play in your browser against the computer: Ludo, Whot, Ace of Spades, Naija Landlord (our own property game set in Nigerian cities), Ncho, Ncho Aka-Hausa, Chess and Draughts. Each has its own page with what it is, how to play and a screenshot." },
       { kind: "added", text: "Notes Life has a card on the Arcade home, with Notes Life Lagos and Notes Life Port Harcourt coming soon." },
+      { kind: "added", text: "Ncho Aka-Hausa, the harder Ncho: the seeds go round clockwise and the computer thinks further ahead." },
+      { kind: "added", text: "Naija Landlord's board grows to 32 squares with the big markets: Ariaria in Aba, Nkwo Nnewi, Eke Osumenyi, the Lagos Trade Fair and Alaba International Market, plus Upper Iweka Park." },
+      { kind: "added", text: "Every game page shows screenshots: one for each level, or a game from the start to later on." },
       { kind: "changed", text: "The Arcade's top bar now says Notes Arcade, and its logo takes you to all the games. On arcade.naapp.tech each game has a short address, like arcade.naapp.tech/ludo." },
       { kind: "added", text: "More in the footer: Naija Exam Prep, Nana Tutor, NotesApp Sounds, Write a journal, Business books, the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app. Nana AI and Nana Jobs now sit under For you." },
     ],

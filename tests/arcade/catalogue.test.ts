@@ -14,11 +14,16 @@ for (const g of ARCADE_GAMES) {
   assert.ok(existsSync(page), `${g.slug} has a page`);
   assert.equal(g.path, g.slug === "snake" ? "/snake" : `/arcade/${g.slug}`);
   assert.ok(existsSync(`public/images/arcade/${g.slug}.png`), `${g.slug} has a screenshot`);
+  assert.ok(g.shots.length >= 3, `${g.slug} has a gallery`);
+  g.shots.forEach((_, i) => assert.ok(existsSync(`public/images/arcade/${g.slug}-${i + 1}.png`), `${g.slug} gallery shot ${i + 1}`));
   // Our own games only: no other company's game names.
   assert.doesNotMatch(`${g.name} ${g.description} ${g.howTo.join(" ")}`, /monopoly|scrabble|uno\b/i);
 }
-for (const want of ["ludo", "whot", "spades", "landlord", "ncho", "chess", "draughts"]) assert.ok(ARCADE_SLUGS.includes(want), want);
+for (const want of ["ludo", "whot", "spades", "landlord", "ncho", "akahausa", "chess", "draughts"]) assert.ok(ARCADE_SLUGS.includes(want), want);
 assert.ok(!ARCADE_SLUGS.includes("snake"), "Snake keeps its own /snake");
 assert.equal(arcadeGame("chess").name, "Chess");
+// Aka-Hausa is the second Ncho: straight after Ncho, every level shown.
+assert.equal(slugs.indexOf("akahausa"), slugs.indexOf("ncho") + 1);
+assert.deepEqual(arcadeGame("akahausa").shots.map((x) => x.level), ["easy", "medium", "hard"]);
 assert.throws(() => arcadeGame("nope"));
 console.log("arcade catalogue: ok");

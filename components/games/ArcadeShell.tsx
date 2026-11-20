@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import type { ReactNode } from "react";
-import type { ArcadeGame } from "@/lib/arcade/catalogue";
+import { ARCADE_GAMES, type ArcadeGame } from "@/lib/arcade/catalogue";
 
 // The frame every Notes Arcade game sits in: the NOTES ARCADE top bar, the side panel (what the game is and how to play),
 // the game's own console on the right, and the footer. Same look as Snake (components/games/SnakeGame.tsx).
 // A game passes its catalogue entry (lib/arcade/catalogue.ts) and renders its board as children. Classes: arc-*.
 // Shared pieces a game can use inside its console: .arc-console (the white card), .arc-head (score row), .arc-label,
 // .arc-btn (green button), .arc-btn-ghost, .arc-select, .arc-status (one line of what's happening), .arc-overlay (start / game over).
-export default function ArcadeShell({ game, index, children }: { game: ArcadeGame; index: number; children: ReactNode }) {
+// The game's number is its place in the catalogue (the `index` prop is kept for older callers and ignored).
+export default function ArcadeShell({ game, children }: { game: ArcadeGame; index?: number; children: ReactNode }) {
+  const index = ARCADE_GAMES.findIndex((g) => g.slug === game.slug) + 1;
   return (
     <section className="arc-page" aria-label={`${game.name}, Notes Arcade`}>
       <ArcadeTopbar />
@@ -24,7 +26,10 @@ export default function ArcadeShell({ game, index, children }: { game: ArcadeGam
           </details>
           <a className="arc-back" href="/arcade">← All games</a>
         </div>
-        <div className="arc-main">{children}</div>
+        <div className="arc-main">
+          {children}
+          <ArcadeGallery game={game} />
+        </div>
       </div>
       <ArcadeFooter />
       <ArcadeStyles />
@@ -82,8 +87,39 @@ export function ArcadeStyles() {
       .arc-overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:#14231fdc; color:#fff; text-align:center; backdrop-filter:blur(3px); }
       .arc-overlay-kicker { margin:0 0 7px; color:#c1e993; font:600 9px ui-monospace,monospace; letter-spacing:.16em; }.arc-overlay h2 { margin:0 0 8px; color:#fff; font:500 clamp(28px,4vw,40px)/1.1 Georgia,serif; letter-spacing:-.04em; }.arc-overlay p { margin:0 0 18px; color:#c1cbc3; font-size:12px; }
       .arc-footer { display:flex; justify-content:space-between; width:min(1120px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid var(--arc-rule); color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.arc-footer b { padding:0 4px; color:#a5d95c; }
-      @media(max-width:820px) { .arc-page { padding:0 16px; }.arc-topbar { height:64px; }.arc-home { display:none; }.arc-layout { grid-template-columns:1fr; gap:22px; padding:26px 0 40px; }.arc-intro h1 { font-size:clamp(44px,12vw,62px); }.arc-description { max-width:none; margin:14px 0; font-size:13px; }.arc-howto { max-width:none; }.arc-howto:not([open]) ul { display:none; }.arc-console { padding:10px; border-radius:14px; }.arc-footer { font-size:7px; } }
       @media(prefers-reduced-motion:reduce) { .arc-btn { transition:none; } }
     `}</style>
+  );
+}
+
+// The screenshots under a game: one per level, or a game from start to finish (catalogue `shots`). Used by the frame and by Snake.
+export function ArcadeGallery({ game }: { game: ArcadeGame }) {
+  if (game.shots.length === 0) return null;
+  return (
+    <>
+        <div className="arc-gallery">
+          <p className="arc-label">SCREENSHOTS · {game.shots.some((x) => x.level) ? "EVERY LEVEL" : "A GAME FROM START TO FINISH"}</p>
+          <ul>
+            {game.shots.map((shot, i) => (
+              <li key={shot.caption}>
+                <a href={`/images/arcade/${game.slug}-${i + 1}.png`} target="_blank" rel="noopener" aria-label={`${game.name}: ${shot.caption}, full size`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/images/arcade/${game.slug}-${i + 1}.png`} alt={`${game.name}, ${shot.caption}`} loading="lazy" width={640} height={400} />
+                </a>
+                <span>{shot.caption}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      <style jsx global>{`
+      .arc-gallery { margin-top:22px; }.arc-gallery ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:10px 0 0; padding:0; list-style:none; }
+      .arc-gallery a { display:block; overflow:hidden; aspect-ratio:8/5; border:1px solid #e3e6df; border-radius:10px; background:var(--arc-board,#1b2a23); }.arc-gallery a:focus-visible { outline:2px solid var(--arc-deep); outline-offset:3px; }
+      .arc-gallery img { display:block; width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .2s; }.arc-gallery a:hover img { transform:scale(1.03); }
+      .arc-gallery span { display:block; margin-top:6px; color:#6d7870; font:600 9px ui-monospace,monospace; letter-spacing:.1em; text-transform:uppercase; }
+        @media(max-width:820px) { .arc-gallery ul { gap:8px; } }
+        @media(prefers-reduced-motion:reduce) { .arc-gallery img { transition:none; } }
+        .arc-gallery .arc-label { display:block; color:#929b94; font:600 9px ui-monospace,monospace; letter-spacing:.12em; }
+      `}</style>
+    </>
   );
 }
