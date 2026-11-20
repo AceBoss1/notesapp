@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ARCADE_SLUGS } from "@/lib/arcade/catalogue";
 import { APP_HOST, APP_SHORT_DOMAINS, DEVICES_HOST, KNOWN_ROOTS, LIFE_HOST, MAIN_HOST, NANA_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
 import { FIRST_TOUCH_COOKIE, FIRST_TOUCH_DAYS, PING_COOKIE, classifyTouch, cleanDetail, encodeTouch } from "@/lib/growth";
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS } from "@/lib/referrals";
@@ -222,7 +223,11 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
   if (!host) return NextResponse.next();
   if (host === "arcade.naapp.tech" || host === "arcade.notesapp.name.ng") {
-    if (req.nextUrl.pathname === "/") return NextResponse.rewrite(new URL(`/snake${req.nextUrl.search}`, req.url));
+    // arcade.<domain>: the Arcade home at its root and each game at a short path (arcade.naapp.tech/ludo → /arcade/ludo).
+    const p = req.nextUrl.pathname;
+    if (p === "/") return NextResponse.rewrite(new URL(`/arcade${req.nextUrl.search}`, req.url));
+    const slug = p.slice(1).replace(/\/$/, "");
+    if ((ARCADE_SLUGS as string[]).includes(slug)) return NextResponse.rewrite(new URL(`/arcade/${slug}${req.nextUrl.search}`, req.url));
     return NextResponse.next();
   }
   // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.

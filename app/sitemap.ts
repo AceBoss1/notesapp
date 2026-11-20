@@ -8,6 +8,7 @@ import { getAcademy } from "@/lib/courses-server";
 import { ACADEMY_LIVE } from "@/lib/courses";
 import { PREP_URL } from "@/lib/host";
 import { EXAM_IDS } from "@/lib/exam-prep";
+import { ARCADE_GAMES } from "@/lib/arcade/catalogue";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -51,6 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE.url}/calls`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE.url}/life`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE.url}/life/partners`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE.url}/arcade`, changeFrequency: "monthly", priority: 0.5 },
+    ...ARCADE_GAMES.map((g) => ({ url: `${SITE.url}${g.path}`, changeFrequency: "monthly" as const, priority: 0.4 })),
     { url: `${SITE.url}/advertise`, changeFrequency: "monthly", priority: 0.5 },
 
     { url: `${SITE.url}/advertise/specifications`, changeFrequency: "monthly", priority: 0.5 },

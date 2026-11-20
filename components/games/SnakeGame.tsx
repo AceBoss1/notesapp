@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { ArcadeGallery } from "./ArcadeShell";
+import { arcadeGame } from "@/lib/arcade/catalogue";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Point = { x: number; y: number };
@@ -203,9 +205,9 @@ export default function SnakeGame() {
   return (
     <section className="snake-page" aria-label="Snake arcade game">
       <div className="snake-topbar">
-        <a className="snake-brand" href="/" aria-label="NotesApp home">
+        <a className="snake-brand" href="/arcade" aria-label="Notes Arcade, all games">
           <Image className="snake-brand-icon" src="/images/brand/notesapp-icon.webp" alt="" width={32} height={32} />
-          <span>NOTES<span className="snake-brand-accent">APP</span></span>
+          <span>NOTES <span className="snake-brand-accent">ARCADE</span></span>
         </a>
         <div className="snake-live"><i /> ARCADE MODE</div>
       </div>
@@ -262,7 +264,8 @@ export default function SnakeGame() {
           </div>
         </div>
       </div>
-      <footer className="snake-footer"><span>NOTESAPP ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>
+      <div className="snake-gallery"><ArcadeGallery game={arcadeGame("snake")} /></div>
+      <footer className="snake-footer"><span>NOTES ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>
 
       <style jsx global>{`
         .snake-page { --snake-ink: #17251f; --snake-muted: #748078; --snake-paper: #f7f7f2; --snake-green: #bdf36b; --snake-board: #1b2a23; min-height: 100vh; padding: 0 clamp(20px, 5.6vw, 88px); background: var(--snake-paper); color: var(--snake-ink); font-family: Inter, Arial, sans-serif; overflow: hidden; }
@@ -280,7 +283,7 @@ export default function SnakeGame() {
         .snake-board-wrap { position:relative; overflow:hidden; border-radius:9px; background:var(--snake-board); }.snake-board { display:grid; aspect-ratio:1; grid-template-columns:repeat(20,minmax(0,1fr)); grid-template-rows:repeat(20,minmax(0,1fr)); padding:10px; background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px); background-size:5% 5%; }.snake-cell { position:relative; z-index:1; margin:1px; border-radius:3px; }.snake-cell.is-snake { background:#a5df59; box-shadow:0 0 12px #a5df5940; }.snake-cell.is-head { border-radius:7px; background:#d1ff89; }.snake-cell.is-food { border-radius:50%; background:#ff816d; box-shadow:0 0 14px #ff816d88; transform:scale(.68); }
         .snake-overlay { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:#14231fdc; color:white; text-align:center; backdrop-filter:blur(3px); }.snake-overlay-icon { display:grid; place-items:center; width:43px; height:43px; margin-bottom:15px; border:1px solid #d7f5a34f; border-radius:13px; color:#c8f28b; font:500 26px Georgia,serif; }.snake-overlay-kicker { margin:0 0 7px; color:#c1e993; font:600 9px ui-monospace,monospace; letter-spacing:.16em; }.snake-overlay h2 { margin:0; color:#fff; font:500 clamp(30px,4vw,43px)/1.1 Georgia,serif; letter-spacing:-.04em; }.snake-overlay>p:not(.snake-overlay-kicker) { margin:9px 0 20px; color:#c1cbc3; font-size:12px; }.snake-play { display:flex; align-items:center; gap:20px; padding:13px 17px; border:0; border-radius:7px; background:#c2f17a; color:#20301e; font:700 10px ui-monospace,monospace; letter-spacing:.08em; cursor:pointer; transition:transform .15s,background .15s; }.snake-play:hover { transform:translateY(-2px); background:#d3ff96; }.snake-play span { font-size:15px; }.snake-overlay-hint { margin-top:12px; color:#87968a; font:500 8px ui-monospace,monospace; letter-spacing:.12em; }
         .snake-console-foot { display:flex; justify-content:space-between; padding:14px 4px 1px; color:#929b94; font:600 8px ui-monospace,monospace; letter-spacing:.08em; }.snake-console-foot span { display:flex; align-items:center; gap:6px; }.snake-console-foot b { color:#637068; font-weight:700; }.snake-food-legend { display:inline-block; width:7px;height:7px;border-radius:50%;background:#ff816d; }
-        .snake-touch { display:none; }.snake-footer { display:flex; justify-content:space-between; width:min(1040px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid #e4e7df; color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.snake-footer b { padding:0 4px; color:#a5d95c; }
+        .snake-touch { display:none; }.snake-gallery { width:min(1040px,100%); margin:0 auto 40px; }.snake-footer { display:flex; justify-content:space-between; width:min(1040px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid #e4e7df; color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.snake-footer b { padding:0 4px; color:#a5d95c; }
         @media(max-width:740px) { .snake-page { padding:0 20px; }.snake-topbar { height:68px; }.snake-layout { grid-template-columns:1fr; gap:27px; max-width:440px; padding:35px 0 42px; }.snake-intro { display:grid; grid-template-columns:1fr auto; align-items:end; }.snake-kicker { grid-column:1/-1; margin-bottom:12px; }.snake-intro h1 { font-size:clamp(48px,13vw,68px); }.snake-description { grid-column:1/-1; max-width:360px; margin:14px 0 0; font-size:13px; }.snake-desktop-tip,.snake-or,.snake-note { display:none; }.snake-console { padding:12px; border-radius:14px; }.snake-console-head { flex-wrap:wrap; gap:13px; padding:3px 4px 11px; }.snake-score { font-size:22px; }.snake-best { gap:6px; padding-left:12px; }.snake-pace { order:1; width:100%; justify-content:space-between; margin-left:0; }.snake-pace-select { min-width:148px; }.snake-sound { gap:6px; font-size:8px; }.snake-board { padding:7px; }.snake-cell { margin:.7px; border-radius:2px; }.snake-console-foot { padding:11px 3px 0; font-size:7px; }.snake-touch { display:flex; align-items:center; justify-content:space-between; padding:14px 4px 3px; }.snake-touch>span { color:#a0a8a1; font:600 8px ui-monospace,monospace; letter-spacing:.1em; }.snake-pad { display:flex; flex-direction:column; align-items:center; gap:4px; }.snake-pad>div { display:flex; gap:4px; }.snake-control { display:grid; place-items:center; width:39px;height:34px; border:1px solid #e3e7df; border-radius:7px; background:#f7f8f4; color:#39473d; font-size:15px; cursor:pointer; touch-action:manipulation; }.snake-control:active { background:#d9f4b2; }.snake-footer { padding-top:15px; font-size:7px; } }
         @media(max-width:380px) { .snake-page { padding:0 14px; }.snake-layout { padding-top:27px; }.snake-console { padding:9px; }.snake-best { padding-left:9px; }.snake-sound { font-size:7px; }.snake-footer { font-size:6px; } }
         @media(prefers-reduced-motion:reduce) { .snake-play { transition:none; } }
