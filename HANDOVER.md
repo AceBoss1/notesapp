@@ -1253,6 +1253,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     impression/click tracking; with nothing booked it shows "Your brand here" → `/arcade/partners` (`components/games/ArcadePartners.tsx`,
     arcade.<domain>/partners). The bigger partnerships on that page (a Landlord square, sponsored tournaments with the sponsor's own
     prizes, branded cards and boards, a made-for-you game) start with a conversation; none is built. No audience numbers are claimed.
+149. **Plan: sponsored tournaments in Notes Arcade (docs only; owner, 20 Nov 2026: "plan tournaments on games that can be powered with
+    sponsor[s] backed tournament and get tournament sponsors plus only logged in players can participate"):** `docs/ARCADE_TOURNAMENTS.md`.
+    Signed-in members only, free entry always, sponsor prizes or N$ (never real naira from a game), "same deal" tournaments first: every
+    entrant gets the same seed and the server replays their moves with `lib/arcade/<game>.ts` to work out the result. Needs the signed-in
+    Arcade (Phase 0) first. Waiting on the owner's five decisions at the end of the doc.
 150. **Ncho played the school way (v0.189.1; owner, 20 Nov 2026, the rules "the school rule igbos practice and play"; "the reverse is the
     aka hausa"):** capture only when the last seed makes exactly 4 in the opponent's hole, into your house (ulo); most seeds in the house
     wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
