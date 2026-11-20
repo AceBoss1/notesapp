@@ -2,12 +2,14 @@
 //   <slug>.png     the card on the Arcade home: the game page at 1280×800, in play.
 //   <slug>-N.png   the gallery under each game (catalogue `shots`): the game's console at each level, or at the start,
 //                  middle and later on of a game. Moves are made by tapping the game's own buttons, so every board is a real one.
-// Start the app first (npx next dev -p 3290), then: node scripts/arcade-shots.mjs [http://localhost:3290] [slug…]
+// Start the app first (npx next dev -p 3290), then: node scripts/arcade-shots.mjs [http://localhost:3290] [slug…] [--cards]
 // If the browser isn't found, set PW_CHROMIUM to a Chromium binary.
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 
-const [base = "http://localhost:3290", ...only] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const cardsOnly = args.includes("--cards"); // only the Arcade home cards
+const [base = "http://localhost:3290", ...only] = args.filter((a) => a !== "--cards");
 const src = readFileSync(new URL("../lib/arcade/catalogue.ts", import.meta.url), "utf8");
 const levelsOf = (block) => (/^LEVELS/.test(block) ? ["easy", "medium", "hard"] : /^STAGES/.test(block) ? [null, null, null] : [...block.matchAll(/level: "([a-z]+)"/g)].map((m) => m[1]));
 const games = [...src.matchAll(/slug: "([a-z]+)", path: "([^"]+)"[\s\S]*?shots: ([^\n]+)/g)]
@@ -52,7 +54,9 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, dev
 for (const g of games) {
   await page.goto(base + g.path, { waitUntil: "load" }); await page.waitForTimeout(2000);
   await play(page, 6);
+  await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300); // tapping scrolls the page; the card shows its top
   await page.screenshot({ path: `public/images/arcade/${g.slug}.png` });
+  if (cardsOnly) continue;
   const shotScale = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1.5 });
   for (const [i, level] of g.levels.entries()) {
     await shotScale.goto(base + g.path, { waitUntil: "load" }); await shotScale.waitForTimeout(2000);

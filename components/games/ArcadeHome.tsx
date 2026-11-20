@@ -1,6 +1,7 @@
 "use client";
 
 import { ARCADE_GAMES } from "@/lib/arcade/catalogue";
+import { CITY_CARDS } from "@/lib/life/catalog";
 import { ArcadeFooter, ArcadeStyles, ArcadeTopbar } from "./ArcadeShell";
 
 // The Notes Arcade home: every game as a card with its screenshot, what it is and who plays. app/(arcade)/arcade/page.tsx.
@@ -33,23 +34,34 @@ export default function ArcadeHome() {
         {/* Notes Life isn't an arcade game (its own world, at /life), but it's our biggest game: a card here so players find it. */}
         <li>
           <a className="arch-card" href="/life">
-            <span className="arch-shot">
+            {/* The Abuja card from the Notes Life city picker ("You are welcome"), with a real in-game screenshot in the corner. */}
+            <span className="arch-shot arch-life-shot">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/life/game-room.webp" alt="Notes Life" loading="lazy" width={800} height={500} />
+              <img src={CITY_CARDS.find((x) => x.id === "abuja")?.icon || "/images/life/cities/abuja.svg"} alt="Notes Life Abuja: City Gate, You are welcome" loading="lazy" width={400} height={260} />
+              <span className="arch-life-inset">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/life/game-room.webp" alt="Inside Notes Life: your room in Wuse" loading="lazy" width={160} height={100} />
+                <em>IN THE GAME</em>
+              </span>
             </span>
             <span className="arch-body">
               <span className="arc-label">ALSO ON #NOTESAPP · LIFE GAME</span>
-              <span className="arch-name">Notes Life</span>
+              <span className="arch-name">Notes Life Abuja</span>
               <span className="arch-blurb">Play free in Abuja: start in a face-me-I-face-you room, hustle, build and climb the Billionaires List.</span>
               <span className="arch-meta"><span>With your #NotesApp account</span><span className="arch-play">PLAY ↗</span></span>
             </span>
           </a>
         </li>
         {/* The next Notes Life cities (owner, 20 Nov 2026): shown as coming soon, not links. */}
-        {[{ city: "Lagos", line: "Hustle from Yaba to Lekki. Danfo, Third Mainland traffic and island money." }, { city: "Port Harcourt", line: "Garden City life, from Trans-Amadi to GRA. Fresh fish, oil money and the waterside." }].map((c) => (
+        {[{ city: "Lagos", line: "Hustle from Yaba to Lekki. Danfo, Third Mainland traffic and island money." }, { city: "Port Harcourt", line: "Garden City life, from Trans-Amadi to GRA. Fresh fish, oil money and the waterside." }].map((c) => ({ ...c, card: CITY_CARDS.find((x) => x.name === c.city) })).map((c) => (
           <li key={c.city}>
             <div className="arch-card arch-soon" aria-label={`Notes Life ${c.city}, coming soon`}>
-              <span className="arch-shot arch-soon-shot"><span>NOTES LIFE</span><strong>{c.city}</strong></span>
+              {/* The city's own picture from the Notes Life city picker (lib/life/catalog.ts CITY_CARDS). */}
+              <span className="arch-shot arch-soon-shot">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {c.card ? <img src={c.card.icon} alt={`Notes Life ${c.city}: ${c.card.landmark}`} loading="lazy" width={400} height={260} /> : <><span>NOTES LIFE</span><strong>{c.city}</strong></>}
+                <em className="arch-soon-badge">COMING SOON</em>
+              </span>
               <span className="arch-body">
                 <span className="arc-label">ALSO ON #NOTESAPP · LIFE GAME</span>
                 <span className="arch-name">Notes Life {c.city}</span>
@@ -74,9 +86,13 @@ export default function ArcadeHome() {
         .arch-name { font:500 26px/1.1 Georgia,serif; letter-spacing:-.03em; }.arch-blurb { color:#657169; font-size:13px; line-height:1.55; }
         .arch-meta { display:flex; justify-content:space-between; gap:10px; margin-top:auto; padding-top:10px; color:#8a938b; font:600 9px ui-monospace,monospace; letter-spacing:.06em; }.arch-play { color:#5f9a22; }
         .arch-soon { cursor:default; }.arch-soon:hover { transform:none; box-shadow:0 12px 40px #17251f0a; }
-        .arch-soon-shot { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:radial-gradient(circle at 30% 20%,#2c4235,#1b2a23 70%); color:#c8f28b; }
+        .arch-soon-shot { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:radial-gradient(circle at 30% 20%,#2c4235,#1b2a23 70%); color:#c8f28b; }
         .arch-soon-shot span { font:600 10px ui-monospace,monospace; letter-spacing:.2em; color:#9bb39f; }.arch-soon-shot strong { font:500 40px/1 Georgia,serif; letter-spacing:-.04em; color:#e8f7d2; }
         .arch-soon-tag { color:#c26a2b; }
+        .arch-life-shot { position:relative; }.arch-life-shot > img { object-position:center; }
+        .arch-life-inset { position:absolute; right:10px; bottom:10px; width:38%; overflow:hidden; border:2px solid #fff; border-radius:8px; box-shadow:0 6px 18px #17251f40; background:#fff; }
+        .arch-life-inset img { display:block; width:100%; aspect-ratio:8/5; object-fit:cover; }.arch-life-inset em { display:block; padding:3px 6px; color:#17251f; font:700 8px ui-monospace,monospace; font-style:normal; letter-spacing:.1em; }
+        .arch-soon-shot img { object-position:center; }.arch-soon-badge { position:absolute; top:10px; right:10px; padding:4px 8px; border-radius:999px; background:#17251fcc; color:#e8f7d2; font:700 9px ui-monospace,monospace; font-style:normal; letter-spacing:.1em; }
         @media(prefers-reduced-motion:reduce) { .arch-card { transition:none; } }
       `}</style>
     </section>

@@ -1,4 +1,4 @@
-// Naija Landlord: our own property-trading game on a 24-square loop of Nigerian neighbourhoods.
+// Naija Landlord: our own property-trading game on a 32-square loop of Nigerian neighbourhoods and markets.
 // Pure logic, no React or DOM. Money is in thousands of naira (1 = ₦1k). Every apply returns a new state.
 
 export type Rng = () => number;
@@ -6,11 +6,11 @@ export type Rng = () => number;
 export const START_CASH = 1500;
 export const SALARY = 200;
 export const ROUND_CAP = 80;
-export const HOLDUP = 6; // index of the Traffic Hold-up square
+export const HOLDUP = 8; // index of the Traffic Hold-up square
 export const MAX_FLATS = 3;
-export const BOARD_SIZE = 24;
+export const BOARD_SIZE = 32;
 
-export type CityId = "enugu" | "kano" | "ibadan" | "ph" | "abuja" | "lagos";
+export type CityId = "enugu" | "kano" | "ibadan" | "ph" | "east" | "abuja" | "lagosmkt" | "lagos";
 export type City = { id: CityId; name: string; colour: string; flatCost: number };
 
 export const CITIES: Record<CityId, City> = {
@@ -18,7 +18,9 @@ export const CITIES: Record<CityId, City> = {
   kano: { id: "kano", name: "Kano", colour: "#e5a985", flatCost: 50 },
   ibadan: { id: "ibadan", name: "Ibadan", colour: "#b5c99a", flatCost: 100 },
   ph: { id: "ph", name: "Port Harcourt", colour: "#93bccb", flatCost: 100 },
+  east: { id: "east", name: "Eastern markets", colour: "#8fc2b0", flatCost: 100 },
   abuja: { id: "abuja", name: "Abuja", colour: "#c3abd6", flatCost: 150 },
+  lagosmkt: { id: "lagosmkt", name: "Lagos markets", colour: "#d9a3b4", flatCost: 150 },
   lagos: { id: "lagos", name: "Lagos", colour: "#e3c46f", flatCost: 150 },
 };
 
@@ -26,9 +28,10 @@ export type SquareKind = "start" | "plot" | "park" | "market" | "fortune" | "tax
 export type Square = { name: string; short: string; kind: SquareKind; city?: CityId; price?: number; rent?: number };
 
 const plot = (name: string, short: string, city: CityId, price: number, rent: number): Square => ({ name, short, kind: "plot", city, price, rent });
+// Park rent is ₦30k per park the owner holds: ₦30k, ₦60k or ₦90k.
 const park = (name: string): Square => ({ name, short: "Danfo Park", kind: "park", price: 150, rent: 30 });
 
-// Clockwise from the top-left corner. Corners: Start, Traffic Hold-up, Rest Stop, Tax office.
+// Clockwise from the top-left corner, cheap to dear. Corners: Start, Traffic Hold-up, Rest Stop, Tax office.
 export const BOARD: Square[] = [
   { name: "Start", short: "Start", kind: "start" },
   plot("Ogui", "Ogui", "enugu", 60, 12),
@@ -36,27 +39,35 @@ export const BOARD: Square[] = [
   { name: "Market", short: "Market", kind: "market" },
   plot("Sabon Gari", "Sabon Gari", "kano", 80, 16),
   plot("Nassarawa", "Nassarawa", "kano", 90, 18),
+  park("Oshodi Danfo Park"),
+  { name: "Fortune", short: "Fortune", kind: "fortune" },
   { name: "Traffic Hold-up", short: "Hold-up", kind: "holdup" },
   plot("Ring Road", "Ring Road", "ibadan", 100, 20),
   plot("Bodija", "Bodija", "ibadan", 120, 24),
-  park("Oshodi Danfo Park"),
-  { name: "Fortune", short: "Fortune", kind: "fortune" },
-  plot("Trans-Amadi", "Trans-Amadi", "ph", 140, 28),
-  { name: "Rest Stop", short: "Rest Stop", kind: "rest" },
-  plot("GRA", "GRA", "ph", 160, 32),
   { name: "Market", short: "Market", kind: "market" },
+  plot("Trans-Amadi", "Trans-Amadi", "ph", 140, 28),
+  plot("GRA", "GRA", "ph", 150, 30),
+  park("Upper Iweka Park (Onitsha)"),
+  plot("Ariaria International Market (Aba)", "Ariaria", "east", 160, 32),
+  { name: "Rest Stop", short: "Rest Stop", kind: "rest" },
+  plot("Nkwo Nnewi Market (Nnewi)", "Nkwo Nnewi", "east", 160, 32),
+  plot("Eke Osumenyi Market (Nnewi)", "Eke Osumenyi", "east", 170, 34),
+  { name: "Fortune", short: "Fortune", kind: "fortune" },
   plot("Garki", "Garki", "abuja", 180, 36),
   plot("Wuse", "Wuse", "abuja", 180, 36),
   plot("Maitama", "Maitama", "abuja", 200, 40),
+  { name: "Market", short: "Market", kind: "market" },
   { name: "Tax office", short: "Tax office", kind: "tax" },
+  plot("Lagos International Trade Fair", "Trade Fair", "lagosmkt", 210, 42),
+  plot("Alaba International Market (Lagos)", "Alaba", "lagosmkt", 230, 46),
+  park("Ojota Danfo Park"),
   plot("Yaba", "Yaba", "lagos", 240, 48),
   { name: "Fortune", short: "Fortune", kind: "fortune" },
   plot("Ikoyi", "Ikoyi", "lagos", 260, 52),
-  park("Ojota Danfo Park"),
   plot("Lekki", "Lekki", "lagos", 280, 56),
 ];
 
-export const LEKKI = 23;
+export const LEKKI = 31;
 
 /** Rent multiplier on a plot's base rent once its owner holds the whole city, by number of flats. */
 export const CITY_RENT_MULT = [2, 10, 28, 60];
@@ -80,6 +91,7 @@ export const MARKET_CARDS: Card[] = [
   { text: "Generator needs servicing: pay ₦25k", effect: { kind: "pay", amount: 25 } },
   { text: "Hop on a danfo back to Start: collect your salary", effect: { kind: "move", to: 0 } },
   { text: "Plumber fixed every tap: pay ₦10k per flat", effect: { kind: "perFlat", amount: 10 } },
+  { text: "Bulk buy at Alaba for your tenants: pay ₦40k", effect: { kind: "pay", amount: 40 } },
 ];
 
 export const FORTUNE_CARDS: Card[] = [
@@ -92,6 +104,7 @@ export const FORTUNE_CARDS: Card[] = [
   { text: "Bank alert! A client paid you ₦70k", effect: { kind: "collect", amount: 70 } },
   { text: "Paint your flats for the festive season: pay ₦20k per flat", effect: { kind: "perFlat", amount: 20 } },
   { text: "You won the jollof cook-off: collect ₦40k", effect: { kind: "collect", amount: 40 } },
+  { text: "Your Ariaria shoe order came through: collect ₦80k", effect: { kind: "collect", amount: 80 } },
 ];
 
 export type Player = { name: string; colour: string; human: boolean; cash: number; pos: number; out: boolean; held: boolean };
@@ -171,7 +184,7 @@ export function rentFor(s: State, square: number): number {
   if (owner === null) return 0;
   if (sq.kind === "park") {
     const parks = BOARD.filter((b, i) => b.kind === "park" && s.owner[i] === owner).length;
-    return (sq.rent ?? 0) * 2 ** (parks - 1);
+    return (sq.rent ?? 0) * parks;
   }
   if (sq.kind !== "plot" || !sq.city) return 0;
   const base = sq.rent ?? 0;
@@ -530,10 +543,10 @@ export function aiAction(s: State): Action {
 
 // ---- Board drawing helper ----
 
-/** Grid cell (1-based row, col) of a square on the 7×7 ring, clockwise from the top-left corner. */
+/** Grid cell (1-based row, col) of a square on the 9×9 ring (8 per side), clockwise from the top-left corner. */
 export function squareCell(i: number): { row: number; col: number } {
-  if (i <= 6) return { row: 1, col: i + 1 };
-  if (i <= 12) return { row: i - 5, col: 7 };
-  if (i <= 18) return { row: 7, col: 7 - (i - 12) };
-  return { row: 7 - (i - 18), col: 1 };
+  if (i <= 8) return { row: 1, col: i + 1 };
+  if (i <= 16) return { row: i - 7, col: 9 };
+  if (i <= 24) return { row: 9, col: 9 - (i - 16) };
+  return { row: 9 - (i - 24), col: 1 };
 }

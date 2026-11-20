@@ -87,6 +87,7 @@ export function ArcadeStyles() {
       .arc-overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:#14231fdc; color:#fff; text-align:center; backdrop-filter:blur(3px); }
       .arc-overlay-kicker { margin:0 0 7px; color:#c1e993; font:600 9px ui-monospace,monospace; letter-spacing:.16em; }.arc-overlay h2 { margin:0 0 8px; color:#fff; font:500 clamp(28px,4vw,40px)/1.1 Georgia,serif; letter-spacing:-.04em; }.arc-overlay p { margin:0 0 18px; color:#c1cbc3; font-size:12px; }
       .arc-footer { display:flex; justify-content:space-between; width:min(1120px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid var(--arc-rule); color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.arc-footer b { padding:0 4px; color:#a5d95c; }
+      @media(max-width:820px) { .arc-page { padding:0 16px; }.arc-topbar { height:64px; }.arc-home { display:none; }.arc-layout { grid-template-columns:1fr; gap:22px; padding:26px 0 40px; }.arc-intro h1 { font-size:clamp(44px,12vw,62px); }.arc-description { max-width:none; margin:14px 0; font-size:13px; }.arc-howto { max-width:none; }.arc-howto:not([open]) ul { display:none; }.arc-console { padding:10px; border-radius:14px; }.arc-footer { font-size:7px; } }
       @media(prefers-reduced-motion:reduce) { .arc-btn { transition:none; } }
     `}</style>
   );
@@ -113,8 +114,8 @@ export function ArcadeGallery({ game }: { game: ArcadeGame }) {
         </div>
       <style jsx global>{`
       .arc-gallery { margin-top:22px; }.arc-gallery ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:10px 0 0; padding:0; list-style:none; }
-      .arc-gallery a { display:block; overflow:hidden; aspect-ratio:8/5; border:1px solid #e3e6df; border-radius:10px; background:var(--arc-board,#1b2a23); }.arc-gallery a:focus-visible { outline:2px solid var(--arc-deep); outline-offset:3px; }
-      .arc-gallery img { display:block; width:100%; height:100%; object-fit:cover; object-position:center top; transition:transform .2s; }.arc-gallery a:hover img { transform:scale(1.03); }
+      .arc-gallery a { display:block; overflow:hidden; aspect-ratio:8/5; border:1px solid #e3e6df; border-radius:10px; background:#fff; }.arc-gallery a:focus-visible { outline:2px solid var(--arc-deep); outline-offset:3px; }
+      .arc-gallery img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; transition:transform .2s; }.arc-gallery a:hover img { transform:scale(1.03); }
       .arc-gallery span { display:block; margin-top:6px; color:#6d7870; font:600 9px ui-monospace,monospace; letter-spacing:.1em; text-transform:uppercase; }
         @media(max-width:820px) { .arc-gallery ul { gap:8px; } }
         @media(prefers-reduced-motion:reduce) { .arc-gallery img { transition:none; } }

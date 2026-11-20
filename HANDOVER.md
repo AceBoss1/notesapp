@@ -1216,7 +1216,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     shows each device's count and the phones against it. No price, date or payment until the partner confirms
     them; the partner isn't named until the agreement is signed (`PARTNER_NAMED`). **Owner steps:** Vercel → Domains `devices.naapp.tech`;
     `firebase deploy --only firestore:rules`. Tests: `test:devices`, `test:devices-server`, `test:host`, `test:rules`.
-147. **Notes Arcade: a home and seven new games; more products in the footer (v0.188.0, branch `claude/beautiful-albattani-crgkzb-footer2`;
+147. **Notes Arcade: a home and eight new games; more products in the footer (v0.188.0, branch `claude/beautiful-albattani-crgkzb-footer2`;
     owner, 20 Nov 2026: "add every feature or product we built, nana ai should be under for you… notes arcade should replace notesapp on
     arcade… I need to build more games even Ludo, what, ace of spades, monopoly, ncho, chess, draft, each game will have its description
     and screenshots"):** `lib/arcade/catalogue.ts` lists every game (name, description, how to play, players); `/arcade` is the home
@@ -1229,6 +1229,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `ARCADE_SLUGS`). Screenshots: `node scripts/arcade-shots.mjs` against a running app writes `public/images/arcade/<slug>.png`.
     The footer gained Naija Exam Prep, Nana Tutor (Ask Nana Lite inside Exam Prep), NotesApp Sounds, Write a journal, Business books,
     the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app; Nana AI and Nana Jobs moved to For you.
+    Later the same day (owner): every game page shows a screenshot gallery (`shots` in the catalogue: Easy/Medium/Hard, or the start,
+    middle and later on of a game; `ArcadeGallery`), taken by tapping the game's own buttons (`node scripts/arcade-shots.mjs`, `--cards`
+    for the home cards only). **Ncho Aka-Hausa** (`/arcade/akahausa`) is the second Ncho: clockwise sowing and a computer one level
+    deeper (`NchoVariant`); add any further traditional Aka-Hausa rules when the owner gives them. **Naija Landlord** grew to 32 squares
+    (9×9 ring) with Eastern markets (Ariaria Aba, Nkwo Nnewi, Eke Osumenyi), Lagos markets (Trade Fair, Alaba Int'l) and Upper Iweka
+    Park; park rent is ₦30k per park owned. The Arcade home shows **Notes Life Abuja** (the city picker's "You are welcome" card with a
+    real in-game shot inset) and Notes Life Lagos and Port Harcourt as coming soon, using `CITY_CARDS` pictures from `lib/life/catalog.ts`.
 
 ## 3. How the work is done (please keep these)
 

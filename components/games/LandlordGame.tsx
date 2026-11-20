@@ -47,6 +47,12 @@ function squareInfo(g: State, i: number): string {
     case "tax": return "Tax office: pay 10% of your cash.";
     case "holdup": return "Traffic Hold-up: miss your next turn.";
     case "rest": return "Rest Stop: nothing happens. Breathe.";
+    case "park": {
+      const owner = g.owner[i];
+      const scale = "rent ₦30k, ₦60k or ₦90k for one, two or three parks";
+      if (owner === null) return `${sq.name}, a Danfo Park: ${formatNaira(sq.price ?? 0)}, ${scale}.`;
+      return `${sq.name}, a Danfo Park: ${g.players[owner].name}'s, rent ${formatNaira(rentFor(g, i))} (${scale}).`;
+    }
     default: {
       const owner = g.owner[i];
       const city = sq.city ? ` (${CITIES[sq.city].name}, flat ${formatNaira(CITIES[sq.city].flatCost)})` : "";
@@ -189,7 +195,7 @@ export default function LandlordGame() {
 
   return (
     <ArcadeShell game={arcadeGame("landlord")} index={5}>
-      <div className="arc-console">
+      <div className="arc-console ll-console">
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOUR CASH</span><strong aria-live="polite">{formatNaira(me.cash)}</strong></div>
           <div className="arc-stat"><span className="arc-label">ROUND</span><strong>{game.round}/{ROUND_CAP}</strong></div>
@@ -207,7 +213,7 @@ export default function LandlordGame() {
               const tokens = game.players.map((p, pi) => ({ p, pi })).filter(({ p }) => !p.out && p.pos === i);
               const glow = buildMode && myBuilds.includes(i);
               const band = sq.city ? CITIES[sq.city].colour : SPECIAL_TINT[sq.kind];
-              const corner = i % 6 === 0;
+              const corner = i % 8 === 0;
               return (
                 <button
                   key={i}
@@ -290,7 +296,7 @@ export default function LandlordGame() {
 
       <style jsx global>{`
         .ll-wrap { padding:8px; background:#1b2a23; }
-        .ll-board { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+        .ll-board { display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:3px; }
         .ll-sq { position:relative; aspect-ratio:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:1px; padding:0 2px 6px; overflow:hidden; border:0; border-radius:5px; background:#f7f7f2; color:#17251f; cursor:pointer; font:inherit; text-align:center; }
         .ll-sq.is-special { background:color-mix(in srgb, var(--band) 45%, #f7f7f2); }
         .ll-sq:focus-visible { outline:2px solid #bdf36b; outline-offset:1px; z-index:2; }
@@ -300,15 +306,15 @@ export default function LandlordGame() {
         .ll-sq.is-special .ll-band { display:none; }
         .ll-sq.is-special .ll-name { margin-top:14%; }
         .ll-sq.is-corner .ll-name { font-weight:700; }
-        .ll-name { margin-top:2px; font:600 clamp(6px,1.55vw,10px)/1.1 ui-monospace,monospace; letter-spacing:-.01em; word-break:break-word; }
-        .ll-price { color:#5c685f; font:500 clamp(5.5px,1.35vw,9px)/1 ui-monospace,monospace; }
+        .ll-name { margin-top:2px; font:600 clamp(5.5px,1.3vw,9px)/1.1 ui-monospace,monospace; letter-spacing:-.02em; overflow-wrap:anywhere; hyphens:auto; }
+        .ll-price { color:#5c685f; font:500 clamp(5px,1.15vw,8.5px)/1 ui-monospace,monospace; }
         .ll-flats { display:flex; gap:2px; }
         .ll-flats i { width:clamp(3px,.9vw,6px); height:clamp(3px,.9vw,6px); border-radius:50%; background:#17251f; }
         .ll-tokens { position:absolute; left:2px; right:2px; bottom:6px; display:flex; justify-content:center; flex-wrap:wrap; gap:1px; }
         .ll-tokens i { width:clamp(7px,2.2vw,14px); height:clamp(7px,2.2vw,14px); border-radius:50%; border:1.5px solid #fff; box-shadow:0 1px 2px #0005; }
         .ll-tokens i.is-turn { outline:1.5px solid #17251f; }
         .ll-owner { position:absolute; left:0; right:0; bottom:0; height:4px; }
-        .ll-hud { grid-row:2; grid-column:2 / 7; display:flex; align-items:center; justify-content:center; gap:10px 14px; flex-wrap:wrap; padding:8px 4px 2px; color:#f7f7f2; min-width:0; }
+        .ll-hud { grid-row:2 / 4; grid-column:2 / 9; display:flex; align-items:center; justify-content:center; gap:10px 14px; flex-wrap:wrap; padding:8px 4px 2px; color:#f7f7f2; min-width:0; }
         .ll-dice { display:flex; gap:8px; }
         .ll-die { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; width:34px; height:34px; padding:5px; border-radius:7px; background:#f7f7f2; box-shadow:0 2px 0 #0004; }
         .ll-die i { border-radius:50%; }
@@ -316,7 +322,7 @@ export default function LandlordGame() {
         .ll-turn { display:flex; align-items:center; gap:7px; margin:0; font:500 18px/1.1 Georgia,serif; letter-spacing:-.02em; }
         .ll-turn i { width:12px; height:12px; border-radius:50%; border:1.5px solid #fff; }
         .ll-card { flex-basis:100%; margin:0; color:#c1e993; font:600 9px/1.4 ui-monospace,monospace; letter-spacing:.03em; text-align:center; }
-        .ll-panel { grid-row:3 / 7; grid-column:2 / 7; contain:size; display:flex; flex-direction:column; gap:7px; min-height:0; padding:4px 6px 6px; overflow:hidden; color:#dfe6e0; }
+        .ll-panel { grid-row:4 / 9; grid-column:2 / 9; contain:size; display:flex; flex-direction:column; gap:7px; min-height:0; padding:4px 6px 6px; overflow:hidden; color:#dfe6e0; }
         .ll-players { display:grid; grid-template-columns:1fr 1fr; gap:3px 10px; margin:0; padding:0; list-style:none; font:600 10px ui-monospace,monospace; }
         .ll-players li { display:flex; align-items:center; gap:6px; padding:3px 6px; border-radius:5px; }
         .ll-players li.is-turn { background:#ffffff14; }
@@ -335,12 +341,25 @@ export default function LandlordGame() {
           .ll-wrap { padding:5px; }
           .ll-board { gap:2px; }
           .ll-sq { border-radius:3px; padding-bottom:5px; }
-          .ll-hud { grid-row:2 / 7; flex-direction:column; justify-content:center; gap:8px; }
+          .ll-hud { grid-row:2 / 9; flex-direction:column; justify-content:center; gap:8px; }
           .ll-turn { font-size:15px; }
+          .ll-card { flex-basis:auto; max-width:100%; padding:0 6px; }
           .ll-die { width:28px; height:28px; padding:4px; }
-          .ll-panel { grid-row:8; grid-column:1 / -1; contain:none; padding:10px 2px 4px; }
+          .ll-panel { grid-row:10; grid-column:1 / -1; contain:none; padding:10px 2px 4px; }
           .ll-log { height:120px; flex:none; }
           .ll-players { font-size:10px; }
+        }
+        @media (max-width:420px) {
+          .ll-console { padding:10px 8px; }
+          .ll-wrap { padding:4px; }
+          .ll-board { gap:1.5px; }
+          .ll-sq { padding:0 1px 4px; border-radius:2px; }
+          .ll-band { width:calc(100% + 2px); }
+          .ll-name { margin-top:1px; font-size:5.5px; line-height:1.05; letter-spacing:-.03em; }
+          .ll-price { font-size:5px; }
+          .ll-owner { height:3px; }
+          .ll-tokens { bottom:4px; }
+          .ll-tokens i { width:7px; height:7px; border-width:1px; }
         }
         @media (prefers-reduced-motion:reduce) { .ll-sq.is-glow { animation:none; } }
       `}</style>

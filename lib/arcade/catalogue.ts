@@ -55,8 +55,8 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   },
   {
     slug: "landlord", path: "/arcade/landlord", name: "Naija Landlord", kicker: "Board", headline: ["Buy the", "street."],
-    blurb: "Buy plots across Naija's cities, build, collect rent.",
-    description: "Our own property-trading game. Roll round a board of Nigerian neighbourhoods, buy the plots you land on, own a whole city to build flats, and collect rent from everyone who stops on your street. The last player with money wins, or the richest after 80 rounds.",
+    blurb: "Buy plots and markets across Naija, build, collect rent.",
+    description: "Our own property-trading game. Roll round a board of Nigerian neighbourhoods and big markets, from Ariaria and Nkwo Nnewi to Alaba and the Trade Fair, buy the plots you land on, own a whole city to build flats, and collect rent from everyone who stops on your street. The last player with money wins, or the richest after 80 rounds.",
     howTo: ["Roll two dice and move. Buy any plot nobody owns.", "Land on someone's plot and pay them rent.", "Own every plot in a city to build flats; flats raise the rent.", "Pass Start to collect your salary. Market and Fortune squares draw a card.", "Run out of money and you're out. Last landlord standing wins, or the richest after 80 rounds."],
     players: "You vs 3 computer players",
     shots: STAGES,
