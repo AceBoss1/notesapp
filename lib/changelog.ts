@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-11-20",
     changes: [
       { kind: "fixed", text: "Ncho and Ncho Aka-Hausa now play the school rules Igbo people practise: you capture only when your last seed makes exactly 4 in your opponent's hole, captures go to your house, and most seeds in your house wins. The loser starts the next game. The rules we had guessed (capturing 2s and 3s, forced feeding) are gone." },
+      { kind: "fixed", text: "On a phone, the advert strip under each Arcade game no longer squeezes its words into a narrow column." },
       { kind: "added", text: "Ncho on the long Nchokoroto board, 12 holes a side, as well as the standard 6, and chain capture (the village way of also taking the holes before that make 4) as an option you can turn on." },
     ],
   },
