@@ -127,15 +127,23 @@ export function ArcadeGallery({ game }: { game: ArcadeGame }) {
 }
 
 // Arcade money and the #NotesApp account (owner, 20 Nov 2026): playing is free for everyone with no sign-in, but a guest's progress
-// isn't saved and every fresh page load starts afresh (lib/arcade/store.ts). Signing in with #NotesApp is for saving progress, N$ sync,
-// scores and referral bonus credit through the Notes Life wallet; the same profile and N$ balance as Notes Life. No game pays real naira.
+// isn't saved and every fresh page load starts afresh (lib/arcade/store.ts). Signing in with #NotesApp saves progress and syncs N$, scores
+// and referral bonus credit through the Notes Life wallet, and opens the referral leaderboard, friends (chat, calls, playing groups),
+// each game's leaderboard (top computer players and top people) and the shared Notesville rich list. Same profile and N$ as Notes Life. No game pays real naira.
 export function ArcadeWalletNote() {
   return (
     <div className="arc-wallet">
       <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> PLAY FREE · SIGN IN TO SAVE</p>
       <p><strong>Play free, no sign-in needed.</strong> As a guest nothing is saved: every time the page loads, you start afresh.</p>
-      <p>Sign in with your #NotesApp account to save your progress, scores and <strong>N$</strong> (Notesville Naira), and earn bonus credit from referrals. Your profile and N$ wallet are the same as in Notes Life.</p>
-      <p className="arc-wallet-soon">N$ is game money: no game pays out real naira. Saving to your account and playing friends, from a chat or with your own playing group, are coming soon.</p>
+      <p>Sign in with your #NotesApp account and you get, among other things:</p>
+      <ul className="arc-wallet-list">
+        <li>Your progress, scores and <strong>N$</strong> (Notesville Naira) saved and synced</li>
+        <li>Referral bonus credit and the referral leaderboard</li>
+        <li>Friends: chat, call and play together, in your own playing groups</li>
+        <li>Each game&apos;s leaderboard: the top computer players 🤖 and the top people</li>
+        <li>A place on the Notesville rich list, the Billionaires List shared with Notes Life</li>
+      </ul>
+      <p className="arc-wallet-soon">One profile and one N$ wallet with Notes Life. N$ is game money: no game pays out real naira. Account features are coming soon.</p>
       <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN TO SAVE ↗</a>
       <style jsx global>{`
         .arc-wallet { max-width:340px; margin-top:22px; padding:14px 16px; border:1px solid #e3e6df; border-radius:12px; background:#fff; color:#5c685f; font-size:12px; line-height:1.65; }
@@ -143,6 +151,7 @@ export function ArcadeWalletNote() {
         .arc-wallet-title { display:flex; align-items:center; gap:8px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }
         .arc-wallet-coin { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#c2f17a; color:#20301e; font:800 9px ui-monospace,monospace; letter-spacing:0; }
         .arc-wallet-soon { color:#8a938b; font-size:11px; }
+        .arc-wallet-list { margin:0 0 10px; padding:0 0 0 16px; }.arc-wallet-list li { margin-bottom:3px; }.arc-wallet-list li::marker { color:#9bd34d; }
         .arc-wallet-link { color:#5f9a22; font:700 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-wallet-link:hover { color:#17251f; }
         @media(max-width:820px) { .arc-wallet { max-width:none; } }
       `}</style>

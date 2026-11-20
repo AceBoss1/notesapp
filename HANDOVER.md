@@ -1237,11 +1237,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Park; park rent is ₦30k per park owned. The Arcade home shows **Notes Life Abuja** (the city picker's "You are welcome" card with a
     real in-game shot inset) and Notes Life Lagos and Port Harcourt as coming soon, using `CITY_CARDS` pictures from `lib/life/catalog.ts`.
     **Arcade money and sign-in (owner, 20 Nov 2026, corrected the same day):** every game is free with no sign-in; a guest's progress is
-    not saved and each fresh page load starts afresh (`lib/arcade/store.ts`, in memory). Signing in with #NotesApp is only for saving
-    progress, N$ sync, scores and referral bonus credit through the Notes Life wallet, one profile with Notes Life. **No game pays real
+    not saved and each fresh page load starts afresh (`lib/arcade/store.ts`, in memory). Signing in with #NotesApp is for saving
+    progress, N$ sync, scores and referral bonus credit through the Notes Life wallet, "just to mention a few" (owner): also a referral
+    leaderboard, friends (conversations, calls, playing groups), a leaderboard per game made of the top computer players and the top
+    people, and the same Notesville rich list as Notes Life. One profile with Notes Life. **No game pays real
     naira.** Shown now: Naija Landlord counts in N$, and `ArcadeWalletNote` (Arcade home and every game page) says all this.
     **Next, not built yet:** the signed-in store (swap `arcadeStore` for one that saves to the account and syncs N$ through
-    `lib/life/server.ts`), referral bonus credit, and player vs player: invite from a conversation in Messages and form playing groups.
+    `lib/life/server.ts`), referral bonus credit and leaderboard, per-game leaderboards (top computer players + top people), the shared rich list, and player
+    vs player: invite from a conversation or call in Messages and form playing groups.
 
 ## 3. How the work is done (please keep these)
 
