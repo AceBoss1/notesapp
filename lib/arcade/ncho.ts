@@ -1,9 +1,13 @@
 // Ncho (Okwe): the Igbo seed-sowing game. Pure logic, no React or DOM, so tests and the UI share one set of rules.
 // Holes 0–5 are player 0's (you, bottom row, left to right); holes 6–11 are player 1's (the computer, top row, right to left).
 // Sowing goes up the indexes, which is anticlockwise round the board as drawn.
+// Aka-Hausa, the harder variant, sows the other way: down the indexes, clockwise. Its captures run back through the holes
+// sown just before the last one, so in index terms they go up rather than down. That direction is the only rule that
+// differs for now; further Aka-Hausa rules can be added here when the owner gives them.
 
 export type Player = 0 | 1;
 export type Level = "easy" | "medium" | "hard";
+export type NchoVariant = "ncho" | "akahausa";
 
 export type NchoMove = {
   player: Player;
@@ -24,6 +28,7 @@ export type NchoState = {
   plies: number;
   sinceCapture: number; // plies since the last capture, to stop endless shuffling
   endReason: "majority" | "no-move" | "stalled" | null;
+  variant: NchoVariant; // "ncho" sows anticlockwise, "akahausa" clockwise
 };
 
 export const HOLES = 12;
@@ -36,9 +41,11 @@ export const sideOf = (hole: number): Player => (hole < 6 ? 0 : 1);
 export const holesOf = (p: Player): number[] => (p === 0 ? [0, 1, 2, 3, 4, 5] : [6, 7, 8, 9, 10, 11]);
 export const seedsOnSide = (pits: number[], p: Player) => holesOf(p).reduce((s, h) => s + pits[h], 0);
 const other = (p: Player): Player => (p === 0 ? 1 : 0);
+// +1 for each hole sown: up the indexes for Ncho (anticlockwise), down them for Aka-Hausa (clockwise).
+export const directionOf = (variant: NchoVariant): 1 | -1 => (variant === "akahausa" ? -1 : 1);
 
 // The rng is accepted so every arcade game shares one signature; Ncho's start is fixed.
-export function initialState(_rng?: () => number, first: Player = 0): NchoState {
+export function initialState(_rng?: () => number, first: Player = 0, variant: NchoVariant = "ncho"): NchoState {
   return {
     pits: Array(HOLES).fill(START_SEEDS),
     stores: [0, 0],
@@ -49,11 +56,13 @@ export function initialState(_rng?: () => number, first: Player = 0): NchoState 
     plies: 0,
     sinceCapture: 0,
     endReason: null,
+    variant,
   };
 }
 
 // Sow and capture without any legality checks or end-of-game handling.
-export function sow(pits: number[], player: Player, hole: number): { pits: number[]; move: NchoMove } {
+export function sow(pits: number[], player: Player, hole: number, variant: NchoVariant = "ncho"): { pits: number[]; move: NchoMove } {
+  const dir = directionOf(variant);
   const next = pits.slice();
   let seeds = next[hole];
   next[hole] = 0;
@@ -61,7 +70,7 @@ export function sow(pits: number[], player: Player, hole: number): { pits: numbe
   const path: number[] = [];
   let pos = hole;
   while (seeds > 0) {
-    pos = (pos + 1) % HOLES;
+    pos = (pos + dir + HOLES) % HOLES;
     if (skipStart && pos === hole) continue;
     next[pos] += 1;
     path.push(pos);
@@ -71,11 +80,11 @@ export function sow(pits: number[], player: Player, hole: number): { pits: numbe
   let amount = 0;
   const opp = other(player);
   let p = pos;
+  // Walk back against the sowing direction, staying on their side (the side boundary always ends the chain).
   while (sideOf(p) === opp && (next[p] === 2 || next[p] === 3)) {
     captured.push(p);
     amount += next[p];
-    if (p === holesOf(opp)[0]) break;
-    p -= 1;
+    p = (p - dir + HOLES) % HOLES;
   }
   let grandSlam = false;
   if (amount > 0 && amount === seedsOnSide(next, opp)) {
@@ -95,7 +104,7 @@ export function legalMoves(state: NchoState): number[] {
   const mine = holesOf(me).filter((h) => state.pits[h] > 0);
   if (seedsOnSide(state.pits, opp) > 0) return mine;
   // They have nothing: you must give them seeds if any move can.
-  return mine.filter((h) => seedsOnSide(sow(state.pits, me, h).pits, opp) > 0);
+  return mine.filter((h) => seedsOnSide(sow(state.pits, me, h, state.variant).pits, opp) > 0);
 }
 
 function finish(state: NchoState, reason: NchoState["endReason"], sweep: boolean): NchoState {
@@ -122,7 +131,7 @@ function settle(state: NchoState): NchoState {
 
 export function applyMove(state: NchoState, hole: number): NchoState {
   if (!legalMoves(state).includes(hole)) throw new Error(`Illegal move ${hole}`);
-  const { pits, move } = sow(state.pits, state.turn, hole);
+  const { pits, move } = sow(state.pits, state.turn, hole, state.variant);
   const stores: [number, number] = [state.stores[0], state.stores[1]];
   stores[state.turn] += move.amount;
   return settle({
@@ -139,6 +148,9 @@ export function applyMove(state: NchoState, hole: number): NchoState {
 // --- Computer player: alpha-beta minimax on the store difference. ---
 
 export const LEVEL_DEPTH: Record<Level, number> = { easy: 2, medium: 4, hard: 6 };
+// Aka-Hausa is the harder game: the computer looks one move further ahead at every level.
+export const AKAHAUSA_DEPTH: Record<Level, number> = { easy: 3, medium: 5, hard: 7 };
+export const depthFor = (variant: NchoVariant, level: Level) => (variant === "akahausa" ? AKAHAUSA_DEPTH : LEVEL_DEPTH)[level];
 
 function evaluate(state: NchoState, me: Player): number {
   const diff = state.stores[me] - state.stores[other(me)];
@@ -174,7 +186,7 @@ export function chooseMove(state: NchoState, level: Level = "medium", rng: () =>
   // Easy slips now and then so it's beatable.
   if (level === "easy" && rng() < 0.3) return moves[Math.floor(rng() * moves.length)];
   const me = state.turn;
-  const depth = LEVEL_DEPTH[level];
+  const depth = depthFor(state.variant, level);
   let bestScore = -Infinity;
   let best: number[] = [];
   for (const h of moves) {

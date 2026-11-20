@@ -1,7 +1,7 @@
 // Ncho (lib/arcade/ncho.ts): sowing, captures, the grand-slam and feeding rules, the end of the game, and computer play.
 // Run: npx -y tsx tests/arcade/ncho.test.ts
 import assert from "node:assert/strict";
-import { HOLES, STALL_PLIES, TOTAL, applyMove, chooseMove, initialState, legalMoves, seededRng, sow, type NchoState } from "../../lib/arcade/ncho";
+import { AKAHAUSA_DEPTH, HOLES, LEVEL_DEPTH, STALL_PLIES, TOTAL, applyMove, chooseMove, depthFor, initialState, legalMoves, seededRng, sow, type NchoState } from "../../lib/arcade/ncho";
 
 const at = (pits: number[], over: Partial<NchoState> = {}): NchoState => ({ ...initialState(), pits, ...over });
 const sum = (s: NchoState) => s.pits.reduce((a, b) => a + b, 0) + s.stores[0] + s.stores[1];
@@ -136,6 +136,121 @@ for (let seed = 1; seed <= 12; seed++) {
     assert.ok(guard < 2000, "game must finish");
   }
   assert.ok(s.winner !== null);
+}
+
+// --- Aka-Hausa: the same game sown clockwise (down the indexes), with a computer that looks one move further ahead. ---
+const ak = (pits: number[], over: Partial<NchoState> = {}): NchoState => ({ ...initialState(undefined, 0, "akahausa"), pits, ...over });
+
+assert.equal(initialState().variant, "ncho", "Ncho is the default");
+{
+  const a0 = initialState(undefined, 0, "akahausa");
+  assert.equal(a0.variant, "akahausa");
+  assert.deepEqual(legalMoves(a0), [0, 1, 2, 3, 4, 5]);
+  // Clockwise from hole 3: 2, 1, 0, then round the corner to 11.
+  const a1 = applyMove(a0, 3);
+  assert.deepEqual(a1.last?.path, [2, 1, 0, 11]);
+  assert.deepEqual(a1.pits, [5, 5, 5, 0, 4, 4, 4, 4, 4, 4, 4, 5]);
+  assert.equal(a1.variant, "akahausa", "the variant carries through moves");
+  assert.equal(a1.turn, 1);
+  // Purity: the old state is untouched.
+  assert.deepEqual(a0.pits, Array(12).fill(4), "never mutates");
+  assert.deepEqual(a0.stores, [0, 0]);
+  assert.equal(a0.last, null);
+  // The computer's side wraps clockwise from 6 down into your row.
+  assert.deepEqual(applyMove(a1, 6).last?.path, [5, 4, 3, 2]);
+}
+{
+  // Your capture runs the other way: hole 0's 3 seeds go 11, 10, 9; the last makes 2 in hole 9,
+  // then back through 10 (3) and 11 (2): all three taken.
+  const pits = [3, 0, 0, 0, 0, 0, 5, 0, 0, 1, 2, 1];
+  const s = applyMove(ak(pits), 0);
+  assert.deepEqual(s.last?.path, [11, 10, 9]);
+  assert.deepEqual(s.last?.captured, [9, 10, 11]);
+  assert.equal(s.stores[0], 7);
+  assert.deepEqual(s.pits, [0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0]);
+  assert.equal(sum(s), sum(ak(pits)));
+  // The same position under Ncho sows 1, 2, 3 and captures nothing.
+  assert.equal(applyMove(at(pits), 0).last?.amount, 0);
+}
+{
+  // The computer's capture: hole 6's 3 seeds go 5, 4, 3; back through 4 and 5, and the chain stops at the side's edge.
+  const s = applyMove(ak([5, 0, 0, 1, 2, 1, 3, 0, 0, 0, 0, 0], { turn: 1 }), 6);
+  assert.deepEqual(s.last?.captured, [3, 4, 5]);
+  assert.equal(s.stores[1], 7);
+  assert.equal(s.pits[0], 5);
+}
+{
+  // The chain breaks at a hole that isn't 2 or 3: 11→2, 10→4, 9→3 captures 9 only.
+  const s = applyMove(ak([3, 0, 0, 0, 0, 0, 4, 0, 0, 2, 3, 1]), 0);
+  assert.deepEqual(s.last?.captured, [9]);
+  assert.equal(s.stores[0], 3);
+}
+{
+  // Grand slam still applies.
+  const s = applyMove(ak([2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 1]), 0);
+  assert.equal(s.last?.grandSlam, true);
+  assert.equal(s.stores[0], 0);
+  assert.equal(s.over, false);
+  assert.deepEqual(s.pits, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3, 2]);
+}
+{
+  // Feeding, clockwise: hole 0's seed reaches their hole 11; hole 5's only reaches your hole 4.
+  assert.deepEqual(legalMoves(ak([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], { stores: [23, 23] })), [0]);
+  // 12 or more still skip the starting hole, going the other way.
+  const pits = Array(12).fill(0); pits[0] = 12;
+  const { pits: after, move } = sow(pits, 0, 0, "akahausa");
+  assert.equal(after[0], 0);
+  assert.deepEqual(move.path.slice(0, 2), [11, 10]);
+  assert.equal(move.path[11], 11, "the 12th seed lands back in hole 11");
+  assert.deepEqual(move.captured, [11], "making 2 there, which is captured");
+  assert.equal(after[11], 0);
+}
+// Harder: one level deeper at each difficulty.
+for (const level of ["easy", "medium", "hard"] as const) {
+  assert.equal(AKAHAUSA_DEPTH[level], LEVEL_DEPTH[level] + 1);
+  assert.equal(depthFor("akahausa", level), LEVEL_DEPTH[level] + 1);
+  assert.equal(depthFor("ncho", level), LEVEL_DEPTH[level]);
+}
+{
+  // The computer takes the obvious clockwise capture: hole 0 → 11, 10, 9 takes 7.
+  const s = ak([3, 0, 0, 0, 0, 1, 5, 0, 0, 1, 2, 1]);
+  for (const level of ["medium", "hard"] as const) assert.equal(chooseMove(s, level, seededRng(2)), 0, level);
+}
+// Full computer-vs-computer Aka-Hausa games finish legally, and the hard level stays quick.
+{
+  let slowest = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const rng = seededRng(100 + seed);
+    const levels = ["easy", "medium", "hard"] as const;
+    let s = initialState(rng, 0, "akahausa");
+    let guard = 0;
+    while (!s.over) {
+      const level = levels[(seed + s.turn) % 3];
+      const t = performance.now();
+      const h = chooseMove(s, level, rng);
+      slowest = Math.max(slowest, performance.now() - t);
+      assert.ok(legalMoves(s).includes(h));
+      const before = s.pits.slice();
+      const next = applyMove(s, h);
+      assert.deepEqual(s.pits, before, "never mutates");
+      // Every sowing goes clockwise: each step is one hole down the indexes (skipping the start hole on a lap).
+      let pos = h;
+      for (const p of next.last!.path) {
+        let want = (pos + HOLES - 1) % HOLES;
+        if (want === h) want = (want + HOLES - 1) % HOLES;
+        assert.equal(p, want);
+        pos = p;
+      }
+      s = next;
+      assert.equal(s.variant, "akahausa");
+      assert.equal(sum(s), TOTAL);
+      assert.ok(s.pits.every((n) => n >= 0) && s.pits.length === HOLES);
+      guard++;
+      assert.ok(guard < 2000, "game must finish");
+    }
+    assert.ok(s.winner !== null && s.endReason !== null);
+  }
+  assert.ok(slowest < 1000, `slowest move ${slowest.toFixed(0)}ms`);
 }
 
 console.log("ncho: all tests passed");

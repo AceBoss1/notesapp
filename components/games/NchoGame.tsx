@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
-import { arcadeGame } from "@/lib/arcade/catalogue";
-import { applyMove, chooseMove, initialState, legalMoves, type Level, type NchoState } from "@/lib/arcade/ncho";
+import { ARCADE_GAMES, arcadeGame } from "@/lib/arcade/catalogue";
+import { applyMove, chooseMove, initialState, legalMoves, type Level, type NchoState, type NchoVariant } from "@/lib/arcade/ncho";
 
 type Phase = "ready" | "playing" | "over";
 type View = { pits: number[]; stores: [number, number]; active: number | null; taken: number[] };
 
 const STEP_MS = 110; // one seed per step: quick, but you can follow it
 const THINK_MS = 550;
-const WINS_KEY = "arcade-ncho-wins";
+// Each variant keeps its own win count.
+const WINS_KEYS: Record<NchoVariant, string> = { ncho: "arcade-ncho-wins", akahausa: "arcade-akahausa-wins" };
 const SEED_COLOURS = ["#f0c27b", "#e2a05f", "#f6dca8", "#d4834f"];
 const TOP = [11, 10, 9, 8, 7, 6];
 const BOTTOM = [0, 1, 2, 3, 4, 5];
@@ -30,9 +31,13 @@ function Seeds({ n, max = 14 }: { n: number; max?: number }) {
   );
 }
 
-export default function NchoGame() {
-  const [game, setGame] = useState<NchoState>(() => initialState());
-  const [view, setView] = useState<View>(() => viewOf(initialState()));
+// variant "akahausa" is the harder Aka-Hausa game: sown clockwise, with a computer that looks further ahead (lib/arcade/ncho.ts).
+export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }) {
+  const clockwise = variant === "akahausa";
+  const slug = clockwise ? "akahausa" : "ncho";
+  const WINS_KEY = WINS_KEYS[variant];
+  const [game, setGame] = useState<NchoState>(() => initialState(undefined, 0, variant));
+  const [view, setView] = useState<View>(() => viewOf(initialState(undefined, 0, variant)));
   const [phase, setPhase] = useState<Phase>("ready");
   const [level, setLevel] = useState<Level>("medium");
   const [busy, setBusy] = useState(false); // sowing animation running
@@ -45,7 +50,7 @@ export default function NchoGame() {
 
   useEffect(() => {
     try { setWins(Number(window.localStorage.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
-  }, []);
+  }, [WINS_KEY]);
 
   const clearTimers = useCallback(() => {
     timers.current.forEach((t) => window.clearTimeout(t));
@@ -93,7 +98,7 @@ export default function NchoGame() {
     if (m.grandSlam) setStatus(`${who} would have taken every seed, so nothing is captured.`);
     else if (m.amount > 0) setStatus(`${who} captured ${m.amount}.`);
     else setStatus(next.turn === 0 ? "Your turn: pick a hole on your side." : "Computer is thinking…");
-  }, [beep]);
+  }, [WINS_KEY, beep]);
 
   // Sow hole by hole so you can see where the seeds go, then show the capture.
   const play = useCallback((state: NchoState, hole: number) => {
@@ -129,13 +134,13 @@ export default function NchoGame() {
 
   const start = useCallback(() => {
     clearTimers();
-    const s = initialState();
+    const s = initialState(undefined, 0, variant);
     setGame(s);
     setView(viewOf(s));
     setBusy(false);
     setPhase("playing");
     setStatus("Your turn: pick a hole on your side.");
-  }, [clearTimers]);
+  }, [clearTimers, variant]);
 
   const toggleSound = () => setMuted((m) => { mutedRef.current = !m; return !m; });
 
@@ -158,7 +163,7 @@ export default function NchoGame() {
   };
 
   return (
-    <ArcadeShell game={arcadeGame("ncho")} index={6}>
+    <ArcadeShell game={arcadeGame(slug)} index={ARCADE_GAMES.findIndex((g) => g.slug === slug) + 1}>
       <div className="arc-console">
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOU</span><strong aria-live="polite">{String(view.stores[0]).padStart(2, "0")}</strong></div>
@@ -175,7 +180,8 @@ export default function NchoGame() {
         </div>
 
         <div className="arc-board-wrap ncho-wrap">
-          <div className="ncho-board" aria-label="Ncho board. Your holes are on the bottom row; seeds move anticlockwise.">
+          <div className="ncho-board" aria-label={`${clockwise ? "Aka-Hausa" : "Ncho"} board. Your holes are on the bottom row; seeds move ${clockwise ? "clockwise" : "anticlockwise"}.`}>
+            {clockwise && <span className="ncho-dir" aria-hidden="true">↻ CLOCKWISE</span>}
             <div className="ncho-store ncho-store-them" role="img" aria-label={`Computer's store, ${view.stores[1]} seeds`}>
               <span className="ncho-store-label">COMPUTER</span><Seeds n={view.stores[1]} max={30} /><b>{view.stores[1]}</b>
             </div>
@@ -187,9 +193,9 @@ export default function NchoGame() {
           </div>
           {phase !== "playing" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "SIX HOLES EACH · FOUR SEEDS"}</p>
-              <h2>{phase === "ready" ? "Sow and gather." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
-              <p>{phase === "ready" ? "You go first. Your holes are the bottom row." : `Final count: you ${game.stores[0]}, computer ${game.stores[1]}.`}</p>
+              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : clockwise ? "AKA-HAUSA · SOWN CLOCKWISE" : "SIX HOLES EACH · FOUR SEEDS"}</p>
+              <h2>{phase === "ready" ? (clockwise ? "The other way round." : "Sow and gather.") : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
+              <p>{phase === "ready" ? (clockwise ? "You go first. Your holes are the bottom row; seeds go clockwise." : "You go first. Your holes are the bottom row.") : `Final count: you ${game.stores[0]}, computer ${game.stores[1]}.`}</p>
               <button type="button" className="arc-btn" onClick={start} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>
             </div>
           )}
@@ -199,10 +205,11 @@ export default function NchoGame() {
 
       <style jsx global>{`
         .ncho-wrap { background:#1b2a23; }
-        .ncho-board { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,6fr) minmax(0,.9fr); grid-template-rows:1fr 1fr; gap:clamp(5px,1.4vw,10px); padding:clamp(10px,2.4vw,18px); border-radius:10px;
+        .ncho-board { position:relative; display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,6fr) minmax(0,.9fr); grid-template-rows:1fr 1fr; gap:clamp(5px,1.4vw,10px); padding:clamp(10px,2.4vw,18px); border-radius:10px;
           background:
             repeating-linear-gradient(92deg,#ffffff05 0 2px,transparent 2px 9px),
             radial-gradient(120% 90% at 50% 0%,#3a3426 0%,#2a2a20 45%,#1b2a23 100%); box-shadow:inset 0 0 0 1px #ffffff10,inset 0 -10px 30px #0006; }
+        .ncho-dir { position:absolute; top:3px; left:50%; transform:translateX(-50%); z-index:1; padding:1px 7px; border-radius:999px; background:#0f1914cc; color:#f0c27b; font:600 8px ui-monospace,monospace; letter-spacing:.14em; pointer-events:none; white-space:nowrap; }
         .ncho-row { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:clamp(4px,1.2vw,9px); grid-column:2; }
         .ncho-top { grid-row:1; }.ncho-bottom { grid-row:2; }
         .ncho-store { grid-row:1/3; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:18px 3px; border-radius:999px; background:radial-gradient(ellipse at 50% 40%,#0f1914 0%,#16211b 70%,#22302a 100%); box-shadow:inset 0 4px 10px #000a,0 1px 0 #ffffff12; }
