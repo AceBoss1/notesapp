@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
+import ArcadeAdSpot from "./ArcadeAdSpot";
 import {
   HOME, HOME_COLUMN, PLAYERS, START, STARS, TRACK, YARD, YARD_ORIGIN,
   applyMove, applyRoll, chooseMove, legalMoves, newGame, rollDie, seedCell,
@@ -147,7 +148,10 @@ function BoardSquares() {
       <div
         className="ludo-centre"
         style={{ background: `conic-gradient(from -45deg, ${COLOURS[2]} 0 90deg, ${COLOURS[3]} 90deg 180deg, ${COLOURS[0]} 180deg 270deg, ${COLOURS[1]} 270deg 360deg)` }}
-      />
+      >
+        {/* The centre of the board is an advert spot (owner, 20 Nov 2026). */}
+        <ArcadeAdSpot variant="board" game="ludo" />
+      </div>
     </>
   );
 }
@@ -382,7 +386,7 @@ export default function LudoGame() {
         .ludo-yard-inner i { position:absolute; width:32%; height:32%; border-radius:50%; transform:translate(-50%,-50%); }
         .ludo-yard-inner i:nth-child(1) { left:25%; top:25%; }.ludo-yard-inner i:nth-child(2) { left:75%; top:25%; }
         .ludo-yard-inner i:nth-child(3) { left:25%; top:75%; }.ludo-yard-inner i:nth-child(4) { left:75%; top:75%; }
-        .ludo-centre { grid-area:7 / 7 / span 3 / span 3; }
+        .ludo-centre { position:relative; grid-area:7 / 7 / span 3 / span 3; }
         .ludo-seed { position:absolute; z-index:2; aspect-ratio:1; padding:0; border:2px solid #17251f; border-radius:50%; background:radial-gradient(circle at 50% 50%, #fff 0 22%, var(--ludo-c) 24%); box-shadow:0 2px 0 #17251f55; transform:translate(-50%,-50%); transition:left .25s ease, top .25s ease, width .2s ease; }
         button.ludo-seed { cursor:default; }
         button.ludo-seed:disabled { opacity:1; }

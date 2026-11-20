@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
+import ArcadeAdSpot from "./ArcadeAdSpot";
 import {
   BOARD, CITIES, ROUND_CAP,
   aiAction, applyAction, buildable, canBuy, createGame, formatNaira, netWorth, rentFor, squareCell,
@@ -244,6 +245,8 @@ export default function LandlordGame() {
               </div>
               <p className="ll-turn"><i style={{ background: current.colour }} />{finished ? "Game over" : current.human ? "Your turn" : `${current.name}'s turn`}</p>
               {game.lastCard && <p className="ll-card">{game.lastCard}</p>}
+              {/* The middle of the board carries an advert, like a billboard in the town square (owner, 20 Nov 2026). */}
+              <div className="ll-ad"><ArcadeAdSpot variant="tile" game="landlord" /></div>
             </div>
 
             <div className="ll-panel">
@@ -315,8 +318,9 @@ export default function LandlordGame() {
         .ll-tokens i { width:clamp(7px,2.2vw,14px); height:clamp(7px,2.2vw,14px); border-radius:50%; border:1.5px solid #fff; box-shadow:0 1px 2px #0005; }
         .ll-tokens i.is-turn { outline:1.5px solid #17251f; }
         .ll-owner { position:absolute; left:0; right:0; bottom:0; height:4px; }
-        .ll-hud { grid-row:2 / 4; grid-column:2 / 9; display:flex; align-items:center; justify-content:center; gap:10px 14px; flex-wrap:wrap; padding:8px 4px 2px; color:#f7f7f2; min-width:0; }
+        .ll-hud { position:relative; grid-row:2 / 4; grid-column:2 / 9; display:flex; align-items:center; justify-content:center; gap:10px 14px; flex-wrap:wrap; padding:8px 4px 2px; color:#f7f7f2; min-width:0; }
         .ll-dice { display:flex; gap:8px; }
+        .ll-ad { position:absolute; top:6px; right:8px; }
         .ll-die { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; width:34px; height:34px; padding:5px; border-radius:7px; background:#f7f7f2; box-shadow:0 2px 0 #0004; }
         .ll-die i { border-radius:50%; }
         .ll-die i.on { background:#17251f; }

@@ -16,6 +16,7 @@ export default function ArcadeHome() {
           <p className="arc-description">Board games, card games and the classics, made for #NotesApp. No download, no sign-in: pick one and play. Sign in with #NotesApp only to save your progress and N$.</p>
           <ArcadeWalletNote />
         </div>
+        <a className="arch-partner" href="/arcade/partners"><span className="arc-label">PARTNERS & ADVERTISERS</span><strong>Put your brand in the game</strong><span>The middle of the Ludo board, the Naija Landlord board, under every game, sponsored tournaments and more.</span><b>PARTNER WITH US ↗</b></a>
       </div>
       <ul className="arch-grid">
         {ARCADE_GAMES.map((g, i) => (
@@ -81,6 +82,11 @@ export default function ArcadeHome() {
         .arch-hero { width:min(1120px,100%); margin:0 auto; padding:clamp(36px,7vh,72px) 0 32px; }
         .arch-hero h1 { margin:0; font:500 clamp(48px,6.4vw,84px)/.95 Georgia,'Times New Roman',serif; letter-spacing:-.06em; }.arch-hero h1 em { color:var(--arc-deep); font-weight:500; }
         .arch-hero .arc-description { max-width:460px; }
+        .arch-partner { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:4px 18px; margin-top:20px; padding:14px 18px; border:1px dashed #cfd6c8; border-radius:14px; background:#fbfcf8; color:inherit; text-decoration:none; }
+        .arch-partner:hover { background:#f2f7ea; }.arch-partner:focus-visible { outline:2px solid var(--arc-deep); outline-offset:3px; }
+        .arch-partner strong { font:500 20px/1.2 Georgia,serif; letter-spacing:-.02em; }.arch-partner > span:not(.arc-label) { color:#657169; font-size:13px; grid-column:2; }
+        .arch-partner strong { grid-column:2; grid-row:1; }.arch-partner .arc-label { grid-row:1 / 3; }.arch-partner b { grid-column:3; grid-row:1 / 3; color:#5f9a22; font:700 10px ui-monospace,monospace; letter-spacing:.08em; }
+        @media(max-width:700px) { .arch-partner { grid-template-columns:1fr; }.arch-partner > *, .arch-partner strong, .arch-partner > span:not(.arc-label), .arch-partner .arc-label, .arch-partner b { grid-column:1; grid-row:auto; } }
         .arch-hero-row { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 32px; }.arch-hero-row .arc-wallet { max-width:420px; margin-top:0; }
         .arch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:18px; width:min(1120px,100%); margin:0 auto; padding:0 0 64px; list-style:none; }
         .arch-card { display:flex; flex-direction:column; height:100%; overflow:hidden; border:1px solid #e3e6df; border-radius:16px; background:#fff; color:inherit; text-decoration:none; box-shadow:0 12px 40px #17251f0a; transition:transform .15s,box-shadow .15s; }
