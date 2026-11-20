@@ -1245,6 +1245,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     **Next, not built yet:** the signed-in store (swap `arcadeStore` for one that saves to the account and syncs N$ through
     `lib/life/server.ts`), referral bonus credit and leaderboard, per-game leaderboards (top computer players + top people), the shared rich list, and player
     vs player: invite from a conversation or call in Messages and form playing groups.
+148. **Advert spots in Notes Arcade and the partnership page (v0.189.0, branch `claude/beautiful-albattani-crgkzb-arcade-ads`; owner, 20 Nov
+    2026: "we need to create advert spots in every game, for example the center of the ludo is a great advert spot... there should be
+    partnership page too on arcade home"):** a new placement `arcade` in `lib/ads.ts` (so it shows in Admin → Ads, the campaign form
+    and /advertise/specifications by itself). `components/games/ArcadeAdSpot.tsx` draws it as `board` (Ludo's centre), `tile` (Naija
+    Landlord's middle, beside the dice) or `banner` (under every game, in `ArcadeShell` and Snake), with AdSlot's adverts, rotation and
+    impression/click tracking; with nothing booked it shows "Your brand here" → `/arcade/partners` (`components/games/ArcadePartners.tsx`,
+    arcade.<domain>/partners). The bigger partnerships on that page (a Landlord square, sponsored tournaments with the sponsor's own
+    prizes, branded cards and boards, a made-for-you game) start with a conversation; none is built. No audience numbers are claimed.
 
 ## 3. How the work is done (please keep these)
 

@@ -34,6 +34,7 @@ export const AD_PLACEMENTS = {
   course: { label: "Free course pages", scope: "site", where: "On free course pages: under This course includes on a computer, after the curriculum on a phone. Never on paid courses, lessons or certificates." },
   digest: { label: "Weekly digest email", scope: "site", where: "In the Sunday weekly digest email, in its sponsored slots. Each email sent counts as an impression." },
   life: { label: "Notes Life billboards (in the game)", scope: "site", where: "On the roadside billboards in Notes Life, the free life game. Needs a billboard picture as well." },
+  arcade: { label: "Notes Arcade (in the games)", scope: "site", where: "In Notes Arcade's free games: the middle of the Ludo board, the middle of the Naija Landlord board, and under the board of every game. Square or wide pictures both work; the title shows if there's no picture." },
 } as const;
 export type AdPlacement = keyof typeof AD_PLACEMENTS;
 export const isPlacement = (v: unknown): v is AdPlacement => typeof v === "string" && v in AD_PLACEMENTS;

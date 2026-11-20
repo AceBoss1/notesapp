@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ArcadeGallery } from "./ArcadeShell";
+import ArcadeAdSpot from "./ArcadeAdSpot";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -264,7 +265,7 @@ export default function SnakeGame() {
           </div>
         </div>
       </div>
-      <div className="snake-gallery"><ArcadeGallery game={arcadeGame("snake")} /></div>
+      <div className="snake-gallery"><ArcadeAdSpot variant="banner" game="snake" /><ArcadeGallery game={arcadeGame("snake")} /></div>
       <footer className="snake-footer"><span>NOTES ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>
 
       <style jsx global>{`

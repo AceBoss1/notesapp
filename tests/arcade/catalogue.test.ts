@@ -26,4 +26,10 @@ assert.equal(arcadeGame("chess").name, "Chess");
 assert.equal(slugs.indexOf("akahausa"), slugs.indexOf("ncho") + 1);
 assert.deepEqual(arcadeGame("akahausa").shots.map((x) => x.level), ["easy", "medium", "hard"]);
 assert.throws(() => arcadeGame("nope"));
-console.log("arcade catalogue: ok");
+// Advert spots (owner, 20 Nov 2026): every game has one, the partnership page shows them, arcade.<domain>/partners reaches it.
+import("../../lib/ads").then(({ AD_PLACEMENTS }) => {
+  assert.equal(AD_PLACEMENTS.arcade.scope, "site");
+  for (const f of ["ad-ludo", "ad-landlord", "ad-banner"]) assert.ok(existsSync(`public/images/arcade/${f}.png`), `${f} picture`);
+  assert.ok(existsSync("app/(arcade)/arcade/partners/page.tsx"), "partnership page");
+  console.log("arcade catalogue: ok");
+});

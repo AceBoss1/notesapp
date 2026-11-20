@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { ARCADE_GAMES, type ArcadeGame } from "@/lib/arcade/catalogue";
+import ArcadeAdSpot from "./ArcadeAdSpot";
 
 // The frame every Notes Arcade game sits in: the NOTES ARCADE top bar, the side panel (what the game is and how to play),
 // the game's own console on the right, and the footer. Same look as Snake (components/games/SnakeGame.tsx).
@@ -29,6 +30,7 @@ export default function ArcadeShell({ game, children }: { game: ArcadeGame; inde
         </div>
         <div className="arc-main">
           {children}
+          <ArcadeAdSpot variant="banner" game={game.slug} />
           <ArcadeGallery game={game} />
         </div>
       </div>

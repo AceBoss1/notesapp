@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.189.0",
+    bump: "minor",
+    date: "2026-11-20",
+    changes: [
+      { kind: "added", text: "Advert spots in Notes Arcade: the middle of the Ludo board, the middle of the Naija Landlord board, and under the board of every game. They're booked like every other #NotesApp spot (tick Notes Arcade on your campaign), with the same rotation, impressions and clicks. With nothing booked, a spot invites brands to advertise." },
+      { kind: "added", text: "Partner with Notes Arcade: a page for advertisers and sponsors at arcade.naapp.tech/partners, linked from the Arcade home, with the advert spots and bigger partnerships like a square of your own on the Naija Landlord board and sponsored tournaments." },
+    ],
+  },
+  {
     version: "v0.188.0",
     bump: "minor",
     date: "2026-11-20",
