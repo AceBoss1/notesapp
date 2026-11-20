@@ -1236,6 +1236,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (9×9 ring) with Eastern markets (Ariaria Aba, Nkwo Nnewi, Eke Osumenyi), Lagos markets (Trade Fair, Alaba Int'l) and Upper Iweka
     Park; park rent is ₦30k per park owned. The Arcade home shows **Notes Life Abuja** (the city picker's "You are welcome" card with a
     real in-game shot inset) and Notes Life Lagos and Port Harcourt as coming soon, using `CITY_CARDS` pictures from `lib/life/catalog.ts`.
+    **Arcade money (owner, 20 Nov 2026): "every upgrade or money in the arcade is N$ and needs notesapp login to save, same profile or
+    wallet balance is shared".** For now only shown: Naija Landlord counts in N$, and `ArcadeWalletNote` (Arcade home and every game
+    page) says sign in to keep N$ and progress, one profile and wallet with Notes Life. **Next, not built yet:** enforce sign-in and save
+    to the account (scores, wins, N$ through the Notes Life wallet in `lib/life/server.ts`), and player vs player: invite from a
+    conversation in Messages and form playing groups.
 
 ## 3. How the work is done (please keep these)
 

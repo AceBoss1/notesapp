@@ -2,7 +2,7 @@
 
 import { ARCADE_GAMES } from "@/lib/arcade/catalogue";
 import { CITY_CARDS } from "@/lib/life/catalog";
-import { ArcadeFooter, ArcadeStyles, ArcadeTopbar } from "./ArcadeShell";
+import { ArcadeFooter, ArcadeStyles, ArcadeTopbar, ArcadeWalletNote } from "./ArcadeShell";
 
 // The Notes Arcade home: every game as a card with its screenshot, what it is and who plays. app/(arcade)/arcade/page.tsx.
 export default function ArcadeHome() {
@@ -12,7 +12,10 @@ export default function ArcadeHome() {
       <div className="arch-hero">
         <p className="arc-kicker"><span>{String(ARCADE_GAMES.length).padStart(2, "0")}</span> &nbsp; GAMES · FREE · IN YOUR BROWSER</p>
         <h1>Pass the time,<br /><em>play a game.</em></h1>
-        <p className="arc-description">Board games, card games and the classics, made for #NotesApp. No download, no sign-in: pick one and play.</p>
+        <div className="arch-hero-row">
+          <p className="arc-description">Board games, card games and the classics, made for #NotesApp. No download: pick one and play, and sign in to keep your N$ and progress.</p>
+          <ArcadeWalletNote />
+        </div>
       </div>
       <ul className="arch-grid">
         {ARCADE_GAMES.map((g, i) => (
@@ -78,6 +81,7 @@ export default function ArcadeHome() {
         .arch-hero { width:min(1120px,100%); margin:0 auto; padding:clamp(36px,7vh,72px) 0 32px; }
         .arch-hero h1 { margin:0; font:500 clamp(48px,6.4vw,84px)/.95 Georgia,'Times New Roman',serif; letter-spacing:-.06em; }.arch-hero h1 em { color:var(--arc-deep); font-weight:500; }
         .arch-hero .arc-description { max-width:460px; }
+        .arch-hero-row { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 32px; }.arch-hero-row .arc-wallet { max-width:420px; margin-top:0; }
         .arch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:18px; width:min(1120px,100%); margin:0 auto; padding:0 0 64px; list-style:none; }
         .arch-card { display:flex; flex-direction:column; height:100%; overflow:hidden; border:1px solid #e3e6df; border-radius:16px; background:#fff; color:inherit; text-decoration:none; box-shadow:0 12px 40px #17251f0a; transition:transform .15s,box-shadow .15s; }
         .arch-card:hover { transform:translateY(-3px); box-shadow:0 18px 55px #17251f14; }.arch-card:focus-visible { outline:2px solid var(--arc-deep); outline-offset:3px; }

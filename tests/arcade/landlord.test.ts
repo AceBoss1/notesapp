@@ -95,7 +95,7 @@ assert.equal(rentFor(r, ringRoad), 200);
 const paid = applyAction(r, { type: "roll" }, dice(4, 5));
 assert.equal(paid.players[0].cash, START_CASH - 200);
 assert.equal(paid.players[1].cash, START_CASH + 200);
-// Parks: ₦30k, ₦60k or ₦90k for one, two or three parks.
+// Parks: N$30k, N$60k or N$90k for one, two or three parks.
 const parks = BOARD.flatMap((b, i) => (b.kind === "park" ? [i] : []));
 assert.equal(parks.length, 3);
 assert.equal(rentFor(withOwner(g0, [parks[0]], 2), parks[0]), 30);
@@ -162,7 +162,7 @@ const card = (text: RegExp) => { const k = FORTUNE_CARDS.findIndex((c) => text.t
 const lift = applyAction(atFour, { type: "roll" }, dice(1, 2, card(/lift to Lekki/)));
 assert.equal(lift.players[0].pos, LEKKI);
 assert.equal(lift.phase, "buy");
-const bday = applyAction(atFour, { type: "roll" }, dice(1, 2, card(/birthday/))); // everyone sends ₦20k
+const bday = applyAction(atFour, { type: "roll" }, dice(1, 2, card(/birthday/))); // everyone sends N$20k
 assert.equal(bday.players[0].cash, START_CASH + 60);
 assert.equal(bday.players[2].cash, START_CASH - 20);
 
@@ -174,7 +174,7 @@ const lekkiOwned = withOwner(poor, [LEKKI], 1);
 lekkiOwned.players[0].pos = 26;
 const sold = applyAction(lekkiOwned, { type: "roll" }, dice(2, 3)); // 31 Lekki, rent 56
 assert.equal(sold.players[0].pos, LEKKI);
-assert.equal(sold.flats[ringRoad] + sold.flats[bodija], 1, "sold one flat (₦50k) to cover ₦56k");
+assert.equal(sold.flats[ringRoad] + sold.flats[bodija], 1, "sold one flat (N$50k) to cover N$56k");
 assert.equal(sold.players[0].cash, 10 + 50 - 56);
 const broke = structuredClone(lekkiOwned);
 broke.flats[ringRoad] = 0; broke.flats[bodija] = 0; broke.owner[ringRoad] = null; broke.owner[bodija] = null;

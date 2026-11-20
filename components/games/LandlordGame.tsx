@@ -42,14 +42,14 @@ function squareLabel(g: State, i: number): string {
 function squareInfo(g: State, i: number): string {
   const sq = BOARD[i];
   switch (sq.kind) {
-    case "start": return "Start: collect ₦200k salary each time you pass.";
+    case "start": return "Start: collect N$200k salary each time you pass.";
     case "market": case "fortune": return `${sq.name}: draw a card.`;
     case "tax": return "Tax office: pay 10% of your cash.";
     case "holdup": return "Traffic Hold-up: miss your next turn.";
     case "rest": return "Rest Stop: nothing happens. Breathe.";
     case "park": {
       const owner = g.owner[i];
-      const scale = "rent ₦30k, ₦60k or ₦90k for one, two or three parks";
+      const scale = "rent N$30k, N$60k or N$90k for one, two or three parks";
       if (owner === null) return `${sq.name}, a Danfo Park: ${formatNaira(sq.price ?? 0)}, ${scale}.`;
       return `${sq.name}, a Danfo Park: ${g.players[owner].name}'s, rent ${formatNaira(rentFor(g, i))} (${scale}).`;
     }
@@ -272,7 +272,7 @@ export default function LandlordGame() {
             <div className="arc-overlay">
               <p className="arc-overlay-kicker">YOU VS 3 COMPUTER PLAYERS</p>
               <h2>Naija Landlord</h2>
-              <p>Everyone starts with ₦1,500k. Buy plots, build flats, collect rent.</p>
+              <p>Everyone starts with N$1,500k. Buy plots, build flats, collect rent.</p>
               <button type="button" className="arc-btn" onClick={newGame} aria-label="Start the game">START</button>
             </div>
           )}

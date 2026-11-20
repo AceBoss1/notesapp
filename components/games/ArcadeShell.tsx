@@ -24,6 +24,7 @@ export default function ArcadeShell({ game, children }: { game: ArcadeGame; inde
             <summary>HOW TO PLAY</summary>
             <ul>{game.howTo.map((h) => <li key={h}>{h}</li>)}</ul>
           </details>
+          <ArcadeWalletNote />
           <a className="arc-back" href="/arcade">← All games</a>
         </div>
         <div className="arc-main">
@@ -122,5 +123,28 @@ export function ArcadeGallery({ game }: { game: ArcadeGame }) {
         .arc-gallery .arc-label { display:block; color:#929b94; font:600 9px ui-monospace,monospace; letter-spacing:.12em; }
       `}</style>
     </>
+  );
+}
+
+// Arcade money and the #NotesApp account (owner, 20 Nov 2026): every upgrade or money in the Arcade is N$ (Notesville Naira), saved
+// with a #NotesApp login, the same profile and wallet as Notes Life. Saving to the account and player-vs-player come later: until then
+// scores and wins stay in the browser, and this note says so.
+export function ArcadeWalletNote() {
+  return (
+    <div className="arc-wallet">
+      <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> ONE WALLET, ONE PROFILE</p>
+      <p>Money and upgrades in the Arcade are <strong>N$</strong>, Notesville Naira. Sign in with your #NotesApp account to keep them: your profile and N$ balance are the same as in Notes Life.</p>
+      <p className="arc-wallet-soon">Saving to your account and playing friends, from a chat or with your own playing group, are coming soon. For now your wins stay on this device.</p>
+      <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN WITH #NOTESAPP ↗</a>
+      <style jsx global>{`
+        .arc-wallet { max-width:340px; margin-top:22px; padding:14px 16px; border:1px solid #e3e6df; border-radius:12px; background:#fff; color:#5c685f; font-size:12px; line-height:1.65; }
+        .arc-wallet p { margin:0 0 8px; }.arc-wallet strong { color:#17251f; }
+        .arc-wallet-title { display:flex; align-items:center; gap:8px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }
+        .arc-wallet-coin { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#c2f17a; color:#20301e; font:800 9px ui-monospace,monospace; letter-spacing:0; }
+        .arc-wallet-soon { color:#8a938b; font-size:11px; }
+        .arc-wallet-link { color:#5f9a22; font:700 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-wallet-link:hover { color:#17251f; }
+        @media(max-width:820px) { .arc-wallet { max-width:none; } }
+      `}</style>
+    </div>
   );
 }

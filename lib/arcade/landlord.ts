@@ -1,5 +1,5 @@
 // Naija Landlord: our own property-trading game on a 32-square loop of Nigerian neighbourhoods and markets.
-// Pure logic, no React or DOM. Money is in thousands of naira (1 = ₦1k). Every apply returns a new state.
+// Pure logic, no React or DOM. Money is in thousands of naira (1 = N$1k). Every apply returns a new state.
 
 export type Rng = () => number;
 
@@ -28,7 +28,7 @@ export type SquareKind = "start" | "plot" | "park" | "market" | "fortune" | "tax
 export type Square = { name: string; short: string; kind: SquareKind; city?: CityId; price?: number; rent?: number };
 
 const plot = (name: string, short: string, city: CityId, price: number, rent: number): Square => ({ name, short, kind: "plot", city, price, rent });
-// Park rent is ₦30k per park the owner holds: ₦30k, ₦60k or ₦90k.
+// Park rent is N$30k per park the owner holds: N$30k, N$60k or N$90k.
 const park = (name: string): Square => ({ name, short: "Danfo Park", kind: "park", price: 150, rent: 30 });
 
 // Clockwise from the top-left corner, cheap to dear. Corners: Start, Traffic Hold-up, Rest Stop, Tax office.
@@ -83,28 +83,28 @@ export type CardEffect =
 export type Card = { text: string; effect: CardEffect };
 
 export const MARKET_CARDS: Card[] = [
-  { text: "NEPA brought light all week: collect ₦50k", effect: { kind: "collect", amount: 50 } },
-  { text: "Tyre burst on Third Mainland Bridge: pay ₦30k", effect: { kind: "pay", amount: 30 } },
-  { text: "Your skit went viral: collect ₦100k", effect: { kind: "collect", amount: 100 } },
-  { text: "Owambe this weekend, aso ebi money: pay ₦40k", effect: { kind: "pay", amount: 40 } },
-  { text: "An old customer finally paid you: collect ₦60k", effect: { kind: "collect", amount: 60 } },
-  { text: "Generator needs servicing: pay ₦25k", effect: { kind: "pay", amount: 25 } },
+  { text: "NEPA brought light all week: collect N$50k", effect: { kind: "collect", amount: 50 } },
+  { text: "Tyre burst on Third Mainland Bridge: pay N$30k", effect: { kind: "pay", amount: 30 } },
+  { text: "Your skit went viral: collect N$100k", effect: { kind: "collect", amount: 100 } },
+  { text: "Owambe this weekend, aso ebi money: pay N$40k", effect: { kind: "pay", amount: 40 } },
+  { text: "An old customer finally paid you: collect N$60k", effect: { kind: "collect", amount: 60 } },
+  { text: "Generator needs servicing: pay N$25k", effect: { kind: "pay", amount: 25 } },
   { text: "Hop on a danfo back to Start: collect your salary", effect: { kind: "move", to: 0 } },
-  { text: "Plumber fixed every tap: pay ₦10k per flat", effect: { kind: "perFlat", amount: 10 } },
-  { text: "Bulk buy at Alaba for your tenants: pay ₦40k", effect: { kind: "pay", amount: 40 } },
+  { text: "Plumber fixed every tap: pay N$10k per flat", effect: { kind: "perFlat", amount: 10 } },
+  { text: "Bulk buy at Alaba for your tenants: pay N$40k", effect: { kind: "pay", amount: 40 } },
 ];
 
 export const FORTUNE_CARDS: Card[] = [
-  { text: "It's your birthday: everyone sends you ₦20k", effect: { kind: "each", amount: 20 } },
-  { text: "Group chat contribution: pay each player ₦15k", effect: { kind: "each", amount: -15 } },
-  { text: "Landlord of the year award: collect ₦80k", effect: { kind: "collect", amount: 80 } },
+  { text: "It's your birthday: everyone sends you N$20k", effect: { kind: "each", amount: 20 } },
+  { text: "Group chat contribution: pay each player N$15k", effect: { kind: "each", amount: -15 } },
+  { text: "Landlord of the year award: collect N$80k", effect: { kind: "collect", amount: 80 } },
   { text: "Heavy rain flooded the road: go back 3 squares", effect: { kind: "back", steps: 3 } },
   { text: "Gridlock on the expressway: go to Traffic Hold-up", effect: { kind: "holdup" } },
   { text: "A friend gives you a lift to Lekki", effect: { kind: "move", to: LEKKI } },
-  { text: "Bank alert! A client paid you ₦70k", effect: { kind: "collect", amount: 70 } },
-  { text: "Paint your flats for the festive season: pay ₦20k per flat", effect: { kind: "perFlat", amount: 20 } },
-  { text: "You won the jollof cook-off: collect ₦40k", effect: { kind: "collect", amount: 40 } },
-  { text: "Your Ariaria shoe order came through: collect ₦80k", effect: { kind: "collect", amount: 80 } },
+  { text: "Bank alert! A client paid you N$70k", effect: { kind: "collect", amount: 70 } },
+  { text: "Paint your flats for the festive season: pay N$20k per flat", effect: { kind: "perFlat", amount: 20 } },
+  { text: "You won the jollof cook-off: collect N$40k", effect: { kind: "collect", amount: 40 } },
+  { text: "Your Ariaria shoe order came through: collect N$80k", effect: { kind: "collect", amount: 80 } },
 ];
 
 export type Player = { name: string; colour: string; human: boolean; cash: number; pos: number; out: boolean; held: boolean };
@@ -148,12 +148,12 @@ export function createGame(_rng: Rng = Math.random, playerCount = 4): State {
     winner: null,
     endReason: null,
     lastCard: null,
-    log: ["New game. Everyone starts with ₦1,500k."],
+    log: ["New game. Everyone starts with N$1,500k."],
   };
 }
 
 export function formatNaira(k: number): string {
-  return `₦${k.toLocaleString("en-GB")}k`;
+  return `N$${k.toLocaleString("en-GB")}k`;
 }
 
 function clone(s: State): State {

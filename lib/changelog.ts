@@ -20,6 +20,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Ncho Aka-Hausa, the harder Ncho: the seeds go round clockwise and the computer thinks further ahead." },
       { kind: "added", text: "Naija Landlord's board grows to 32 squares with the big markets: Ariaria in Aba, Nkwo Nnewi, Eke Osumenyi, the Lagos Trade Fair and Alaba International Market, plus Upper Iweka Park." },
       { kind: "added", text: "Every game page shows screenshots: one for each level, or a game from the start to later on." },
+      { kind: "added", text: "Arcade money is N$, Notesville Naira, as in Notes Life: Naija Landlord now counts in N$, and the Arcade says to sign in with your #NotesApp account, with one profile and N$ wallet shared with Notes Life. Saving to your account and playing friends are coming soon." },
       { kind: "changed", text: "The Arcade's top bar now says Notes Arcade, and its logo takes you to all the games. On arcade.naapp.tech each game has a short address, like arcade.naapp.tech/ludo." },
       { kind: "added", text: "More in the footer: Naija Exam Prep, Nana Tutor, NotesApp Sounds, Write a journal, Business books, the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app. Nana AI and Nana Jobs now sit under For you." },
     ],
