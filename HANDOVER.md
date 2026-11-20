@@ -1216,6 +1216,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     shows each device's count and the phones against it. No price, date or payment until the partner confirms
     them; the partner isn't named until the agreement is signed (`PARTNER_NAMED`). **Owner steps:** Vercel → Domains `devices.naapp.tech`;
     `firebase deploy --only firestore:rules`. Tests: `test:devices`, `test:devices-server`, `test:host`, `test:rules`.
+147. **Notes Arcade: a home and seven new games; more products in the footer (v0.188.0, branch `claude/beautiful-albattani-crgkzb-footer2`;
+    owner, 20 Nov 2026: "add every feature or product we built, nana ai should be under for you… notes arcade should replace notesapp on
+    arcade… I need to build more games even Ludo, what, ace of spades, monopoly, ncho, chess, draft, each game will have its description
+    and screenshots"):** `lib/arcade/catalogue.ts` lists every game (name, description, how to play, players); `/arcade` is the home
+    (`components/games/ArcadeHome.tsx`) and each game is at `/arcade/<slug>` in the shared frame `components/games/ArcadeShell.tsx`.
+    Each game's rules and computer player are pure code in `lib/arcade/<slug>.ts` with a test in `tests/arcade/` (`test:arcade`); the board
+    is `components/games/<Name>Game.tsx`. All play against the computer in the browser, nothing saved but a best score in the browser.
+    **Monopoly is not copied:** its name, board and look are another company's, so the property game is our own, **Naija Landlord**
+    (Nigerian cities, our own squares and cards). Whot and Ace of Spades use the folk rules; Ncho is the Igbo seed game (our version is
+    written in the catalogue). arcade.<domain> now opens the Arcade home, with short paths (`arcade.naapp.tech/ludo`; `middleware.ts`,
+    `ARCADE_SLUGS`). Screenshots: `node scripts/arcade-shots.mjs` against a running app writes `public/images/arcade/<slug>.png`.
+    The footer gained Naija Exam Prep, Nana Tutor (Ask Nana Lite inside Exam Prep), NotesApp Sounds, Write a journal, Business books,
+    the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app; Nana AI and Nana Jobs moved to For you.
 
 ## 3. How the work is done (please keep these)
 

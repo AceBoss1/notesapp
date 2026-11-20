@@ -203,9 +203,9 @@ export default function SnakeGame() {
   return (
     <section className="snake-page" aria-label="Snake arcade game">
       <div className="snake-topbar">
-        <a className="snake-brand" href="/" aria-label="NotesApp home">
+        <a className="snake-brand" href="/arcade" aria-label="Notes Arcade, all games">
           <Image className="snake-brand-icon" src="/images/brand/notesapp-icon.webp" alt="" width={32} height={32} />
-          <span>NOTES<span className="snake-brand-accent">APP</span></span>
+          <span>NOTES <span className="snake-brand-accent">ARCADE</span></span>
         </a>
         <div className="snake-live"><i /> ARCADE MODE</div>
       </div>
@@ -262,7 +262,7 @@ export default function SnakeGame() {
           </div>
         </div>
       </div>
-      <footer className="snake-footer"><span>NOTESAPP ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>
+      <footer className="snake-footer"><span>NOTES ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>
 
       <style jsx global>{`
         .snake-page { --snake-ink: #17251f; --snake-muted: #748078; --snake-paper: #f7f7f2; --snake-green: #bdf36b; --snake-board: #1b2a23; min-height: 100vh; padding: 0 clamp(20px, 5.6vw, 88px); background: var(--snake-paper); color: var(--snake-ink); font-family: Inter, Arial, sans-serif; overflow: hidden; }

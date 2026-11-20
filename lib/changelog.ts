@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.188.0",
+    bump: "minor",
+    date: "2026-11-20",
+    changes: [
+      { kind: "added", text: "Notes Arcade has a home page with every game, and seven new games to play in your browser against the computer: Ludo, Whot, Ace of Spades, Naija Landlord (our own property game set in Nigerian cities), Ncho, Chess and Draughts. Each has its own page with what it is, how to play and a screenshot." },
+      { kind: "changed", text: "The Arcade's top bar now says Notes Arcade, and its logo takes you to all the games. On arcade.naapp.tech each game has a short address, like arcade.naapp.tech/ludo." },
+      { kind: "added", text: "More in the footer: Naija Exam Prep, Nana Tutor, NotesApp Sounds, Write a journal, Business books, the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app. Nana AI and Nana Jobs now sit under For you." },
+    ],
+  },
+  {
     version: "v0.187.1",
     bump: "patch",
     date: "2026-11-19",
