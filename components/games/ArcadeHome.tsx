@@ -45,6 +45,20 @@ export default function ArcadeHome() {
             </span>
           </a>
         </li>
+        {/* The next Notes Life cities (owner, 20 Nov 2026): shown as coming soon, not links. */}
+        {[{ city: "Lagos", line: "Hustle from Yaba to Lekki. Danfo, Third Mainland traffic and island money." }, { city: "Port Harcourt", line: "Garden City life, from Trans-Amadi to GRA. Fresh fish, oil money and the waterside." }].map((c) => (
+          <li key={c.city}>
+            <div className="arch-card arch-soon" aria-label={`Notes Life ${c.city}, coming soon`}>
+              <span className="arch-shot arch-soon-shot"><span>NOTES LIFE</span><strong>{c.city}</strong></span>
+              <span className="arch-body">
+                <span className="arc-label">ALSO ON #NOTESAPP · LIFE GAME</span>
+                <span className="arch-name">Notes Life {c.city}</span>
+                <span className="arch-blurb">{c.line}</span>
+                <span className="arch-meta"><span>A new city for Notes Life</span><span className="arch-soon-tag">COMING SOON</span></span>
+              </span>
+            </div>
+          </li>
+        ))}
       </ul>
       <ArcadeFooter />
       <ArcadeStyles />
@@ -59,6 +73,10 @@ export default function ArcadeHome() {
         .arch-body { display:flex; flex:1; flex-direction:column; gap:6px; padding:14px 16px 16px; }
         .arch-name { font:500 26px/1.1 Georgia,serif; letter-spacing:-.03em; }.arch-blurb { color:#657169; font-size:13px; line-height:1.55; }
         .arch-meta { display:flex; justify-content:space-between; gap:10px; margin-top:auto; padding-top:10px; color:#8a938b; font:600 9px ui-monospace,monospace; letter-spacing:.06em; }.arch-play { color:#5f9a22; }
+        .arch-soon { cursor:default; }.arch-soon:hover { transform:none; box-shadow:0 12px 40px #17251f0a; }
+        .arch-soon-shot { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:radial-gradient(circle at 30% 20%,#2c4235,#1b2a23 70%); color:#c8f28b; }
+        .arch-soon-shot span { font:600 10px ui-monospace,monospace; letter-spacing:.2em; color:#9bb39f; }.arch-soon-shot strong { font:500 40px/1 Georgia,serif; letter-spacing:-.04em; color:#e8f7d2; }
+        .arch-soon-tag { color:#c26a2b; }
         @media(prefers-reduced-motion:reduce) { .arch-card { transition:none; } }
       `}</style>
     </section>
