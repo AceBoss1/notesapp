@@ -1253,6 +1253,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     impression/click tracking; with nothing booked it shows "Your brand here" → `/arcade/partners` (`components/games/ArcadePartners.tsx`,
     arcade.<domain>/partners). The bigger partnerships on that page (a Landlord square, sponsored tournaments with the sponsor's own
     prizes, branded cards and boards, a made-for-you game) start with a conversation; none is built. No audience numbers are claimed.
+150. **Ncho played the school way (v0.189.1; owner, 20 Nov 2026, the rules "the school rule igbos practice and play"; "the reverse is the
+    aka hausa"):** capture only when the last seed makes exactly 4 in the opponent's hole, into your house (ulo); most seeds in the house
+    wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
+    and chain capture (off by default: "ask your elders"). Aka-Hausa is the same rules sown clockwise. Not built, possible later: "take
+    the house" (a captured hole becomes yours), the 3-seeds school stage rule, the 30-seconds formal timer (for tournaments).
 
 ## 3. How the work is done (please keep these)
 
