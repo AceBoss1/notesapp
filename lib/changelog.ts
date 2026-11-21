@@ -20,6 +20,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.190.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Sign in with your #NotesApp account and your Notes Arcade progress is saved: wins and records in every game come back next time, on any device. Playing is still free without signing in; as a guest you start afresh each visit." },
+    ],
+  },
+  {
     version: "v0.189.1",
     bump: "patch",
     date: "2026-11-20",

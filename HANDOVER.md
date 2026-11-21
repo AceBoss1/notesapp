@@ -1263,6 +1263,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
     and chain capture (off by default: "ask your elders"). Aka-Hausa is the same rules sown clockwise. Not built, possible later: "take
     the house" (a captured hole becomes yours), the 3-seeds school stage rule, the 30-seconds formal timer (for tournaments).
+151. **Signed-in Arcade saves progress (owner, 21 Nov 2026: "we need to fix the login saving progress"):** `lib/arcade/store.ts` follows
+    Firebase sign-in: a guest's progress stays in the page (afresh on reload); a member's is loaded from `arcadeProgress/{uid}.kv`
+    before the game shows (`arcadeReady()` in `ArcadeShell`) and saved 0.8 s after each change through `/api/arcade/progress`
+    (server-only collection; keys and values cleaned by `lib/arcade/progress.ts`, max 120 keys of 2,000 characters). Guest play from
+    the same page is kept when they sign in. The tournament decisions are in `docs/ARCADE_TOURNAMENTS.md` §8. **Owner step:**
+    `firebase deploy --only firestore:rules`. Not yet: N$ sync, per-game leaderboards, referral credit (they come with tournaments).
 152. **Three more Arcade games (v0.191.0; owner, 21 Nov 2026: the drawn board "players try to fix 3 straight paths", and "2 more popular
     engaging games like something run or something like Mario packman with a matching sound effect"):** `achi` (only the drawn lines:
     four edges and two diagonals, no centre cross; 3 pieces each; perfect play on hard by solving the game), `run` (Naija Run, canvas,
