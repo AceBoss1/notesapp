@@ -46,7 +46,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
       "A 6 brings a seed out of your yard. With 2 dice, a 6 on either die does.",
       "A double 6 (with 1 die, any 6) is banked and you roll again. Keep rolling until you throw something else, then spend every die you banked, one at a time, in any order, on one seed or several. A die you can't use is lost. Three in a row and you lose the turn.",
       "6+5 HOME is off unless you turn it on. Then a banked 6 and 5 can send a seed from your yard straight home instead. It's your choice.",
-      "Land on another player's seed to send it back to its yard, and roll again at once; dice you haven't spent stay banked. With HIT → HOME on (the default), the seed that hits goes straight home. Only the star squares are safe: land on a start square and the seed sitting there goes back to its yard.",
+      "Land on another player's seed to send it back to its yard. A capture doesn't earn another roll: only a 6 (1 die) or a double 6 (2 dice) does. With HIT → HOME on (the default), the seed that hits goes straight home. Only the star squares are safe: land on a start square and the seed sitting there goes back to its yard.",
       "You need the exact roll to get home. With 4 players, get all four seeds home first to win.",
     ],
     players: "You vs 1 to 3 computers",

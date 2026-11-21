@@ -46,10 +46,12 @@ export const WHAT_YOU_CAN_DO = [
   "Run a community for your church, school, club or business, with announcements, Spaces, private Circles, audio rooms, events with paid tickets, and giving",
   "Find a job on Notes Jobs and apply with your NotesApp account, or post jobs free as a verified organisation",
   "Message people and groups, and make free voice and video calls",
+  "Go live, free or with tickets, and let anyone watch a live that's open to everyone, even without an account",
   "Ask Nana, our AI helper, about the platform, and let her suggest topics, summarise and translate chats",
   "Earn from journal subscriptions and gifts, from referrals, and by promoting other members' products on the affiliate marketplace",
   "Run it all under your own name, with your own site from Free Basic and your own domain on Business and Enterprise plans",
-  "Play Notes Life, our free life game, with your NotesApp account",
+  "Pitch a feature, product or business to NotesApp Ventures, and build it with #NotesApp if it's picked",
+  "Play Notes Life, our free life game, and the free games in Notes Arcade (Ludo, Whot, Ncho, Chess, Draughts, Naija Run and more), and sign in with your NotesApp account to save your progress",
 ];
 // Our vision and mission (owner, 29 Oct 2026). The About page, the engineering guide and the investor deck use these words.
 export const VISION = "Africa\u2019s knowledge, shared, valued and rewarded.";

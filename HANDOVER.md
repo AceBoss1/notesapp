@@ -1353,8 +1353,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (`components/promos/ArcadePromoBanner.tsx`); /DAVIDO-at-34, /davido-at-34 and /davido on any host redirect to /offers/DAVIDO-at-34
     (next.config.js `redirects`); the journal post (the campaign's `postPath`) gets `PromoPostBox` under it on #NotesApp (not members' own
     sites). Every campaign surface shows `DAVIDO_DISCLAIMER` (not affiliated with or endorsed by Davido or his team; collaboration welcome).
+159. **Ludo: no bonus roll for a capture; Home, About and Roadmap brought up to date (v0.198.0; owner, 21 Nov 2026):** the owner: "hitting
+    opponent seed doesn't grant a bonus roll, only a six for single dice or double six for 2 dice". `applyAction` in `lib/arcade/ludo.ts`
+    no longer returns to the roll phase after a capture: the turn goes on with the dice still banked and passes as usual; the `bonus` field
+    is gone from Ludo events. The owner also asked to "update about and home with new additions including ventures and arcade":
+    `components/ArcadeVenturesCards.tsx` (Notes Arcade and Ventures cards, kept free of time-limited campaigns) sits under the Notes Life
+    card on both pages; Home's features and About's "What you can do today" add lives, pay-per-minute, Naija Exam Prep, Notes Life, Notes
+    Arcade, Ventures, Sounds, Hotel kit and Business books; `WHAT_YOU_CAN_DO` in lib/site.ts adds lives, Ventures and the Arcade; About no
+    longer calls live streaming "to come"; the roadmap has Notes Arcade and Ventures entries. Exam Prep copy doesn't promise Nana there yet
+    (the roadmap lists it as next).
 
-159. **The account menu, Facebook-style (v0.198.0; owner, 21 Nov 2026: "see how clean and easily accessible Facebook is… borrow ideas"):**
+160. **The account menu, Facebook-style (v0.199.0; owner, 21 Nov 2026: "see how clean and easily accessible Facebook is… borrow ideas"):**
     `lib/account-menu.ts` is the ONE list (pure) behind both the phone sheet (`components/shell/AccountSheet.tsx`) and the computer's menu
     (`components/AuthNav.tsx`), rendered by `components/shell/AccountMenu.tsx`: profile card with a switcher (store, organisation setup,
     communities you own or admin via `/api/community?run=1`), shortcuts (Edit pins any place, `notesapp-menu-pinned`, and × removes;

@@ -94,12 +94,9 @@ function statusLine(g: LudoState, rolling: boolean, mode: Mode): string {
   const before = describe(g.last, g);
   const dice = g.options.dice === 2 ? "the dice" : "the die";
   const bank = banked(g);
-  const last = g.last;
-  const afterCapture = !!last && last.kind === "move" && last.player === g.turn && last.bonus;
   const six = g.options.dice === 2 ? "Double 6!" : "A six!";
   if (mine(g, g.turn)) {
     if (g.phase === "move") return moveHint(g);
-    if (afterCapture) return `${before} Roll again${bank.length ? ` (still banked: ${rolled(bank)})` : ""}.`.trim();
     if (bank.length) return `${six} Banked: ${rolled(bank)}. Roll again.`;
     return `${before} Your turn${myColours(g).length > 1 ? ` (${name})` : ""}: roll ${dice}.`.trim();
   }
@@ -107,7 +104,7 @@ function statusLine(g: LudoState, rolling: boolean, mode: Mode): string {
     if (g.used.some(Boolean)) return `${before} ${name} is thinking…`.trim();
     return `${name} rolled ${rolled(g.dice)} and is thinking…`;
   }
-  if (bank.length && !afterCapture) return `${name}: ${six.toLowerCase().replace("!", "")}, rolling again (banked: ${rolled(bank)}).`;
+  if (bank.length) return `${name}: ${six.toLowerCase().replace("!", "")}, rolling again (banked: ${rolled(bank)}).`;
   return `${before} ${name}'s turn.`.trim();
 }
 

@@ -128,7 +128,7 @@ t = applyMove(t, 0);
 assert.equal(t.seeds[0][0], HOME);
 assert.throws(() => applyMove({ ...t, phase: "move", dice: [1], used: [false], turn: 0 }, 0), /Illegal/);
 
-// Capture: land on another colour on a plain square, it goes back to its yard and you roll again.
+// Capture: land on another colour on a plain square, it goes back to its yard. No bonus roll for a capture.
 // Player 0 at progress 2 (square 42). Player 1 sits on square 45 = its progress 44.
 assert.equal(absSquare(1, 44), 45);
 s = withSeeds([[2, YARD, YARD, YARD], [44, YARD, YARD, YARD], [YARD, YARD, YARD, YARD], [YARD, YARD, YARD, YARD]]);
@@ -136,7 +136,7 @@ assert.equal(threatAt(s, 1, 45), 1, "player 0 threatens it");
 t = applyMove(applyRoll(s, 3), 0);
 assert.equal(t.seeds[0][0], 5);
 assert.equal(t.seeds[1][0], YARD);
-assert.equal(t.turn, 0, "capture gives a bonus roll");
+assert.equal(t.turn, 1, "a capture earns no bonus roll: next player");
 assert.equal(t.captures[0], 1);
 assert.deepEqual(t.last?.kind === "move" && t.last.captured, [{ player: 1, seed: 0 }]);
 
@@ -156,7 +156,7 @@ assert.equal(threatAt(s, 1, START[0]), 1, "your yard threatens your start square
 t = applyMove(applyRoll(applyRoll(s, 6), 1), 0, 0);
 assert.equal(t.seeds[1][0], YARD);
 assert.equal(t.seeds[0][0], 0);
-assert.equal(t.phase, "roll", "a capture rolls again, the 1 still banked");
+assert.equal(t.phase, "move", "no bonus roll: spend the 1 still banked");
 assert.deepEqual(banked(t), [1]);
 // …and the last seed to land on someone's start square sends the one sitting there home (coral lands on blue's start).
 assert.equal(absSquare(3, 0), START[3]);
@@ -196,7 +196,7 @@ assert.equal(chooseAction(t).kind, "home", "the computer takes it");
 let h = applyAction(t, { kind: "home", seed: 0 });
 assert.equal(h.seeds[0][0], HOME);
 assert.equal(h.turn, 1, "both rolls spent");
-assert.deepEqual(h.last, { kind: "straight-home", player: 0, seed: 0, bonus: false });
+assert.deepEqual(h.last, { kind: "straight-home", player: 0, seed: 0 });
 h = applyMove(applyMove(t, 2, 0), 2); // or bring a seed out and move it 5
 assert.equal(h.seeds[0][2], 5);
 // Option off: the same 6 then 5 is just a 6 and a 5.
@@ -304,7 +304,7 @@ assert.deepEqual(u.used, [true, true]);
 assert.deepEqual(u.last?.kind === "move" && u.last.forfeited, [3]);
 assert.deepEqual(applyRoll(s, [3, 4]).last, { kind: "pass", player: 0, dice: [3, 4] });
 
-// Capture: you roll again at once, and the unspent die stays banked with the new roll.
+// Capture with 2 dice: no bonus roll; you just spend the die you have left.
 // Player 0 at progress 2 (square 42); player 1 on square 45 (its progress 44).
 s = withSeeds([[2, Y, Y, Y], [44, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], {}, TWO);
 t = applyRoll(s, [3, 6]);
@@ -314,20 +314,15 @@ u = applyAction(t, smart);
 assert.equal(u.seeds[1][0], Y);
 assert.equal(u.captures[0], 1);
 assert.equal(u.turn, 0);
-assert.equal(u.phase, "roll", "capture: roll again now");
-assert.equal(u.last?.kind === "move" && u.last.bonus, true);
-assert.deepEqual(banked(u), [6], "the 6 waits in the bank");
-u = applyRoll(u, [1, 4]);
-assert.deepEqual(banked(u), [6, 1, 4]);
-assert.equal(u.phase, "move");
-// A capture with the last die: roll again with an empty bank.
+assert.equal(u.phase, "move", "capture: no bonus roll, spend the 6");
+assert.deepEqual(banked(u), [6], "the 6 is still to spend");
+// A capture with the last die ends the turn.
 s = withSeeds([[2, HOME, HOME, HOME], [44, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], {}, TWO);
 u = applyMove(applyMove(applyRoll(s, [1, 2]), 0, 1), 0);
 assert.equal(u.seeds[0][0], 5);
 assert.equal(u.seeds[1][0], Y);
-assert.equal(u.turn, 0);
+assert.equal(u.turn, 1, "next player: a capture earns no bonus roll");
 assert.equal(u.phase, "roll");
-assert.deepEqual(banked(u), []);
 
 // 6 + 5 straight home with 2 dice: only when the option is on, a choice, the computer takes it.
 t = applyRoll(newGame(TWO), [6, 5]);
@@ -345,7 +340,7 @@ for (const roll of [[6, 5], [5, 6]]) {
   assert.deepEqual(h.seeds[0], [HOME, Y, 30, Y]);
   assert.deepEqual(h.used, [true, true]);
   assert.equal(h.turn, 1);
-  assert.deepEqual(h.last, { kind: "straight-home", player: 0, seed: 0, bonus: false });
+  assert.deepEqual(h.last, { kind: "straight-home", player: 0, seed: 0 });
   // Not forced: use the dice normally, and once one die is spent the offer is gone.
   u = applyMove(t, 0, roll.indexOf(6));
   assert.equal(straightHomeSeed(u), null);
@@ -364,12 +359,11 @@ s = withSeeds([[Y, 2, Y, Y], [46, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], {}, TWO
 t = applyRoll(s, [6, 5]);
 assert.equal(chooseAction(t).kind, "step", "capture first");
 u = applyAction(t, chooseAction(t));
-assert.equal(u.captures[0], 1);
-assert.equal(u.turn, 0);
-assert.equal(u.phase, "roll");
-assert.deepEqual(banked(u), [6]);
+if (u.phase === "move" && u.turn === 0) u = applyAction(u, chooseAction(u)); // the other die (either order)
+assert.equal(u.captures[0], 1, "the capture is taken this turn");
+assert.equal(u.turn, 1, "then the turn passes: no bonus roll");
 
-// "Hit → home" (on by default): the capturing seed goes straight home, the victim to its yard, and you still roll again.
+// "Hit → home" (on by default): the capturing seed goes straight home, the victim to its yard. Still no bonus roll.
 assert.equal(DEFAULT_OPTIONS.hitHome, true);
 {
   const HIT: Partial<LudoOptions> = { dice: 1, hitHome: true };
@@ -377,8 +371,7 @@ assert.equal(DEFAULT_OPTIONS.hitHome, true);
   t = applyMove(applyRoll(s, 3), 0);
   assert.equal(t.seeds[0][0], HOME, "the hitter is home");
   assert.equal(t.seeds[1][0], Y, "the victim is in its yard");
-  assert.equal(t.turn, 0);
-  assert.equal(t.phase, "roll", "and you roll again");
+  assert.equal(t.turn, 1, "no bonus roll: next player");
   assert.ok(t.last?.kind === "move" && t.last.hitHome && t.last.to === 5);
   // A hit that brings your last seed home wins.
   s = withSeeds([[2, HOME, HOME, HOME], [44, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], {}, HIT);
@@ -465,11 +458,12 @@ for (const opts of [ONE, ONE_HOME, TWO, TWO_HOME, { dice: 2 } as Partial<LudoOpt
   assert.equal(t.seeds[0][0], 5);
   assert.equal(t.seeds[1][0], 44, "coral stays: same owner");
   assert.equal(t.captures[0], 0);
-  assert.equal(t.turn, 1, "no capture, no bonus roll: coral's turn (still yours)");
+  assert.equal(t.turn, 1, "coral's turn (still yours)");
   // Against the other side's colour it's a capture as usual (you own green and gold here).
   t = applyMove(applyRoll({ ...s, table: twoYardsTable([0, 2]) }, 3), 0);
   assert.equal(t.seeds[1][0], Y);
-  assert.equal(t.turn, 0, "capture: roll again");
+  assert.equal(t.captures[0], 1, "capture");
+  assert.equal(t.turn, 1, "no bonus roll");
   // The computer (coral + blue) doesn't count its partner as a threat: blue two behind coral.
   assert.equal(absSquare(3, 34), 9);
   s = withSeeds([[Y, Y, Y, Y], [10, Y, Y, Y], [Y, Y, Y, Y], [34, Y, Y, Y]]);
