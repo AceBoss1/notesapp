@@ -246,9 +246,9 @@ export default function LandlordGame() {
               <p className="ll-turn"><i style={{ background: current.colour }} />{finished ? "Game over" : current.human ? "Your turn" : `${current.name}'s turn`}</p>
               {game.lastCard && <p className="ll-card">{game.lastCard}</p>}
               {/* The middle of the board carries an advert, like a billboard in the town square (owner, 20 Nov 2026). */}
-              <div className="ll-ad"><ArcadeAdSpot variant="tile" game="landlord" /></div>
+              <div className="ll-ad"><ArcadeAdSpot variant="tile" game="landlord" pin="landlord-tile" /></div>
               {/* A second square on the left of the middle (owner, 21 Nov 2026: "the left side is also ad spot"). */}
-              <div className="ll-ad ll-ad-left"><ArcadeAdSpot variant="tile" game="landlord" offset={1} /></div>
+              <div className="ll-ad ll-ad-left"><ArcadeAdSpot variant="tile" game="landlord" offset={1} pin="landlord-tile" /></div>
             </div>
 
             <div className="ll-panel">

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { useCanvasFit } from "@/components/games/useCanvasFit";
 import { loadAds, weightedOrder } from "@/components/AdSlot";
+import { fitsSpot } from "@/lib/ads";
 import { encodeStep, stepDt } from "@/lib/arcade/run-replay";
 import { ENTRY } from "@/lib/arcade/run.entry";
 import { arcadeStore } from "@/lib/arcade/store";
@@ -77,10 +78,11 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
     let live = true;
     loadAds("arcade").then((l) => {
       if (!live) return;
-      const ads = weightedOrder(l.ads.filter((a) => a.provider === "notesapp"));
+      // 16:9 boards take only adverts with a billboard picture: the wide 1.91 picture is never stretched onto them (lib/ads.ts fitsSpot).
+      const ads = weightedOrder(l.ads.filter((a) => a.provider === "notesapp" && fitsSpot(a, "billboard")));
       boardsRef.current = ads.map((a) => {
         const board: Board = { id: a.id, title: a.title, href: a.href, img: null };
-        const src = a.billboard || a.image;
+        const src = a.billboard;
         if (src) { const img = new Image(); img.decoding = "async"; img.onload = () => { board.img = img; }; img.src = src; }
         return board;
       });

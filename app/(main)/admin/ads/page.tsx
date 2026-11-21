@@ -10,12 +10,14 @@ import { uploadToR2 } from "@/lib/upload";
 import type { AdCampaign } from "@/lib/ad-packages";
 import { formatNaira } from "@/lib/booking-time";
 import { AD_FOOTER, AD_PLACEMENTS, AdCreative, AdPlacement } from "@/lib/ads";
-import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE } from "@/lib/ad-config";
+import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE, SQUARE_IMAGE } from "@/lib/ad-config";
 import ImageCrop from "@/components/advertise/ImageCrop";
 import AdSettings from "@/components/admin/AdSettings";
+import { HOUSE_ADS, HOUSE_ADS_END } from "@/lib/house-ads";
 
 type Row = AdCreative & { createdAt?: string };
-const EMPTY = { title: "", text: "", image: "", billboard: "", href: "", placements: [] as AdPlacement[], weight: 5, active: true, startsAt: "", endsAt: "" };
+const EMPTY = { title: "", text: "", image: "", billboard: "", square: "", href: "", placements: [] as AdPlacement[], weight: 5, active: true, startsAt: "", endsAt: "" };
+type Target = "image" | "billboard" | "square";
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
 export default function AdminAdsPage() {
@@ -26,7 +28,7 @@ export default function AdminAdsPage() {
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [cropping, setCropping] = useState<{ file: File; for: "image" | "billboard" } | null>(null);
+  const [cropping, setCropping] = useState<{ file: File; for: Target } | null>(null);
   const bannerDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) setCropping({ file: f, for: "image" }); }, true);
   const [error, setError] = useState("");
   // The form's own result, shown beside its button: the page-level error sits above the settings, out of view.
@@ -81,12 +83,12 @@ export default function AdminAdsPage() {
     setForm((f) => ({ ...f, placements: f.placements.includes(p) ? f.placements.filter((x) => x !== p) : [...f.placements, p] }));
   }
 
-  const pick = (target: "image" | "billboard") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pick = (target: Target) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (file) setCropping({ file, for: target });
   };
-  async function uploadBanner(file: File, target: "image" | "billboard") {
+  async function uploadBanner(file: File, target: Target) {
     setCropping(null);
     setBusy(true);
     try {
@@ -108,7 +110,8 @@ export default function AdminAdsPage() {
     if (!form.title.trim()) return fail("Add a headline.");
     if (!/^https:\/\//i.test(form.href.trim())) return fail("Link must start with https://");
     if (form.placements.length === 0) return fail("Pick at least one placement.");
-    if (form.placements.includes("life") && !form.billboard) return fail("Notes Life needs a billboard picture (1600 × 900).");
+    if (form.placements.includes("life") && !form.billboard) return fail(`Notes Life needs a billboard picture (${BILLBOARD_IMAGE.width} × ${BILLBOARD_IMAGE.height}).`);
+    if (form.placements.includes("arcadesq") && !form.square) return fail(`The Arcade's square spots need a square picture (${SQUARE_IMAGE.width} × ${SQUARE_IMAGE.height}).`);
     if (form.startsAt && form.endsAt && form.endsAt < form.startsAt) return fail("The end date is before the start date.");
     setBusy(true);
     try {
@@ -117,6 +120,7 @@ export default function AdminAdsPage() {
         text: form.text.trim(),
         image: form.image,
         ...(form.billboard ? { billboard: form.billboard } : {}),
+        ...(form.square && form.placements.includes("arcadesq") ? { square: form.square } : {}),
         href: form.href.trim(),
         placements: form.placements,
         weight: Math.max(1, Math.min(10, Math.round(form.weight) || 5)),
@@ -142,7 +146,7 @@ export default function AdminAdsPage() {
   function edit(r: Row) {
     setEditing(r.id);
     setForm({
-      title: r.title, text: r.text ?? "", image: r.image ?? "", billboard: r.billboard ?? "", href: r.href, placements: r.placements, weight: r.weight, active: r.active,
+      title: r.title, text: r.text ?? "", image: r.image ?? "", billboard: r.billboard ?? "", square: r.square ?? "", href: r.href, placements: r.placements, weight: r.weight, active: r.active,
       startsAt: r.startsAt ? r.startsAt.slice(0, 10) : "", endsAt: r.endsAt ? r.endsAt.slice(0, 10) : "",
     });
   }
@@ -158,6 +162,21 @@ export default function AdminAdsPage() {
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       <AdSettings user={user} />
+
+      {Date.now() <= new Date(HOUSE_ADS_END).getTime() && (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">House campaign (in code)</p>
+          <p className="mt-1 text-xs text-slate">
+            Set in <code>lib/house-ads.ts</code>, not editable here; it switches itself off after{" "}
+            {new Date(HOUSE_ADS_END).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" })}. The spot switches above still apply.
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-slate">
+            {HOUSE_ADS.map((a) => (
+              <li key={a.id}><span className="text-ink">{a.title}</span>{a.pin ? ` · pinned to ${a.pin}` : ""} · {a.placements.map((p) => AD_PLACEMENTS[p].label).join(", ")}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form onSubmit={save} className={`card relative mt-8 grid gap-3 p-5 sm:grid-cols-2 ${bannerDrop.dragging ? DROP_RING : ""}`} {...bannerDrop.bind}>
         {bannerDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as the ad image</div>}
@@ -180,8 +199,8 @@ export default function AdminAdsPage() {
           </div>
         </div>
         {cropping?.for === "image" && <div className="sm:col-span-2"><ImageCrop file={cropping.file} spec={AD_IMAGE} label="Advert picture" onDone={(f) => void uploadBanner(f, "image")} onCancel={() => setCropping(null)} /></div>}
-        {form.placements.includes("life") && (
-          <div className="text-xs text-slate sm:col-span-2">Notes Life billboard ({BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height})
+        {(form.placements.includes("life") || form.placements.includes("arcade")) && (
+          <div className="text-xs text-slate sm:col-span-2">Billboard: Notes Life, and Naija Run&apos;s roadside boards ({BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height}{form.placements.includes("life") ? "" : "; optional"})
             <div className="mt-1 flex items-center gap-3">
               {form.billboard && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -190,6 +209,18 @@ export default function AdminAdsPage() {
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick("billboard")} />
             </div>
             {cropping?.for === "billboard" && <ImageCrop file={cropping.file} spec={BILLBOARD_IMAGE} label="Billboard picture" onDone={(f) => void uploadBanner(f, "billboard")} onCancel={() => setCropping(null)} />}
+          </div>
+        )}
+        {form.placements.includes("arcadesq") && (
+          <div className="text-xs text-slate sm:col-span-2">Notes Arcade square ({SQUARE_IMAGE.width} × {SQUARE_IMAGE.height})
+            <div className="mt-1 flex items-center gap-3">
+              {form.square && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.square} alt="" className="aspect-square w-14 object-cover" />
+              )}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick("square")} />
+            </div>
+            {cropping?.for === "square" && <ImageCrop file={cropping.file} spec={SQUARE_IMAGE} label="Square picture" onDone={(f) => void uploadBanner(f, "square")} onCancel={() => setCropping(null)} />}
           </div>
         )}
         <fieldset className="sm:col-span-2">
@@ -254,6 +285,10 @@ export default function AdminAdsPage() {
                   {c.creative.billboard && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.creative.billboard} alt="Notes Life billboard" className="mt-1 aspect-video w-32 object-cover" />
+                  )}
+                  {c.creative.square && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.creative.square} alt="Notes Arcade square" className="mt-1 aspect-square w-16 object-cover" />
                   )}
                   {c.rejectedReason && <p className="text-xs text-crimson">Rejected: {c.rejectedReason}</p>}
                   {c.refundedKobo ? <p className="text-xs text-slate">Refunded {formatNaira(c.refundedKobo)}</p> : null}

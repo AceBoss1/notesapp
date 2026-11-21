@@ -40,6 +40,9 @@ export const AD_TEXT_MAX = 120;
 export const AD_IMAGE = { width: 1200, height: 628, sharpWidth: 2400, sharpHeight: 1256, minWidth: 600, minHeight: 314, bestBytes: 500 * 1024, maxBytes: 1024 * 1024, safe: { width: 960, height: 502 } };
 // A Notes Life billboard (the wide roadside board in the game), for campaigns that also run there.
 export const BILLBOARD_IMAGE = { width: 1600, height: 900, minWidth: 800, minHeight: 450, bestBytes: 500 * 1024, maxBytes: 1024 * 1024, safe: { width: 1280, height: 720 } };
+// A square picture for Notes Arcade's square spots (the middle of the Ludo and Naija Landlord boards, the tiles, the Ludo yards).
+// Square and wide pictures never stand in for each other (lib/ads.ts fitsSpot).
+export const SQUARE_IMAGE = { width: 1080, height: 1080, minWidth: 400, minHeight: 400, bestBytes: 500 * 1024, maxBytes: 1024 * 1024, safe: { width: 864, height: 864 } };
 export type ImageSpec = { width: number; height: number; minWidth: number; minHeight: number; maxBytes: number; sharpWidth?: number; sharpHeight?: number };
 
 // Where to cut a picture of w × h so it fills the spec's shape: zoom 1 is the largest centred cut, higher zooms in, and

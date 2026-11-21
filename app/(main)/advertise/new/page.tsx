@@ -11,9 +11,10 @@ import { AD_FOOTER, AD_PLACEMENTS, AdPlacement } from "@/lib/ads";
 import { startCheckout } from "@/lib/checkout";
 import { uploadToR2 } from "@/lib/upload";
 import { formatNaira } from "@/lib/booking-time";
-import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE } from "@/lib/ad-config";
+import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE, SQUARE_IMAGE } from "@/lib/ad-config";
 import ImageCrop from "@/components/advertise/ImageCrop";
 
+type Target = "image" | "billboard" | "square";
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
 export default function NewCampaignPage() {
@@ -26,7 +27,8 @@ export default function NewCampaignPage() {
   const [href, setHref] = useState("");
   const [image, setImage] = useState("");
   const [billboard, setBillboard] = useState("");
-  const [cropping, setCropping] = useState<{ file: File; for: "image" | "billboard" } | null>(null);
+  const [square, setSquare] = useState("");
+  const [cropping, setCropping] = useState<{ file: File; for: Target } | null>(null);
   const [placements, setPlacements] = useState<AdPlacement[]>(["home", "journals", "trending"]);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,19 +40,19 @@ export default function NewCampaignPage() {
   const pkg = AD_PACKAGES.find((p) => p.id === packageId)!;
 
   // A chosen picture is cropped to the advert's shape first (components/advertise/ImageCrop), then uploaded.
-  const pick = (target: "image" | "billboard") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pick = (target: Target) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (file) setCropping({ file, for: target });
   };
-  async function uploadBanner(file: File, target: "image" | "billboard") {
+  async function uploadBanner(file: File, target: Target) {
     if (!user) return;
     setCropping(null);
     setBusy(true);
     setError("");
     try {
       const url = await uploadToR2(file, "ad");
-      if (target === "image") setImage(url); else setBillboard(url);
+      if (target === "image") setImage(url); else if (target === "billboard") setBillboard(url); else setSquare(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -68,12 +70,14 @@ export default function NewCampaignPage() {
     if (!image) return setError("Upload the advert picture.");
     if (placements.length === 0) return setError("Pick at least one placement.");
     if (placements.includes("life") && !billboard) return setError("Add the Notes Life billboard picture, or untick Notes Life.");
+    if (placements.includes("arcadesq") && !square) return setError("Add the square picture, or untick Notes Arcade square spots.");
     if (!agreed) return setError("Please confirm you've read the ad rules.");
     setBusy(true);
     try {
       await startCheckout(user, {
         kind: "ad", packageId, advertiserName: advertiserName.trim(), title: title.trim(), text: text.trim(),
-        image, ...(placements.includes("life") ? { billboard } : {}), href: href.trim(), placements, agreed,
+        image, ...((placements.includes("life") || placements.includes("arcade")) && billboard ? { billboard } : {}),
+        ...(placements.includes("arcadesq") ? { square } : {}), href: href.trim(), placements, agreed,
       }, { amountKobo: pkg.priceKobo });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
@@ -152,8 +156,8 @@ export default function NewCampaignPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-slate">Shown labelled “{AD_FOOTER.notesapp}”. Where each one is: <Link href="/advertise/specifications#spots" className="text-crimson underline">the spots</Link>.</p>
-          {placements.includes("life") && (
-            <div className="mt-3 text-xs text-slate">Notes Life billboard picture: {BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height} px (16 : 9, at least {BILLBOARD_IMAGE.minWidth} × {BILLBOARD_IMAGE.minHeight}). It stands by the road in the game, so big words and a bold picture work best.
+          {(placements.includes("life") || placements.includes("arcade")) && (
+            <div className="mt-3 text-xs text-slate">{placements.includes("life") ? "Notes Life billboard picture" : "Billboard picture (optional, for Naija Run's roadside boards)"}: {BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height} px (16 : 9, at least {BILLBOARD_IMAGE.minWidth} × {BILLBOARD_IMAGE.minHeight}). It stands by the road in the game, so big words and a bold picture work best.
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 {billboard && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -162,6 +166,19 @@ export default function NewCampaignPage() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick("billboard")} />
               </div>
               {cropping?.for === "billboard" && <ImageCrop file={cropping.file} spec={BILLBOARD_IMAGE} label="Billboard picture" onDone={(f) => void uploadBanner(f, "billboard")} onCancel={() => setCropping(null)} />}
+            </div>
+          )}
+          {placements.includes("arcadesq") && (
+            <div className="mt-3 text-xs text-slate">Notes Arcade square picture: {SQUARE_IMAGE.width} × {SQUARE_IMAGE.height} px (1 : 1, at least {SQUARE_IMAGE.minWidth} × {SQUARE_IMAGE.minHeight}). It sits in a small square in the middle of a game board, so a bold logo and few words work best.{" "}
+              <Link href="/advertise/specifications#square" className="text-crimson underline">The square picture</Link>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                {square && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={square} alt="" className="aspect-square w-20 object-cover" />
+                )}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick("square")} />
+              </div>
+              {cropping?.for === "square" && <ImageCrop file={cropping.file} spec={SQUARE_IMAGE} label="Square picture" onDone={(f) => void uploadBanner(f, "square")} onCancel={() => setCropping(null)} />}
             </div>
           )}
         </fieldset>

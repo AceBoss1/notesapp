@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { AD_FOOTER, AD_PLACEMENTS, type AdPlacement } from "@/lib/ads";
-import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE, spotOn } from "@/lib/ad-config";
+import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE, SQUARE_IMAGE, spotOn } from "@/lib/ad-config";
 import { adConfig } from "@/lib/ad-config-server";
 
 export const metadata: Metadata = {
   title: "Advert sizes and spots",
-  description: "Where adverts and boosts show on #NotesApp, in the weekly digest and in Notes Life, and how to make the picture: 1200 × 628 px, the safe area, the words, the billboard size and how impressions are counted.",
+  description: "Where adverts and boosts show on #NotesApp, in the weekly digest, in Notes Life and in Notes Arcade, and how to make the picture: 1200 × 628 px, the safe area, the words, the billboard and square sizes and how impressions are counted.",
   alternates: { canonical: "/advertise/specifications" },
 };
 export const revalidate = 300; // the rotation numbers come from Admin → Ads
@@ -24,7 +24,7 @@ export default async function AdSpecsPage() {
   return (
     <>
       <PageHero eyebrow="Advertise · Specifications" title={<>Where your advert shows, and how to make it</>}>
-        <p>One picture size works everywhere on #NotesApp: the site, the app and the weekly digest. Campaigns that also run in Notes Life add a billboard picture.</p>
+        <p>One picture size works everywhere on #NotesApp: the site, the app and the weekly digest. Campaigns that also run in Notes Life add a billboard picture, and those in Notes Arcade&apos;s square spots a square one.</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <p className="text-sm text-slate"><Link href="/advertise/new" className="font-semibold text-crimson">Start a campaign</Link> · <Link href="/advertise" className="text-crimson underline">Advertising and prices</Link> · <Link href="/boost" className="text-crimson underline">Boost a post or item</Link></p>
@@ -60,7 +60,18 @@ export default async function AdSpecsPage() {
           {row("File", `JPG, PNG or WebP, best under ${kb(BILLBOARD_IMAGE.bestBytes)}, at most 1 MB`)}
           {row("Template", <a href="/api/ads/template?kind=billboard" className="font-semibold text-crimson underline">Download the {BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height} template</a>)}
         </tbody></table>
+        <p className="mt-2 text-xs text-slate">A billboard picture on a <strong className="text-ink">{AD_PLACEMENTS.arcade.label}</strong> campaign also stands on Naija Run&apos;s roadside billboards. Only billboard pictures go there: the wide advert picture is never stretched onto a billboard.</p>
         <p className="mt-2 text-xs text-slate">Our partners&apos; own boards in the game keep their sizes (wide 1600 × 900, portrait 1080 × 1350, square 1080 × 1080); see <Link href="/life/partners" className="text-crimson underline">Partner with Notes Life</Link>.</p>
+
+        <h2 id="square" className="mt-10 scroll-mt-24 font-display text-2xl text-ink">Square picture (Notes Arcade)</h2>
+        <p className="mt-3 text-sm text-slate">Tick <strong className="text-ink">{AD_PLACEMENTS.arcadesq.label}</strong> on the campaign form for the square spots in the games: the middle of the Ludo board and its yards, and the tiles beside Naija Landlord&apos;s dice. A square can&apos;t fit a wide spot, nor a wide picture a square one, so these spots show only square pictures. It needs its own picture:</p>
+        <table className="mt-4 w-full text-sm"><tbody>
+          {row("Size", <><strong className="text-ink">{SQUARE_IMAGE.width} × {SQUARE_IMAGE.height} px</strong> (1 : 1), at least {SQUARE_IMAGE.minWidth} × {SQUARE_IMAGE.minHeight}</>)}
+          {row("Safe area", `The middle ${SQUARE_IMAGE.safe.width} × ${SQUARE_IMAGE.safe.height} px`)}
+          {row("What works", "A bold logo and a few big words: the square sits small in the middle of a game board, often on a phone")}
+          {row("File", `JPG, PNG or WebP, best under ${kb(SQUARE_IMAGE.bestBytes)}, at most 1 MB`)}
+          {row("Template", <a href="/api/ads/template?kind=square" className="font-semibold text-crimson underline">Download the {SQUARE_IMAGE.width} × {SQUARE_IMAGE.height} template</a>)}
+        </tbody></table>
 
         <h2 id="spots" className="mt-10 scroll-mt-24 font-display text-2xl text-ink">Where adverts show</h2>
         <ul className="mt-4 space-y-2 text-sm">

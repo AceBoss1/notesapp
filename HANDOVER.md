@@ -1254,6 +1254,15 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     impression/click tracking; with nothing booked it shows "Your brand here" → `/arcade/partners` (`components/games/ArcadePartners.tsx`,
     arcade.<domain>/partners). The bigger partnerships on that page (a Landlord square, sponsored tournaments with the sponsor's own
     prizes, branded cards and boards, a made-for-you game) start with a conversation; none is built. No audience numbers are claimed.
+    **Since v0.197.0 shapes never cross** (owner, 21 Nov 2026: "square can't fit in rectangle and vice versa"): the square spots
+    (`board`, `tile`, `yard`) are their own placement `arcadesq` and show only adverts with a `square` picture (1080 × 1080,
+    `SQUARE_IMAGE` in `lib/ad-config.ts`; the form, Admin → Ads and checkout require it when `arcadesq` is ticked); `banner` stays on
+    `arcade` with the wide `image`; Naija Run's 16:9 boards use only `arcade` adverts with a `billboard` picture. The rule is
+    `fitsSpot` / `spotPicture` in `lib/ads.ts` (tested in `test:ads`). Square spots also take a `pin` (`forSpot` in `lib/ads.ts`:
+    an advert pinned to a spot shows only there; a spot with none rotates the unpinned): `ludo-yard-0`…`3` (green, red, yellow,
+    blue), `ludo-centre`, `landlord-tile` (both tiles). A house campaign lives in code, `lib/house-ads.ts` (`HOUSE_ADS`, ids
+    `house-davido34-*`, pictures in `public/ads/davido34/`), added by `loadActiveAds` while its window is open and gone after
+    21 Dec 2026 (Lagos); it is shown read-only on Admin → Ads. It is never in the digest (`/api/digest/go` reads `adCreatives/{id}`).
 149. **Plan: sponsored tournaments in Notes Arcade (docs only; owner, 20 Nov 2026: "plan tournaments on games that can be powered with
     sponsor[s] backed tournament and get tournament sponsors plus only logged in players can participate"):** `docs/ARCADE_TOURNAMENTS.md`.
     Signed-in members only, free entry always, sponsor prizes or N$ (never real naira from a game), "same deal" tournaments first: every

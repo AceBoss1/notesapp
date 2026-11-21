@@ -200,9 +200,9 @@ function BoardSquares({ active, yours }: { active: boolean[]; yours: boolean[] }
       {YARD_ORIGIN.map(([r, c], p) => (
         <div key={`y${p}`} className={`ludo-yard${active[p] ? "" : " is-empty"}`} style={{ gridArea: `${r + 1} / ${c + 1} / span 6 / span 6`, background: COLOURS[p] }}>
           {/* Each yard is a full-square advert spot under the seed holder (owner, 21 Nov 2026). */}
-          <ArcadeAdSpot variant="yard" game="ludo" offset={p} />
+          <ArcadeAdSpot variant="yard" game="ludo" offset={p} pin={`ludo-yard-${p}`} />
           <div className="ludo-yard-inner">
-            {YARD_SPOTS.map((_, i) => <i key={i} style={{ background: `${COLOURS[p]}55` }} />)}
+            {YARD_SPOTS.map((_, i) => <i key={i} style={{ background: `${COLOURS[p]}26` }} />)}
           </div>
           {!active[p] && <span className="ludo-yard-tag">EMPTY</span>}
           {active[p] && yours[p] && <span className="ludo-yard-tag">YOU</span>}
@@ -218,7 +218,7 @@ function BoardSquares({ active, yours }: { active: boolean[]; yours: boolean[] }
         style={{ background: `conic-gradient(from -45deg, ${COLOURS[2]} 0 90deg, ${COLOURS[3]} 90deg 180deg, ${COLOURS[0]} 180deg 270deg, ${COLOURS[1]} 270deg 360deg)` }}
       >
         {/* The centre of the board is an advert spot (owner, 20 Nov 2026). */}
-        <ArcadeAdSpot variant="board" game="ludo" />
+        <ArcadeAdSpot variant="board" game="ludo" pin="ludo-centre" />
       </div>
     </>
   );
@@ -722,7 +722,7 @@ export default function LudoGame() {
         .ludo-yard { position:relative; display:grid; place-items:center; }
         .ludo-yard.is-empty { filter:grayscale(1) opacity(.45); }
         .ludo-yard-tag { position:absolute; z-index:2; left:6%; top:6%; padding:2px 5px; border-radius:4px; background:#17251fcc; color:#fff; font:700 8px ui-monospace,monospace; letter-spacing:.1em; pointer-events:none; }
-        .ludo-yard-inner { position:relative; z-index:1; width:66.6%; height:66.6%; border-radius:12%; background:#f7f7f2b8; box-shadow:inset 0 0 0 1px #17251f14; backdrop-filter:blur(1px); pointer-events:none; }
+        .ludo-yard-inner { position:relative; z-index:1; width:66.6%; height:66.6%; border-radius:12%; background:#f7f7f28c; box-shadow:inset 0 0 0 1px #17251f14; pointer-events:none; }
         .ludo-yard-inner i { position:absolute; width:32%; height:32%; border-radius:50%; transform:translate(-50%,-50%); }
         .ludo-yard-inner i:nth-child(1) { left:25%; top:25%; }.ludo-yard-inner i:nth-child(2) { left:75%; top:25%; }
         .ludo-yard-inner i:nth-child(3) { left:25%; top:75%; }.ludo-yard-inner i:nth-child(4) { left:75%; top:75%; }

@@ -1,6 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { ttlCache } from "./ttl-cache";
 import type { AdCreative } from "./ads";
+import { openHouseAds } from "./house-ads";
 
 // Impressions delivered so far per ad id (sums the daily adStats docs).
 export async function deliveredByAd(ids: string[]): Promise<Record<string, { impressions: number; clicks: number }>> {
@@ -22,7 +23,10 @@ export async function deliveredByAd(ids: string[]): Promise<Record<string, { imp
 // campaigns (campaignId set) stop automatically once their impression budget is
 // delivered or their window ends — they're marked completed here, lazily. Delivery
 // can overshoot by whatever is served inside one cache window (a few minutes).
-export const loadActiveAds = ttlCache(5 * 60_000, async () => {
+// The house campaign kept in code (lib/house-ads.ts) is added while its window is open.
+export const loadActiveAds = ttlCache(5 * 60_000, async () => [...(await loadStoredAds()), ...openHouseAds()]);
+
+const loadStoredAds = async () => {
   const db = getAdminDb();
   const snap = await db.collection("adCreatives").where("active", "==", true).get();
   const all = snap.docs.map((d) => ({ provider: "notesapp", ...d.data(), id: d.id }) as AdCreative & { campaignId?: string; impressionsBudget?: number });
@@ -41,6 +45,6 @@ export const loadActiveAds = ttlCache(5 * 60_000, async () => {
     db.doc(`adCampaigns/${c.id}`).update({ status: "completed", completedAt: new Date().toISOString(), impressionsDelivered: d }).catch(() => {});
   }
   return all.filter((a) => !done.has(a.id));
-});
+};
 
 export const lagosDay = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).replace(/-/g, ""); // YYYYMMDD

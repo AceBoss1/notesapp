@@ -3466,3 +3466,30 @@ on the live, and conversions counted when a guest signs in. Admin → Limits set
 host's live stays members-only, `stageBarred` keeps teens off a guest-open stage, and their chat lines are hidden from guests. The pass
 signing was split out of the pure rules so the browser bundle never carries Node's crypto.
 
+**Square advert pictures for Notes Arcade; shapes never cross (v0.197.0, 21 Nov 2026)** — the owner asked for square advert slots in the
+Arcade: "square can't fit in rectangle and vice versa". Adverts now carry up to three pictures: the wide one (`image`, 1200 × 628), the
+billboard (`billboard`, 1600 × 900) and, new, the square (`square`, 1080 × 1080, `SQUARE_IMAGE` in `lib/ad-config.ts`, safe area the middle
+864 × 864). The Arcade's square spots (Ludo's centre and yards, the tiles beside Naija Landlord's dice) became their own placement,
+`arcadesq`, chosen on the campaign form like Notes Life: ticking it asks for the square picture (cropped by `ImageCrop` to the square
+spec), and checkout and Admin → Ads refuse it without one. `/api/ads` gives `arcadesq` only adverts with a square and returns it, and
+returns `billboard` for `arcade` too. `fitsSpot` and `spotPicture` (`lib/ads.ts`) hold the rule: a square spot takes only a square
+picture, a billboard only a billboard picture, a wide spot any advert (its wide picture or the title). So `ArcadeAdSpot`'s square variants
+draw the square picture (cover) and count under `arcadesq`, the banner keeps the wide picture, and Naija Run's 16:9 boards no longer
+stretch the wide picture (`billboard || image` before): only adverts with a billboard picture go up, the rest of the street keeps
+"Your brand here". Notes Life already used only billboard pictures. The specifications page has a "Square picture (Notes Arcade)"
+section and `/api/ads/template?kind=square`. Tests: `test:ads`.
+
+Then, the same day, the owner asked to "deploy ads, different designs for each Ludo square, each in Ludo yard color, then one center...
+deploy directly on all games and all ad slots too... it should run 1 month". There is no database access from where the code is built, so
+"directly" means in code, live on merge. Adverts can carry a `pin`: `forSpot` (`lib/ads.ts`) shows a spot the adverts pinned to it,
+otherwise the unpinned ones, and never one pinned elsewhere; `/api/ads` returns pinned adverts only for `arcadesq`. Ludo passes
+`ludo-yard-${p}` (0 green, 1 red, 2 yellow, 3 blue) and `ludo-centre`, Naija Landlord `landlord-tile` to both tiles. `lib/house-ads.ts`
+holds the house campaign (`HOUSE_ADS`, weight 10, 21 Nov to 21 Dec 2026, Lagos time): the wide "Happy 34th birthday, Davido" advert
+with a billboard picture on every wide spot except the digest plus `life` and `arcade`, and six square designs pinned to the Ludo
+yards, the Ludo centre and the Landlord tiles, linking to `/arcade/tournament` (the wide advert to `/offers/DAVIDO-at-34`, the claim page from v0.196.0). Links are site paths (they stay on the visitor's domain; the
+Life and Arcade hosts pass them on), and the digest is left out because its click link (`/api/digest/go`) reads `adCreatives/{id}` and
+wants an https link. `loadActiveAds` appends the open ones after the paid-campaign budget check, so `/api/ads/track` counts them like any
+advert; Admin → Ads lists them read-only. Tests: `test:ads` (forSpot, the window, no digest, the word limits, the pictures exist).
+Then the owner asked to "make the yard pictures stronger": the yard picture (`.arc-ad-yard img`) goes from opacity .42 to .95, the
+seed holder (`.ludo-yard-inner`) from `#f7f7f2b8` to `#f7f7f28c` without the blur, the circle round each seed from the yard colour at `55` alpha to `26`, and the yard's Sponsored label sits at the very top
+(top .6%) so the yard designs' top line stays clear of it.

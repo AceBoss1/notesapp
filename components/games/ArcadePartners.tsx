@@ -1,9 +1,11 @@
 "use client";
 
 import { ArcadeFooter, ArcadeStyles, ArcadeTopbar } from "./ArcadeShell";
+import { AD_PLACEMENTS } from "@/lib/ads";
+import { AD_IMAGE, BILLBOARD_IMAGE, SQUARE_IMAGE } from "@/lib/ad-config";
 
 // Partner with Notes Arcade (owner, 20 Nov 2026: "there should be partnership page too on arcade home"). The advert spots are booked
-// like every other #NotesApp spot (placement "arcade" in lib/ads.ts, /advertise); the bigger partnerships start with a conversation.
+// like every other #NotesApp spot (placements "arcade" and "arcadesq" in lib/ads.ts, /advertise); the bigger partnerships start with a conversation.
 // No audience numbers here until we have real ones to show.
 const SPOTS = [
   { img: "/images/arcade/ad-ludo.png", title: "The middle of the Ludo board", text: "Every seed races to the centre, and so does every eye. Your logo sits right where the game ends." },
@@ -42,7 +44,7 @@ export default function ArcadePartners() {
             </li>
           ))}
         </ul>
-        <p className="arp-note">Booked on the #NotesApp advertising page like every other spot: tick <strong>Notes Arcade (in the games)</strong> on your campaign. Same picture sizes, same rotation, and you see impressions and clicks in your dashboard. See the <a href="/advertise/specifications">advert specifications</a>.</p>
+        <p className="arp-note">Booked on the #NotesApp advertising page like every other spot. Tick <strong>{AD_PLACEMENTS.arcade.label}</strong> for the wide spot under every game ({AD_IMAGE.width} × {AD_IMAGE.height} picture), and add a {BILLBOARD_IMAGE.width} × {BILLBOARD_IMAGE.height} billboard picture to stand on Naija Run&apos;s roadside billboards too. Tick <strong>{AD_PLACEMENTS.arcadesq.label}</strong> for the middle of the Ludo and Naija Landlord boards: they take a {SQUARE_IMAGE.width} × {SQUARE_IMAGE.height} square picture. A square picture never goes in a wide spot, nor a wide one in a square. Same rotation, and you see impressions and clicks in your dashboard. See the <a href="/advertise/specifications">advert specifications</a>.</p>
 
         <p className="arc-label arp-h">BIGGER PARTNERSHIPS · LET&apos;S TALK</p>
         <ul className="arp-more">

@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
       batch.set(db.doc(`adCreatives/${c.id}`), {
         title: c.creative.title, text: c.creative.text, image: c.creative.image, href: c.creative.href,
         ...(c.creative.billboard ? { billboard: c.creative.billboard } : {}),
+        ...(c.creative.square ? { square: c.creative.square } : {}),
         placements: c.placements, weight: 5, active: true, provider: "notesapp",
         campaignId: c.id, impressionsBudget: c.impressionsBudget, endsAt, advertiser: c.advertiserName, createdAt: now,
       });
