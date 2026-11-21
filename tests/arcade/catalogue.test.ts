@@ -19,7 +19,7 @@ for (const g of ARCADE_GAMES) {
   // Our own games only: no other company's game names.
   assert.doesNotMatch(`${g.name} ${g.description} ${g.howTo.join(" ")}`, /monopoly|scrabble|uno\b/i);
 }
-for (const want of ["ludo", "whot", "spades", "landlord", "ncho", "akahausa", "chess", "draughts"]) assert.ok(ARCADE_SLUGS.includes(want), want);
+for (const want of ["ludo", "whot", "spades", "landlord", "ncho", "akahausa", "chess", "draughts", "achi", "run", "puffpuff"]) assert.ok(ARCADE_SLUGS.includes(want), want);
 assert.ok(!ARCADE_SLUGS.includes("snake"), "Snake keeps its own /snake");
 assert.equal(arcadeGame("chess").name, "Chess");
 // Aka-Hausa is the second Ncho: straight after Ncho, every level shown.

@@ -5,6 +5,9 @@ import { CITY_CARDS } from "@/lib/life/catalog";
 import { ArcadeFooter, ArcadeStyles, ArcadeTopbar, ArcadeWalletNote } from "./ArcadeShell";
 
 // The Notes Arcade home: every game as a card with its screenshot, what it is and who plays. app/(arcade)/arcade/page.tsx.
+// The next Notes Life cities, shown as coming soon. A city not yet in the Notes Life city picker brings its own picture.
+const SOON_CITIES: { city: string; line: string; icon?: string; landmark?: string }[] = [{ city: "Lagos", line: "Hustle from Yaba to Lekki. Danfo, Third Mainland traffic and island money." }, { city: "Port Harcourt", line: "Garden City life, from Trans-Amadi to GRA. Fresh fish, oil money and the waterside." }, { city: "Gaborone", line: "Notesville crosses the border: from the Main Mall to Kgale Hill, life in Botswana's capital.", icon: "/images/life/cities/gaborone.svg", landmark: "the Three Dikgosi Monument and Kgale Hill" }];
+
 export default function ArcadeHome() {
   return (
     <section className="arc-page" aria-label="Notes Arcade">
@@ -56,8 +59,8 @@ export default function ArcadeHome() {
             </span>
           </a>
         </li>
-        {/* The next Notes Life cities (owner, 20 Nov 2026): shown as coming soon, not links. */}
-        {[{ city: "Lagos", line: "Hustle from Yaba to Lekki. Danfo, Third Mainland traffic and island money." }, { city: "Port Harcourt", line: "Garden City life, from Trans-Amadi to GRA. Fresh fish, oil money and the waterside." }].map((c) => ({ ...c, card: CITY_CARDS.find((x) => x.name === c.city) })).map((c) => (
+        {/* The next Notes Life cities (owner, 20–21 Nov 2026): shown as coming soon, not links. Gaborone isn't in the Notes Life city picker yet, so its picture is passed here. */}
+        {(SOON_CITIES).map((c) => ({ ...c, card: CITY_CARDS.find((x) => x.name === c.city) ?? (c.icon ? { icon: c.icon, landmark: c.landmark ?? c.city } : undefined) })).map((c) => (
           <li key={c.city}>
             <div className="arch-card arch-soon" aria-label={`Notes Life ${c.city}, coming soon`}>
               {/* The city's own picture from the Notes Life city picker (lib/life/catalog.ts CITY_CARDS). */}
