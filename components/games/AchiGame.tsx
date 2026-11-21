@@ -176,7 +176,7 @@ export default function AchiGame() {
         </div>
 
         <div className="arc-board-wrap achi-wrap">
-          <svg className="achi-board" viewBox="0 0 300 300" role="group" aria-label="Achi board: nine points joined by the four outside edges and the two diagonals. Your pieces are green, the computer's are coral.">
+          <svg className="achi-board" viewBox="0 0 300 300" role="group" aria-label="Achi board: nine points joined by eight lines: the four outside edges, the middle row and column, and the two diagonals. Your pieces are green, the computer's are coral.">
             <g className="achi-lines" aria-hidden="true">
               {LINES.map((l) => <line key={l.join("")} x1={XY[l[0]].x} y1={XY[l[0]].y} x2={XY[l[2]].x} y2={XY[l[2]].y} />)}
             </g>
@@ -202,10 +202,10 @@ export default function AchiGame() {
           </svg>
           {phase !== "playing" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "THREE PIECES EACH · SIX LINES"}</p>
+              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "THREE PIECES EACH · EIGHT LINES"}</p>
               <h2>{phase === "ready" ? "Three in a line." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
               <p>{phase === "ready"
-                ? "Place your three, then slide them along the lines. Fill an edge or a diagonal to win."
+                ? "Place your three, then slide them along the lines. Fill any line to win."
                 : `${endText(game)} ${nextFirst === 0 ? "You start the next game." : "The computer starts the next game."}`}</p>
               <button type="button" className="arc-btn" onClick={start} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>
             </div>
