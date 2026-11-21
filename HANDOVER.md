@@ -1323,6 +1323,28 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     callback ref and re-fitted on resize and DPR change, because `ArcadeShell` mounts a game's board only after progress loads (a
     mount-only effect found no canvas and left it at 300×150).
 
+158. **Promo campaigns: DAVIDO-at-34 (v0.196.0; owner, 21 Nov 2026, the journal post "Happy 34th birthday, Davido"):** `lib/promos.ts`
+    (pure; the campaign config `DAVIDO_AT_34`, code matching ignores case/spaces/dashes, `claimCheck`) and `lib/promos-server.ts`. The owner's
+    answers: anyone picks a plan while that pool lasts (34 Enterprise × 30 days, 34 Business × 30 days, 1,000 Pro × 365 days), one claim per
+    account and per organisation RC number, live from launch until the slots run out; 4 venture slots open until all are picked; tournament
+    sign-ups on 21 Nov (Lagos) only. A claim is one transaction on `promos/{id}` (counters), `promoClaims/{id}_{uid}`, `promoOrgClaims/{id}_{rc}`
+    and the user's trial fields: `accountTier`, `trialTier`, `trialUntil` plus `trialSource: "promo:<id>"`, not added to `trials`, so it ends
+    through the daily trial job (lib/tier-billing.ts, promo wording) and doesn't use up a free trial; paying for a plan or starting a trial
+    clears `trialSource`. Ventures: a pitch with `promoCode` gets `campaign`, is accepted even while the call is paused, and picking it uses the
+    campaign's slots in a transaction (`pickVentureSlot`), not the quarter's. Pages: /offers/[code], Admin → Promos; API /api/promos,
+    /api/admin/promos. Tests: `test:promos`, `test:promos-server` (35 members racing for 34 Enterprise slots get exactly 34).
+    The tournament (owner: "must run today, maybe 10pm; we will announce as people play"): `lib/tournament-server.ts`, "Same deal" from
+    docs/ARCADE_TOURNAMENTS.md on Naija Run: 21 Nov 22:00–24:00 Lagos (`playFrom`/`playUntil`), one seed and speed for everyone, 3 tries
+    (counted when a try starts, so an abandoned try is used), best score counts. `components/games/RunGame.tsx` takes a `tournament` prop:
+    whole-millisecond steps, each recorded as dt×5+input (`lib/arcade/run-replay.ts`); the server replays the recording with the game's
+    own `step` and keeps its own score, refuses a run that claims more time than passed since the try began, and takes runs up to 15 min after
+    the close. `promoRuns/{runId}`; best on the entry. Page /arcade/tournament (arcade.<domain>/tournament), live leaderboard via
+    `/api/promos?board=1` every 15 s. Prizes/payouts are not in code: winners are announced by the team.
+    Where people arrive: the poster gives arcade.notesapp.name.ng and the code, so the Arcade home has a banner with a code box
+    (`components/promos/ArcadePromoBanner.tsx`); /DAVIDO-at-34, /davido-at-34 and /davido on any host redirect to /offers/DAVIDO-at-34
+    (next.config.js `redirects`); the journal post (the campaign's `postPath`) gets `PromoPostBox` under it on #NotesApp (not members' own
+    sites). Every campaign surface shows `DAVIDO_DISCLAIMER` (not affiliated with or endorsed by Davido or his team; collaboration welcome).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

@@ -29,6 +29,11 @@ const nextConfig = {
     config.resolve.alias = { ...(config.resolve.alias || {}), canvas: false };
     return config;
   },
+  // Short addresses for promo codes (lib/promos.ts): the code typed after any of our addresses, including the Arcade's
+  // (arcade.notesapp.name.ng/DAVIDO-at-34, as on the poster), opens the offer page.
+  async redirects() {
+    return ["/DAVIDO-at-34", "/davido-at-34", "/DAVIDO-AT-34", "/davido", "/Davido", "/DAVIDO"].map((source) => ({ source, destination: "/offers/DAVIDO-at-34", permanent: false }));
+  },
   // Google sign-in's helper pages, served on our own addresses (NEXT_PUBLIC_FIREBASE_AUTH_ON_SITE, lib/firebase.ts).
   async rewrites() {
     const d = (process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "").trim();

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { useCanvasFit } from "@/components/games/useCanvasFit";
 import { loadAds, weightedOrder } from "@/components/AdSlot";
+import { encodeStep, stepDt } from "@/lib/arcade/run-replay";
 import { ENTRY } from "@/lib/arcade/run.entry";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
@@ -23,9 +24,25 @@ const CRASH_TEXT: Record<ObstacleKind, string> = {
 };
 const newSeed = () => Math.floor(Math.random() * 4294967296);
 
-export default function RunGame() {
+// Tournament mode (the DAVIDO-at-34 tournament, lib/tournament-server.ts): the speed is fixed, every try starts on the server (which hands out
+// the tournament's seed and a run id), every step is recorded (lib/arcade/run-replay.ts), and the recording is sent when the run ends, so
+// the server replays it and scores it itself.
+export type RunTournament = {
+  level: Speed;
+  begin: () => Promise<{ runId: string; seed: number } | null>; // null: can't play now (the page says why)
+  end: (runId: string, recording: string) => void;
+  title: string;
+  note: string;
+};
+
+export default function RunGame({ tournament, extra }: { tournament?: RunTournament; extra?: React.ReactNode } = {}) {
   const [phase, setPhase] = useState<Phase>("ready");
-  const [level, setLevel] = useState<Speed>("normal");
+  const [level, setLevel] = useState<Speed>(tournament?.level ?? "normal");
+  const tRef = useRef(tournament);
+  tRef.current = tournament;
+  const recRef = useRef<number[]>([]);
+  const runIdRef = useRef<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [hud, setHud] = useState({ score: 0, coins: 0, metres: 0 });
   const [best, setBest] = useState(0);
   const [newBest, setNewBest] = useState(false);
@@ -162,11 +179,29 @@ export default function RunGame() {
 
   const start = useCallback(() => {
     ensureAudio();
+    const t = tRef.current;
+    if (t) {
+      // A tournament try: the server says go (and which street), then the run starts with an empty recording.
+      if (starting) return;
+      setStarting(true);
+      void t.begin().then((go) => {
+        setStarting(false);
+        if (!go) return;
+        freshRun(t.level);
+        gameRef.current = createRun(go.seed, t.level);
+        recRef.current = [];
+        runIdRef.current = go.runId;
+        phaseRef.current = "playing";
+        setPhase("playing");
+        canvasRef.current?.focus({ preventScroll: true });
+      }, () => setStarting(false));
+      return;
+    }
     freshRun(level);
     phaseRef.current = "playing";
     setPhase("playing");
     canvasRef.current?.focus({ preventScroll: true });
-  }, [ensureAudio, freshRun, level]);
+  }, [ensureAudio, freshRun, level, starting]);
 
   const resume = useCallback(() => { ensureAudio(); phaseRef.current = "playing"; setPhase("playing"); }, [ensureAudio]);
 
@@ -179,6 +214,8 @@ export default function RunGame() {
 
   const finish = useCallback((s: RunState) => {
     phaseRef.current = "over";
+    const t = tRef.current;
+    if (t && runIdRef.current) { t.end(runIdRef.current, recRef.current.join(",")); runIdRef.current = null; }
     crashAt.current = performance.now();
     const sc = score(s);
     setHud({ score: sc, coins: s.coins, metres: Math.floor(s.distance) });
@@ -207,7 +244,11 @@ export default function RunGame() {
       const dt = last ? Math.min(now - last, 50) : 16;
       last = now;
       if (phaseRef.current === "playing") {
-        const next = step(gameRef.current, dt, inputs.current.shift() ?? "none");
+        const input = inputs.current.shift() ?? "none";
+        // A tournament run steps in whole milliseconds and records each step, so the server can replay it exactly.
+        const d = tRef.current ? stepDt(dt) : dt;
+        if (tRef.current) recRef.current.push(encodeStep(d, input));
+        const next = step(gameRef.current, d, input);
         gameRef.current = next;
         playEvents(next.events);
         if (next.over) finish(next);
@@ -301,7 +342,7 @@ export default function RunGame() {
           <div className="arc-spacer" />
           <label className="run-speed">
             <span className="arc-label">SPEED</span>
-            <select className="arc-select" value={level} disabled={phase === "playing"} aria-label="Speed" onChange={(e) => changeLevel(e.target.value as Speed)}>
+            <select className="arc-select" value={level} disabled={phase === "playing" || !!tournament} aria-label="Speed" onChange={(e) => changeLevel(e.target.value as Speed)}>
               {(Object.keys(SPEED_LABEL) as Speed[]).map((k) => <option key={k} value={k}>{SPEED_LABEL[k].toUpperCase()}</option>)}
             </select>
           </label>
@@ -330,10 +371,10 @@ export default function RunGame() {
           )}
           {phase === "ready" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">NAIJA RUN · {SPEED_LABEL[level].toUpperCase()}</p>
+              <p className="arc-overlay-kicker">{tournament ? tournament.title.toUpperCase() : `NAIJA RUN · ${SPEED_LABEL[level].toUpperCase()}`}</p>
               <h2>The street is waiting.</h2>
-              <p>Swipe or use the arrows. Up jumps, down slides, tap to jump.</p>
-              <button type="button" className="arc-btn" onClick={start} aria-label="Start run">START RUN</button>
+              <p>{tournament ? tournament.note : "Swipe or use the arrows. Up jumps, down slides, tap to jump."}</p>
+              <button type="button" className="arc-btn" onClick={start} disabled={starting} aria-label="Start run">{starting ? "STARTING…" : tournament ? "START A TRY" : "START RUN"}</button>
             </div>
           )}
           {phase === "paused" && (
@@ -349,11 +390,12 @@ export default function RunGame() {
               <p className="arc-overlay-kicker">{newBest ? "NEW BEST!" : "RUN OVER"}</p>
               <h2>{crash ? CRASH_TEXT[crash] : "Run over."}</h2>
               <p>Score {hud.score} · Best {best} · {hud.metres} m · {hud.coins} coins</p>
-              <button type="button" className="arc-btn" onClick={start} aria-label="Play again">PLAY AGAIN</button>
+              <button type="button" className="arc-btn" onClick={start} disabled={starting} aria-label="Play again">{starting ? "STARTING…" : tournament ? "NEXT TRY" : "PLAY AGAIN"}</button>
             </div>
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        {extra}
         <p className="run-boards">
           {booked && onBoard
             ? <>On the billboards: <a href={onBoard.href} target="_blank" rel="sponsored noopener noreferrer" onClick={() => trackAd("click", onBoard.id)}>{onBoard.title} ↗</a> <small>SPONSORED</small></>

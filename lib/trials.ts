@@ -16,7 +16,7 @@ export const isTrialTier = (v: unknown): v is TrialTier => v === "pro" || v === 
 
 export type TrialRecord = { tier: string; startedAt: string; until: string };
 export type TrialProfile = {
-  accountTier?: string; trialTier?: string; trialUntil?: string; trialUsedAt?: string; trials?: TrialRecord[]; lastPaidAt?: string;
+  accountTier?: string; trialTier?: string; trialUntil?: string; trialSource?: string; trialUsedAt?: string; trials?: TrialRecord[]; lastPaidAt?: string;
 };
 
 const RANK: Record<string, number> = { standard: 0, basic: 1, pro: 2, business: 3, enterprise: 4 };
@@ -39,7 +39,8 @@ export type TrialCheck = { ok: true } | { ok: false; reason: "not-a-plan" | "on-
 export function trialCheck(p: TrialProfile, tier: unknown, now: Date, paidTier: string | null): TrialCheck {
   if (!isTrialTier(tier)) return { ok: false, reason: "not-a-plan", message: "Free trials are for Pro and Business." };
   if (onTrial(p, now)) {
-    return { ok: false, reason: "on-trial", message: `You're on a free ${planName(p.trialTier ?? "")} trial until ${new Date(p.trialUntil!).toDateString()}.` };
+    const what = typeof p.trialSource === "string" && p.trialSource.startsWith("promo:") ? "plan" : "trial"; // a free plan from a promo code (lib/promos.ts)
+    return { ok: false, reason: "on-trial", message: `You're on a free ${planName(p.trialTier ?? "")} ${what} until ${new Date(p.trialUntil!).toDateString()}.` };
   }
   const history = trialHistory(p);
   if (history.some((t) => t.tier === tier)) {
