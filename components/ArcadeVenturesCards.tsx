@@ -8,24 +8,13 @@ import { VenturesArt } from "@/components/ventures/VenturesHero";
 // so the words stay true; campaigns run in the advert spots instead.
 // Owner, 21 Nov 2026: the Arcade card shows the games as tiles, like the Arcade home ("use the tiles arcade list of various games"), and
 // the Ventures card fills its empty space with the cover picture from /ventures ("take the part marked and fix in the empty marked space").
-// The cards aren't single links any more (a tile is its own link), so each has its own button.
+// Text first, then the tiles fill the rest of the card down to the bottom (owner, 21 Nov 2026: "take the text up, bring down the game
+// tiles to fit into the remaining space below"). The cards aren't single links any more (a tile is its own link), so each has its own button.
 export default function ArcadeVenturesCards({ className = "" }: { className?: string }) {
   return (
     <div className={`grid gap-6 lg:grid-cols-2 ${className}`}>
       <div className="flex flex-col overflow-hidden rounded-3xl border border-rule bg-[#17251f] text-paper shadow-sm">
-        <ul className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4" aria-label="Games in Notes Arcade">
-          {ARCADE_GAMES.map((g) => (
-            <li key={g.slug}>
-              <Link href={g.path} className="group block overflow-hidden rounded-xl bg-[#0f1a15] ring-1 ring-white/10 transition hover:ring-emerald-400/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400">
-                <span className="relative block aspect-[16/10]">
-                  <Image src={`/images/arcade/${g.slug}.png`} alt="" fill sizes="(min-width: 1024px) 140px, 30vw" className="object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-                </span>
-                <span className="block truncate px-2 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper/85">{g.name}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-1 flex-col px-6 pb-6 pt-3 sm:px-8 sm:pb-8">
+        <div className="flex flex-col px-6 pt-6 sm:px-8 sm:pt-8">
           <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-eyebrow text-emerald-300">
             <Image src="/images/brand/arcade-icon-192.png" alt="" width={20} height={20} className="h-5 w-5 rounded" />
             Play free · no sign-in needed
@@ -37,6 +26,18 @@ export default function ArcadeVenturesCards({ className = "" }: { className?: st
           </p>
           <Link href="/arcade" className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 font-ui text-sm font-bold text-[#0d1713] hover:bg-emerald-400">Open Notes Arcade →</Link>
         </div>
+        <ul className="mt-5 grid flex-1 auto-rows-fr grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-4 sm:px-4 sm:pb-4" aria-label="Games in Notes Arcade">
+          {ARCADE_GAMES.map((g) => (
+            <li key={g.slug} className="flex">
+              <Link href={g.path} className="group flex w-full flex-col overflow-hidden rounded-xl bg-[#0f1a15] ring-1 ring-white/10 transition hover:ring-emerald-400/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400">
+                <span className="relative block min-h-[3.5rem] flex-1 aspect-[16/10]">
+                  <Image src={`/images/arcade/${g.slug}.png`} alt="" fill sizes="(min-width: 1024px) 140px, 30vw" className="object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+                </span>
+                <span className="block truncate px-2 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper/85">{g.name}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-3xl border-2 border-crimson/25 bg-crimson/[0.04] p-6 shadow-sm sm:p-8">
