@@ -1383,6 +1383,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     or 8,000 (8×8). Action games (`nana-run`, `nana-puffpuff`, `nana-snake`) watch the run without touching state or RNG and coach
     after it; tips only while paused; RunGame in tournament mode shows "Nana sits out tournaments" and computes nothing
     (run-replay.ts unchanged). Hints highlight in gold #ffd166. Tests: tests/arcade/nana*.test.ts (in `test:arcade`).
+163. **Arcade tournaments, Phase 1 (v0.202.0; owner, 21 Nov 2026: "start tournaments"; docs/ARCADE_TOURNAMENTS.md §6):** the contract is
+    `lib/arcade/tournament-games.ts` (`TournamentGame.replay(seed, level, recording)` → rank tuple, summary, score, ms; `compareRank`,
+    `rankKey` for Firestore ordering; `TourneyProps`, the `tourney` prop each game component takes). Replays: `replay-whot.ts` (human's
+    moves, card index / m / shape letter; deal from mulberry32(seed), human leads), `replay-run.ts` (wraps run-replay.ts, unchanged for
+    the DAVIDO page), `replay-snake.ts` (one char per tick; Snake's rules moved to `lib/arcade/snake.ts`, tested against the old
+    component logic), `replay-chess.ts` (human is White, UCI moves + optional `resign`; computer replies with node budgets only, no
+    clock, and a per-ply seed). Server: `lib/arcade/tournaments.ts` (pure: types, validateDraft, canEnter, openBlocker) and
+    `lib/arcade/tournaments-server.ts` (tournaments/{id}, entries/{uid}, runs/{runId}; server-only rules; start abandons an open run,
+    finish refuses expired (30 min), over-long, unfinished, tampered and time-cheating runs and keeps the best). API under
+    /api/arcade/tournaments and /api/admin/arcade/tournaments; pages /arcade/tournaments and /arcade/tournaments/[id]; Admin → Arcade
+    tournaments (Growth). Sponsor takeover in `ArcadeAdSpot` (counted on the tournament, never as a booked ad's impression). Tests:
+    tests/arcade/tournaments.test.ts, replay-*.test.ts, `test:tournaments-server` (emulator, in CI). Not built yet: page-view counts in
+    the sponsor report, share cards/sitemap per tournament, telling winners in Messages, per-game leaderboards; the other games' replays.
 
 ## 3. How the work is done (please keep these)
 
