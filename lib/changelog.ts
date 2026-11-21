@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.199.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Nana in Notes Arcade, free for everyone: tap HINT and she lights up the move she'd play and says why (a capture, a block, a line you'd fill, a 4 you'd take, a checkmate), and after each computer move she explains what it was for and warns you of threats. In Ludo, Ncho and Aka-Hausa, Achi, Chess, Draughts, Whot, Ace of Spades and Naija Landlord." },
+      { kind: "added", text: "In Naija Run, Puff-Puff Rush and Snake, Nana coaches you after each run (what got you and how to go further), and gives a tip while the game is paused." },
+      { kind: "added", text: "Nana works from each game's own engine, in your browser: no AI service, so she costs nothing and works offline. In the card games she only uses what you can see, never the computer's hand." },
+      { kind: "added", text: "Switch Nana off for any game with NANA ON/OFF; your choice is kept (on your account when you're signed in). She sits out tournaments, and in player-to-player duels (coming) she's off unless the duel's rules allow her." },
+    ],
+  },
+  {
     version: "v0.198.0",
     bump: "minor",
     date: "2026-11-21",

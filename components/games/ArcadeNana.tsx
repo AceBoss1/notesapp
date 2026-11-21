@@ -70,7 +70,7 @@ export default function ArcadeNana({ slug, context = { mode: "practice" }, canAs
 
   let body: React.ReactNode;
   if (!on) body = <span className="arc-nana-muted">Nana is off for this game. Switch her on for free hints and her take on each move.</span>;
-  else if (tip) body = <><strong>Try {tip.move}.</strong> {tip.why}</>;
+  else if (tip) body = <><strong>My pick: {tip.move}.</strong> {tip.why}</>;
   else if (empty) body = <span className="arc-nana-muted">Nothing to suggest right now.</span>;
   else if (take) body = <span className={`arc-nana-take is-${take.tone}`}>{take.text}</span>;
   else body = <span className="arc-nana-muted">{canAsk ? "Stuck? Tap HINT and I'll show you what I'd play." : "I'm watching the board. I'll tell you what I make of each move."}</span>;

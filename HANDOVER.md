@@ -1362,6 +1362,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Arcade, Ventures, Sounds, Hotel kit and Business books; `WHAT_YOU_CAN_DO` in lib/site.ts adds lives, Ventures and the Arcade; About no
     longer calls live streaming "to come"; the roadmap has Notes Arcade and Ventures entries. Exam Prep copy doesn't promise Nana there yet
     (the roadmap lists it as next).
+160. **Nana in Notes Arcade (v0.199.0; owner, 21 Nov 2026: "a free Nana for arcade [that won't cost us nor the players] where Nana
+    suggests moves or analyze opponent moves, it won't be available for tournaments, mostly friendly trainings and competing player to
+    player can have it turned off in their duel rules"):** no AI service; each game's own engine in the browser. `lib/arcade/nana.ts`
+    (pure: `nanaAvailability` for practice/tournament/duel, `DuelRules` with `nana` off by default, `NanaTip`, `NanaTake`, `rateMove`,
+    `listText`, `nanaKey`), `components/games/ArcadeNana.tsx` (the strip: HINT, NANA ON/OFF kept in the Arcade store per game, hint
+    count, the take). Per game `lib/arcade/nana-<slug>.ts` with `<slug>Tip` (the engine's strongest move for the player, a label and a
+    why from before/after) and `<slug>Take` (the computer's last move). Card games build tips from a copy with opponents' hands blanked
+    (tests reshuffle hidden cards and expect the same tip). Chess caps its search at 30,000 positions / 250 ms; draughts at 5,000 (10×10)
+    or 8,000 (8×8). Action games (`nana-run`, `nana-puffpuff`, `nana-snake`) watch the run without touching state or RNG and coach
+    after it; tips only while paused; RunGame in tournament mode shows "Nana sits out tournaments" and computes nothing
+    (run-replay.ts unchanged). Hints highlight in gold #ffd166. Tests: tests/arcade/nana*.test.ts (in `test:arcade`).
 
 ## 3. How the work is done (please keep these)
 
