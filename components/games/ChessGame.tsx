@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
@@ -8,6 +9,8 @@ import {
   BISHOP, KING, KNIGHT, QUEEN, ROOK, VALUE, applyMove, chooseMove, gameStatus, initialState, legalMoves, moveToSan,
   pieceColor, pieceType, squareName, type ChessState, type Color, type Level, type Move,
 } from "@/lib/arcade/chess";
+import type { NanaTake } from "@/lib/arcade/nana";
+import { chessTake, chessTip } from "@/lib/arcade/nana-chess";
 
 // U+FE0E keeps phones from drawing the pawn as an emoji. White pieces are the outline glyph over a white-filled solid one.
 const TEXT = "\uFE0E";
@@ -51,6 +54,10 @@ export default function ChessGame() {
   const [focusSq, setFocusSq] = useState(12); // e2
   const [overlayHidden, setOverlayHidden] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Nana (owner, 21 Nov 2026): a free hint from the engine itself, lit up in gold, and her take on each computer move.
+  const [hint, setHint] = useState<{ from: number; to: number } | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [gameNo, setGameNo] = useState(0);
   const loaded = useRef(false);
   const levelRef = useRef(level);
   const mutedRef = useRef(false);
@@ -96,6 +103,8 @@ export default function ChessGame() {
     setGame(next);
     setSelected(null);
     setPromo(null);
+    setHint(null);
+    if (by === "cpu") setTake(chessTake(state, m, next));
     tone(san.includes("+") || san.includes("#") ? 660 : m.captured ? 330 : 440);
   }, [tone]);
 
@@ -131,6 +140,9 @@ export default function ChessGame() {
     setSelected(null);
     setPromo(null);
     setOverlayHidden(false);
+    setHint(null);
+    setTake(null);
+    setGameNo((g) => g + 1);
     countedRef.current = null;
   }, [side]);
 
@@ -145,6 +157,8 @@ export default function ChessGame() {
     setSelected(null);
     setPromo(null);
     setOverlayHidden(false);
+    setHint(null);
+    setTake(null);
     countedRef.current = null;
   };
 
@@ -251,9 +265,9 @@ export default function ChessGame() {
               const row = Math.floor(i / 8), col = i % 8;
               const cls = ["chess-sq", dark ? "is-dark" : "is-light",
                 last && (last.move.from === sq || last.move.to === sq) ? "is-last" : "",
-                selected === sq ? "is-selected" : "", sq === kingInCheck ? "is-check" : "",
+                selected === sq ? "is-selected" : "", hint && (hint.from === sq || hint.to === sq) ? "is-hint" : "", sq === kingInCheck ? "is-check" : "",
                 target ? (target.captured ? "is-capture" : "is-target") : ""].filter(Boolean).join(" ");
-              const label = `${squareName(sq)}${pc ? `, ${colourName(pieceColor(pc))} ${NAME[pieceType(pc)]}` : ""}${target ? ", move here" : ""}${selected === sq ? ", selected" : ""}`;
+              const label = `${squareName(sq)}${pc ? `, ${colourName(pieceColor(pc))} ${NAME[pieceType(pc)]}` : ""}${target ? ", move here" : ""}${selected === sq ? ", selected" : ""}${hint?.from === sq ? ", Nana's hint: move from here" : hint?.to === sq ? ", Nana's hint: move here" : ""}`;
               return (
                 <button key={sq} ref={(el) => { squareRefs.current[sq] = el; }} type="button" className={cls}
                   aria-label={label} tabIndex={sq === focusSq ? 0 : -1} onClick={() => onSquare(sq)}>
@@ -301,6 +315,20 @@ export default function ChessGame() {
 
         <p className="arc-status" role="status" aria-live="polite">{message}</p>
 
+        <ArcadeNana
+          slug="chess"
+          canAsk={yourTurn && !promo}
+          onAsk={() => {
+            // Synchronous on tap: the hint search is capped (lib/arcade/nana-chess.ts TIP_SEARCH) and comes back in tens of milliseconds.
+            const t = chessTip(game);
+            setHint(t ? t.highlight : null);
+            return t ? t.tip : null;
+          }}
+          take={take}
+          resetKey={gameNo}
+          onToggle={() => setHint(null)}
+        />
+
         <div className="chess-foot">
           <ol className="chess-moves" ref={movesRef} aria-label="Moves">
             {history.length === 0 && <li className="chess-moves-empty">No moves yet</li>}
@@ -327,6 +355,9 @@ export default function ChessGame() {
         .chess-sq.is-last.is-light { background:#dcefb0; }
         .chess-sq.is-last.is-dark { background:#a3c46c; }
         .chess-sq.is-selected { box-shadow:inset 0 0 0 3px #17251f99; }
+        .chess-sq.is-hint { box-shadow:inset 0 0 0 3px #ffd166, inset 0 0 14px #ffd166aa; animation:chess-hint 1.4s ease-in-out infinite; }
+        @keyframes chess-hint { 50% { box-shadow:inset 0 0 0 3px #ffd166, inset 0 0 22px #ffd166dd; } }
+        @media(prefers-reduced-motion:reduce) { .chess-sq.is-hint { animation:none; } }
         .chess-sq.is-check { background:radial-gradient(circle, #ff816d 0%, #ff816dcc 38%, transparent 72%), #eef0e6; }
         .chess-sq.is-check.is-dark { background:radial-gradient(circle, #ff816d 0%, #ff816dcc 38%, transparent 72%), #7f9c63; }
         .chess-sq.is-target::after { content:""; position:absolute; width:28%; height:28%; border-radius:50%; background:#17251f44; pointer-events:none; }
