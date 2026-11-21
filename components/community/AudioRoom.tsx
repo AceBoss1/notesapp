@@ -31,6 +31,10 @@ import StudioControls from "@/components/studio/StudioControls";
 import { useLiveSubtitles } from "@/components/studio/useLiveSubtitles";
 import { saveTidyPrefs, tidyPrefs } from "@/lib/moments-tidy-client";
 import { studioOf, studioOn } from "@/lib/studio";
+import { createPortal } from "react-dom";
+import GiftButton from "@/components/GiftButton";
+import GiftShowWatcher from "@/components/GiftShowWatcher";
+import LivePlayer, { FollowPlus, type PlayerLine, type PlayerMore, type PlayerPerson } from "@/components/lives/LivePlayer";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -125,7 +129,11 @@ export function RoomsCard({ cid, canHost, onOpen, startOpen }: { cid: string; ca
 
 type Conn = { pc: RTCPeerConnection; kind: RoomLinkKind; peerAt: string; stream: MediaStream | null };
 
-export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; title?: string; onDone: () => void }) {
+// skin "feed": inside Notes Live's swipe feed (components/lives/LiveFeed.tsx). Viewers get the full-screen TikTok-style player
+// (components/lives/LivePlayer.tsx); the host, speakers, moderators and anyone invited up get this room as it has always been.
+// preview: the live's card from the feed, shown while the room loads. onClose: the feed's ×. onDone gets why the room closed.
+export type FeedPreview = { hostName: string; hostUsername: string; hostAvatar: string; poster: string; watching: number };
+export function RoomScreen({ id, me, title, onDone, skin, preview, onClose }: { id: string; me: string; title?: string; onDone: (message?: string) => void; skin?: "feed"; preview?: FeedPreview; onClose?: () => void }) {
   const [room, setRoom] = useState<RoomDoc | null>(null);
   const [streams, setStreams] = useState<Record<string, MediaStream>>({});
   const [levels, setLevels] = useState<Record<string, boolean>>({});
@@ -230,7 +238,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       cam?.getTracks().forEach((t) => t.stop()); cam = null;
       void ctx?.close().catch(() => {});
       setNote(message || "You left the room.");
-      setTimeout(onDone, message ? 1800 : 300);
+      setTimeout(() => onDone(message), message ? 1800 : 300);
     };
     const leave = (message = "") => { if (!over) capi("/api/community/rooms", { action: "leave", id }).catch(() => {}); finish(message); };
     leaveRef.current = leave;
@@ -642,6 +650,27 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     liveRef.current.resync();
   };
 
+  // Notes Live's feed: a viewer watches in the full-screen player. Anyone with a job in the room (on stage, a moderator, invited up)
+  // gets the room as it has always been, and so does a viewer who taps "Full room view".
+  const [classic, setClassic] = useState(false);
+  const feedView = skin === "feed" && !classic && (!room || (role === "listener" && !perms.length && !live.you?.mod && !myInvite));
+  const programme = room && studioOn(room) ? (
+    <div className="w-full">
+      <ProgramFrame studio={studioOf(room)} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
+        person={(u) => ({ name: room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest"), avatar: room.joined[u]?.avatar ?? "" })}
+        sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} hideSubs={!cc} />
+    </div>
+  ) : null;
+  if (feedView) {
+    return (
+      <FeedRoom id={id} me={me} room={room} title={room?.title ?? title ?? ""} preview={preview} note={note} live={live} listening={listening}
+        videos={audioOnly ? {} : videos} streams={streams} screen={programme} stage={stage} relay={relayRoom} audioOnly={audioOnly} toggleAudioOnly={toggleAudioOnly}
+        liked={liked} like={() => { if (!liked) { setLiked(true); void act({ action: "event", kind: "like" }); } }}
+        livePath={livePath} act={act} onClose={onClose} onClassic={() => setClassic(true)}
+        seat={seat} handUp={handUp} askSeat={() => void askSeat()} cancelSeat={() => { if (!live.raise(false)) void act({ action: "hand", up: false }); }} />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[130] flex bg-ink text-white" role="dialog" aria-modal="true" aria-label={`Audio room: ${room?.title ?? title ?? ""}`}
       style={{ backgroundImage: "radial-gradient(ellipse 80% 55% at 50% 0%, rgba(122,3,40,0.55) 0%, rgba(26,18,16,0) 70%)" }}>
@@ -660,7 +689,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role !== "host" && (room?.profile?.hostUsername || room?.hostUsername) && <div className="mt-2 inline-block rounded-full bg-white p-0.5"><FollowButton username={(room.profile?.hostUsername || room.hostUsername)!} onFollow={() => void act({ action: "event", kind: "follow" })} /></div>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
-        <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
+        <span className="flex shrink-0 flex-col items-end gap-2">
+          <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
+          {skin === "feed" && classic && role === "listener" && <button type="button" onClick={() => setClassic(false)} className="shrink-0 rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">↩ Back to Notes Live</button>}
+        </span>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
@@ -844,6 +876,71 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         </aside>
       )}
     </div>
+  );
+}
+
+// A viewer's room inside Notes Live's feed, drawn by the full-screen player (components/lives/LivePlayer.tsx). Everything it does goes
+// through the same room as the classic screen above: the chat (over the live-rooms socket, or Firestore), likes, shares and follows as
+// room events, gifts with the live's id, a seat on stage. Moderating and hosting stay in the classic screen.
+function FeedRoom({ id, me, room, title, preview, note, live, listening, videos, streams, screen, stage, relay, audioOnly, toggleAudioOnly, liked, like, livePath, act, onClose, onClassic, seat, handUp, askSeat, cancelSeat }: {
+  id: string; me: string; room: RoomDoc | null; title: string; preview?: FeedPreview; note: string; live: LiveChannel; listening: number;
+  videos: Record<string, MediaStream>; streams: Record<string, MediaStream>; screen: React.ReactNode; stage: string[]; relay: boolean;
+  audioOnly: boolean; toggleAudioOnly: () => void; liked: boolean; like: () => void; livePath: string;
+  act: <T = unknown>(body: Record<string, unknown>, tag?: string) => Promise<T | null>; onClose?: () => void; onClassic: () => void;
+  seat: ReturnType<typeof seatAction>; handUp: boolean; askSeat: () => void; cancelSeat: () => void;
+}) {
+  const [fsMsgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
+  useEffect(() => (live.on ? undefined : onSnapshot(query(collection(db, "communityRooms", id, "chat"), orderBy("at"), limitToLast(60)), (s) => setMsgs(s.docs.map((d) => ({ ...(d.data() as RoomChat), id: d.id }))), () => {})), [id, live.on]);
+  const [gift, setGift] = useState<{ uid: string; name: string; username?: string; kind: "host" | "speaker" } | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const msgs = live.on ? live.msgs : fsMsgs;
+  const lines: PlayerLine[] = msgs.map((m) => ({ id: m.id, name: m.ev ? "" : m.from === me ? "You" : m.name, text: m.text, ...(m.ev ? { ev: m.ev } : {}) }));
+  const hostUsername = room?.profile?.hostUsername || room?.hostUsername || preview?.hostUsername || "";
+  const host = { name: room?.hostName || preview?.hostName || "", username: hostUsername, avatar: (room && room.joined[room.hostUid]?.avatar) || preview?.hostAvatar || "" };
+  const main = stage.find((u) => videos[u]);
+  const extra = stage.filter((u) => u !== main && videos[u]).map((u) => ({ key: u, stream: videos[u], label: room?.joined[u]?.name ?? "" }));
+  const faces: PlayerPerson[] = room ? stage.map((u) => ({ key: u, name: room.joined[u]?.name ?? "Someone", avatar: room.joined[u]?.avatar ?? "", badge: u === room.hostUid ? "Host" : "On stage" })) : [];
+  const giftsOn = !!room && room.profile?.gifts !== false && room.hostUid !== me;
+  async function send(t: string): Promise<boolean> {
+    // The same three ways as the room's chat panel: the live-rooms socket, the server (relay rooms), or the chat collection.
+    if (live.send(t)) return true;
+    if (relay) { try { await capi("/api/community/rooms", { action: "chat", id, text: t }); return true; } catch { return false; } }
+    const mine = room?.joined[me];
+    if (!mine) return false;
+    try { await addDoc(collection(db, "communityRooms", id, "chat"), { from: me, name: mine.name, avatar: mine.avatar, text: t, at: new Date().toISOString() } satisfies RoomChat); return true; }
+    catch { return false; }
+  }
+  const loadViewers = async (): Promise<PlayerPerson[]> => {
+    if (!room) return [];
+    if (!relay) return listenersOf(room).map((u) => ({ key: u, name: u === me ? "You" : room.joined[u]?.name ?? "Someone", avatar: room.joined[u]?.avatar ?? "" }));
+    const r = await capi<{ people: { uid: string; name: string; avatar: string }[] }>("/api/community/rooms", { action: "people", id, after: null });
+    return r.people.map((p) => ({ key: p.uid, name: p.uid === me ? "You" : p.name, avatar: p.avatar }));
+  };
+  const slow = relay && (live.status === "live" ? live.slow : room?.chatSlow ?? 0) > 0 ? `Slow mode: one comment every ${live.status === "live" ? live.slow : room?.chatSlow} seconds.` : "";
+  const more: PlayerMore[] = [
+    ...(handUp ? [{ label: "✋ Seat requested · cancel", onClick: cancelSeat }] : seat === "take" ? [{ label: "＋ Take a seat on stage", onClick: askSeat }] : seat === "request" ? [{ label: "✋ Ask to come on stage", onClick: askSeat }] : []),
+    ...(giftsOn && room ? room.speakers.filter((u) => u !== me).map((u) => ({ label: `🎁 Gift ${room.joined[u]?.name ?? "a speaker"}`, onClick: () => setGift({ uid: u, name: room.joined[u]?.name ?? "them", kind: "speaker" }) })) : []),
+    ...(relay ? [{ label: "🔈 Audio only (data saver)", onClick: toggleAudioOnly, pressed: audioOnly }] : []),
+    { label: "🗂 Full room view: stage, chat, people, report", onClick: onClassic },
+    { label: "🎟 Paid lives", href: "/lives/paid" },
+  ];
+  return (
+    <LivePlayer title={title || "Live"} host={host} watching={room ? listening + (room.guests ?? 0) : preview?.watching ?? 0} likes={room?.likes ?? 0}
+      video={main ? videos[main] : null} poster={room ? room.poster ?? "" : preview?.poster ?? ""} extraVideos={extra} screen={screen}
+      sounds={Object.entries(streams).map(([u, s]) => ({ key: u, stream: s, muted: !!room && isMicMuted(room, u) }))}
+      lines={lines} pinned={room?.pinned?.text} faces={faces} loadViewers={room ? loadViewers : undefined}
+      follow={hostUsername && room?.hostUid !== me ? <FollowPlus username={hostUsername} onFollow={() => void act({ action: "event", kind: "follow" })} /> : null}
+      onClose={onClose} liked={liked} onLike={like}
+      onGift={giftsOn && room ? () => setGift({ uid: room.hostUid, name: host.name, username: hostUsername || undefined, kind: "host" }) : undefined}
+      onShare={() => setSharing(true)} more={more}
+      comment={{ kind: "input", send, maxLength: ROOM_CHAT_MAX, note: live.you?.muted ? "The host has muted you in this chat." : live.err || slow }}
+      status={note || (room ? "" : "Joining…")}
+      notice={room && isRecorded(room) ? <p className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}</p> : null}>
+      {room && <LiveEntrance entrance={room.entrance} />}
+      {room && <GiftShowWatcher uid={room.hostUid} toName={host.name} />}
+      {gift && createPortal(<GiftButton sheetOnly onClose={() => setGift(null)} publisherUid={gift.uid} username={gift.username} toName={gift.name} toKind={gift.kind} context="live" liveId={id} />, document.body)}
+      {sharing && <ShareMenu shareRef={null} url={`${window.location.origin}${livePath}`} title={room?.title ?? "Live on #NotesApp"} onClose={() => setSharing(false)} onShared={() => void act({ action: "event", kind: "share" })} />}
+    </LivePlayer>
   );
 }
 

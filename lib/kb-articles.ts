@@ -625,9 +625,9 @@ Anyone can watch a live its host made open to **Everyone**, even without a #Note
 
 **Privacy:** a guest has no account and no name. Their browser gets a pass that only counts them and lets them watch; nothing about them is kept after the live.`),
     A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
-A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
+A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives/paid).
 
-**Scheduling one:** on [Paid lives](/lives) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
+**Scheduling one:** on [Paid lives](/lives/paid) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
 - **${BAND_NAME.early}:** until a date and time you pick.
 - **${BAND_NAME.normal}:** from then until the start.
 - **${BAND_NAME.late}:** from the start until the live has run ${paid.lateWindowMin} minute${paid.lateWindowMin === 1 ? "" : "s"}. After that, no more tickets.

@@ -59,7 +59,7 @@ const FOOTER_GROUPS: { title: string; items: FooterLink[] }[] = [
   { title: "Products", items: [
     { href: "/journals", label: "Journals" }, { href: "/shop", label: "Notes Market" }, { href: "/academy", label: "Notes Academy" },
     { href: "/booking", label: "Booking" }, { href: "/lives", label: "Notes Live" }, { href: "/studio", label: "Live Media Studio Pro" },
-    { href: "/events", label: "Events" }, { href: "/lives", label: "Paid lives" },
+    { href: "/events", label: "Events" }, { href: "/lives/paid", label: "Paid lives" },
     { href: "/ppm", label: "Pay-per-minute sessions" }, { href: "/gifts", label: "Gifts" }, { href: "/boost", label: "Boost" },
     { href: "/coauthoring", label: "Co-authoring" }, { href: "/badges", label: "Verification badges" }, { href: "/write", label: "Write a journal" },
     { href: "/exam-prep", label: "Naija Exam Prep" }, { href: "/exam-prep#exams", label: "Nana Tutor (in Exam Prep)" }, { href: "/sounds", label: "NotesApp Sounds" },
