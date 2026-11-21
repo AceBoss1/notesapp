@@ -1,12 +1,13 @@
-// Achi: a three-in-a-line game on the owner's drawn board. Pure logic, no React or DOM.
+// Achi: a three-in-a-line game. Pure logic, no React or DOM.
 //
 // Points are numbered row by row:   0 — 1 — 2
-//                                   |  \   / |
-//                                   3    4   5
-//                                   |  /   \ |
+//                                   | \ | / |
+//                                   3 — 4 — 5
+//                                   | / | \ |
 //                                   6 — 7 — 8
-// The only drawn lines are the four outer edges and the two diagonals. There is no line through the centre
-// across or down (3–4–5 and 1–4–7 are NOT lines), so pieces only slide along those six lines and only those six win.
+// Eight lines (owner, 21 Nov 2026, replacing the earlier six-line board): the four outer edges, the middle row and
+// middle column through the centre, and the two diagonals. Pieces slide along any line to the next point, and three
+// of yours on any of the eight lines wins.
 
 export type Player = 0 | 1; // 0 = you, 1 = the computer
 export type Cell = Player | null;
@@ -37,9 +38,11 @@ export const LINES: readonly (readonly number[])[] = [
   [2, 5, 8], // right
   [0, 4, 8], // diagonal
   [2, 4, 6], // diagonal
+  [3, 4, 5], // middle row
+  [1, 4, 7], // middle column
 ];
 
-// Neighbours along drawn lines: consecutive points on each line.
+// Neighbours along the lines: consecutive points on each line.
 export const ADJACENT: readonly number[][] = (() => {
   const adj: number[][] = Array.from({ length: 9 }, () => []);
   for (const line of LINES) {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import { useCanvasFit, type CanvasSize } from "@/components/games/useCanvasFit";
 import { ENTRY } from "@/lib/arcade/puffpuff.entry";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
@@ -211,22 +212,25 @@ function drawGoat(ctx: CanvasRenderingContext2D, s: PuffState, g: Goat, t: numbe
   ctx.restore();
 }
 
-function render(canvas: HTMLCanvasElement, s: PuffState, t: number, still: boolean) {
+// `size` is the canvas's CSS size and the pixel ratio its backing store was made for (see useCanvasFit). The whole maze
+// is scaled to fit inside it and centred, whatever the box's shape.
+function render(canvas: HTMLCanvasElement, size: CanvasSize, s: PuffState, t: number, still: boolean) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const dpr = canvas.width / Math.max(1, canvas.clientWidth || 1);
-  const tile = canvas.clientWidth / s.maze.width;
+  const { w, h, dpr } = size;
+  const tile = Math.min(w / s.maze.width, h / s.maze.height);
+  const ox = (w - tile * s.maze.width) / 2; const oy = (h - tile * s.maze.height) / 2;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#1b2a23";
-  ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-  ctx.setTransform(dpr * tile, 0, 0, dpr * tile, 0, 0);
+  ctx.fillRect(0, 0, w, h);
+  ctx.setTransform(dpr * tile, 0, 0, dpr * tile, dpr * ox, dpr * oy);
   drawMaze(ctx, s.maze);
   drawItems(ctx, s, t, still);
   if (s.bonus) drawZobo(ctx, s.maze.bonusTile.x, s.maze.bonusTile.y, !still && s.bonus.ms < 2000 && Math.floor(t / 150) % 2 === 0);
   for (const g of s.goats) drawGoat(ctx, s, g, t, still);
   if (s.phase !== "over") drawBike(ctx, s, t, still);
   // Text in screen pixels so it stays crisp.
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, dpr * ox, dpr * oy);
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.font = `700 ${Math.max(9, tile * 0.55)}px ui-monospace, monospace`;
   for (const p of s.popups) {
@@ -314,8 +318,13 @@ export default function PuffPuffGame() {
     return { score: 0, lives: s.lives, level: 1, phase: s.phase, status: statusFor(s, "idle") };
   });
   const gameRef = useRef<PuffState>(initialState({ seed: 1, speed: "normal" }));
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  // Size the canvas to its box, sharp on high-density screens: the whole maze, as wide as the box allows but never
+  // taller than most of the window, so the bottom rows are always in view.
+  const fit = useCanvasFit((boxW, viewH) => {
+    const h = Math.min((boxW * ROWS) / COLS, Math.max(300, viewH * 0.8));
+    return { w: (h * COLS) / ROWS, h };
+  }, { maxDpr: 3, onFit: () => draw(performance.now()) });
+  const canvasRef = fit.canvas;
   const pendingDir = useRef<Dir | null>(null);
   const bestRef = useRef(0);
   const uiRef = useRef<UiPhase>("idle");
@@ -338,8 +347,8 @@ export default function PuffPuffGame() {
   }, []);
 
   const draw = useCallback((t: number) => {
-    if (canvasRef.current) render(canvasRef.current, gameRef.current, t, stillRef.current);
-  }, []);
+    if (canvasRef.current) render(canvasRef.current, fit.size.current, gameRef.current, t, stillRef.current);
+  }, [canvasRef, fit.size]);
 
   const syncHud = useCallback(() => {
     const s = gameRef.current;
@@ -348,26 +357,6 @@ export default function PuffPuffGame() {
       ? h : { score: s.score, lives: s.lives, level: s.level, phase: s.phase, status }));
   }, []);
 
-  // Size the canvas to its box, sharp on high-density screens.
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    const fit = () => {
-      const w = wrap.clientWidth;
-      const h = Math.round((w * ROWS) / COLS);
-      const dpr = Math.min(3, window.devicePixelRatio || 1);
-      canvas.style.height = `${h}px`;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      draw(performance.now());
-    };
-    fit();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fit) : null;
-    ro?.observe(wrap);
-    window.addEventListener("resize", fit);
-    return () => { ro?.disconnect(); window.removeEventListener("resize", fit); };
-  }, [draw]);
 
   // The game loop: only runs while playing and the page is visible.
   useEffect(() => {
@@ -491,8 +480,8 @@ export default function PuffPuffGame() {
         </div>
 
         <div className="arc-board-wrap pp-board">
-          <div ref={wrapRef} className="pp-canvas-wrap" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => { touchStart.current = null; }}>
-            <canvas ref={canvasRef} className="pp-canvas" role="img"
+          <div ref={fit.wrapRef} className="pp-canvas-wrap" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => { touchStart.current = null; }}>
+            <canvas ref={fit.canvasRef} className="pp-canvas" role="img"
               aria-label={`Puff-Puff Rush board. Market ${hud.level}. Score ${hud.score}. ${hud.lives} lives.`} />
           </div>
           {ui === "idle" && (
@@ -548,7 +537,7 @@ export default function PuffPuffGame() {
         .pp-lives i { display:inline-block; width:10px; height:10px; border-radius:3px 3px 50% 50%; background:#ff816d; box-shadow:inset 0 -3px 0 #e5533d; }
         .pp-board { max-width:520px; margin:0 auto; }
         .pp-canvas-wrap { position:relative; width:100%; touch-action:none; user-select:none; -webkit-user-select:none; }
-        .pp-canvas { display:block; width:100%; }
+        .pp-canvas { display:block; max-width:100%; margin:0 auto; }
         .pp-overlay-soft { background:#14231fb0; pointer-events:none; }
         .pp-pad { display:none; align-items:center; justify-content:center; gap:18px; padding:10px 0 2px; }
         .pp-pad-grid { display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(2,44px); gap:6px; grid-template-areas:". up ." "left down right"; }

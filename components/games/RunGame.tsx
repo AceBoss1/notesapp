@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import { useCanvasFit } from "@/components/games/useCanvasFit";
+import { loadAds, weightedOrder } from "@/components/AdSlot";
 import { ENTRY } from "@/lib/arcade/run.entry";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
@@ -32,17 +34,60 @@ export default function RunGame() {
   const [stepsOn, setStepsOn] = useState(false);
   const [peppered, setPeppered] = useState(false);
 
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // ---- Size: fill the console's width; 16:10 on desktop, taller on phones ----
+  const fit = useCanvasFit((boxW, viewH) => {
+    const w = Math.max(240, boxW);
+    const tall = w < 560;
+    return { w, h: tall ? Math.min(w * 1.4, Math.max(360, viewH * 0.72)) : w * 0.625 };
+  }, { maxDpr: 2.5 });
+  const canvasRef = fit.canvas;
+  const sizeRef = fit.size;
+
   const gameRef = useRef<RunState>(createRun(1, "normal"));
   const phaseRef = useRef<Phase>("ready");
   const inputs = useRef<RunInput[]>([]);
-  const sizeRef = useRef({ w: 640, h: 400, dpr: 1 });
   const crashAt = useRef(0);
   const reduced = useRef(false);
   const soundRef = useRef(true);
   const stepsRef = useRef(false);
   const audio = useRef<{ ctx: AudioContext; out: GainNode; noise: AudioBuffer } | null>(null);
+
+  // ---- Billboards along the street (owner, 21 Nov 2026): the Arcade's booked adverts, or "Your brand here" ----
+  const boardsRef = useRef<Board[]>([]);
+  const [onBoard, setOnBoard] = useState<Board | null>(null); // the advert on the board you passed last, for the link under the game
+  const [booked, setBooked] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadAds("arcade").then((l) => {
+      if (!live) return;
+      const ads = weightedOrder(l.ads.filter((a) => a.provider === "notesapp"));
+      boardsRef.current = ads.map((a) => {
+        const board: Board = { id: a.id, title: a.title, href: a.href, img: null };
+        const src = a.billboard || a.image;
+        if (src) { const img = new Image(); img.decoding = "async"; img.onload = () => { board.img = img; }; img.src = src; }
+        return board;
+      });
+      setBooked(ads.length > 0);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  const trackAd = useCallback((event: "impression" | "click", adId: string) => {
+    const body = JSON.stringify({ adId, event, placement: "arcade", game: "run" });
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon("/api/ads/track", new Blob([body], { type: "application/json" }));
+      else fetch("/api/ads/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+    } catch { /* counting must never break a game */ }
+  }, []);
+  // A board counts as seen once it's big enough to read while you're running: one impression per advert per tab.
+  const lastBoard = useRef<string | null>(null);
+  const boardSeen = useCallback((b: Board) => {
+    if (phaseRef.current !== "playing" || lastBoard.current === b.id) return;
+    lastBoard.current = b.id;
+    setOnBoard(b);
+    const key = `adimp:arcade:billboard:${b.id}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { /* no storage: count it anyway */ }
+    trackAd("impression", b.id);
+  }, [trackAd]);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { soundRef.current = soundOn; }, [soundOn]);
@@ -155,26 +200,6 @@ export default function RunGame() {
     if (inputs.current.length < 3) inputs.current.push(input);
   }, [resume, start]);
 
-  // ---- Size: fill the console's width; 16:10 on desktop, taller on phones ----
-  useEffect(() => {
-    const wrap = wrapRef.current; const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    const fit = () => {
-      const w = Math.max(240, wrap.clientWidth);
-      const tall = w < 560;
-      const h = Math.round(tall ? Math.min(w * 1.4, Math.max(360, window.innerHeight * 0.72)) : w * 0.625);
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      canvas.style.height = `${h}px`;
-      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-      sizeRef.current = { w, h, dpr };
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(wrap);
-    window.addEventListener("resize", fit);
-    return () => { ro.disconnect(); window.removeEventListener("resize", fit); };
-  }, []);
-
   // ---- The loop: step while playing, draw always; stops while the tab is hidden ----
   useEffect(() => {
     let raf = 0; let last = 0; let hudAt = 0; let wasPeppered = false;
@@ -199,7 +224,7 @@ export default function RunGame() {
         const { w, h, dpr } = sizeRef.current;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         const shake = phaseRef.current === "over" && !reduced.current ? Math.max(0, 1 - (now - crashAt.current) / 350) : 0;
-        drawScene(ctx, w, h, gameRef.current, now, reduced.current, shake);
+        drawScene(ctx, w, h, gameRef.current, now, reduced.current, shake, boardsRef.current, boardSeen);
       }
       raf = requestAnimationFrame(frame);
     };
@@ -288,9 +313,9 @@ export default function RunGame() {
           </button>
         </div>
 
-        <div className="arc-board-wrap run-wrap" ref={wrapRef}>
+        <div className="arc-board-wrap run-wrap" ref={fit.wrapRef}>
           <canvas
-            ref={canvasRef}
+            ref={fit.canvasRef}
             className="run-canvas"
             tabIndex={0}
             role="img"
@@ -329,13 +354,21 @@ export default function RunGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <p className="run-boards">
+          {booked && onBoard
+            ? <>On the billboards: <a href={onBoard.href} target="_blank" rel="sponsored noopener noreferrer" onClick={() => trackAd("click", onBoard.id)}>{onBoard.title} ↗</a> <small>SPONSORED</small></>
+            : <>Your brand on these billboards: <a href="/arcade/partners">partner with Notes Arcade ↗</a></>}
+        </p>
       </div>
       <style jsx global>{`
         .run-wrap { touch-action:none; user-select:none; -webkit-user-select:none; background:#1e2147; }
-        .run-canvas { display:block; width:100%; height:auto; outline:none; cursor:pointer; touch-action:none; }
+        .run-canvas { display:block; max-width:100%; outline:none; cursor:pointer; touch-action:none; }
         .run-canvas:focus-visible { outline:2px solid var(--arc-deep); outline-offset:-2px; }
         .run-speed { display:flex; align-items:center; gap:8px; }
         .run-coins { color:#b8860b !important; }
+        .run-boards { margin:4px 2px 0; color:#58645c; font:600 11px ui-monospace,monospace; letter-spacing:.03em; }
+        .run-boards a { color:var(--arc-deep, #2e5a1c); font-weight:800; text-decoration:underline; text-underline-offset:2px; }
+        .run-boards small { margin-left:6px; color:#929b94; font-size:9px; letter-spacing:.1em; }
         .run-pause { position:absolute; top:10px; right:10px; z-index:4; width:34px; height:34px; border:1px solid #ffffff40; border-radius:8px; background:#14231f99; color:#fff; font:700 11px ui-monospace,monospace; letter-spacing:.05em; cursor:pointer; }
         .run-pause:focus-visible { outline:2px solid var(--arc-green); outline-offset:2px; }
         @media(max-width:560px) { .run-console .arc-head { gap:10px 14px; } .run-console .arc-stat strong { font-size:17px; } }
@@ -358,6 +391,9 @@ const FACADES = ["#5b4766", "#6e4c55", "#47546b", "#7a5d4c", "#4f5e4a", "#6a5a73
 const AWNINGS = [["#ff816d", "#fff4e6"], ["#9bd34d", "#f7f7f2"], ["#f2c230", "#3a6ea5"]];
 
 type View = { w: number; h: number; f: number; hz: number; camH: number; camX: number; dist: number };
+type Board = { id: string; title: string; href: string; img: HTMLImageElement | null };
+const BOARD_EVERY = 4; // a roadside billboard every 4th block, alternating sides
+const BOARD_W = 6.4; const BOARD_H = 3.6; // 16:9, like a Notes Life billboard picture
 type P = { x: number; y: number; s: number };
 
 function proj(v: View, x: number, y: number, dz: number): P {
@@ -396,7 +432,7 @@ function box(ctx: CanvasRenderingContext2D, v: View, x0: number, x1: number, y0:
 const laneX = (lane: number) => (lane - 1) * LANE_WIDTH;
 const hash = (a: number, b = 0) => nextRandom((a * 2654435761 + b * 40503 + 7) >>> 0)[0];
 
-function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, s: RunState, now: number, still: boolean, shake: number) {
+function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, s: RunState, now: number, still: boolean, shake: number, boards: Board[] = [], seen?: (b: Board) => void) {
   // Camera: road fills ~84% of the width at the runner; horizon high enough that phones see a long way down the street.
   const f = (0.84 * w * CAM_BACK) / (2 * ROAD_HALF);
   const runnerY = h * 0.9;
@@ -455,7 +491,13 @@ function drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, s: RunSt
   const firstBlock = Math.floor((s.distance - CAM_BACK) / BLOCK);
   const lastBlock = Math.floor((s.distance + FAR) / BLOCK);
   for (let b = lastBlock; b >= firstBlock; b -= 1) {
-    for (const side of [-1, 1]) drawBuilding(ctx, v, b, side);
+    for (const side of [-1, 1]) {
+      drawBuilding(ctx, v, b, side);
+      if (b % BOARD_EVERY === 0 && side === (Math.floor(b / BOARD_EVERY) % 2 === 0 ? 1 : -1)) {
+        const k = Math.floor(b / BOARD_EVERY);
+        drawBillboard(ctx, v, b, side, boards.length ? boards[((k % boards.length) + boards.length) % boards.length] : null, seen);
+      }
+    }
   }
   ctx.globalAlpha = 1;
   // A soft glow down the far end of the street, between the buildings, so far things fade in rather than pop.
@@ -503,7 +545,7 @@ function drawBuilding(ctx: CanvasRenderingContext2D, v: View, b: number, side: n
   if (dz1 <= NEAR || dz0 > FAR) return;
   ctx.globalAlpha = dz0 > FAR - 30 ? Math.max(0, (FAR - dz0) / 30) : 1;
   const x = side * (ROAD_HALF + WALK);
-  const height = 5 + Math.floor(hash(b, side + 5) * 4) * 3; // one to three floors above the shop
+  const height = buildingHeight(b, side);
   const col = FACADES[Math.floor(hash(b, side + 11) * FACADES.length)];
   const n = Math.max(dz0, NEAR);
   // Facade facing the road, and the end wall facing us.
@@ -525,6 +567,63 @@ function drawBuilding(ctx: CanvasRenderingContext2D, v: View, b: number, side: n
       poly(ctx, [proj(v, sx, y0, wa), proj(v, sx, y0, wb), proj(v, sx, y0 + 1.4, wb), proj(v, sx, y0 + 1.4, wa)], lit ? "#ffd27a" : "#2b2440");
     }
   }
+}
+
+const buildingHeight = (b: number, side: number) => 5 + Math.floor(hash(b, side + 5) * 4) * 3; // one to three floors above the shop
+
+// A roadside billboard on two posts at the edge of the pavement, above the shop signs, facing down the street so the runner
+// sees it grow as they come up to it: the advert's picture (cropped to fill), or "YOUR BRAND HERE" when nothing is booked or
+// the picture hasn't loaded yet.
+function drawBillboard(ctx: CanvasRenderingContext2D, v: View, b: number, side: number, board: Board | null, seen?: (b: Board) => void) {
+  const dz = dzOf(v, b * BLOCK + 1.4);
+  if (dz <= NEAR + 0.5 || dz > FAR) return;
+  const y0 = 4; // clear of the shop signs (up to 3.2 m)
+  const xn = side * (ROAD_HALF + 0.9); const xf = xn + side * BOARD_W;
+  const tl = proj(v, Math.min(xn, xf), y0 + BOARD_H, dz); const br = proj(v, Math.max(xn, xf), y0, dz);
+  const bw = br.x - tl.x; const bh = br.y - tl.y;
+  if (bw < 2 || br.x < 0 || tl.x > v.w) return;
+  // Two posts down to the pavement.
+  ctx.strokeStyle = "#1b1922"; ctx.lineWidth = Math.max(1, 0.18 * br.s);
+  for (const t of [0.12, 0.45]) {
+    const x = xn + side * BOARD_W * t;
+    const a = proj(v, x, 0, dz); const c = proj(v, x, y0, dz);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+  }
+  // Frame, then the picture.
+  const pad = Math.max(1, 0.16 * br.s);
+  ctx.fillStyle = "#15131c"; ctx.fillRect(tl.x - pad, tl.y - pad, bw + pad * 2, bh + pad * 2);
+  const img = board?.img;
+  if (img && img.naturalWidth > 0) {
+    const want = bw / bh; const have = img.naturalWidth / img.naturalHeight;
+    let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+    if (have > want) { sw = sh * want; sx = (img.naturalWidth - sw) / 2; } else { sh = sw / want; sy = (img.naturalHeight - sh) / 2; }
+    ctx.drawImage(img, sx, sy, sw, sh, tl.x, tl.y, bw, bh);
+  } else {
+    const g = ctx.createLinearGradient(tl.x, tl.y, br.x, br.y);
+    g.addColorStop(0, "#9bd34d"); g.addColorStop(1, "#4f8a2b");
+    ctx.fillStyle = g; ctx.fillRect(tl.x, tl.y, bw, bh);
+    if (bw > 36) {
+      ctx.fillStyle = "#14231f"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `800 ${Math.max(6, bh * 0.2)}px ui-monospace, monospace`;
+      const line1 = board ? board.title.toUpperCase().slice(0, 22) : "YOUR BRAND HERE";
+      ctx.fillText(line1, tl.x + bw / 2, tl.y + bh * 0.45, bw * 0.9);
+      ctx.font = `700 ${Math.max(5, bh * 0.1)}px ui-monospace, monospace`;
+      ctx.fillText(board ? "NOTES ADS" : "NOTES ARCADE · PARTNER WITH US", tl.x + bw / 2, tl.y + bh * 0.72, bw * 0.9);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+  }
+  if (bw > 90) { // the sponsored tag, as on every Arcade advert
+    const fs = Math.max(6, bh * 0.07);
+    ctx.font = `700 ${fs}px ui-monospace, monospace`;
+    const tw = ctx.measureText("SPONSORED").width;
+    ctx.fillStyle = "#000000aa"; ctx.fillRect(br.x - tw - fs * 1.2, tl.y + fs * 0.4, tw + fs * 0.8, fs * 1.4);
+    ctx.fillStyle = "#fff"; ctx.fillText("SPONSORED", br.x - tw - fs * 0.8, tl.y + fs * 1.45);
+  }
+  // A lamp over the board so it reads at dusk.
+  const lamp = ctx.createLinearGradient(0, tl.y, 0, br.y);
+  lamp.addColorStop(0, "#ffe9b033"); lamp.addColorStop(1, "#ffe9b000");
+  ctx.fillStyle = lamp; ctx.fillRect(tl.x, tl.y, bw, bh);
+  if (board && seen && bw > v.w * 0.12) seen(board);
 }
 
 function drawLamp(ctx: CanvasRenderingContext2D, v: View, x: number, dz: number) {

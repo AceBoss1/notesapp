@@ -8,6 +8,11 @@
 // it and roll again. When the rolling stops, spend every banked die one at a time, in any order, on any seeds. A capture earns
 // another roll, banked with whatever is still unspent. Only the star squares are safe: a seed landing on a start square sends
 // the other colour sitting there back to its yard.
+// Who plays which colour (owner, 21 Nov 2026): state.table says which controller owns each colour and which colours are in play.
+// By default that's four separate players. "2 v 2 yards": the person owns any two colours, one computer the other two; each colour
+// still takes its own turn clockwise, colours with the same owner share squares (never capture each other), and a controller
+// wins with all 8 seeds home. "Knockout": with table.playToLast the game carries on after someone finishes until only one
+// controller is left (state.order is the finishing order, state.loser the one left); see the Knockout helpers at the bottom.
 
 export const PLAYERS = 4;
 export const SEEDS = 4;
@@ -53,6 +58,11 @@ export const HOME_COLUMN: Cell[][] = [
 // Top-left corner of each player's 6×6 yard.
 export const YARD_ORIGIN: Cell[] = [[9, 0], [0, 0], [0, 9], [9, 9]];
 
+// Seats: owner[colour] = the controller playing that colour (0 is the person); active[colour] = that yard is in play (an empty
+// yard is skipped in turn order and has no seeds on the board); playToLast = keep playing until only one controller is unfinished.
+export type LudoTable = { owner: number[]; active: boolean[]; playToLast: boolean };
+export const DEFAULT_TABLE: LudoTable = { owner: [0, 1, 2, 3], active: [true, true, true, true], playToLast: false };
+
 export type DiceCount = 1 | 2;
 export type LudoOptions = {
   dice: DiceCount; // roll one die or two (two by default)
@@ -80,6 +90,7 @@ export type LudoEvent =
 
 export type LudoState = {
   options: LudoOptions;
+  table: LudoTable;
   seeds: number[][]; // [player][seed] → progress
   turn: number;
   phase: "roll" | "move" | "over";
@@ -88,14 +99,20 @@ export type LudoState = {
   dice: number[];
   used: boolean[]; // which of `dice` are spent (or forfeited)
   sixes: number; // 1 die: sixes in a row. 2 dice: double sixes in a row. Reset by any other roll and by a capture.
-  winner: number | null;
-  captures: number[]; // seeds each player has sent back, for the scoreboard
+  winner: number | null; // the controller who finished first (with the default table, the same as the colour)
+  order: number[]; // controllers in the order they got all their seeds home
+  loser: number | null; // the one controller left unfinished when the game ended with only one left (knockout rounds, 2 v 2)
+  captures: number[]; // seeds each colour has sent back, for the scoreboard
   last: LudoEvent | null;
 };
 
-export function newGame(options: Partial<LudoOptions> = {}, first = 0): LudoState {
-  return {
+export function newGame(options: Partial<LudoOptions> = {}, first = 0, table: Partial<LudoTable> = {}): LudoState {
+  const t: LudoTable = { ...DEFAULT_TABLE, ...table };
+  if (t.owner.length !== PLAYERS || t.active.length !== PLAYERS) throw new Error("Bad table");
+  if (new Set(t.owner.filter((_, c) => t.active[c])).size < 2) throw new Error("Bad table: needs two controllers");
+  const state: LudoState = {
     options: { ...DEFAULT_OPTIONS, ...options },
+    table: { owner: [...t.owner], active: [...t.active], playToLast: t.playToLast },
     seeds: Array.from({ length: PLAYERS }, () => Array(SEEDS).fill(YARD)),
     turn: first,
     phase: "roll",
@@ -103,9 +120,36 @@ export function newGame(options: Partial<LudoOptions> = {}, first = 0): LudoStat
     used: [],
     sixes: 0,
     winner: null,
+    order: [],
+    loser: null,
     captures: Array(PLAYERS).fill(0),
     last: null,
   };
+  return state.table.active[first] ? state : { ...state, turn: nextPlayer(state, first) };
+}
+
+/** The controllers taking part (owners of colours in play), lowest first. */
+export function controllers(state: LudoState): number[] {
+  return [...new Set(state.table.owner.filter((_, c) => state.table.active[c]))].sort((a, b) => a - b);
+}
+
+/** The colours in play that this controller owns. */
+export function coloursOf(state: LudoState, controller: number): number[] {
+  return state.table.owner.flatMap((o, c) => (o === controller && state.table.active[c] ? [c] : []));
+}
+
+/** Two colours are on the same side (same controller): they share squares and never capture each other. */
+export function friendly(state: LudoState, a: number, b: number): boolean {
+  return state.table.owner[a] === state.table.owner[b];
+}
+
+function allHome(state: LudoState, controller: number): boolean {
+  return coloursOf(state, controller).every((c) => state.seeds[c].every((p) => p === HOME));
+}
+
+/** Still taking turns: in play, seeds still to get home, controller not finished. */
+export function inPlay(state: LudoState, colour: number): boolean {
+  return state.table.active[colour] && !state.seeds[colour].every((p) => p === HOME) && !state.order.includes(state.table.owner[colour]);
 }
 
 /** A fair die from any `() => number` in [0, 1). Pass a seeded one in tests. */
@@ -176,13 +220,32 @@ export function diceForSeed(state: LudoState, seed: number): number[] {
   return state.dice.flatMap((d, i) => (!state.used[i] && p !== undefined && target(p, d) !== null ? [i] : []));
 }
 
-function nextPlayer(p: number): number {
-  return (p + 1) % PLAYERS;
+// The next colour clockwise that's still taking turns (empty yards and finished colours are skipped).
+function nextPlayer(state: LudoState, p: number): number {
+  for (let i = 1; i <= PLAYERS; i++) {
+    const q = (p + i) % PLAYERS;
+    if (inPlay(state, q)) return q;
+  }
+  return p;
 }
 
 // Next player's turn. The dice stay on show (all marked spent).
 function endTurn(state: LudoState, last: LudoEvent): LudoState {
-  return { ...state, used: state.dice.map(() => true), turn: nextPlayer(state.turn), phase: "roll", sixes: 0, last };
+  return { ...state, used: state.dice.map(() => true), turn: nextPlayer(state, state.turn), phase: "roll", sixes: 0, last };
+}
+
+// The colour whose turn it is has just got its last seed home. If that finishes its controller, they go into the finishing
+// order; the game ends at the first finish (or, with playToLast, when only one controller is left). Otherwise play moves on:
+// a colour with every seed home has nothing left to move, so any dice it still holds are lost.
+function colourDone(state: LudoState, event: (forfeited: number[]) => LudoEvent): LudoState {
+  const c = state.table.owner[state.turn];
+  const order = allHome(state, c) && !state.order.includes(c) ? [...state.order, c] : state.order;
+  const remaining = controllers(state).filter((x) => !order.includes(x));
+  const next = { ...state, order };
+  if (order.length > state.order.length && (!state.table.playToLast || remaining.length <= 1)) {
+    return { ...next, phase: "over", winner: order[0], loser: remaining.length === 1 ? remaining[0] : null, last: event([]) };
+  }
+  return endTurn(next, event(banked(state)));
 }
 
 /** Take a roll (one value with 1 die, two with 2 dice) and bank it. A six (a double six with 2 dice) means roll again;
@@ -223,7 +286,7 @@ export function applyAction(state: LudoState, action: LudoAction): LudoState {
     for (const v of [6, 5]) used[state.dice.findIndex((d, i) => d === v && !used[i])] = true;
     const next = { ...state, seeds, used };
     const event: LudoEvent = { kind: "straight-home", player, seed: h, bonus: false };
-    if (seeds[player].every((p) => p === HOME)) return { ...next, phase: "over", winner: player, last: event };
+    if (seeds[player].every((p) => p === HOME)) return colourDone(next, () => event);
     return afterSpend(next, () => event);
   }
 
@@ -238,7 +301,7 @@ export function applyAction(state: LudoState, action: LudoAction): LudoState {
   const sq = absSquare(player, to);
   if (sq !== null && !SAFE.has(sq)) {
     for (let p = 0; p < PLAYERS; p++) {
-      if (p === player) continue;
+      if (friendly(state, p, player) || !state.table.active[p]) continue; // your own colours share the square
       seeds[p].forEach((q, i) => {
         if (absSquare(p, q) === sq) { seeds[p][i] = YARD; captured.push({ player: p, seed: i }); }
       });
@@ -255,7 +318,7 @@ export function applyAction(state: LudoState, action: LudoAction): LudoState {
     kind: "move", player, seed, from, to, die: value as number, captured, bonus, forfeited, ...(hitHome ? { hitHome: true } : {}),
   });
 
-  if (seeds[player].every((p) => p === HOME)) return { ...next, phase: "over", winner: player, last: event(false, []) };
+  if (seeds[player].every((p) => p === HOME)) return colourDone(next, (forfeited) => event(false, forfeited));
   if (captured.length > 0) return { ...next, phase: "roll", sixes: 0, last: event(true, []) }; // roll again; unspent dice stay banked
   return afterSpend(next, (forfeited) => event(false, forfeited));
 }
@@ -269,12 +332,12 @@ export function applyMove(state: LudoState, seed: number, die?: number): LudoSta
 }
 
 /** How many opponent seeds could land on this square with one die (1–6), counting a colour's yard as threatening
- * its start square (a six brings a seed straight out onto it). Star squares are never threatened. */
+ * its start square (a six brings a seed straight out onto it). Star squares are never threatened; nor are you by your own colours. */
 export function threatAt(state: LudoState, player: number, sq: number): number {
   if (SAFE.has(sq)) return 0;
   let n = 0;
   for (let p = 0; p < PLAYERS; p++) {
-    if (p === player) continue;
+    if (friendly(state, p, player) || !state.table.active[p]) continue;
     if (sq === START[p] && state.seeds[p].includes(YARD)) n++;
     for (const q of state.seeds[p]) {
       const a = absSquare(p, q);
@@ -290,7 +353,7 @@ export function threatAt(state: LudoState, player: number, sq: number): number {
 // reach safety > advance the leader, avoiding squares an opponent can reach.
 function actionScore(state: LudoState, action: LudoAction, after: LudoState): number {
   const player = state.turn;
-  if (after.phase === "over" && after.winner === player) return 100000;
+  if (after.order.length > state.order.length) return 100000; // this finishes the controller: all its seeds home
   if (action.kind === "home") return 1700;
   const from = state.seeds[player][action.seed];
   const to = after.seeds[player][action.seed];
@@ -362,4 +425,85 @@ export function seededRng(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** Play a game out between computer players to the end (the knockout's "play out the rest"). */
+export function playOut(state: LudoState, rng: () => number = Math.random, maxSteps = 100000): LudoState {
+  let s = state;
+  for (let i = 0; i < maxSteps && s.phase !== "over"; i++) s = autoStep(s, rng);
+  return s;
+}
+
+/** Owners for a two-controller game: `me` plays the two colours in `myYards`, `them` the other two. */
+export function pairOwners(me: number, them: number, myYards: readonly number[]): number[] {
+  if (myYards.length !== 2 || myYards[0] === myYards[1] || myYards.some((c) => !Number.isInteger(c) || c < 0 || c >= PLAYERS)) {
+    throw new Error("Pick two different yards");
+  }
+  return Array.from({ length: PLAYERS }, (_, c) => (myYards.includes(c) ? me : them));
+}
+
+/** "2 v 2 yards": the person (controller 0) plays `myYards`, one computer (controller 1) the other two. */
+export function twoYardsTable(myYards: readonly number[]): LudoTable {
+  return { owner: pairOwners(0, 1, myYards), active: [true, true, true, true], playToLast: false };
+}
+
+// ---- Knockout (owner, 21 Nov 2026) ----
+// Round 1: four players, one colour each, played until only one hasn't got all four home: that one is out. Round 2: the
+// three left play a fresh game, the knocked-out player's yard empty; last is out again. Final: the two left own two yards
+// each (2 v 2 yards rules) and the first to get all 8 home wins the knockout.
+
+export type KnockoutRound = { round: number; order: number[]; loser: number | null };
+export type Knockout = {
+  round: 1 | 2 | 3; // 3 = the final
+  alive: number[]; // controllers still in, lowest first
+  out: number[]; // controllers knocked out, first out first (the runner-up last once there's a champion)
+  champion: number | null;
+  results: KnockoutRound[];
+};
+
+export function newKnockout(): Knockout {
+  return { round: 1, alive: [0, 1, 2, 3], out: [], champion: null, results: [] };
+}
+
+/** The final's default yards: each finalist keeps its own colour and takes its opposite yard, or, if the two finalists sit
+ * opposite each other, the yard after its own clockwise. Returns an owner array. */
+export function finalYards(alive: readonly number[]): number[] {
+  const [a, b] = alive;
+  if (alive.length !== 2) throw new Error("The final needs two players");
+  const mine = (a + 2) % PLAYERS === b ? [a, (a + 1) % PLAYERS] : [a, (a + 2) % PLAYERS];
+  return pairOwners(a, b, mine);
+}
+
+/** The table for the knockout's current round. In the final, `owner` may give the finalists a different split of yards
+ * (each must own exactly two). */
+export function knockoutTable(ko: Knockout, owner?: readonly number[]): LudoTable {
+  if (ko.round < 3) {
+    return { owner: [0, 1, 2, 3], active: [0, 1, 2, 3].map((c) => ko.alive.includes(c)), playToLast: true };
+  }
+  const o = owner ? [...owner] : finalYards(ko.alive);
+  if (o.length !== PLAYERS || ko.alive.some((c) => o.filter((x) => x === c).length !== 2)) throw new Error("Each finalist owns two yards");
+  return { owner: o, active: [true, true, true, true], playToLast: false };
+}
+
+/** A fresh game for the knockout's current round. */
+export function knockoutGame(ko: Knockout, options: Partial<LudoOptions> = {}, owner?: readonly number[]): LudoState {
+  if (ko.champion !== null) throw new Error("The knockout is over");
+  return newGame(options, 0, knockoutTable(ko, owner));
+}
+
+/** Record a finished round: the last player is out; after the final, the winner is champion. */
+export function advanceKnockout(ko: Knockout, game: LudoState): Knockout {
+  if (game.phase !== "over" || game.loser === null || ko.champion !== null) throw new Error("The round isn't over");
+  const results = [...ko.results, { round: ko.round, order: [...game.order], loser: game.loser }];
+  const alive = ko.alive.filter((c) => c !== game.loser);
+  const out = [...ko.out, game.loser];
+  if (ko.round === 3) return { ...ko, alive, out, champion: game.winner, results };
+  return { ...ko, round: (ko.round + 1) as 2 | 3, alive, out, results };
+}
+
+/** Play the rest of a knockout between computers (when the person is out). */
+export function playOutKnockout(ko: Knockout, options: Partial<LudoOptions> = {}, rng: () => number = Math.random): Knockout {
+  let k = ko;
+  while (k.champion === null) k = advanceKnockout(k, playOut(knockoutGame(k, options), rng));
+  return k;
 }

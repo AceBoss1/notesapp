@@ -1,4 +1,4 @@
-// Achi (lib/arcade/achi.ts) on the owner's drawn board: the six lines and who connects to whom, wins only on those lines,
+// Achi (lib/arcade/achi.ts) on the eight-line board: the lines and who connects to whom, wins on any line,
 // placing then moving, the no-move loss, the draws, and the computer at every level.
 // Run: npx -y tsx tests/arcade/achi.test.ts
 import assert from "node:assert/strict";
@@ -15,42 +15,47 @@ const at = (rows: string, turn: Player = 0, over: Partial<AchiState> = {}): Achi
 const place = (to: number): Move => ({ kind: "place", to });
 const slide = (from: number, to: number): Move => ({ kind: "move", from, to });
 
-// --- The board as drawn ---
-ok("exactly six lines: four edges and two diagonals, none through the middle across or down", () => {
+// --- The board ---
+ok("eight lines: four edges, the middle row and column, and two diagonals", () => {
   const norm = LINES.map((l) => [...l].sort((a, b) => a - b).join(",")).sort();
-  assert.deepEqual(norm, ["0,1,2", "0,3,6", "0,4,8", "2,4,6", "2,5,8", "6,7,8"]);
-  assert.ok(!norm.includes("3,4,5") && !norm.includes("1,4,7"));
+  assert.deepEqual(norm, ["0,1,2", "0,3,6", "0,4,8", "1,4,7", "2,4,6", "2,5,8", "3,4,5", "6,7,8"]);
 });
-ok("adjacency: centre 4 neighbours (corners only), edge-middles 2, corners 3", () => {
-  assert.deepEqual(ADJACENT[4], [0, 2, 6, 8]);
-  for (const mid of [1, 3, 5, 7]) assert.equal(ADJACENT[mid].length, 2, `edge-middle ${mid}`);
+ok("adjacency: centre joins all 8 points, edge-middles 3, corners 3", () => {
+  assert.deepEqual(ADJACENT[4], [0, 1, 2, 3, 5, 6, 7, 8]);
+  for (const mid of [1, 3, 5, 7]) assert.equal(ADJACENT[mid].length, 3, `edge-middle ${mid}`);
   for (const c of [0, 2, 6, 8]) assert.equal(ADJACENT[c].length, 3, `corner ${c}`);
   assert.deepEqual(ADJACENT[0], [1, 3, 4]);
-  assert.deepEqual(ADJACENT[1], [0, 2]);
-  assert.deepEqual(ADJACENT[3], [0, 6]);
+  assert.deepEqual(ADJACENT[1], [0, 2, 4]);
+  assert.deepEqual(ADJACENT[3], [0, 4, 6]);
   assert.deepEqual(ADJACENT[8], [4, 5, 7]);
-  assert.ok(!ADJACENT[1].includes(4) && !ADJACENT[3].includes(4), "no line from an edge-middle to the centre");
   // symmetric
   ADJACENT.forEach((ns, i) => ns.forEach((j) => assert.ok(ADJACENT[j].includes(i))));
 });
 
 // --- Winning ---
-ok("each of the six lines wins", () => {
+ok("each of the eight lines wins", () => {
   for (const line of LINES) {
     const b: Cell[] = Array(9).fill(null);
     line.forEach((i) => (b[i] = 1));
     assert.deepEqual(lineOf(b, 1), [...line]);
   }
 });
-ok("the middle row and middle column do NOT win", () => {
-  assert.equal(lineOf(B("... xxx ..."), 0), null);
-  assert.equal(lineOf(B(".x. .x. .x."), 0), null);
-  assert.equal(lineOf(B("x.. .x. ..o"), 0), null);
+ok("the middle row and middle column win (the owner's screenshot: three across the middle)", () => {
+  assert.deepEqual(lineOf(B("... xxx ..."), 0), [3, 4, 5]);
+  assert.deepEqual(lineOf(B(".x. .x. .x."), 0), [1, 4, 7]);
+  assert.equal(lineOf(B("x.. .x. ..o"), 0), null, "not a line");
+  assert.equal(lineOf(B("xx. ..x ..."), 0), null, "not a line");
 });
-ok("placing a third piece in the centre row doesn't end the game", () => {
+ok("placing a third piece in the centre row wins", () => {
   const s = applyMove(at("o.o xx. o..", 0), place(5));
-  assert.equal(s.winner, null);
-  assert.equal(s.winLine, null);
+  assert.equal(s.winner, 0);
+  assert.deepEqual(s.winLine, [3, 4, 5]);
+});
+ok("sliding into the middle row wins", () => {
+  // The screenshot: o at 0, 2, 7; x at 3, 5 and one more slides into the centre.
+  const s = applyMove(at("o.o x.x xo.", 0), slide(6, 4));
+  assert.equal(s.winner, 0);
+  assert.deepEqual(s.winLine, [3, 4, 5]);
 });
 ok("a line made while placing wins at once", () => {
   const s = applyMove(at("xx. oo. ...", 0), place(2));
@@ -85,8 +90,8 @@ ok("after six placements both players move, only along lines to an empty neighbo
   assert.equal(s.turn, 0);
   assert.ok(legalMoves(s).every((m) => m.kind === "move"));
   assert.ok(!isLegal(s, place(0)), "no more placing");
-  // x at 4 can go to 0 and 2 (6 and 8 are taken); x at 3 to 0; x at 8 to 7 (4 and 5 taken).
-  assert.deepEqual(targetsFrom(s, 4), [0, 2]);
+  // x at 4 can go to any empty point (0, 2, 7); x at 3 to 0 (4 and 6 taken); x at 8 to 7 (4 and 5 taken).
+  assert.deepEqual(targetsFrom(s, 4), [0, 2, 7]);
   assert.deepEqual(targetsFrom(s, 3), [0]);
   assert.deepEqual(targetsFrom(s, 8), [7]);
   assert.ok(!isLegal(s, slide(3, 2)), "not two steps");
@@ -114,7 +119,7 @@ ok("cannotMove: a player whose three pieces are all hemmed in has no move", () =
   assert.equal(cannotMove(B("xxo x.. o.o"), 0), false, "4 is free");
   assert.equal(cannotMove(B("xx. ... ..."), 0), false, "still placing");
 });
-ok("on the drawn board, a player can only be hemmed in once a line is already filled", () => {
+ok("a player can only be hemmed in once a line is already filled", () => {
   // Every full position (3 v 3) where a player is stuck already has a line on it (theirs or the other side's), so a line win comes first.
   let stuck = 0;
   const walk = (i: number, b: Cell[], x: number, o: number) => {
@@ -149,8 +154,9 @@ ok(`${MOVE_CAP} turns with no winner is a draw`, () => {
 });
 
 // --- The computer ---
-ok("the empty board is a draw with perfect play", () => {
-  assert.equal(solvedValue(initialState(0)).v, "draw");
+ok("on the eight-line board the first player wins with perfect play", () => {
+  assert.equal(solvedValue(initialState(0)).v, "win");
+  assert.equal(solvedValue(initialState(1)).v, "win");
 });
 ok("every level takes a win in one", () => {
   for (const level of ["easy", "medium", "hard"] as Level[]) {
@@ -188,18 +194,22 @@ ok("perfect computer never loses to random play (400 games, both starting)", () 
   assert.ok(tally.won > 300, `hard should win most games against random (won ${tally.won})`);
   console.log(`      hard vs random: won ${tally.won}, drew ${tally.drawn}, lost 0`);
 });
-ok("hard never loses to medium or easy either", () => {
+ok("hard never loses when it starts, and beats easy and medium most of the time when they start", () => {
   const rng = seededRng(11);
   for (const lvl of ["easy", "medium"] as Level[]) {
+    let lost = 0;
     for (let g = 0; g < 40; g++) {
-      const end = playGame((g % 2) as Player, (s) => chooseMove(s, s.turn === 1 ? "hard" : lvl, rng));
-      assert.notEqual(end.winner, 0, `${lvl} beat hard`);
+      const first = (g % 2) as Player;
+      const end = playGame(first, (s) => chooseMove(s, s.turn === 1 ? "hard" : lvl, rng));
+      if (first === 1) assert.equal(end.winner, 1, `${lvl} beat hard when hard started`);
+      if (end.winner === 0) lost++;
     }
+    assert.ok(lost < 10, `${lvl} beat hard ${lost} times in 20 starts`);
   }
 });
-ok("hard vs hard is always a draw", () => {
+ok("hard vs hard: whoever starts wins", () => {
   const rng = seededRng(3);
-  for (let g = 0; g < 20; g++) assert.equal(playGame((g % 2) as Player, (s) => chooseMove(s, "hard", rng)).winner, "draw");
+  for (let g = 0; g < 20; g++) assert.equal(playGame((g % 2) as Player, (s) => chooseMove(s, "hard", rng)).winner, g % 2);
 });
 ok("full games finish at every pairing, legally", () => {
   const rng = seededRng(5);
