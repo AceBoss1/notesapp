@@ -11,6 +11,8 @@ import {
 } from "@/lib/arcade/whot";
 import { whotTake, whotTip } from "@/lib/arcade/nana-whot";
 import type { NanaTake } from "@/lib/arcade/nana";
+import { encodeWhotMove, whotTourneyStart } from "@/lib/arcade/replay-whot";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 const RECORD_KEY = "notes-arcade-whot-record";
 const COMPUTER_DELAY = 650;
@@ -50,8 +52,16 @@ function CardBack() {
 
 type Record_ = { won: number; lost: number };
 
-export default function WhotGame() {
-  const [game, setGame] = useState<WhotState | null>(null);
+// Tournament mode (owner, 21 Nov 2026: "start tournaments"; lib/arcade/tournament-games.ts TourneyProps): the deal comes from the
+// tournament's seed through whotTourneyStart, the same function the server replays from, so both sides start from the identical table.
+// Every move you make is recorded with encodeWhotMove (the format replay-whot.ts reads), and the recording goes to `onFinish` once, when the
+// game ends. No new game, no Nana, and the practice won/lost record is left alone.
+export default function WhotGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  const [game, setGame] = useState<WhotState | null>(() => (tourney ? whotTourneyStart(tourney.seed, tourney.level) : null));
+  const tourneyRef = useRef(tourney);
+  tourneyRef.current = tourney;
+  const recRef = useRef<string[]>([]);
+  const sentRef = useRef(false);
   const [record, setRecord] = useState<Record_>({ won: 0, lost: 0 });
   const [muted, setMuted] = useState(false);
   // Nana (owner, 21 Nov 2026): the move she suggests, lit in gold until the game moves on, and her take on the computer's last move.
@@ -67,6 +77,20 @@ export default function WhotGame() {
       if (saved && typeof saved.won === "number" && typeof saved.lost === "number") setRecord(saved);
     } catch { /* storage blocked: keep a fresh record */ }
   }, []);
+
+  // A new try (a new run id) deals afresh from its seed with an empty recording.
+  const tourneyRun = tourney?.runId;
+  const firstRun = useRef(tourneyRun);
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || tourneyRun === firstRun.current) return; // the first try was dealt by useState above
+    firstRun.current = tourneyRun;
+    recRef.current = [];
+    sentRef.current = false;
+    setTake(null);
+    setRound((r) => r + 1);
+    setGame(whotTourneyStart(t.seed, t.level));
+  }, [tourneyRun]);
 
   const beep = useCallback((freq: number, dur = 0.09) => {
     if (mutedRef.current || typeof window === "undefined" || !window.AudioContext) return;
@@ -85,6 +109,11 @@ export default function WhotGame() {
     setGame(next);
     if (next.phase !== "over") { beep(sound); return; }
     beep(next.winner === 0 ? 880 : 196, 0.3);
+    const t = tourneyRef.current;
+    if (t) {
+      if (!sentRef.current) { sentRef.current = true; t.onFinish(recRef.current.join(",")); }
+      return;
+    }
     setRecord((r) => {
       const updated = next.winner === 0 ? { ...r, won: r.won + 1 } : { ...r, lost: r.lost + 1 };
       try { arcadeStore.setItem(RECORD_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
@@ -94,10 +123,12 @@ export default function WhotGame() {
 
   const move = (m: WhotMove) => {
     if (!game || game.phase === "over" || game.turn !== 0) return;
+    if (tourneyRef.current) recRef.current.push(encodeWhotMove(m));
     commit(applyMove(game, m), m.type === "draw" ? 330 : 520);
   };
 
   const deal = () => {
+    if (tourneyRef.current) return; // one deal per tournament try
     setTake(null);
     setRound((r) => r + 1);
     // Take turns to start: if you won the last game, the computer goes first.
@@ -110,7 +141,7 @@ export default function WhotGame() {
     const t = window.setTimeout(() => {
       const m = computerMove(game);
       const next = applyMove(game, m);
-      setTake(whotTake(game, m, next));
+      if (!tourneyRef.current) setTake(whotTake(game, m, next));
       commit(next, 440);
     }, COMPUTER_DELAY);
     return () => window.clearTimeout(t);
@@ -153,10 +184,12 @@ export default function WhotGame() {
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOUR CARDS</span><strong>{mine.length}</strong></div>
           <div className="arc-stat"><span className="arc-label">COMPUTER</span><strong>{theirs.length}</strong></div>
-          <div className="arc-stat"><span className="arc-label">WON · LOST</span><strong>{record.won} · {record.lost}</strong></div>
+          {tourney
+            ? <div className="arc-stat"><span className="arc-label">TOURNAMENT</span><strong className="whot-same">same deal for everyone</strong></div>
+            : <div className="arc-stat"><span className="arc-label">WON · LOST</span><strong>{record.won} · {record.lost}</strong></div>}
           <span className="arc-spacer" />
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn" onClick={deal} aria-label="Start a new game">NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn" onClick={deal} aria-label="Start a new game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap whot-board">
@@ -224,12 +257,16 @@ export default function WhotGame() {
               <p className="arc-overlay-kicker">{!game ? "READY WHEN YOU ARE" : game.winner === 0 ? "CHECK UP!" : "UNLUCKY"}</p>
               <h2>{!game ? "Let's play Whot." : game.winner === 0 ? "You win." : "Computer wins."}</h2>
               <p>{!game ? "Five cards each. Match shape or number." : game.log}</p>
-              <button type="button" className="arc-btn" onClick={deal} aria-label={game ? "Play again" : "Deal the cards"}>{game ? "PLAY AGAIN" : "DEAL"}</button>
+              {tourney
+                ? <p className="whot-sent" role="status">{tourney.finishedText ?? "Sending your game to be checked…"}</p>
+                : <button type="button" className="arc-btn" onClick={deal} aria-label={game ? "Play again" : "Deal the cards"}>{game ? "PLAY AGAIN" : "DEAL"}</button>}
             </div>
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
-        <ArcadeNana slug="whot" canAsk={myTurn || choosing} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />
+        {tourney
+          ? <ArcadeNana slug="whot" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+          : <ArcadeNana slug="whot" canAsk={myTurn || choosing} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />}
       </div>
 
       <style jsx global>{`
@@ -275,6 +312,8 @@ export default function WhotGame() {
         /* Nana's suggestion: a gold ring and a small lift, so it stands out from the green "you can play this" cues. */
         .whot-card.is-hand.is-nana,.whot-market.is-nana .whot-card { box-shadow:0 0 0 3px #ffd166,0 8px 18px #0007; transform:translateY(-8px); }
         .whot-shape-btn.is-nana { box-shadow:0 0 0 3px #ffd166; background:#fff6dc; }
+        .whot-same { font-size:12px !important; letter-spacing:.02em; }
+        .whot-sent { font-weight:600; }
         @media(max-width:420px) { .whot-board { min-height:420px; padding:12px 8px 14px; }.whot-hand { gap:5px; } }
         @media(prefers-reduced-motion:reduce) { .whot-card.is-top { animation:none; }.whot-card.is-hand,.whot-market.is-live .whot-card { transition:none; }.whot-card.is-hand.is-nana,.whot-market.is-nana .whot-card { transform:none; } }
       `}</style>

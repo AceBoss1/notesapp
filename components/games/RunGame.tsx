@@ -10,6 +10,7 @@ import { fitsSpot } from "@/lib/ads";
 import { encodeStep, stepDt } from "@/lib/arcade/run-replay";
 import { ENTRY } from "@/lib/arcade/run.entry";
 import { arcadeStore } from "@/lib/arcade/store";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 import {
   LANE_GLIDE_MS, LANE_WIDTH, OBSTACLES, PEPPER_MS, STRIDE_M, createRun, jumpHeight, nextRandom, score, step,
   type ObstacleKind, type Obstacle, type Pickup, type RunEvent, type RunInput, type RunState, type Speed,
@@ -38,7 +39,34 @@ export type RunTournament = {
   note: string;
 };
 
-export default function RunGame({ tournament, extra }: { tournament?: RunTournament; extra?: React.ReactNode } = {}) {
+const isSpeed = (v: string): v is Speed => Object.prototype.hasOwnProperty.call(SPEED_LABEL, v);
+
+type Props = { tournament?: RunTournament; tourney?: TourneyProps; extra?: React.ReactNode };
+
+export default function RunGame({ tournament: davido, tourney, extra }: Props = {}) {
+  // The Arcade tournaments (owner, 21 Nov 2026: "start tournaments"; lib/arcade/tournament-games.ts TourneyProps) hand the game a seed
+  // and run id the page already got from the server, and take the recording back through onFinish. Rather than a second recording path,
+  // they're adapted into the DAVIDO shape above, so both modes step, record and send in exactly the same code. One try per run id: once
+  // it's been played, begin() says no until the page gives us the next run id.
+  const usedRun = useRef<string | null>(null);
+  const tourneyFinish = useRef(tourney?.onFinish);
+  tourneyFinish.current = tourney?.onFinish;
+  const runId = tourney?.runId; const seed = tourney?.seed; const lv = tourney?.level;
+  const generic = useMemo<RunTournament | undefined>(() => {
+    if (runId === undefined || seed === undefined || lv === undefined) return undefined;
+    return {
+      level: isSpeed(lv) ? lv : "normal",
+      begin: async () => {
+        if (usedRun.current === runId) return null;
+        usedRun.current = runId;
+        return { runId, seed };
+      },
+      end: (_id, recording) => tourneyFinish.current?.(recording),
+      title: "Tournament · same street for everyone",
+      note: "Everyone runs the same street at the same speed. Up jumps, down slides, left and right change lanes.",
+    };
+  }, [runId, seed, lv]);
+  const tournament = davido ?? generic;
   const [phase, setPhase] = useState<Phase>("ready");
   const [level, setLevel] = useState<Speed>(tournament?.level ?? "normal");
   const tRef = useRef(tournament);
@@ -118,6 +146,12 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
   }, [trackAd]);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  // The page's next try (a new run id) brings back the start screen, at the tournament's speed.
+  useEffect(() => {
+    if (!generic) return;
+    setLevel(generic.level);
+    if (phaseRef.current === "over") { phaseRef.current = "ready"; setPhase("ready"); }
+  }, [generic]);
   useEffect(() => { bestNow.current = best; }, [best]);
   useEffect(() => { soundRef.current = soundOn; }, [soundOn]);
   useEffect(() => { stepsRef.current = stepsOn; }, [stepsOn]);
@@ -410,7 +444,7 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
               <p className="arc-overlay-kicker">{newBest ? "NEW BEST!" : "RUN OVER"}</p>
               <h2>{crash ? CRASH_TEXT[crash] : "Run over."}</h2>
               <p>Score {hud.score} · Best {best} · {hud.metres} m · {hud.coins} coins</p>
-              <button type="button" className="arc-btn" onClick={start} disabled={starting} aria-label="Play again">{starting ? "STARTING…" : tournament ? "NEXT TRY" : "PLAY AGAIN"}</button>
+              {generic && !davido ? <p role="status"><b>{tourney?.finishedText ?? "Sending your run to be checked…"}</b></p> : <button type="button" className="arc-btn" onClick={start} disabled={starting} aria-label="Play again">{starting ? "STARTING…" : tournament ? "NEXT TRY" : "PLAY AGAIN"}</button>}
             </div>
           )}
         </div>
