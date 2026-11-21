@@ -26,12 +26,12 @@ export default function ArcadeVenturesCards({ className = "" }: { className?: st
           </p>
           <Link href="/arcade" className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 font-ui text-sm font-bold text-[#0d1713] hover:bg-emerald-400">Open Notes Arcade →</Link>
         </div>
-        <ul className="mt-5 grid flex-1 auto-rows-fr grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-4 sm:px-4 sm:pb-4" aria-label="Games in Notes Arcade">
+        <ul className="mt-5 grid flex-1 auto-rows-fr grid-cols-3 gap-2 px-3 pb-3 sm:px-4 sm:pb-4" aria-label="Games in Notes Arcade">
           {ARCADE_GAMES.map((g) => (
             <li key={g.slug} className="flex">
               <Link href={g.path} className="group flex w-full flex-col overflow-hidden rounded-xl bg-[#0f1a15] ring-1 ring-white/10 transition hover:ring-emerald-400/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400">
                 <span className="relative block min-h-[3.5rem] flex-1 aspect-[16/10]">
-                  <Image src={`/images/arcade/${g.slug}.png`} alt="" fill sizes="(min-width: 1024px) 140px, 30vw" className="object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+                  <Image src={`/images/arcade/${g.slug}.png`} alt="" fill sizes="(min-width: 1024px) 190px, 30vw" className="object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
                 </span>
                 <span className="block truncate px-2 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-paper/85">{g.name}</span>
               </Link>
