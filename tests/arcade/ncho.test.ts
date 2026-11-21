@@ -3,7 +3,7 @@
 // Run: npx -y tsx tests/arcade/ncho.test.ts
 import assert from "node:assert/strict";
 import {
-  AKAHAUSA_DEPTH, LEVEL_DEPTH, MAX_SOWINGS, applyMove, chooseMove, depthFor, endRound, holeCount,
+  AKAHAUSA_DEPTH, AUTO_NEXT_ROUND_MS, LEVEL_DEPTH, MAX_SOWINGS, applyMove, autoStartsNextRound, chooseMove, depthFor, endRound, holeCount,
   housesOf, initialState, legalMoves, moveCap, seededRng, sow, startingOwner, totalSeeds,
   type HolesPerSide, type Level, type NchoState, type NchoVariant, type Player, type RoundsTarget,
 } from "../../lib/arcade/ncho";
@@ -12,7 +12,7 @@ const at = (pits: number[], over: Partial<NchoState> = {}, variant: NchoVariant 
   const holesPerSide = (pits.length / 2) as HolesPerSide;
   return { ...initialState(undefined, 0, variant, { holesPerSide }), pits, ...over };
 };
-const sum = (s: { pits: number[]; stores: [number, number] }) => s.pits.reduce((a, b) => a + b, 0) + s.stores[0] + s.stores[1];
+const sum = (s: { pits: number[]; stores: number[] }) => s.pits.reduce((a, b) => a + b, 0) + s.stores[0] + s.stores[1];
 const zeros = (n: number) => Array(n).fill(0) as number[];
 let checks = 0;
 const ok = (name: string, fn: () => void) => { fn(); checks++; console.log(`  ok  ${name}`); };
@@ -188,7 +188,9 @@ ok(`relay cap: at most ${MAX_SOWINGS} sowings in a turn, then the turn just ends
     assert.ok(out.move.sowings.length <= MAX_SOWINGS);
     assert.equal(out.pits.reduce((a, b) => a + b, 0) + out.move.gains[0] + out.move.gains[1], p.reduce((a, b) => a + b, 0), "seeds conserved");
     for (const c of out.move.captures) assert.equal(c.to, c.last ? (i % 2) : own[c.hole]);
-    assert.ok(out.move.end === "cap" || out.move.made === 1 || out.move.made === 4);
+    // The last 8 (rule 5) ends a move too, and then the board is empty.
+    assert.ok(out.move.end === "cap" || out.move.end === "sweep" || out.move.made === 1 || out.move.made === 4);
+    if (out.move.end === "sweep") assert.ok(out.pits.every((x) => x === 0));
   }
 });
 ok("both variants mirror each other: Ncho anticlockwise, Aka-Hausa clockwise", () => {
@@ -386,6 +388,92 @@ ok("applyMove never mutates its input (also across a round end)", () => {
   }
 });
 
+// --- The last 8 (owner, 21 Nov 2026: "whoever won any 4 once it remains 8 seeds won all, so a player can even target
+// to win the last two by winning on opponents house") ---
+ok("last 8: making 4 with your last seed on your own row takes all 8 and ends the round", () => {
+  // 8 on the board. Hole 0 (2): 1→1, 2 makes 4 with the last seed. You take those 4 and the 4 left (hole 1's 1, hole 11's 3).
+  const s = applyMove(at([2, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3], { stores: [20, 20] }), 0);
+  const m = s.last!;
+  assert.equal(m.end, "sweep");
+  assert.deepEqual(m.captures, [{ hole: 2, to: 0, step: 1, last: true }]);
+  assert.deepEqual(m.sweep, { to: 0, seeds: 4, step: 1, holes: [1, 11] });
+  assert.equal(m.amount, 8);
+  assert.deepEqual(m.gains, [8, 0]);
+  const r = s.lastRound!;
+  assert.equal(r.reason, "sweep");
+  assert.deepEqual(r.finalPits, zeros(12), "nothing is left on the board");
+  assert.deepEqual(r.finalStores, [28, 20]);
+  assert.deepEqual(r.houses, [7, 5]);
+  assert.deepEqual(r.conquered, [{ hole: 11, from: 1, to: 0 }]);
+  assert.equal(sum(s), 48);
+});
+ok("last 8: making 4 on the opponent's row takes all 8 (the owner's report: no lone 4 left over)", () => {
+  // The report: "you 28 (28 + 0), computer 20 (16 + 4)": you took a 4 with 8 left and play went on to a lone 4 in the
+  // computer's holes. Now that 4 is yours too. Hole 5 (1) → 6 makes 4 on the computer's row.
+  const s = applyMove(at([0, 0, 0, 0, 0, 1, 3, 0, 0, 0, 2, 2], { stores: [24, 16] }), 5);
+  assert.equal(s.last?.end, "sweep");
+  assert.deepEqual(s.last?.sweep?.holes, [10, 11]);
+  const r = s.lastRound!;
+  assert.deepEqual(r.finalStores, [32, 16]);
+  assert.deepEqual(r.counted, [0, 0]);
+  assert.deepEqual(r.houses, [8, 4]);
+  assert.equal(s.turn, 1, "fewer houses: the computer starts round 2");
+});
+ok("last 8: a 4 made on the way with 8 left takes all 8 for that hole's owner, and the hand stops", () => {
+  // Hole 4 (3): 5→1, 6 goes 3→4 on the way (the computer's hole): it takes all 8, the seed still in your hand included.
+  const s = applyMove(at([0, 0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 2], { stores: [20, 20] }), 4);
+  const m = s.last!;
+  assert.equal(m.end, "sweep");
+  assert.deepEqual(m.path, [5, 6]);
+  assert.deepEqual(m.captures, [{ hole: 6, to: 1, step: 1, last: false }]);
+  assert.deepEqual(m.sweep, { to: 1, seeds: 4, step: 1, holes: [5, 11] });
+  assert.equal(m.amount, 0);
+  assert.deepEqual(m.gains, [0, 8]);
+  assert.deepEqual(s.lastRound?.finalStores, [20, 28]);
+});
+ok("last 8: two 4s in one move: the first leaves 8, the second takes the rest", () => {
+  // 12 on the board. Hole 0 (3): 1 goes 3→4 on the way (yours, 8 left), 2→1, 3 makes 4 with the last seed: you take all.
+  const s = applyMove(at([3, 3, 0, 3, 0, 0, 0, 0, 0, 0, 0, 3], { stores: [18, 18] }), 0);
+  assert.equal(s.last?.end, "sweep");
+  assert.equal(s.last?.captures.length, 2);
+  assert.deepEqual(s.last?.gains, [12, 0]);
+  assert.deepEqual(s.lastRound?.finalStores, [30, 18]);
+});
+ok("last 8: with more than 8 left a 4 is just a 4", () => {
+  const s = applyMove(at([2, 0, 3, 0, 0, 0, 0, 0, 0, 0, 1, 3], { stores: [20, 19] }), 0); // 9 on the board
+  assert.equal(s.last?.end, "four");
+  assert.equal(s.last?.sweep, null);
+  assert.equal(s.lastRound, null);
+  assert.deepEqual(s.pits.reduce((a, b) => a + b, 0), 5);
+});
+ok("last 8: the computer goes for it, even on your row", () => {
+  // 8 on the board. Hole 11 (1) → your hole 0 makes 4: all 8 for the computer (7 houses to 5). Hole 6 does nothing.
+  const s = at([3, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 1], { turn: 1, stores: [20, 20] });
+  for (const level of ["medium", "hard"] as const) assert.equal(chooseMove(s, level, seededRng(2)), 11, level);
+  // On its own row too: hole 9 (1) → 10 makes 4 (8 on the board).
+  const t = at([2, 0, 0, 2, 0, 0, 0, 0, 0, 1, 3, 0], { turn: 1, stores: [20, 20] });
+  for (const level of ["medium", "hard"] as const) assert.equal(chooseMove(t, level, seededRng(3)), 9, level);
+});
+
+// --- Starting the next round ---
+ok("the next round starts by itself only when the computer starts it", () => {
+  assert.equal(AUTO_NEXT_ROUND_MS, 2500);
+  assert.equal(autoStartsNextRound(initialState()), false, "no round has ended yet");
+  // The computer has fewer houses: it starts round 2, so the UI carries on by itself.
+  const comp = applyMove(at([0, 0, 0, 0, 0, 1, 3, 0, 0, 0, 2, 2], { stores: [24, 16] }), 5);
+  assert.equal(comp.turn, 1);
+  assert.equal(autoStartsNextRound(comp), true);
+  // You have fewer houses: you start round 2, so the UI waits for you.
+  const you = applyMove(at([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { stores: [20, 27] }), 0);
+  assert.equal(you.turn, 0);
+  assert.equal(autoStartsNextRound(you), false);
+  // Mid-round, and after the game is over: never.
+  assert.equal(autoStartsNextRound(applyMove(initialState(undefined, 0), 0)), false);
+  const over = applyMove(at([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], { stores: [20, 27], round: 3 }), 0);
+  assert.equal(over.over, true);
+  assert.equal(autoStartsNextRound(over), false);
+});
+
 // --- Computer ---
 ok("depths: Aka-Hausa one deeper; the long board capped", () => {
   for (const level of ["easy", "medium", "hard"] as const) {
@@ -424,13 +512,19 @@ function playOut(holesPerSide: HolesPerSide, variant: NchoVariant, rounds: Round
       assert.equal(lap.from, from);
       let pos = lap.from;
       for (const p of lap.path) { assert.equal(p, (pos + dir + n) % n); pos = p; }
-      assert.equal(lap.path.length, lap.seeds);
+      // A sweep made on the way (rule 5) stops the hand mid-lap.
+      if (m.end === "sweep" && lap === m.sowings[m.sowings.length - 1]) assert.ok(lap.path.length <= lap.seeds);
+      else assert.equal(lap.path.length, lap.seeds);
       from = pos;
     }
     assert.equal(m.sowings[0].seeds, s.pits[h]);
     assert.ok(m.sowings.length <= 300);
-    assert.equal(m.amount, m.end === "four" ? 4 : 0);
-    assert.equal(m.gains[0] + m.gains[1], 4 * m.captures.length);
+    // The last 8 (owner, 21 Nov 2026): a capture with 8 left takes all 8, so the board never plays on with a lone 4.
+    assert.equal(m.amount, m.end === "four" ? 4 : m.end === "sweep" ? (m.captures[m.captures.length - 1].last ? 8 : 0) : 0);
+    assert.equal(m.gains[0] + m.gains[1], 4 * m.captures.length + (m.sweep ? 4 : 0));
+    const onBoard = (next.lastRound ? next.lastRound.finalPits : next.pits).reduce((a, b) => a + b, 0);
+    assert.notEqual(onBoard, 4, "never a lone 4 left on the board");
+    if (m.sweep) { assert.equal(onBoard, 0); assert.equal(next.lastRound?.reason, "sweep"); }
     if (next.lastRound) {
       roundsSeen++;
       assert.equal(next.lastRound.round, s.round);
