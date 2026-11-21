@@ -1779,6 +1779,20 @@ test("Moment captions: the count of sound written down per member per day is ser
   }
 });
 
+test("Guests watching a live without an account: their seats and the daily figures are server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const fs = ctx.firestore();
+    await setDoc(doc(fs, "communityRooms/r1/guests/g_abcdefgh12"), { at: "2026-11-19T10:00:00Z", seen: "2026-11-19T10:00:00Z" });
+    await setDoc(doc(fs, "liveGuestStats/2026-11-19"), { views: 3 });
+  });
+  for (const db of [as("alice"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of ["communityRooms/r1/guests/g_abcdefgh12", "liveGuestStats/2026-11-19"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { views: 0 }));
+    }
+  }
+});
+
 test("Nana sets up your site: answers, draft and the site before are server-only (lib/site-nana-server.ts)", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "siteSetups/alice"), { uid: "alice", answers: { what: "Cakes" } }); });
   for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {

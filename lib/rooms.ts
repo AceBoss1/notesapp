@@ -39,7 +39,8 @@ export const ROOM_TITLE_MAX = 80;
 export const ROOM_CHAT_MAX = 500;
 // ev: a line about what happened in the live (lib/room-events-server.ts), written by our server with no sender: shown in the chat as a
 // divider, like the day lines in Messages (owner, 7 Nov 2026).
-export type RoomChat = { from: string; name: string; avatar: string; text: string; at: string; ev?: RoomEventKind };
+// teen: sent by a member in teen mode in a live people without an account can watch; never shown to them (lib/live-guests.ts).
+export type RoomChat = { from: string; name: string; avatar: string; text: string; at: string; ev?: RoomEventKind; teen?: boolean };
 export const ROOM_EVENT_KINDS = ["join", "share", "like", "gift", "follow", "burst", "slow"] as const;
 export type RoomEventKind = (typeof ROOM_EVENT_KINDS)[number];
 
@@ -90,7 +91,11 @@ export type RoomDoc = {
   // A free live from the member's own profile (v0.152.0, docs/GO_LIVE.md, lib/profile-lives-server.ts): no ticket and no community. Who can
   // come in: everyone signed in, the host's followers, or their subscribers. gifts: whether gifts can be sent in it. notified: followers
   // were sent a bell. Like a paid live, only the moderators the host names moderate.
-  profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean };
+  // guests: whether people without an account can watch (docs/GUEST_LIVES.md; only for an Everyone live; absent means yes).
+  profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean; guests?: boolean };
+  // Guests watching now (counted from guests/, like listening) and when; guestJoins: guests who joined #NotesApp from this live, and
+  // guestSignIns: guests who signed in to an account they already had.
+  guests?: number; guestsCountedAt?: string; guestJoins?: number; guestSignIns?: number;
   // ❤️ likes in this live, one per person (lib/room-events-server.ts).
   likes?: number;
   // Notes Live Studio (v0.177.0, lib/studio.ts): the broadcast graphics every screen draws over the live. Server-written.
@@ -249,11 +254,12 @@ export type RoomSettingKey = "relayOn" | "relayListeners" | "p2pListeners" | "ch
   | "videoOn" | "videoBudgetMinutes" | "videoGraceSeconds" | "videoNearlyLeftMinutes" | "videoBurstMinutes" | "videoTryMinutes"
   | "dropPercent" | "dropWindowMinutes" | "videoKbps" | "videoFps" | "videoHeight"
   | "lateWindowMin" | "liveDiscountMaxPct" | "paidNoShowMin"
-  | "ppmMinMinutes" | "ppmMaxMinutes" | "ppmGraceSec" | "ppmTopUpWaitSec" | "ppmNoShowMin";
+  | "ppmMinMinutes" | "ppmMaxMinutes" | "ppmGraceSec" | "ppmTopUpWaitSec" | "ppmNoShowMin"
+  | "guestsOn" | "guestsPerLive";
 // group "live": Live mode (lib/rooms-live.ts), shown under its own heading in Admin → Limits → Audio rooms. group "paid": paid lives
 // (lib/live-tickets.ts), under theirs. group "ppm": pay-per-minute sessions (lib/ppm.ts), under their own heading in Admin → Limits (they
 // are one-to-one calls, not rooms, but share this saved config so the help and the forms read them the same way).
-export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" | "paid" | "ppm" };
+export type RoomSettingDef = { key: RoomSettingKey; label: string; unit: string; min: number; max: number; def: number; kind?: "switch"; group?: "live" | "paid" | "ppm" | "guests" };
 export const ROOM_LISTENERS_MAX_RELAY = 500;
 // What the listener setting may be raised to. Rooms are planned for 10,000 listeners (owner, 2 Nov 2026): nothing writes once per
 // listener or sends everyone the full list (people/ and the count, above); the default stays at 500 until the owner raises it.
@@ -288,6 +294,10 @@ export const ROOM_SETTINGS: RoomSettingDef[] = [
   { key: "ppmMaxMinutes", label: "Pay-per-minute: the most minutes held at booking (more can be added during the call)", unit: "minutes", min: 10, max: 600, def: 240, group: "ppm" },
   { key: "ppmGraceSec", label: "Pay-per-minute: a call that ends within this grace costs nothing; after it, every started minute is charged", unit: "seconds", min: 0, max: 300, def: 60, group: "ppm" },
   { key: "ppmTopUpWaitSec", label: "Pay-per-minute: when the held minutes run out, the call ends this long later unless the viewer adds minutes", unit: "seconds", min: 15, max: 600, def: 60, group: "ppm" },
+  // Guests (docs/GUEST_LIVES.md, owner 19 Nov 2026: "hope admin can set guest number limits"): people without an account watching public
+  // profile lives through the relay. They count toward a live's listener limit but stop at their own, so members always have room.
+  { key: "guestsOn", label: "Guests: people without an account can watch public lives (the host can still keep a live to members)", unit: "on/off", min: 0, max: 1, def: 1, kind: "switch", group: "guests" },
+  { key: "guestsPerLive", label: "Guests: the most guests in one live (0 lets none in)", unit: "guests", min: 0, max: ROOM_LISTENERS_CEILING, def: 300, group: "guests" },
   { key: "ppmNoShowMin", label: "Pay-per-minute: a session whose call hasn't started this long after its time ends, and the hold goes back", unit: "minutes", min: 10, max: 720, def: 60, group: "ppm" },
 ];
 export type RoomSettings = Record<RoomSettingKey, number>;

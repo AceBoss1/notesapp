@@ -39,7 +39,7 @@ async function main() {
   const a = await startProfileLive(db, "emma", { title: "Sunday chat: building NotesApp", stageMode: "approve" }, new Date(), undefined, tell);
   assert.equal(a.told, 2); assert.deepEqual(told, [a.id]);
   const room = (await db.doc(`communityRooms/${a.id}`).get()).data()!;
-  assert.deepEqual(room.profile, { audience: "everyone", hostUsername: "emma", gifts: true, notified: true });
+  assert.deepEqual(room.profile, { audience: "everyone", hostUsername: "emma", gifts: true, notified: true, guests: true }, "an Everyone live is open to guests unless the host says no");
   assert.equal(room.cid, ""); assert.equal(room.poster, "https://media.test/emma.webp", "the profile picture is the poster by default");
   assert.equal(room.staffPass, true, "opened on the staff test pass");
   assert.equal((await joinRoom(db, "chidi", a.id)).ok, true, "a stranger joins a public live");

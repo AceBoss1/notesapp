@@ -27,6 +27,7 @@ export default function AdminLimitsPage() {
   const [rooms, setRooms] = useState<RoomSettings | null>(null);
   const [watermark, setWatermark] = useState<WatermarkSettings | null>(null);
   const [relayKeys, setRelayKeys] = useState(false);
+  const [guestStats, setGuestStats] = useState<{ views: number; joined: number; signedIn: number; minutes: number } | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,7 +38,7 @@ export default function AdminLimitsPage() {
     if (!r.ok) throw new Error(j.error || "Something went wrong");
     return j as { limits: LimitTable; agents: AgentSettings; rooms: RoomSettings; watermark: WatermarkSettings; relayKeys: boolean };
   }, [user]);
-  useEffect(() => { if (user) call().then((j) => { setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setWatermark(j.watermark); setRelayKeys(j.relayKeys); }).catch((e) => setError(e.message)); }, [user, call]);
+  useEffect(() => { if (user) call().then((j) => { setTable(j.limits); setAgents(j.agents); setRooms(j.rooms); setWatermark(j.watermark); setRelayKeys(j.relayKeys); setGuestStats((j as { guestStats?: typeof guestStats }).guestStats ?? null); }).catch((e) => setError(e.message)); }, [user, call]);
 
   const set = (key: string, tier: string, v: string) => setTable((t) => t && ({ ...t, [key]: { ...t[key as keyof LimitTable], [tier]: v === "" ? NaN : Number(v) } }));
   async function save() {
@@ -108,10 +109,11 @@ export default function AdminLimitsPage() {
         <section className="mt-10">
           <h2 className="font-display text-2xl text-ink">Audio rooms</h2>
           <p className="mt-1 text-sm text-slate">The same for every plan. A new room uses the Cloudflare relay when the switch is on and its keys are set; rooms already open keep the way they started. {relayKeys ? "The relay's keys are set." : "The relay's keys aren't set yet (CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_TOKEN in Vercel), so rooms run phone to phone whatever the switch says."} What limits a relay room is Firestore reads (everyone in a room reads each change to it and each chat message), not Cloudflare; slow mode keeps a big room&apos;s chat affordable.</p>
-          {([["", "Audio rooms"], ["live", "Live mode (video in relay rooms)"], ["paid", "Paid lives"], ["ppm", "Pay-per-minute sessions"]] as const).map(([group, heading]) => (
+          {([["", "Audio rooms"], ["live", "Live mode (video in relay rooms)"], ["paid", "Paid lives"], ["ppm", "Pay-per-minute sessions"], ["guests", "Guests in lives (watching without an account)"]] as const).map(([group, heading]) => (
             <div key={heading}>
               {group && <>
                 <h3 className="mt-6 font-ui text-sm font-bold text-ink">{heading}</h3>
+                {group === "guests" && <p className="mt-1 text-sm text-slate">People without an account watching public profile lives through the relay (docs/GUEST_LIVES.md). They read the chat but can&apos;t write, gift or come on stage. Members always have room: guests stop at their own limit, and when members and guests together reach the listener limit above.{guestStats ? <> Last 7 days: <b>{guestStats.views.toLocaleString("en-GB")}</b> guest views, <b>{guestStats.joined.toLocaleString("en-GB")}</b> joined #NotesApp from a live and {guestStats.signedIn.toLocaleString("en-GB")} signed in, <b>{guestStats.minutes.toLocaleString("en-GB")}</b> guest minutes (about ₦1 a minute each on video at 480p, ₦0.10 on audio, docs/LIVE_ECONOMY.md).</> : null}</p>}
                 {group === "ppm" ? <p className="mt-1 text-sm text-slate">One-to-one paid calls with a publisher, priced per minute for voice and for video (Rates &amp; payouts). The viewer holds minutes from their NotesApp Credit when booking; the server meters the call and charges every started minute once the grace has passed, and the unused minutes go back. When the held minutes run out the viewer is asked to add more, and the call ends after the wait unless they do. The grace and the wait are fixed on each session when it&apos;s booked. The commission share is under Pricing → Gifts.</p> : group === "paid" ? <p className="mt-1 text-sm text-slate">A member&apos;s own scheduled, ticketed live: early bird, normal and late prices. Late tickets are sold from the start until the live has run the late window (fixed on each live when it&apos;s scheduled). Hosts give each subscription tier a discount on tickets, up to the cap here. A live the host never opens is cancelled after the no-show minutes and every ticket refunded to NotesApp Credit. The commission share is under Pricing → Gifts.</p> : <p className="mt-1 text-sm text-slate">The host (and speakers, if the host allows) can turn video on in a relay room; it goes through the relay as a second track, capped below. While it&apos;s off everyone sees the host&apos;s poster, a picture that never counts as video. Each live gets a budget of video minutes counted by the server; the host is prompted when listeners drop or a burst of video runs long, and video turns off by itself after the grace once the minutes are used. Viewers can choose Audio only (on by itself on slow connections).</p>}
               </>}
               <table className="mt-4 w-full border-collapse text-sm"><tbody>
