@@ -20,7 +20,8 @@ export async function mayStartProfileLive(db: Firestore, uid: string, now = new 
   return hasStaffPass(db, uid, now);
 }
 
-export type ProfileLiveInput = { title?: unknown; audience?: unknown; stageMode?: unknown; mods?: unknown; gifts?: unknown; record?: unknown; notify?: unknown; poster?: { source?: unknown; url?: unknown } };
+// guests: whether people without an account can watch an Everyone live (docs/GUEST_LIVES.md; on unless the host says no).
+export type ProfileLiveInput = { title?: unknown; audience?: unknown; stageMode?: unknown; mods?: unknown; gifts?: unknown; record?: unknown; notify?: unknown; guests?: unknown; poster?: { source?: unknown; url?: unknown } };
 
 export async function startProfileLive(db: Firestore, uid: string, input: ProfileLiveInput, now = new Date(), deps?: RoomDeps, tell = tellFollowers): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean; told?: number }> {
   if (!(await mayStartProfileLive(db, uid, now))) throw new CommunityError(403, PROFILE_LIVE_GATE_TEXT);
@@ -37,7 +38,7 @@ export async function startProfileLive(db: Firestore, uid: string, input: Profil
   const poster = !src || src === "profile" ? String(u.avatar ?? "") : await posterFor(db, uid, src, input.poster?.url);
   const r = await startProfileRoom(db, uid, {
     title, poster, record: input.record === true,
-    profile: { audience, hostUsername, gifts: input.gifts !== false, notified: notify },
+    profile: { audience, hostUsername, gifts: input.gifts !== false, notified: notify, ...(audience === "everyone" ? { guests: input.guests !== false } : {}) },
   }, now, deps, { stageMode: isStageMode(input.stageMode) ? input.stageMode : "approve", mods: input.mods });
   let told = 0;
   if (notify) told = await tell(db, { roomId: r.id, hostUid: uid, hostUsername, hostName: String(u.displayName || hostUsername), title, audience }).catch((e) => { console.error("[profile-live] telling followers", e); return 0; });
@@ -118,7 +119,9 @@ export async function profileLiveLobby(db: Firestore, id: string, viewerUid: str
 }
 
 // ── When it ends: the host's summary (screen 6) ──
-export type LiveSummary = { id: string; title: string; hostUsername: string; status: "live" | "ended"; minutes: number; joined: number; peak: number; giftKobo: number; gifts: number; topGifters: { name: string; kobo: number }[]; newFollowers: number | null; recorded: boolean };
+// guests: the most guests at once is not kept, so this is the guests watching when the summary is read; guestJoins and guestSignIns: guests
+// who joined #NotesApp, or signed in, from this live (docs/GUEST_LIVES.md).
+export type LiveSummary = { guests: number; guestJoins: number; guestSignIns: number; id: string; title: string; hostUsername: string; status: "live" | "ended"; minutes: number; joined: number; peak: number; giftKobo: number; gifts: number; topGifters: { name: string; kobo: number }[]; newFollowers: number | null; recorded: boolean };
 export async function profileLiveSummary(db: Firestore, uid: string, id: string): Promise<LiveSummary> {
   if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new CommunityError(404, "That live wasn't found.");
   const ref = db.doc(`communityRooms/${id}`);
@@ -146,5 +149,6 @@ export async function profileLiveSummary(db: Firestore, uid: string, id: string)
     joined: Math.max(people + 1, r.peak ?? 1), peak: r.peak ?? 1, giftKobo, gifts: gifts.size,
     topGifters: [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, kobo]) => ({ name, kobo })),
     newFollowers, recorded: !!r.recording,
+    guests: r.status === "live" ? r.guests ?? 0 : 0, guestJoins: r.guestJoins ?? 0, guestSignIns: r.guestSignIns ?? 0,
   };
 }

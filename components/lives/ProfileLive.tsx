@@ -11,6 +11,7 @@ import { formatNaira } from "@/lib/booking-time";
 import { PROFILE_AUDIENCE_LABEL, PROFILE_LIVE_AUDIENCES, type ProfileLiveAudience, type StageMode } from "@/lib/rooms";
 import type { PosterSource } from "@/lib/rooms-live";
 import type { LiveCard, LiveSummary } from "@/lib/profile-lives-server";
+import GuestLive from "./GuestLive";
 
 // 🔴 Go live from your profile (docs/GO_LIVE.md; the approved mockups are docs/mockups/go-live/1–6). Starting is for #NotesApp team
 // accounts while the staff test pass is on (the server checks); joining follows the host's choice of who can watch.
@@ -38,6 +39,7 @@ export function GoLiveNow() {
   const [notify, setNotify] = useState(true);
   const [gifts, setGifts] = useState(true);
   const [record, setRecord] = useState(false);
+  const [guests, setGuests] = useState(true);
   const [poster, setPoster] = useState<{ source: PosterSource; url?: string; preview?: string }>({ source: "profile" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -46,7 +48,7 @@ export function GoLiveNow() {
   const start = async () => {
     setBusy(true); setErr("");
     try {
-      const r = await capi<{ id: string }>("/api/lives", { action: "go_live", title, audience, stageMode, notify, gifts, record, poster: { source: poster.source, url: poster.url } });
+      const r = await capi<{ id: string }>("/api/lives", { action: "go_live", title, audience, stageMode, notify, gifts, record, guests, poster: { source: poster.source, url: poster.url } });
       setRoom(r.id);
     } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't go live."); }
     finally { setBusy(false); }
@@ -56,7 +58,7 @@ export function GoLiveNow() {
   return (
     <section className="card mt-6 border-crimson p-5" aria-labelledby="golive-now">
       <h2 id="golive-now" className="font-ui text-lg font-bold text-ink">🔴 Go live now · free</h2>
-      <p className="mt-1 text-sm text-slate">From your profile, no ticket and no community. {audience === "everyone" ? "Anyone signed in can join." : `Only your ${audience} can join.`}</p>
+      <p className="mt-1 text-sm text-slate">From your profile, no ticket and no community. {audience === "everyone" ? (guests ? "Anyone can watch, with or without an account; joining in needs one." : "Anyone signed in can join.") : `Only your ${audience} can join.`}</p>
       <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="What's it about? e.g. Sunday chat" aria-label="Title"
         className="mt-4 w-full rounded-xl border border-rule bg-card px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-crimson" />
       <p className="mt-4 text-xs font-bold text-ink">Who can watch</p>
@@ -71,6 +73,7 @@ export function GoLiveNow() {
       <div className="mt-3">
         <Toggle label="🔔 Tell my followers" on={notify} set={setNotify} />
         <Toggle label="🎁 Gifts" on={gifts} set={setGifts} />
+        {audience === "everyone" && <Toggle label="👀 People without an account can watch (they can't chat, gift or come on stage)" on={guests} set={setGuests} />}
         <Toggle label="⏺ Record for a replay (everyone in the live is told)" on={record} set={setRecord} />
       </div>
       {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}
@@ -98,6 +101,9 @@ export function Summary({ id }: { id: string }) {
         {stat(formatNaira(s.giftKobo), `in gifts (${s.gifts})`)}
         {stat(s.newFollowers === null ? "—" : `+${s.newFollowers.toLocaleString("en-GB")}`, "new followers")}
       </div>
+      {(s.guestJoins > 0 || s.guestSignIns > 0 || s.guests > 0) && (
+        <p className="mt-3 rounded-xl border border-rule bg-card p-3 text-sm text-ink">👀 {s.status === "live" && s.guests ? `${s.guests.toLocaleString("en-GB")} watching as guests now. ` : ""}<b>{s.guestJoins.toLocaleString("en-GB")}</b> joined #NotesApp from this live{s.guestSignIns ? `, and ${s.guestSignIns.toLocaleString("en-GB")} signed in` : ""}.</p>
+      )}
       {s.recorded && (
         <div className="card mt-3 p-4 text-sm"><b>Replay</b><p className="mt-1 text-slate">Recorded. Publish it to your Media (Lives &amp; replays), or keep it private.</p>
           <div className="mt-3 flex flex-wrap gap-2"><Link href="/profile/media?tab=live" className="btn-primary !px-4 !py-2 text-sm">Publish replay</Link><Link href="/lives/start" className="btn-ghost !px-4 !py-2 text-sm">Keep private</Link></div></div>
@@ -114,8 +120,18 @@ export function LiveLobby({ id }: { id: string }) {
   const [d, setD] = useState<{ live: LiveCard; status: "live" | "ended"; canJoin: boolean; host: boolean } | null>(null);
   const [err, setErr] = useState("");
   const [inRoom, setInRoom] = useState(false);
-  const load = () => capi<NonNullable<typeof d>>(`/api/lives?live=${encodeURIComponent(id)}`).then(setD).catch((e) => setErr(e instanceof Error ? e.message : "That live wasn't found."));
-  useEffect(() => { if (user !== undefined) void load(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  const load = () => capi<NonNullable<typeof d>>(`/api/lives?live=${encodeURIComponent(id)}`).then((x) => {
+    setD(x);
+    // Back from joining or signing in while watching as a guest (docs/GUEST_LIVES.md): counted once for the host, then straight in.
+    if (user && new URLSearchParams(window.location.search).get("from") === "guest") {
+      window.history.replaceState(null, "", `/live/${id}`);
+      void capi("/api/lives/watch", { action: "converted", id }).catch(() => {});
+      if (x.canJoin && x.status === "live") setInRoom(true);
+    }
+  }).catch((e) => setErr(e instanceof Error ? e.message : "That live wasn't found."));
+  useEffect(() => { if (user) void load(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Not signed in: the guest view (it explains what to do when the live isn't open to guests).
+  if (user === null) return <GuestLive id={id} />;
   if (inRoom && user) return <RoomScreen id={id} me={user.uid} title={d?.live.title} onDone={() => { setInRoom(false); void load(); }} />;
   if (err) return <p className="card p-6 text-sm text-crimson">{err}</p>;
   if (!d) return <p className="text-sm text-slate">Loading…</p>;

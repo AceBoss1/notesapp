@@ -3457,3 +3457,12 @@ batch moved into the pricing settings (`merch`), so Admin → Merch sets them wi
 checkout alike. Found while testing: a name typed while the 3D view loaded could be lost (now the latest choice is built when the
 stage is ready), Front did nothing when the view was already on "front", and a long row of logos widened the page on phones.
 Tests: `test:merch`, `test:merch-server`.
+
+**Watch a live without an account (v0.193.0, 19 Nov 2026)** — the owner asked on 17 Nov for public live links to work for people without
+an account, approved the mockups and asked that Admin can set guest limits (`docs/GUEST_LIVES.md`). `docs/GO_LIVE.md` already promised it,
+but every part of a live (joining, the relay, the worker, the rules) needed a uid. Guests got their own path: a signed pass in a cookie,
+`/api/lives/watch` for a shared, two-second view of the live and receive-only relay steps on their own Cloudflare session, a guest count
+on the live, and conversions counted when a guest signs in. Admin → Limits sets guests on or off and the most per live. Teens: a teen
+host's live stays members-only, `stageBarred` keeps teens off a guest-open stage, and their chat lines are hidden from guests. The pass
+signing was split out of the pure rules so the browser bundle never carries Node's crypto.
+

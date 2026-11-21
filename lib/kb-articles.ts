@@ -609,6 +609,20 @@ Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the 
 **Weekly boards:** **Top gifted** (who received the most this week, on [Gifts](/gifts)) and each creator's **Top gifters** (who sent them the most, on their Gifts tab) start again at midnight going into Monday, Lagos time; **Last week** keeps the result. Anonymous gifts count for the receiver but never name the sender on Top gifters.
 
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("watch-a-live-without-an-account", "Watching a live without an account", "Publishing and earning", `
+Anyone can watch a live its host made open to **Everyone**, even without a #NotesApp account. Open the link, tap **▶ Watch**, and the live plays, with the chat to read, the number watching and the hearts.
+
+**What needs an account.** Writing in the chat, hearts, gifts, following the host, raising your hand and coming on stage. Tap any of them and you're asked to join (free) or sign in, then you come straight back into the same live.
+
+**Sharing** works for everyone: tap ↗︎ to send the link on WhatsApp, X or anywhere, or copy it. A shared link shows who is live, the title and a picture, and says when no account is needed to watch.
+
+**Lives you can't watch as a guest:** lives for the host's followers or subscribers, paid lives (buy a ticket), lives in a community (for its members), and small lives sent from the host's own phone. Each says why and what to do. A live can also be full for guests: members can still get in.
+
+**For hosts:** when you go live for Everyone, **People without an account can watch** is on. Switch it off to keep the live to people with an account. While you're live you see how many are watching as guests, and afterwards how many joined #NotesApp or signed in from your live.
+
+**Teens:** a teen's own live is never open to guests; a live guests can watch never brings a teen on stage; and teens' chat messages aren't shown to guests.
+
+**Privacy:** a guest has no account and no name. Their browser gets a pass that only counts them and lets them watch; nothing about them is kept after the live.`),
     A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
 A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
 

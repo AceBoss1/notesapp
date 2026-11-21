@@ -9,6 +9,7 @@ import {
   type ModLogEntry, type ModPerm, type RoomPin, type RoomChat, type RoomDoc, type RoomFigures, type RoomInvite, type RoomMode, type RoomModInfo, type RoomPersonDoc, type RoomRelayRecord, type RoomSettings, type StageMode,
 } from "./rooms";
 import { mayReach } from "./young";
+import { openToGuests } from "./live-guests";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
 import { recordingPlan, startRoomRecording, stopRoomRecording, type RecordingDeps } from "./live-recording-server";
 import { hasConsented } from "./live-recording";
@@ -61,7 +62,7 @@ async function noteRelay(db: Firestore, why: string | null, now = new Date()) {
   await db.doc("serverConfig/roomsRelay").set(why ? { ok: false, why, at: now.toISOString() } : { ok: true, at: now.toISOString() }, { merge: true }).catch(() => {});
 }
 export type RoomDeps = { relay: () => RelayClient; recording?: RecordingDeps };
-const defaultDeps: RoomDeps = { relay: () => relayClient() };
+export const defaultDeps: RoomDeps = { relay: () => relayClient() };
 
 // The staff test pass (lib/staff-pass.ts): a room opened under it has no video-minutes budget while the pass stays on. Everything else in
 // the settings (Live mode's switch, the video quality, the prompts' timings) is unchanged.
@@ -385,6 +386,8 @@ async function communityModPerms(db: Firestore, r: RoomDoc, uid: string): Promis
 async function stageBarred(db: Firestore, r: RoomDoc, roomId: string, uid: string): Promise<string> {
   if (!(await mayEnter(db, r, uid))) return r.profile ? "They can't watch this live (it's for followers or subscribers)." : r.paid ? "They don't hold a ticket to this live." : "They're no longer a member of this community.";
   if ((await readEdgeState(db, roomId)).banned?.[uid]) return "They've been removed from this room.";
+  // A live people without an account can watch never puts a teen on stage (docs/GUEST_LIVES.md).
+  if (uid !== r.hostUid && openToGuests(r, await getRoomSettings(db)) && (await isTeen(db, uid))) return "They're in teen mode, and people without an account can watch this live, so they can't come on stage.";
   return "";
 }
 const isTeen = async (db: Firestore, uid: string) => (await db.doc(`users/${uid}`).get()).data()?.teen === true;
@@ -741,8 +744,10 @@ export async function sendRoomChat(db: Firestore, uid: string, id: unknown, text
   const msg = ref.collection("chat").doc(`${String(now.getTime()).padStart(13, "0")}_${randomBytes(3).toString("hex")}`);
   // On the live-rooms worker (someone whose socket is down): also broadcast to the sockets, which don't read Firestore.
   const edge = (m: RoomChat) => (r.edge ? tellLiveRoom(ref.id, { op: "chat", m: { ...m, id: msg.id } }).then(() => undefined) : Promise.resolve());
+  // A teen's lines are marked so people watching without an account never see them (lib/live-guests.ts guestChat).
+  const teen = openToGuests(r, await getRoomSettings(db)) && (await isTeen(db, uid));
   if (stage) {
-    const m: RoomChat = { from: uid, name: r.joined[uid].name, avatar: r.joined[uid].avatar, text: t, at };
+    const m: RoomChat = { from: uid, name: r.joined[uid].name, avatar: r.joined[uid].avatar, text: t, at, ...(teen ? { teen: true } : {}) };
     await msg.set(m);
     await edge(m);
     return { ok: true };
@@ -754,7 +759,7 @@ export async function sendRoomChat(db: Firestore, uid: string, id: unknown, text
     if (!isFresh(p, now.getTime())) throw new CommunityError(409, "Join the room first.");
     const wait = chatWait(p!.chatAt, r.chatSlow ?? 0, now.getTime());
     if (wait > 0) throw new CommunityError(429, `Slow mode is on in this big room: you can send again in ${wait} second${wait === 1 ? "" : "s"}.`);
-    sent = { from: uid, name: p!.name, avatar: p!.avatar, text: t, at };
+    sent = { from: uid, name: p!.name, avatar: p!.avatar, text: t, at, ...(teen ? { teen: true } : {}) };
     tx.set(msg, sent);
     tx.update(pref, { chatAt: at });
   });

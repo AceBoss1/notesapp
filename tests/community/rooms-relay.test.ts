@@ -27,6 +27,7 @@ assert.deepEqual(ROOM_DEFAULTS, {
   // Paid lives (tests/live-tickets/live-tickets.test.ts)
   lateWindowMin: 20, liveDiscountMaxPct: 50, paidNoShowMin: 60,
   ppmMinMinutes: 10, ppmMaxMinutes: 240, ppmGraceSec: 60, ppmTopUpWaitSec: 60, ppmNoShowMin: 60,
+  guestsOn: 1, guestsPerLive: 300,
 });
 assert.equal(ROOM_LISTENERS_MAX_P2P, 20); assert.equal(ROOM_LISTENERS_MAX_RELAY, 500);
 for (const s of ROOM_SETTINGS) assert.ok(s.def >= s.min && s.def <= s.max, `${s.key} default in range`);
