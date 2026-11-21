@@ -30,7 +30,7 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     slug: "snake", path: "/snake", name: "Snake", kicker: "The classics", headline: ["Stay", "hungry."],
     blurb: "Eat, grow, don't bump into yourself.",
     description: "One little snake. A lot of snacks. Steer it round the board, eat to grow longer, and see how long you can keep going before you run into your own tail.",
-    howTo: ["Arrow keys or W A S D to steer; the arrows on a phone.", "Each snack is 10 points and makes you longer.", "Hit yourself and the run ends. Pick a speed: chill, classic or fast."],
+    howTo: ["Arrow keys or W A S D to steer; the arrows on a phone.", "Each snack is 10 points and makes you longer.", "Hit yourself and the run ends. Pick a speed: chill, classic or fast.", "After each run, Nana, free and built in, tells you what went wrong and how to go further. She sits out tournaments."],
     players: "One player",
     shots: [{ caption: "Chill", level: "chill" }, { caption: "Classic", level: "classic" }, { caption: "Fast", level: "fast" }],
   },

@@ -11,6 +11,7 @@ export const ENTRY: ArcadeGame = {
     "Down or S (swipe down) to slide under awnings and banners. Danfos and wheelbarrows: change lane.",
     "Every metre is a point and every coin is 10. A pepper gives 5 seconds of double points and you barge through anything.",
     "Hit something and the run ends. Pick a speed: chill, normal or fast.",
+    "After each run, Nana, free and built in, tells you what tripped you up and how to go further; pause for a tip on what's coming. She sits out tournaments.",
   ],
   players: "One player",
   shots: [{ caption: "Chill", level: "chill" }, { caption: "Normal", level: "normal" }, { caption: "Fast", level: "fast" }],

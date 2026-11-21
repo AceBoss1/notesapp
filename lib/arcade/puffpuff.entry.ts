@@ -15,6 +15,7 @@ export const ENTRY: ArcadeGame = {
     "After pepper soup the goats run scared for a few seconds: catch one to send it back to its pen for 200, 400, 800, then 1600.",
     "A bottle of zobo turns up now and then below the pen. Grab it for bonus points before it goes.",
     "Clear every puff-puff to move on to the next market. A goat that catches you costs a life; you have 3.",
+    "After each game, Nana, free and built in, tells you which goat got you and how to time the pepper soup; pause for a tip on which way to ride. She sits out tournaments.",
   ],
   players: "One player",
   shots: [{ caption: "Chill", level: "chill" }, { caption: "Normal", level: "normal" }, { caption: "Fast", level: "fast" }],
