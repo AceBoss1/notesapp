@@ -1275,6 +1275,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     three lanes, seeded spawner that always leaves a lane clear), `puffpuff` (Puff-Puff Rush, canvas maze chase, three original mazes,
     four goats with their own behaviour). Original characters, art and synthesised sounds; nothing copied from any named game. Their
     entries live in `lib/arcade/<slug>.entry.ts`, listed by `lib/arcade/catalogue.ts`; `scripts/arcade-shots.mjs` reads both.
+153. **Ncho rounds and relay sowing (v0.191.1; owner, 21 Nov 2026, the full rules after #378):** sow from a hole you own; last seed in an
+    empty hole ends the turn, making exactly 4 lets the mover take it, otherwise lift and keep sowing (either side; 300-lap cap). A 4 made
+    mid-sowing goes at once to that hole's owner. A round ends when the mover owns no seeds: each takes the seeds in their holes, refills
+    their holes with 4s from first hole of their row onwards; holes they can't fill are conquered; the one leftover hole goes to the bigger
+    remainder (tie: the player who didn't start). Rounds 3/5/7/"all" (all capped at 50); more houses wins. 6 holes a side only. `endRound` in `lib/arcade/ncho.ts`.
+    The chain option is gone, and so is the 12-hole board (owner: "there's no 12 hole ncho"; `HolesPerSide = 6`). Portrait phones get a
+    "turn sideways" prompt. Aka-Hausa: the same, clockwise.
 
 ## 3. How the work is done (please keep these)
 
