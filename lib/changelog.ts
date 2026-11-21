@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.201.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "A cleaner profile: your picture over a patterned band, your name with one line of followers, following and posts, a short bio with See more, and your work and links with icons. On your own profile, Dashboard and Create sit side by side (Create: write, go live, add to your store, an event, a course, media); on someone else's, Follow and Message. Tabs along the top: All, Posts, Media, Gifts, Store, Courses and Events, with empty ones left out, and Details, Work and Links each with a pencil on your own profile." },
+      { kind: "changed", text: "Notes Live is a full-screen feed you swipe through, one live per screen: the host and Follow at the top, comments rising over the video, hearts when you double-tap, gifts, share and an Add comment box. On a computer it's a centred column you move through with the arrow keys or the wheel. Paid lives have moved to Notes Live → Paid lives (/lives/paid)." },
+      { kind: "changed", text: "Media Live Studio PRO, the studio for your lives, is laid out like a TV gallery: the picture viewers see in the middle, layouts under it, the people backstage with Add to stage and Remove from stage, Mic, Cam, Share, Invite, Settings and Leave along the bottom, and Comments, Banners, Brand, Media, People and Recording in a sidebar. Go live with studio and End broadcast sit top right." },
+      { kind: "fixed", text: "The Ask Nana bubble no longer covers the controls in the studio, the Notes Live feed or a live." },
+    ],
+  },
+  {
     version: "v0.200.0",
     bump: "minor",
     date: "2026-11-21",

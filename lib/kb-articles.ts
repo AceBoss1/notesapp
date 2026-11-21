@@ -625,9 +625,9 @@ Anyone can watch a live its host made open to **Everyone**, even without a #Note
 
 **Privacy:** a guest has no account and no name. Their browser gets a pass that only counts them and lets them watch; nothing about them is kept after the live.`),
     A("paid-lives", "Paid lives: tickets, prices and the door", "Publishing and earning", `
-A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives).
+A **paid live** is a live of your own (not a community's) that people buy a ticket for. It runs in the same room as [audio rooms](/help/community-audio-rooms), with video, the poster and the chat. See what's coming up on [Paid lives](/lives/paid).
 
-**Scheduling one:** on [Paid lives](/lives) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
+**Scheduling one:** on [Paid lives](/lives/paid) tap **Schedule a paid live** and set the title, the date and time (Lagos), a poster, and three prices:
 - **${BAND_NAME.early}:** until a date and time you pick.
 - **${BAND_NAME.normal}:** from then until the start.
 - **${BAND_NAME.late}:** from the start until the live has run ${paid.lateWindowMin} minute${paid.lateWindowMin === 1 ? "" : "s"}. After that, no more tickets.
@@ -1556,19 +1556,21 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **Your photo:** it is sent to our image partner to be drawn and isn't kept by #NotesApp; only the finished avatar is. Use your own photo only.
 
 **Your old pictures** stay in your picture history as usual; see [Your profile picture](/help/profile-pictures-and-links).`),
-    A("notes-live-studio", "Notes Live Studio: a broadcast look for your live", "Teams and organisations", `
-**Notes Live Studio** gives a live a newsroom's finish: your logo and a LIVE badge, a lower third with the headline and the speaker's name, a scrolling ticker, a subtitle line, and viewers' comments on air. Everyone watching sees the same picture. The #NotesApp team is testing it now and it opens to everyone soon; you can try the controls at [Notes Live Studio](/studio).
+    A("notes-live-studio", "Media Live Studio PRO: a broadcast studio for your live", "Teams and organisations", `
+**Media Live Studio PRO** (it was called Notes Live Studio) gives a live a newsroom's finish: your logo and a LIVE badge, a lower third with the headline and the speaker's name, a scrolling ticker, a subtitle line, and viewers' comments on air. Everyone watching sees the same picture. The #NotesApp team is testing it now and it opens to everyone soon; you can try it at [Media Live Studio PRO](/studio).
 
-**Switching it on:** in your live, the host taps **🎬 Studio**, then **Switch the studio on**. Switching it off takes the room back to how it was; what you set up is kept for when you switch it on again.
+**The studio's screen:** the top bar has your live's title, where it goes, the LIVE time, **REC** while it records, and the red button. The stage in the middle is exactly what viewers see. Under it: the layouts, then **backstage** (everyone on stage, and anyone asking for a seat, with **Add to stage** or **Remove from stage** and a ⋯ menu), then the controls: **Mic**, **Cam**, **Share**, **Invite** (copies the live's link for a guest), **Settings** and **Leave**. The sidebar on the right has **Comments**, **Banners** (lower third, ticker, subtitles), **Brand** (theme, logo, sponsor overlay), **Media** (clips, and the host's music), **People** and **Recording**. Tap a tab again to fold the sidebar away. On a phone the stage is on top and the tabs sit underneath.
+
+**Going live with it:** in your live, the host taps **🎬 Media Live Studio PRO**. The studio opens as a preview; press **Go live with studio** and the graphics go on air for everyone. **End broadcast** ends the live. To take the graphics off air without ending, open **Settings** and switch **Studio graphics on air** off; what you set up is kept for next time. **Settings → Classic room view** shows the room as listeners see it.
 
 **Who does what:**
-- **Host:** everything, and names the editors and moderators (**🛡 Editors and moderators**).
+- **Host:** everything, and names the editors and moderators (**People → 🛡 Editors and moderators**, or **Settings**).
 - **Editor:** runs the picture: layout, logo, lower third, ticker, subtitles, clips and the sponsor spot. Choose the **Editor** preset when you name them.
 - **Moderator:** looks after the chat. With **Put viewers' comments on air** ticked, they choose comments for the air.
 - **Guest:** on stage with a microphone and, when the host lets speakers use video, a camera or a shared screen.
 - **Viewer:** watches and comments.
 
-**The picture:** choose a layout (Auto, Solo, Spotlight, Grid, Picture in picture), a theme, and who is in focus. Someone whose camera is off shows as their profile picture with their name.
+**The picture:** choose a layout under the stage (Solo, Side by side, Group, Leader, Picture in picture), a theme under **Brand**, and who is in focus (**⋯ → Put in focus** on their backstage tile). Someone whose camera is off shows as their profile picture with their name.
 
 **Lower third:** type a headline, the speaker's name and who they are, then **Show**. **Breaking** is for news that can't wait; **Name only** shows just the speaker.
 
@@ -1585,13 +1587,13 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 - **Language:** English, or Pidgin (less accurate).
 - Subtitles are automatic, go out unchecked and can be wrong. Only the sound is sent to write them, and neither the sound nor the lines are kept. They aren't in the recording.
 
-**Comments on air:** point at a comment in the chat and choose **On air**, or **Queue** to line it up. Take it off when you move on.
+**Comments on air:** in **Comments**, point at a comment and choose **Show on stage**, or **Queue** to line it up. Take it off when you move on.
 
 **Clips:** upload an intro, an outro, a video (MP4 or WebM, up to 100 MB), a sound (up to 20 MB) or a picture before you need it, then **▶ Play**. It plays for everyone and the picture comes back when it ends. Microphones on stage stay as they are, so mute yours while a clip with sound plays.
 
 **Sponsor spot:** a picture (it can be animated) or a video, always without sound, as a corner card or a banner above the ticker. A video clip can also play full screen marked **Advertisement**.
 
-**Share your screen:** on stage, tap **🖥 Share screen**. Your screen takes the place of your camera and is shown large and whole.
+**Share your screen:** on stage, tap **Share** (or **🖥 Share screen** in the classic room view). Your screen takes the place of your camera and is shown large and whole.
 
 **LinkedIn Live:** sending the same programme to LinkedIn at the same time is being built. For now the studio is seen by everyone in your live on #NotesApp.
 

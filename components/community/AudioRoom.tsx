@@ -27,10 +27,15 @@ import { SongTag } from "@/components/media/SongPicker";
 import FollowButton from "@/components/FollowButton";
 import PersonActions from "@/components/gifts/PersonActions";
 import ProgramFrame from "@/components/studio/ProgramFrame";
-import StudioControls from "@/components/studio/StudioControls";
+import StudioShell, { Backstage, Icon, LayoutBar, PRODUCT, Sheet, SettingRow, ring, type BackstagePerson, type Control } from "@/components/studio/StudioShell";
+import { BannersPanel, BrandPanel, EmptyNote, MediaPanel, OnAirQueue, Toggle, useDesk } from "@/components/studio/StudioPanels";
 import { useLiveSubtitles } from "@/components/studio/useLiveSubtitles";
 import { saveTidyPrefs, tidyPrefs } from "@/lib/moments-tidy-client";
 import { studioOf, studioOn } from "@/lib/studio";
+import { createPortal } from "react-dom";
+import GiftButton from "@/components/GiftButton";
+import GiftShowWatcher from "@/components/GiftShowWatcher";
+import LivePlayer, { FollowPlus, type PlayerLine, type PlayerMore, type PlayerPerson } from "@/components/lives/LivePlayer";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -125,7 +130,11 @@ export function RoomsCard({ cid, canHost, onOpen, startOpen }: { cid: string; ca
 
 type Conn = { pc: RTCPeerConnection; kind: RoomLinkKind; peerAt: string; stream: MediaStream | null };
 
-export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; title?: string; onDone: () => void }) {
+// skin "feed": inside Notes Live's swipe feed (components/lives/LiveFeed.tsx). Viewers get the full-screen TikTok-style player
+// (components/lives/LivePlayer.tsx); the host, speakers, moderators and anyone invited up get this room as it has always been.
+// preview: the live's card from the feed, shown while the room loads. onClose: the feed's ×. onDone gets why the room closed.
+export type FeedPreview = { hostName: string; hostUsername: string; hostAvatar: string; poster: string; watching: number };
+export function RoomScreen({ id, me, title, onDone, skin, preview, onClose }: { id: string; me: string; title?: string; onDone: (message?: string) => void; skin?: "feed"; preview?: FeedPreview; onClose?: () => void }) {
   const [room, setRoom] = useState<RoomDoc | null>(null);
   const [streams, setStreams] = useState<Record<string, MediaStream>>({});
   const [levels, setLevels] = useState<Record<string, boolean>>({});
@@ -158,7 +167,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [posterOpen, setPosterOpen] = useState(false);
   // Music (lib/songs.ts): the host plays NotesApp Sounds into their microphone mix, so listeners and the recording hear it.
   const [musicOpen, setMusicOpen] = useState(false);
-  const [studioOpen, setStudioOpen] = useState(false);
+  // Media Live Studio PRO (components/studio/StudioShell.tsx): the studio view over the room for the host, editors and moderators who put
+  // comments on air. null: open by itself while the studio is on; true/false: they chose the studio or the classic room view.
+  const [shellPref, setShellPref] = useState<boolean | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [myScreen, setMyScreen] = useState(false);
   const [songOn, setSongOn] = useState("");
   const [songVol, setSongVol] = useState(0.5);
@@ -230,7 +242,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       cam?.getTracks().forEach((t) => t.stop()); cam = null;
       void ctx?.close().catch(() => {});
       setNote(message || "You left the room.");
-      setTimeout(onDone, message ? 1800 : 300);
+      setTimeout(() => onDone(message), message ? 1800 : 300);
     };
     const leave = (message = "") => { if (!over) capi("/api/community/rooms", { action: "leave", id }).catch(() => {}); finish(message); };
     leaveRef.current = leave;
@@ -642,6 +654,273 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     liveRef.current.resync();
   };
 
+  // What both views show: the stage's sound, the moderators sheet, an invitation to the stage, the recording question, the share sheet.
+  const audios = Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} muted={!!room && isMicMuted(room, u)} />);
+  const modSheet = (modsOpen && room && (
+        <ModSheet staff={staff} busy={busy === "mods"} onClose={() => setModsOpen(false)}
+          value={Object.entries(room.mods ?? {}).map(([u, m]) => ({ who: u, name: m.name, avatar: m.avatar, perms: m.perms ?? [] }))}
+          onSave={(l) => void act({ action: "mods", mods: l.map((m) => ({ who: m.who, perms: m.perms })) }, "mods").then((r) => { if (r) setModsOpen(false); })} />
+      ));
+  const inviteCard = (room && myInvite && role === "listener" && (
+        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.1] p-4" role="alertdialog" aria-label="Invitation to the stage">
+          <p className="font-ui text-sm font-bold">🎙 {myInvite.byName} invited you on stage</p>
+          <p className="mt-1 text-xs text-white/70">{isRecorded(room) ? "This live is recorded: you'll be asked to agree before your mic goes on." : "Your mic goes on when you come up; you can mute it any time."}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" disabled={busy === "invited"} onClick={() => act({ action: "invited", yes: true }, "invited")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">Come up</button>
+            <button type="button" onClick={() => act({ action: "invited", yes: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Not now</button>
+          </div>
+        </div>
+      ));
+  const consentCard = (room && recordingPrompt(room, me) === "consent" && (
+        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.08] p-4" role="alertdialog" aria-label={RECORDING_NOTICE}>
+          <p className="font-ui text-sm font-bold">{RECORDING_NOTICE}</p>
+          {room.consentAsk?.[me] && <p className="mt-1 text-xs font-semibold text-[#FFB4A2]">A moderator is waiting for your answer.</p>}
+          <p className="mt-1 text-xs text-white/70">You&apos;re on stage. If you speak, your voice is in the recording, which the host may publish as a replay. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">More</a></p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" disabled={busy === "consent"} onClick={() => act({ action: "consent" }, "consent")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">I agree, turn my mic on</button>
+            <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Back to listening</button>
+          </div>
+        </div>
+      ));
+  const shareMenu = sharing && <ShareMenu shareRef={null} url={typeof window === "undefined" ? livePath : `${window.location.origin}${livePath}`} title={room?.title ?? "Live on #NotesApp"} onClose={() => setSharing(false)} onShared={() => void act({ action: "event", kind: "share" })} />;
+  const subsBar = sub?.on && (
+    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.06] px-3 py-2 text-xs text-white/75">
+      {onStage ? (
+        <span className="min-w-0 flex-1">
+          {sub.off.includes(me) ? "Your subtitles are off." : silenced ? "Your microphone is off, so you aren't subtitled." : subtitles.error ? subtitles.error : <>💬 <b className="text-white">Your words are being subtitled.</b> Only your own microphone, a few seconds behind. Nothing is kept.</>}
+        </span>
+      ) : <span className="min-w-0 flex-1">Subtitles are automatic. They can be a few seconds late and may have mistakes.</span>}
+      {onStage && !silenced && <button type="button" onClick={() => void act({ action: "studio", op: "mysubs", off: !sub.off.includes(me) })} className="shrink-0 rounded-full border border-white/40 px-3 py-1 font-ui font-bold text-white">{sub.off.includes(me) ? "Turn mine on" : "Turn mine off"}</button>}
+      <button type="button" onClick={() => { setCc(!cc); saveTidyPrefs({ cc: !cc }); }} aria-pressed={cc} aria-label={cc ? "Hide subtitles on my screen" : "Show subtitles on my screen"} className={`shrink-0 rounded-full px-3 py-1 font-ui font-extrabold ${cc ? "bg-white text-ink" : "border border-white/40 text-white/60 line-through"}`}>CC</button>
+    </div>
+  );
+
+  // ── Media Live Studio PRO (components/studio/StudioShell.tsx) ──
+  // The studio view, StreamYard's way round: the programme in the middle, layouts under it, backstage, the controls, and the sidebar.
+  // Who sees it: the host (also while the studio is off, as a preview with Go live with studio), and while it's on, editors ("studio")
+  // and moderators who put comments on air ("onair"). Everyone else keeps the room as it was; the server still checks every step.
+  const [classic, setClassic] = useState(false); // Notes Live feed: "Full room view" (before any early return: hooks keep their order)
+  const desk = useDesk((body) => act(body, "studio"), flash);
+  const deskOn = !!room && studioOn(room);
+  const mayDesk = role === "host" || may("studio") || may("onair");
+  const showShell = !!room && mayDesk && (deskOn || role === "host") && (shellPref ?? deskOn);
+  if (showShell && room) {
+    const studio = studioOf(room);
+    const canEdit = may("studio");
+    const nameOf = (u: string) => room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest");
+    const guestLink = typeof window === "undefined" ? livePath : `${window.location.origin}${livePath}`;
+    const invite = async () => {
+      try { await navigator.clipboard.writeText(guestLink); flash("Guest link copied. Guests open it and ask for a seat; you add them to the stage."); }
+      catch { setSharing(true); }
+    };
+    const focusUid = studio.focus || room.hostUid;
+    const focusing = deskOn && ["solo", "spotlight", "pip"].includes(studio.layout) && stage.length > 1;
+    const people: BackstagePerson[] = [
+      ...stage.map((u): BackstagePerson => {
+        const removeAction = u !== me && may("down") && over(u);
+        const primary = u === me && role === "speaker" ? { label: "Leave the stage", run: () => void act({ action: "speaker", uid: me, on: false }) }
+          : removeAction ? { label: "Remove from stage", run: () => void act({ action: "speaker", uid: u, on: false }, u) } : undefined;
+        return {
+          uid: u, name: u === me ? `${nameOf(u)} (you)` : nameOf(u), avatar: room.joined[u]?.avatar ?? "",
+          stream: u === me ? myCam : audioOnly ? null : videos[u] ?? null, mirror: u === me && !myScreen,
+          onStage: true, badge: u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "Speaker", micOff: isMicMuted(room, u),
+          talking: !!levels[u] && !isMicMuted(room, u), focus: focusing && focusUid === u, busy: busy === u, primary,
+          actions: [
+            ...(canEdit && deskOn && stage.length > 1 ? [{ label: "Put in focus", run: () => void desk.set("focus", { focus: u === room.hostUid ? "" : u }) }] : []),
+            ...(canEdit && deskOn ? [{ label: "Name in the lower third", run: () => void desk.set("lower", { lower: { name: nameOf(u), on: true } }) }] : []),
+            ...speakerActions(u).filter((a) => !(removeAction && a.label === "Bring down")).map((a) => ({ ...a, label: a.label === "Bring down" ? "Remove from stage" : a.label, danger: /Bring down|Remove/.test(a.label) })),
+          ],
+        };
+      }),
+      ...(may("approve") ? hands.map(([u]): BackstagePerson => ({
+        uid: u, name: who(u)?.name ?? "Someone", avatar: who(u)?.avatar ?? "", stream: null, onStage: false, waiting: "Hand up", badge: "Asked to come on stage", busy: busy === u,
+        primary: { label: "Add to stage", run: () => void act({ action: "speaker", uid: u, on: true }, u) },
+        actions: [{ label: "Add to stage", run: () => void act({ action: "speaker", uid: u, on: true }, u) }, { label: "Decline", run: () => void act({ action: "decline", uid: u }, u), danger: true }],
+      })) : []),
+    ];
+    const camOn = !!myCam && !myScreen;
+    const camClick = async () => {
+      if (!myScreen) return toggleVideo();
+      setCamBusy(true); // from my screen back to my camera
+      try { await liveRef.current.stopVideo(); await liveRef.current.startVideo(); }
+      catch (e) { flash(e instanceof Error && /Permission|NotAllowed/i.test(e.name + e.message) ? "Allow the camera to turn video on." : e instanceof Error ? e.message : "Couldn't turn video on."); }
+      finally { setCamBusy(false); }
+    };
+    const controls: Control[] = [
+      ...(role !== "listener"
+        ? [{ id: "mic", label: muted || silenced ? "Unmute" : "Mic", icon: muted || silenced ? "micOff" : "mic", off: muted || silenced, pressed: muted || silenced, disabled: silenced, tip: silenced ? "Your mic was turned off by the host" : muted ? "Turn your microphone on" : "Mute your microphone", onClick: toggleMute }]
+        : handUp ? [{ id: "seat", label: "Cancel", icon: "minus", active: true, tip: "Cancel your request for a seat", onClick: () => { if (!live.raise(false)) void act({ action: "hand", up: false }); } }]
+        : seat !== "none" ? [{ id: "seat", label: seat === "take" ? "Take seat" : "Ask seat", icon: "plus", tip: seat === "take" ? "Take a seat on stage" : "Ask for a seat on stage", disabled: busy === "seat", onClick: () => void askSeat() }]
+        : []),
+      ...(mayVideo ? [{ id: "cam", label: camOn ? "Cam" : "Cam off", icon: camOn ? "cam" : "camOff", off: !camOn, pressed: camOn, disabled: camBusy, tip: camOn ? "Turn your camera off" : "Turn your camera on", onClick: () => void camClick() }] : []),
+      ...(mayVideo && deskOn && typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia
+        ? [{ id: "screen", label: myScreen ? "Stop share" : "Share", icon: "screen", active: myScreen, pressed: myScreen, disabled: camBusy, tip: myScreen ? "Stop sharing your screen" : "Share your screen", onClick: () => void toggleScreen() }] : []),
+      { id: "invite", label: "Invite", icon: "invite", tip: "Copy the guest link", onClick: () => void invite() },
+      { id: "settings", label: "Settings", icon: "settings", expanded: settingsOpen, tip: "Studio settings", onClick: () => setSettingsOpen(true) },
+      { id: "leave", label: "Leave", icon: "leave", danger: true, tip: "Leave the studio and the live", onClick: () => leaveRef.current() },
+    ];
+    const locked = !deskOn;
+    const noDesk = <EmptyNote icon="lock" title="The host and editors run this">Ask the host to name you an editor (the <b>Editor</b> preset) to change the graphics.</EmptyNote>;
+    const music = role === "host" && (
+      <div className="m-3 mt-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs">
+        <p className="font-ui text-sm font-bold">Music · NotesApp Sounds</p>
+        <p className="mt-0.5 text-white/55">Plays through your mic to everyone here{isRecorded(room) ? " and into the recording" : ""}. Your mute button mutes only your voice.</p>
+        <ul className="mt-2 max-h-64 space-y-1.5 overflow-y-auto">
+          {songs.map((s) => (
+            <li key={s.id} className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.cover} alt="" className="h-9 w-9 rounded-lg object-cover" />
+              <span className="min-w-0 flex-1"><b className="block truncate font-ui text-sm">{s.title}</b><span className="text-white/60">{s.artist}</span></span>
+              {songOn === s.id
+                ? <button type="button" onClick={() => songRef.current.stop()} className={`rounded-full bg-white px-3 py-1.5 font-ui font-bold text-ink ${ring}`}>■ Stop</button>
+                : <button type="button" onClick={() => { if (!songRef.current.play(s.id)) flash("Music plays once your mic is on."); }} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20 ${ring}`}>▶ Play</button>}
+            </li>
+          ))}
+        </ul>
+        <label className="mt-2 flex items-center gap-2 text-white/70">Music volume
+          <input type="range" min={0} max={100} value={Math.round(songVol * 100)} onChange={(e) => { const v = Number(e.target.value) / 100; setSongVol(v); songRef.current.volume(v); }} className="w-40 accent-white" aria-label="Music volume" /></label>
+      </div>
+    );
+    const notices = [
+      note && <p key="note" className="rounded-lg bg-white/10 px-3 py-2 text-xs" role="status">{note}</p>,
+      role === "host" && prompt && !(prompt.kind === "drop" && myCam) && !(prompt.kind !== "drop" && !videoUp) && (
+        <div key="prompt" className="flex flex-wrap items-center gap-2 rounded-lg bg-[#FFB4A2]/15 px-3 py-2" role="status">
+          <p className="min-w-0 flex-1 text-xs">{prompt.text}</p>
+          {prompt.kind === "drop" && <button type="button" disabled={camBusy} onClick={() => { setPrompt(null); void toggleVideo(); }} className="rounded-full bg-white px-3 py-1 font-ui text-xs font-bold text-ink">Turn video on</button>}
+          {prompt.kind !== "drop" && <button type="button" disabled={camBusy} onClick={() => { setPrompt(null); void backToAudio(); }} className="rounded-full bg-white px-3 py-1 font-ui text-xs font-bold text-ink">{prompt.kind === "budget" ? "Turn video off now" : "Back to audio"}</button>}
+          {prompt.kind !== "budget" && <button type="button" onClick={() => setPrompt(null)} className="text-xs text-white/60 underline">{prompt.kind === "drop" ? "Not now" : "Keep video"}</button>}
+        </div>
+      ),
+      role === "host" && room.recording?.status === "failed" && <p key="rec" className="rounded-lg bg-[#E5383B]/15 px-3 py-2 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>,
+      role === "host" && room.note && <p key="rnote" className="rounded-lg bg-[#E5383B]/15 px-3 py-2 text-xs text-[#FFB4A2]" role="status">{room.note}</p>,
+    ].filter(Boolean);
+    return (
+        <StudioShell
+          title={room.title ?? title ?? "Live"}
+          destination={<>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#35C27A]" />NotesApp Live · {room.communityName || (room.profile ? `@${room.profile.hostUsername}` : room.paid ? "Paid live" : "Live")}</span>
+            <span className="rounded-full border border-dashed border-white/25 px-2 py-px text-white/50" title="Sending the same programme to LinkedIn Live is being built">LinkedIn Live · coming soon</span>
+            {role === "host" && relayRoom && videoCfg.on && hostLive && <span>🎥 {hostLive.staffPass ? "Staff test pass: video minutes aren't counted" : minutesLeftText(hostLive.minutesLeft)}</span>}
+            {room.song && <span className="flex items-center gap-1">♪ <SongTag songId={room.song.id} newTab /></span>}
+          </>}
+          status={{ live: true, time: duration(secs), viewers: `${listening.toLocaleString("en-GB")} watching`, recording: isRecorded(room) }}
+          topExtra={<>
+            {!deskOn && <span className="rounded-full border border-[#F5B83D]/50 px-2.5 py-1 font-ui text-[11px] font-bold text-[#FFD98A]">Studio preview · graphics off air</span>}
+            {!!room.likes && <span className="text-[11px] text-white/60" aria-label={`${room.likes} likes`}>❤️ {room.likes.toLocaleString("en-GB")}</span>}
+            <button type="button" onClick={() => void shareLive()} aria-label="Share the live" title="Share the live" className={`rounded-lg bg-white/10 p-2 hover:bg-white/20 ${ring}`}><Icon name="share" className="h-4 w-4" /></button>
+          </>}
+          primary={!deskOn && role === "host"
+            ? <button type="button" disabled={desk.busy === "on"} onClick={() => void desk.run("on", { op: "on", on: true })} className={`rounded-lg bg-[#E5122F] px-4 py-2 font-ui text-sm font-bold shadow-[0_0_0_3px_rgba(229,18,47,0.25)] hover:bg-[#c90f28] disabled:opacity-50 ${ring}`}>Go live with studio</button>
+            : may("end") ? <button type="button" onClick={() => { if (confirm("End the broadcast for everyone?")) void act({ action: "end" }); }} className={`rounded-lg bg-[#E5122F] px-4 py-2 font-ui text-sm font-bold hover:bg-[#c90f28] ${ring}`}>End broadcast</button> : undefined}
+          notice={notices.length ? <div className="space-y-2">{notices}</div> : undefined}
+          stage={<ProgramFrame studio={studio} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
+            person={(u) => ({ name: nameOf(u), avatar: room.joined[u]?.avatar ?? "" })}
+            sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} hideSubs={!cc} />}
+          belowStage={subsBar || undefined}
+          layoutBar={<LayoutBar layout={studio.layout} disabled={!canEdit || locked} busy={desk.busy === "layout"} onPick={canEdit ? (l) => void desk.set("layout", { layout: l }) : undefined} screen={studio.screen ? nameOf(studio.screen) : ""} />}
+          backstage={<Backstage people={people} empty={free} onInvite={() => void invite()} inviteHint="An empty seat" />}
+          controls={controls}
+          tabs={[
+            {
+              id: "comments", label: "Comments", icon: "comments", body: (
+                <div className="flex min-h-0 flex-1 flex-col">
+                  {may("onair") && deskOn && <div className="flex-none border-b border-white/10 p-3"><OnAirQueue studio={studio} desk={desk} /></div>}
+                  <RoomChatPanel embedded id={id} me={me} room={room} relay={relayRoom} live={live} perms={[...perms, ...(live.you?.mod ? COMMUNITY_MOD_PERMS : [])]} act={act} open onClose={() => {}} onNew={() => {}} remove={(mid) => act({ action: "unchat", messageId: mid })} />
+                </div>
+              ),
+            },
+            { id: "banners", label: "Banners", icon: "banners", body: canEdit ? <BannersPanel studio={studio} stage={stage} nameOf={nameOf} desk={desk} locked={locked} /> : noDesk },
+            { id: "brand", label: "Brand", icon: "brand", body: canEdit ? <BrandPanel studio={studio} desk={desk} onError={flash} locked={locked} /> : noDesk },
+            { id: "media", label: "Media", icon: "media", body: <>{canEdit ? <MediaPanel studio={studio} desk={desk} onError={flash} locked={locked} /> : !music && noDesk}{music}</> },
+            {
+              id: "people", label: "People", icon: "people", badge: may("approve") ? hands.length : 0, body: (
+                <div className="space-y-4 p-3 text-xs">
+                  {may("mode") ? <ModeSwitch value={smode} busy={busy === "mode"} onChange={(m) => void act({ action: "stagemode", mode: m }, "mode")} />
+                    : <p className="text-white/55">{smode === "solo" ? "The host is keeping the stage for now." : smode === "open" ? "Open stage: viewers can take an empty seat." : "Viewers ask for a seat; you add them from backstage."}</p>}
+                  <p className="text-white/60">{stage.length} on stage · {listening.toLocaleString("en-GB")}{cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} watching{room.guests ? ` · ${room.guests.toLocaleString("en-GB")} as guests` : ""}{full ? " (full)" : ""} · {mode === "relay" ? "through the relay" : "phone to phone"}</p>
+                  {role === "host" && (
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => void openMods()} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20 ${ring}`}>🛡 Editors and moderators{room.mods && Object.keys(room.mods).length ? ` · ${Object.keys(room.mods).length}` : ""}</button>
+                      {room.mods && Object.keys(room.mods).length > 0 && <button type="button" onClick={() => act<{ log: ModLogEntry[] }>({ action: "modlog" }).then((r) => setLog(r?.log ?? []))} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20 ${ring}`}>📋 Moderators&apos; log</button>}
+                    </div>
+                  )}
+                  {log && (
+                    <div className="rounded-xl bg-white/[0.04] p-3">
+                      <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold">Moderators&apos; log</p><button type="button" onClick={() => setLog(null)} className="text-white/60 underline">Hide</button></div>
+                      <ul className="mt-2 space-y-1 text-white/75">
+                        {log.map((e, i) => <li key={i}><span className="text-white/45">{ago(e.at)}</span> · <b>{e.byName}</b>: {e.action}{e.targetName ? ` (${e.targetName})` : ""}</li>)}
+                        {!log.length && <li className="text-white/50">Nothing yet.</li>}
+                      </ul>
+                    </div>
+                  )}
+                  {room.profile?.gifts !== false && <StageGifts roomId={id} hostUid={room.hostUid} stage={stage} me={me} joined={room.joined} />}
+                  {relayRoom
+                    ? <RoomPeople id={id} me={me} busy={busy} actionsFor={listenerActions} onClose={() => {}} />
+                    : (
+                      <ul className="grid grid-cols-4 gap-3">
+                        {listeners.map((u) => <Person key={u} name={u === me ? "You" : room.joined[u]?.name ?? "Someone"} avatar={room.joined[u]?.avatar ?? ""} hand={!!room.hands?.[u]} actions={listenerActions(u, room.joined[u]?.name ?? "them")} busy={busy === u} />)}
+                        {!listeners.length && <li className="col-span-4 text-white/50">Nobody is listening yet.</li>}
+                      </ul>
+                    )}
+                </div>
+              ),
+            },
+            {
+              id: "recording", label: "Recording", icon: "rec", body: isRecorded(room) ? (
+                <div className="space-y-3 p-3 text-xs">
+                  <p className="flex items-center gap-2 rounded-lg bg-[#E5383B]/15 px-3 py-2 font-semibold text-[#FFB4A2]" role="status"><span className="h-2 w-2 animate-pulse rounded-full bg-[#FF4D4D]" />{RECORDING_NOTICE}{room.paid?.record === "safety" ? " for safety review only (no replay)" : ""}</p>
+                  <p className="text-white/60">Everyone who joins is told; speakers agree before their mic goes on. The recording has the stage&apos;s sound; the studio&apos;s graphics aren&apos;t in it yet.</p>
+                  {room.recording?.status === "failed" && <p className="text-[#FFB4A2]">{room.recording.why}</p>}
+                  <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="inline-block underline">What this means</a>
+                </div>
+              ) : <EmptyNote icon="rec" title="This live isn't recorded">Recording is chosen when a live starts (<b>Record this live</b> on Go live). Nothing from this live is kept.</EmptyNote>,
+            },
+          ]}
+          overlay={<>
+            {settingsOpen && (
+              <Sheet title="Studio settings" onClose={() => setSettingsOpen(false)}>
+                {role === "host" && deskOn && <SettingRow label="Studio graphics on air" hint="Off takes the room back to the plain live; what you set up is kept"><Toggle label="Studio graphics on air" on disabled={desk.busy === "on"} onChange={() => void desk.run("on", { op: "on", on: false })} /></SettingRow>}
+                {role === "host" && <SettingRow label="Editors and moderators" hint="Who runs the graphics and the comments"><button type="button" onClick={() => { setSettingsOpen(false); void openMods(); }} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui text-xs font-semibold hover:bg-white/20 ${ring}`}>Choose</button></SettingRow>}
+                {may("video") && relayRoom && videoCfg.on && <SettingRow label="Speakers can turn video on" hint="Their camera, or a shared screen"><Toggle label="Speakers can turn video on" on={room.stageVideo === true} onChange={(v) => void act({ action: "stagevideo", on: v })} /></SettingRow>}
+                {relayRoom && !myCam && <SettingRow label="Audio only" hint="Data saver: don't download the cameras"><Toggle label="Audio only" on={audioOnly} onChange={toggleAudioOnly} /></SettingRow>}
+                {sub?.on && <SettingRow label="Subtitles on my screen" hint="Only changes what you see (CC)"><Toggle label="Subtitles on my screen" on={cc} onChange={(v) => { setCc(v); saveTidyPrefs({ cc: v }); }} /></SettingRow>}
+                {may("poster") && (
+                  <SettingRow label="Poster" hint="Shown while every camera is off"><button type="button" onClick={() => setPosterOpen((v) => !v)} aria-expanded={posterOpen} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui text-xs font-semibold hover:bg-white/20 ${ring}`}>Change</button></SettingRow>
+                )}
+                {may("poster") && posterOpen && <div className="pb-3"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
+                <SettingRow label="Classic room view" hint="The room as listeners see it; come back with the studio button"><button type="button" onClick={() => { setSettingsOpen(false); setShellPref(false); }} className={`rounded-full bg-white/10 px-3 py-1.5 font-ui text-xs font-semibold hover:bg-white/20 ${ring}`}>Switch</button></SettingRow>
+              </Sheet>
+            )}
+            {(inviteCard || consentCard) && <div className="fixed inset-x-0 bottom-24 z-[135] mx-auto w-full max-w-md">{inviteCard}{consentCard}</div>}
+            {shareMenu}
+            {modSheet}
+            <LiveEntrance entrance={room.entrance} />
+            {audios}
+          </>}
+        />
+    );
+  }
+
+  // Notes Live's feed: a viewer watches in the full-screen player. Anyone with a job in the room (on stage, a moderator, invited up)
+  // gets the room as it has always been, and so does a viewer who taps "Full room view".
+  const feedView = skin === "feed" && !classic && (!room || (role === "listener" && !perms.length && !live.you?.mod && !myInvite));
+  const programme = room && studioOn(room) ? (
+    <div className="w-full">
+      <ProgramFrame studio={studioOf(room)} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
+        person={(u) => ({ name: room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest"), avatar: room.joined[u]?.avatar ?? "" })}
+        sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} hideSubs={!cc} />
+    </div>
+  ) : null;
+  if (feedView) {
+    return (
+      <FeedRoom id={id} me={me} room={room} title={room?.title ?? title ?? ""} preview={preview} note={note} live={live} listening={listening}
+        videos={audioOnly ? {} : videos} streams={streams} screen={programme} stage={stage} relay={relayRoom} audioOnly={audioOnly} toggleAudioOnly={toggleAudioOnly}
+        liked={liked} like={() => { if (!liked) { setLiked(true); void act({ action: "event", kind: "like" }); } }}
+        livePath={livePath} act={act} onClose={onClose} onClassic={() => setClassic(true)}
+        seat={seat} handUp={handUp} askSeat={() => void askSeat()} cancelSeat={() => { if (!live.raise(false)) void act({ action: "hand", up: false }); }} />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[130] flex bg-ink text-white" role="dialog" aria-modal="true" aria-label={`Audio room: ${room?.title ?? title ?? ""}`}
       style={{ backgroundImage: "radial-gradient(ellipse 80% 55% at 50% 0%, rgba(122,3,40,0.55) 0%, rgba(26,18,16,0) 70%)" }}>
@@ -660,7 +939,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           {role !== "host" && (room?.profile?.hostUsername || room?.hostUsername) && <div className="mt-2 inline-block rounded-full bg-white p-0.5"><FollowButton username={(room.profile?.hostUsername || room.hostUsername)!} onFollow={() => void act({ action: "event", kind: "follow" })} /></div>}
           {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
-        <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
+        <span className="flex shrink-0 flex-col items-end gap-2">
+          <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
+          {skin === "feed" && classic && role === "listener" && <button type="button" onClick={() => setClassic(false)} className="shrink-0 rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">↩ Back to Notes Live</button>}
+        </span>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
@@ -677,17 +959,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             <ProgramFrame studio={studioOf(room)} stage={stage} hostUid={room.hostUid} me={me} videos={audioOnly ? {} : videos} myCam={myCam} talking={levels}
               person={(u) => ({ name: room.joined[u]?.name ?? (u === room.hostUid ? room.hostName : "Guest"), avatar: room.joined[u]?.avatar ?? "" })}
               sub={(u) => (u === room.hostUid ? "Host" : isRoomMod(room, u) ? "Moderator" : "")} hideSubs={!cc} />
-            {sub?.on && (
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.06] px-3 py-2 text-xs text-white/75">
-                {onStage ? (
-                  <span className="min-w-0 flex-1">
-                    {sub.off.includes(me) ? "Your subtitles are off." : silenced ? "Your microphone is off, so you aren't subtitled." : subtitles.error ? subtitles.error : <>💬 <b className="text-white">Your words are being subtitled.</b> Only your own microphone, a few seconds behind. Nothing is kept.</>}
-                  </span>
-                ) : <span className="min-w-0 flex-1">Subtitles are automatic. They can be a few seconds late and may have mistakes.</span>}
-                {onStage && !silenced && <button type="button" onClick={() => void act({ action: "studio", op: "mysubs", off: !sub.off.includes(me) })} className="shrink-0 rounded-full border border-white/40 px-3 py-1 font-ui font-bold text-white">{sub.off.includes(me) ? "Turn mine on" : "Turn mine off"}</button>}
-                <button type="button" onClick={() => { setCc(!cc); saveTidyPrefs({ cc: !cc }); }} aria-pressed={cc} aria-label={cc ? "Hide subtitles on my screen" : "Show subtitles on my screen"} className={`shrink-0 rounded-full px-3 py-1 font-ui font-extrabold ${cc ? "bg-white text-ink" : "border border-white/40 text-white/60 line-through"}`}>CC</button>
-              </div>
-            )}
+            {subsBar}
           </div>
         )}
         {room && !studioOn(room) && (relayRoom || room.poster) && (
@@ -695,7 +967,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         )}
         {room && (role === "host" || may("poster") || may("video") || may("studio") || may("onair")) && (
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs">
-            {(role === "host" || ((may("studio") || may("onair")) && studioOn(room))) && <button type="button" onClick={() => setStudioOpen((v) => !v)} aria-expanded={studioOpen} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${studioOpen ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎬 Studio{studioOn(room) ? " · on" : ""}</button>}
+            {(role === "host" || ((may("studio") || may("onair")) && studioOn(room))) && <button type="button" onClick={() => setShellPref(true)} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${studioOn(room) ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎬 {PRODUCT}{studioOn(room) ? " · on" : ""}</button>}
             {role === "host" && <button type="button" onClick={() => void openMods()} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🛡 Moderators{room.mods && Object.keys(room.mods).length ? ` · ${Object.keys(room.mods).length}` : ""}</button>}
             {role === "host" && room.mods && Object.keys(room.mods).length > 0 && <button type="button" onClick={() => act<{ log: ModLogEntry[] }>({ action: "modlog" }).then((r) => setLog(r?.log ?? []))} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">📋 Moderators&apos; log</button>}
             {role === "host" && <button type="button" onClick={() => setMusicOpen((v) => !v)} aria-expanded={musicOpen} className={`rounded-full px-3 py-1.5 font-ui font-semibold ${songOn ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>🎵 Music{songOn ? " · on" : ""}</button>}
@@ -721,12 +993,6 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
                 </ul>
                 <label className="mt-2 flex items-center gap-2 text-white/70">Music volume
                   <input type="range" min={0} max={100} value={Math.round(songVol * 100)} onChange={(e) => { const v = Number(e.target.value) / 100; setSongVol(v); songRef.current.volume(v); }} className="w-40 accent-white" aria-label="Music volume" /></label>
-              </div>
-            )}
-            {studioOpen && (
-              <div className="w-full">
-                <StudioControls studio={studioOf(room)} isHost={role === "host"} canEdit={may("studio")} canAir={may("onair")} stage={stage} nameOf={(u) => room.joined[u]?.name ?? "Guest"}
-                  act={(body) => act(body, "studio")} onError={flash} onModerators={() => void openMods()} />
               </div>
             )}
             {posterOpen && <div className="w-full"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
@@ -782,35 +1048,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         </ul>
       </div>
 
-      {Object.entries(streams).map(([u, s]) => <RemoteAudio key={u} stream={s} muted={!!room && isMicMuted(room, u)} />)}
-      {modsOpen && room && (
-        <ModSheet staff={staff} busy={busy === "mods"} onClose={() => setModsOpen(false)}
-          value={Object.entries(room.mods ?? {}).map(([u, m]) => ({ who: u, name: m.name, avatar: m.avatar, perms: m.perms ?? [] }))}
-          onSave={(l) => void act({ action: "mods", mods: l.map((m) => ({ who: m.who, perms: m.perms })) }, "mods").then((r) => { if (r) setModsOpen(false); })} />
-      )}
-      {room && myInvite && role === "listener" && (
-        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.1] p-4" role="alertdialog" aria-label="Invitation to the stage">
-          <p className="font-ui text-sm font-bold">🎙 {myInvite.byName} invited you on stage</p>
-          <p className="mt-1 text-xs text-white/70">{isRecorded(room) ? "This live is recorded: you'll be asked to agree before your mic goes on." : "Your mic goes on when you come up; you can mute it any time."}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={busy === "invited"} onClick={() => act({ action: "invited", yes: true }, "invited")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">Come up</button>
-            <button type="button" onClick={() => act({ action: "invited", yes: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Not now</button>
-          </div>
-        </div>
-      )}
+      {audios}
+      {modSheet}
+      {inviteCard}
       <LiveEntrance entrance={room?.entrance} />
 
-      {room && recordingPrompt(room, me) === "consent" && (
-        <div className="mx-5 mb-3 rounded-2xl bg-white/[0.08] p-4" role="alertdialog" aria-label={RECORDING_NOTICE}>
-          <p className="font-ui text-sm font-bold">{RECORDING_NOTICE}</p>
-          {room.consentAsk?.[me] && <p className="mt-1 text-xs font-semibold text-[#FFB4A2]">A moderator is waiting for your answer.</p>}
-          <p className="mt-1 text-xs text-white/70">You&apos;re on stage. If you speak, your voice is in the recording, which the host may publish as a replay. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">More</a></p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={busy === "consent"} onClick={() => act({ action: "consent" }, "consent")} className="rounded-full bg-white px-4 py-2 font-ui text-xs font-bold text-ink">I agree, turn my mic on</button>
-            <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-2 font-ui text-xs hover:bg-white/20">Back to listening</button>
-          </div>
-        </div>
-      )}
+      {consentCard}
 
       <footer className="flex items-center justify-center gap-4 border-t border-white/10 px-5 pb-[calc(env(safe-area-inset-bottom)_+_1rem)] pt-4">
         {role === "listener" ? (
@@ -831,7 +1074,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         {role !== "host" && <button type="button" disabled={liked} onClick={() => { setLiked(true); void act<{ likes?: number }>({ action: "event", kind: "like" }); }} aria-pressed={liked} aria-label="Like the live" className={`flex h-12 items-center gap-1.5 rounded-full px-4 font-ui text-sm font-semibold ${liked ? "bg-white text-[#E5383B]" : "bg-white/10 hover:bg-white/20"}`}>{liked ? "❤️" : "🤍"}{room?.likes ? <span>{room.likes.toLocaleString("en-GB")}</span> : null}</button>}
         {role === "host" && !!room?.likes && <span className="flex h-12 items-center gap-1.5 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold" aria-label={`${room.likes} likes`}>❤️ {room.likes.toLocaleString("en-GB")}</span>}
         <button type="button" onClick={() => void shareLive()} aria-label="Share the live" className="flex h-12 items-center gap-1.5 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20"><ShareIcon className="h-4 w-4" />Share</button>
-        {sharing && <ShareMenu shareRef={null} url={typeof window === "undefined" ? livePath : `${window.location.origin}${livePath}`} title={room?.title ?? "Live on #NotesApp"} onClose={() => setSharing(false)} onShared={() => void act({ action: "event", kind: "share" })} />}
+        {shareMenu}
         <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
           💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
         </button>
@@ -847,11 +1090,76 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   );
 }
 
+// A viewer's room inside Notes Live's feed, drawn by the full-screen player (components/lives/LivePlayer.tsx). Everything it does goes
+// through the same room as the classic screen above: the chat (over the live-rooms socket, or Firestore), likes, shares and follows as
+// room events, gifts with the live's id, a seat on stage. Moderating and hosting stay in the classic screen.
+function FeedRoom({ id, me, room, title, preview, note, live, listening, videos, streams, screen, stage, relay, audioOnly, toggleAudioOnly, liked, like, livePath, act, onClose, onClassic, seat, handUp, askSeat, cancelSeat }: {
+  id: string; me: string; room: RoomDoc | null; title: string; preview?: FeedPreview; note: string; live: LiveChannel; listening: number;
+  videos: Record<string, MediaStream>; streams: Record<string, MediaStream>; screen: React.ReactNode; stage: string[]; relay: boolean;
+  audioOnly: boolean; toggleAudioOnly: () => void; liked: boolean; like: () => void; livePath: string;
+  act: <T = unknown>(body: Record<string, unknown>, tag?: string) => Promise<T | null>; onClose?: () => void; onClassic: () => void;
+  seat: ReturnType<typeof seatAction>; handUp: boolean; askSeat: () => void; cancelSeat: () => void;
+}) {
+  const [fsMsgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
+  useEffect(() => (live.on ? undefined : onSnapshot(query(collection(db, "communityRooms", id, "chat"), orderBy("at"), limitToLast(60)), (s) => setMsgs(s.docs.map((d) => ({ ...(d.data() as RoomChat), id: d.id }))), () => {})), [id, live.on]);
+  const [gift, setGift] = useState<{ uid: string; name: string; username?: string; kind: "host" | "speaker" } | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const msgs = live.on ? live.msgs : fsMsgs;
+  const lines: PlayerLine[] = msgs.map((m) => ({ id: m.id, name: m.ev ? "" : m.from === me ? "You" : m.name, text: m.text, ...(m.ev ? { ev: m.ev } : {}) }));
+  const hostUsername = room?.profile?.hostUsername || room?.hostUsername || preview?.hostUsername || "";
+  const host = { name: room?.hostName || preview?.hostName || "", username: hostUsername, avatar: (room && room.joined[room.hostUid]?.avatar) || preview?.hostAvatar || "" };
+  const main = stage.find((u) => videos[u]);
+  const extra = stage.filter((u) => u !== main && videos[u]).map((u) => ({ key: u, stream: videos[u], label: room?.joined[u]?.name ?? "" }));
+  const faces: PlayerPerson[] = room ? stage.map((u) => ({ key: u, name: room.joined[u]?.name ?? "Someone", avatar: room.joined[u]?.avatar ?? "", badge: u === room.hostUid ? "Host" : "On stage" })) : [];
+  const giftsOn = !!room && room.profile?.gifts !== false && room.hostUid !== me;
+  async function send(t: string): Promise<boolean> {
+    // The same three ways as the room's chat panel: the live-rooms socket, the server (relay rooms), or the chat collection.
+    if (live.send(t)) return true;
+    if (relay) { try { await capi("/api/community/rooms", { action: "chat", id, text: t }); return true; } catch { return false; } }
+    const mine = room?.joined[me];
+    if (!mine) return false;
+    try { await addDoc(collection(db, "communityRooms", id, "chat"), { from: me, name: mine.name, avatar: mine.avatar, text: t, at: new Date().toISOString() } satisfies RoomChat); return true; }
+    catch { return false; }
+  }
+  const loadViewers = async (): Promise<PlayerPerson[]> => {
+    if (!room) return [];
+    if (!relay) return listenersOf(room).map((u) => ({ key: u, name: u === me ? "You" : room.joined[u]?.name ?? "Someone", avatar: room.joined[u]?.avatar ?? "" }));
+    const r = await capi<{ people: { uid: string; name: string; avatar: string }[] }>("/api/community/rooms", { action: "people", id, after: null });
+    return r.people.map((p) => ({ key: p.uid, name: p.uid === me ? "You" : p.name, avatar: p.avatar }));
+  };
+  const slow = relay && (live.status === "live" ? live.slow : room?.chatSlow ?? 0) > 0 ? `Slow mode: one comment every ${live.status === "live" ? live.slow : room?.chatSlow} seconds.` : "";
+  const more: PlayerMore[] = [
+    ...(handUp ? [{ label: "✋ Seat requested · cancel", onClick: cancelSeat }] : seat === "take" ? [{ label: "＋ Take a seat on stage", onClick: askSeat }] : seat === "request" ? [{ label: "✋ Ask to come on stage", onClick: askSeat }] : []),
+    ...(giftsOn && room ? room.speakers.filter((u) => u !== me).map((u) => ({ label: `🎁 Gift ${room.joined[u]?.name ?? "a speaker"}`, onClick: () => setGift({ uid: u, name: room.joined[u]?.name ?? "them", kind: "speaker" }) })) : []),
+    ...(relay ? [{ label: "🔈 Audio only (data saver)", onClick: toggleAudioOnly, pressed: audioOnly }] : []),
+    { label: "🗂 Full room view: stage, chat, people, report", onClick: onClassic },
+    { label: "🎟 Paid lives", href: "/lives/paid" },
+  ];
+  return (
+    <LivePlayer title={title || "Live"} host={host} watching={room ? listening + (room.guests ?? 0) : preview?.watching ?? 0} likes={room?.likes ?? 0}
+      video={main ? videos[main] : null} poster={room ? room.poster ?? "" : preview?.poster ?? ""} extraVideos={extra} screen={screen}
+      sounds={Object.entries(streams).map(([u, s]) => ({ key: u, stream: s, muted: !!room && isMicMuted(room, u) }))}
+      lines={lines} pinned={room?.pinned?.text} faces={faces} loadViewers={room ? loadViewers : undefined}
+      follow={hostUsername && room?.hostUid !== me ? <FollowPlus username={hostUsername} onFollow={() => void act({ action: "event", kind: "follow" })} /> : null}
+      onClose={onClose} liked={liked} onLike={like}
+      onGift={giftsOn && room ? () => setGift({ uid: room.hostUid, name: host.name, username: hostUsername || undefined, kind: "host" }) : undefined}
+      onShare={() => setSharing(true)} more={more}
+      comment={{ kind: "input", send, maxLength: ROOM_CHAT_MAX, note: live.you?.muted ? "The host has muted you in this chat." : live.err || slow }}
+      status={note || (room ? "" : "Joining…")}
+      notice={room && isRecorded(room) ? <p className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}</p> : null}>
+      {room && <LiveEntrance entrance={room.entrance} />}
+      {room && <GiftShowWatcher uid={room.hostUid} toName={host.name} />}
+      {gift && createPortal(<GiftButton sheetOnly onClose={() => setGift(null)} publisherUid={gift.uid} username={gift.username} toName={gift.name} toKind={gift.kind} context="live" liveId={id} />, document.body)}
+      {sharing && <ShareMenu shareRef={null} url={`${window.location.origin}${livePath}`} title={room?.title ?? "Live on #NotesApp"} onClose={() => setSharing(false)} onShared={() => void act({ action: "event", kind: "share" })} />}
+    </LivePlayer>
+  );
+}
+
 // The room's chat (lib/rooms.ts): everyone in the room types here while it's on; host and speakers are marked. The newest stays in view.
 // On the live-rooms worker (live.on) the messages come over the room's WebSocket instead of a live read of the chat collection.
 // perms: what I hold here (lib/rooms.ts MOD_PERMS, with the community moderators' chat powers): remove messages, mute in the chat,
 // remove from the live, slow mode, pin. Each control shows only to those who hold it, and never against someone with as much say.
-function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; perms: ModPerm[]; act: (body: Record<string, unknown>, tag?: string) => Promise<unknown>; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, onNew, remove, embedded }: { id: string; me: string; room: RoomDoc; relay: boolean; live: LiveChannel; perms: ModPerm[]; act: (body: Record<string, unknown>, tag?: string) => Promise<unknown>; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void; embedded?: boolean }) {
   const canRemove = perms.includes("chatRemove"), canMute = perms.includes("chatMute"), canBan = perms.includes("ban"), canPin = perms.includes("pin"), canSlow = perms.includes("slow");
   // Notes Live Studio (lib/studio.ts): put this comment on the programme, or keep it in the on-air queue.
   const canAir = perms.includes("onair") && studioOn(room);
@@ -908,10 +1216,12 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
   const badge = (u: string) => (u === room.hostUid ? "Host" : room.speakers.includes(u) ? "Speaker" : "");
   return (
     <>
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <p className="font-ui text-sm font-bold">Room chat</p>
-        <button type="button" onClick={onClose} className="rounded-full px-2 text-xl text-white/60 hover:text-white lg:hidden" aria-label="Close the chat">×</button>
-      </div>
+      {!embedded && (
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <p className="font-ui text-sm font-bold">Room chat</p>
+          <button type="button" onClick={onClose} className="rounded-full px-2 text-xl text-white/60 hover:text-white lg:hidden" aria-label="Close the chat">×</button>
+        </div>
+      )}
       {room.pinned && (
         <div className="flex items-start gap-2 border-b border-white/10 bg-white/[0.06] px-4 py-2.5 text-sm">
           <span aria-hidden>📌</span>
@@ -945,7 +1255,7 @@ function RoomChatPanel({ id, me, room, relay, live, perms, act, open, onClose, o
               <span className={`flex flex-col items-end gap-0.5 self-start focus-within:opacity-100 group-hover:opacity-100 ${canAir ? "opacity-70" : "opacity-0"}`}>
                 {canAir && (onAirId === m.id
                   ? <button type="button" onClick={() => void act({ action: "studio", op: "comment", message: null })} className="rounded bg-[#E5122F] px-1.5 py-0.5 text-[10px] font-extrabold text-white">ON AIR · take off</button>
-                  : <button type="button" onClick={() => air(m, "comment")} className="rounded bg-white px-1.5 py-0.5 text-[10px] font-extrabold text-ink">On air</button>)}
+                  : <button type="button" onClick={() => air(m, "comment")} className="rounded bg-white px-1.5 py-0.5 text-[10px] font-extrabold text-ink">Show on stage</button>)}
                 {canAir && onAirId !== m.id && <button type="button" onClick={() => air(m, "queue")} className="text-[11px] text-white/40 hover:text-white">Queue</button>}
                 {canPin && <button type="button" onClick={() => void act({ action: "pin", text: m.text })} className="text-[11px] text-white/40 hover:text-white">Pin</button>}
                 {m.from !== me && over(m.from) && canRemove && <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>}

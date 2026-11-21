@@ -15,15 +15,14 @@ import { NameBadgeIcons } from "@/components/PersonName";
 import { NO_BADGES } from "@/lib/name-badges";
 import { GOLD_BADGE_TITLE, type BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
-import SocialLinksRow from "@/components/SocialLinksRow";
+import { linkText, profileLinks } from "@/components/SocialLinksRow";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
-import { getFollowerCount } from "@/lib/follows";
+import { getFollowerCount, getFollowedUsernames } from "@/lib/follows";
 import { describeUntil } from "@/lib/suspension-length";
 import { submitAppeal, getSuspension } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import { ADMIN_PROFILES } from "@/lib/admin";
-import FollowLists from "@/components/FollowLists";
 import OfficialFollowControl from "@/components/OfficialFollowControl";
 import PresenceText from "@/components/PresenceText";
 import { usePresence } from "@/lib/presence-client";
@@ -44,6 +43,15 @@ import AdSlot from "@/components/AdSlot";
 import RecommendationsPanel from "@/components/RecommendationsPanel";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { ProfileLiveBanner } from "@/components/lives/ProfileLive";
+import ProfileHeader, { type Fact } from "@/components/profile/ProfileHeader";
+import ProfileAbout, { type AboutRow } from "@/components/profile/ProfileAbout";
+import ProfileMenu, { type MenuItem } from "@/components/profile/ProfileMenu";
+import { BriefcaseIcon, BuildingIcon, CalendarIcon, CameraIcon, DotsIcon, GaugeIcon, LinkIcon, LiveIcon, PencilIcon, PlusIcon, SettingsIcon, TagIcon, TrophyIcon, UserIcon, WalletIcon } from "@/components/profile/icons";
+import { AcademyIcon, MarketIcon, PenIcon } from "@/components/shell/icons";
+import { workRows } from "@/lib/profile-view";
+import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
+import { ACADEMY_LIVE } from "@/lib/courses";
+import { MEDIA_LIVE } from "@/lib/media-rules";
 
 const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
@@ -94,8 +102,14 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
   // Private suspensions/{uid} record — only readable by the member.
   const [suspension, setSuspension] = useState<Suspension | null>(null);
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
+  // How many accounts you follow: on your own profile only (it isn't public; browsers may read only their own follows).
+  const [followingCount, setFollowingCount] = useState<number | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  useEffect(() => {
+    if (!viewer || !realProfile || viewer.uid !== realProfile.uid) { setFollowingCount(null); return; }
+    getFollowedUsernames(viewer.uid).then((l) => setFollowingCount(l.length)).catch(() => setFollowingCount(null));
+  }, [viewer, realProfile]);
   useEffect(() => {
     if (params.username && !isOfficial && !isSocialChannel) {
       getStoreItems(realProfile?.uid, params.username).then(setStoreItems);
@@ -253,102 +267,124 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
 
   // People get a circle, organisations a rounded square.
   const isOrgAcct = realProfile?.accountKind === "organisation";
+  const gold = !suspended && badge === "gold" ? goldKindOf(realProfile) : undefined;
+  const firstLink = profileLinks(realProfile?.social)[0];
+
+  // Under the name: the key facts as icon rows (only what the profile has; work is hidden while suspended).
+  const facts: Fact[] = [
+    ...(!suspended && profile.headline ? [{ key: "work", icon: <BriefcaseIcon className="h-[18px] w-[18px]" />, text: profile.headline }] : []),
+    ...(firstLink ? [{ key: "link", icon: <LinkIcon className="h-[18px] w-[18px]" />, text: linkText(firstLink.key, firstLink.href), href: firstLink.href, external: true }] : []),
+  ];
+  // The About sections on the All tab.
+  const details: AboutRow[] = [
+    ...(joined ? [{ key: "joined", icon: <CalendarIcon />, text: `Joined ${joined}` }] : []),
+    ...(isOrgAcct ? [{ key: "org", icon: <BuildingIcon />, text: "Organisation", sub: realProfile?.org?.rcStatus === "verified" ? "Registration confirmed" : "Registration not yet confirmed" }] : []),
+    ...(!suspended && profile.roleLabel && !isOrgAcct ? [{ key: "role", icon: <UserIcon />, text: profile.roleLabel }] : []),
+    ...(gold ? [{ key: "gold", icon: <TagIcon />, text: GOLD_BADGE_TITLE[gold].replace("Gold badge — ", "Gold ✔ · ") }] : []),
+  ];
+  const work: AboutRow[] = suspended ? [] : workRows(realProfile).map((r) => ({ key: r.kind, icon: r.kind === "role" ? <BriefcaseIcon /> : <TagIcon />, text: r.text }));
+  const hasAbout = isOwnProfile || details.length > 0 || work.length > 0 || !!firstLink;
+
+  const own = isOwnProfile && realProfile;
+  const ic = "h-[18px] w-[18px]";
+  // + Create: everything you can start from your profile.
+  const createItems: MenuItem[] = own ? [
+    canPublish(realProfile) ? { href: "/write", label: "Write a journal entry", icon: <PenIcon className={ic} /> } : { href: "/profile/publishing", label: "Start publishing", note: "Write journal entries and earn", icon: <PenIcon className={ic} /> },
+    { href: "/lives/start", label: "Go live", icon: <LiveIcon className={ic} /> },
+    { href: `/u/${realProfile.username}/store`, label: "Add to your store", icon: <MarketIcon className={ic} /> },
+    { href: "/events", label: "An event", icon: <CalendarIcon className={ic} /> },
+    ...(ACADEMY_LIVE ? [{ href: "/academy/teach", label: "A course", icon: <AcademyIcon className={ic} /> }] : []),
+    ...(MEDIA_LIVE ? [{ href: "/profile/media", label: "Media: videos and pictures", icon: <CameraIcon className={ic} /> }] : []),
+  ] : [];
+  // ⋯: the rest of what you'd manage (the old "Manage profile" menu, every link kept).
+  const manageItems: MenuItem[] = own ? [
+    ...(canPublish(realProfile) ? [{ href: "/write", label: "Write" }] : []),
+    { href: `/u/${realProfile.username}/store`, label: "My store" },
+    { href: "/profile/edit", label: "Edit profile", icon: <PencilIcon className={ic} /> },
+    { href: "/profile/publishing", label: "Rates & payouts", icon: <WalletIcon className={ic} /> },
+    ...(realProfile.accountKind === "organisation" ? [{ href: "/organisation", label: "Organisation", icon: <BuildingIcon className={ic} /> }] : []),
+    { href: "/profile/analytics", label: "Analytics", icon: <GaugeIcon className={ic} /> },
+    { href: "/profile/account", label: "Account settings", icon: <SettingsIcon className={ic} /> },
+  ] : [];
+
+  const subscribe = (hasPremium || (!synthetic && !suspended)) && (
+    <div id="subscribe" className="scroll-mt-28 rounded-full">
+      <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} creatorName={profile.displayName} />
+    </div>
+  );
+  const topFans = !synthetic && !suspended && (
+    <Link href={`/u/${profile.username}/fans`} className="btn-ghost"><TrophyIcon className="h-4 w-4" /> Top fans</Link>
+  );
+
   return (
     <div>
-      {/* The band across the top: the #NotesApp African pattern (ivory by Day, maroon by Night). */}
-      <div className="na-pattern na-pattern-cover h-44 border-b border-rule sm:h-40" aria-hidden="true" />
-    <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
-      {/* Moda redesign: centred on a phone, the picture and words on the left and the buttons on the right on a computer. */}
-      <div className="card -mt-32 flex flex-col items-center gap-5 rounded-[1.75rem] p-6 text-center shadow-sm sm:-mt-16 sm:flex-row sm:items-center sm:gap-8 sm:p-8 sm:text-left">
-        {!suspended && !synthetic && realProfile ? (
-          // A ring when the member has moments you can see (only when Moments is switched on).
+      <ProfileHeader
+        square={isOrgAcct}
+        avatar={!suspended && !synthetic && realProfile ? (
+          // A ring when the member has moments you can see (only when Moments is switched on); a camera on your own.
           <MomentRing username={profile.username} uid={realProfile.uid} name={profile.displayName} isOwn={isOwnProfile} avatar={profile.avatar} square={isOrgAcct}>
-            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={104} />
+            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={128} />
           </MomentRing>
         ) : (
-          <Avatar
-            square={isOrgAcct}
-            src={suspended ? SUSPENDED_AVATAR : profile.avatar}
-            alt={profile.displayName}
-            size={104}
-          />
+          <Avatar square={isOrgAcct} src={suspended ? SUSPENDED_AVATAR : profile.avatar} alt={profile.displayName} size={128} />
         )}
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[2.1rem] leading-tight text-ink sm:text-4xl">
-            {/* inline, so the badges follow the last word when a long name wraps */}
-            {profile.displayName}
-            <NameBadgeIcons username={profile.username} size={20} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
-            <OrgLabel profile={realProfile} />
-          </h1>
-          {!suspended && profile.headline && <p className="mt-0.5 text-sm font-semibold text-ink">{profile.headline}</p>}
+        name={<>
+          {/* inline, so the badges follow the last word when a long name wraps */}
+          {profile.displayName}
+          <NameBadgeIcons username={profile.username} size={22} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
+          <OrgLabel profile={realProfile} />
+        </>}
+        eyebrow={<>
           {suspended ? (
-            <p className="font-mono text-xs uppercase tracking-eyebrow text-red-700">
-              ⚠ Temporarily Suspended · @{profile.username}
-            </p>
+            <p className="font-mono text-xs uppercase tracking-eyebrow text-red-700">Temporarily suspended · @{profile.username}</p>
           ) : (
-            <p className="mt-1 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
-              {profile.roleLabel} · @{profile.username}
-            </p>
+            <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">@{profile.username} · {profile.roleLabel}</p>
           )}
-          <p className="mx-auto mt-2 max-w-lg break-words text-base text-slate sm:mx-0 sm:text-sm"><LinkedText text={profile.bio} /></p>
-          {!suspended && <PlaysLife uid={profileUid} className="mt-2" />}
-          {!suspended && <PartnerBadges uid={profileUid} className="mt-2" />}
-          {!suspended && <div><ProfileLiveBanner username={profile.username} /></div>}
-          {!suspended && badge === "gold" && goldKindOf(realProfile) && (
-            <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
-          )}
-          {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
-          {realProfile && <SocialLinksRow social={realProfile.social} editable={isOwnProfile} className="justify-center sm:justify-start" />}
-          {viewer && realProfile && viewer.uid === realProfile.uid && (
-            <p className="mt-2 hidden flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:flex sm:justify-start">
-              {canPublish(realProfile) && <Link href="/write">Write</Link>}
-              <Link href={`/u/${realProfile.username}/store`}>My store</Link>
-              <Link href="/profile/edit">Edit profile</Link>
-              <Link href="/profile/publishing">Rates &amp; payouts</Link>
-              {realProfile.accountKind === "organisation" && <Link href="/organisation">Organisation</Link>}
-            </p>
-          )}
-          {!followerCountUnavailable && (
-            <p className="mt-2 font-mono text-xs text-slate">
-              {followerCount === null ? "…" : followerCount} follower
-              {followerCount === 1 ? "" : "s"}
-              {joined && <> · Joined {joined}</>}
-            </p>
-          )}
-          {viewer && !suspended && <FollowLists username={profile.username} owner={isOwnerViewer} followerCount={followerCountUnavailable ? null : followerCount} />}
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
-        </div>
-        <div className="profile-actions flex w-full flex-wrap items-start justify-center gap-3 sm:ml-auto sm:w-auto sm:max-w-sm sm:shrink-0 sm:justify-end">
-          {/* Follow (✓ Following once you do), Book a session, Conversation, Gift me. */}
-          <FollowButton username={profile.username} />
+        </>}
+        bio={profile.bio}
+        facts={facts}
+        stats={{
+          username: profile.username,
+          followers: followerCountUnavailable ? "off" : followerCount,
+          following: isOwnProfile ? followingCount : undefined,
+          posts: isOfficial ? NOTESAPP_POSTS.length : notesLoaded && !suspended ? notes.length : null,
+          // The lists (they ask a visitor to sign in, and honour each member's privacy switch); not while suspended.
+          lists: !suspended,
+          onPosts: () => { history.replaceState(null, "", "#posts"); window.dispatchEvent(new HashChangeEvent("hashchange")); },
+        }}
+        listsOwner={isOwnerViewer && profile.username === NA_NOTESAPP_PROFILE.username}
+        actions={own ? (
+          <>
+            {/* Your own profile: Dashboard (My account: analytics, money, store, growth) and + Create, then ⋯ for the rest. */}
+            {/* Each main button sits in its own box so the two share the row equally whatever their padding. */}
+            <div><Link href="/profile/analytics" className="btn-primary"><GaugeIcon className="h-[18px] w-[18px]" /> Dashboard</Link></div>
+            <ProfileMenu label="Create" align="right" button={<><PlusIcon className="h-[18px] w-[18px]" /> Create</>} items={createItems} />
+            <ProfileMenu className="profile-main-fixed" label="More for your profile" align="right" button={<DotsIcon className="h-5 w-5" />} items={manageItems} />
+          </>
+        ) : (
+          <>
+            {/* Someone else's: Follow (✓ Following once you do) and Message side by side. */}
+            <div className="[&>span]:flex [&>span]:!items-stretch [&>div]:!w-full"><FollowButton username={profile.username} /></div>
+            {!synthetic && !suspended && <div><MessageButton username={profile.username} profileUid={realProfile?.uid} label="Message" /></div>}
+          </>
+        )}
+        more={<>
+          {subscribe}
+          {!own && !synthetic && !suspended && <BookSessionButton publisherUid={realProfile?.uid} />}
+          {!own && !synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} toName={profile.displayName} label="Gift me" />}
+          {topFans}
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
-          {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
-          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
-          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} toName={profile.displayName} label="🎁 Gift me" />}
           {!synthetic && <GiftShowWatcher uid={realProfile?.uid} toName={profile.displayName} />}
-          {(hasPremium || (!synthetic && !suspended)) && (
-            <div id="subscribe" className="scroll-mt-28 rounded-full max-sm:order-first max-sm:w-full max-sm:[&_button]:w-full max-sm:[&_a]:w-full">
-              <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} creatorName={profile.displayName} />
-            </div>
-          )}
-          {!synthetic && !suspended && (
-            <Link href={`/u/${profile.username}/fans`} className="inline-flex items-center gap-1 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-semibold text-ink hover:border-crimson">🏆 Top fans</Link>
-          )}
-          {/* Your own profile: what you'd change, in one menu (Moda user dashboard redesign). */}
-          {viewer && realProfile && viewer.uid === realProfile.uid && (
-            <details className="relative">
-              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-semibold text-ink hover:border-crimson [&::-webkit-details-marker]:hidden">⚙ Manage profile <span aria-hidden className="text-slate">⌄</span></summary>
-              <div className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-2xl border border-rule bg-card py-1 text-left shadow-xl">
-                {[...(canPublish(realProfile) ? [["/write", "Write"]] : []), [`/u/${realProfile.username}/store`, "My store"], ["/profile/edit", "Edit profile"], ["/profile/publishing", "Rates & payouts"],
-                  ...(realProfile.accountKind === "organisation" ? [["/organisation", "Organisation"]] : []), ["/profile/analytics", "Analytics"]].map(([href, label]) => (
-                  <Link key={href} href={href} className="block px-4 py-2.5 font-ui text-sm text-ink hover:bg-field">{label}</Link>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-      </div>
+        </>}
+      >
+        {!suspended && <PlaysLife uid={profileUid} className="mt-3" />}
+        {!suspended && <PartnerBadges uid={profileUid} className="mt-2" />}
+        {!suspended && <div><ProfileLiveBanner username={profile.username} /></div>}
+        {!suspended && <UnverifiedOrgNotice profile={realProfile} compact />}
+      </ProfileHeader>
 
+    <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
       {suspended && (
         <div className="card mt-8 border-red-200 bg-red-50 p-6">
           <p className="font-ui text-sm font-bold text-red-800">
@@ -394,95 +430,98 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
         </div>
       )}
 
-      {/* Notes · Media · Store · Courses (components/ProfileTabs.tsx). */}
-      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} initialTab={initialTab} synthetic={synthetic} />
-
-      {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
-          above comes here). Not on synthetic channel accounts. */}
-      {!synthetic && (
-        <div id="book" className="mt-14 scroll-mt-28">
-          <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
-          {/* Pay-per-minute voice and video sessions (lib/ppm.ts): hidden unless the publisher offers them. */}
-          <PpmBook username={profile.username} viewer={viewer} />
-        </div>
-      )}
-
-      <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
-
-      {!suspended && !synthetic && realProfile && <RecommendationsPanel subjectUid={realProfile.uid} subjectName={profile.displayName} user={viewer} />}
-
-      {/* Activity — @notesapp gets none of this, there's no real
-          Firestore data behind it. */}
-      {!isOfficial && (
-        <div className="mt-14">
-          <p className="eyebrow">
-            {isSocialChannel || realProfile?.role === "admin"
-              ? "Recent Comments on Their Notes"
-              : "Recent Activity"}
-          </p>
-          {isSocialChannel || realProfile?.role === "admin" ? (
-            receivedComments.length === 0 ? (
+      {/* All · Posts · Media · Gifts · Store · Courses · Events (components/ProfileTabs.tsx). All holds the About sections, the booking card,
+          the latest posts and store items, recommendations and recent activity. */}
+      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }}
+        notes={notes} notesLoaded={notesLoaded || isOfficial} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} initialTab={initialTab} synthetic={synthetic} isOwn={isOwnProfile}
+        about={hasAbout ? <ProfileAbout own={isOwnProfile} details={details} work={work} social={realProfile?.social} /> : null}
+        book={!synthetic ? (
+          // Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session" above
+          // comes here), and pay-per-minute voice and video sessions (lib/ppm.ts), hidden unless offered. Not on synthetic channel accounts.
+          <div id="book" className="mb-8 scroll-mt-28 empty:hidden">
+            <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
+            <PpmBook username={profile.username} viewer={viewer} />
+          </div>
+        ) : null}
+        after={<>
+          {!suspended && !synthetic && realProfile && <div className="mt-10"><RecommendationsPanel subjectUid={realProfile.uid} subjectName={profile.displayName} user={viewer} /></div>}
+        {/* Activity — @notesapp gets none of this, there's no real
+            Firestore data behind it. */}
+        {!isOfficial && (
+          <section className="mt-10" aria-label="Recent activity">
+            <p className="eyebrow">
+              {isSocialChannel || realProfile?.role === "admin"
+                ? "Recent Comments on Their Notes"
+                : "Recent Activity"}
+            </p>
+            {isSocialChannel || realProfile?.role === "admin" ? (
+              receivedComments.length === 0 ? (
+                <p className="mt-4 text-sm text-slate">No comments yet.</p>
+              ) : (
+                <div className="mt-5 divide-y divide-rule">
+                  {receivedComments.map((c) => (
+                    <div key={c.id} className="flex gap-3 py-4 first:pt-0">
+                      <Link href={`/u/${c.authorUsername}`} className="flex-shrink-0">
+                        <Image
+                          src={c.authorAvatar}
+                          alt={c.authorDisplayName}
+                          width={36}
+                          height={36}
+                          className="h-9 w-9 rounded-full object-cover"
+                        />
+                      </Link>
+                      <div>
+                        <p className="font-mono text-xs text-slate">
+                          <Link
+                            href={`/u/${c.authorUsername}`}
+                            className="font-semibold text-ink hover:text-crimson-bright"
+                          >
+                            {c.authorDisplayName}
+                          </Link>
+                          <NameBadgeIcons username={c.authorUsername} size={13} />{" "}
+                          commented on{" "}
+                          <Link href={`/journals/${c.noteSlug}`} className="text-crimson-bright hover:text-ink">
+                            {c.noteTitle}
+                          </Link>
+                        </p>
+                        <p className="mt-1.5 text-sm text-ink font-body">
+                          &ldquo;{c.content}&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : ownComments.length === 0 ? (
               <p className="mt-4 text-sm text-slate">No comments yet.</p>
             ) : (
               <div className="mt-5 divide-y divide-rule">
-                {receivedComments.map((c) => (
-                  <div key={c.id} className="flex gap-3 py-4 first:pt-0">
-                    <Link href={`/u/${c.authorUsername}`} className="flex-shrink-0">
-                      <Image
-                        src={c.authorAvatar}
-                        alt={c.authorDisplayName}
-                        width={36}
-                        height={36}
-                        className="h-9 w-9 rounded-full object-cover"
-                      />
-                    </Link>
-                    <div>
-                      <p className="font-mono text-xs text-slate">
-                        <Link
-                          href={`/u/${c.authorUsername}`}
-                          className="font-semibold text-ink hover:text-crimson-bright"
-                        >
-                          {c.authorDisplayName}
-                        </Link>
-                        <NameBadgeIcons username={c.authorUsername} size={13} />{" "}
-                        commented on{" "}
-                        <Link href={`/journals/${c.noteSlug}`} className="text-crimson-bright hover:text-ink">
-                          {c.noteTitle}
-                        </Link>
-                      </p>
-                      <p className="mt-1.5 text-sm text-ink font-body">
-                        &ldquo;{c.content}&rdquo;
-                      </p>
-                    </div>
-                  </div>
+                {ownComments.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/journals/${c.noteSlug}`}
+                    className="block py-4 first:pt-0 group"
+                  >
+                    <p className="font-mono text-xs text-slate">
+                      Commented on{" "}
+                      <span className="text-crimson-bright group-hover:text-ink">
+                        {c.noteTitle}
+                      </span>
+                    </p>
+                    <p className="mt-1.5 text-sm text-ink font-body">
+                      &ldquo;{c.content}&rdquo;
+                    </p>
+                  </Link>
                 ))}
               </div>
-            )
-          ) : ownComments.length === 0 ? (
-            <p className="mt-4 text-sm text-slate">No comments yet.</p>
-          ) : (
-            <div className="mt-5 divide-y divide-rule">
-              {ownComments.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/journals/${c.noteSlug}`}
-                  className="block py-4 first:pt-0 group"
-                >
-                  <p className="font-mono text-xs text-slate">
-                    Commented on{" "}
-                    <span className="text-crimson-bright group-hover:text-ink">
-                      {c.noteTitle}
-                    </span>
-                  </p>
-                  <p className="mt-1.5 text-sm text-ink font-body">
-                    &ldquo;{c.content}&rdquo;
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </section>
+        )}
+        </>}
+      />
+
+      <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
+
       <ScrollToHash />
       {badge && !suspended && <BadgeToast subjectUid={realProfile?.uid} />}
     </div>

@@ -19,8 +19,19 @@ const LINKS: { key: keyof SocialLinks; label: string; icon: ReactNode }[] = [
 // it can't read isn't shown. On your own profile (`editable`) a pencil after the icons opens Edit profile at Social links, and with no
 // links yet an "Add your social links" button shows instead.
 // `light`: white icons, over a photo or a dark footer.
+// The links a member saved that socialHref can read, in the order above (also the profile's Links section, components/profile/ProfileAbout.tsx).
+export function profileLinks(social?: SocialLinks) {
+  return LINKS.map((l) => ({ ...l, href: socialHref(l.key, social?.[l.key]) })).filter((l): l is typeof l & { href: string } => !!l.href);
+}
+
+// A link as short words: "instagram.com/ada" (no https://, www. or trailing slash); WhatsApp just says WhatsApp (never the number).
+export function linkText(key: keyof SocialLinks, href: string): string {
+  if (key === "whatsapp") return "WhatsApp";
+  return href.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "");
+}
+
 export default function SocialLinksRow({ social, className = "", editable = false, light = false }: { social?: SocialLinks; className?: string; editable?: boolean; light?: boolean }) {
-  const links = LINKS.map((l) => ({ ...l, href: socialHref(l.key, social?.[l.key]) })).filter((l): l is typeof l & { href: string } => !!l.href);
+  const links = profileLinks(social);
   if (links.length === 0) {
     if (!editable) return null;
     return <p className={`mt-3 flex ${className}`}><Link href="/profile/edit#links" className="rounded-full border border-dashed border-crimson/50 px-4 py-1.5 font-ui text-xs font-semibold text-crimson hover:bg-crimson/5">+ Add your social links</Link></p>;

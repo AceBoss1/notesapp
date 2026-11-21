@@ -1384,6 +1384,22 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     after it; tips only while paused; RunGame in tournament mode shows "Nana sits out tournaments" and computes nothing
     (run-replay.ts unchanged). Hints highlight in gold #ffd166. Tests: tests/arcade/nana*.test.ts (in `test:arcade`).
 
+162. **Profile, Notes Live feed and Media Live Studio PRO (v0.201.0; owner, 21 Nov 2026: Facebook's profile, "Notes Live… look like
+    tiktok using old live", "Media Live studio PRO… look like streamyard"):** Profile (`components/profile/ProfileHeader.tsx`, `ProfileAbout.tsx`,
+    `ProfileMenu.tsx`, `lib/profile-view.ts`, `components/ProfilePageClient.tsx`): band + overlapping picture, stats line (others see
+    "Following" without a count: the lists are private by member choice), 2-line bio, facts from jobTitle/workplace and the first social link,
+    Dashboard + Create (own) / Follow + Message (others), pill tabs All·Posts·Media·Gifts·Store·Courses·Events (empty ones dropped; Events
+    from `/api/events?host=`), Details/Work/Links with pencils on your own profile; `?tab=` takes posts/all/events, `#book` opens All. No
+    location/school/birthday/cover/"friends in common"/"current vibe": no data for them yet. Notes Live (`components/lives/LiveFeed.tsx`,
+    `LivePlayer.tsx`): /lives is the snap-scrolling 9:16 feed of `GET /api/lives?live_now=1`; the visible live joins after 350 ms (only it
+    plays sound); viewers get `RoomScreen` with `skin="feed"` (`FeedRoom`), anyone with a job in the room gets the classic room ("Full room
+    view" in More switches); guests use `GuestLive`'s feed mode; /live/[id] opens the feed at that live; paid lives moved to /lives/paid
+    (/lives/[id], the paid lobby, unchanged). Studio (`components/studio/StudioShell.tsx`, `StudioPanels.tsx` split from StudioControls):
+    the host (and editors/on-air moderators while on) get the StreamYard-style view inside `RoomScreen`; "Go live with studio" switches the
+    studio on, "End broadcast" ends the room; "Classic room view" in Settings goes back; /studio is the public try-out on the same layout.
+    In `RoomScreen` the studio return comes before the feed return; all hooks sit above both. `components/NanaChat.tsx` hides the bubble on
+    /studio, /lives and /live/*. Not yet tried in a real live: test one with a host, an editor and guests on phones after deploy.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

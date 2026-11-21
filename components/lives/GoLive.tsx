@@ -30,7 +30,7 @@ export default function GoLive() {
   if (user === null) return <p className="card p-6 text-sm"><Link href="/login?next=/lives/start" className="text-crimson underline">Sign in</Link> to go live.</p>;
   if (allowed === null) return <p className="text-sm text-slate">Loading…</p>;
   // Team accounts only, while the staff test pass is on (Admin → Limits). Paid lives stay open to everyone from Paid lives (/lives).
-  if (!allowed) return <div className="card p-6"><h1 className="font-display text-3xl text-ink">🔴 Go live is coming soon</h1><p className="mt-2 text-sm text-slate">Going live from your profile isn&apos;t open yet. You can still <Link href="/lives" className="text-crimson underline">schedule a paid live</Link>, or start a room in a community you run.</p></div>;
+  if (!allowed) return <div className="card p-6"><h1 className="font-display text-3xl text-ink">🔴 Go live is coming soon</h1><p className="mt-2 text-sm text-slate">Going live from your profile isn&apos;t open yet. You can still <Link href="/lives/paid" className="text-crimson underline">schedule a paid live</Link>, or start a room in a community you run.</p></div>;
   return (
     <div>
       <h1 className="font-display text-4xl text-ink">🔴 Go live</h1>
