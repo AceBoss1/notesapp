@@ -7,6 +7,8 @@ import {
   type Campaign, type PromoCounts, type PromoStatus, type PromoTier,
 } from "./promos";
 
+const CLAIM_ATTEMPTS = 60;
+
 // Promo campaigns on the server (lib/promos.ts has the rules). Server only; every collection here is closed to browsers (firestore.rules).
 //   promos/{campaignId}                 the counters: { plans: { pro, business, enterprise }, venturePicks, tournamentEntries }
 //   promoClaims/{campaignId}_{uid}      one plan claim per account: { campaignId, uid, username, tier, until, claimedAt }
@@ -51,6 +53,9 @@ export async function claimPromoPlan(db: Firestore, me: { uid: string; emailVeri
   const userRef = db.doc(`users/${me.uid}`);
   const counterRef = db.doc(`promos/${c.id}`);
   const claimRef = db.doc(`promoClaims/${c.id}_${me.uid}`);
+  // Everyone claiming the same offer writes the same counter, so at launch many transactions collide. Firestore's default of 5 attempts
+  // turned a rush into errors while slots were still left (CI: 35 members at once, only 2 to 5 got the 34 plans). Each attempt re-reads
+  // the counter, so retrying longer can't over-claim; it just lets everyone in the queue get a fair answer.
   const result = await db.runTransaction(async (t) => {
     const [user, counter, claim, sub] = await Promise.all([t.get(userRef), t.get(counterRef), t.get(claimRef), t.get(db.doc(`tierSubscriptions/${me.uid}`))]);
     const u = user.data();
@@ -72,7 +77,7 @@ export async function claimPromoPlan(db: Firestore, me: { uid: string; emailVeri
     // The plan rides on the trial fields (so it ends by itself) but stays out of `trials`, the member's own free-trial history.
     t.set(userRef, { accountTier: tr, trialTier: tr, trialUntil: until, trialSource: promoSource(c), trialReminderSent: FieldValue.delete() }, { merge: true });
     return { tier: tr, until, left: slotsLeft(c, counts, tr) - 1, name: String(u?.displayName ?? u?.username ?? "") };
-  });
+  }, { maxAttempts: CLAIM_ATTEMPTS });
   const pool = poolOf(c, result.tier)!;
   await notifyBell({ uid: me.uid, type: "plan", linkHref: "/pricing", message: `${c.code}: ${pool.label} is yours, until ${new Date(result.until).toDateString()}. Happy birthday from #NotesApp!` }).catch(() => {});
   return { tier: result.tier, until: result.until, left: result.left };
