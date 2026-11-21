@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.192.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Install Notes Arcade as its own app: open arcade.naapp.tech/install (or Install app in the Arcade's top bar) and it goes on your home screen or computer with the green [na] icon, opening straight to the games." },
+      { kind: "changed", text: "The Arcade's logo and browser-tab icon are now the #NotesApp [na] icon in deep green." },
+    ],
+  },
+  {
     version: "v0.191.1",
     bump: "patch",
     date: "2026-11-21",

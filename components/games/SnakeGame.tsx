@@ -207,7 +207,7 @@ export default function SnakeGame() {
     <section className="snake-page" aria-label="Snake arcade game">
       <div className="snake-topbar">
         <a className="snake-brand" href="/arcade" aria-label="Notes Arcade, all games">
-          <Image className="snake-brand-icon" src="/images/brand/notesapp-icon.webp" alt="" width={32} height={32} />
+          <Image className="snake-brand-icon" src="/images/brand/arcade-icon-192.png" alt="" width={32} height={32} />
           <span>NOTES <span className="snake-brand-accent">ARCADE</span></span>
         </a>
         <div className="snake-live"><i /> ARCADE MODE</div>
@@ -272,7 +272,7 @@ export default function SnakeGame() {
         .snake-page { --snake-ink: #17251f; --snake-muted: #748078; --snake-paper: #f7f7f2; --snake-green: #bdf36b; --snake-board: #1b2a23; min-height: 100vh; padding: 0 clamp(20px, 5.6vw, 88px); background: var(--snake-paper); color: var(--snake-ink); font-family: Inter, Arial, sans-serif; overflow: hidden; }
         .snake-topbar { height: 82px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e4e7df; }
         .snake-brand { display:flex; align-items:center; gap:10px; color:var(--snake-ink); text-decoration:none; font-size:12px; font-weight:800; letter-spacing:.09em; }
-        .snake-brand-icon { display:block; width:32px; height:32px; object-fit:contain; filter:hue-rotate(108deg) saturate(.6) brightness(1.05); }.snake-brand-accent { color:#9cd849; }
+        .snake-brand-icon { display:block; width:32px; height:32px; object-fit:contain; }.snake-brand-accent { color:#9cd849; }
         .snake-live { display:flex; align-items:center; gap:9px; color:#637068; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.snake-live i,.snake-note-dot { width:7px; height:7px; display:inline-block; border-radius:50%; background:#9bd34d; box-shadow:0 0 0 4px #9bd34d22; }
         .snake-layout { display:grid; grid-template-columns:minmax(210px,.76fr) minmax(350px,1.24fr); gap:clamp(32px,7vw,112px); align-items:center; width:min(1040px,100%); margin:0 auto; padding:clamp(42px,8vh,82px) 0 64px; }
         .snake-intro { padding-bottom:10px; }.snake-kicker { margin:0 0 25px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.snake-kicker span { color:#93c640; }

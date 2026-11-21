@@ -227,7 +227,7 @@ async function handle(req: NextRequest): Promise<NextResponse> {
     const p = req.nextUrl.pathname;
     if (p === "/") return NextResponse.rewrite(new URL(`/arcade${req.nextUrl.search}`, req.url));
     const slug = p.slice(1).replace(/\/$/, "");
-    if ((ARCADE_SLUGS as string[]).includes(slug) || slug === "partners") return NextResponse.rewrite(new URL(`/arcade/${slug}${req.nextUrl.search}`, req.url));
+    if ((ARCADE_SLUGS as string[]).includes(slug) || slug === "partners" || slug === "install") return NextResponse.rewrite(new URL(`/arcade/${slug}${req.nextUrl.search}`, req.url));
     return NextResponse.next();
   }
   // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.

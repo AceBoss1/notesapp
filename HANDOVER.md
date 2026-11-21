@@ -1282,6 +1282,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     remainder (tie: the player who didn't start). Rounds 3/5/7/"all" (all capped at 50); more houses wins. 6 holes a side only. `endRound` in `lib/arcade/ncho.ts`.
     The chain option is gone, and so is the 12-hole board (owner: "there's no 12 hole ncho"; `HolesPerSide = 6`). Portrait phones get a
     "turn sideways" prompt. Aka-Hausa: the same, clockwise.
+154. **Notes Arcade installs as its own app (v0.192.0; owner, 21 Nov 2026: "arcade… have /install so the app logo is the green [na]…
+    Notes Arcade as app name", then "turn this exactly to green", "make it darker"):** `app/(arcade)/arcade/manifest.webmanifest`
+    (scope and start "/" on arcade.<domain>, "/arcade" on the main site) linked from `app/(arcade)/layout.tsx`; the site's own manifest
+    moved from `app/manifest.ts` to `app/manifest.webmanifest/route.ts` (same content, linked from the root layout) so a section can
+    override it. Icons `public/images/brand/arcade-*.png` and `notesapp-icon-green.png` are the red [na] icon recoloured pixel by pixel
+    (hue 96°, value ×0.62); re-make them from the red originals if the brand icon changes. `/arcade/install` (arcade.<domain>/install)
+    reuses `InstallGuide` with an `app` prop and green accents; "Install app" sits in the Arcade top bar on every screen size.
 
 ## 3. How the work is done (please keep these)
 

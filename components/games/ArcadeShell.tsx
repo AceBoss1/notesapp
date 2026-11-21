@@ -48,10 +48,11 @@ export function ArcadeTopbar() {
   return (
     <div className="arc-topbar">
       <a className="arc-brand" href="/arcade" aria-label="Notes Arcade, all games">
-        <Image className="arc-brand-icon" src="/images/brand/notesapp-icon.webp" alt="" width={32} height={32} />
+        <Image className="arc-brand-icon" src="/images/brand/arcade-icon-192.png" alt="" width={32} height={32} />
         <span>NOTES <span className="arc-brand-accent">ARCADE</span></span>
       </a>
       <div className="arc-topbar-right">
+        <a className="arc-install" href="/arcade/install" aria-label="Install Notes Arcade as an app">INSTALL APP</a>
         <a className="arc-home" href="/">#NotesApp</a>
         <div className="arc-live"><i /> ARCADE MODE</div>
       </div>
@@ -69,8 +70,9 @@ export function ArcadeStyles() {
       .arc-page { --arc-ink:#17251f; --arc-muted:#748078; --arc-paper:#f7f7f2; --arc-green:#bdf36b; --arc-deep:#83b83c; --arc-board:#1b2a23; --arc-rule:#e4e7df; min-height:100vh; padding:0 clamp(20px,5.6vw,88px); background:var(--arc-paper); color:var(--arc-ink); font-family:Inter,Arial,sans-serif; }
       .arc-topbar { height:82px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--arc-rule); }
       .arc-brand { display:flex; align-items:center; gap:10px; color:var(--arc-ink); text-decoration:none; font-size:12px; font-weight:800; letter-spacing:.09em; }
-      .arc-brand-icon { display:block; width:32px; height:32px; object-fit:contain; filter:hue-rotate(108deg) saturate(.6) brightness(1.05); }.arc-brand-accent { color:#9cd849; }
+      .arc-brand-icon { display:block; width:32px; height:32px; object-fit:contain; }.arc-brand-accent { color:#9cd849; }
       .arc-topbar-right { display:flex; align-items:center; gap:18px; }.arc-home { color:#637068; font:600 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-home:hover { color:var(--arc-ink); }
+      .arc-install { padding:6px 10px; border:1px solid #cfe3b0; border-radius:999px; background:#f1f8e6; color:#3f5a2c; font:700 9px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; white-space:nowrap; }.arc-install:hover { background:#e4f2cf; }
       .arc-live { display:flex; align-items:center; gap:9px; color:#637068; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.arc-live i { width:7px; height:7px; display:inline-block; border-radius:50%; background:#9bd34d; box-shadow:0 0 0 4px #9bd34d22; }
       .arc-layout { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(340px,1.3fr); gap:clamp(28px,6vw,96px); align-items:start; width:min(1120px,100%); margin:0 auto; padding:clamp(36px,7vh,72px) 0 56px; }
       .arc-kicker { margin:0 0 22px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.arc-kicker span { color:#93c640; }
