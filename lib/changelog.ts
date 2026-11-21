@@ -17,6 +17,7 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "added", text: "Install Notes Arcade as its own app: open arcade.naapp.tech/install (or Install app in the Arcade's top bar) and it goes on your home screen or computer with the green [na] icon, opening straight to the games." },
       { kind: "changed", text: "The Arcade's logo and browser-tab icon are now the #NotesApp [na] icon in deep green." },
+      { kind: "added", text: "Partners and Install app in the Arcade's top bar and footer, on every game including Snake." },
     ],
   },
   {

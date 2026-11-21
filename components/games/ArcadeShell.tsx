@@ -52,6 +52,7 @@ export function ArcadeTopbar() {
         <span>NOTES <span className="arc-brand-accent">ARCADE</span></span>
       </a>
       <div className="arc-topbar-right">
+        <a className="arc-nav" href="/arcade/partners">PARTNERS</a>
         <a className="arc-install" href="/arcade/install" aria-label="Install Notes Arcade as an app">INSTALL APP</a>
         <a className="arc-home" href="/">#NotesApp</a>
         <div className="arc-live"><i /> ARCADE MODE</div>
@@ -61,7 +62,15 @@ export function ArcadeTopbar() {
 }
 
 export function ArcadeFooter() {
-  return <footer className="arc-footer"><span>NOTES ARCADE</span><span>MADE FOR A LITTLE FUN <b>·</b> 2026</span></footer>;
+  return (
+    <footer className="arc-footer">
+      <span>NOTES ARCADE</span>
+      <nav className="arc-footer-links" aria-label="Notes Arcade">
+        <a href="/arcade">ALL GAMES</a><a href="/arcade/partners">PARTNERS</a><a href="/arcade/install">INSTALL APP</a><a href="/">#NOTESAPP</a>
+      </nav>
+      <span>MADE FOR A LITTLE FUN <b>·</b> 2026</span>
+    </footer>
+  );
 }
 
 export function ArcadeStyles() {
@@ -73,6 +82,8 @@ export function ArcadeStyles() {
       .arc-brand-icon { display:block; width:32px; height:32px; object-fit:contain; }.arc-brand-accent { color:#9cd849; }
       .arc-topbar-right { display:flex; align-items:center; gap:18px; }.arc-home { color:#637068; font:600 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-home:hover { color:var(--arc-ink); }
       .arc-install { padding:6px 10px; border:1px solid #cfe3b0; border-radius:999px; background:#f1f8e6; color:#3f5a2c; font:700 9px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; white-space:nowrap; }.arc-install:hover { background:#e4f2cf; }
+      .arc-nav { color:#3f5a2c; font:700 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; white-space:nowrap; }.arc-nav:hover { color:var(--arc-ink); text-decoration:underline; }
+      .arc-footer-links { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 16px; }.arc-footer-links a { color:#6d7870; text-decoration:none; }.arc-footer-links a:hover { color:var(--arc-ink); text-decoration:underline; }
       .arc-live { display:flex; align-items:center; gap:9px; color:#637068; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.arc-live i { width:7px; height:7px; display:inline-block; border-radius:50%; background:#9bd34d; box-shadow:0 0 0 4px #9bd34d22; }
       .arc-layout { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(340px,1.3fr); gap:clamp(28px,6vw,96px); align-items:start; width:min(1120px,100%); margin:0 auto; padding:clamp(36px,7vh,72px) 0 56px; }
       .arc-kicker { margin:0 0 22px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }.arc-kicker span { color:#93c640; }
@@ -96,8 +107,8 @@ export function ArcadeStyles() {
       .arc-board-wrap { position:relative; overflow:hidden; border-radius:10px; background:var(--arc-board); }
       .arc-overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:#14231fdc; color:#fff; text-align:center; backdrop-filter:blur(3px); }
       .arc-overlay-kicker { margin:0 0 7px; color:#c1e993; font:600 9px ui-monospace,monospace; letter-spacing:.16em; }.arc-overlay h2 { margin:0 0 8px; color:#fff; font:500 clamp(28px,4vw,40px)/1.1 Georgia,serif; letter-spacing:-.04em; }.arc-overlay p { margin:0 0 18px; color:#c1cbc3; font-size:12px; }
-      .arc-footer { display:flex; justify-content:space-between; width:min(1120px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid var(--arc-rule); color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.arc-footer b { padding:0 4px; color:#a5d95c; }
-      @media(max-width:820px) { .arc-page { padding:0 16px; }.arc-topbar { height:64px; }.arc-home { display:none; }.arc-layout { grid-template-columns:1fr; gap:22px; padding:26px 0 40px; }.arc-intro h1 { font-size:clamp(44px,12vw,62px); }.arc-description { max-width:none; margin:14px 0; font-size:13px; }.arc-howto { max-width:none; }.arc-howto:not([open]) ul { display:none; }.arc-console { padding:10px; border-radius:14px; }.arc-footer { font-size:7px; } }
+      .arc-footer { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; justify-content:space-between; width:min(1120px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid var(--arc-rule); color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.arc-footer b { padding:0 4px; color:#a5d95c; }
+      @media(max-width:820px) { .arc-page { padding:0 16px; }.arc-topbar { height:64px; }.arc-home, .arc-live { display:none; }.arc-topbar-right { gap:12px; }.arc-footer { justify-content:center; text-align:center; }.arc-layout { grid-template-columns:1fr; gap:22px; padding:26px 0 40px; }.arc-intro h1 { font-size:clamp(44px,12vw,62px); }.arc-description { max-width:none; margin:14px 0; font-size:13px; }.arc-howto { max-width:none; }.arc-howto:not([open]) ul { display:none; }.arc-console { padding:10px; border-radius:14px; }.arc-footer { font-size:7px; } }
       @media(prefers-reduced-motion:reduce) { .arc-btn { transition:none; } }
     `}</style>
   );
