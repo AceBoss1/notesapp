@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.194.0",
+    version: "v0.195.0",
     bump: "minor",
     date: "2026-11-21",
     changes: [
@@ -25,7 +25,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.193.0",
+    version: "v0.194.0",
     bump: "minor",
     date: "2026-11-21",
     changes: [
@@ -36,6 +36,18 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Ludo's HIT → HOME option, on by default: the seed that captures goes straight home while the one it hit goes back to its yard. Switch it off to keep racing the hitter round the board." },
       { kind: "fixed", text: "In Ludo, start squares are no longer safe: the last seed to land on a start square sends the other colour back to its yard. Only the stars are safe now." },
       { kind: "added", text: "Draughts now plays African rules on the 10×10 board by default, 20 pieces each, the way most players here know it: men capture backwards as well as forwards, kings fly any distance along a clear diagonal and capture from afar, and you must take the most pieces you can. The new Rules menu also offers African rules on 8×8 and English draughts, and the game remembers your choice." },
+    ],
+  },
+  {
+    version: "v0.193.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Lives: anyone can watch a live that's open to everyone, without an account. Open the link and tap Watch: the live plays, with the chat to read. Chatting, hearts, gifts and following ask you to join, then bring you straight back." },
+      { kind: "added", text: "Lives: a live's link now shows who is live, the title and a picture when you share it, and says when no account is needed to watch. Guests can share it too." },
+      { kind: "added", text: "Going live: \"People without an account can watch\" for lives open to everyone (on unless you switch it off). You see how many are watching as guests, and afterwards how many joined #NotesApp from your live." },
+      { kind: "changed", text: "Lives: a teen's own live stays with people who have an account, a live guests can watch never brings a teen on stage, and teens' chat messages aren't shown to guests." },
+      { kind: "added", text: "For our team: Admin → Limits has Guests in lives: switch them off everywhere, set the most guests in one live, and see the week's guest views, sign-ups and minutes." },
     ],
   },
   {

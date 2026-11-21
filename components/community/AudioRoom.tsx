@@ -650,7 +650,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         <div className="min-w-0">
           <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName || (room?.profile ? `@${room.profile.hostUsername}` : room?.paid ? "Paid live" : "Audio room")} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
-          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
+          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${room?.guests ? ` · ${room.guests.toLocaleString("en-GB")} as guests` : ""}${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}${room && isRecorded(room) ? "" : ", nothing recorded"}` : "Connecting…")}</p>
           {room && isRecorded(room) && <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#E5383B]/20 px-3 py-1 text-xs font-semibold text-[#FFB4A2]" role="status"><span aria-hidden>●</span>{RECORDING_NOTICE}{room.paid?.record === "safety" ? " for safety review only (no replay)" : ""}. <a href={RECORDING_HELP} target="_blank" rel="noreferrer" className="underline">What this means</a></p>}
           {role === "host" && room?.recording?.status === "failed" && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.recording.why}</p>}
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
@@ -768,7 +768,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             {room.speakers.length >= ROOM_SPEAKERS_MAX && <p className="mt-2 text-xs text-white/55">Every seat is taken ({ROOM_SPEAKERS_MAX} besides the host). Bring someone down first.</p>}
           </div>
         )}
-        <p className="mt-8 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Listening · {listening.toLocaleString("en-GB")}{cap ? ` of ${cap.toLocaleString("en-GB")}` : ""}{full ? " · the room is full" : ""}</p>
+        <p className="mt-8 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Listening · {listening.toLocaleString("en-GB")}{cap ? ` of ${cap.toLocaleString("en-GB")}` : ""}{room?.guests ? ` · ${room.guests.toLocaleString("en-GB")} as guests` : ""}{full ? " · the room is full" : ""}</p>
         {relayRoom && (
           peopleOpen
             ? <RoomPeople id={id} me={me} busy={busy} actionsFor={listenerActions} onClose={() => setPeopleOpen(false)} />

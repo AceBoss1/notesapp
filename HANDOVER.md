@@ -19,6 +19,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/vigilant-franklin-xgf9ee` | **v0.185.0:** Themes and kits: Nana sets up your site, and Review my site (`docs/SITE_NANA.md`), built on the owner's "approved, build" (17 Nov 2026). Needs `firebase deploy --only firestore:rules` (`siteSetups`). Cost of a draft not measured. |
 | `claude/vigilant-franklin-xgf9ee` | **v0.186.0:** Merch in 3D (`docs/MERCH_3D.md`), built on the owner's "approved build" (19 Nov 2026) with their four custom shirts. **The store takes no orders until Batch 2's dates are set in Admin → Merch → Settings**; the extras are placeholders. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.193.0:** watch a live without an account (`docs/GUEST_LIVES.md`), built on the owner's "approve build" (19 Nov 2026). Needs `firebase deploy --only firestore:rules`; try it on staging with the relay on. |
 | `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
 | `claude/studio-subtitles-plan` | **v0.181.0:** automatic subtitles in Notes Live Studio (`docs/STUDIO_SUBTITLES.md`), built on the owner's "build now" (17 Nov 2026). Needs `CLOUDFLARE_AI_TOKEN`; nothing to deploy for Firestore beyond the Moments rules. **Untested:** the real speech service and the microphone capture in a real room; try it on the staff test pass with two people on stage. Next: Themes and kits, then Merch last. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
@@ -1289,14 +1290,14 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     override it. Icons `public/images/brand/arcade-*.png` and `notesapp-icon-green.png` are the red [na] icon recoloured pixel by pixel
     (hue 96°, value ×0.62); re-make them from the red originals if the brand icon changes. `/arcade/install` (arcade.<domain>/install)
     reuses `InstallGuide` with an `app` prop and green accents; "Install app" sits in the Arcade top bar on every screen size.
-155. **Ludo dice options and more Arcade advert spots (v0.193.0; owner, 21 Nov 2026):** Ludo `newGame({ dice: 1 | 2, sixFiveHome })`, 2 dice by
+155. **Ludo dice options and more Arcade advert spots (v0.194.0; owner, 21 Nov 2026):** Ludo `newGame({ dice: 1 | 2, sixFiveHome })`, 2 dice by
     default: each die used separately (`legalActions`/`applyAction`/`chooseAction`), a 6 on either die releases, a double 6 rolls again,
     three double 6s lose the turn; "6+5 home" (off by default) spends a 6 and a 5 (1 die: a 6 then a 5 on the bonus roll, with the seed
     the 6 brought out) to send a yard seed straight home. Adverts: `ArcadeAdSpot` variant `yard` fills each Ludo yard inside a band of
     the yard colour, see-through under a see-through seed holder, each yard starting on a different advert (`offset`); Landlord has a
     second `tile` on the left (offset 1). Impressions count per spot and offset. Still to come with player vs player: conversations and
     calls between players in the Arcade, and duel rules (Nana on/off, 6+5 home).
-156. **Ludo banked rolls and unsafe start squares; African draughts (v0.193.0; owner, 21 Nov 2026):** a six roll (1 die: a 6; 2 dice: a
+156. **Ludo banked rolls and unsafe start squares; African draughts (v0.194.0; owner, 21 Nov 2026):** a six roll (1 die: a 6; 2 dice: a
     double 6) is banked in `state.dice` and the player rolls again (phase stays "roll" with unspent dice, see `banked()`); a non-six roll
     ends the rolling and the whole bank is spent in any order (`legalActions` over every unspent die). A capture goes straight back to
     "roll" with the unspent dice still banked. Three six rolls in a row lose the turn and the bank. 6+5 home works off any banked 6 and 5
@@ -1306,7 +1307,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `size: 8` also offered), English always 8×8. African = men capture backwards, flying kings, compulsory most-pieces capture, a man
     crowns only if the move ends on the far row. The search deepens one ply at a time inside `NODE_BUDGET` positions so 10×10 stays
     quick on phones and plays the same on every device.
-157. **Ludo modes, Ncho for 4, the last-8 rule, Achi on eight lines, Run billboards, canvas sizing (v0.194.0; owner, 21 Nov 2026):**
+157. **Ludo modes, Ncho for 4, the last-8 rule, Achi on eight lines, Run billboards, canvas sizing (v0.195.0; owner, 21 Nov 2026):**
     Ludo `newGame(options, first, table)`: `table = { owner, active, playToLast }` (colour → controller, yards in play, play until one
     is left); same-owner colours never capture each other and don't count as threats; inactive yards are skipped and never captured;
     `state.order` is the finishing order, `loser` the last. Helpers `twoYardsTable`, `pairOwners`, `newKnockout`, `knockoutGame`,
