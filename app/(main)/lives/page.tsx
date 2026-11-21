@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { LivesHome } from "@/components/lives/PaidLives";
+import LiveFeed from "@/components/lives/LiveFeed";
 
-export const metadata: Metadata = { title: "Paid lives", description: "Scheduled lives with tickets on #NotesApp: early bird, normal and late prices, and subscriber discounts." };
+export const metadata: Metadata = { title: "Notes Live", description: "Who's live on #NotesApp right now: swipe through the lives, comment, send hearts and gifts." };
 
-// Paid lives (lib/live-tickets.ts): what's coming up, your tickets and your own paid lives.
+// Notes Live: the lives on now as a full-screen feed you swipe through, one live per screen (components/lives/LiveFeed.tsx). Paid lives
+// with tickets are at /lives/paid; a paid live's own page is still /lives/<id>.
 export default function Page() {
-  return <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6"><LivesHome /></div>;
+  return <LiveFeed />;
 }

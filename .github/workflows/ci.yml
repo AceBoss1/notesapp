@@ -92,6 +92,7 @@ jobs:
       - run: npm run test:global
       - run: npm run test:throwaway
       - run: npm run test:menus
+      - run: npm run test:profile-view
       - run: npm run test:admin-users
       - run: npm run test:campus
       - run: npm run test:nana-jobs

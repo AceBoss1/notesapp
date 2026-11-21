@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LiveLobby } from "@/components/lives/ProfileLive";
+import LiveFeed from "@/components/lives/LiveFeed";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { livePreview, openToGuests } from "@/lib/live-guests";
 import { getRoomSettings } from "@/lib/rooms-server";
@@ -22,8 +22,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-// /live/[id]: a free live from a member's profile (lib/profile-lives-server.ts): its lobby, then the room; or, for someone not signed in,
-// the guest view (components/lives/GuestLive.tsx).
+// /live/[id]: a free live from a member's profile (lib/profile-lives-server.ts), opened in Notes Live's feed at that live: the room for
+// members, the guest view for someone not signed in (components/lives/GuestLive.tsx), and the lobby's answers (ended, followers only,
+// the host's summary) when it can't play. Swiping moves on to the other lives on now.
 export default function Page({ params }: { params: { id: string } }) {
-  return <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6"><LiveLobby id={params.id} /></div>;
+  return <LiveFeed startId={params.id} />;
 }

@@ -72,7 +72,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/install", label: "How to install →" },
   },
   {
-    title: "Notes Live Studio: a broadcast look for your live",
+    title: "Media Live Studio PRO: a broadcast studio for your live",
     tag: "Social",
     body: "In testing with the #NotesApp team: your logo, a lower third with the headline and the speaker's name, a scrolling ticker, subtitles, viewers' comments on air, intro and outro clips, a sponsor spot and screen sharing, with roles for an editor and moderators. Everyone watching sees the same picture.",
     detail: "Next: sending the same programme to LinkedIn Live at the same time, the studio's graphics in replays, automatic subtitles from speech, and background blur.",
@@ -153,7 +153,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Live · Lives",
     body: "Live now: schedule a live of your own with tickets. Set a date and time, a poster and three prices: early bird until a date you pick, normal until the start, and late for the first minutes of the live, then no more tickets. Sell to everyone, or only to your Premium-and-up or VIP-and-up subscribers, who get the discount you set for their tier. Choose the recording when you schedule it: off, for safety only, or recorded with a replay. Only ticket holders get in, and they're reminded a day, an hour and at the start.",
     get detail() { return `#NotesApp takes your normal rate plus ${liveTicketUpliftPct()}% of it on each ticket, fixed when the ticket is bought. You're paid after the live ends and the problem window has passed, like a session. If you cancel or never start, every ticket is refunded to NotesApp Credit automatically. Only the moderators you name moderate a paid live. Members in teen mode can't sell tickets.`; },
-    link: { href: "/lives", label: "See paid lives →" },
+    link: { href: "/lives/paid", label: "See paid lives →" },
   },
   {
     title: "Pay-per-minute sessions",
