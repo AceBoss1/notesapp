@@ -3490,3 +3490,6 @@ yards, the Ludo centre and the Landlord tiles, linking to `/arcade`. Links are s
 Life and Arcade hosts pass them on), and the digest is left out because its click link (`/api/digest/go`) reads `adCreatives/{id}` and
 wants an https link. `loadActiveAds` appends the open ones after the paid-campaign budget check, so `/api/ads/track` counts them like any
 advert; Admin → Ads lists them read-only. Tests: `test:ads` (forSpot, the window, no digest, the word limits, the pictures exist).
+Then the owner asked to "make the yard pictures stronger": the yard picture (`.arc-ad-yard img`) goes from opacity .42 to .95, the
+seed holder (`.ludo-yard-inner`) from `#f7f7f2b8` to `#f7f7f28c` without the blur, and the yard's Sponsored label sits at the very top
+(top .6%) so the yard designs' top line stays clear of it.

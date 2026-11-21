@@ -82,9 +82,9 @@ export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { varia
         <style jsx global>{`
           .arc-ad-yard { position:absolute; inset:6%; z-index:0; overflow:hidden; border-radius:9%; } /* a band of the yard's own colour stays round it */
           .arc-ad-yard a { position:absolute; inset:0; display:block; color:#fff; text-decoration:none; }
-          .arc-ad-yard img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.42; }
+          .arc-ad-yard img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.95; } /* strong, not a faint wash (owner, 21 Nov 2026) */
           .arc-ad-yard-text { position:absolute; left:0; right:0; bottom:3%; text-align:center; font:800 clamp(5px,1vw,10px) ui-monospace,monospace; letter-spacing:.12em; opacity:.55; }
-          .arc-ad-yard small { position:absolute; top:3%; right:5%; font:700 clamp(4px,.7vw,7px) ui-monospace,monospace; letter-spacing:.1em; opacity:.7; }
+          .arc-ad-yard small { position:absolute; top:.6%; right:5%; font:700 clamp(4px,.7vw,7px) ui-monospace,monospace; letter-spacing:.1em; opacity:.7; }
           .arc-ad-yard a:focus-visible { outline:2px solid #fff; outline-offset:-4px; }
         `}</style>
       </aside>
