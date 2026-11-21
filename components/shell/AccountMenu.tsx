@@ -14,7 +14,7 @@ import { useGoLive } from "@/components/lives/useGoLive";
 import ThemeSwitch from "@/components/theme/ThemeSwitch";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
-import { RECENT_KEY, accountMenu, pushRecent, shortcutsFrom, type MenuItem, type MenuSection } from "@/lib/account-menu";
+import { PINNED_KEY, RECENT_KEY, accountMenu, allPlaces, forget, pin, pushRecent, shortcutsFrom, unpin, type MenuItem, type MenuSection } from "@/lib/account-menu";
 import { MenuGlyph } from "./menuIcons";
 
 type L = { href: string; label: string };
@@ -32,7 +32,15 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
   const [switcher, setSwitcher] = useState(false);
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
-  useEffect(() => { try { const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); if (Array.isArray(r)) setRecent(r.filter((x) => typeof x === "string")); } catch { /* no storage */ } }, []);
+  const [pinned, setPinned] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    const read = (k: string) => { try { const r = JSON.parse(localStorage.getItem(k) || "[]"); return Array.isArray(r) ? r.filter((x): x is string => typeof x === "string") : []; } catch { return []; } };
+    setRecent(read(RECENT_KEY)); setPinned(read(PINNED_KEY));
+  }, []);
+  const save = (k: string, v: string[]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* no storage: it lasts for this visit */ } };
+  const setPins = (v: string[]) => { setPinned(v); save(PINNED_KEY, v); };
+  const setRecents = (v: string[]) => { setRecent(v); save(RECENT_KEY, v); };
 
   const menu = useMemo(() => {
     const m = accountMenu({
@@ -44,12 +52,11 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
     if (apps) for (const l of siteLinks) if (![...m.tiles, ...m.more, ...m.sections.flatMap((s) => s.items)].some((i) => i.href === l.href)) apps.items.push({ href: l.href, label: l.label, icon: "link" });
     return m;
   }, [profile, goLive, cycle, calToday, unreadDms, siteLinks]);
-  const shortcuts = shortcutsFrom(recent, menu);
+  const shortcuts = shortcutsFrom(recent, menu, pinned);
+  const addable = allPlaces(menu).filter((i) => !pinned.includes(i.href));
 
   const went = (href: string) => {
-    const next = pushRecent(recent, href);
-    setRecent(next);
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* no storage */ }
+    setRecents(pushRecent(recent, href));
     onNavigate?.();
   };
   const openSwitcher = async () => {
@@ -146,18 +153,47 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
         </div>
       )}
 
-      {shortcuts.length > 0 && (
+      {profile && (shortcuts.length > 0 || editing) && (
         <div className="pb-2">
-          <p className="px-4 pb-2 font-ui text-sm font-bold text-slate">Your shortcuts</p>
-          <div className="flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none]">
-            {shortcuts.map((s) => (
-              <Link key={s.href} href={s.href} onClick={() => went(s.href)} className="flex w-[5.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-rule bg-card px-2 py-3 text-center hover:bg-paper">
-                <MenuGlyph name={s.icon} className="h-6 w-6 text-ink" />
-                <span className="line-clamp-2 font-ui text-[12px] font-semibold leading-tight text-ink">{s.label}</span>
-              </Link>
-            ))}
+          <div className="flex items-center justify-between px-4 pb-2">
+            <p className="font-ui text-sm font-bold text-slate">Your shortcuts</p>
+            <button type="button" onClick={() => setEditing((e) => !e)} aria-pressed={editing} className="rounded-full px-3 py-1 font-ui text-sm font-semibold text-crimson hover:bg-crimson/10">{editing ? "Done" : "Edit"}</button>
           </div>
+          <div className="flex gap-2 overflow-x-auto px-3 pb-1 pt-2 [scrollbar-width:none]">
+            {shortcuts.map((s) => (
+              <div key={s.href} className="relative shrink-0">
+                <Link href={s.href} onClick={(e) => { if (editing) { e.preventDefault(); return; } went(s.href); }} className="flex w-[5.5rem] flex-col items-center gap-1.5 rounded-2xl border border-rule bg-card px-2 py-3 text-center hover:bg-paper">
+                  <MenuGlyph name={s.icon} className="h-6 w-6 text-ink" />
+                  <span className="line-clamp-2 font-ui text-[12px] font-semibold leading-tight text-ink">{s.label}</span>
+                </Link>
+                {editing && (
+                  <button type="button" onClick={() => (s.pinned ? setPins(unpin(pinned, s.href)) : setRecents(forget(recent, s.href)))} aria-label={`Remove ${s.label} from your shortcuts`}
+                    className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink text-paper shadow"><span aria-hidden="true" className="text-sm leading-none">×</span></button>
+                )}
+              </div>
+            ))}
+            {shortcuts.length === 0 && <p className="px-1 py-3 text-sm text-slate">No shortcuts yet. Add some below.</p>}
+          </div>
+          {editing && (
+            <div className="mx-3 mt-2 rounded-2xl border border-rule bg-card p-2">
+              <p className="px-2 pb-1 pt-1 font-ui text-xs font-bold uppercase tracking-wide text-slate">Add a shortcut</p>
+              <div className="max-h-64 overflow-y-auto">
+                {addable.map((i) => (
+                  <button key={i.href} type="button" onClick={() => setPins(pin(pinned, i.href))} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left font-ui text-sm text-ink hover:bg-paper">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule bg-card"><MenuGlyph name={i.icon} className="h-[18px] w-[18px]" /></span>
+                    <span className="flex-1">{i.label}</span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-crimson/10 text-crimson"><MenuGlyph name="plus" className="h-4 w-4" /></span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      )}
+      {profile && shortcuts.length === 0 && !editing && (
+        <button type="button" onClick={() => setEditing(true)} className="mx-3 mb-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-rule py-2.5 font-ui text-sm font-semibold text-slate hover:border-crimson hover:text-crimson">
+          <MenuGlyph name="plus" className="h-4 w-4" />Add shortcuts
+        </button>
       )}
 
       {menu.tiles.length > 0 && (

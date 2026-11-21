@@ -1,7 +1,7 @@
 // The account menu (lib/account-menu.ts): eight tiles then "See more", the folding sections, "More from #NotesApp" in the owner's
 // order, what drops out when it doesn't apply, the signed-out menu, and shortcuts from what was opened lately. Run: npm run test:menus
 import assert from "node:assert/strict";
-import { RECENT_MAX, TILE_COUNT, accountMenu, pushRecent, shortcutsFrom, type MenuCtx } from "../../lib/account-menu";
+import { PINNED_MAX, RECENT_MAX, TILE_COUNT, accountMenu, allPlaces, forget, pin, pushRecent, shortcutsFrom, unpin, type MenuCtx } from "../../lib/account-menu";
 
 const base: MenuCtx = { username: "ada", canPublish: true, isOrg: false, goLive: true, cycle: true, calToday: 2, wallet: true, messages: true, unreadDms: 3 };
 const m = accountMenu(base);
@@ -43,5 +43,21 @@ for (const h of ["/tickets", "/arcade", "/write", "/tickets", "/nope", "/badges"
 assert.equal(r.length, RECENT_MAX);
 assert.deepEqual(r, ["/life", "/giving", "/studio", "/jobs", "/badges", "/nope"]);
 assert.deepEqual(shortcutsFrom(["/write", "/arcade", "/nope", "/badges"], m).map((s) => s.label), ["Notes Arcade", "Verification badges"]);
+
+// Pinned shortcuts (add/remove): pins first in the order pinned (tiles allowed), then recent ones that aren't pins or tiles.
+let p: string[] = [];
+p = pin(p, "/studio"); p = pin(p, "/write"); p = pin(p, "/studio");
+assert.deepEqual(p, ["/studio", "/write"], "pinning twice keeps one");
+const sc = shortcutsFrom(["/studio", "/badges", "/write"], m, p);
+assert.deepEqual(sc.map((s) => [s.label, s.pinned]), [["Media Live Studio PRO", true], ["My journal", true], ["Verification badges", false]]);
+assert.deepEqual(shortcutsFrom(["/badges"], m, unpin(p, "/studio")).map((s) => s.label), ["My journal", "Verification badges"]);
+assert.deepEqual(forget(["/badges", "/jobs"], "/badges"), ["/jobs"]);
+assert.deepEqual(shortcutsFrom([], m, ["/gone", "/jobs"]).map((s) => s.href), ["/jobs"], "a pin that left the menu is skipped");
+let many: string[] = []; for (let i = 0; i < 20; i++) many = pin(many, `/x${i}`);
+assert.equal(many.length, PINNED_MAX);
+// Every place appears once in the Add list.
+const places = allPlaces(m).map((i) => i.href);
+assert.equal(new Set(places).size, places.length);
+assert.ok(places.includes("/studio") && places.includes("/write") && places.includes("/badges"));
 
 console.log("ACCOUNT MENU (new) OK");

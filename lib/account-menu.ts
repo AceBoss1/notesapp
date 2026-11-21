@@ -108,15 +108,31 @@ const apps = (): MenuSection => ({
   ],
 });
 
-// Shortcuts: menu places opened lately, newest first, kept in this browser only (a per-viewer convenience).
+// Shortcuts (owner, 21 Nov 2026: "there should be a way to add/remove items in the shortcut"): the places you pinned, in the order you
+// pinned them, then what you opened from this menu lately. Both are kept in this browser only (a per-viewer convenience). "Edit" adds
+// any menu place as a pin, and removes a pin or a recent one.
 export const RECENT_KEY = "notesapp-menu-recent";
+export const PINNED_KEY = "notesapp-menu-pinned";
 export const RECENT_MAX = 6;
+export const PINNED_MAX = 12;
+export const SHORTCUTS_MAX = 12;
 export function pushRecent(list: string[], href: string): string[] {
   return [href, ...list.filter((h) => h !== href)].slice(0, RECENT_MAX);
 }
-// The shortcuts to show: recent hrefs that are still in the menu, as their menu items (the tiles excluded, they're already on screen).
-export function shortcutsFrom(recent: string[], menu: AccountMenu): MenuItem[] {
-  const all = new Map([...menu.more, ...menu.sections.flatMap((s) => s.items)].map((i) => [i.href, i]));
+export const pin = (pinned: string[], href: string): string[] => (pinned.includes(href) ? pinned : [...pinned, href].slice(-PINNED_MAX));
+export const unpin = (pinned: string[], href: string): string[] => pinned.filter((h) => h !== href);
+export const forget = (recent: string[], href: string): string[] => recent.filter((h) => h !== href);
+// Every place in the menu once (tiles, See more, the sections), for the "Add a shortcut" list.
+export function allPlaces(menu: AccountMenu): MenuItem[] {
+  const seen = new Set<string>();
+  return [...menu.tiles, ...menu.more, ...menu.sections.flatMap((s) => s.items)].filter((i) => (seen.has(i.href) ? false : (seen.add(i.href), true)));
+}
+export type Shortcut = MenuItem & { pinned: boolean };
+// The shortcuts to show: pins first (any place, tiles included), then recent ones that aren't a tile or a pin; only places still in the menu.
+export function shortcutsFrom(recent: string[], menu: AccountMenu, pinned: string[] = []): Shortcut[] {
+  const all = new Map(allPlaces(menu).map((i) => [i.href, i]));
   const tiles = new Set(menu.tiles.map((t) => t.href));
-  return recent.filter((h) => !tiles.has(h)).map((h) => all.get(h)).filter((i): i is MenuItem => !!i).slice(0, RECENT_MAX);
+  const pins = pinned.map((h) => all.get(h)).filter((i): i is MenuItem => !!i).map((i) => ({ ...i, pinned: true }));
+  const recents = recent.filter((h) => !tiles.has(h) && !pinned.includes(h)).map((h) => all.get(h)).filter((i): i is MenuItem => !!i).slice(0, RECENT_MAX).map((i) => ({ ...i, pinned: false }));
+  return [...pins, ...recents].slice(0, SHORTCUTS_MAX);
 }
