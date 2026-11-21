@@ -24,6 +24,14 @@ const GAMES: Record<string, TourneyGame> = {
   run: dynamic(() => import("@/components/games/RunGame"), { ssr: false }) as TourneyGame,
   snake: dynamic(() => import("@/components/games/SnakeGame"), { ssr: false }) as TourneyGame,
   chess: dynamic(() => import("@/components/games/ChessGame"), { ssr: false }) as TourneyGame,
+  ludo: dynamic(() => import("@/components/games/LudoGame"), { ssr: false }) as TourneyGame,
+  ncho: dynamic(() => import("@/components/games/NchoGame"), { ssr: false }) as TourneyGame,
+  akahausa: dynamic(() => import("@/components/games/NchoGame").then((m) => function AkaHausa(p: { tourney?: TourneyProps }) { return <m.default variant="akahausa" {...p} />; }), { ssr: false }) as TourneyGame,
+  landlord: dynamic(() => import("@/components/games/LandlordGame"), { ssr: false }) as TourneyGame,
+  spades: dynamic(() => import("@/components/games/SpadesGame"), { ssr: false }) as TourneyGame,
+  draughts: dynamic(() => import("@/components/games/DraughtsGame"), { ssr: false }) as TourneyGame,
+  achi: dynamic(() => import("@/components/games/AchiGame"), { ssr: false }) as TourneyGame,
+  puffpuff: dynamic(() => import("@/components/games/PuffPuffGame"), { ssr: false }) as TourneyGame,
 };
 
 type Data = {

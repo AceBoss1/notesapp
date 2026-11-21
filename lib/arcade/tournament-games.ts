@@ -58,8 +58,20 @@ import { RUN_TOURNAMENT } from "./replay-run";
 import { WHOT_TOURNAMENT } from "./replay-whot";
 import { SNAKE_TOURNAMENT } from "./replay-snake";
 import { CHESS_TOURNAMENT } from "./replay-chess";
+import { LUDO_TOURNAMENT } from "./replay-ludo";
+import { NCHO_TOURNAMENT, AKAHAUSA_TOURNAMENT } from "./replay-ncho";
+import { LANDLORD_TOURNAMENT } from "./replay-landlord";
+import { SPADES_TOURNAMENT } from "./replay-spades";
+import { DRAUGHTS_TOURNAMENT } from "./replay-draughts";
+import { ACHI_TOURNAMENT } from "./replay-achi";
+import { PUFFPUFF_TOURNAMENT } from "./replay-puffpuff";
 
-export const TOURNAMENT_GAMES: TournamentGame[] = [WHOT_TOURNAMENT, RUN_TOURNAMENT, SNAKE_TOURNAMENT, CHESS_TOURNAMENT];
+// Owner, 21 Nov 2026: "add tournament versions of Ludo, Ncho, Landlord, Spades, Draughts, Achi and Puff-Puff".
+export const TOURNAMENT_GAMES: TournamentGame[] = [
+  WHOT_TOURNAMENT, RUN_TOURNAMENT, SNAKE_TOURNAMENT, CHESS_TOURNAMENT,
+  LUDO_TOURNAMENT, NCHO_TOURNAMENT, AKAHAUSA_TOURNAMENT, LANDLORD_TOURNAMENT, SPADES_TOURNAMENT, DRAUGHTS_TOURNAMENT, ACHI_TOURNAMENT,
+  PUFFPUFF_TOURNAMENT,
+];
 
 export const tournamentGame = (slug: unknown): TournamentGame | undefined => TOURNAMENT_GAMES.find((g) => g.slug === slug);
 
