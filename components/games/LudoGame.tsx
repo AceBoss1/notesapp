@@ -202,7 +202,7 @@ function BoardSquares({ active, yours }: { active: boolean[]; yours: boolean[] }
           {/* Each yard is a full-square advert spot under the seed holder (owner, 21 Nov 2026). */}
           <ArcadeAdSpot variant="yard" game="ludo" offset={p} pin={`ludo-yard-${p}`} />
           <div className="ludo-yard-inner">
-            {YARD_SPOTS.map((_, i) => <i key={i} style={{ background: `${COLOURS[p]}55` }} />)}
+            {YARD_SPOTS.map((_, i) => <i key={i} style={{ background: `${COLOURS[p]}26` }} />)}
           </div>
           {!active[p] && <span className="ludo-yard-tag">EMPTY</span>}
           {active[p] && yours[p] && <span className="ludo-yard-tag">YOU</span>}
