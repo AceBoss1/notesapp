@@ -82,3 +82,20 @@ A live together with another creator (split screen), live shopping, and scheduli
 
 Broadcast graphics over a live (logo, lower third, ticker, comments on air, clips): see [NOTES_LIVE_STUDIO.md](NOTES_LIVE_STUDIO.md).
 The host switches it on from **🎬 Studio** in the room.
+
+## Notes Live, TikTok style (owner, 21 Nov 2026: "I need it to look like tiktok using old live")
+
+`/lives` is now a full-screen vertical feed of the public profile lives on now (`GET /api/lives?live_now=1`), one per screen, swiped
+(or arrow keys / the wheel on a computer, where it's a centred 9:16 column). `/live/<id>` opens the same feed at that live. Paid lives
+moved to `/lives/paid`; a paid live's own page is still `/lives/<id>`.
+
+- `components/lives/LiveFeed.tsx`: the feed. Only the live in view is joined (after it has been in view for 350 ms), so only it plays
+  sound; scrolling past leaves the room. The end of the feed (and the empty feed) lists paid lives coming up and 🔴 Go live for whoever
+  may start one (`useGoLive`, the same check as before).
+- `components/lives/LivePlayer.tsx`: the look only (host, LIVE and the count, Follow, the viewers, comments rising over the video,
+  Add comment…, the action column, double-tap hearts, the gift and share buttons).
+- The room is still the old live: `RoomScreen` (skin `"feed"`) draws the player for viewers; the host, speakers, moderators and anyone
+  invited up get the classic room, and so does a viewer who taps **Full room view** (with **Back to Notes Live**). Studio lives show the
+  programme inside the player. People without an account get `GuestLive` (feed), which starts watching as the live snaps into view, where
+  the host allows guests.
+- Your own live is never joined by scrolling past it: one tap (**Back to your live**) opens it.

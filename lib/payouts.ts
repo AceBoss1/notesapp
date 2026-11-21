@@ -128,7 +128,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         const what = l.kind === "gift_payout" ? { subject: "Your gift earnings are on their way", for: "from gifts you received", short: "gift earnings", link: `/u/${l.publisherUsername}?tab=gifts` }
           : l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
           : l.kind === "ticket" ? { subject: "Your ticket sales payout is on its way", for: "for event tickets", short: "ticket sales", link: "/events" }
-          : l.kind === "live_ticket" ? { subject: "Your paid live payout is on its way", for: "for a ticket to your paid live", short: "paid live ticket", link: "/lives" }
+          : l.kind === "live_ticket" ? { subject: "Your paid live payout is on its way", for: "for a ticket to your paid live", short: "paid live ticket", link: "/lives/paid" }
           : l.kind === "ppm" ? { subject: "Your pay-per-minute session payout is on its way", for: "for a pay-per-minute session", short: "pay-per-minute session", link: "/ppm" }
           : l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
           : l.kind === "course" ? { subject: "Your course sale payout is on its way", for: "for a course sale", short: "sale", link: "/profile/publishing" }
