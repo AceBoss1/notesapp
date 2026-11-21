@@ -52,6 +52,7 @@ export function ArcadeTopbar() {
         <span>NOTES <span className="arc-brand-accent">ARCADE</span></span>
       </a>
       <div className="arc-topbar-right">
+        <a className="arc-nav" href="/arcade/tournaments">TOURNAMENTS</a>
         <a className="arc-nav" href="/arcade/partners">PARTNERS</a>
         <a className="arc-install" href="/arcade/install" aria-label="Install Notes Arcade as an app">INSTALL APP</a>
         <a className="arc-home" href="/">#NotesApp</a>
@@ -66,7 +67,7 @@ export function ArcadeFooter() {
     <footer className="arc-footer">
       <span>NOTES ARCADE</span>
       <nav className="arc-footer-links" aria-label="Notes Arcade">
-        <a href="/arcade">ALL GAMES</a><a href="/arcade/partners">PARTNERS</a><a href="/arcade/install">INSTALL APP</a><a href="/">#NOTESAPP</a>
+        <a href="/arcade">ALL GAMES</a><a href="/arcade/tournaments">TOURNAMENTS</a><a href="/arcade/partners">PARTNERS</a><a href="/arcade/install">INSTALL APP</a><a href="/">#NOTESAPP</a>
       </nav>
       <span>MADE FOR A LITTLE FUN <b>·</b> 2026</span>
     </footer>

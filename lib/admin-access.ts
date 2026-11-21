@@ -54,6 +54,10 @@ export const hasAnyDept = (a: Access | null | undefined, ds: readonly Dept[]) =>
 export type Need = "all" | "super" | "team" | readonly Dept[];
 import { activePage, groupPages, jumpTo, type MenuGroup } from "./side-menu";
 
+// Arcade tournaments: Sales & partnerships sign the sponsors, Marketing runs the Arcade's campaigns, the executive office follows them, and
+// Legal does the promotion-approval and Terms check before the first prize tournament (owner, 21 Nov 2026, §8.5). The API uses the same list.
+export const TOURNAMENT_ADMIN_DEPTS = ["growth", "marketing", "executive", "legal"] as const satisfies readonly Dept[];
+
 export type Section = { href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
@@ -90,6 +94,8 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & Trust" },
   { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },
   { href: "/admin/promos", label: "Promos (DAVIDO-at-34)", need: ["executive", "growth", "finance"], group: "Growth" },
+  // Notes Arcade tournaments (owner, 21 Nov 2026: "start tournaments"; docs/ARCADE_TOURNAMENTS.md): sponsors are signed by Sales & partnerships.
+  { href: "/admin/arcade-tournaments", label: "Arcade tournaments", need: TOURNAMENT_ADMIN_DEPTS, group: "Growth" },
   { href: "/admin/partners", label: "Partner Network", need: ["growth", "executive", "marketing"], group: "Growth" },
   { href: "/admin/traction", label: "Traction", need: ["marketing", "growth", "finance"], group: "Growth" },
   { href: "/admin/growth", label: "Growth", need: ["marketing", "growth", "finance"], group: "Growth" }, // where members come from and whether they stay (docs/GROWTH.md)

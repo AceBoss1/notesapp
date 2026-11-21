@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.202.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Notes Arcade tournaments at /arcade/tournaments (arcade.notesapp.name.ng/tournaments): every entrant plays the same deal, from the same seed at the same level, and the best of their tries counts. The server replays every try with the game's own rules and keeps the result it works out, so a made-up score can't get on the board." },
+      { kind: "added", text: "The first tournament games: Whot (wins first, then the most cards left in the computer's hand), Naija Run (score), Snake (score) and Chess (wins first, then the fewest moves). Each tournament has its page with the sponsor, the prizes, the rules and a live leaderboard." },
+      { kind: "added", text: "Free entry for signed-in members with a confirmed email. Prize tournaments are for adults (18+); practice tournaments with no prizes let teens play too. Nana sits out tournaments, and the level is locked." },
+      { kind: "added", text: "While a sponsor's tournament is on, every advert spot in that game shows only the sponsor." },
+      { kind: "added", text: "For our team: Admin → Arcade tournaments: create a tournament (game, level, dates in Lagos time, tries, sponsor, prizes), open and close it, check the top results, mark prizes sent and see the sponsor's report. A prize tournament can't open for entries until the legal check is ticked." },
+    ],
+  },
+  {
     version: "v0.201.0",
     bump: "minor",
     date: "2026-11-21",

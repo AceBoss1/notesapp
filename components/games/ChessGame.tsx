@@ -11,6 +11,8 @@ import {
 } from "@/lib/arcade/chess";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { chessTake, chessTip } from "@/lib/arcade/nana-chess";
+import { CHESS_LEVELS, encodeChess, tourneyReply } from "@/lib/arcade/replay-chess";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 // U+FE0E keeps phones from drawing the pawn as an emoji. White pieces are the outline glyph over a white-filled solid one.
 const TEXT = "\uFE0E";
@@ -43,9 +45,14 @@ function writePrefs(p: { level: Level; side: Color; wins: number }) {
   try { arcadeStore.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* storage blocked: fine */ }
 }
 
-export default function ChessGame() {
+export default function ChessGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  // A tournament try (owner, 21 Nov 2026: "start tournaments"; lib/arcade/replay-chess.ts): you play White at the tournament's level, the
+  // computer's replies come from the seed with a node-only search (so the server's replay finds the same moves), no undo, no new game.
+  const tourneyLevel: Level | null = tourney ? (CHESS_LEVELS.includes(tourney.level as Level) ? (tourney.level as Level) : "medium") : null;
   const [side, setSide] = useState<Color>("w");
-  const [level, setLevel] = useState<Level>("medium");
+  const [level, setLevel] = useState<Level>(tourneyLevel ?? "medium");
+  const [resigned, setResigned] = useState(false);
+  const sentRef = useRef(false);
   const [wins, setWins] = useState(0);
   const [game, setGame] = useState<ChessState>(() => initialState());
   const [history, setHistory] = useState<Played[]>([]);
@@ -59,7 +66,7 @@ export default function ChessGame() {
   const [take, setTake] = useState<NanaTake | null>(null);
   const [gameNo, setGameNo] = useState(0);
   const loaded = useRef(false);
-  const levelRef = useRef(level);
+  const levelRef = useRef<Level>(tourneyLevel ?? "medium");
   const mutedRef = useRef(false);
   const audioRef = useRef<AudioContext | null>(null);
   const squareRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -68,15 +75,18 @@ export default function ChessGame() {
 
   const legal = useMemo(() => legalMoves(game), [game]);
   const status = useMemo(() => gameStatus(game), [game]);
-  const yourTurn = game.turn === side && !status.over;
+  const ended = status.over || resigned;
+  const yourTurn = game.turn === side && !ended;
   const last = history[history.length - 1];
 
   useEffect(() => {
     const p = readPrefs();
+    if (typeof p.wins === "number") setWins(p.wins);
+    if (tourney) return; // the tournament sets the level and colour, and its game doesn't change the saved choices
     if (p.level === "easy" || p.level === "medium" || p.level === "hard") { setLevel(p.level); levelRef.current = p.level; }
     if (p.side === "w" || p.side === "b") setSide(p.side);
-    if (typeof p.wins === "number") setWins(p.wins);
     loaded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { if (loaded.current) writePrefs({ level, side, wins }); }, [level, side, wins]);
 
@@ -110,13 +120,28 @@ export default function ChessGame() {
 
   // The computer replies after a short pause, so the board paints and you can follow; the search itself is capped.
   useEffect(() => {
-    if (status.over || game.turn === side) return;
+    if (status.over || resigned || game.turn === side) return;
     const t = window.setTimeout(() => {
-      const m = chooseMove(game, levelRef.current);
+      const m = tourney ? tourneyReply(game, levelRef.current, tourney.seed) : chooseMove(game, levelRef.current);
       if (m) commit(game, m, "cpu");
     }, CPU_DELAY);
     return () => window.clearTimeout(t);
-  }, [game, side, status.over, commit]);
+  }, [game, side, status.over, resigned, commit, tourney]);
+
+  // A tournament try ends once: checkmate, a draw, or resigning. The recording is your moves only; the server replays the computer's.
+  const finishTourney = useCallback((resign: boolean) => {
+    if (!tourney || sentRef.current) return;
+    sentRef.current = true;
+    tourney.onFinish(encodeChess(history.filter((h) => h.by === "you").map((h) => h.move), resign));
+  }, [history, tourney]);
+  useEffect(() => { if (status.over) finishTourney(false); }, [status.over, finishTourney]);
+  const resign = () => {
+    if (!tourney || ended || promo) return;
+    setResigned(true);
+    setSelected(null);
+    setOverlayHidden(false);
+    finishTourney(true);
+  };
 
   // Count a win once per finished game.
   useEffect(() => {
@@ -214,7 +239,8 @@ export default function ChessGame() {
   const lastCpu = [...history].reverse().find((h) => h.by === "cpu");
 
   let message: string;
-  if (status.over) {
+  if (resigned) message = "You resigned. The computer wins.";
+  else if (status.over) {
     if (status.result === "checkmate") message = status.winner === side ? "Checkmate. You win!" : "Checkmate. The computer wins.";
     else message = "Draw. " + DRAW_TEXT[status.result ?? "stalemate"];
   } else if (!yourTurn) message = "Computer is thinking…";
@@ -229,6 +255,7 @@ export default function ChessGame() {
   return (
     <ArcadeShell game={arcadeGame("chess")} index={7}>
       <div className="arc-console chess-console">
+        {tourney && <p className="chess-tourney">TOURNAMENT · same deal for everyone</p>}
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOU PLAY</span><strong>{side === "w" ? "WHITE" : "BLACK"}</strong></div>
           <div className="arc-stat"><span className="arc-label">MOVE</span><strong>{String(game.fullmove).padStart(2, "0")}</strong></div>
@@ -236,7 +263,7 @@ export default function ChessGame() {
           <span className="arc-spacer" />
           <label className="chess-field">
             <span className="arc-label">LEVEL</span>
-            <select className="arc-select" aria-label="Computer level" value={level} onChange={(e) => { const v = e.target.value as Level; setLevel(v); levelRef.current = v; }}>
+            <select className="arc-select" aria-label="Computer level" disabled={!!tourney} value={level} onChange={(e) => { const v = e.target.value as Level; setLevel(v); levelRef.current = v; }}>
               <option value="easy">EASY</option>
               <option value="medium">MEDIUM</option>
               <option value="hard">HARD</option>
@@ -244,7 +271,7 @@ export default function ChessGame() {
           </label>
           <label className="chess-field">
             <span className="arc-label">PLAY AS</span>
-            <select className="arc-select" aria-label="Play as white or black (starts a new game)" value={side} onChange={(e) => newGame(e.target.value as Color)}>
+            <select className="arc-select" aria-label="Play as white or black (starts a new game)" disabled={!!tourney} value={side} onChange={(e) => newGame(e.target.value as Color)}>
               <option value="w">WHITE</option>
               <option value="b">BLACK</option>
             </select>
@@ -294,7 +321,17 @@ export default function ChessGame() {
             </div>
           )}
 
-          {status.over && !overlayHidden && (
+          {tourney && ended && !overlayHidden && (
+            <div className="arc-overlay" role="dialog" aria-label="Game over">
+              <p className="arc-overlay-kicker">{resigned ? "RESIGNED" : status.result === "checkmate" ? "CHECKMATE" : "DRAW"}</p>
+              <h2>{resigned ? "You resigned" : status.result !== "checkmate" ? "It's a draw" : status.winner === side ? "You win!" : "The computer wins"}</h2>
+              <p role="status">{tourney.finishedText ?? "Checking your game…"}</p>
+              <div className="chess-over-row">
+                <button type="button" className="arc-btn-ghost" onClick={() => setOverlayHidden(true)} aria-label="Look at the board">SEE BOARD</button>
+              </div>
+            </div>
+          )}
+          {!tourney && status.over && !overlayHidden && (
             <div className="arc-overlay" role="dialog" aria-label="Game over">
               <p className="arc-overlay-kicker">{status.result === "checkmate" ? "CHECKMATE" : "DRAW"}</p>
               <h2>{status.result !== "checkmate" ? "It's a draw" : status.winner === side ? "You win!" : "The computer wins"}</h2>
@@ -317,6 +354,7 @@ export default function ChessGame() {
 
         <ArcadeNana
           slug="chess"
+          context={tourney ? { mode: "tournament" } : undefined}
           canAsk={yourTurn && !promo}
           onAsk={() => {
             // Synchronous on tap: the hint search is capped (lib/arcade/nana-chess.ts TIP_SEARCH) and comes back in tens of milliseconds.
@@ -336,17 +374,27 @@ export default function ChessGame() {
               <li key={i}><span className="chess-move-no">{i + 1}.</span><span>{history[i * 2].san}</span><span>{history[i * 2 + 1]?.san ?? ""}</span></li>
             ))}
           </ol>
+          {tourney ? (
+            <div className="chess-actions">
+              <button type="button" className="arc-btn-ghost" onClick={resign} disabled={ended || !!promo} aria-label="Resign this game (counts as a loss)">RESIGN</button>
+              <button type="button" className="arc-btn-ghost chess-sound" aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}
+                onClick={() => setMuted((m) => { mutedRef.current = !m; return !m; })}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
+            </div>
+          ) : (
           <div className="chess-actions">
             <button type="button" className="arc-btn-ghost" onClick={undo} disabled={!canUndo} aria-label="Undo your last move and the computer's reply">UNDO</button>
             <button type="button" className="arc-btn" onClick={() => newGame()} aria-label="Start a new game">NEW GAME</button>
             <button type="button" className="arc-btn-ghost chess-sound" aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}
               onClick={() => setMuted((m) => { mutedRef.current = !m; return !m; })}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
           </div>
+          )}
         </div>
       </div>
 
       <style jsx global>{`
         .chess-field { display:flex; flex-direction:column; gap:4px; }
+        .chess-tourney { margin:0 4px 8px; color:#83b83c; font:700 9px ui-monospace,monospace; letter-spacing:.12em; }
+        .chess-field .arc-select:disabled { cursor:default; opacity:.7; }
         .chess-wrap { padding:8px; }
         .chess-board { display:grid; grid-template-columns:repeat(8,1fr); width:100%; max-width:560px; margin:0 auto; aspect-ratio:1; border-radius:4px; overflow:hidden; container-type:inline-size; touch-action:manipulation; }
         .chess-sq { position:relative; display:grid; place-items:center; min-width:0; aspect-ratio:1; padding:0; border:0; cursor:pointer; -webkit-tap-highlight-color:transparent; }

@@ -6,56 +6,31 @@ import ArcadeAdSpot from "./ArcadeAdSpot";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import ArcadeNana from "./ArcadeNana";
 import { onSnakeEdge, snakeCoach, type SnakeStats } from "@/lib/arcade/nana-snake";
+import {
+  OPPOSITE, SNAKE_BOARD as BOARD_SIZE, SNAKE_PACES, START_FOOD, createSnake, intervalMs as paceInterval, levelOf, randomSeed, step,
+  turn as turnSnake, type SnakeDir as Direction, type SnakePace as Pace, type SnakeState,
+} from "@/lib/arcade/snake";
+import { encodeSnakeTick } from "@/lib/arcade/replay-snake";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type Point = { x: number; y: number };
-type Direction = "up" | "down" | "left" | "right";
-type Pace = "chill" | "classic" | "fast";
-
-const BOARD_SIZE = 20;
-const BASE_INTERVAL: Record<Pace, number> = { chill: 210, classic: 145, fast: 105 };
-const START_SNAKE: Point[] = [
-  { x: 8, y: 10 },
-  { x: 7, y: 10 },
-  { x: 6, y: 10 },
-];
-const START_FOOD: Point = { x: 14, y: 10 };
-const VECTORS: Record<Direction, Point> = {
-  up: { x: 0, y: -1 },
-  down: { x: 0, y: 1 },
-  left: { x: -1, y: 0 },
-  right: { x: 1, y: 0 },
-};
-const OPPOSITE: Record<Direction, Direction> = {
-  up: "down",
-  down: "up",
-  left: "right",
-  right: "left",
-};
-
-function makeFood(snake: Point[]): Point {
-  const open: Point[] = [];
-  for (let y = 0; y < BOARD_SIZE; y += 1) {
-    for (let x = 0; x < BOARD_SIZE; x += 1) {
-      if (!snake.some((part) => part.x === x && part.y === y)) open.push({ x, y });
-    }
-  }
-  return open[Math.floor(Math.random() * open.length)] ?? { x: 0, y: 0 };
-}
-
-export default function SnakeGame() {
-  const [snake, setSnake] = useState<Point[]>(START_SNAKE);
-  const [food, setFood] = useState<Point>(START_FOOD);
-  const [direction, setDirection] = useState<Direction>("right");
-  const [score, setScore] = useState(0);
+// The rules live in lib/arcade/snake.ts (owner, 21 Nov 2026: "start tournaments"), so a tournament run can be replayed on the server with
+// the same code. This component keeps the ticking clock, the keys, the sound and the look.
+export default function SnakeGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  // A tournament try is played at the tournament's speed from its seed (same snacks for everyone); normal play keeps a random seed per game.
+  const tourneyPace: Pace | null = tourney ? (SNAKE_PACES.includes(tourney.level as Pace) ? (tourney.level as Pace) : "classic") : null;
+  const [game, setGame] = useState<SnakeState>(() => (tourney ? createSnake(tourney.seed, tourneyPace ?? "classic") : createSnake(0, "classic", START_FOOD)));
+  const gameRef = useRef(game);
+  const { snake, food, score } = game;
   const [best, setBest] = useState(0);
   const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
   const [muted, setMuted] = useState(false);
-  const [pace, setPace] = useState<Pace>("classic");
-  const directionRef = useRef<Direction>("right");
-  const queuedDirection = useRef<Direction>("right");
+  const [pace, setPaceState] = useState<Pace>(tourneyPace ?? "classic");
   const audioContextRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
+  // A tournament try: every tick's character for the server's replay, and onFinish sent once.
+  const recordingRef = useRef("");
+  const sentRef = useRef(false);
   // Nana (lib/arcade/nana-snake.ts, owner, 21 Nov 2026): Snake has no pause, so no hints; she coaches after each run from how it ended.
   const [lastRun, setLastRun] = useState<SnakeStats | null>(null);
   const [runNo, setRunNo] = useState(0);
@@ -63,6 +38,22 @@ export default function SnakeGame() {
   const bestAtStart = useRef(0);
   useEffect(() => { bestRef.current = best; }, [best]);
   const nanaTake = useMemo(() => snakeCoach(lastRun), [lastRun]);
+
+  const setBoth = useCallback((next: SnakeState) => { gameRef.current = next; setGame(next); }, []);
+
+  // Normal play: the opening board keeps its fixed snack, but the snacks after it come from a fresh random seed (set after mount, so the
+  // server-rendered board and the first client render agree).
+  useEffect(() => {
+    if (!tourney) setBoth({ ...gameRef.current, rng: randomSeed() });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The speed can change mid-game in normal play, as it always could; a tournament's speed is fixed.
+  const setPace = (next: Pace) => {
+    if (tourney) return;
+    setPaceState(next);
+    setBoth({ ...gameRef.current, pace: next });
+  };
 
   const getAudioContext = useCallback(() => {
     if (!window.AudioContext) return null;
@@ -100,28 +91,26 @@ export default function SnakeGame() {
   }, [getAudioContext]);
 
   const startGame = useCallback(() => {
-    const initial = START_SNAKE.map((part) => ({ ...part }));
-    setSnake(initial);
-    setFood(makeFood(initial));
-    setScore(0);
-    setDirection("right");
-    directionRef.current = "right";
-    queuedDirection.current = "right";
+    // A tournament try is one game from one seed: it starts once and never restarts (no "play again").
+    if (tourney) {
+      if (status !== "ready") return;
+    } else {
+      setBoth(createSnake(randomSeed(), pace));
+    }
     bestAtStart.current = bestRef.current;
     setRunNo((n) => n + 1);
     if (!mutedRef.current) getAudioContext();
     setStatus("playing");
-  }, [getAudioContext]);
+  }, [getAudioContext, pace, setBoth, status, tourney]);
 
   const turn = useCallback((next: Direction) => {
-    if (next !== OPPOSITE[queuedDirection.current]) {
-      queuedDirection.current = next;
-    }
+    if (status === "over") return;
+    setBoth(turnSnake(gameRef.current, next));
     if (status === "ready") {
       if (!mutedRef.current) getAudioContext();
       setStatus("playing");
     }
-  }, [getAudioContext, status]);
+  }, [getAudioContext, setBoth, status]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -140,8 +129,8 @@ export default function SnakeGame() {
       if (next) {
         event.preventDefault();
         if (status === "over") return;
-        if (next !== OPPOSITE[queuedDirection.current]) {
-          queuedDirection.current = next;
+        if (next !== OPPOSITE[gameRef.current.queued]) {
+          setBoth(turnSnake(gameRef.current, next));
           if (status === "ready") {
             if (!mutedRef.current) getAudioContext();
             setStatus("playing");
@@ -151,48 +140,36 @@ export default function SnakeGame() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [getAudioContext, startGame, status]);
+  }, [getAudioContext, setBoth, startGame, status]);
 
+  // The clock: one step of the pure rules per tick, at the pace's interval for the current score (it speeds up every 50 points).
+  const tickMs = paceInterval(pace, score);
   useEffect(() => {
     if (status !== "playing") return;
-    const intervalMs = Math.max(72, BASE_INTERVAL[pace] - Math.floor(score / 50) * 8);
     const timer = window.setInterval(() => {
-      const nextDirection = queuedDirection.current;
-      directionRef.current = nextDirection;
-      setDirection(nextDirection);
-      setSnake((current) => {
-        const vector = VECTORS[nextDirection];
-        const head = { x: current[0].x + vector.x, y: current[0].y + vector.y };
-        const ate = head.x === food.x && head.y === food.y;
-        const body = ate ? current : current.slice(0, -1);
-        const collided =
-          head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE ||
-          body.some((part) => part.x === head.x && part.y === head.y);
-        if (collided) {
-          const wall = head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE;
-          setLastRun({
-            cause: wall ? "wall" : "self", heading: nextDirection, length: current.length, score, bestBefore: bestAtStart.current,
-            pace, intervalMs, foodOnEdge: onSnakeEdge(food),
-          });
-          playSound(165, 0.2);
-          setStatus("over");
-          return current;
-        }
-        const nextSnake = [head, ...current.slice(0, ate ? undefined : -1)];
-        if (ate) {
-          playSound(740, 0.1);
-          setScore((value) => {
-            const nextScore = value + 10;
-            setBest((currentBest) => Math.max(currentBest, nextScore));
-            return nextScore;
-          });
-          setFood(makeFood(nextSnake));
-        }
-        return nextSnake;
-      });
-    }, intervalMs);
+      const before = gameRef.current;
+      if (before.over) return;
+      // A tournament try records exactly what the server's replay reads: one character per tick, taken just before the step.
+      if (tourney) recordingRef.current += encodeSnakeTick(before);
+      const after = step(before);
+      setBoth(after);
+      if (after.over) {
+        setLastRun({
+          cause: after.cause ?? "self", heading: after.dir, length: before.snake.length, score: before.score, bestBefore: bestAtStart.current,
+          pace: before.pace, intervalMs: paceInterval(before.pace, before.score), foodOnEdge: onSnakeEdge(before.food),
+        });
+        playSound(165, 0.2);
+        setStatus("over");
+        if (tourney && !sentRef.current) { sentRef.current = true; tourney.onFinish(recordingRef.current); }
+        return;
+      }
+      if (after.score > before.score) {
+        playSound(740, 0.1);
+        setBest((currentBest) => Math.max(currentBest, after.score));
+      }
+    }, tickMs);
     return () => window.clearInterval(timer);
-  }, [food, pace, playSound, score, status]);
+  }, [playSound, setBoth, status, tickMs, tourney]);
 
   const cells = Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, index) => {
     const x = index % BOARD_SIZE;
@@ -235,12 +212,13 @@ export default function SnakeGame() {
         </div>
 
         <div className="snake-console">
+          {tourney && <p className="snake-tourney">TOURNAMENT · same deal for everyone</p>}
           <div className="snake-console-head">
             <div><span className="snake-console-label">SCORE</span><strong className="snake-score" aria-live="polite">{String(score).padStart(3, "0")}</strong></div>
             <div className="snake-best"><span className="snake-console-label">BEST</span><strong>{String(best).padStart(3, "0")}</strong></div>
             <label className="snake-pace">
               <span className="snake-console-label">SPEED</span>
-              <select className="snake-pace-select" aria-label="Game speed" value={pace} onChange={(event) => setPace(event.target.value as Pace)}>
+              <select className="snake-pace-select" aria-label={tourney ? "Game speed (set by the tournament)" : "Game speed"} disabled={!!tourney} value={pace} onChange={(event) => setPace(event.target.value as Pace)}>
                 <option value="chill">CHILL</option>
                 <option value="classic">CLASSIC</option>
                 <option value="fast">FAST</option>
@@ -260,13 +238,19 @@ export default function SnakeGame() {
                 <div className="snake-overlay-icon">{status === "over" ? "×" : "S"}</div>
                 <p className="snake-overlay-kicker">{status === "over" ? "THAT'S A WRAP" : "READY WHEN YOU ARE"}</p>
                 <h2>{status === "over" ? "Nice run." : "Let's play."}</h2>
-                <p>{status === "over" ? `You scored ${score} points.` : "Your next favorite high score starts here."}</p>
-                <button type="button" className="snake-play" onClick={startGame}>{status === "over" ? "PLAY AGAIN" : "START GAME"}<span aria-hidden="true">↗</span></button>
-                <span className="snake-overlay-hint">OR PRESS SPACE</span>
+                <p>{status === "over" ? `You scored ${score} points.` : tourney ? "Same snacks for everyone. One go: make it count." : "Your next favorite high score starts here."}</p>
+                {status === "over" && tourney ? (
+                  <p className="snake-tourney-done" role="status">{tourney.finishedText ?? "Checking your run…"}</p>
+                ) : (
+                  <>
+                    <button type="button" className="snake-play" onClick={startGame}>{status === "over" ? "PLAY AGAIN" : "START GAME"}<span aria-hidden="true">↗</span></button>
+                    <span className="snake-overlay-hint">OR PRESS SPACE</span>
+                  </>
+                )}
               </div>
             )}
           </div>
-          <div className="snake-console-foot"><span><i className="snake-food-legend" /> FOOD</span><span>BOARD <b>20 × 20</b></span><span>LEVEL <b>{Math.floor(score / 50) + 1}</b></span></div>
+          <div className="snake-console-foot"><span><i className="snake-food-legend" /> FOOD</span><span>BOARD <b>20 × 20</b></span><span>LEVEL <b>{levelOf(score)}</b></span></div>
           <div className="snake-touch" aria-label="Touch controls">
             <div className="snake-pad">
               <div>{controlButton("Up", "up", "↑")}</div>
@@ -276,7 +260,7 @@ export default function SnakeGame() {
           </div>
           {/* No pause in Snake, so HINT stays off; clicking Nana's buttons mustn't take focus from the board either. */}
           <div onMouseDown={(event) => event.preventDefault()}>
-            <ArcadeNana slug="snake" canAsk={false} onAsk={() => null} take={nanaTake} resetKey={runNo} />
+            <ArcadeNana slug="snake" context={tourney ? { mode: "tournament" } : undefined} canAsk={false} onAsk={() => null} take={nanaTake} resetKey={runNo} />
           </div>
         </div>
       </div>
@@ -300,6 +284,7 @@ export default function SnakeGame() {
         .snake-board-wrap { position:relative; overflow:hidden; border-radius:9px; background:var(--snake-board); }.snake-board { display:grid; aspect-ratio:1; grid-template-columns:repeat(20,minmax(0,1fr)); grid-template-rows:repeat(20,minmax(0,1fr)); padding:10px; background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px); background-size:5% 5%; }.snake-cell { position:relative; z-index:1; margin:1px; border-radius:3px; }.snake-cell.is-snake { background:#a5df59; box-shadow:0 0 12px #a5df5940; }.snake-cell.is-head { border-radius:7px; background:#d1ff89; }.snake-cell.is-food { border-radius:50%; background:#ff816d; box-shadow:0 0 14px #ff816d88; transform:scale(.68); }
         .snake-overlay { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:#14231fdc; color:white; text-align:center; backdrop-filter:blur(3px); }.snake-overlay-icon { display:grid; place-items:center; width:43px; height:43px; margin-bottom:15px; border:1px solid #d7f5a34f; border-radius:13px; color:#c8f28b; font:500 26px Georgia,serif; }.snake-overlay-kicker { margin:0 0 7px; color:#c1e993; font:600 9px ui-monospace,monospace; letter-spacing:.16em; }.snake-overlay h2 { margin:0; color:#fff; font:500 clamp(30px,4vw,43px)/1.1 Georgia,serif; letter-spacing:-.04em; }.snake-overlay>p:not(.snake-overlay-kicker) { margin:9px 0 20px; color:#c1cbc3; font-size:12px; }.snake-play { display:flex; align-items:center; gap:20px; padding:13px 17px; border:0; border-radius:7px; background:#c2f17a; color:#20301e; font:700 10px ui-monospace,monospace; letter-spacing:.08em; cursor:pointer; transition:transform .15s,background .15s; }.snake-play:hover { transform:translateY(-2px); background:#d3ff96; }.snake-play span { font-size:15px; }.snake-overlay-hint { margin-top:12px; color:#87968a; font:500 8px ui-monospace,monospace; letter-spacing:.12em; }
         .snake-console-foot { display:flex; justify-content:space-between; padding:14px 4px 1px; color:#929b94; font:600 8px ui-monospace,monospace; letter-spacing:.08em; }.snake-console-foot span { display:flex; align-items:center; gap:6px; }.snake-console-foot b { color:#637068; font-weight:700; }.snake-food-legend { display:inline-block; width:7px;height:7px;border-radius:50%;background:#ff816d; }
+        .snake-tourney { margin:0 6px 10px; color:#83b83c; font:700 9px ui-monospace,monospace; letter-spacing:.12em; }.snake-tourney-done { max-width:300px; margin:0 !important; color:#e8f3dc !important; font-size:13px !important; line-height:1.5; }.snake-pace-select:disabled { cursor:default; opacity:.7; }
         .snake-touch { display:none; }.snake-gallery { width:min(1040px,100%); margin:0 auto 40px; }.snake-footer { display:flex; justify-content:space-between; width:min(1040px,100%); margin:0 auto; padding:20px 0 24px; border-top:1px solid #e4e7df; color:#98a098; font:600 8px ui-monospace,monospace; letter-spacing:.12em; }.snake-footer b { padding:0 4px; color:#a5d95c; }
         @media(max-width:740px) { .snake-page { padding:0 20px; }.snake-topbar { height:68px; }.snake-layout { grid-template-columns:1fr; gap:27px; max-width:440px; padding:35px 0 42px; }.snake-intro { display:grid; grid-template-columns:1fr auto; align-items:end; }.snake-kicker { grid-column:1/-1; margin-bottom:12px; }.snake-intro h1 { font-size:clamp(48px,13vw,68px); }.snake-description { grid-column:1/-1; max-width:360px; margin:14px 0 0; font-size:13px; }.snake-desktop-tip,.snake-or,.snake-note { display:none; }.snake-console { padding:12px; border-radius:14px; }.snake-console-head { flex-wrap:wrap; gap:13px; padding:3px 4px 11px; }.snake-score { font-size:22px; }.snake-best { gap:6px; padding-left:12px; }.snake-pace { order:1; width:100%; justify-content:space-between; margin-left:0; }.snake-pace-select { min-width:148px; }.snake-sound { gap:6px; font-size:8px; }.snake-board { padding:7px; }.snake-cell { margin:.7px; border-radius:2px; }.snake-console-foot { padding:11px 3px 0; font-size:7px; }.snake-touch { display:flex; align-items:center; justify-content:space-between; padding:14px 4px 3px; }.snake-touch>span { color:#a0a8a1; font:600 8px ui-monospace,monospace; letter-spacing:.1em; }.snake-pad { display:flex; flex-direction:column; align-items:center; gap:4px; }.snake-pad>div { display:flex; gap:4px; }.snake-control { display:grid; place-items:center; width:39px;height:34px; border:1px solid #e3e7df; border-radius:7px; background:#f7f8f4; color:#39473d; font-size:15px; cursor:pointer; touch-action:manipulation; }.snake-control:active { background:#d9f4b2; }.snake-footer { padding-top:15px; font-size:7px; } }
         @media(max-width:380px) { .snake-page { padding:0 14px; }.snake-layout { padding-top:27px; }.snake-console { padding:9px; }.snake-best { padding-left:9px; }.snake-sound { font-size:7px; }.snake-footer { font-size:6px; } }
