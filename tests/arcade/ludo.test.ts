@@ -1,13 +1,14 @@
 // Ludo (lib/arcade/ludo.ts): board geometry, rolling, moving, captures, safe squares, exact finish, the win and the computer player,
 // with 1 die (the first half) and 2 dice (the default), and the optional "6 + 5 straight home" rule. Sixes (double sixes with
 // 2 dice) are banked and rolled again; the bank is spent in any order once the rolling stops. Only stars are safe.
+// Seats: 2 v 2 yards (any two colours each, same-owner colours share squares, all 8 home wins), empty yards, and the knockout.
 // Run: npx -y tsx tests/arcade/ludo.test.ts
 import assert from "node:assert/strict";
 import {
   HOME, HOME_COLUMN, LAST_TRACK, PLAYERS, SAFE, START, STARS, TRACK, YARD, YARD_ORIGIN,
-  DEFAULT_OPTIONS, absSquare, applyAction, applyMove, applyRoll, autoStep, chooseAction, diceForSeed, legalActions, legalMoves, newGame,
+  DEFAULT_OPTIONS, DEFAULT_TABLE, absSquare, advanceKnockout, controllers, coloursOf, finalYards, friendly, inPlay, knockoutGame, newKnockout, playOutKnockout, twoYardsTable, applyAction, applyMove, applyRoll, autoStep, chooseAction, diceForSeed, legalActions, legalMoves, newGame,
   banked, rollDice, rollDie, seedCell, seededRng, straightHomeSeed, threatAt,
-  type LudoAction, type LudoOptions, type LudoState,
+  type LudoAction, type LudoOptions, type LudoState, type LudoTable,
 } from "../../lib/arcade/ludo";
 
 // Most tests play with "hit → home" off so a capturing seed stays where it landed; it has its own tests below.
@@ -431,6 +432,219 @@ for (const opts of [ONE, ONE_HOME, TWO, TWO_HOME, { dice: 2 } as Partial<LudoOpt
   if (opts.sixFiveHome) assert.ok(straight > 0, `6 + 5 straight home came up (${JSON.stringify(opts)})`);
   else assert.equal(straight, 0);
   console.log(`  ${opts.dice} ${opts.dice === 1 ? "die" : "dice"}, 6+5 home ${opts.sixFiveHome ? "on" : "off"}, hit home ${opts.hitHome === false ? "off" : "on"}: 25 games finished, ${straight} straight-home moves`);
+}
+
+
+// ---- Who plays which colour: 2 v 2 yards, empty yards, knockout ----
+{
+  const H = HOME;
+  // The default table: four separate players, all yards in play, first to finish wins.
+  assert.deepEqual(DEFAULT_TABLE, { owner: [0, 1, 2, 3], active: [true, true, true, true], playToLast: false });
+  assert.deepEqual(newGame().table, DEFAULT_TABLE);
+  assert.deepEqual(controllers(newGame()), [0, 1, 2, 3]);
+  assert.throws(() => newGame({}, 0, { owner: [0, 0, 0, 0] }), /two controllers/);
+  const table = (s0: LudoState, t0: Partial<LudoTable>): LudoState => ({ ...s0, table: { ...s0.table, ...t0 } });
+
+  // Any two yards: all six pairs, opposite or side by side. The person is controller 0, the computer controller 1.
+  const pairs = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]];
+  for (const pair of pairs) {
+    const g = newGame(ONE, 0, twoYardsTable(pair));
+    assert.deepEqual(controllers(g), [0, 1]);
+    assert.deepEqual(coloursOf(g, 0), pair);
+    assert.deepEqual(coloursOf(g, 1), [0, 1, 2, 3].filter((c) => !pair.includes(c)));
+    assert.equal(g.turn, 0, "green always rolls first, whoever plays it");
+  }
+  assert.throws(() => twoYardsTable([1, 1]), /two different/);
+  assert.throws(() => twoYardsTable([0]), /two different/);
+  assert.throws(() => twoYardsTable([0, 4]), /two different/);
+
+  // Your own colours share squares: green (progress 2, square 42) + 3 lands on coral (progress 44, square 45), no capture.
+  s = withSeeds([[2, Y, Y, Y], [44, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], { table: twoYardsTable([0, 1]) });
+  assert.equal(threatAt(s, 1, 45), 0, "your other colour isn't a threat");
+  t = applyMove(applyRoll(s, 3), 0);
+  assert.equal(t.seeds[0][0], 5);
+  assert.equal(t.seeds[1][0], 44, "coral stays: same owner");
+  assert.equal(t.captures[0], 0);
+  assert.equal(t.turn, 1, "no capture, no bonus roll: coral's turn (still yours)");
+  // Against the other side's colour it's a capture as usual (you own green and gold here).
+  t = applyMove(applyRoll({ ...s, table: twoYardsTable([0, 2]) }, 3), 0);
+  assert.equal(t.seeds[1][0], Y);
+  assert.equal(t.turn, 0, "capture: roll again");
+  // The computer (coral + blue) doesn't count its partner as a threat: blue two behind coral.
+  assert.equal(absSquare(3, 34), 9);
+  s = withSeeds([[Y, Y, Y, Y], [10, Y, Y, Y], [Y, Y, Y, Y], [34, Y, Y, Y]]);
+  assert.equal(threatAt(s, 1, 11), 1, "four players: blue threatens coral");
+  assert.equal(threatAt(table(s, twoYardsTable([0, 2])), 1, 11), 0, "2 v 2: blue is coral's partner");
+  // …and never "captures" it: coral at progress 8 (square 9) with a 2 would land on blue's square 11 (blue progress 36).
+  s = withSeeds([[Y, Y, Y, Y], [8, 30, Y, Y], [Y, Y, Y, Y], [36, Y, Y, Y]], { turn: 1, table: twoYardsTable([0, 2]), ...waiting([2]) });
+  u = applyMove(s, 0);
+  assert.equal(u.seeds[3][0], 36);
+  assert.equal(u.captures[1], 0);
+
+  // 2 v 2: one colour home isn't a win; it drops out of the turn order and the partner plays on. All 8 home wins.
+  s = withSeeds([[H, H, H, 55], [10, Y, Y, Y], [Y, Y, Y, Y], [Y, Y, Y, Y]], { table: twoYardsTable([0, 1]) });
+  t = applyMove(applyRoll(s, 1), 3);
+  assert.equal(t.phase, "roll", "not over: coral still has seeds out");
+  assert.equal(t.winner, null);
+  assert.deepEqual(t.order, []);
+  assert.equal(t.turn, 1);
+  t = applyRoll({ ...t, turn: 3 }, 4); // blue (computer) can't move: next is coral, green is skipped (all home)
+  assert.equal(t.turn, 1);
+  t = applyRoll(applyMove(applyRoll(t, 4), 0), 4); // coral 10 → 14, gold passes
+  assert.equal(t.seeds[1][0], 14);
+  assert.equal(t.turn, 3);
+  t = applyRoll(t, 4);
+  assert.equal(t.turn, 1, "green skipped again");
+  s = withSeeds([[H, H, H, H], [H, H, 55, H], [Y, Y, Y, Y], [Y, Y, Y, Y]], { turn: 1, table: twoYardsTable([0, 1]) });
+  t = applyMove(applyRoll(s, 1), 2);
+  assert.equal(t.phase, "over");
+  assert.equal(t.winner, 0, "the person wins with all 8 home");
+  assert.equal(t.loser, 1);
+  assert.deepEqual(t.order, [0]);
+  // The computer's partner colour finishing first: same rule for controller 1.
+  s = withSeeds([[Y, Y, Y, Y], [H, H, H, H], [Y, Y, Y, Y], [H, 55, H, H]], { turn: 3, table: twoYardsTable([0, 2]) });
+  t = applyAction(applyRoll(s, 1), chooseAction(applyRoll(s, 1)));
+  assert.equal(t.winner, 1);
+
+  // An empty yard is skipped in turn order and never threatens or gets captured.
+  const three: Partial<LudoTable> = { active: [true, true, false, true], playToLast: true };
+  s = newGame(ONE, 0, three);
+  assert.deepEqual(controllers(s), [0, 1, 3]);
+  s = applyRoll(applyRoll(s, 4), 4);
+  assert.equal(s.turn, 3, "coral passes straight to blue: gold's yard is empty");
+  s = applyRoll(s, 4);
+  assert.equal(s.turn, 0);
+  assert.equal(newGame(ONE, 2, three).turn, 3, "an empty first yard hands the first turn on");
+  assert.equal(threatAt(newGame(ONE, 0, three), 1, START[2]), 0, "an empty yard doesn't threaten its start square");
+  assert.equal(threatAt(newGame(ONE), 1, START[2]), 1);
+
+  // Playing to the last: the game carries on after the first finish until one player is left, who is the loser.
+  s = withSeeds([[Y, Y, Y, Y], [Y, Y, Y, Y], [H, H, H, 55], [Y, Y, Y, Y]], { turn: 2, table: { ...DEFAULT_TABLE, playToLast: true } });
+  t = applyMove(applyRoll(s, 1), 3);
+  assert.equal(t.phase, "roll", "gold is home but the game goes on");
+  assert.deepEqual(t.order, [2]);
+  assert.equal(t.turn, 3);
+  t = applyRoll(applyRoll(t, 4), 4); // blue and green pass
+  assert.equal(t.turn, 1);
+  t = applyRoll(t, 4);
+  assert.equal(t.turn, 3, "gold is skipped: finished");
+
+  // Knockout. Round 1: gold, green, blue finish; coral is last and out.
+  let ko = newKnockout();
+  assert.deepEqual(ko, { round: 1, alive: [0, 1, 2, 3], out: [], champion: null, results: [] });
+  let g = knockoutGame(ko, ONE);
+  assert.deepEqual(g.table, { owner: [0, 1, 2, 3], active: [true, true, true, true], playToLast: true });
+  const finishVia = (state: LudoState, colour: number): LudoState => {
+    const rows = state.seeds.map((r) => [...r]);
+    rows[colour] = [H, H, H, 55];
+    return applyMove(applyRoll({ ...state, seeds: rows, turn: colour, phase: "roll", dice: [], used: [], sixes: 0 }, 1), 3);
+  };
+  g = finishVia(g, 2);
+  g = finishVia(g, 0);
+  assert.equal(g.phase, "roll");
+  assert.deepEqual(g.order, [2, 0]);
+  g = finishVia(g, 3);
+  assert.equal(g.phase, "over");
+  assert.deepEqual(g.order, [2, 0, 3], "finishing order: 1st gold, 2nd green, 3rd blue");
+  assert.equal(g.winner, 2);
+  assert.equal(g.loser, 1, "coral is last");
+  assert.throws(() => advanceKnockout(ko, newGame()), /isn't over/);
+  ko = advanceKnockout(ko, g);
+  assert.deepEqual(ko.alive, [0, 2, 3]);
+  assert.deepEqual(ko.out, [1]);
+  assert.equal(ko.round, 2);
+  // Round 2: three players, coral's yard empty and skipped.
+  g = knockoutGame(ko, ONE);
+  assert.deepEqual(g.table.active, [true, false, true, true]);
+  assert.deepEqual(g.seeds, newGame().seeds, "a fresh game");
+  g = applyRoll(g, 4);
+  assert.equal(g.turn, 2, "green passes to gold, skipping coral");
+  g = finishVia(g, 3);
+  assert.equal(g.phase, "roll");
+  g = finishVia(g, 2);
+  assert.equal(g.phase, "over");
+  assert.equal(g.loser, 0, "green is last this time");
+  ko = advanceKnockout(ko, g);
+  assert.deepEqual(ko.alive, [2, 3]);
+  assert.deepEqual(ko.out, [1, 0]);
+  assert.equal(ko.round, 3);
+  // Final: two yards each. Side by side (gold, blue) take their opposite yards; opposite finalists take the next yard on.
+  assert.deepEqual(finalYards([2, 3]), [2, 3, 2, 3]);
+  assert.deepEqual(finalYards([0, 2]), [0, 0, 2, 2]);
+  assert.deepEqual(finalYards([0, 1]), [0, 1, 0, 1]);
+  assert.deepEqual(finalYards([1, 3]), [3, 1, 1, 3]);
+  g = knockoutGame(ko, ONE);
+  assert.deepEqual(g.table, { owner: [2, 3, 2, 3], active: [true, true, true, true], playToLast: false });
+  assert.deepEqual(coloursOf(knockoutGame(ko, ONE, [3, 3, 2, 2]), 2), [2, 3], "finalists can split the yards another way");
+  assert.throws(() => knockoutGame(ko, ONE, [2, 2, 2, 3]), /two yards/);
+  g = finishVia(g, 1); // blue's player gets coral home: 4 of 8
+  assert.equal(g.phase, "roll");
+  g = finishVia(g, 3); // and blue: all 8
+  assert.equal(g.phase, "over");
+  assert.equal(g.winner, 3);
+  assert.equal(g.loser, 2);
+  ko = advanceKnockout(ko, g);
+  assert.equal(ko.champion, 3);
+  assert.deepEqual(ko.out, [1, 0, 2]);
+  assert.deepEqual(ko.results.map((r) => r.loser), [1, 0, 2]);
+  assert.throws(() => knockoutGame(ko), /over/);
+  assert.throws(() => advanceKnockout(ko, g), /isn't over/);
+
+  // Full computer-only games finish in every mode, with only legal moves and no capture between same-owner colours.
+  const run = (start: LudoState, r: () => number): LudoState => {
+    let state = start;
+    let steps = 0;
+    while (state.phase !== "over" && steps < 40000) {
+      if (state.phase === "move") {
+        const choice = chooseAction(state);
+        assert.ok(legalActions(state).some((a) => JSON.stringify(a) === JSON.stringify(choice)));
+      }
+      assert.ok(inPlay(state, state.turn), "the colour to play is in play");
+      const before = state;
+      state = autoStep(state, r);
+      const e = state.last;
+      if (e && e !== before.last && e.kind === "move") for (const c of e.captured) assert.ok(!friendly(state, c.player, e.player), "never your own colour");
+      steps++;
+    }
+    assert.equal(state.phase, "over");
+    return state;
+  };
+  let games = 0;
+  for (const pair of pairs) for (const opts of [ONE, TWO, {} as Partial<LudoOptions>]) {
+    const end = run(newGame(opts, 0, twoYardsTable(pair)), seededRng(pair[0] * 31 + pair[1] * 7 + (opts.dice ?? 3)));
+    assert.ok(end.winner === 0 || end.winner === 1);
+    assert.ok(coloursOf(end, end.winner).every((c) => end.seeds[c].every((p) => p === H)), "all 8 home");
+    assert.equal(end.loser, 1 - end.winner);
+    assert.ok(coloursOf(end, end.loser!).some((c) => end.seeds[c].some((p) => p !== H)));
+    games++;
+  }
+  console.log(`  2 v 2 yards: ${games} computer games finished (every pair of yards)`);
+  const champions = new Set<number>();
+  for (let k = 1; k <= 12; k++) {
+    const r = seededRng(k * 977);
+    const opts = k % 2 ? ONE : ({} as Partial<LudoOptions>);
+    let kk = newKnockout();
+    while (kk.champion === null) {
+      const end = run(knockoutGame(kk, opts), r);
+      if (kk.round < 3) {
+        assert.equal(end.order.length, kk.alive.length - 1, "everyone but the last finished");
+        for (const c of end.order) assert.ok(end.seeds[c].every((p) => p === H));
+        assert.ok(!end.order.includes(end.loser!) && kk.alive.includes(end.loser!));
+        if (kk.round === 2) assert.ok(end.seeds[kk.out[0]].every((p) => p === Y), "the empty yard stays empty");
+      } else {
+        assert.equal(end.order.length, 1);
+      }
+      kk = advanceKnockout(kk, end);
+    }
+    assert.equal(kk.out.length, 3);
+    assert.equal(new Set([...kk.out, kk.champion]).size, 4, "everyone placed once");
+    assert.deepEqual(kk.results.map((x) => x.round), [1, 2, 3]);
+    champions.add(kk.champion);
+    // The quick "play out the rest" gives a full result too.
+    const quick = playOutKnockout(newKnockout(), opts, seededRng(k));
+    assert.ok(quick.champion !== null && quick.out.length === 3);
+  }
+  console.log(`  knockout: 12 computer knockouts finished, champions ${[...champions].sort().join(", ")}`);
 }
 
 console.log("ludo tests passed");

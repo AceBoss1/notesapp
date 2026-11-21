@@ -37,16 +37,19 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   {
     slug: "ludo", path: "/arcade/ludo", name: "Ludo", kicker: "Board", headline: ["Roll", "home."],
     blurb: "Four colours, two dice (or one), race your four seeds home.",
-    description: "The race game every Nigerian home knows. Roll the dice, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard. Play with two dice or one, send the hitter straight home or not, and switch on 6 + 5 straight home if that's how you play it at home.",
+    description: "The race game every Nigerian home knows. Roll the dice, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard. Play with two dice or one, send the hitter straight home or not, and switch on 6 + 5 straight home if that's how you play it at home. Play four players, take two yards against the computer, or play a knockout where the last one home is out.",
     howTo: [
-      "Choose 2 dice (the default) or 1 die at the top. Changing it starts a new game.",
+      "Pick a MODE at the top. 4 PLAYERS: you're green against three computers. Changing the mode, the dice or a rule starts a new game.",
+      "2 V 2 YARDS: before you start, tap any two colours to make them yours, side by side or opposite. The computer plays the other two. Each colour still takes its own turn. Your two colours share squares and never capture each other. Get all 8 seeds home first to win.",
+      "KNOCKOUT: you against three computers. When someone gets all four home the game goes on, until only one player is left. That player is out. The three left play a fresh round with the empty yard skipped, and the last one home is out again. The final two play two yards each, and the first to get all 8 home wins.",
+      "Choose 2 dice (the default) or 1 die.",
       "A 6 brings a seed out of your yard. With 2 dice, a 6 on either die does.",
       "A double 6 (with 1 die, any 6) is banked and you roll again. Keep rolling until you throw something else, then spend every die you banked, one at a time, in any order, on one seed or several. A die you can't use is lost. Three in a row and you lose the turn.",
       "6+5 HOME is off unless you turn it on. Then a banked 6 and 5 can send a seed from your yard straight home instead. It's your choice.",
       "Land on another player's seed to send it back to its yard, and roll again at once; dice you haven't spent stay banked. With HIT → HOME on (the default), the seed that hits goes straight home. Only the star squares are safe: land on a start square and the seed sitting there goes back to its yard.",
-      "You need the exact roll to get home. Get all four seeds home first to win.",
+      "You need the exact roll to get home. With 4 players, get all four seeds home first to win.",
     ],
-    players: "You vs 3 computer players",
+    players: "You vs 1 to 3 computers",
     shots: STAGES,
   },
   {
