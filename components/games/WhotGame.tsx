@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
   SHAPES, applyMove, canPlay, cardLabel, computerMove, initialState, shapeLabel, topCard,
   type Card, type Shape, type WhotMove, type WhotState,
 } from "@/lib/arcade/whot";
+import { whotTake, whotTip } from "@/lib/arcade/nana-whot";
+import type { NanaTake } from "@/lib/arcade/nana";
 
 const RECORD_KEY = "notes-arcade-whot-record";
 const COMPUTER_DELAY = 650;
@@ -51,6 +54,10 @@ export default function WhotGame() {
   const [game, setGame] = useState<WhotState | null>(null);
   const [record, setRecord] = useState<Record_>({ won: 0, lost: 0 });
   const [muted, setMuted] = useState(false);
+  // Nana (owner, 21 Nov 2026): the move she suggests, lit in gold until the game moves on, and her take on the computer's last move.
+  const [hint, setHint] = useState<WhotMove | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [round, setRound] = useState(0);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
 
@@ -91,6 +98,8 @@ export default function WhotGame() {
   };
 
   const deal = () => {
+    setTake(null);
+    setRound((r) => r + 1);
     // Take turns to start: if you won the last game, the computer goes first.
     setGame(initialState(Math.random, game?.winner === 0 ? 1 : 0));
   };
@@ -98,9 +107,24 @@ export default function WhotGame() {
   // The computer's turn, with a short pause so you can follow it.
   useEffect(() => {
     if (!game || game.phase === "over" || game.turn !== 1) return;
-    const t = window.setTimeout(() => commit(applyMove(game, computerMove(game)), 440), COMPUTER_DELAY);
+    const t = window.setTimeout(() => {
+      const m = computerMove(game);
+      const next = applyMove(game, m);
+      setTake(whotTake(game, m, next));
+      commit(next, 440);
+    }, COMPUTER_DELAY);
     return () => window.clearTimeout(t);
   }, [game, commit]);
+
+  // A hint belongs to one position: any move, yours or the computer's, puts the gold away.
+  useEffect(() => { setHint(null); }, [game]);
+  const askNana = () => {
+    if (!game) return null;
+    const t = whotTip(game);
+    setHint(t?.highlight ?? null);
+    return t?.tip ?? null;
+  };
+  const isHint = (m: WhotMove) => !!hint && JSON.stringify(hint) === JSON.stringify(m);
 
   const toggleSound = () => { setMuted((m) => { mutedRef.current = !m; return !m; }); };
 
@@ -144,7 +168,7 @@ export default function WhotGame() {
           <div className="whot-table">
             <button
               type="button"
-              className={`whot-market${myTurn ? " is-live" : ""}${myTurn && !anyPlayable ? " is-hint" : ""}`}
+              className={`whot-market${myTurn ? " is-live" : ""}${myTurn && !anyPlayable ? " is-hint" : ""}${isHint({ type: "draw" }) ? " is-nana" : ""}`}
               onClick={() => myTurn && move({ type: "draw" })}
               disabled={!myTurn}
               aria-label={`${marketLabel}. ${game?.market.length ?? 0} cards in the market`}
@@ -170,7 +194,7 @@ export default function WhotGame() {
                   <button
                     key={`${card.shape}-${card.num}-${i}`}
                     type="button"
-                    className={`whot-card is-hand${ok ? " is-ok" : ""}`}
+                    className={`whot-card is-hand${ok ? " is-ok" : ""}${isHint({ type: "play", index: i }) ? " is-nana" : ""}`}
                     disabled={!ok}
                     onClick={() => move({ type: "play", index: i })}
                     aria-label={`Play ${cardLabel(card)}${ok ? "" : " (can't play this now)"}`}
@@ -187,7 +211,7 @@ export default function WhotGame() {
               <p>ASK FOR A SHAPE</p>
               <div>
                 {SHAPES.map((sh) => (
-                  <button key={sh} type="button" className="whot-shape-btn" onClick={() => move({ type: "call", shape: sh })} aria-label={`Ask for ${sh}s`}>
+                  <button key={sh} type="button" className={`whot-shape-btn${isHint({ type: "call", shape: sh }) ? " is-nana" : ""}`} onClick={() => move({ type: "call", shape: sh })} aria-label={`Ask for ${sh}s`}>
                     <ShapeIcon shape={sh} /><span>{shapeLabel(sh)}</span>
                   </button>
                 ))}
@@ -205,6 +229,7 @@ export default function WhotGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <ArcadeNana slug="whot" canAsk={myTurn || choosing} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />
       </div>
 
       <style jsx global>{`
@@ -247,8 +272,11 @@ export default function WhotGame() {
         .whot-picker>div { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
         .whot-shape-btn { display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px 7px; border:1px solid #e3e6df; border-radius:8px; background:#fff; color:#17251f; font:600 8px ui-monospace,monospace; letter-spacing:.04em; cursor:pointer; }
         .whot-shape-btn svg { width:26px; height:26px; fill:#c8323f; }.whot-shape-btn:hover { background:#eef3e6; }
+        /* Nana's suggestion: a gold ring and a small lift, so it stands out from the green "you can play this" cues. */
+        .whot-card.is-hand.is-nana,.whot-market.is-nana .whot-card { box-shadow:0 0 0 3px #ffd166,0 8px 18px #0007; transform:translateY(-8px); }
+        .whot-shape-btn.is-nana { box-shadow:0 0 0 3px #ffd166; background:#fff6dc; }
         @media(max-width:420px) { .whot-board { min-height:420px; padding:12px 8px 14px; }.whot-hand { gap:5px; } }
-        @media(prefers-reduced-motion:reduce) { .whot-card.is-top { animation:none; }.whot-card.is-hand,.whot-market.is-live .whot-card { transition:none; } }
+        @media(prefers-reduced-motion:reduce) { .whot-card.is-top { animation:none; }.whot-card.is-hand,.whot-market.is-live .whot-card { transition:none; }.whot-card.is-hand.is-nana,.whot-market.is-nana .whot-card { transform:none; } }
       `}</style>
     </ArcadeShell>
   );

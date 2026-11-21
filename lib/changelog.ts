@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.200.0",
+    version: "v0.201.0",
     bump: "minor",
     date: "2026-11-21",
     changes: [
@@ -19,6 +19,25 @@ export const CHANGELOG: Release[] = [
       { kind: "changed", text: "Notes Live is a full-screen feed you swipe through, one live per screen: the host and Follow at the top, comments rising over the video, hearts when you double-tap, gifts, share and an Add comment box. On a computer it's a centred column you move through with the arrow keys or the wheel. Paid lives have moved to Notes Live → Paid lives (/lives/paid)." },
       { kind: "changed", text: "Media Live Studio PRO, the studio for your lives, is laid out like a TV gallery: the picture viewers see in the middle, layouts under it, the people backstage with Add to stage and Remove from stage, Mic, Cam, Share, Invite, Settings and Leave along the bottom, and Comments, Banners, Brand, Media, People and Recording in a sidebar. Go live with studio and End broadcast sit top right." },
       { kind: "fixed", text: "The Ask Nana bubble no longer covers the controls in the studio, the Notes Live feed or a live." },
+    ],
+  },
+  {
+    version: "v0.200.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Nana in Notes Arcade, free for everyone: tap HINT and she lights up the move she'd play and says why (a capture, a block, a line you'd fill, a 4 you'd take, a checkmate), and after each computer move she explains what it was for and warns you of threats. In Ludo, Ncho and Aka-Hausa, Achi, Chess, Draughts, Whot, Ace of Spades and Naija Landlord." },
+      { kind: "added", text: "In Naija Run, Puff-Puff Rush and Snake, Nana coaches you after each run (what got you and how to go further), and gives a tip while the game is paused." },
+      { kind: "added", text: "Nana works from each game's own engine, in your browser: no AI service, so she costs nothing and works offline. In the card games she only uses what you can see, never the computer's hand." },
+      { kind: "added", text: "Switch Nana off for any game with NANA ON/OFF; your choice is kept (on your account when you're signed in). She sits out tournaments, and in player-to-player duels (coming) she's off unless the duel's rules allow her." },
+    ],
+  },
+  {
+    version: "v0.199.1",
+    bump: "patch",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "On the home and About pages, the Notes Arcade card shows every game as a tile you can tap to play, and the Ventures card carries the Rewrite the Playbook picture from the Ventures page." },
     ],
   },
   {

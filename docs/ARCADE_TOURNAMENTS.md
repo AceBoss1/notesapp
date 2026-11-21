@@ -15,6 +15,8 @@ saves progress, N$, scores and referral credit through the Notes Life wallet), t
 - **Skill decides, not luck.** Every entrant plays the same deal (§3), so a better player wins, not a luckier roll.
 - **Young members:** prize tournaments are for adults (18+) unless the owner decides otherwise. Kids and teens can play "practice"
   tournaments with no prizes, following `docs/YOUNG_MEMBERS.md` (no public names for kids, teens visible only to people they follow).
+- **No Nana in tournaments** (owner, 21 Nov 2026). The Arcade's free Nana (hints and takes, `lib/arcade/nana.ts`) never shows on a
+  tournament page (`nanaAvailability({ mode: "tournament" })`). In player-to-player duels she's off unless the duel's rules allow her.
 
 ## 2. What a sponsor gets
 

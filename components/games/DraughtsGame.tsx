@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
@@ -8,6 +9,8 @@ import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves, sizeOf,
   type BoardSize, type Cell, type DraughtsState, type Level, type Rules,
 } from "@/lib/arcade/draughts";
+import type { NanaTake } from "@/lib/arcade/nana";
+import { draughtsTake, draughtsTip } from "@/lib/arcade/nana-draughts";
 
 type Phase = "ready" | "playing" | "over";
 
@@ -54,6 +57,10 @@ export default function DraughtsGame() {
   const [status, setStatus] = useState("Press start to play.");
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(false);
+  // Nana (owner, 21 Nov 2026): a free hint from the engine itself, lit up in gold, and her take on each computer move.
+  const [hint, setHint] = useState<{ from: number; to: number } | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [gameNo, setGameNo] = useState(0);
   const timers = useRef<number[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
@@ -94,13 +101,16 @@ export default function DraughtsGame() {
   const destinations = new Set(candidates.map((m) => m.path[steps.length]).filter((x) => x !== undefined));
   const movable = new Set(game.turn === 0 ? legal.map((m) => m.from) : []);
 
-  const commit = useCallback((next: DraughtsState) => {
+  // `before` is passed for the computer's move, so Nana can say what it was for.
+  const commit = useCallback((next: DraughtsState, before?: DraughtsState) => {
     const m = next.last!;
     const mover = next.turn === 1 ? "You" : "Computer";
     setGame(next);
     setAnim(null);
     setSelected(null);
     setSteps([]);
+    setHint(null);
+    if (before) setTake(draughtsTake(before, m, next));
     beep(m.captures.length ? 520 : 380, 0.09);
     if (next.over) {
       setPhase("over");
@@ -122,7 +132,7 @@ export default function DraughtsGame() {
     const t = window.setTimeout(() => {
       const m = chooseMove(game, level);
       const next = applyMove(game, m);
-      if (prefersReducedMotion() || m.path.length === 1) { commit(next); return; }
+      if (prefersReducedMotion() || m.path.length === 1) { commit(next, game); return; }
       m.path.forEach((_, i) => {
         timers.current.push(window.setTimeout(() => {
           const part = { from: m.from, path: m.path.slice(0, i + 1), captures: m.captures.slice(0, i + 1) };
@@ -130,7 +140,7 @@ export default function DraughtsGame() {
           beep(500, 0.06);
         }, i * HOP_MS));
       });
-      timers.current.push(window.setTimeout(() => commit(next), m.path.length * HOP_MS));
+      timers.current.push(window.setTimeout(() => commit(next, game), m.path.length * HOP_MS));
     }, THINK_MS);
     return () => window.clearTimeout(t);
   }, [anim, beep, commit, game, level, phase]);
@@ -141,6 +151,9 @@ export default function DraughtsGame() {
     setAnim(null);
     setSelected(null);
     setSteps([]);
+    setHint(null);
+    setTake(null);
+    setGameNo((g) => g + 1);
     setPhase("playing");
     setStatus("Your turn. You play the light pieces.");
   }, [clearTimers, drawRule, variant]);
@@ -154,6 +167,9 @@ export default function DraughtsGame() {
     setAnim(null);
     setSelected(null);
     setSteps([]);
+    setHint(null);
+    setTake(null);
+    setGameNo((g) => g + 1);
     setPhase("ready");
     setStatus(`${VARIANTS[next].label.replace("×", " × ")}: ${VARIANTS[next].intro} Press start.`);
   };
@@ -177,6 +193,7 @@ export default function DraughtsGame() {
     const done = candidates.find((m) => m.path.length === nextSteps.length && m.path[nextSteps.length - 1] === i);
     if (done) { commit(applyMove(game, done)); return; }
     setSteps(nextSteps);
+    setHint(null);
     beep(500, 0.06);
     setStatus("Keep jumping with the same piece.");
   };
@@ -226,8 +243,9 @@ export default function DraughtsGame() {
               if (!isDark(i, n)) return <span key={i} className="dr-sq dr-light" aria-hidden="true" />;
               const isDest = destinations.has(i);
               const canPick = steps.length === 0 && movable.has(i);
-              const cls = `dr-sq dr-dark${lastSquares.has(i) ? " is-last" : ""}${isDest ? " is-dest" : ""}${heldAt === i ? " is-held" : ""}${canPick ? " is-movable" : ""}`;
-              const label = `${name(i, n)}: ${p ? `${p.side === 0 ? "your" : "computer's"} ${p.king ? "king" : "piece"}${taken.includes(i) ? ", taken" : ""}` : "empty"}${isDest ? ", move here" : canPick ? ", can move" : ""}`;
+              const hinted = !!hint && (hint.from === i || hint.to === i);
+              const cls = `dr-sq dr-dark${lastSquares.has(i) ? " is-last" : ""}${hinted ? " is-hint" : ""}${isDest ? " is-dest" : ""}${heldAt === i ? " is-held" : ""}${canPick ? " is-movable" : ""}`;
+              const label = `${name(i, n)}: ${p ? `${p.side === 0 ? "your" : "computer's"} ${p.king ? "king" : "piece"}${taken.includes(i) ? ", taken" : ""}` : "empty"}${isDest ? ", move here" : canPick ? ", can move" : ""}${hint?.from === i ? ", Nana's hint: move from here" : hint?.to === i ? ", Nana's hint: move here" : ""}`;
               return (
                 <button key={i} type="button" className={cls} onClick={() => tap(i)} disabled={!isDest && !canPick} aria-label={label} aria-pressed={heldAt === i ? true : undefined}>
                   {p && (
@@ -250,6 +268,19 @@ export default function DraughtsGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <ArcadeNana
+          slug="draughts"
+          canAsk={phase === "playing" && !game.over && game.turn === 0 && !anim && steps.length === 0}
+          onAsk={() => {
+            // Synchronous on tap: the hint search is capped (lib/arcade/nana-draughts.ts TIP_BUDGET) and comes back in tens of milliseconds.
+            const t = draughtsTip(game);
+            setHint(t ? t.highlight : null);
+            return t ? t.tip : null;
+          }}
+          take={take}
+          resetKey={gameNo}
+          onToggle={() => setHint(null)}
+        />
       </div>
 
       <style jsx global>{`
@@ -267,6 +298,8 @@ export default function DraughtsGame() {
         .dr-dark.is-dest { background:#37503f; }
         .dr-dark.is-dest:hover { background:#41603f; }
         .dr-dark:focus-visible { outline:2px solid #bdf36b; outline-offset:-3px; z-index:1; }
+        .dr-dark.is-hint { box-shadow:inset 0 0 0 3px #ffd166, inset 0 0 16px #ffd16699; animation:dr-hint 1.4s ease-in-out infinite; }
+        @keyframes dr-hint { 50% { box-shadow:inset 0 0 0 3px #ffd166, inset 0 0 24px #ffd166dd; } }
         .dr-dot { width:28%; height:28%; border-radius:50%; background:#bdf36b; box-shadow:0 0 10px #bdf36b88; }
         .dr-piece { display:grid; place-items:center; width:76%; height:76%; border-radius:50%; transition:transform .12s,opacity .2s; }
         .dr-you { background:radial-gradient(circle at 40% 35%,#ffffff 0%,#f3f1e4 45%,#d9d6c3 100%); box-shadow:0 3px 0 #0005,inset 0 0 0 3px #e2dfcc,inset 0 0 0 5px #f9f8f0; }
@@ -275,7 +308,7 @@ export default function DraughtsGame() {
         .dr-you svg { fill:#83b83c; }
         .dr-them svg { fill:#fff3d6; }
         .dr-piece.is-taken { opacity:.35; transform:scale(.85); }
-        @media(prefers-reduced-motion:reduce) { .dr-piece { transition:none; } }
+        @media(prefers-reduced-motion:reduce) { .dr-piece { transition:none; } .dr-dark.is-hint { animation:none; } }
       `}</style>
     </ArcadeShell>
   );

@@ -15,6 +15,7 @@ export const ENTRY: ArcadeGame = {
     "Once all six are down, take turns sliding one of your pieces along a line to the next point, if it's empty.",
     "Get your three pieces on any one line and you win, while placing or moving.",
     "If it's your turn and you can't move, you lose. The same position three times, or 60 turns with no winner, is a draw. The loser starts the next game.",
+    "Stuck? Nana, free and built in, lights up the move she'd play and says why, and explains each computer move. Switch her off any time.",
   ],
   players: "You vs the computer",
   shots: [{ caption: "Easy", level: "easy" }, { caption: "Medium", level: "medium" }, { caption: "Hard", level: "hard" }],

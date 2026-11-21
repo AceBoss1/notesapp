@@ -45,8 +45,8 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Arcade: free games",
     tag: "Live · Games",
-    body: "Live now: Ludo (1 or 2 dice, 2 v 2 yards and knockout), Whot, Ace of Spades, Ncho and Aka-Hausa (2 or 4 players), Achi, Chess, Draughts (African 10×10 by default), Naija Landlord, Naija Run, Puff-Puff Rush and Snake, against the computer at the level you choose. Anyone can play without signing in; members who sign in keep their progress and N$. It installs as its own app, Notes Arcade, and sponsors can book its advert spots.",
-    detail: "Next: a free Nana in the Arcade that suggests moves and explains the computer's (never in tournaments, and players can switch it off in a duel), sponsor-backed tournaments for signed-in members (prize tournaments 18+, practice tournaments for teens), then player-to-player games with friends, playing groups, messages and calls. N$ is game money: no game pays out real naira.",
+    body: "Live now: Ludo (1 or 2 dice, 2 v 2 yards and knockout), Whot, Ace of Spades, Ncho and Aka-Hausa (2 or 4 players), Achi, Chess, Draughts (African 10×10 by default), Naija Landlord, Naija Run, Puff-Puff Rush and Snake, against the computer at the level you choose. Anyone can play without signing in; members who sign in keep their progress and N$. It installs as its own app, Notes Arcade, and sponsors can book its advert spots. Nana is built in and free: she shows the move she'd play and why, explains each computer move, and coaches you after each run in the action games. She works from the game's own engine in your browser, sits out tournaments, and you can switch her off per game.",
+    detail: "Next: sponsor-backed tournaments for signed-in members (prize tournaments 18+, practice tournaments for teens), then player-to-player games with friends, playing groups, messages and calls. N$ is game money: no game pays out real naira.",
     link: { href: "/arcade", label: "Open Notes Arcade →" },
   },
   {

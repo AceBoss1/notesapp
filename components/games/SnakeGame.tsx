@@ -4,7 +4,9 @@ import Image from "next/image";
 import { ArcadeFooter, ArcadeGallery, ArcadeStyles, ArcadeTopbar } from "./ArcadeShell";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 import { arcadeGame } from "@/lib/arcade/catalogue";
-import { useCallback, useEffect, useRef, useState } from "react";
+import ArcadeNana from "./ArcadeNana";
+import { onSnakeEdge, snakeCoach, type SnakeStats } from "@/lib/arcade/nana-snake";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Point = { x: number; y: number };
 type Direction = "up" | "down" | "left" | "right";
@@ -54,6 +56,13 @@ export default function SnakeGame() {
   const queuedDirection = useRef<Direction>("right");
   const audioContextRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
+  // Nana (lib/arcade/nana-snake.ts, owner, 21 Nov 2026): Snake has no pause, so no hints; she coaches after each run from how it ended.
+  const [lastRun, setLastRun] = useState<SnakeStats | null>(null);
+  const [runNo, setRunNo] = useState(0);
+  const bestRef = useRef(0);
+  const bestAtStart = useRef(0);
+  useEffect(() => { bestRef.current = best; }, [best]);
+  const nanaTake = useMemo(() => snakeCoach(lastRun), [lastRun]);
 
   const getAudioContext = useCallback(() => {
     if (!window.AudioContext) return null;
@@ -98,6 +107,8 @@ export default function SnakeGame() {
     setDirection("right");
     directionRef.current = "right";
     queuedDirection.current = "right";
+    bestAtStart.current = bestRef.current;
+    setRunNo((n) => n + 1);
     if (!mutedRef.current) getAudioContext();
     setStatus("playing");
   }, [getAudioContext]);
@@ -144,6 +155,7 @@ export default function SnakeGame() {
 
   useEffect(() => {
     if (status !== "playing") return;
+    const intervalMs = Math.max(72, BASE_INTERVAL[pace] - Math.floor(score / 50) * 8);
     const timer = window.setInterval(() => {
       const nextDirection = queuedDirection.current;
       directionRef.current = nextDirection;
@@ -157,6 +169,11 @@ export default function SnakeGame() {
           head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE ||
           body.some((part) => part.x === head.x && part.y === head.y);
         if (collided) {
+          const wall = head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE;
+          setLastRun({
+            cause: wall ? "wall" : "self", heading: nextDirection, length: current.length, score, bestBefore: bestAtStart.current,
+            pace, intervalMs, foodOnEdge: onSnakeEdge(food),
+          });
           playSound(165, 0.2);
           setStatus("over");
           return current;
@@ -173,7 +190,7 @@ export default function SnakeGame() {
         }
         return nextSnake;
       });
-    }, Math.max(72, BASE_INTERVAL[pace] - Math.floor(score / 50) * 8));
+    }, intervalMs);
     return () => window.clearInterval(timer);
   }, [food, pace, playSound, score, status]);
 
@@ -256,6 +273,10 @@ export default function SnakeGame() {
               <div>{controlButton("Left", "left", "←")}{controlButton("Down", "down", "↓")}{controlButton("Right", "right", "→")}</div>
             </div>
             <span>USE THE ARROWS TO MOVE</span>
+          </div>
+          {/* No pause in Snake, so HINT stays off; clicking Nana's buttons mustn't take focus from the board either. */}
+          <div onMouseDown={(event) => event.preventDefault()}>
+            <ArcadeNana slug="snake" canAsk={false} onAsk={() => null} take={nanaTake} resetKey={runNo} />
           </div>
         </div>
       </div>

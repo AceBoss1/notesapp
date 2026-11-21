@@ -5,6 +5,9 @@ import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import ArcadeAdSpot from "./ArcadeAdSpot";
+import ArcadeNana from "./ArcadeNana";
+import { landlordTake, landlordTip } from "@/lib/arcade/nana-landlord";
+import type { NanaTake } from "@/lib/arcade/nana";
 import {
   BOARD, CITIES, ROUND_CAP,
   aiAction, applyAction, buildable, canBuy, createGame, formatNaira, netWorth, rentFor, squareCell,
@@ -71,6 +74,10 @@ export default function LandlordGame() {
   const [selected, setSelected] = useState<number | null>(null);
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(true);
+  // Nana (owner, 21 Nov 2026): the action she suggests, lit in gold until the game moves on, and her take on the last computer action.
+  const [hint, setHint] = useState<Action | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [round, setRound] = useState(0);
   const audioRef = useRef<AudioContext | null>(null);
   const logRef = useRef<HTMLOListElement | null>(null);
   const countedRef = useRef(false);
@@ -121,7 +128,13 @@ export default function LandlordGame() {
   // Computer turns, one action at a time so you can follow.
   useEffect(() => {
     if (!started || finished || game.players[game.turn].human) return;
-    const t = window.setTimeout(() => setGame((g) => (g.phase === "over" || g.players[g.turn].human ? g : applyAction(g, aiAction(g)))), AI_DELAY);
+    const t = window.setTimeout(() => {
+      // Worked out from this render's game (the effect re-runs on every change), so Nana's take matches the move just made.
+      const a = aiAction(game);
+      const next = applyAction(game, a);
+      setTake(landlordTake(game, a, next));
+      setGame((g) => (g === game ? next : g));
+    }, AI_DELAY);
     return () => window.clearTimeout(t);
   }, [game, started, finished]);
 
@@ -155,6 +168,8 @@ export default function LandlordGame() {
     setStarted(true);
     setBuildMode(false);
     setSelected(null);
+    setTake(null);
+    setRound((r) => r + 1);
     countedRef.current = false;
   }, []);
 
@@ -174,6 +189,15 @@ export default function LandlordGame() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [act, buyOpen, canBuyNow, canRoll]);
+
+  // A hint belongs to one position: any move puts the gold away.
+  useEffect(() => { setHint(null); }, [game]);
+  const askNana = () => {
+    const t = landlordTip(game);
+    setHint(t?.highlight ?? null);
+    return t?.tip ?? null;
+  };
+  const nana = (type: Action["type"]) => (hint?.type === type ? " is-nana" : "");
 
   const onSquare = (i: number) => {
     if (buildMode && myBuilds.includes(i)) {
@@ -220,7 +244,7 @@ export default function LandlordGame() {
                 <button
                   key={i}
                   type="button"
-                  className={`ll-sq${corner ? " is-corner" : ""}${glow ? " is-glow" : ""}${selected === i ? " is-sel" : ""}${sq.city ? "" : " is-special"}`}
+                  className={`ll-sq${corner ? " is-corner" : ""}${glow ? " is-glow" : ""}${selected === i ? " is-sel" : ""}${sq.city ? "" : " is-special"}${hint?.type === "build" && hint.square === i ? " is-nana" : ""}`}
                   style={{ gridRow: row, gridColumn: col, ["--band" as string]: band ?? "#eee" }}
                   onClick={() => onSquare(i)}
                   aria-label={glow ? `Build a flat on ${sq.name}` : squareLabel(game, i)}
@@ -262,10 +286,10 @@ export default function LandlordGame() {
                 ))}
               </ul>
               <div className="ll-actions">
-                <button type="button" className="arc-btn" disabled={!canRoll} onClick={() => act({ type: "roll" })} aria-label="Roll the dice">ROLL</button>
-                <button type="button" className="arc-btn" disabled={!canBuyNow} onClick={() => act({ type: "buy" })} aria-label={buyOpen ? `Buy ${here.name}` : "Buy this plot"}>BUY{canBuyNow ? ` ${formatNaira(here.price ?? 0)}` : ""}</button>
-                <button type="button" className="arc-btn-ghost" disabled={!buyOpen} onClick={() => act({ type: "skip" })} aria-label="Skip buying">SKIP</button>
-                <button type="button" className="arc-btn-ghost" disabled={!myBuilds.length} aria-pressed={buildMode} onClick={() => setBuildMode((b) => !b)} aria-label={buildMode ? "Stop building" : "Build a flat"}>{buildMode ? "DONE" : "BUILD"}</button>
+                <button type="button" className={`arc-btn${nana("roll")}`} disabled={!canRoll} onClick={() => act({ type: "roll" })} aria-label="Roll the dice">ROLL</button>
+                <button type="button" className={`arc-btn${nana("buy")}`} disabled={!canBuyNow} onClick={() => act({ type: "buy" })} aria-label={buyOpen ? `Buy ${here.name}` : "Buy this plot"}>BUY{canBuyNow ? ` ${formatNaira(here.price ?? 0)}` : ""}</button>
+                <button type="button" className={`arc-btn-ghost${nana("skip")}`} disabled={!buyOpen} onClick={() => act({ type: "skip" })} aria-label="Skip buying">SKIP</button>
+                <button type="button" className={`arc-btn-ghost${buildMode ? "" : nana("build")}`} disabled={!myBuilds.length} aria-pressed={buildMode} onClick={() => setBuildMode((b) => !b)} aria-label={buildMode ? "Stop building" : "Build a flat"}>{buildMode ? "DONE" : "BUILD"}</button>
               </div>
               <p className="ll-info">{selected !== null ? squareInfo(game, selected) : "Tap a square to see its details."}</p>
               <ol className="ll-log" ref={logRef} aria-label="What happened" aria-live="polite">
@@ -298,6 +322,7 @@ export default function LandlordGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <ArcadeNana slug="landlord" canAsk={myTurn} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />
       </div>
 
       <style jsx global>{`
@@ -343,6 +368,9 @@ export default function LandlordGame() {
         .ll-info { margin:0; color:#aebbb1; font:500 9px/1.4 ui-monospace,monospace; }
         .ll-log { flex:1; min-height:0; margin:0; padding:6px 8px 6px 22px; overflow-y:auto; border-radius:6px; background:#ffffff0d; font:500 9.5px/1.45 ui-monospace,monospace; color:#cfd8d1; }
         .ll-log li:last-child { color:#fff; }
+        /* Nana's suggestion: a gold ring on the button (and on the plot, for a flat), apart from the green build glow. */
+        .ll-actions .is-nana { box-shadow:0 0 0 3px #ffd166; transform:translateY(-2px); }
+        .ll-sq.is-nana { box-shadow:0 0 0 2px #ffd166, 0 0 12px #ffd166; z-index:1; }
         @keyframes ll-pulse { 50% { box-shadow:0 0 0 2px #bdf36b, 0 0 4px #bdf36b; } }
         @media (max-width:640px) {
           .ll-wrap { padding:5px; }
@@ -368,7 +396,7 @@ export default function LandlordGame() {
           .ll-tokens { bottom:4px; }
           .ll-tokens i { width:7px; height:7px; border-width:1px; }
         }
-        @media (prefers-reduced-motion:reduce) { .ll-sq.is-glow { animation:none; } }
+        @media (prefers-reduced-motion:reduce) { .ll-sq.is-glow { animation:none; } .ll-actions .is-nana { transform:none; } }
       `}</style>
     </ArcadeShell>
   );

@@ -1372,8 +1372,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     = /studio), Sign out. Icons: `components/shell/menuIcons.tsx`, no emoji. Add a page by adding it to `accountMenu()`; tests in
     tests/account/account-menu.test.ts (`test:menus`). Still to come (owner): the profile page tidy-up, Notes Live in a TikTok-style
     vertical feed (from the old live), and Media Live Studio PRO with a StreamYard-style studio.
+161. **Nana in Notes Arcade (v0.200.0; owner, 21 Nov 2026: "a free Nana for arcade [that won't cost us nor the players] where Nana
+    suggests moves or analyze opponent moves, it won't be available for tournaments, mostly friendly trainings and competing player to
+    player can have it turned off in their duel rules"):** no AI service; each game's own engine in the browser. `lib/arcade/nana.ts`
+    (pure: `nanaAvailability` for practice/tournament/duel, `DuelRules` with `nana` off by default, `NanaTip`, `NanaTake`, `rateMove`,
+    `listText`, `nanaKey`), `components/games/ArcadeNana.tsx` (the strip: HINT, NANA ON/OFF kept in the Arcade store per game, hint
+    count, the take). Per game `lib/arcade/nana-<slug>.ts` with `<slug>Tip` (the engine's strongest move for the player, a label and a
+    why from before/after) and `<slug>Take` (the computer's last move). Card games build tips from a copy with opponents' hands blanked
+    (tests reshuffle hidden cards and expect the same tip). Chess caps its search at 30,000 positions / 250 ms; draughts at 5,000 (10×10)
+    or 8,000 (8×8). Action games (`nana-run`, `nana-puffpuff`, `nana-snake`) watch the run without touching state or RNG and coach
+    after it; tips only while paused; RunGame in tournament mode shows "Nana sits out tournaments" and computes nothing
+    (run-replay.ts unchanged). Hints highlight in gold #ffd166. Tests: tests/arcade/nana*.test.ts (in `test:arcade`).
 
-161. **Profile, Notes Live feed and Media Live Studio PRO (v0.200.0; owner, 21 Nov 2026: Facebook's profile, "Notes Live… look like
+162. **Profile, Notes Live feed and Media Live Studio PRO (v0.201.0; owner, 21 Nov 2026: Facebook's profile, "Notes Live… look like
     tiktok using old live", "Media Live studio PRO… look like streamyard"):** Profile (`components/profile/ProfileHeader.tsx`, `ProfileAbout.tsx`,
     `ProfileMenu.tsx`, `lib/profile-view.ts`, `components/ProfilePageClient.tsx`): band + overlapping picture, stats line (others see
     "Following" without a count: the lists are private by member choice), 2-line bio, facts from jobTitle/workplace and the first social link,
