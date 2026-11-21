@@ -5,8 +5,8 @@ import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
-  DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves,
-  type Cell, type DraughtsState, type Level,
+  DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves, sizeOf,
+  type BoardSize, type Cell, type DraughtsState, type Level, type Rules,
 } from "@/lib/arcade/draughts";
 
 type Phase = "ready" | "playing" | "over";
@@ -14,9 +14,20 @@ type Phase = "ready" | "playing" | "over";
 const THINK_MS = 500;
 const HOP_MS = 260; // each hop of the computer's multi-jump
 const WINS_KEY = "arcade-draughts-wins";
-const FILES = "abcdefgh";
+const RULES_KEY = "arcade-draughts-rules";
+const FILES = "abcdefghij";
 
-const name = (i: number) => `${FILES[i % 8]}${8 - Math.floor(i / 8)}`;
+const name = (i: number, n: number) => `${FILES[i % n]}${n - Math.floor(i / n)}`;
+
+// The rules menu: African on the 10×10 board (the default), African on 8×8, or English (always 8×8).
+type Variant = "african-10" | "african-8" | "english";
+const VARIANTS: Record<Variant, { rules: Rules; size: BoardSize; label: string; intro: string }> = {
+  "african-10": { rules: "african", size: 10, label: "AFRICAN 10×10", intro: "20 each. Men take backwards too, kings fly, and you must take the most pieces." },
+  "african-8": { rules: "african", size: 8, label: "AFRICAN 8×8", intro: "12 each. Men take backwards too, kings fly, and you must take the most pieces." },
+  english: { rules: "english", size: 8, label: "ENGLISH 8×8", intro: "12 each. Men move and take forward only; kings move one square either way." },
+};
+const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANTS;
+const fresh = (v: Variant, drawRule = true) => initialState(undefined, { drawRule, rules: VARIANTS[v].rules, size: VARIANTS[v].size });
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -32,10 +43,11 @@ function midMove(board: Cell[], m: { from: number; path: number[]; captures: num
 }
 
 export default function DraughtsGame() {
-  const [game, setGame] = useState<DraughtsState>(() => initialState());
+  const [game, setGame] = useState<DraughtsState>(() => fresh("african-10"));
   const [phase, setPhase] = useState<Phase>("ready");
   const [level, setLevel] = useState<Level>("medium");
   const [drawRule, setDrawRule] = useState(true);
+  const [variant, setVariant] = useState<Variant>("african-10");
   const [selected, setSelected] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([]); // your landings so far in a multi-jump
   const [anim, setAnim] = useState<{ board: Cell[]; taken: number[]; at: number } | null>(null);
@@ -48,6 +60,10 @@ export default function DraughtsGame() {
 
   useEffect(() => {
     try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
+    try {
+      const saved = arcadeStore.getItem(RULES_KEY);
+      if (isVariant(saved)) { setVariant(saved); setGame(fresh(saved)); }
+    } catch { /* storage blocked: African 10×10 */ }
   }, []);
   const clearTimers = useCallback(() => { timers.current.forEach((t) => window.clearTimeout(t)); timers.current = []; }, []);
   useEffect(() => clearTimers, [clearTimers]);
@@ -121,13 +137,26 @@ export default function DraughtsGame() {
 
   const start = useCallback(() => {
     clearTimers();
-    setGame(initialState(undefined, { drawRule }));
+    setGame(fresh(variant, drawRule));
     setAnim(null);
     setSelected(null);
     setSteps([]);
     setPhase("playing");
     setStatus("Your turn. You play the light pieces.");
-  }, [clearTimers, drawRule]);
+  }, [clearTimers, drawRule, variant]);
+
+  // The rules and board change what's legal, so switching them sets up a fresh board.
+  const changeVariant = (next: Variant) => {
+    clearTimers();
+    setVariant(next);
+    try { arcadeStore.setItem(RULES_KEY, next); } catch { /* ignore */ }
+    setGame(fresh(next, drawRule));
+    setAnim(null);
+    setSelected(null);
+    setSteps([]);
+    setPhase("ready");
+    setStatus(`${VARIANTS[next].label.replace("×", " × ")}: ${VARIANTS[next].intro} Press start.`);
+  };
 
   const changeDrawRule = (on: boolean) => {
     setDrawRule(on);
@@ -163,6 +192,7 @@ export default function DraughtsGame() {
   }
   const heldAt = anim ? anim.at : selected !== null ? (steps.length ? steps[steps.length - 1] : selected) : null;
   const lastSquares = new Set(!anim && game.last ? [game.last.from, ...game.last.path] : []);
+  const n = sizeOf(game.board);
   const mine = countPieces(game.board, 0);
   const theirs = countPieces(game.board, 1);
 
@@ -179,6 +209,9 @@ export default function DraughtsGame() {
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
           </select>
+          <select className="arc-select" aria-label="Rules and board (changing them starts a new game)" value={variant} onChange={(e) => changeVariant(e.target.value as Variant)}>
+            {(Object.keys(VARIANTS) as Variant[]).map((v) => <option key={v} value={v}>{VARIANTS[v].label}</option>)}
+          </select>
           <select className="arc-select" aria-label="Draw after 40 moves each without a capture" value={drawRule ? "on" : "off"} onChange={(e) => changeDrawRule(e.target.value === "on")}>
             <option value="on">40-MOVE DRAW: ON</option>
             <option value="off">40-MOVE DRAW: OFF</option>
@@ -188,13 +221,13 @@ export default function DraughtsGame() {
         </div>
 
         <div className="arc-board-wrap dr-wrap">
-          <div className="dr-board" role="group" aria-label="Draughts board. You play light from the bottom.">
+          <div className="dr-board" style={{ gridTemplateColumns: `repeat(${n},minmax(0,1fr))` }} role="group" aria-label="Draughts board. You play light from the bottom.">
             {board.map((p, i) => {
-              if (!isDark(i)) return <span key={i} className="dr-sq dr-light" aria-hidden="true" />;
+              if (!isDark(i, n)) return <span key={i} className="dr-sq dr-light" aria-hidden="true" />;
               const isDest = destinations.has(i);
               const canPick = steps.length === 0 && movable.has(i);
               const cls = `dr-sq dr-dark${lastSquares.has(i) ? " is-last" : ""}${isDest ? " is-dest" : ""}${heldAt === i ? " is-held" : ""}${canPick ? " is-movable" : ""}`;
-              const label = `${name(i)}: ${p ? `${p.side === 0 ? "your" : "computer's"} ${p.king ? "king" : "piece"}${taken.includes(i) ? ", taken" : ""}` : "empty"}${isDest ? ", move here" : canPick ? ", can move" : ""}`;
+              const label = `${name(i, n)}: ${p ? `${p.side === 0 ? "your" : "computer's"} ${p.king ? "king" : "piece"}${taken.includes(i) ? ", taken" : ""}` : "empty"}${isDest ? ", move here" : canPick ? ", can move" : ""}`;
               return (
                 <button key={i} type="button" className={cls} onClick={() => tap(i)} disabled={!isDest && !canPick} aria-label={label} aria-pressed={heldAt === i ? true : undefined}>
                   {p && (
@@ -209,9 +242,9 @@ export default function DraughtsGame() {
           </div>
           {phase !== "playing" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "8 × 8 · TWELVE EACH"}</p>
+              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : `${n} × ${n} · ${VARIANTS[variant].rules === "african" ? "AFRICAN" : "ENGLISH"} RULES`}</p>
               <h2>{phase === "ready" ? "Jump and crown." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
-              <p>{phase === "ready" ? "You play light and go first." : game.winner === "draw" ? `${DRAW_PLIES / 2} moves each without a capture.` : `You have ${mine.men + mine.kings} left, the computer ${theirs.men + theirs.kings}.`}</p>
+              <p>{phase === "ready" ? `You play light and go first. ${VARIANTS[variant].intro}` : game.winner === "draw" ? `${DRAW_PLIES / 2} moves each without a capture.` : `You have ${mine.men + mine.kings} left, the computer ${theirs.men + theirs.kings}.`}</p>
               <button type="button" className="arc-btn" onClick={start} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>
             </div>
           )}
@@ -221,7 +254,7 @@ export default function DraughtsGame() {
 
       <style jsx global>{`
         .dr-wrap { padding:clamp(6px,1.6vw,12px); }
-        .dr-board { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); aspect-ratio:1; border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px #ffffff14; }
+        .dr-board { display:grid; aspect-ratio:1; border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px #ffffff14; }
         .dr-sq { position:relative; display:grid; place-items:center; aspect-ratio:1; min-width:0; padding:0; border:0; }
         .dr-light { background:#e9ebe0; }
         .dr-dark { background:#2c4136; color:inherit; font:inherit; cursor:default; touch-action:manipulation; }

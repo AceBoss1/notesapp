@@ -10,7 +10,9 @@ import { AD_FOOTER } from "@/lib/ads";
 //   board  — a small square in the middle of a board (Ludo's centre, Naija Landlord's middle)
 //   tile   — the same square, sitting in a row (beside Naija Landlord's dice)
 //   banner — a wide strip under a game's board
-export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "tile" | "banner"; game: string }) {
+//   yard   — a whole Ludo yard (owner, 21 Nov 2026): the picture laid see-through over the yard's colour, under the white seed holder;
+//            each of the four yards starts on a different advert (offset)
+export default function ArcadeAdSpot({ variant, game, offset = 0 }: { variant: "board" | "tile" | "banner" | "yard"; game: string; offset?: number }) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [i, setI] = useState(0);
   const [stay, setStay] = useState(30_000);
@@ -32,7 +34,7 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
     return () => clearInterval(t);
   }, [ads, stay]);
 
-  const ad = ads.length ? ads[i % ads.length] : null;
+  const ad = ads.length ? ads[(i + offset) % ads.length] : null;
 
   function track(event: "impression" | "click", adId: string) {
     const body = JSON.stringify({ adId, event, placement: "arcade", game });
@@ -46,7 +48,7 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
   useEffect(() => {
     const el = box.current;
     if (!el || !ad || typeof IntersectionObserver === "undefined") return;
-    const key = `adimp:arcade:${variant}:${ad.id}`;
+    const key = `adimp:arcade:${variant}${offset}:${ad.id}`;
     try { if (sessionStorage.getItem(key)) return; } catch { /* no storage */ }
     const io = new IntersectionObserver((es) => {
       if (es.some((e) => e.isIntersecting)) {
@@ -59,6 +61,28 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ad?.id, variant]);
+
+  if (variant === "yard") {
+    return (
+      <aside ref={box} className={`arc-ad-yard${ad ? "" : " is-open"}`} aria-label={ad ? `Sponsored by Notes Ads: ${ad.title}` : "Advertise here with Notes Ads"}>
+        <a href={ad ? ad.href : "/arcade/partners"} {...(ad ? { target: "_blank", rel: "sponsored noopener noreferrer", onClick: () => track("click", ad.id) } : {})}>
+          {ad?.image
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={ad.image} alt="" />
+            : <span className="arc-ad-yard-text">{ad ? ad.title : "YOUR BRAND HERE"}</span>}
+          <small>SPONSORED</small>
+        </a>
+        <style jsx global>{`
+          .arc-ad-yard { position:absolute; inset:6%; z-index:0; overflow:hidden; border-radius:9%; } /* a band of the yard's own colour stays round it */
+          .arc-ad-yard a { position:absolute; inset:0; display:block; color:#fff; text-decoration:none; }
+          .arc-ad-yard img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.42; }
+          .arc-ad-yard-text { position:absolute; left:0; right:0; bottom:3%; text-align:center; font:800 clamp(5px,1vw,10px) ui-monospace,monospace; letter-spacing:.12em; opacity:.55; }
+          .arc-ad-yard small { position:absolute; top:3%; right:5%; font:700 clamp(4px,.7vw,7px) ui-monospace,monospace; letter-spacing:.1em; opacity:.7; }
+          .arc-ad-yard a:focus-visible { outline:2px solid #fff; outline-offset:-4px; }
+        `}</style>
+      </aside>
+    );
+  }
 
   return (
     <aside ref={box} className={`arc-ad arc-ad-${variant}${variant === "banner" ? "" : " arc-ad-sq"}${ad ? "" : " is-open"}`} aria-label={ad ? "Sponsored by Notes Ads" : "Advertise here with Notes Ads"}>
@@ -87,7 +111,7 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
         .arc-ad-board { position:absolute; inset:18%; z-index:2; display:grid; }
         .arc-ad-tile { position:relative; flex:none; width:clamp(52px,8vw,84px); aspect-ratio:1; display:grid; }
         .arc-ad-sq a { flex-direction:column; justify-content:center; gap:3px; width:100%; height:100%; padding:6%; border-radius:12%; background:#fffef8; box-shadow:0 4px 14px #17251f33; text-align:center; overflow:hidden; }
-        .arc-ad-sq img { width:100%; height:100%; object-fit:contain; border-radius:8%; }
+        .arc-ad-sq img { flex:1; width:100%; min-height:0; object-fit:contain; border-radius:8%; }
         .arc-ad-sq .arc-ad-title { font-size:clamp(7px,1.3vw,13px); }.arc-ad-tile .arc-ad-title { font-size:clamp(7px,1vw,11px); }
         .arc-ad-sq small { font-size:clamp(5px,.7vw,8px); }
         .arc-ad-sq:has(img) a { padding:4%; }

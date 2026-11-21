@@ -1290,6 +1290,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     override it. Icons `public/images/brand/arcade-*.png` and `notesapp-icon-green.png` are the red [na] icon recoloured pixel by pixel
     (hue 96°, value ×0.62); re-make them from the red originals if the brand icon changes. `/arcade/install` (arcade.<domain>/install)
     reuses `InstallGuide` with an `app` prop and green accents; "Install app" sits in the Arcade top bar on every screen size.
+155. **Ludo dice options and more Arcade advert spots (v0.194.0; owner, 21 Nov 2026):** Ludo `newGame({ dice: 1 | 2, sixFiveHome })`, 2 dice by
+    default: each die used separately (`legalActions`/`applyAction`/`chooseAction`), a 6 on either die releases, a double 6 rolls again,
+    three double 6s lose the turn; "6+5 home" (off by default) spends a 6 and a 5 (1 die: a 6 then a 5 on the bonus roll, with the seed
+    the 6 brought out) to send a yard seed straight home. Adverts: `ArcadeAdSpot` variant `yard` fills each Ludo yard inside a band of
+    the yard colour, see-through under a see-through seed holder, each yard starting on a different advert (`offset`); Landlord has a
+    second `tile` on the left (offset 1). Impressions count per spot and offset. Still to come with player vs player: conversations and
+    calls between players in the Arcade, and duel rules (Nana on/off, 6+5 home).
+156. **Ludo banked rolls and unsafe start squares; African draughts (v0.194.0; owner, 21 Nov 2026):** a six roll (1 die: a 6; 2 dice: a
+    double 6) is banked in `state.dice` and the player rolls again (phase stays "roll" with unspent dice, see `banked()`); a non-six roll
+    ends the rolling and the whole bank is spent in any order (`legalActions` over every unspent die). A capture goes straight back to
+    "roll" with the unspent dice still banked. Three six rolls in a row lose the turn and the bank. 6+5 home works off any banked 6 and 5
+    (the old 1-die `released` seed tracking is gone). `SAFE` is the four stars only; a yard counts as threatening its colour's start
+    square in `threatAt`. Option `hitHome` (on by default; "HIT → HOME"): a capturing seed is moved to HOME, the move event carries
+    `hitHome: true` and `to` keeps the square it landed on. Draughts (`lib/arcade/draughts.ts`): `rules: "african" | "english"`, African the default on 10×10 (20 each;
+    `size: 8` also offered), English always 8×8. African = men capture backwards, flying kings, compulsory most-pieces capture, a man
+    crowns only if the move ends on the far row. The search deepens one ply at a time inside `NODE_BUDGET` positions so 10×10 stays
+    quick on phones and plays the same on every device.
 
 ## 3. How the work is done (please keep these)
 
