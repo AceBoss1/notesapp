@@ -1,7 +1,7 @@
 # 🏆 Notes Arcade tournaments, backed by sponsors
 
 The owner, 20 Nov 2026: "plan tournaments on games that can be powered with sponsor[s] backed tournament and get tournament sponsors,
-plus only logged in players can participate". **Status: plan for the owner's approval. Nothing is built.**
+plus only logged in players can participate". **Status: plan approved with the owner's answers (21 Nov 2026, §8). Phase 0 (saving progress for signed-in members) is being built; tournaments come next.**
 
 It builds on what's already there: the eight games (`lib/arcade/`), the free-to-play rule (guests play, nothing is saved; signing in
 saves progress, N$, scores and referral credit through the Notes Life wallet), the advert spots and the partnership page
@@ -116,11 +116,17 @@ call and play together" work), so it comes after Format 1.
 2. Phase 1 with Snake, Chess and Whot first (the simplest replays), then the other games.
 3. A first sponsored weekend with one sponsor and one game, then the packages.
 
-## 8. Decisions for the owner
+## 8. The owner's decisions (21 Nov 2026)
 
-1. **Prizes:** sponsor's goods, vouchers and services, plus N$? And may a sponsor fund **NotesApp Credit** as a prize (it's bought with
-   naira, so it's closer to money; recommended: yes, but only when sponsor-funded and capped)?
-2. **Age:** prize tournaments 18+ only, with practice tournaments for teens (recommended)?
-3. **Packages and prices:** names and prices for Weekend / Month / Season, set in Admin.
-4. **First tournament:** which game and which sponsor to approach first?
-5. **Legal:** who checks the promotion-approval question and the Terms clause before the first prize tournament?
+1. **Prizes:** yes, a sponsor may fund **NotesApp Credit** as a prize, as well as goods, vouchers and N$. Only when the sponsor pays for it.
+2. **Age:** **yes, prize tournaments are 18+ only**, with practice tournaments (no prizes) for teens.
+3. **Packages:** called **sponsor packages**, and they must be **rewarding** for the sponsor. Names, prices and what each includes are set
+   by admin in the dashboard, not in code. Suggested starting set (admin can change it):
+   - **Weekend:** one game for two days. The sponsor's name on the tournament, every advert spot in that game, the results post.
+   - **Month:** weekly rounds and a final. All of the Weekend, plus a square of their own on the Naija Landlord board and their
+     colours on the Whot cards for the month.
+   - **Season:** several games and a league table. All of the Month, plus a game page dressed in their brand and a mid-season report.
+4. **First tournament:** our pick is a **Whot weekend** (the best known, quickest to learn, and simple to replay on the server), then
+   Ludo. **Admin can change the game, dates and sponsor from the dashboard.** The sponsor is whoever signs first.
+5. **Legal:** **admin** checks the promotion-approval question and the Terms clause before the first prize tournament. The
+   dashboard won't open a prize tournament for entries until admin has ticked that this check is done.
