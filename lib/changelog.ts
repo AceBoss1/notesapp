@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.193.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Ludo with 1 die or 2 dice, 2 by default: use each die on its own, a 6 on either die brings a seed out, and a double 6 rolls again. An optional 6 + 5 rule (off unless you turn it on) sends a seed from the yard straight home." },
+      { kind: "added", text: "More advert spots in the Arcade: each of Ludo's four yards is a full-square advert laid see-through under the seed holder, and Naija Landlord's board carries a second advert square on the left. All are booked as Notes Arcade on the advertising page." },
+      { kind: "changed", text: "Ludo's seeds look solid and rounded, and the seed holders are see-through so the adverts show." },
+    ],
+  },
+  {
     version: "v0.192.0",
     bump: "minor",
     date: "2026-11-21",

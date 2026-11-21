@@ -247,6 +247,8 @@ export default function LandlordGame() {
               {game.lastCard && <p className="ll-card">{game.lastCard}</p>}
               {/* The middle of the board carries an advert, like a billboard in the town square (owner, 20 Nov 2026). */}
               <div className="ll-ad"><ArcadeAdSpot variant="tile" game="landlord" /></div>
+              {/* A second square on the left of the middle (owner, 21 Nov 2026: "the left side is also ad spot"). */}
+              <div className="ll-ad ll-ad-left"><ArcadeAdSpot variant="tile" game="landlord" offset={1} /></div>
             </div>
 
             <div className="ll-panel">
@@ -320,7 +322,7 @@ export default function LandlordGame() {
         .ll-owner { position:absolute; left:0; right:0; bottom:0; height:4px; }
         .ll-hud { position:relative; grid-row:2 / 4; grid-column:2 / 9; display:flex; align-items:center; justify-content:center; gap:10px 14px; flex-wrap:wrap; padding:8px 4px 2px; color:#f7f7f2; min-width:0; }
         .ll-dice { display:flex; gap:8px; }
-        .ll-ad { position:absolute; top:6px; right:8px; }
+        .ll-ad { position:absolute; top:6px; right:8px; }.ll-ad-left { right:auto; left:8px; }
         .ll-die { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; width:34px; height:34px; padding:5px; border-radius:7px; background:#f7f7f2; box-shadow:0 2px 0 #0004; }
         .ll-die i { border-radius:50%; }
         .ll-die i.on { background:#17251f; }

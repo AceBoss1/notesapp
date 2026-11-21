@@ -2,6 +2,7 @@
 // Board: the classic 15×15 cross. A seed's position is its progress along its own route:
 //   -1 = in the yard, 0 = its start square, 0–50 = the shared 52-square track, 51–55 = its home column, 56 = home.
 // Players move clockwise. Player 0 is the person (bottom-left yard); 1, 2 and 3 are computer players.
+// Options (owner, 21 Nov 2026): play with 1 die or 2 dice (2 by default), and the optional "6 + 5 straight home" rule (off by default).
 
 export const PLAYERS = 4;
 export const SEEDS = 4;
@@ -47,29 +48,55 @@ export const HOME_COLUMN: Cell[][] = [
 // Top-left corner of each player's 6×6 yard.
 export const YARD_ORIGIN: Cell[] = [[9, 0], [0, 0], [0, 9], [9, 9]];
 
+export type DiceCount = 1 | 2;
+export type LudoOptions = {
+  dice: DiceCount; // roll one die or two (two by default)
+  sixFiveHome: boolean; // "6 + 5 straight home" (off by default)
+};
+export const DEFAULT_OPTIONS: LudoOptions = { dice: 2, sixFiveHome: false };
+
+/** What a player can do with the current roll. */
+export type LudoAction =
+  | { kind: "step"; seed: number; die: number } // move one seed by one die (`die` is an index into state.dice)
+  | { kind: "home"; seed: number }; // 6 + 5 straight home: spend the 6 and the 5 to send a seed from the yard home
+
 export type LudoEvent =
-  | { kind: "pass"; player: number; die: number } // rolled, no legal move
-  | { kind: "three-sixes"; player: number }
-  | { kind: "move"; player: number; seed: number; from: number; to: number; die: number; captured: { player: number; seed: number }[]; bonus: boolean };
+  | { kind: "pass"; player: number; dice: number[] } // rolled, no legal move
+  | { kind: "three-sixes"; player: number } // three sixes (1 die) or three double sixes (2 dice) in a row
+  | {
+      kind: "move"; player: number; seed: number; from: number; to: number; die: number; // die = the value used
+      captured: { player: number; seed: number }[];
+      bonus: boolean; // the roll is over and the same player rolls again
+      forfeited: number[]; // dice left over that couldn't be used
+    }
+  | { kind: "straight-home"; player: number; seed: number; bonus: boolean };
 
 export type LudoState = {
+  options: LudoOptions;
   seeds: number[][]; // [player][seed] → progress
   turn: number;
   phase: "roll" | "move" | "over";
-  die: number | null; // the roll waiting to be used (phase "move") or the last roll seen
-  sixes: number; // sixes in a row this turn
+  dice: number[]; // the roll being used (phase "move") or the last roll seen; empty before the first roll
+  used: boolean[]; // which of `dice` are spent (or forfeited)
+  sixes: number; // 1 die: sixes in a row this turn. 2 dice: double sixes in a row.
+  bonus: boolean; // this roll has earned another roll (a six with 1 die, a double six with 2, or a capture)
+  released: number | null; // 1 die: the seed the previous roll's six brought out this turn (for "a 6 then a 5")
   winner: number | null;
   captures: number[]; // seeds each player has sent back, for the scoreboard
   last: LudoEvent | null;
 };
 
-export function newGame(first = 0): LudoState {
+export function newGame(options: Partial<LudoOptions> = {}, first = 0): LudoState {
   return {
+    options: { ...DEFAULT_OPTIONS, ...options },
     seeds: Array.from({ length: PLAYERS }, () => Array(SEEDS).fill(YARD)),
     turn: first,
     phase: "roll",
-    die: null,
+    dice: [],
+    used: [],
     sixes: 0,
+    bonus: false,
+    released: null,
     winner: null,
     captures: Array(PLAYERS).fill(0),
     last: null,
@@ -81,13 +108,18 @@ export function rollDie(rng: () => number = Math.random): number {
   return Math.min(6, Math.floor(rng() * 6) + 1);
 }
 
+/** A roll of `count` dice. */
+export function rollDice(count: number, rng: () => number = Math.random): number[] {
+  return Array.from({ length: count }, () => rollDie(rng));
+}
+
 /** Absolute track square for a progress on the shared track, or null if in yard / home column / home. */
 export function absSquare(player: number, progress: number): number | null {
   if (progress < 0 || progress > LAST_TRACK) return null;
   return (START[player] + progress) % TRACK_LENGTH;
 }
 
-/** Where a seed would land with this roll, or null if it can't move. */
+/** Where a seed would land with this die, or null if it can't move. */
 export function target(progress: number, die: number): number | null {
   if (progress === YARD) return die === 6 ? 0 : null;
   if (progress >= HOME) return null;
@@ -95,46 +127,107 @@ export function target(progress: number, die: number): number | null {
   return to <= HOME ? to : null; // exact roll needed to finish
 }
 
-export function legalMoves(state: LudoState): number[] {
-  if (state.phase !== "move" || state.die === null) return [];
-  return movesFor(state.seeds[state.turn], state.die);
+/** The seed "6 + 5 straight home" would send home right now, or null if that move isn't on offer. */
+export function straightHomeSeed(state: LudoState): number | null {
+  const { options, dice, used, seeds, turn } = state;
+  if (!options.sixFiveHome || state.phase !== "move") return null;
+  const mine = seeds[turn];
+  if (options.dice === 2) {
+    // Both dice still unspent, one a 6 and the other a 5, and a seed still in the yard.
+    if (dice.length !== 2 || used[0] || used[1]) return null;
+    if (!((dice[0] === 6 && dice[1] === 5) || (dice[0] === 5 && dice[1] === 6))) return null;
+    const i = mine.indexOf(YARD);
+    return i >= 0 ? i : null;
+  }
+  // 1 die: a 5 on the bonus roll straight after a six that brought a seed out. That seed (still on its start
+  // square, so the six is spent on nothing else) goes home instead: the 6 and the 5 are spent together.
+  if (dice[0] !== 5 || used[0] || state.released === null) return null;
+  return mine[state.released] === 0 ? state.released : null;
 }
 
-function movesFor(seeds: number[], die: number): number[] {
-  const out: number[] = [];
-  seeds.forEach((p, i) => { if (target(p, die) !== null) out.push(i); });
+/** Everything the player whose turn it is may do with the current roll. Equal unspent dice are offered once. */
+export function legalActions(state: LudoState): LudoAction[] {
+  if (state.phase !== "move") return [];
+  const out: LudoAction[] = [];
+  const seen = new Set<number>();
+  state.dice.forEach((d, i) => {
+    if (state.used[i] || seen.has(d)) return;
+    seen.add(d);
+    state.seeds[state.turn].forEach((p, seed) => { if (target(p, d) !== null) out.push({ kind: "step", seed, die: i }); });
+  });
+  const h = straightHomeSeed(state);
+  if (h !== null) out.push({ kind: "home", seed: h });
   return out;
+}
+
+/** Seeds that can move with some unspent die (the 6 + 5 straight-home move is separate: see legalActions). */
+export function legalMoves(state: LudoState): number[] {
+  const seeds = new Set<number>();
+  for (const a of legalActions(state)) if (a.kind === "step") seeds.add(a.seed);
+  return [...seeds].sort((a, b) => a - b);
+}
+
+/** Unspent dice indexes that can move this seed. */
+export function diceForSeed(state: LudoState, seed: number): number[] {
+  if (state.phase !== "move") return [];
+  const p = state.seeds[state.turn][seed];
+  return state.dice.flatMap((d, i) => (!state.used[i] && p !== undefined && target(p, d) !== null ? [i] : []));
 }
 
 function nextPlayer(p: number): number {
   return (p + 1) % PLAYERS;
 }
 
-/** Use a die roll: either wait for a seed to be chosen, or pass the turn. */
-export function applyRoll(state: LudoState, die: number): LudoState {
+/** Take a roll (one value with 1 die, two with 2 dice): either wait for moves, or pass the turn. */
+export function applyRoll(state: LudoState, roll: number | readonly number[]): LudoState {
   if (state.phase !== "roll") throw new Error("Not time to roll");
-  if (!Number.isInteger(die) || die < 1 || die > 6) throw new Error("Bad die");
+  const dice = typeof roll === "number" ? [roll] : [...roll];
+  if (dice.length !== state.options.dice || dice.some((d) => !Number.isInteger(d) || d < 1 || d > 6)) throw new Error("Bad die");
   const player = state.turn;
-  const sixes = die === 6 ? state.sixes + 1 : 0;
+  const sixRoll = dice.every((d) => d === 6); // a six with 1 die, a double six with 2
+  const sixes = sixRoll ? state.sixes + 1 : 0;
+  const spent = dice.map(() => true);
   if (sixes === 3) {
-    return { ...state, turn: nextPlayer(player), phase: "roll", die, sixes: 0, last: { kind: "three-sixes", player } };
+    return { ...state, turn: nextPlayer(player), phase: "roll", dice, used: spent, sixes: 0, bonus: false, released: null, last: { kind: "three-sixes", player } };
   }
-  if (movesFor(state.seeds[player], die).length === 0) {
-    return { ...state, turn: nextPlayer(player), phase: "roll", die, sixes: 0, last: { kind: "pass", player, die } };
+  const released = state.options.dice === 1 && dice[0] === 5 ? state.released : null;
+  const ready: LudoState = { ...state, phase: "move", dice, used: dice.map(() => false), sixes, bonus: sixRoll, released };
+  if (legalActions(ready).length === 0) {
+    return { ...state, turn: nextPlayer(player), phase: "roll", dice, used: spent, sixes: 0, bonus: false, released: null, last: { kind: "pass", player, dice } };
   }
-  return { ...state, phase: "move", die, sixes };
+  return ready;
 }
 
-/** Move one seed by the current roll. Captures, bonus rolls and the win are handled here. */
-export function applyMove(state: LudoState, seed: number): LudoState {
-  if (state.phase !== "move" || state.die === null) throw new Error("Not time to move");
-  const player = state.turn;
-  const die = state.die;
-  const from = state.seeds[player][seed];
-  const to = from === undefined ? null : target(from, die);
-  if (to === null) throw new Error(`Illegal move: seed ${seed} with ${die}`);
+/** Close the roll once every die is spent or forfeited: roll again on a bonus, otherwise next player. */
+function endRoll(state: LudoState, last: (bonus: boolean) => LudoEvent): LudoState {
+  const used = state.dice.map(() => true);
+  if (state.bonus) return { ...state, used, phase: "roll", bonus: false, last: last(true) }; // keeps the sixes count
+  return { ...state, used, turn: nextPlayer(state.turn), phase: "roll", sixes: 0, bonus: false, released: null, last: last(false) };
+}
 
+/** Play one action. Captures, bonus rolls, forfeited dice and the win are handled here. */
+export function applyAction(state: LudoState, action: LudoAction): LudoState {
+  if (state.phase !== "move") throw new Error("Not time to move");
+  const player = state.turn;
   const seeds = state.seeds.map((row) => [...row]);
+
+  if (action.kind === "home") {
+    const h = straightHomeSeed(state);
+    if (h === null || h !== action.seed) throw new Error("Illegal move: 6 + 5 straight home isn't on offer");
+    seeds[player][h] = HOME;
+    const used = state.dice.map(() => true);
+    if (seeds[player].every((p) => p === HOME)) {
+      return { ...state, seeds, used, phase: "over", winner: player, released: null, last: { kind: "straight-home", player, seed: h, bonus: false } };
+    }
+    return endRoll({ ...state, seeds, used, released: null }, (bonus) => ({ kind: "straight-home", player, seed: h, bonus }));
+  }
+
+  const { seed, die } = action;
+  const value = state.dice[die];
+  const from = state.seeds[player][seed];
+  const to = value === undefined || state.used[die] || from === undefined ? null : target(from, value);
+  if (to === null) throw new Error(`Illegal move: seed ${seed} with ${value ?? "no die"}`);
+
   seeds[player][seed] = to;
   const captured: { player: number; seed: number }[] = [];
   const sq = absSquare(player, to);
@@ -148,16 +241,27 @@ export function applyMove(state: LudoState, seed: number): LudoState {
   }
   const captures = [...state.captures];
   captures[player] += captured.length;
+  const used = [...state.used];
+  used[die] = true;
+  const released = state.options.dice === 1 && value === 6 && from === YARD ? seed : null;
+  const next: LudoState = { ...state, seeds, captures, used, bonus: state.bonus || captured.length > 0, released };
+  const event = (bonus: boolean, forfeited: number[]): LudoEvent => ({ kind: "move", player, seed, from, to, die: value as number, captured, bonus, forfeited });
 
-  const won = seeds[player].every((p) => p === HOME);
-  const bonus = !won && (die === 6 || captured.length > 0);
-  const last: LudoEvent = { kind: "move", player, seed, from, to, die, captured, bonus };
-  if (won) return { ...state, seeds, captures, phase: "over", winner: player, last };
-  if (bonus) return { ...state, seeds, captures, phase: "roll", last }; // keeps the sixes count for the three-sixes rule
-  return { ...state, seeds, captures, turn: nextPlayer(player), phase: "roll", sixes: 0, last };
+  if (seeds[player].every((p) => p === HOME)) return { ...next, phase: "over", winner: player, last: event(false, []) };
+  if (legalActions(next).length > 0) return { ...next, last: event(false, []) }; // another die to use
+  const forfeited = state.dice.filter((_, i) => !used[i]);
+  return endRoll(next, (bonus) => event(bonus, forfeited));
 }
 
-/** How many opponent seeds could land on this square with one roll (1–6). Safe squares are never threatened. */
+/** Move one seed with a die (an index into state.dice). Without a die, the first unspent one that works is used. */
+export function applyMove(state: LudoState, seed: number, die?: number): LudoState {
+  if (state.phase !== "move") throw new Error("Not time to move");
+  const d = die ?? diceForSeed(state, seed)[0];
+  if (d === undefined) throw new Error(`Illegal move: seed ${seed}`);
+  return applyAction(state, { kind: "step", seed, die: d });
+}
+
+/** How many opponent seeds could land on this square with one die (1–6). Safe squares are never threatened. */
 export function threatAt(state: LudoState, player: number, sq: number): number {
   if (SAFE.has(sq)) return 0;
   let n = 0;
@@ -173,44 +277,57 @@ export function threatAt(state: LudoState, player: number, sq: number): number {
   return n;
 }
 
-/**
- * The computer's choice. Capture beats finishing, finishing beats leaving the yard,
- * then it saves a threatened seed or pushes the leader on, avoiding squares an opponent can reach.
- */
-export function chooseMove(state: LudoState): number {
-  const moves = legalMoves(state);
-  if (moves.length === 0) throw new Error("No legal move");
+// How good one action is for the player making it. Capture > straight home > finish > leave the yard >
+// reach safety > advance the leader, avoiding squares an opponent can reach.
+function actionScore(state: LudoState, action: LudoAction, after: LudoState): number {
   const player = state.turn;
-  const die = state.die as number;
-  let best = moves[0];
+  if (after.phase === "over" && after.winner === player) return 100000;
+  if (action.kind === "home") return 1700;
+  const from = state.seeds[player][action.seed];
+  const to = after.seeds[player][action.seed];
+  const captured = after.last?.kind === "move" ? after.last.captured.length : 0;
+  let score = 0;
+  if (captured > 0) score += 2000 + captured * 50;
+  if (to === HOME) score += 800;
+  if (from === YARD) score += 600;
+  if (from <= LAST_TRACK && to > LAST_TRACK) score += 300; // into the home column: safe for good
+  const fromSq = absSquare(player, from);
+  const toSq = absSquare(player, to);
+  if (fromSq !== null) score += threatAt(state, player, fromSq) * 120; // get out of danger
+  if (toSq !== null) {
+    score -= threatAt(after, player, toSq) * 150;
+    if (SAFE.has(toSq)) score += 60;
+  }
+  score += Math.max(0, from) * 2; // otherwise favour the leader
+  return score;
+}
+
+/**
+ * The computer's choice. With 2 dice it tries each die first on each seed, then the best use of the other die,
+ * and scores the pair, so it picks which die goes on which seed. It takes 6 + 5 straight home unless a capture is on.
+ */
+export function chooseAction(state: LudoState): LudoAction {
+  const actions = legalActions(state);
+  if (actions.length === 0) throw new Error("No legal move");
+  let best = actions[0];
   let bestScore = -Infinity;
-  for (const seed of moves) {
-    const from = state.seeds[player][seed];
-    const to = target(from, die) as number;
-    const after = applyMove(state, seed);
-    const captured = after.last?.kind === "move" ? after.last.captured.length : 0;
-    let score = 0;
-    if (captured > 0) score += 1000 + captured * 50;
-    if (to === HOME) score += 800;
-    if (from === YARD) score += 600;
-    if (from <= LAST_TRACK && to > LAST_TRACK) score += 300; // into the home column: safe for good
-    const fromSq = absSquare(player, from);
-    const toSq = absSquare(player, to);
-    if (fromSq !== null) score += threatAt(state, player, fromSq) * 120; // get out of danger
-    if (toSq !== null) {
-      score -= threatAt(after, player, toSq) * 150;
-      if (SAFE.has(toSq)) score += 60;
+  for (const a of actions) {
+    const after = applyAction(state, a);
+    let score = actionScore(state, a, after);
+    if (after.phase === "move" && after.turn === state.turn) {
+      let follow = -Infinity;
+      for (const b of legalActions(after)) follow = Math.max(follow, actionScore(after, b, applyAction(after, b)));
+      if (follow > -Infinity) score += follow;
     }
-    score += Math.max(0, from) * 2; // otherwise favour the leader
-    if (score > bestScore) { bestScore = score; best = seed; }
+    if (score > bestScore) { bestScore = score; best = a; }
   }
   return best;
 }
 
-/** One full computer step from a "roll" state, for tests and quick simulations. */
+/** One computer step: roll in a "roll" state, act in a "move" state. For tests and quick simulations. */
 export function autoStep(state: LudoState, rng: () => number = Math.random): LudoState {
-  if (state.phase === "roll") return applyRoll(state, rollDie(rng));
-  if (state.phase === "move") return applyMove(state, chooseMove(state));
+  if (state.phase === "roll") return applyRoll(state, rollDice(state.options.dice, rng));
+  if (state.phase === "move") return applyAction(state, chooseAction(state));
   return state;
 }
 

@@ -1289,6 +1289,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     override it. Icons `public/images/brand/arcade-*.png` and `notesapp-icon-green.png` are the red [na] icon recoloured pixel by pixel
     (hue 96°, value ×0.62); re-make them from the red originals if the brand icon changes. `/arcade/install` (arcade.<domain>/install)
     reuses `InstallGuide` with an `app` prop and green accents; "Install app" sits in the Arcade top bar on every screen size.
+155. **Ludo dice options and more Arcade advert spots (v0.193.0; owner, 21 Nov 2026):** Ludo `newGame({ dice: 1 | 2, sixFiveHome })`, 2 dice by
+    default: each die used separately (`legalActions`/`applyAction`/`chooseAction`), a 6 on either die releases, a double 6 rolls again,
+    three double 6s lose the turn; "6+5 home" (off by default) spends a 6 and a 5 (1 die: a 6 then a 5 on the bonus roll, with the seed
+    the 6 brought out) to send a yard seed straight home. Adverts: `ArcadeAdSpot` variant `yard` fills each Ludo yard inside a band of
+    the yard colour, see-through under a see-through seed holder, each yard starting on a different advert (`offset`); Landlord has a
+    second `tile` on the left (offset 1). Impressions count per spot and offset. Still to come with player vs player: conversations and
+    calls between players in the Arcade, and duel rules (Nana on/off, 6+5 home).
 
 ## 3. How the work is done (please keep these)
 
