@@ -2,6 +2,11 @@
 // and each game page reads its own entry for the side panel. Screenshots live in public/images/arcade/<slug>.png
 // (scripts/arcade-shots.mjs takes them). Every game here is our own build: no other company's names, art or boards.
 
+// The newer games keep their entries beside their code (lib/arcade/<slug>.entry.ts); they're listed here with the rest.
+import { ENTRY as ACHI } from "./achi.entry";
+import { ENTRY as RUN } from "./run.entry";
+import { ENTRY as PUFFPUFF } from "./puffpuff.entry";
+
 export type ArcadeGame = {
   slug: string;
   path: string; // where the game lives on the main site
@@ -93,6 +98,9 @@ export const ARCADE_GAMES: ArcadeGame[] = [
     players: "You vs the computer",
     shots: LEVELS,
   },
+  ACHI,
+  RUN,
+  PUFFPUFF,
 ];
 
 export function arcadeGame(slug: string): ArcadeGame {

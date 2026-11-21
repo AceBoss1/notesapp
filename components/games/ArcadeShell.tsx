@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { arcadeReady, subscribeArcadeAccount, type ArcadeAccount } from "@/lib/arcade/store";
 import { ARCADE_GAMES, type ArcadeGame } from "@/lib/arcade/catalogue";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 
@@ -13,6 +14,9 @@ import ArcadeAdSpot from "./ArcadeAdSpot";
 // The game's number is its place in the catalogue (the `index` prop is kept for older callers and ignored).
 export default function ArcadeShell({ game, children }: { game: ArcadeGame; index?: number; children: ReactNode }) {
   const index = ARCADE_GAMES.findIndex((g) => g.slug === game.slug) + 1;
+  // A signed-in member's saved progress loads before the game first reads it (lib/arcade/store.ts); guests wait only for the sign-in check.
+  const [ready, setReady] = useState(false);
+  useEffect(() => { let live = true; arcadeReady().then(() => { if (live) setReady(true); }); return () => { live = false; }; }, []);
   return (
     <section className="arc-page" aria-label={`${game.name}, Notes Arcade`}>
       <ArcadeTopbar />
@@ -29,7 +33,7 @@ export default function ArcadeShell({ game, children }: { game: ArcadeGame; inde
           <a className="arc-back" href="/arcade">← All games</a>
         </div>
         <div className="arc-main">
-          {children}
+          {ready ? children : <div className="arc-console arc-loading" aria-busy="true"><p className="arc-status">Loading your game…</p></div>}
           <ArcadeAdSpot variant="banner" game={game.slug} />
           <ArcadeGallery game={game} />
         </div>
@@ -76,6 +80,7 @@ export function ArcadeStyles() {
       .arc-howto ul { margin:12px 0 0; padding:0 0 0 16px; color:#6d7870; font-size:12px; line-height:1.7; }.arc-howto li { margin-bottom:4px; }.arc-howto li::marker { color:#9bd34d; }
       .arc-back { display:inline-block; margin-top:22px; color:#6d7870; font:600 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-back:hover { color:var(--arc-ink); }
       .arc-main { min-width:0; }
+      .arc-loading { display:grid; place-items:center; min-height:320px; }
       .arc-console { padding:16px; border:1px solid #e3e6df; border-radius:16px; background:#fff; box-shadow:0 18px 55px #17251f0c; }
       .arc-head { display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px; padding:4px 6px 14px; }
       .arc-label { display:block; color:#929b94; font:600 9px ui-monospace,monospace; letter-spacing:.12em; }
@@ -133,10 +138,15 @@ export function ArcadeGallery({ game }: { game: ArcadeGame }) {
 // and referral bonus credit through the Notes Life wallet, and opens the referral leaderboard, friends (chat, calls, playing groups),
 // each game's leaderboard (top computer players and top people) and the shared Notesville rich list. Same profile and N$ as Notes Life. No game pays real naira.
 export function ArcadeWalletNote() {
+  const [acct, setAcct] = useState<ArcadeAccount>({ status: "loading" });
+  useEffect(() => subscribeArcadeAccount(setAcct), []);
+  const member = acct.status === "member";
   return (
     <div className="arc-wallet">
-      <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> PLAY FREE · SIGN IN TO SAVE</p>
-      <p><strong>Play free, no sign-in needed.</strong> As a guest nothing is saved: every time the page loads, you start afresh.</p>
+      <p className="arc-wallet-title"><span className="arc-wallet-coin" aria-hidden>N$</span> {member ? "SIGNED IN · PROGRESS SAVED" : "PLAY FREE · SIGN IN TO SAVE"}</p>
+      {member
+        ? <p className="arc-wallet-member"><strong>Signed in as {acct.name}.</strong> Your wins and progress in every game are saved to your #NotesApp account{acct.saving ? " (saving…)" : ""}.{acct.error ? ` ${acct.error}` : ""}</p>
+        : <p><strong>Play free, no sign-in needed.</strong> As a guest nothing is saved: every time the page loads, you start afresh.</p>}
       <p>Sign in with your #NotesApp account and you get, among other things:</p>
       <ul className="arc-wallet-list">
         <li>Your progress, scores and <strong>N$</strong> (Notesville Naira) saved and synced</li>
@@ -145,14 +155,15 @@ export function ArcadeWalletNote() {
         <li>Each game&apos;s leaderboard: the top computer players 🤖 and the top people</li>
         <li>A place on the Notesville rich list, the Billionaires List shared with Notes Life</li>
       </ul>
-      <p className="arc-wallet-soon">One profile and one N$ wallet with Notes Life. N$ is game money: no game pays out real naira. Account features are coming soon.</p>
-      <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN TO SAVE ↗</a>
+      <p className="arc-wallet-soon">One profile and one N$ wallet with Notes Life. N$ is game money: no game pays out real naira. Saving your progress works now; N$ sync, leaderboards, friends and referral credit are coming next.</p>
+      {!member && <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN TO SAVE ↗</a>}
       <style jsx global>{`
         .arc-wallet { max-width:340px; margin-top:22px; padding:14px 16px; border:1px solid #e3e6df; border-radius:12px; background:#fff; color:#5c685f; font-size:12px; line-height:1.65; }
         .arc-wallet p { margin:0 0 8px; }.arc-wallet strong { color:#17251f; }
         .arc-wallet-title { display:flex; align-items:center; gap:8px; color:#77817b; font:600 10px ui-monospace,monospace; letter-spacing:.12em; }
         .arc-wallet-coin { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#c2f17a; color:#20301e; font:800 9px ui-monospace,monospace; letter-spacing:0; }
         .arc-wallet-soon { color:#8a938b; font-size:11px; }
+        .arc-wallet-member { color:#3f5a2c; }
         .arc-wallet-list { margin:0 0 10px; padding:0 0 0 16px; }.arc-wallet-list li { margin-bottom:3px; }.arc-wallet-list li::marker { color:#9bd34d; }
         .arc-wallet-link { color:#5f9a22; font:700 10px ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }.arc-wallet-link:hover { color:#17251f; }
         @media(max-width:820px) { .arc-wallet { max-width:none; } }

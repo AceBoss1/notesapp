@@ -10,9 +10,12 @@ import { readFileSync } from "node:fs";
 const args = process.argv.slice(2);
 const cardsOnly = args.includes("--cards"); // only the Arcade home cards
 const [base = "http://localhost:3290", ...only] = args.filter((a) => a !== "--cards");
-const src = readFileSync(new URL("../lib/arcade/catalogue.ts", import.meta.url), "utf8");
+import { readdirSync } from "node:fs";
+const dir = new URL("../lib/arcade/", import.meta.url);
+// The list itself, plus the newer games' entries kept beside their code (lib/arcade/<slug>.entry.ts).
+const src = [readFileSync(new URL("catalogue.ts", dir), "utf8"), ...readdirSync(dir).filter((f) => f.endsWith(".entry.ts")).map((f) => readFileSync(new URL(f, dir), "utf8"))].join("\n");
 const levelsOf = (block) => (/^LEVELS/.test(block) ? ["easy", "medium", "hard"] : /^STAGES/.test(block) ? [null, null, null] : [...block.matchAll(/level: "([a-z]+)"/g)].map((m) => m[1]));
-const games = [...src.matchAll(/slug: "([a-z]+)", path: "([^"]+)"[\s\S]*?shots: ([^\n]+)/g)]
+const games = [...src.matchAll(/slug: "([a-z]+)",\s*path: "([^"]+)"[\s\S]*?shots: ([^\n]+)/g)]
   .map((m) => ({ slug: m[1], path: m[2], levels: levelsOf(m[3]) }))
   .filter((g) => !only.length || only.includes(g.slug));
 

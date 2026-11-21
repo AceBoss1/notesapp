@@ -21,6 +21,23 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.191.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Three new games in Notes Arcade: Achi, the three-in-a-line board game on the owner's drawn board (place 3, then slide along the lines); Naija Run, a three-lane runner along a Lagos street at dusk (jump the potholes, slide under the awnings, dodge the danfos); and Puff-Puff Rush, a maze chase through the market on a delivery bike with goats on your tail and pepper soup to turn the tables. Each has its own sound effects, levels or speeds, and screenshots." },
+      { kind: "added", text: "A Notes Life Gaborone card on the Arcade home, coming soon, beside Lagos and Port Harcourt." },
+    ],
+  },
+  {
+    version: "v0.190.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Sign in with your #NotesApp account and your Notes Arcade progress is saved: wins and records in every game come back next time, on any device. Playing is still free without signing in; as a guest you start afresh each visit." },
+    ],
+  },
+  {
     version: "v0.189.1",
     bump: "patch",
     date: "2026-11-20",

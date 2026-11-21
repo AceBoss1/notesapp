@@ -1263,6 +1263,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
     and chain capture (off by default: "ask your elders"). Aka-Hausa is the same rules sown clockwise. Not built, possible later: "take
     the house" (a captured hole becomes yours), the 3-seeds school stage rule, the 30-seconds formal timer (for tournaments).
+151. **Signed-in Arcade saves progress (owner, 21 Nov 2026: "we need to fix the login saving progress"):** `lib/arcade/store.ts` follows
+    Firebase sign-in: a guest's progress stays in the page (afresh on reload); a member's is loaded from `arcadeProgress/{uid}.kv`
+    before the game shows (`arcadeReady()` in `ArcadeShell`) and saved 0.8 s after each change through `/api/arcade/progress`
+    (server-only collection; keys and values cleaned by `lib/arcade/progress.ts`, max 120 keys of 2,000 characters). Guest play from
+    the same page is kept when they sign in. The tournament decisions are in `docs/ARCADE_TOURNAMENTS.md` §8. **Owner step:**
+    `firebase deploy --only firestore:rules`. Not yet: N$ sync, per-game leaderboards, referral credit (they come with tournaments).
+152. **Three more Arcade games (v0.191.0; owner, 21 Nov 2026: the drawn board "players try to fix 3 straight paths", and "2 more popular
+    engaging games like something run or something like Mario packman with a matching sound effect"):** `achi` (only the drawn lines:
+    four edges and two diagonals, no centre cross; 3 pieces each; perfect play on hard by solving the game), `run` (Naija Run, canvas,
+    three lanes, seeded spawner that always leaves a lane clear), `puffpuff` (Puff-Puff Rush, canvas maze chase, three original mazes,
+    four goats with their own behaviour). Original characters, art and synthesised sounds; nothing copied from any named game. Their
+    entries live in `lib/arcade/<slug>.entry.ts`, listed by `lib/arcade/catalogue.ts`; `scripts/arcade-shots.mjs` reads both.
 153. **Ncho rounds and relay sowing (v0.191.1; owner, 21 Nov 2026, the full rules after #378):** sow from a hole you own; last seed in an
     empty hole ends the turn, making exactly 4 lets the mover take it, otherwise lift and keep sowing (either side; 300-lap cap). A 4 made
     mid-sowing goes at once to that hole's owner. A round ends when the mover owns no seeds: each takes the seeds in their holes, refills
