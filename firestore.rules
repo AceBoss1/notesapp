@@ -1670,6 +1670,14 @@ service cloud.firestore {
     match /promoOrgClaims/{id} { allow read, write: if false; }
     match /promoTournament/{id} { allow read, write: if false; }
     match /promoRuns/{id} { allow read, write: if false; } // tournament tries (lib/tournament-server.ts)
+    // Notes Arcade tournaments (lib/arcade/tournaments-server.ts; owner, 21 Nov 2026: "start tournaments"): the tournament (with its seed,
+    // never shown before play), each entrant's tries and best, and every try's replayed result. Server only, reads too: the pages and
+    // Admin go through /api/arcade/tournaments and /api/admin/arcade/tournaments, so a seed or a rival's moves never reach a browser.
+    match /tournaments/{id} {
+      allow read, write: if false;
+      match /entries/{uid} { allow read, write: if false; }
+      match /runs/{runId} { allow read, write: if false; }
+    }
     // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
     // settings/partners (tier terms) is under settings above.
     match /partnerApplications/{id} { allow read, write: if false; }

@@ -1999,3 +1999,18 @@ test("Notes Arcade progress is server-only: not even the member reads or writes 
     await assertFails(setDoc(doc(db, "arcadeProgress/alice"), { kv: { "arcade-ncho-wins": "99" } }));
   }
 });
+
+test("Notes Arcade tournaments are server-only, reads too: the seed and every try go through /api/arcade/tournaments", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "tournaments/whot-weekend"), { game: "whot", seed: 12345, status: "open" });
+    await setDoc(doc(d, "tournaments/whot-weekend/entries/alice"), { uid: "alice", tries: 1 });
+    await setDoc(doc(d, "tournaments/whot-weekend/runs/r1"), { uid: "alice", status: "open" });
+  });
+  for (const db of [as("alice"), as("bob"), as("boss", { admin: true }), anon()]) {
+    for (const p of ["tournaments/whot-weekend", "tournaments/whot-weekend/entries/alice", "tournaments/whot-weekend/runs/r1"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice", tries: 0, best: { score: 999 } }));
+    }
+  }
+});

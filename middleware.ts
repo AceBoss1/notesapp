@@ -228,6 +228,8 @@ async function handle(req: NextRequest): Promise<NextResponse> {
     if (p === "/") return NextResponse.rewrite(new URL(`/arcade${req.nextUrl.search}`, req.url));
     const slug = p.slice(1).replace(/\/$/, "");
     if ((ARCADE_SLUGS as string[]).includes(slug) || slug === "partners" || slug === "install" || slug === "tournament") return NextResponse.rewrite(new URL(`/arcade/${slug}${req.nextUrl.search}`, req.url));
+    // Tournaments (owner, 21 Nov 2026: "start tournaments"): arcade.<domain>/tournaments and /tournaments/<id>. The DAVIDO page keeps /tournament.
+    if (/^tournaments(\/[a-z0-9-]{3,64})?$/.test(slug)) return NextResponse.rewrite(new URL(`/arcade/${slug}${req.nextUrl.search}`, req.url));
     return NextResponse.next();
   }
   // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.

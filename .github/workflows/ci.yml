@@ -44,6 +44,7 @@ jobs:
       - run: npm run test:discounts
       - run: npm run test:promos
       - run: npm run test:promos-server
+      - run: npm run test:tournaments-server
       - run: npm run test:referrals
       - run: npm run test:growth
       - run: npm run test:mcp

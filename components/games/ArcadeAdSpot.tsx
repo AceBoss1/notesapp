@@ -16,6 +16,28 @@ import { AD_FOOTER, fitsSpot, forSpot, spotPicture } from "@/lib/ads";
 //   yard   — a whole Ludo yard (owner, 21 Nov 2026): the picture laid see-through over the yard's colour, under the white seed holder;
 //            each of the four yards starts on a different advert (offset)
 // pin: the spot's own id (lib/ads.ts forSpot): adverts pinned to it show there and nowhere else; with none, the unpinned rotate.
+// The sponsor takeover (docs/ARCADE_TOURNAMENTS.md §2 and §6 "Advert spots"; owner, 21 Nov 2026: "start tournaments"): while a sponsored
+// tournament for this game is playing, every spot in the game shows only that sponsor (label SPONSOR and the tournament's name), and the
+// booked adverts wait. Its views and clicks are counted on the tournament (/api/arcade/tournaments/[id]/sponsor) for the sponsor's report,
+// never as impressions of a booked campaign. One lookup per game per page load, shared by every spot on the page.
+type Takeover = { id: string; name: string; sponsor: { name: string; logo: string; link: string; words: string } };
+const takeovers = new Map<string, Promise<Takeover | null>>();
+function sponsorFor(game: string): Promise<Takeover | null> {
+  if (!takeovers.has(game)) {
+    takeovers.set(game, fetch(`/api/arcade/tournaments?active=1&game=${encodeURIComponent(game)}`)
+      .then((r) => (r.ok ? r.json() : null)).then((j) => (j?.sponsor ?? null) as Takeover | null).catch(() => null));
+  }
+  return takeovers.get(game)!;
+}
+function trackSponsor(id: string, event: "impression" | "click") {
+  const body = JSON.stringify({ event });
+  const url = `/api/arcade/tournaments/${encodeURIComponent(id)}/sponsor`;
+  try {
+    if (navigator.sendBeacon) navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+    else fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  } catch { /* counting must never break a game */ }
+}
+
 export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { variant: "board" | "tile" | "banner" | "yard"; game: string; offset?: number; pin?: string }) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [i, setI] = useState(0);
@@ -24,15 +46,22 @@ export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { varia
   const shape = variant === "banner" ? "wide" : "square";
   const placement = shape === "square" ? "arcadesq" : "arcade";
 
+  const [takeover, setTakeover] = useState<Takeover | null>(null);
+
   useEffect(() => {
     let live = true;
-    loadAds(placement).then((l) => {
+    // A sponsored tournament for this game, playing now, takes every spot first; only without one do the booked adverts load.
+    sponsorFor(game).then((t) => {
       if (!live) return;
-      setAds(weightedOrder(forSpot(l.ads.filter((a) => a.provider === "notesapp" && fitsSpot(a, shape)), pin)));
-      setStay(l.rotateSec * 1000);
+      if (t) { setTakeover(t); return; }
+      return loadAds(placement).then((l) => {
+        if (!live) return;
+        setAds(weightedOrder(forSpot(l.ads.filter((a) => a.provider === "notesapp" && fitsSpot(a, shape)), pin)));
+        setStay(l.rotateSec * 1000);
+      });
     });
     return () => { live = false; };
-  }, [placement, shape, pin]);
+  }, [placement, shape, pin, game]);
 
   useEffect(() => {
     if (ads.length < 2) return;
@@ -69,20 +98,46 @@ export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { varia
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ad?.id, variant]);
 
+  // The takeover's own count, once per tab, for the sponsor's report (never as a booked advert's impression).
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !takeover || typeof IntersectionObserver === "undefined") return;
+    const key = `spimp:${takeover.id}`;
+    try { if (sessionStorage.getItem(key)) return; } catch { /* no storage */ }
+    const io = new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting)) {
+        try { sessionStorage.setItem(key, "1"); } catch { /* ignore */ }
+        trackSponsor(takeover.id, "impression");
+        io.disconnect();
+      }
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [takeover]);
+
+  // What the spot shows: the sponsor during a takeover, else the booked advert, else the spot offering itself.
+  const s = takeover?.sponsor;
+  const label = takeover ? `SPONSOR · ${takeover.name.toUpperCase()}` : "";
+  const shown = s
+    ? { href: s.link, img: s.logo || undefined, title: s.name, text: s.words, onClick: () => trackSponsor(takeover!.id, "click") }
+    : ad ? { href: ad.href, img: pic, title: ad.title, text: ad.text, onClick: () => track("click", ad.id) } : null;
+  const out = shown ? { target: "_blank", rel: "sponsored noopener noreferrer", onClick: shown.onClick } : {};
+
   if (variant === "yard") {
     return (
-      <aside ref={box} className={`arc-ad-yard${ad ? "" : " is-open"}`} aria-label={ad ? `Sponsored by Notes Ads: ${ad.title}` : "Advertise here with Notes Ads"}>
-        <a href={ad ? ad.href : "/arcade/partners"} {...(ad ? { target: "_blank", rel: "sponsored noopener noreferrer", onClick: () => track("click", ad.id) } : {})}>
-          {pic
+      <aside ref={box} className={`arc-ad-yard${shown ? "" : " is-open"}${s ? " is-sponsor" : ""}`} aria-label={s ? `${label}: ${s.name}` : ad ? `Sponsored by Notes Ads: ${ad.title}` : "Advertise here with Notes Ads"}>
+        <a href={shown ? shown.href : "/arcade/partners"} {...out}>
+          {shown?.img
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={pic} alt="" />
-            : <span className="arc-ad-yard-text">{ad ? ad.title : "YOUR BRAND HERE"}</span>}
-          <small>SPONSORED</small>
+            ? <img src={shown.img} alt={s ? s.name : ""} />
+            : <span className="arc-ad-yard-text">{shown ? shown.title : "YOUR BRAND HERE"}</span>}
+          <small>{s ? "SPONSOR" : "SPONSORED"}</small>
         </a>
         <style jsx global>{`
           .arc-ad-yard { position:absolute; inset:6%; z-index:0; overflow:hidden; border-radius:9%; } /* a band of the yard's own colour stays round it */
           .arc-ad-yard a { position:absolute; inset:0; display:block; color:#fff; text-decoration:none; }
           .arc-ad-yard img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.95; } /* strong, not a faint wash (owner, 21 Nov 2026) */
+          .arc-ad-yard.is-sponsor img { object-fit:contain; background:#fff; } /* a sponsor's logo whole, not cropped */
           .arc-ad-yard-text { position:absolute; left:0; right:0; bottom:3%; text-align:center; font:800 clamp(5px,1vw,10px) ui-monospace,monospace; letter-spacing:.12em; opacity:.55; }
           .arc-ad-yard small { position:absolute; top:.6%; right:5%; font:700 clamp(4px,.7vw,7px) ui-monospace,monospace; letter-spacing:.1em; opacity:.7; }
           .arc-ad-yard a:focus-visible { outline:2px solid #fff; outline-offset:-4px; }
@@ -92,17 +147,19 @@ export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { varia
   }
 
   return (
-    <aside ref={box} className={`arc-ad arc-ad-${variant}${variant === "banner" ? "" : " arc-ad-sq"}${ad ? "" : " is-open"}`} aria-label={ad ? "Sponsored by Notes Ads" : "Advertise here with Notes Ads"}>
-      {/* The Notes Ads badge (owner, 21 Nov 2026), on every Arcade advert spot, booked or still open. */}
-      {variant === "banner" && <em className="arc-ad-badge" aria-hidden="true"><i>na</i> NOTES ADS · SPONSORED</em>}
-      {ad ? (
-        <a href={ad.href} target="_blank" rel="sponsored noopener noreferrer" onClick={() => track("click", ad.id)}>
-          {pic
+    <aside ref={box} className={`arc-ad arc-ad-${variant}${variant === "banner" ? "" : " arc-ad-sq"}${shown ? "" : " is-open"}${s ? " is-sponsor" : ""}`} aria-label={s ? `${label}: ${s.name}` : ad ? "Sponsored by Notes Ads" : "Advertise here with Notes Ads"}>
+      {/* The Notes Ads badge (owner, 21 Nov 2026), on every Arcade advert spot, booked or still open; a takeover carries the sponsor's own. */}
+      {variant === "banner" && (s
+        ? <em className="arc-ad-badge" aria-hidden="true"><i>🏆</i> {label}</em>
+        : <em className="arc-ad-badge" aria-hidden="true"><i>na</i> NOTES ADS · SPONSORED</em>)}
+      {shown ? (
+        <a href={shown.href} {...out}>
+          {shown.img
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={pic} alt={ad.title} />
-            : <span className="arc-ad-title">{ad.title}</span>}
-          {variant === "banner" && <span className="arc-ad-copy"><strong>{ad.title}</strong>{ad.text && <span>{ad.text}</span>}</span>}
-          {variant !== "banner" ? <small>SPONSORED</small> : ad.provider !== "notesapp" && <small>{AD_FOOTER[ad.provider]}</small>}
+            ? <img src={shown.img} alt={shown.title} />
+            : <span className="arc-ad-title">{shown.title}</span>}
+          {variant === "banner" && <span className="arc-ad-copy"><strong>{shown.title}</strong>{shown.text && <span>{shown.text}</span>}</span>}
+          {variant !== "banner" ? <small>{s ? "SPONSOR" : "SPONSORED"}</small> : s ? <small>SPONSOR ↗</small> : ad && ad.provider !== "notesapp" && <small>{AD_FOOTER[ad.provider]}</small>}
         </a>
       ) : (
         <a href="/arcade/partners">
@@ -112,6 +169,8 @@ export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { varia
         </a>
       )}
       <style jsx global>{`
+        .arc-ad.is-sponsor img { object-fit:contain; background:#fff; }
+        .arc-ad-banner.is-sponsor a { border-color:#cfe3b0; background:#fbfdf6; }
         .arc-ad a { display:flex; align-items:center; gap:12px; color:inherit; text-decoration:none; }
         .arc-ad small { color:#8a938b; font:700 8px ui-monospace,monospace; letter-spacing:.12em; }
         .arc-ad-title { font:600 13px/1.15 Georgia,serif; color:#17251f; }
