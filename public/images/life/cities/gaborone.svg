@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <!-- Gaborone: the Three Dikgosi Monument in front of Kgale Hill, our own drawing for Notes Life (coming soon). -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc0e8"/><stop offset="1" stop-color="#e3f1fa"/></linearGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b3a1e"/><stop offset=".5" stop-color="#8a5a2b"/><stop offset="1" stop-color="#4a2f18"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9cbb3"/><stop offset="1" stop-color="#b9a688"/></linearGradient>
+  </defs>
+  <rect width="400" height="260" fill="url(#sky)"/>
+  <circle cx="330" cy="52" r="20" fill="#fde68a"/>
+  <!-- Kgale Hill -->
+  <path d="M0 170 C60 120 110 104 170 118 C220 128 250 100 300 108 C340 114 370 136 400 150 L400 200 L0 200 Z" fill="#8f9b6a"/>
+  <path d="M0 182 C80 160 150 158 220 166 C290 172 340 160 400 168 L400 205 L0 205 Z" fill="#a7a87a"/>
+  <!-- acacias -->
+  <g fill="#556b2f"><ellipse cx="44" cy="168" rx="34" ry="9"/><ellipse cx="362" cy="166" rx="30" ry="8"/></g>
+  <g stroke="#4b3621" stroke-width="3"><line x1="44" y1="172" x2="44" y2="206"/><line x1="362" y1="170" x2="362" y2="206"/></g>
+  <!-- ground and paving -->
+  <rect y="204" width="400" height="56" fill="#e7dcc6"/>
+  <path d="M0 210 L400 210" stroke="#cdbd9f" stroke-width="2"/>
+  <!-- the plinth -->
+  <rect x="96" y="176" width="208" height="30" fill="url(#stone)"/>
+  <rect x="88" y="200" width="224" height="10" fill="#c8b796"/>
+  <!-- three standing figures -->
+  <g fill="url(#bronze)">
+    <g transform="translate(140 0)"><circle cx="0" cy="92" r="9"/><path d="M-14 104 L14 104 L18 176 L-18 176 Z"/><path d="M-14 106 L-24 150 L-18 152 L-9 116 Z"/><path d="M14 106 L22 146 L16 148 L9 116 Z"/></g>
+    <g transform="translate(200 0)"><circle cx="0" cy="84" r="10"/><path d="M-16 97 L16 97 L20 176 L-20 176 Z"/><path d="M-16 99 L-27 146 L-20 148 L-10 110 Z"/><path d="M16 99 L30 132 L24 136 L10 110 Z"/></g>
+    <g transform="translate(260 0)"><circle cx="0" cy="92" r="9"/><path d="M-14 104 L14 104 L18 176 L-18 176 Z"/><path d="M-14 106 L-22 146 L-16 148 L-9 116 Z"/><path d="M14 106 L24 150 L18 152 L9 116 Z"/></g>
+  </g>
+  <!-- Botswana flag colours on a small pole -->
+  <line x1="330" y1="120" x2="330" y2="206" stroke="#6b7280" stroke-width="2"/>
+  <rect x="331" y="120" width="34" height="20" fill="#75aadb"/><rect x="331" y="127" width="34" height="6" fill="#ffffff"/><rect x="331" y="128.5" width="34" height="3" fill="#000000"/>
+</svg>
