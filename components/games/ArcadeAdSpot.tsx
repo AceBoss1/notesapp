@@ -61,7 +61,9 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
   }, [ad?.id, variant]);
 
   return (
-    <aside ref={box} className={`arc-ad arc-ad-${variant}${variant === "banner" ? "" : " arc-ad-sq"}${ad ? "" : " is-open"}`} aria-label={ad ? "Sponsored" : "Advertise here"}>
+    <aside ref={box} className={`arc-ad arc-ad-${variant}${variant === "banner" ? "" : " arc-ad-sq"}${ad ? "" : " is-open"}`} aria-label={ad ? "Sponsored by Notes Ads" : "Advertise here with Notes Ads"}>
+      {/* The Notes Ads badge (owner, 21 Nov 2026), on every Arcade advert spot, booked or still open. */}
+      {variant === "banner" && <em className="arc-ad-badge" aria-hidden="true"><i>na</i> NOTES ADS · SPONSORED</em>}
       {ad ? (
         <a href={ad.href} target="_blank" rel="sponsored noopener noreferrer" onClick={() => track("click", ad.id)}>
           {ad.image
@@ -69,13 +71,13 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
             ? <img src={ad.image} alt={ad.title} />
             : <span className="arc-ad-title">{ad.title}</span>}
           {variant === "banner" && <span className="arc-ad-copy"><strong>{ad.title}</strong>{ad.text && <span>{ad.text}</span>}</span>}
-          <small>{variant !== "banner" ? "AD" : AD_FOOTER[ad.provider]}</small>
+          {variant !== "banner" ? <small>SPONSORED</small> : ad.provider !== "notesapp" && <small>{AD_FOOTER[ad.provider]}</small>}
         </a>
       ) : (
         <a href="/arcade/partners">
           <span className="arc-ad-title">{variant !== "banner" ? <>Your brand<br />here</> : "Your brand here"}</span>
           {variant === "banner" && <span className="arc-ad-copy"><span>Put your brand in front of players in every Notes Arcade game.</span></span>}
-          <small>{variant !== "banner" ? "ADVERTISE" : "PARTNER WITH NOTES ARCADE ↗"}</small>
+          <small>{variant !== "banner" ? "SPONSORED" : "PARTNER WITH NOTES ARCADE ↗"}</small>
         </a>
       )}
       <style jsx global>{`
@@ -89,7 +91,10 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
         .arc-ad-sq .arc-ad-title { font-size:clamp(7px,1.3vw,13px); }.arc-ad-tile .arc-ad-title { font-size:clamp(7px,1vw,11px); }
         .arc-ad-sq small { font-size:clamp(5px,.7vw,8px); }
         .arc-ad-sq:has(img) a { padding:4%; }
-        .arc-ad-banner { margin-top:14px; }
+        .arc-ad-banner { position:relative; margin-top:20px; }
+        .arc-ad-badge { position:absolute; top:-9px; left:14px; z-index:1; display:inline-flex; align-items:center; gap:6px; padding:3px 9px 3px 4px; border-radius:999px; background:#2f6a12; color:#f1f8e6; font:700 8.5px ui-monospace,monospace; font-style:normal; letter-spacing:.1em; box-shadow:0 2px 6px #17251f22; }
+        .arc-ad-badge i { display:inline-grid; place-items:center; width:16px; height:12px; border-radius:4px; background:#f1f8e6; color:#2f6a12; font:800 8px Arial,sans-serif; font-style:normal; letter-spacing:-.04em; }
+        .arc-ad-banner a { padding-top:16px !important; }
         .arc-ad-banner a { padding:10px 12px; border:1px solid #e3e6df; border-radius:12px; background:#fff; }
         .arc-ad-banner img { width:min(42%,240px); aspect-ratio:1.91/1; object-fit:cover; border-radius:8px; flex:none; }
         .arc-ad-banner .arc-ad-copy { display:flex; flex:1; flex-direction:column; gap:2px; min-width:0; color:#657169; font-size:12px; line-height:1.5; }
