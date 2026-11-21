@@ -99,9 +99,9 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   },
   {
     slug: "draughts", path: "/arcade/draughts", name: "Draughts", kicker: "Board", headline: ["Jump", "and crown."],
-    blurb: "Diagonal moves, forced jumps, crown your kings.",
-    description: "Draughts on an 8×8 board. Move diagonally forward, jump the other player's pieces to capture them, and reach the far row to crown a king that moves both ways.",
-    howTo: ["Pieces move one square diagonally forward onto dark squares.", "If you can jump, you must. Keep jumping while you can.", "Reach the far row to become a king; kings move and jump backwards too.", "Take every piece, or leave the other player with no move, to win."],
+    blurb: "African or English rules: forced jumps, crown your kings.",
+    description: "Draughts on an 8×8 board, played the African way by default (men take backwards, kings fly the length of the board, take the most you can) or by English rules. Move diagonally forward, jump the other player's pieces to capture them, and reach the far row to crown a king.",
+    howTo: ["Pieces step one square diagonally forward onto dark squares.", "If you can jump, you must, and keep jumping while you can. African rules: men may also jump backwards, and you must take the most pieces you can.", "Reach the far row to become a king. African kings fly any distance along a clear diagonal and capture from afar; English kings move one square either way.", "African rules: a man is only crowned if its move ends on the far row. English rules: reaching it crowns and ends the move.", "Take every piece, or leave the other player with no move, to win. 40 moves each without a capture is a draw (you can switch this off)."],
     players: "You vs the computer",
     shots: LEVELS,
   },

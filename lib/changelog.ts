@@ -18,6 +18,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Ludo with 1 die or 2 dice, 2 by default: use each die on its own, a 6 on either die brings a seed out, and a double 6 rolls again. An optional 6 + 5 rule (off unless you turn it on) sends a seed from the yard straight home." },
       { kind: "added", text: "More advert spots in the Arcade: each of Ludo's four yards is a full-square advert laid see-through under the seed holder, and Naija Landlord's board carries a second advert square on the left. All are booked as Notes Arcade on the advertising page." },
       { kind: "changed", text: "Ludo's seeds look solid and rounded, and the seed holders are see-through so the adverts show." },
+      { kind: "added", text: "Draughts now plays African rules on the 10×10 board by default, 20 pieces each, the way most players here know it: men capture backwards as well as forwards, kings fly any distance along a clear diagonal and capture from afar, and you must take the most pieces you can. The new Rules menu also offers African rules on 8×8 and English draughts, and the game remembers your choice." },
     ],
   },
   {
