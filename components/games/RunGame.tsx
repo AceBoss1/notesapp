@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import { useCanvasFit } from "@/components/games/useCanvasFit";
 import { ENTRY } from "@/lib/arcade/run.entry";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
@@ -32,12 +33,18 @@ export default function RunGame() {
   const [stepsOn, setStepsOn] = useState(false);
   const [peppered, setPeppered] = useState(false);
 
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // ---- Size: fill the console's width; 16:10 on desktop, taller on phones ----
+  const fit = useCanvasFit((boxW, viewH) => {
+    const w = Math.max(240, boxW);
+    const tall = w < 560;
+    return { w, h: tall ? Math.min(w * 1.4, Math.max(360, viewH * 0.72)) : w * 0.625 };
+  }, { maxDpr: 2.5 });
+  const canvasRef = fit.canvas;
+  const sizeRef = fit.size;
+
   const gameRef = useRef<RunState>(createRun(1, "normal"));
   const phaseRef = useRef<Phase>("ready");
   const inputs = useRef<RunInput[]>([]);
-  const sizeRef = useRef({ w: 640, h: 400, dpr: 1 });
   const crashAt = useRef(0);
   const reduced = useRef(false);
   const soundRef = useRef(true);
@@ -155,26 +162,6 @@ export default function RunGame() {
     if (inputs.current.length < 3) inputs.current.push(input);
   }, [resume, start]);
 
-  // ---- Size: fill the console's width; 16:10 on desktop, taller on phones ----
-  useEffect(() => {
-    const wrap = wrapRef.current; const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
-    const fit = () => {
-      const w = Math.max(240, wrap.clientWidth);
-      const tall = w < 560;
-      const h = Math.round(tall ? Math.min(w * 1.4, Math.max(360, window.innerHeight * 0.72)) : w * 0.625);
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      canvas.style.height = `${h}px`;
-      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-      sizeRef.current = { w, h, dpr };
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(wrap);
-    window.addEventListener("resize", fit);
-    return () => { ro.disconnect(); window.removeEventListener("resize", fit); };
-  }, []);
-
   // ---- The loop: step while playing, draw always; stops while the tab is hidden ----
   useEffect(() => {
     let raf = 0; let last = 0; let hudAt = 0; let wasPeppered = false;
@@ -288,9 +275,9 @@ export default function RunGame() {
           </button>
         </div>
 
-        <div className="arc-board-wrap run-wrap" ref={wrapRef}>
+        <div className="arc-board-wrap run-wrap" ref={fit.wrapRef}>
           <canvas
-            ref={canvasRef}
+            ref={fit.canvasRef}
             className="run-canvas"
             tabIndex={0}
             role="img"
@@ -332,7 +319,7 @@ export default function RunGame() {
       </div>
       <style jsx global>{`
         .run-wrap { touch-action:none; user-select:none; -webkit-user-select:none; background:#1e2147; }
-        .run-canvas { display:block; width:100%; height:auto; outline:none; cursor:pointer; touch-action:none; }
+        .run-canvas { display:block; max-width:100%; outline:none; cursor:pointer; touch-action:none; }
         .run-canvas:focus-visible { outline:2px solid var(--arc-deep); outline-offset:-2px; }
         .run-speed { display:flex; align-items:center; gap:8px; }
         .run-coins { color:#b8860b !important; }
