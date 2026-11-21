@@ -13,7 +13,7 @@ assert.deepEqual(cleanAdConfig({ boostsWide: "", adRotateSec: null }).boostsWide
 const off = cleanAdConfig({ spotsOff: ["life", "nope", "life", "digest"] });
 assert.deepEqual(off.spotsOff, ["life", "digest"], "unknown spots dropped, no repeats");
 assert.equal(spotOn(off, "life"), false); assert.equal(spotOn(off, "home"), true);
-for (const p of ["market", "academy", "explore", "search", "course", "digest", "life"]) assert.ok(p in AD_PLACEMENTS, `${p} is a spot`);
+for (const p of ["market", "academy", "explore", "search", "course", "digest", "life", "arcade"]) assert.ok(p in AD_PLACEMENTS, `${p} is a spot`);
 
 // ---- the picture ----
 assert.equal(AD_IMAGE.width / AD_IMAGE.height > 1.9 && AD_IMAGE.width / AD_IMAGE.height < 1.92, true, "1.91 : 1");

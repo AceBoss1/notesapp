@@ -5,7 +5,7 @@ hearts, gifts, following and coming on stage need a free account, and signing in
 
 The owner asked for it on 17 Nov 2026 ("our live links that are not private links can allow non logged in viewers who don't have
 notesapp account to view/share, but can only interact once they login") and put it after Merch; on 19 Nov 2026 they asked for it next,
-with sample screens first. **Status: built in v0.188.0 (19 Nov 2026)** after the owner's "approve build, hope admin can set guest number limits". What was
+with sample screens first. **Status: built in v0.193.0 (19 Nov 2026)** after the owner's "approve build, hope admin can set guest number limits". What was
 built, and what wasn't, is at the end of this page.
 
 ## Today
@@ -79,7 +79,7 @@ Each has a recommendation. The build follows it unless the owner says otherwise.
 - Big-audience broadcasting (HLS / Stream Live, `docs/COMMUNITY.md`): guests use the relay like members.
 - Guests chatting under a nickname.
 
-## Built in v0.188.0
+## Built in v0.193.0
 
 - **The rules** `lib/live-guests.ts` (pure, tested): `guestNo` (why a guest can't watch: ended, followers, subscribers, paid,
   community, off, teen, phone, full), `guestLimit`, `openToGuests`, `guestChat` (never a teen's line, never an account id) and the

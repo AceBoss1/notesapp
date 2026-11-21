@@ -1563,6 +1563,12 @@ service cloud.firestore {
     // LEADS — PRECHEKS
     // ============================================================
 
+    // Notes Arcade progress (wins, records, choices) for signed-in members. Only the server reads and writes it, through
+    // /api/arcade/progress, which checks the member and cleans every value (lib/arcade/progress.ts).
+    match /arcadeProgress/{uid} {
+      allow read, write: if false;
+    }
+
     match /leads/{leadId} {
 
       // Public contact form submission.

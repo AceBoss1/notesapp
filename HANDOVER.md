@@ -19,7 +19,7 @@ cron-job.org, authorised domains, counsel review and the testing checklist) are 
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/vigilant-franklin-xgf9ee` | **v0.185.0:** Themes and kits: Nana sets up your site, and Review my site (`docs/SITE_NANA.md`), built on the owner's "approved, build" (17 Nov 2026). Needs `firebase deploy --only firestore:rules` (`siteSetups`). Cost of a draft not measured. |
 | `claude/vigilant-franklin-xgf9ee` | **v0.186.0:** Merch in 3D (`docs/MERCH_3D.md`), built on the owner's "approved build" (19 Nov 2026) with their four custom shirts. **The store takes no orders until Batch 2's dates are set in Admin → Merch → Settings**; the extras are placeholders. |
-| `claude/vigilant-franklin-xgf9ee` | **v0.188.0:** watch a live without an account (`docs/GUEST_LIVES.md`), built on the owner's "approve build" (19 Nov 2026). Needs `firebase deploy --only firestore:rules`; try it on staging with the relay on. |
+| `claude/vigilant-franklin-xgf9ee` | **v0.193.0:** watch a live without an account (`docs/GUEST_LIVES.md`), built on the owner's "approve build" (19 Nov 2026). Needs `firebase deploy --only firestore:rules`; try it on staging with the relay on. |
 | `claude/moments-redesign` | **v0.180.0:** the owner's Moda design "Moments Redesign" applied to the composer, the viewer and the settings (`docs/MOMENTS_TIDY.md`, "The redesign"); screenshots approved by the owner on 16 Nov 2026. Notes Planner (v0.178.0, #355) and Moments tidy up and captions (v0.179.0, #356) are merged. Next, each with mockups first: Themes and kits, then Merch. |
 | `claude/studio-subtitles-plan` | **v0.181.0:** automatic subtitles in Notes Live Studio (`docs/STUDIO_SUBTITLES.md`), built on the owner's "build now" (17 Nov 2026). Needs `CLOUDFLARE_AI_TOKEN`; nothing to deploy for Firestore beyond the Moments rules. **Untested:** the real speech service and the microphone capture in a real room; try it on the staff test pass with two people on stage. Next: Themes and kits, then Merch last. |
 | `push/growth-measure` | **v0.175.0:** Growth measurement, step 1 of the growth plan (`docs/GROWTH.md`): channels, first value, returns, installs, Admin → Growth and Your invite link. Not pushed or merged yet. |
@@ -1217,6 +1217,79 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     shows each device's count and the phones against it. No price, date or payment until the partner confirms
     them; the partner isn't named until the agreement is signed (`PARTNER_NAMED`). **Owner steps:** Vercel → Domains `devices.naapp.tech`;
     `firebase deploy --only firestore:rules`. Tests: `test:devices`, `test:devices-server`, `test:host`, `test:rules`.
+147. **Notes Arcade: a home and eight new games; more products in the footer (v0.188.0, branch `claude/beautiful-albattani-crgkzb-footer2`;
+    owner, 20 Nov 2026: "add every feature or product we built, nana ai should be under for you… notes arcade should replace notesapp on
+    arcade… I need to build more games even Ludo, what, ace of spades, monopoly, ncho, chess, draft, each game will have its description
+    and screenshots"):** `lib/arcade/catalogue.ts` lists every game (name, description, how to play, players); `/arcade` is the home
+    (`components/games/ArcadeHome.tsx`) and each game is at `/arcade/<slug>` in the shared frame `components/games/ArcadeShell.tsx`.
+    Each game's rules and computer player are pure code in `lib/arcade/<slug>.ts` with a test in `tests/arcade/` (`test:arcade`); the board
+    is `components/games/<Name>Game.tsx`. All play against the computer in the browser, nothing saved but a best score in the browser.
+    **Monopoly is not copied:** its name, board and look are another company's, so the property game is our own, **Naija Landlord**
+    (Nigerian cities, our own squares and cards). Whot and Ace of Spades use the folk rules; Ncho is the Igbo seed game (our version is
+    written in the catalogue). arcade.<domain> now opens the Arcade home, with short paths (`arcade.naapp.tech/ludo`; `middleware.ts`,
+    `ARCADE_SLUGS`). Screenshots: `node scripts/arcade-shots.mjs` against a running app writes `public/images/arcade/<slug>.png`.
+    The footer gained Naija Exam Prep, Nana Tutor (Ask Nana Lite inside Exam Prep), NotesApp Sounds, Write a journal, Business books,
+    the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app; Nana AI and Nana Jobs moved to For you.
+    Later the same day (owner): every game page shows a screenshot gallery (`shots` in the catalogue: Easy/Medium/Hard, or the start,
+    middle and later on of a game; `ArcadeGallery`), taken by tapping the game's own buttons (`node scripts/arcade-shots.mjs`, `--cards`
+    for the home cards only). **Ncho Aka-Hausa** (`/arcade/akahausa`) is the second Ncho: clockwise sowing and a computer one level
+    deeper (`NchoVariant`); add any further traditional Aka-Hausa rules when the owner gives them. **Naija Landlord** grew to 32 squares
+    (9×9 ring) with Eastern markets (Ariaria Aba, Nkwo Nnewi, Eke Osumenyi), Lagos markets (Trade Fair, Alaba Int'l) and Upper Iweka
+    Park; park rent is ₦30k per park owned. The Arcade home shows **Notes Life Abuja** (the city picker's "You are welcome" card with a
+    real in-game shot inset) and Notes Life Lagos and Port Harcourt as coming soon, using `CITY_CARDS` pictures from `lib/life/catalog.ts`.
+    **Arcade money and sign-in (owner, 20 Nov 2026, corrected the same day):** every game is free with no sign-in; a guest's progress is
+    not saved and each fresh page load starts afresh (`lib/arcade/store.ts`, in memory). Signing in with #NotesApp is for saving
+    progress, N$ sync, scores and referral bonus credit through the Notes Life wallet, "just to mention a few" (owner): also a referral
+    leaderboard, friends (conversations, calls, playing groups), a leaderboard per game made of the top computer players and the top
+    people, and the same Notesville rich list as Notes Life. One profile with Notes Life. **No game pays real
+    naira.** Shown now: Naija Landlord counts in N$, and `ArcadeWalletNote` (Arcade home and every game page) says all this.
+    **Next, not built yet:** the signed-in store (swap `arcadeStore` for one that saves to the account and syncs N$ through
+    `lib/life/server.ts`), referral bonus credit and leaderboard, per-game leaderboards (top computer players + top people), the shared rich list, and player
+    vs player: invite from a conversation or call in Messages and form playing groups.
+148. **Advert spots in Notes Arcade and the partnership page (v0.189.0, branch `claude/beautiful-albattani-crgkzb-arcade-ads`; owner, 20 Nov
+    2026: "we need to create advert spots in every game, for example the center of the ludo is a great advert spot... there should be
+    partnership page too on arcade home"):** a new placement `arcade` in `lib/ads.ts` (so it shows in Admin → Ads, the campaign form
+    and /advertise/specifications by itself). `components/games/ArcadeAdSpot.tsx` draws it as `board` (Ludo's centre), `tile` (Naija
+    Landlord's middle, beside the dice) or `banner` (under every game, in `ArcadeShell` and Snake), with AdSlot's adverts, rotation and
+    impression/click tracking; with nothing booked it shows "Your brand here" → `/arcade/partners` (`components/games/ArcadePartners.tsx`,
+    arcade.<domain>/partners). The bigger partnerships on that page (a Landlord square, sponsored tournaments with the sponsor's own
+    prizes, branded cards and boards, a made-for-you game) start with a conversation; none is built. No audience numbers are claimed.
+149. **Plan: sponsored tournaments in Notes Arcade (docs only; owner, 20 Nov 2026: "plan tournaments on games that can be powered with
+    sponsor[s] backed tournament and get tournament sponsors plus only logged in players can participate"):** `docs/ARCADE_TOURNAMENTS.md`.
+    Signed-in members only, free entry always, sponsor prizes or N$ (never real naira from a game), "same deal" tournaments first: every
+    entrant gets the same seed and the server replays their moves with `lib/arcade/<game>.ts` to work out the result. Needs the signed-in
+    Arcade (Phase 0) first. Waiting on the owner's five decisions at the end of the doc.
+150. **Ncho played the school way (v0.189.1; owner, 20 Nov 2026, the rules "the school rule igbos practice and play"; "the reverse is the
+    aka hausa"):** capture only when the last seed makes exactly 4 in the opponent's hole, into your house (ulo); most seeds in the house
+    wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
+    and chain capture (off by default: "ask your elders"). Aka-Hausa is the same rules sown clockwise. Not built, possible later: "take
+    the house" (a captured hole becomes yours), the 3-seeds school stage rule, the 30-seconds formal timer (for tournaments).
+151. **Signed-in Arcade saves progress (owner, 21 Nov 2026: "we need to fix the login saving progress"):** `lib/arcade/store.ts` follows
+    Firebase sign-in: a guest's progress stays in the page (afresh on reload); a member's is loaded from `arcadeProgress/{uid}.kv`
+    before the game shows (`arcadeReady()` in `ArcadeShell`) and saved 0.8 s after each change through `/api/arcade/progress`
+    (server-only collection; keys and values cleaned by `lib/arcade/progress.ts`, max 120 keys of 2,000 characters). Guest play from
+    the same page is kept when they sign in. The tournament decisions are in `docs/ARCADE_TOURNAMENTS.md` §8. **Owner step:**
+    `firebase deploy --only firestore:rules`. Not yet: N$ sync, per-game leaderboards, referral credit (they come with tournaments).
+152. **Three more Arcade games (v0.191.0; owner, 21 Nov 2026: the drawn board "players try to fix 3 straight paths", and "2 more popular
+    engaging games like something run or something like Mario packman with a matching sound effect"):** `achi` (only the drawn lines:
+    four edges and two diagonals, no centre cross; 3 pieces each; perfect play on hard by solving the game), `run` (Naija Run, canvas,
+    three lanes, seeded spawner that always leaves a lane clear), `puffpuff` (Puff-Puff Rush, canvas maze chase, three original mazes,
+    four goats with their own behaviour). Original characters, art and synthesised sounds; nothing copied from any named game. Their
+    entries live in `lib/arcade/<slug>.entry.ts`, listed by `lib/arcade/catalogue.ts`; `scripts/arcade-shots.mjs` reads both.
+153. **Ncho rounds and relay sowing (v0.191.1; owner, 21 Nov 2026, the full rules after #378):** sow from a hole you own; last seed in an
+    empty hole ends the turn, making exactly 4 lets the mover take it, otherwise lift and keep sowing (either side; 300-lap cap). A 4 made
+    mid-sowing goes at once to that hole's owner. A round ends when the mover owns no seeds: each takes the seeds in their holes, refills
+    their holes with 4s from first hole of their row onwards; holes they can't fill are conquered; the one leftover hole goes to the bigger
+    remainder (tie: the player who didn't start). Rounds 3/5/7/"all" (all capped at 50); more houses wins. 6 holes a side only. `endRound` in `lib/arcade/ncho.ts`.
+    The chain option is gone, and so is the 12-hole board (owner: "there's no 12 hole ncho"; `HolesPerSide = 6`). Portrait phones get a
+    "turn sideways" prompt. Aka-Hausa: the same, clockwise.
+154. **Notes Arcade installs as its own app (v0.192.0; owner, 21 Nov 2026: "arcade… have /install so the app logo is the green [na]…
+    Notes Arcade as app name", then "turn this exactly to green", "make it darker"):** `app/(arcade)/arcade/manifest.webmanifest`
+    (scope and start "/" on arcade.<domain>, "/arcade" on the main site) linked from `app/(arcade)/layout.tsx`; the site's own manifest
+    moved from `app/manifest.ts` to `app/manifest.webmanifest/route.ts` (same content, linked from the root layout) so a section can
+    override it. Icons `public/images/brand/arcade-*.png` and `notesapp-icon-green.png` are the red [na] icon recoloured pixel by pixel
+    (hue 96°, value ×0.62); re-make them from the red originals if the brand icon changes. `/arcade/install` (arcade.<domain>/install)
+    reuses `InstallGuide` with an `app` prop and green accents; "Install app" sits in the Arcade top bar on every screen size.
 
 ## 3. How the work is done (please keep these)
 

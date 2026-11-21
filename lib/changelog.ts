@@ -11,15 +11,96 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.188.0",
+    version: "v0.193.0",
     bump: "minor",
-    date: "2026-11-19",
+    date: "2026-11-21",
     changes: [
       { kind: "added", text: "Lives: anyone can watch a live that's open to everyone, without an account. Open the link and tap Watch: the live plays, with the chat to read. Chatting, hearts, gifts and following ask you to join, then bring you straight back." },
       { kind: "added", text: "Lives: a live's link now shows who is live, the title and a picture when you share it, and says when no account is needed to watch. Guests can share it too." },
       { kind: "added", text: "Going live: \"People without an account can watch\" for lives open to everyone (on unless you switch it off). You see how many are watching as guests, and afterwards how many joined #NotesApp from your live." },
       { kind: "changed", text: "Lives: a teen's own live stays with people who have an account, a live guests can watch never brings a teen on stage, and teens' chat messages aren't shown to guests." },
       { kind: "added", text: "For our team: Admin → Limits has Guests in lives: switch them off everywhere, set the most guests in one live, and see the week's guest views, sign-ups and minutes." },
+    ],
+  },
+  {
+    version: "v0.192.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Install Notes Arcade as its own app: open arcade.naapp.tech/install (or Install app in the Arcade's top bar) and it goes on your home screen or computer with the green [na] icon, opening straight to the games." },
+      { kind: "changed", text: "The Arcade's logo and browser-tab icon are now the #NotesApp [na] icon in deep green." },
+      { kind: "added", text: "Partners and Install app in the Arcade's top bar and footer, on every game including Snake." },
+      { kind: "added", text: "Every advert spot in the Arcade carries a Notes Ads · Sponsored badge, and the squares on the Ludo and Naija Landlord boards say Sponsored." },
+    ],
+  },
+  {
+    version: "v0.191.1",
+    bump: "patch",
+    date: "2026-11-21",
+    changes: [
+      { kind: "fixed", text: "Ncho and Ncho Aka-Hausa now play the owner's full rules: relay sowing (lift and keep going until your last seed lands in an empty hole or makes 4), a 4 made with your last seed is yours, any 4 made along the way goes straight to that hole's owner, and rounds where each player refills their houses with 4s and loses the ones they can't fill. Choose 3, 5 or 7 rounds, or play until one side has every house; more houses wins. Aka-Hausa is the same, sown clockwise." },
+      { kind: "added", text: "On a phone held upright, Ncho and Aka-Hausa suggest turning it sideways, where the holes are bigger." },
+      { kind: "changed", text: "Ncho and Aka-Hausa are played on 6 holes a side only: the 12-hole board is gone, because there's no 12-hole Ncho." },
+    ],
+  },
+  {
+    version: "v0.191.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Three new games in Notes Arcade: Achi, the three-in-a-line board game on the owner's drawn board (place 3, then slide along the lines); Naija Run, a three-lane runner along a Lagos street at dusk (jump the potholes, slide under the awnings, dodge the danfos); and Puff-Puff Rush, a maze chase through the market on a delivery bike with goats on your tail and pepper soup to turn the tables. Each has its own sound effects, levels or speeds, and screenshots." },
+      { kind: "added", text: "A Notes Life Gaborone card on the Arcade home, coming soon, beside Lagos and Port Harcourt." },
+    ],
+  },
+  {
+    version: "v0.190.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Sign in with your #NotesApp account and your Notes Arcade progress is saved: wins and records in every game come back next time, on any device. Playing is still free without signing in; as a guest you start afresh each visit." },
+    ],
+  },
+  {
+    version: "v0.189.1",
+    bump: "patch",
+    date: "2026-11-20",
+    changes: [
+      { kind: "fixed", text: "Ncho and Ncho Aka-Hausa now play the school rules Igbo people practise: you capture only when your last seed makes exactly 4 in your opponent's hole, captures go to your house, and most seeds in your house wins. The loser starts the next game. The rules we had guessed (capturing 2s and 3s, forced feeding) are gone." },
+      { kind: "fixed", text: "On a phone, the advert strip under each Arcade game no longer squeezes its words into a narrow column." },
+      { kind: "added", text: "Ncho on the long Nchokoroto board, 12 holes a side, as well as the standard 6, and chain capture (the village way of also taking the holes before that make 4) as an option you can turn on." },
+    ],
+  },
+  {
+    version: "v0.189.0",
+    bump: "minor",
+    date: "2026-11-20",
+    changes: [
+      { kind: "added", text: "Advert spots in Notes Arcade: the middle of the Ludo board, the middle of the Naija Landlord board, and under the board of every game. They're booked like every other #NotesApp spot (tick Notes Arcade on your campaign), with the same rotation, impressions and clicks. With nothing booked, a spot invites brands to advertise." },
+      { kind: "added", text: "Partner with Notes Arcade: a page for advertisers and sponsors at arcade.naapp.tech/partners, linked from the Arcade home, with the advert spots and bigger partnerships like a square of your own on the Naija Landlord board and sponsored tournaments." },
+    ],
+  },
+  {
+    version: "v0.188.0",
+    bump: "minor",
+    date: "2026-11-20",
+    changes: [
+      { kind: "added", text: "Notes Arcade has a home page with every game, and eight new games to play in your browser against the computer: Ludo, Whot, Ace of Spades, Naija Landlord (our own property game set in Nigerian cities), Ncho, Ncho Aka-Hausa, Chess and Draughts. Each has its own page with what it is, how to play and a screenshot." },
+      { kind: "added", text: "Notes Life has a card on the Arcade home, with Notes Life Lagos and Notes Life Port Harcourt coming soon." },
+      { kind: "added", text: "Ncho Aka-Hausa, the harder Ncho: the seeds go round clockwise and the computer thinks further ahead." },
+      { kind: "added", text: "Naija Landlord's board grows to 32 squares with the big markets: Ariaria in Aba, Nkwo Nnewi, Eke Osumenyi, the Lagos Trade Fair and Alaba International Market, plus Upper Iweka Park." },
+      { kind: "added", text: "Every game page shows screenshots: one for each level, or a game from the start to later on." },
+      { kind: "added", text: "Every Arcade game is free to play without signing in; as a guest nothing is saved and each visit starts afresh. Signing in with your #NotesApp account will save your progress, scores and N$ (Notesville Naira, the same wallet and profile as Notes Life), and bring referral bonus credit and a referral leaderboard, friends to chat, call and play with, a leaderboard on every game (top computer players and top people) and the Notesville rich list (the Billionaires List) shared with Notes Life. Naija Landlord counts in N$. No game pays out real naira." },
+      { kind: "changed", text: "The Arcade's top bar now says Notes Arcade, and its logo takes you to all the games. On arcade.naapp.tech each game has a short address, like arcade.naapp.tech/ludo." },
+      { kind: "added", text: "More in the footer: Naija Exam Prep, Nana Tutor, NotesApp Sounds, Write a journal, Business books, the Nana AI portrait studio, Saved, Choose your interests, Kids corner and Install the app. Nana AI and Nana Jobs now sit under For you." },
+    ],
+  },
+  {
+    version: "v0.187.1",
+    bump: "patch",
+    date: "2026-11-19",
+    changes: [
+      { kind: "changed", text: "A tidier footer: the brand, our partners and how to reach us in three parts across the top, then the links grouped into Products, Business, Community, For you, Devices & play and Company, each a dropdown you open. Social links and a Legal dropdown sit at the bottom, with a Menu button beside Nana." },
+      { kind: "added", text: "Notes Live, Live Media Studio Pro and Notes Arcade in the footer." },
     ],
   },
   {
