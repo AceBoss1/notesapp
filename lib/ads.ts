@@ -34,17 +34,34 @@ export const AD_PLACEMENTS = {
   course: { label: "Free course pages", scope: "site", where: "On free course pages: under This course includes on a computer, after the curriculum on a phone. Never on paid courses, lessons or certificates." },
   digest: { label: "Weekly digest email", scope: "site", where: "In the Sunday weekly digest email, in its sponsored slots. Each email sent counts as an impression." },
   life: { label: "Notes Life billboards (in the game)", scope: "site", where: "On the roadside billboards in Notes Life, the free life game. Needs a billboard picture as well." },
-  arcade: { label: "Notes Arcade (in the games)", scope: "site", where: "In Notes Arcade's free games: the middle of the Ludo board, the middle of the Naija Landlord board, and under the board of every game. Square or wide pictures both work; the title shows if there's no picture." },
+  arcade: { label: "Notes Arcade (in the games)", scope: "site", where: "In Notes Arcade's free games: the strip under the board of every game (the advert picture, or the title if there's no picture), and Naija Run's roadside billboards if you add a billboard picture." },
+  arcadesq: { label: "Notes Arcade square spots (in the games)", scope: "site", where: "The square spots in Notes Arcade's games: the middle of the Ludo board and its four yards, and the tiles beside Naija Landlord's dice. Needs a square picture as well." },
 } as const;
 export type AdPlacement = keyof typeof AD_PLACEMENTS;
 export const isPlacement = (v: unknown): v is AdPlacement => typeof v === "string" && v in AD_PLACEMENTS;
+
+// The shape of an advert spot. A picture of one shape never goes in a spot of another (owner, 21 Nov 2026: "square can't fit
+// in rectangle and vice versa"): a square spot takes only adverts with a square picture, a billboard only adverts with a
+// billboard picture, and a wide spot takes any advert (its wide picture, or the title when there's none).
+export type SpotShape = "wide" | "square" | "billboard";
+type Pictures = { image?: string; billboard?: string; square?: string };
+export function fitsSpot(ad: Pictures, shape: SpotShape): boolean {
+  if (shape === "square") return !!ad.square;
+  if (shape === "billboard") return !!ad.billboard;
+  return true;
+}
+// The picture to draw in a spot of that shape (undefined: none, show the title).
+export function spotPicture(ad: Pictures, shape: SpotShape): string | undefined {
+  return shape === "square" ? ad.square : shape === "billboard" ? ad.billboard : ad.image;
+}
 
 export type AdCreative = {
   id: string;
   title: string;
   text?: string;
   image?: string;
-  billboard?: string; // the Notes Life billboard picture (1600 × 900), for the life spot
+  billboard?: string; // the billboard picture (1600 × 900), for Notes Life and Naija Run's roadside boards
+  square?: string; // the square picture (1080 × 1080), for Notes Arcade's square spots
   href: string;
   placements: AdPlacement[];
   weight: number; // 1–10, relative share of rotation

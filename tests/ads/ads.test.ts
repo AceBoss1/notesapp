@@ -1,7 +1,7 @@
 // Adverts and boosts (lib/ad-config.ts) and the weekly digest's picking (lib/digest.ts). Run: npm run test:ads → "ALL OK".
 import assert from "node:assert/strict";
-import { AD_CONFIG_DEFAULTS, AD_IMAGE, BILLBOARD_IMAGE, cleanAdConfig, cropFor, imageProblem, rightShape, spotOn } from "../../lib/ad-config";
-import { AD_PLACEMENTS } from "../../lib/ads";
+import { AD_CONFIG_DEFAULTS, AD_IMAGE, BILLBOARD_IMAGE, cleanAdConfig, cropFor, imageProblem, rightShape, spotOn, SQUARE_IMAGE } from "../../lib/ad-config";
+import { AD_PLACEMENTS, fitsSpot, spotPicture } from "../../lib/ads";
 import { fillSlots, pickItems, pickStories, renderDigestHtml, renderDigestText, type PoolItem, type PoolStory, type SlotCandidate } from "../../lib/digest";
 
 // ---- the settings ----
@@ -13,7 +13,7 @@ assert.deepEqual(cleanAdConfig({ boostsWide: "", adRotateSec: null }).boostsWide
 const off = cleanAdConfig({ spotsOff: ["life", "nope", "life", "digest"] });
 assert.deepEqual(off.spotsOff, ["life", "digest"], "unknown spots dropped, no repeats");
 assert.equal(spotOn(off, "life"), false); assert.equal(spotOn(off, "home"), true);
-for (const p of ["market", "academy", "explore", "search", "course", "digest", "life", "arcade"]) assert.ok(p in AD_PLACEMENTS, `${p} is a spot`);
+for (const p of ["market", "academy", "explore", "search", "course", "digest", "life", "arcade", "arcadesq"]) assert.ok(p in AD_PLACEMENTS, `${p} is a spot`);
 
 // ---- the picture ----
 assert.equal(AD_IMAGE.width / AD_IMAGE.height > 1.9 && AD_IMAGE.width / AD_IMAGE.height < 1.92, true, "1.91 : 1");
@@ -27,6 +27,27 @@ assert.equal(big.width, AD_IMAGE.sharpWidth, "a large picture comes out at the s
 const z = cropFor(4000, 3000, AD_IMAGE, { zoom: 2, x: 0, y: 1 });
 assert.equal(z.sw, 2000); assert.equal(z.sx, 0); assert.equal(z.sy, 3000 - z.sh, "slid to the bottom left");
 const bb = cropFor(1920, 1080, BILLBOARD_IMAGE); assert.equal(bb.width, 1600); assert.equal(bb.height, 900, "a 16:9 picture fits the billboard");
+
+// ---- the square picture (Notes Arcade's square spots) ----
+assert.deepEqual([SQUARE_IMAGE.width, SQUARE_IMAGE.height, SQUARE_IMAGE.minWidth, SQUARE_IMAGE.minHeight], [1080, 1080, 400, 400], "1080 × 1080, at least 400 × 400");
+assert.deepEqual(SQUARE_IMAGE.safe, { width: 864, height: 864 }, "the safe area is the middle 864 × 864");
+assert.ok(SQUARE_IMAGE.bestBytes === 500 * 1024 && SQUARE_IMAGE.maxBytes === 1024 * 1024);
+const sqCut = cropFor(1920, 1080, SQUARE_IMAGE);
+assert.deepEqual([sqCut.sw, sqCut.sh, sqCut.sx, sqCut.sy, sqCut.width, sqCut.height], [1080, 1080, 420, 0, 1080, 1080], "a wide picture: the middle square");
+const sqBig = cropFor(3000, 4000, SQUARE_IMAGE); assert.equal(sqBig.width, 1080); assert.equal(sqBig.height, 1080, "never larger than the spec (no sharp size)");
+const sqSmall = cropFor(600, 800, SQUARE_IMAGE); assert.equal(sqSmall.width, 600); assert.equal(sqSmall.height, 600, "never enlarged");
+assert.ok(rightShape(1080, 1080, SQUARE_IMAGE) && !rightShape(1200, 628, SQUARE_IMAGE) && !rightShape(1080, 1080, AD_IMAGE), "square and wide are different shapes");
+assert.match(imageProblem(300, 300, SQUARE_IMAGE) ?? "", /at least 400 × 400/);
+assert.equal(imageProblem(400, 400, SQUARE_IMAGE), null);
+
+// ---- shapes never cross ----
+const wideOnly = { image: "w.jpg" }, sqOnly = { square: "s.jpg" }, all = { image: "w.jpg", billboard: "b.jpg", square: "s.jpg" }, titleOnly = {};
+assert.ok(!fitsSpot(wideOnly, "square") && fitsSpot(sqOnly, "square") && fitsSpot(all, "square") && !fitsSpot(titleOnly, "square"), "a square spot takes only a square picture");
+assert.ok(!fitsSpot(wideOnly, "billboard") && !fitsSpot(sqOnly, "billboard") && fitsSpot(all, "billboard"), "a billboard takes only a billboard picture");
+assert.ok(fitsSpot(wideOnly, "wide") && fitsSpot(titleOnly, "wide") && fitsSpot(all, "wide"), "a wide spot takes any advert");
+assert.equal(spotPicture(all, "square"), "s.jpg"); assert.equal(spotPicture(all, "billboard"), "b.jpg"); assert.equal(spotPicture(all, "wide"), "w.jpg");
+assert.equal(spotPicture(sqOnly, "wide"), undefined, "the square picture is never drawn in a wide spot");
+assert.equal(spotPicture(wideOnly, "square"), undefined, "nor the wide one in a square spot");
 
 // ---- the digest: stories on the reader's interests first ----
 const story = (id: string, tags: string[], views: number, author = "a"): PoolStory => ({ id, authorUid: `u_${author}`, authorUsername: author, tags, publishedAt: "2026-10-15T10:00:00Z", title: id, summary: "", href: `https://x/journals/${id}`, image: null, writerName: author, writerAvatar: "", readMinutes: 2, likes: 0, comments: 0, views, premium: false });

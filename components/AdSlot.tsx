@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AD_FOOTER, AdPlacement, AdProvider, publisherShowsAds } from "@/lib/ads";
 
-export type Ad = { id: string; title: string; text?: string; image?: string; billboard?: string; href: string; weight: number; provider: AdProvider };
+export type Ad = { id: string; title: string; text?: string; image?: string; billboard?: string; square?: string; href: string; weight: number; provider: AdProvider };
 type Loaded = { ads: Ad[]; rotateSec: number };
 
 // One shared fetch per placement per tab. rotateSec comes from Admin → Ads (30 seconds unless changed).

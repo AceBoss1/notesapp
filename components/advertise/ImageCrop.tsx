@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cropFor, imageProblem, type ImageSpec } from "@/lib/ad-config";
 
-// Crops a picture to an advert's shape (1200 × 628, or a Notes Life billboard's 1600 × 900) before it's uploaded: zoom and
+// Crops a picture to an advert's shape (1200 × 628, a billboard's 1600 × 900, or a Notes Arcade square's 1080 × 1080) before it's uploaded: zoom and
 // slide it until the frame shows what you want, then "Use this". The result is a JPEG at the spec's size (larger, up to
 // the sharp size, when the picture allows), as light as it can be while staying sharp (under 500 KB where possible, never
 // over 1 MB). The dashed box is the safe area: keep the logo, words and faces inside it.

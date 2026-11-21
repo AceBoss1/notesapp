@@ -417,9 +417,14 @@ export async function POST(req: NextRequest) {
       if (!image || !image.startsWith(r2PublicUrl(`ads/${user.uid}/`))) return NextResponse.json({ error: "Upload the advert picture through the form." }, { status: 400 });
       const placements = Array.isArray(body.placements) ? Array.from(new Set(body.placements.filter(isPlacement))) : [];
       if (placements.length === 0) return NextResponse.json({ error: "Pick at least one placement." }, { status: 400 });
-      // Notes Life billboards need their own 1600 × 900 picture (lib/ad-config.ts BILLBOARD_IMAGE), uploaded the same way.
-      const billboard = placements.includes("life") ? String(body.billboard || "").trim().slice(0, 500) : "";
-      if (placements.includes("life") && !billboard.startsWith(r2PublicUrl(`ads/${user.uid}/`))) return NextResponse.json({ error: "Add the Notes Life billboard picture, or untick Notes Life." }, { status: 400 });
+      // Notes Life billboards need their own 1600 × 900 picture (lib/ad-config.ts BILLBOARD_IMAGE), uploaded the same way; Notes
+      // Arcade campaigns may add one for Naija Run's roadside boards. The Arcade's square spots need a 1080 × 1080 square (SQUARE_IMAGE).
+      const mine = (u: string) => u.startsWith(r2PublicUrl(`ads/${user.uid}/`));
+      const billboard = placements.includes("life") || placements.includes("arcade") ? String(body.billboard || "").trim().slice(0, 500) : "";
+      if (placements.includes("life") && !mine(billboard)) return NextResponse.json({ error: "Add the Notes Life billboard picture, or untick Notes Life." }, { status: 400 });
+      if (billboard && !mine(billboard)) return NextResponse.json({ error: "Upload the billboard picture through the form." }, { status: 400 });
+      const square = placements.includes("arcadesq") ? String(body.square || "").trim().slice(0, 500) : "";
+      if (placements.includes("arcadesq") && !mine(square)) return NextResponse.json({ error: "Add the square picture, or untick Notes Arcade square spots." }, { status: 400 });
       if (body.agreed !== true) return NextResponse.json({ error: "Please confirm you've read the advertising rules." }, { status: 400 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
@@ -431,7 +436,7 @@ export async function POST(req: NextRequest) {
       await db.doc(`adCampaigns/${reference}`).set({
         id: reference, uid: user.uid, email: user.email, advertiserName, packageId: pk.id, packageName: pk.name,
         impressionsBudget: pk.impressions, windowDays: pk.windowDays, amountKobo: pk.priceKobo, placements,
-        creative: { title, text, image, href, ...(billboard ? { billboard } : {}) }, status: "awaiting_payment", createdAt: now,
+        creative: { title, text, image, href, ...(billboard ? { billboard } : {}), ...(square ? { square } : {}) }, status: "awaiting_payment", createdAt: now,
       });
       const record: PaymentRecord = {
         reference, kind: "ad", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,
