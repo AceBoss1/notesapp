@@ -99,7 +99,7 @@ export default function ArcadeAdSpot({ variant, game }: { variant: "board" | "ti
         .arc-ad-banner.is-open .arc-ad-title { flex:none; font-size:16px; }
         .arc-ad a:hover .arc-ad-title { color:#5f9a22; }
         .arc-ad a:focus-visible { outline:2px solid #83b83c; outline-offset:3px; }
-        @media(max-width:560px) { .arc-ad-banner a { flex-wrap:wrap; } .arc-ad-banner small { margin-left:0; } }
+        @media(max-width:560px) { .arc-ad-banner a { flex-direction:column; align-items:flex-start; gap:6px; } .arc-ad-banner img { width:100%; } .arc-ad-banner .arc-ad-copy { width:100%; flex:none; } .arc-ad-banner small { margin-left:0; } }
       `}</style>
     </aside>
   );

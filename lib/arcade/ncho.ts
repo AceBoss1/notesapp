@@ -1,53 +1,97 @@
-// Ncho (Okwe): the Igbo seed-sowing game. Pure logic, no React or DOM, so tests and the UI share one set of rules.
-// Holes 0–5 are player 0's (you, bottom row, left to right); holes 6–11 are player 1's (the computer, top row, right to left).
-// Sowing goes up the indexes, which is anticlockwise round the board as drawn.
-// Aka-Hausa, the harder variant, sows the other way: down the indexes, clockwise. Its captures run back through the holes
-// sown just before the last one, so in index terms they go up rather than down. That direction is the only rule that
-// differs for now; further Aka-Hausa rules can be added here when the owner gives them.
+// Ncho (Okwe): the Igbo seed-sowing game, played to the school rule the owner gave. Pure logic, no React or DOM,
+// so tests and the UI share one set of rules.
+//
+// The board: two rows of holes, one row per player, and a storehouse (house, "ulo") for each player.
+//   Standard Ncho: 6 holes a side (12 holes). Nchokoroto / Ncho Ncho Kororo: 12 holes a side (24 holes). Same rules.
+//   Four seeds in every hole at the start (48 or 96 seeds).
+// Indexes: holes 0..n-1 are player 0's (you, bottom row, left to right); holes n..2n-1 are player 1's (the computer,
+// top row, right to left). Going up the indexes is anticlockwise round the board as drawn.
+//
+// The rules:
+//   - Sowing: pick up all the seeds from one non-empty hole on your side and drop them one by one into the following
+//     holes, anticlockwise for Ncho (clockwise for Aka-Hausa, which is otherwise exactly the same game), going round
+//     and round. Seeds never go into a house while sowing, and no hole is skipped, not even the starting hole when
+//     there are enough seeds to go all the way round. One lap only: the turn ends when the seeds run out.
+//   - Capture, the "4" rule: you capture only when your last seed lands in one of the opponent's holes and makes it
+//     exactly 4. Those 4 go into your house. 2, 3, 5, 6 and so on capture nothing.
+//   - Village option "chain" (off by default; it is the biggest difference between villages, so "ask your elders"):
+//     after making a 4, carry on backwards through the holes sown just before the last one, on the opponent's side,
+//     taking each one that is also exactly 4, and stopping at the first that isn't or at the edge of their side.
+//   - The game ends when the player to move has no seeds on their side, or when every seed has been captured.
+//     The winner is whoever has the most seeds in their house; seeds left on the board are not counted. Equal is a draw.
+//   - "Loser starts next round" is handled by the UI (components/games/NchoGame.tsx) via `initialState(..., first)`.
+//
+// Not implemented yet (possible later options): "take the house" (a hole you capture becomes yours), the school
+// stage rule of at most 3 seeds per hole, and the formal 30-seconds-per-move timer.
 
 export type Player = 0 | 1;
 export type Level = "easy" | "medium" | "hard";
 export type NchoVariant = "ncho" | "akahausa";
+export type HolesPerSide = 6 | 12;
+
+export type NchoOptions = {
+  holesPerSide?: HolesPerSide; // 6 = standard Ncho, 12 = Nchokoroto
+  chain?: boolean; // village chain-capture option, off by default
+};
 
 export type NchoMove = {
   player: Player;
   hole: number;
   path: number[]; // every hole a seed dropped into, in order (for the sowing animation)
+  lastHole: number; // where the last seed landed
+  made: number; // seeds in the last hole after sowing (before any capture)
+  onTheirSide: boolean; // the last seed landed on the opponent's side
   captured: number[]; // holes emptied by the capture, last seed's hole first
-  amount: number;
-  grandSlam: boolean; // the capture would have taken everything, so it took nothing
+  amount: number; // seeds taken into the mover's house
 };
 
 export type NchoState = {
-  pits: number[]; // 12 holes
-  stores: [number, number];
+  pits: number[]; // 2 × holesPerSide holes
+  stores: [number, number]; // the two houses
   turn: Player;
   over: boolean;
   winner: Player | "draw" | null;
   last: NchoMove | null;
   plies: number;
-  sinceCapture: number; // plies since the last capture, to stop endless shuffling
-  endReason: "majority" | "no-move" | "stalled" | null;
+  sinceCapture: number; // plies since the last capture (for the stall safeguard)
+  endReason: "no-move" | "all-captured" | "stalled" | null;
   variant: NchoVariant; // "ncho" sows anticlockwise, "akahausa" clockwise
+  holesPerSide: HolesPerSide;
+  chain: boolean;
 };
 
-export const HOLES = 12;
 export const START_SEEDS = 4;
-export const TOTAL = HOLES * START_SEEDS; // 48
-// Lone seeds can chase each other round forever; after this many plies with no capture we count up what's on the board.
-export const STALL_PLIES = 100;
+export const CAPTURE_AT = 4;
 
-export const sideOf = (hole: number): Player => (hole < 6 ? 0 : 1);
-export const holesOf = (p: Player): number[] => (p === 0 ? [0, 1, 2, 3, 4, 5] : [6, 7, 8, 9, 10, 11]);
-export const seedsOnSide = (pits: number[], p: Player) => holesOf(p).reduce((s, h) => s + pits[h], 0);
+// Board helpers, all derived from the board size.
+export const holeCount = (holesPerSide: number) => holesPerSide * 2;
+export const totalSeeds = (holesPerSide: number) => holeCount(holesPerSide) * START_SEEDS;
+export const sideOfHole = (hole: number, holesPerSide: number): Player => (hole < holesPerSide ? 0 : 1);
+export const holesOfSide = (p: Player, holesPerSide: number): number[] =>
+  Array.from({ length: holesPerSide }, (_, i) => (p === 0 ? i : holesPerSide + i));
+export const seedsOnSide = (pits: number[], p: Player, holesPerSide = pits.length / 2) => {
+  let s = 0;
+  const from = p === 0 ? 0 : holesPerSide;
+  for (let h = from; h < from + holesPerSide; h++) s += pits[h];
+  return s;
+};
+// State-based shorthands.
+export const sideOf = (state: Pick<NchoState, "holesPerSide">, hole: number) => sideOfHole(hole, state.holesPerSide);
+export const holesOf = (state: Pick<NchoState, "holesPerSide">, p: Player) => holesOfSide(p, state.holesPerSide);
+
+// Not one of the owner's rules, just a safeguard so a game always ends: lone seeds can chase each other round for
+// ever, so after this many moves in a row with no capture the game stops and the houses are counted as they stand.
+export const stallLimit = (holesPerSide: number) => (holesPerSide >= 12 ? 200 : 100);
+
 const other = (p: Player): Player => (p === 0 ? 1 : 0);
 // +1 for each hole sown: up the indexes for Ncho (anticlockwise), down them for Aka-Hausa (clockwise).
 export const directionOf = (variant: NchoVariant): 1 | -1 => (variant === "akahausa" ? -1 : 1);
 
 // The rng is accepted so every arcade game shares one signature; Ncho's start is fixed.
-export function initialState(_rng?: () => number, first: Player = 0, variant: NchoVariant = "ncho"): NchoState {
+export function initialState(_rng?: () => number, first: Player = 0, variant: NchoVariant = "ncho", options: NchoOptions = {}): NchoState {
+  const holesPerSide: HolesPerSide = options.holesPerSide === 12 ? 12 : 6;
   return {
-    pits: Array(HOLES).fill(START_SEEDS),
+    pits: Array(holeCount(holesPerSide)).fill(START_SEEDS),
     stores: [0, 0],
     turn: first,
     over: false,
@@ -57,81 +101,74 @@ export function initialState(_rng?: () => number, first: Player = 0, variant: Nc
     sinceCapture: 0,
     endReason: null,
     variant,
+    holesPerSide,
+    chain: !!options.chain,
   };
 }
 
-// Sow and capture without any legality checks or end-of-game handling.
-export function sow(pits: number[], player: Player, hole: number, variant: NchoVariant = "ncho"): { pits: number[]; move: NchoMove } {
+// Sow and capture without any legality checks or end-of-game handling. Returns a new pits array.
+export function sow(
+  pits: number[],
+  player: Player,
+  hole: number,
+  variant: NchoVariant = "ncho",
+  chain = false,
+): { pits: number[]; move: NchoMove } {
+  const n = pits.length;
+  const half = n / 2;
   const dir = directionOf(variant);
   const next = pits.slice();
   let seeds = next[hole];
   next[hole] = 0;
-  const skipStart = seeds >= HOLES;
   const path: number[] = [];
   let pos = hole;
   while (seeds > 0) {
-    pos = (pos + dir + HOLES) % HOLES;
-    if (skipStart && pos === hole) continue;
+    pos = (pos + dir + n) % n; // every hole in turn, the starting one included
     next[pos] += 1;
     path.push(pos);
     seeds -= 1;
   }
+  const opp = other(player);
+  const made = next[pos];
+  const onTheirSide = sideOfHole(pos, half) === opp;
   const captured: number[] = [];
   let amount = 0;
-  const opp = other(player);
-  let p = pos;
-  // Walk back against the sowing direction, staying on their side (the side boundary always ends the chain).
-  while (sideOf(p) === opp && (next[p] === 2 || next[p] === 3)) {
-    captured.push(p);
-    amount += next[p];
-    p = (p - dir + HOLES) % HOLES;
+  if (onTheirSide && made === CAPTURE_AT) {
+    let p = pos;
+    // With the chain option, walk back against the sowing direction while still on their side and still exactly 4.
+    do {
+      captured.push(p);
+      amount += next[p];
+      next[p] = 0;
+      p = (p - dir + n) % n;
+    } while (chain && sideOfHole(p, half) === opp && next[p] === CAPTURE_AT && !captured.includes(p));
   }
-  let grandSlam = false;
-  if (amount > 0 && amount === seedsOnSide(next, opp)) {
-    // Grand slam: taking every one of their seeds isn't allowed, so the sowing stands and nothing is taken.
-    grandSlam = true;
-    captured.length = 0;
-    amount = 0;
-  }
-  for (const h of captured) next[h] = 0;
-  return { pits: next, move: { player, hole, path, captured, amount, grandSlam } };
+  return { pits: next, move: { player, hole, path, lastHole: pos, made, onTheirSide, captured, amount } };
 }
 
 export function legalMoves(state: NchoState): number[] {
   if (state.over) return [];
-  const me = state.turn;
-  const opp = other(me);
-  const mine = holesOf(me).filter((h) => state.pits[h] > 0);
-  if (seedsOnSide(state.pits, opp) > 0) return mine;
-  // They have nothing: you must give them seeds if any move can.
-  return mine.filter((h) => seedsOnSide(sow(state.pits, me, h, state.variant).pits, opp) > 0);
+  return holesOf(state, state.turn).filter((h) => state.pits[h] > 0);
 }
 
-function finish(state: NchoState, reason: NchoState["endReason"], sweep: boolean): NchoState {
-  const pits = state.pits.slice();
-  const stores: [number, number] = [state.stores[0], state.stores[1]];
-  if (sweep) {
-    // Seeds left on the board go to whoever has them on their side.
-    for (let h = 0; h < HOLES; h++) {
-      stores[sideOf(h)] += pits[h];
-      pits[h] = 0;
-    }
-  }
-  const winner: NchoState["winner"] = stores[0] > stores[1] ? 0 : stores[1] > stores[0] ? 1 : "draw";
-  return { ...state, pits, stores, over: true, winner, endReason: reason };
+function finish(state: NchoState, reason: NonNullable<NchoState["endReason"]>): NchoState {
+  // Only the houses count; seeds left on the board stay where they are and aren't added to anyone.
+  const [a, b] = state.stores;
+  const winner: NchoState["winner"] = a > b ? 0 : b > a ? 1 : "draw";
+  return { ...state, over: true, winner, endReason: reason };
 }
 
-// After a move (or at the start), end the game if someone has a majority, it has stalled, or the next player can't move.
+// After a move: end the game if every seed is captured, the player to move has nothing to play, or it has stalled.
 function settle(state: NchoState): NchoState {
-  if (state.stores[0] > TOTAL / 2 || state.stores[1] > TOTAL / 2) return finish(state, "majority", false);
-  if (state.sinceCapture >= STALL_PLIES) return finish(state, "stalled", true);
-  if (legalMoves(state).length === 0) return finish(state, "no-move", true);
+  if (state.stores[0] + state.stores[1] === totalSeeds(state.holesPerSide)) return finish(state, "all-captured");
+  if (seedsOnSide(state.pits, state.turn, state.holesPerSide) === 0) return finish(state, "no-move");
+  if (state.sinceCapture >= stallLimit(state.holesPerSide)) return finish(state, "stalled");
   return state;
 }
 
 export function applyMove(state: NchoState, hole: number): NchoState {
-  if (!legalMoves(state).includes(hole)) throw new Error(`Illegal move ${hole}`);
-  const { pits, move } = sow(state.pits, state.turn, hole, state.variant);
+  if (state.over || sideOf(state, hole) !== state.turn || !(state.pits[hole] > 0)) throw new Error(`Illegal move ${hole}`);
+  const { pits, move } = sow(state.pits, state.turn, hole, state.variant, state.chain);
   const stores: [number, number] = [state.stores[0], state.stores[1]];
   stores[state.turn] += move.amount;
   return settle({
@@ -145,36 +182,65 @@ export function applyMove(state: NchoState, hole: number): NchoState {
   });
 }
 
-// --- Computer player: alpha-beta minimax on the store difference. ---
+// --- Computer player: alpha-beta minimax on the difference between the two houses. ---
 
 export const LEVEL_DEPTH: Record<Level, number> = { easy: 2, medium: 4, hard: 6 };
 // Aka-Hausa is the harder game: the computer looks one move further ahead at every level.
 export const AKAHAUSA_DEPTH: Record<Level, number> = { easy: 3, medium: 5, hard: 7 };
-export const depthFor = (variant: NchoVariant, level: Level) => (variant === "akahausa" ? AKAHAUSA_DEPTH : LEVEL_DEPTH)[level];
+// The 12-hole board has twice the choices per move, so the search is capped to keep each move quick (well under
+// 300ms on a desktop; the tests measure it). Aka-Hausa still gets its extra move on top of these.
+export const LONG_BOARD_DEPTH: Record<Level, number> = { easy: 2, medium: 3, hard: 5 };
+export const depthFor = (variant: NchoVariant, level: Level, holesPerSide: number = 6) => {
+  const base = holesPerSide >= 12 ? LONG_BOARD_DEPTH[level] : LEVEL_DEPTH[level];
+  return base + (variant === "akahausa" ? 1 : 0);
+};
 
-function evaluate(state: NchoState, me: Player): number {
-  const diff = state.stores[me] - state.stores[other(me)];
-  if (state.over) return state.winner === me ? 1000 + diff : state.winner === "draw" ? 0 : -1000 + diff;
-  // Seeds still on your side are a small plus: they're likelier to end up yours.
-  return diff * 4 + (seedsOnSide(state.pits, me) - seedsOnSide(state.pits, other(me)));
+const WIN = 10000;
+
+// A lean copy of sow for the search: mutates `pits` in place and returns the seeds captured.
+function sowFast(pits: number[], player: Player, hole: number, dir: number, chain: boolean): number {
+  const n = pits.length;
+  const half = n >> 1;
+  let seeds = pits[hole];
+  pits[hole] = 0;
+  let pos = hole;
+  const laps = Math.floor(seeds / n);
+  if (laps > 0) { for (let h = 0; h < n; h++) pits[h] += laps; seeds -= laps * n; }
+  while (seeds > 0) { pos = (pos + dir + n) % n; pits[pos] += 1; seeds -= 1; }
+  const theirs = (h: number) => (player === 0 ? h >= half : h < half);
+  if (!theirs(pos) || pits[pos] !== CAPTURE_AT) return 0;
+  let amount = 0;
+  let p = pos;
+  let steps = 0;
+  do {
+    amount += pits[p];
+    pits[p] = 0;
+    p = (p - dir + n) % n;
+    steps++;
+  } while (chain && steps < half && theirs(p) && pits[p] === CAPTURE_AT);
+  return amount;
 }
 
-function search(state: NchoState, depth: number, alpha: number, beta: number, me: Player): number {
-  if (depth === 0 || state.over) return evaluate(state, me);
-  const moves = legalMoves(state);
-  if (state.turn === me) {
-    let best = -Infinity;
-    for (const h of moves) {
-      best = Math.max(best, search(applyMove(state, h), depth - 1, alpha, beta, me));
-      alpha = Math.max(alpha, best);
-      if (alpha >= beta) break;
-    }
-    return best;
-  }
-  let best = Infinity;
-  for (const h of moves) {
-    best = Math.min(best, search(applyMove(state, h), depth - 1, alpha, beta, me));
-    beta = Math.min(beta, best);
+type Ctx = { dir: number; chain: boolean; half: number; total: number; stall: number; me: Player };
+
+function search(pits: number[], stores: [number, number], turn: Player, since: number, depth: number, alpha: number, beta: number, c: Ctx): number {
+  const diff = stores[c.me] - stores[other(c.me)];
+  const lead = (d: number) => (d > 0 ? WIN + d : d < 0 ? -WIN + d : 0);
+  if (stores[0] + stores[1] === c.total) return lead(diff);
+  if (seedsOnSide(pits, turn, c.half) === 0 || since >= c.stall) return lead(diff);
+  if (depth === 0) return diff;
+  const from = turn === 0 ? 0 : c.half;
+  const maximise = turn === c.me;
+  let best = maximise ? -Infinity : Infinity;
+  for (let h = from; h < from + c.half; h++) {
+    if (pits[h] === 0) continue;
+    const next = pits.slice();
+    const got = sowFast(next, turn, h, c.dir, c.chain);
+    const ns: [number, number] = [stores[0], stores[1]];
+    ns[turn] += got;
+    const v = search(next, ns, other(turn), got > 0 ? 0 : since + 1, depth - 1, alpha, beta, c);
+    if (maximise) { if (v > best) best = v; if (best > alpha) alpha = best; }
+    else { if (v < best) best = v; if (best < beta) beta = best; }
     if (alpha >= beta) break;
   }
   return best;
@@ -186,11 +252,24 @@ export function chooseMove(state: NchoState, level: Level = "medium", rng: () =>
   // Easy slips now and then so it's beatable.
   if (level === "easy" && rng() < 0.3) return moves[Math.floor(rng() * moves.length)];
   const me = state.turn;
-  const depth = depthFor(state.variant, level);
+  const c: Ctx = {
+    dir: directionOf(state.variant),
+    chain: state.chain,
+    half: state.holesPerSide,
+    total: totalSeeds(state.holesPerSide),
+    stall: stallLimit(state.holesPerSide),
+    me,
+  };
+  const depth = depthFor(state.variant, level, state.holesPerSide);
   let bestScore = -Infinity;
   let best: number[] = [];
   for (const h of moves) {
-    const s = search(applyMove(state, h), depth - 1, -Infinity, Infinity, me);
+    const next = state.pits.slice();
+    const got = sowFast(next, me, h, c.dir, c.chain);
+    const ns: [number, number] = [state.stores[0], state.stores[1]];
+    ns[me] += got;
+    // A window just below the best so far keeps equal moves (for a random pick between them) while still pruning.
+    const s = search(next, ns, other(me), got > 0 ? 0 : state.sinceCapture + 1, depth - 1, bestScore - 1, Infinity, c);
     if (s > bestScore) { bestScore = s; best = [h]; }
     else if (s === bestScore) best.push(h);
   }
