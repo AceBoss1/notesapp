@@ -46,6 +46,10 @@ export const DAVIDO_AT_34: Campaign = {
   postPath: "/journals/happy-34th-birthday-davido",
 };
 
+// Shown on every page of the campaign (owner, 21 Nov 2026): it celebrates Davido and supports his idea of helping start-ups; it is not
+// affiliated with or endorsed by him or his team, and his team is welcome to collaborate.
+export const DAVIDO_DISCLAIMER = "These initiatives are #NotesApp's own way of celebrating Davido's 34th birthday and supporting his idea of helping Nigerians with start-up funds. They are not affiliated with, sponsored by or endorsed by Davido, his foundation or his team. We'd welcome his team's collaboration if they'd like to expand them.";
+
 export const CAMPAIGNS: Campaign[] = [DAVIDO_AT_34];
 
 // "davido at 34", "DAVIDO-AT-34" and "Davido_at_34" all match.

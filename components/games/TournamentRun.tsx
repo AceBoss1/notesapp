@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import RunGame from "@/components/games/RunGame";
 import type { BoardRow } from "@/lib/tournament-server";
+import { DAVIDO_DISCLAIMER } from "@/lib/promos";
 
 type Board = {
   name: string; playFrom: string; playUntil: string; tries: number; playing: boolean; entrants: number; played: number; rows: BoardRow[];
@@ -73,7 +74,9 @@ export default function TournamentRun({ code }: { code: string }) {
           ))}
         </ol>
       )}
+      <p className="tr-meta tr-disclaimer">{DAVIDO_DISCLAIMER}</p>
       <style jsx global>{`
+        .tr-disclaimer { margin-top:12px; padding-top:8px; border-top:1px solid #e3e6df; font-size:11px; }
         .tr-panel { margin-top:10px; font:500 13px var(--font-ui, system-ui), sans-serif; color:#17251f; }
         .tr-msg { margin:0 0 8px; padding:8px 10px; border-radius:8px; font-weight:600; }
         .tr-msg.is-ok { background:#eef8de; color:#2e5a1c; } .tr-msg.is-err { background:#fff0ed; color:#a33a2a; }

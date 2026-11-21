@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import type { PromoStatus, PromoTier } from "@/lib/promos";
+import { DAVIDO_DISCLAIMER, type PromoStatus, type PromoTier } from "@/lib/promos";
 
 type Mine = { plan: { tier: PromoTier; until: string } | null; tournament: boolean };
 type Data = PromoStatus & { mine?: Mine };
@@ -103,6 +103,7 @@ export default function PromoOffer({ code }: { code: string }) {
           <p className="mt-10 text-xs text-slate">NotesApp birthday initiatives. Venture support is subject to selection and terms.</p>
         </>
       )}
+      <p className="mt-6 border-t border-rule pt-4 text-xs text-slate">{DAVIDO_DISCLAIMER} <a href="mailto:hello@notesapp.name.ng" className="text-crimson underline">hello@notesapp.name.ng</a></p>
     </section>
   );
 }
