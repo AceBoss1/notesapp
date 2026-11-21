@@ -1,31 +1,21 @@
 "use client";
 
-import ThemeSwitch from "@/components/theme/ThemeSwitch";
-import { WALLET_LIVE } from "@/lib/wallet";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { getUserByUid, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
+import AccountMenu from "@/components/shell/AccountMenu";
 import Avatar from "@/components/Avatar";
-import { MESSAGES_LIVE } from "@/lib/moments-rules";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { useGoLive } from "@/components/lives/useGoLive";
-import { useCycleMenu } from "@/lib/cycle-client";
-import { useCalendarToday } from "@/components/calendar/useCalendarToday";
 
 // `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
 // the bell in a soft circle and the picture opens the menu, without the @username.
 export default function AuthNav({ onDark = false, compact = false }: { onDark?: boolean; compact?: boolean }) {
-  const goLive = useGoLive(); // 🔴 Go live: team accounts while the staff test pass is on (Admin → Limits)
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [unreadDms, setUnreadDms] = useState(0);
-  const cycle = useCycleMenu(user, profile?.accountKind === "organisation"); // My Cycle: hidden for "Not for me", child profiles and organisations
-  const calToday = useCalendarToday(user); // My Calendar: today's count; -1 for a child profile, which has no calendar
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -34,16 +24,6 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
     });
   }, []);
 
-  // The number beside "Messages", live while signed in (only when messaging is switched on).
-  useEffect(() => {
-    if (!MESSAGES_LIVE || !user) return;
-    const uid = user.uid;
-    return onSnapshot(
-      query(collection(db, "conversations"), where("participants", "array-contains", uid)),
-      (snap) => setUnreadDms(snap.docs.reduce((n, d) => n + ((d.data().unread?.[uid] as number | undefined) ?? 0), 0)),
-      () => {}
-    );
-  }, [user]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -71,7 +51,6 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
     );
   }
 
-  const item = "block px-4 py-2 text-left font-ui text-xs normal-case text-ink hover:bg-paper hover:text-crimson-bright";
 
   return (
     <div className="flex items-center gap-4">
@@ -92,37 +71,9 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
           </button>
         )}
         {open && (
-          <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
-            {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
-            {calToday !== -1 && <Link href="/calendar" className={`${item} flex items-center justify-between`}>📅 My Calendar{!!calToday && <span className="ml-2 rounded-full bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{calToday} today</span>}</Link>}
-            {profile && goLive && <Link href="/lives/start" className={item}>🔴 Go live</Link>}
-            {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
-            <Link href="/profile/edit" className={item}>Edit profile</Link>
-            <Link href="/profile/account" className={item}>Account (email, username)</Link>
-            <Link href="/profile/publishing" className={item}>
-              {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}
-            </Link>
-            {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
-            {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
-            {MESSAGES_LIVE && <Link href="/messages" className={item}>💬 Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
-            <Link href="/bookings" className={item}>Bookings</Link>
-            <Link href="/profile/family" className={item}>👨‍👩‍👧 Family (child profiles)</Link>
-            <Link href="/orders" className={item}>Orders &amp; parcels</Link>
-            <Link href="/tickets" className={item}>🎟 My tickets</Link>
-            <Link href="/giving" className={item}>My giving</Link>
-            {profile && canPublish(profile) && <Link href="/shipments" className={item}>Shipments (logistics)</Link>}
-            {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
-            {cycle && <Link href="/cycle" className={item}>🌸 My Cycle</Link>}
-            <Link href="/saved" className={item}>♥ Saved items</Link>
-            <Link href="/boost" className={item}>Boost a post</Link>
-            <Link href="/profile/boosts" className={item}>Boost performance</Link>
-            {profile?.accountKind === "organisation" && <Link href="/organisation" className={item}>Organisation setup</Link>}
-            <Link href="/advertise/campaigns" className={item}>My ad campaigns</Link>
-            <Link href="/badges" className={item}>Verification badges</Link>
-            <div className="border-t border-rule px-3 py-2"><ThemeSwitch compact /></div>
-            <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>
-              Sign out
-            </button>
+          // The account menu (lib/account-menu.ts), the same one the phone sheet shows.
+          <div role="menu" className="absolute right-0 z-50 mt-2 max-h-[min(80vh,46rem)] w-[23rem] overflow-y-auto rounded-2xl border border-rule bg-paper text-left normal-case shadow-2xl">
+            <AccountMenu onNavigate={() => setOpen(false)} />
           </div>
         )}
       </div>

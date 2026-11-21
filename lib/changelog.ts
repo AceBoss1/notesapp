@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.199.0",
+    version: "v0.200.0",
     bump: "minor",
     date: "2026-11-21",
     changes: [
@@ -19,6 +19,18 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "In Naija Run, Puff-Puff Rush and Snake, Nana coaches you after each run (what got you and how to go further), and gives a tip while the game is paused." },
       { kind: "added", text: "Nana works from each game's own engine, in your browser: no AI service, so she costs nothing and works offline. In the card games she only uses what you can see, never the computer's hand." },
       { kind: "added", text: "Switch Nana off for any game with NANA ON/OFF; your choice is kept (on your account when you're signed in). She sits out tournaments, and in player-to-player duels (coming) she's off unless the duel's rules allow her." },
+    ],
+  },
+  {
+    version: "v0.199.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "A cleaner menu, the same on a phone and a computer: your profile at the top (the arrow beside it switches to your store, your organisation or a community you run), your shortcuts (what you opened lately), eight big tiles for the places you use most with See more for the rest, and sections that fold: Settings and privacy, Upgrades, Help and support, and More from #NotesApp. Sign out is at the bottom." },
+      { kind: "added", text: "Make the shortcuts your own: tap Edit beside Your shortcuts to pin any place in the menu, or remove a shortcut with ×. Pinned ones come first, then what you opened lately." },
+      { kind: "added", text: "More from #NotesApp in the menu: Notes Arcade, Notes Life, Academy, Exam Prep, NotesApp Ventures, Notes Jobs, Nana, Notes Live and Media Live Studio PRO." },
+      { kind: "changed", text: "One set of line icons across the menu, in place of the emoji." },
+      { kind: "fixed", text: "A profile without a picture shows the default picture everywhere, not its name in a broken image." },
     ],
   },
   {

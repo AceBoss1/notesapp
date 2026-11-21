@@ -1362,7 +1362,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Arcade, Ventures, Sounds, Hotel kit and Business books; `WHAT_YOU_CAN_DO` in lib/site.ts adds lives, Ventures and the Arcade; About no
     longer calls live streaming "to come"; the roadmap has Notes Arcade and Ventures entries. Exam Prep copy doesn't promise Nana there yet
     (the roadmap lists it as next).
-160. **Nana in Notes Arcade (v0.199.0; owner, 21 Nov 2026: "a free Nana for arcade [that won't cost us nor the players] where Nana
+161. **Nana in Notes Arcade (v0.200.0; owner, 21 Nov 2026: "a free Nana for arcade [that won't cost us nor the players] where Nana
     suggests moves or analyze opponent moves, it won't be available for tournaments, mostly friendly trainings and competing player to
     player can have it turned off in their duel rules"):** no AI service; each game's own engine in the browser. `lib/arcade/nana.ts`
     (pure: `nanaAvailability` for practice/tournament/duel, `DuelRules` with `nana` off by default, `NanaTip`, `NanaTake`, `rateMove`,
@@ -1373,6 +1373,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     or 8,000 (8×8). Action games (`nana-run`, `nana-puffpuff`, `nana-snake`) watch the run without touching state or RNG and coach
     after it; tips only while paused; RunGame in tournament mode shows "Nana sits out tournaments" and computes nothing
     (run-replay.ts unchanged). Hints highlight in gold #ffd166. Tests: tests/arcade/nana*.test.ts (in `test:arcade`).
+
+160. **The account menu, Facebook-style (v0.199.0; owner, 21 Nov 2026: "see how clean and easily accessible Facebook is… borrow ideas"):**
+    `lib/account-menu.ts` is the ONE list (pure) behind both the phone sheet (`components/shell/AccountSheet.tsx`) and the computer's menu
+    (`components/AuthNav.tsx`), rendered by `components/shell/AccountMenu.tsx`: profile card with a switcher (store, organisation setup,
+    communities you own or admin via `/api/community?run=1`), shortcuts (Edit pins any place, `notesapp-menu-pinned`, and × removes;
+    pins first, then places opened lately, `notesapp-menu-recent`, never the tiles; both in this browser only), 8 tiles (`TILE_COUNT`) then See more, folding sections (Settings and privacy, Upgrades, Help and support, More from
+    #NotesApp in the owner's order: Arcade, Notes Life, Academy, Exam Prep, Ventures, Notes Jobs, Nana, Notes Live, Media Live Studio PRO
+    = /studio), Sign out. Icons: `components/shell/menuIcons.tsx`, no emoji. Add a page by adding it to `accountMenu()`; tests in
+    tests/account/account-menu.test.ts (`test:menus`). Still to come (owner): the profile page tidy-up, Notes Live in a TikTok-style
+    vertical feed (from the old live), and Media Live Studio PRO with a StreamYard-style studio.
 
 ## 3. How the work is done (please keep these)
 
