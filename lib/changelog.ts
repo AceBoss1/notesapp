@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.194.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Ludo has two new modes. 2 v 2 yards: pick any two colours and the computer plays the other two; your own colours share squares safely, and you need all 8 seeds home. Knockout: you and three computers, the last to get all four home is out each round, the knocked-out yard stays empty, and the final two play with two yards each." },
+      { kind: "added", text: "Ncho and Aka-Hausa for 4 players: you and three computers own three holes each, every end store is split in two, and players lose houses round by round until they're out." },
+      { kind: "changed", text: "Ncho and Aka-Hausa: once only 8 seeds are left on the board, whoever takes the next 4 takes all 8, so a round never ends with a lone 4 still in play. When a computer starts the next round, it begins by itself after a moment (WAIT keeps the summary up)." },
+      { kind: "changed", text: "Achi has eight lines: the middle row and the middle column through the centre now count, so three across or down the middle wins, and pieces slide along them too." },
+      { kind: "added", text: "Naija Run's street has roadside billboards carrying Notes Arcade adverts, with \"Your brand here\" on the spots nobody has booked." },
+      { kind: "fixed", text: "Naija Run and Puff-Puff Rush always show their whole play area, sharp on any screen: before, the street could show as a blurry close-up of a wall and the maze could be cut off at the bottom." },
+      { kind: "fixed", text: "Ncho's round and game summaries are no longer cut off on a computer screen, so the next-round button is always there." },
+    ],
+  },
+  {
     version: "v0.193.0",
     bump: "minor",
     date: "2026-11-21",

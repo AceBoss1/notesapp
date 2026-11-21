@@ -1306,6 +1306,21 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `size: 8` also offered), English always 8×8. African = men capture backwards, flying kings, compulsory most-pieces capture, a man
     crowns only if the move ends on the far row. The search deepens one ply at a time inside `NODE_BUDGET` positions so 10×10 stays
     quick on phones and plays the same on every device.
+157. **Ludo modes, Ncho for 4, the last-8 rule, Achi on eight lines, Run billboards, canvas sizing (v0.194.0; owner, 21 Nov 2026):**
+    Ludo `newGame(options, first, table)`: `table = { owner, active, playToLast }` (colour → controller, yards in play, play until one
+    is left); same-owner colours never capture each other and don't count as threats; inactive yards are skipped and never captured;
+    `state.order` is the finishing order, `loser` the last. Helpers `twoYardsTable`, `pairOwners`, `newKnockout`, `knockoutGame`,
+    `advanceKnockout`, `finalYards`, `playOut`, `playOutKnockout`. UI MODE: 4 PLAYERS / 2 V 2 YARDS / KNOCKOUT; a colour with all four
+    home leaves the turn order (its unspent dice are lost); green always moves first. Ncho (`lib/arcade/ncho.ts`): with 8 seeds left on
+    the board (seeds in hand count) the next 4 taken takes all 8 and ends the round ("sweep"); `autoStartsNextRound` +
+    `AUTO_NEXT_ROUND_MS` (2.5 s) start a computer-started round by itself. 4 players: 3 holes each, split end stores, turns in sowing
+    order skipping players who are out; unfillable holes go to the player with the most spare seeds who can fill them; the player
+    with the fewest houses starts the next round; 4-player wins kept apart (`arcade-*-wins-4p`). Achi `LINES` has 8 lines (middle row
+    and column added); the first player now wins with perfect play. Naija Run draws roadside billboards every 4th block
+    (`drawBillboard`, `BOARD_EVERY`) from the "arcade" adverts (`billboard` picture, else `image`), impressions once per advert per tab
+    when a board is readable, clicks through the line under the game. `components/games/useCanvasFit.ts`: canvases are sized by a
+    callback ref and re-fitted on resize and DPR change, because `ArcadeShell` mounts a game's board only after progress loads (a
+    mount-only effect found no canvas and left it at 300×150).
 
 ## 3. How the work is done (please keep these)
 
