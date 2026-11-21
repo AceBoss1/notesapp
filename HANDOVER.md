@@ -1340,6 +1340,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     own `step` and keeps its own score, refuses a run that claims more time than passed since the try began, and takes runs up to 15 min after
     the close. `promoRuns/{runId}`; best on the entry. Page /arcade/tournament (arcade.<domain>/tournament), live leaderboard via
     `/api/promos?board=1` every 15 s. Prizes/payouts are not in code: winners are announced by the team.
+    Where people arrive: the poster gives arcade.notesapp.name.ng and the code, so the Arcade home has a banner with a code box
+    (`components/promos/ArcadePromoBanner.tsx`); /DAVIDO-at-34, /davido-at-34 and /davido on any host redirect to /offers/DAVIDO-at-34
+    (next.config.js `redirects`); the journal post (the campaign's `postPath`) gets `PromoPostBox` under it on #NotesApp (not members' own
+    sites). Every campaign surface shows `DAVIDO_DISCLAIMER` (not affiliated with or endorsed by Davido or his team; collaboration welcome).
 
 ## 3. How the work is done (please keep these)
 

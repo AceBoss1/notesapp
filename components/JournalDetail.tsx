@@ -1,6 +1,7 @@
 import ProfileAvatar from "@/components/ProfileAvatar";
 import Image from "next/image";
 import Link from "next/link";
+import PromoPostBox from "@/components/promos/PromoPostBox";
 import { notFound } from "next/navigation";
 import { remark } from "remark";
 import html from "remark-html";
@@ -234,6 +235,9 @@ export default async function JournalDetail({
           </ul>
         </div>
       )}
+
+      {/* A post announcing a promo code (lib/promos.ts): where to use it, and the campaign's disclaimer. Not on members' own sites. */}
+      {!site && <PromoPostBox slug={note.slug} />}
 
       {/* Booking under the post: always on #NotesApp; on a member's site when they switched on "Book me" under every post (Your site),
           where it opens the booking card on their own Home. On wide layouts the author rail has it on a computer. */}
