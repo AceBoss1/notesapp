@@ -1,7 +1,7 @@
 "use client";
 
 import TabsMore from "@/components/TabsMore";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import FeedPost from "@/components/feed/FeedPost";
 import { feedAuthorOf, type FeedAuthor } from "@/lib/feed-author";
@@ -22,25 +22,32 @@ import CreatorMedia from "@/components/media/CreatorMedia";
 import { useCreatorMedia } from "@/lib/media-client";
 import { MEDIA_LIVE } from "@/lib/media-rules";
 import ReceivedGifts from "@/components/gifts/ReceivedGifts";
+import { EventCard, type Ev } from "@/components/events/Events";
+import { capi } from "@/components/community/api";
 
-// A profile's Notes · Media · Store · Courses (/u/<username>; ?tab=media, ?tab=store or ?tab=courses opens one, and /u/<username>/media
-// is the Media tab as a page). Media (components/media/CreatorMedia.tsx) is the creator's videos and pictures, with its own count. Notes can be sorted by Most viewed
-// or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses are the
-// ones they teach on Notes Academy (published only), most viewed first.
-// Gifts (after Media, v0.140.0) is the gifts the member received, with count and value; the member also withdraws from there
-// (components/gifts/ReceivedGifts.tsx).
-type Tab = "notes" | "media" | "gifts" | "store" | "courses";
+// A profile's tabs (/u/<username>), as pills after the owner's Facebook example (21 Nov 2026): All · Posts · Media · Gifts · Store ·
+// Courses · Events. A tab with nothing in it is left out (Gifts stays: it also holds the member's withdrawals and the week's top
+// gifters); on a phone the first four show and the rest go under More (components/TabsMore.tsx, the owner's rule of 12 Nov 2026).
+// All is the overview: the About sections (`about`), the booking card (`book`, #book), the latest posts and store items, then
+// whatever the page adds (`after`: recommendations, recent activity). ?tab=notes|posts|media|gifts|store|courses|events opens one,
+// /u/<username>/media is the Media tab as a page, and #posts / #book switch to Posts / All from anywhere on the page.
+// Media (components/media/CreatorMedia.tsx) is the creator's videos and pictures. Posts can be sorted by Most viewed or Recent and
+// narrowed to one of the topics they write about, shown as in the journal feed (FeedPost). Courses are the ones they teach on Notes
+// Academy (published only), most viewed first. Events are the public events they host (components/events/Events.tsx).
+type Tab = "all" | "notes" | "media" | "gifts" | "store" | "courses" | "events";
 type Sort = "viewed" | "recent";
+const TABS: Tab[] = ["all", "notes", "media", "gifts", "store", "courses", "events"];
 
-export default function ProfileTabs({ username, owner, notes, storeItems, isOfficial, suspended, storeFirst, initialTab, synthetic }: {
-  username: string; owner: FeedAuthor & { displayName: string }; notes: NoteWithComputed[]; storeItems: StoreItem[]; isOfficial: boolean; suspended: boolean; storeFirst: boolean;
-  initialTab?: Tab; synthetic?: boolean;
+export default function ProfileTabs({ username, owner, notes, notesLoaded = true, storeItems, isOfficial, suspended, storeFirst, initialTab, synthetic, isOwn = false, about, book, after }: {
+  username: string; owner: FeedAuthor & { displayName: string }; notes: NoteWithComputed[]; notesLoaded?: boolean; storeItems: StoreItem[]; isOfficial: boolean; suspended: boolean; storeFirst: boolean;
+  initialTab?: Tab; synthetic?: boolean; isOwn?: boolean; about?: ReactNode; book?: ReactNode; after?: ReactNode;
 }) {
   const { user } = useMember();
   const { saved, toggle } = useSavedJournals(user);
   // Their own journals carry their picture as it is now; co-authored ones are drawn under the main author.
   const authorOf = (n: NoteWithComputed): FeedAuthor => (n.authorUsername === username || (!n.authorUsername && n.author === owner.displayName) ? owner : feedAuthorOf(n, []));
-  const [tab, setTab] = useState<Tab>(initialTab ?? (storeFirst ? "store" : "notes"));
+  const [tab, setTab] = useState<Tab>(initialTab ?? (storeFirst ? "store" : "all"));
+  const top = useRef<HTMLDivElement>(null);
   // Media: the official channels have none, and nothing shows while an account is suspended.
   const mediaOn = MEDIA_LIVE && !synthetic && !isOfficial && !suspended;
   const media = useCreatorMedia(username, mediaOn);
@@ -49,11 +56,31 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
   const [topic, setTopic] = useState<string | null>(null);
   const weekly = useWeeklyViews("note");
   const courses = useAcademy(username, ACADEMY_LIVE && !suspended && !isOfficial);
-  useEffect(() => { if (storeFirst && !initialTab) setTab("store"); }, [storeFirst, initialTab]);
+  // The events they host: public and upcoming only (the server leaves out members-only and cancelled ones).
+  const [events, setEvents] = useState<Ev[]>([]);
+  useEffect(() => {
+    if (synthetic || isOfficial || suspended) return;
+    let live = true;
+    capi<{ events: Ev[] }>(`/api/events?host=${encodeURIComponent(username)}`).then((d) => { if (live) setEvents(d.events ?? []); }).catch(() => {});
+    return () => { live = false; };
+  }, [username, synthetic, isOfficial, suspended]);
+  useEffect(() => { if (storeFirst && !initialTab && !/^#(book|posts)$/.test(window.location.hash)) setTab("store"); }, [storeFirst, initialTab]);
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "store" || t === "courses" || t === "notes" || (t === "media" && mediaOn) || (t === "gifts" && giftsOn)) setTab(t);
+    const want = t === "posts" ? "notes" : t;
+    if (want === "all" || want === "store" || want === "courses" || want === "notes" || want === "events" || (want === "media" && mediaOn) || (want === "gifts" && giftsOn)) setTab(want);
   }, [mediaOn, giftsOn]);
+  // #book (Book a session, links from journals and live rooms) is on All; #posts (the stats line) opens Posts.
+  useEffect(() => {
+    const go = () => {
+      const h = window.location.hash;
+      if (h === "#posts") { setTab("notes"); requestAnimationFrame(() => top.current?.scrollIntoView({ behavior: "smooth", block: "start" })); }
+      else if (h === "#book") { setTab("all"); requestAnimationFrame(() => document.getElementById("book")?.scrollIntoView({ behavior: "smooth", block: "center" })); }
+    };
+    go();
+    window.addEventListener("hashchange", go);
+    return () => window.removeEventListener("hashchange", go);
+  }, []);
 
   const noteCount = isOfficial ? NOTESAPP_POSTS.length : notes.length;
   const topics = useMemo(() => {
@@ -68,28 +95,67 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
     return sort === "viewed" ? byMostViewed(shelf) : byRecent(shelf);
   }, [notes, topic, sort, weekly]);
   const chip = (on: boolean) => `flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${on ? "bg-ink text-paper" : "bg-card text-slate ring-1 ring-rule hover:text-ink"}`;
-  const tabText = (label: string, count?: number) => `${label}${count !== undefined ? ` · ${count}` : ""}`;
-  const tabBtn = (t: Tab, label: string, count?: number) => (
-    <button role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
-      className={`flex-shrink-0 border-b-2 px-1 py-3 font-ui text-sm font-semibold ${tab === t ? "border-crimson text-crimson" : "border-transparent text-slate hover:text-ink"}`}>
-      {label}{count !== undefined ? ` · ${count}` : ""}
-    </button>
+  const pill = (on: boolean) => `shrink-0 rounded-full px-4 py-2 font-ui text-sm font-semibold transition-colors ${on ? "bg-crimson/10 text-crimson" : "text-slate hover:bg-field hover:text-ink"}`;
+  // Only tabs with something in them (and always the one that's open, say from ?tab= or /u/<username>/media).
+  const has: Record<Tab, boolean> = {
+    all: true,
+    notes: !suspended && noteCount > 0,
+    media: mediaOn && (isOwn || (media.data?.counts.all ?? 0) > 0),
+    gifts: giftsOn,
+    store: storeItems.length > 0,
+    courses: (courses?.length ?? 0) > 0,
+    events: events.length > 0,
+  };
+  const LABEL: Record<Tab, string> = { all: "All", notes: "Posts", media: "Media", gifts: "Gifts", store: "Store", courses: "Courses", events: "Events" };
+  const tabs = TABS.filter((t) => has[t] || t === tab).map((t) => ({ id: t, label: LABEL[t] }));
+  const recent = useMemo(() => byRecent(notes.map((n) => ({ ...n, topics: topicsOf(n), publishedAt: n.date, views: n.viewCount || 0 }))).slice(0, 3), [notes]);
+  const seeAll = (t: Tab, text: string) => (
+    <button type="button" onClick={() => { setTab(t); top.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="font-ui text-sm font-semibold text-crimson hover:underline underline-offset-2">{text}</button>
   );
 
   return (
-    <div className="mt-10">
-      <div className="-mx-4 border-b border-rule px-4 sm:mx-0 sm:px-0">
-        {/* On a phone: three tabs and More (TabsMore); all of them from the sm breakpoint up. */}
-        <TabsMore label="Profile" active={tab} onSelect={(t) => setTab(t as Tab)} mobile={3}
-          tabClass={(on) => `flex-shrink-0 border-b-2 px-1 py-3 font-ui text-sm font-semibold sm:mr-4 ${on ? "border-crimson text-crimson" : "border-transparent text-slate hover:text-ink"}`}
-          tabs={[
-            { id: "notes", label: tabText("Notes", noteCount) },
-            ...(mediaOn ? [{ id: "media", label: tabText("Media", media.data?.counts.all ?? (media.data === undefined ? undefined : 0)) }] : []),
-            ...(giftsOn ? [{ id: "gifts", label: "Gifts" }] : []),
-            { id: "store", label: tabText("Store", storeItems.length) },
-            { id: "courses", label: tabText("Courses", courses?.length ?? 0) },
-          ]} />
+    <div className="mt-6">
+      <div ref={top} className="scroll-mt-24 border-b border-rule pb-3">
+        <TabsMore label="Profile" active={tab} onSelect={(t) => setTab(t as Tab)} mobile={4} tabClass={pill} tabs={tabs} />
       </div>
+
+      {tab === "all" && (
+        <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
+          {about && <div className="grid gap-3 lg:sticky lg:top-24">{about}</div>}
+          <div className={`min-w-0 ${about ? "" : "lg:col-span-2"}`}>
+            {book}
+            <section className={book ? "mt-8" : ""} aria-label="Latest posts">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-ui text-[17px] font-bold text-ink">Posts</h2>
+                {has.notes && noteCount > (isOfficial ? 4 : 3) && seeAll("notes", `See all ${noteCount}`)}
+              </div>
+              {isOfficial ? (
+                <div className="mt-3 grid grid-cols-1 gap-3">{NOTESAPP_POSTS.slice(0, 4).map((post) => <NotesAppPostRow key={post.slug} post={post} />)}</div>
+              ) : suspended ? (
+                <p className="mt-3 text-sm italic text-slate">Entries are hidden while this account is temporarily suspended.</p>
+              ) : !notesLoaded ? (
+                <div className="mt-3 h-32 animate-pulse rounded-2xl bg-rule/40" />
+              ) : recent.length === 0 ? (
+                <p className="mt-3 text-sm text-slate">No public entries yet.</p>
+              ) : (
+                <div className="-mx-4 mt-3 overflow-hidden sm:mx-0 sm:rounded-2xl sm:border sm:border-rule sm:bg-card">
+                  {recent.map((n) => <FeedPost key={n.id} note={n} author={authorOf(n)} user={user} views={n.viewCount || 0} saved={saved.has(n.id)} onSave={toggle} />)}
+                </div>
+              )}
+            </section>
+            {storeItems.length > 0 && !suspended && (
+              <section className="mt-8" aria-label="From the store">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="font-ui text-[17px] font-bold text-ink">Store</h2>
+                  {seeAll("store", storeItems.length > 2 ? `See all ${storeItems.length}` : "Open")}
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">{storeItems.slice(0, 2).map((item) => <ItemCard key={item.id ?? item.title} item={item} />)}</div>
+              </section>
+            )}
+            {after}
+          </div>
+        </div>
+      )}
 
       {tab === "notes" && (
         <div className="mt-5">
@@ -146,6 +212,8 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
           <p className="mt-1">Courses are coming with <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link>: free courses from the teacher&apos;s YouTube, paid courses on #NotesApp, and certificates anyone can check.</p>
         </div>
       ))}
+
+      {tab === "events" && (events.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{events.map((e) => <EventCard key={e.id} e={e} />)}</ul> : <p className="card mt-5 p-6 text-sm text-slate">No upcoming events.</p>)}
     </div>
   );
 }

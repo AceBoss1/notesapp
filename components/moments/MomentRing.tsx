@@ -10,10 +10,16 @@ import MomentViewer from "./MomentViewer";
 import MomentComposer from "./MomentComposer";
 import OwnPictureMenu from "./OwnPictureMenu";
 import PictureViewer from "@/components/PictureViewer";
+import Link from "next/link";
+import { CameraIcon } from "@/components/profile/icons";
+
+// The small round camera on your own picture (the owner's Facebook example, 21 Nov 2026).
+const camera = "absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-paper bg-field text-ink shadow hover:bg-crimson hover:text-paper";
 
 // Wraps a profile picture. Tapping it opens their profile pictures (PictureViewer: swipe or ‹ › through past ones). When the
 // member has moments you're allowed to see, the picture gets a ring and tapping asks which to open; on your own profile there
-// is also an add button. With moments switched off the picture still opens the pictures.
+// is also a camera button (change the picture, add a moment). With moments switched off the picture still opens the pictures,
+// and on your own profile the camera goes to Edit profile.
 export default function MomentRing({ username, uid, name, isOwn, children, avatar = "", square = false }: { username: string; uid: string; name: string; isOwn: boolean; children: ReactNode; avatar?: string; square?: boolean }) {
   const [menu, setMenu] = useState(false);
   const [pictures, setPictures] = useState(false);
@@ -34,7 +40,10 @@ export default function MomentRing({ username, uid, name, isOwn, children, avata
   if (!MOMENTS_LIVE || !user) {
     return (
       <>
-        <button type="button" onClick={() => setPictures(true)} aria-label={`View ${name}'s profile pictures`} className="block shrink-0 rounded-2xl">{children}</button>
+        <div className="relative shrink-0">
+          <button type="button" onClick={() => setPictures(true)} aria-label={`View ${name}'s profile pictures`} className="block shrink-0 rounded-2xl">{children}</button>
+          {isOwn && <Link href="/profile/edit" aria-label="Change your profile picture" title="Change your profile picture" className={camera}><CameraIcon className="h-[18px] w-[18px]" /></Link>}
+        </div>
         {viewer}
       </>
     );
@@ -52,7 +61,7 @@ export default function MomentRing({ username, uid, name, isOwn, children, avata
           <span className="block rounded-2xl bg-white p-[2px]">{children}</span>
         </button>
         {isOwn && (
-          <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-crimson text-lg font-bold leading-none text-white shadow">+</button>
+          <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" title="Your profile picture and moments" className={camera}><CameraIcon className="h-[18px] w-[18px]" /></button>
         )}
       </div>
       {choose && (
