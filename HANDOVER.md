@@ -1263,6 +1263,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     wins; the loser starts the next game; no feeding or grand-slam rules (they were our guesses). Options: the 12-hole Nchokoroto board
     and chain capture (off by default: "ask your elders"). Aka-Hausa is the same rules sown clockwise. Not built, possible later: "take
     the house" (a captured hole becomes yours), the 3-seeds school stage rule, the 30-seconds formal timer (for tournaments).
+152. **Three more Arcade games (v0.191.0; owner, 21 Nov 2026: the drawn board "players try to fix 3 straight paths", and "2 more popular
+    engaging games like something run or something like Mario packman with a matching sound effect"):** `achi` (only the drawn lines:
+    four edges and two diagonals, no centre cross; 3 pieces each; perfect play on hard by solving the game), `run` (Naija Run, canvas,
+    three lanes, seeded spawner that always leaves a lane clear), `puffpuff` (Puff-Puff Rush, canvas maze chase, three original mazes,
+    four goats with their own behaviour). Original characters, art and synthesised sounds; nothing copied from any named game. Their
+    entries live in `lib/arcade/<slug>.entry.ts`, listed by `lib/arcade/catalogue.ts`; `scripts/arcade-shots.mjs` reads both.
 
 ## 3. How the work is done (please keep these)
 
