@@ -26,7 +26,7 @@ export default function Avatar({
     // support well for local files.
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={failed ? DEFAULT_AVATAR : src}
+      src={failed || !src ? DEFAULT_AVATAR : src} // an empty address may never fire onError, so it would show the alt text
       alt={alt}
       width={size}
       height={size}

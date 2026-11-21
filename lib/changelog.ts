@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.198.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "A cleaner menu, the same on a phone and a computer: your profile at the top (the arrow beside it switches to your store, your organisation or a community you run), your shortcuts (what you opened lately), eight big tiles for the places you use most with See more for the rest, and sections that fold: Settings and privacy, Upgrades, Help and support, and More from #NotesApp. Sign out is at the bottom." },
+      { kind: "added", text: "More from #NotesApp in the menu: Notes Arcade, Notes Life, Academy, Exam Prep, NotesApp Ventures, Notes Jobs, Nana, Notes Live and Media Live Studio PRO." },
+      { kind: "changed", text: "One set of line icons across the menu, in place of the emoji." },
+      { kind: "fixed", text: "A profile without a picture shows the default picture everywhere, not its name in a broken image." },
+    ],
+  },
+  {
     version: "v0.197.0",
     bump: "minor",
     date: "2026-11-21",

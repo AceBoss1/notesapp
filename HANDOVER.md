@@ -1354,6 +1354,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     (next.config.js `redirects`); the journal post (the campaign's `postPath`) gets `PromoPostBox` under it on #NotesApp (not members' own
     sites). Every campaign surface shows `DAVIDO_DISCLAIMER` (not affiliated with or endorsed by Davido or his team; collaboration welcome).
 
+159. **The account menu, Facebook-style (v0.198.0; owner, 21 Nov 2026: "see how clean and easily accessible Facebook is… borrow ideas"):**
+    `lib/account-menu.ts` is the ONE list (pure) behind both the phone sheet (`components/shell/AccountSheet.tsx`) and the computer's menu
+    (`components/AuthNav.tsx`), rendered by `components/shell/AccountMenu.tsx`: profile card with a switcher (store, organisation setup,
+    communities you own or admin via `/api/community?run=1`), shortcuts (menu places opened lately, localStorage `notesapp-menu-recent`,
+    never the tiles), 8 tiles (`TILE_COUNT`) then See more, folding sections (Settings and privacy, Upgrades, Help and support, More from
+    #NotesApp in the owner's order: Arcade, Notes Life, Academy, Exam Prep, Ventures, Notes Jobs, Nana, Notes Live, Media Live Studio PRO
+    = /studio), Sign out. Icons: `components/shell/menuIcons.tsx`, no emoji. Add a page by adding it to `accountMenu()`; tests in
+    tests/account/account-menu.test.ts (`test:menus`). Still to come (owner): the profile page tidy-up, Notes Live in a TikTok-style
+    vertical feed (from the old live), and Media Live Studio PRO with a StreamYard-style studio.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

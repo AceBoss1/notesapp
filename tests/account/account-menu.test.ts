@@ -1,0 +1,47 @@
+// The account menu (lib/account-menu.ts): eight tiles then "See more", the folding sections, "More from #NotesApp" in the owner's
+// order, what drops out when it doesn't apply, the signed-out menu, and shortcuts from what was opened lately. Run: npm run test:menus
+import assert from "node:assert/strict";
+import { RECENT_MAX, TILE_COUNT, accountMenu, pushRecent, shortcutsFrom, type MenuCtx } from "../../lib/account-menu";
+
+const base: MenuCtx = { username: "ada", canPublish: true, isOrg: false, goLive: true, cycle: true, calToday: 2, wallet: true, messages: true, unreadDms: 3 };
+const m = accountMenu(base);
+
+// Eight tiles, the most-used first; the rest under See more.
+assert.equal(m.tiles.length, TILE_COUNT);
+assert.deepEqual(m.tiles.map((t) => t.label), ["My journal", "Messages", "Calendar", "My store", "Wallet", "Saved", "Bookings", "Orders & parcels"]);
+assert.equal(m.tiles[1].badge, 3);
+assert.equal(m.tiles[2].note, "2 today");
+assert.deepEqual(m.more.map((t) => t.label), ["Go live", "My tickets", "My giving", "Shipments", "Co-author invites", "My Cycle", "Communities"]);
+
+// The sections, in order, and "More from #NotesApp" as the owner listed it.
+assert.deepEqual(m.sections.map((s) => s.label), ["Settings and privacy", "Upgrades", "Help and support", "More from #NotesApp"]);
+const apps = m.sections.find((s) => s.key === "apps")!;
+assert.deepEqual(apps.items.map((i) => i.label), ["Notes Arcade", "Notes Life", "Academy", "Exam Prep", "NotesApp Ventures", "Notes Jobs", "Nana", "Notes Live", "Media Live Studio PRO"]);
+assert.deepEqual(apps.items.map((i) => i.href), ["/arcade", "/life", "/academy", "/exam-prep", "/ventures", "/jobs", "/nana", "/lives", "/studio"]);
+
+// Nothing appears twice anywhere in the menu.
+const hrefs = [...m.tiles, ...m.more, ...m.sections.flatMap((s) => s.items)].map((i) => i.href);
+const twice = hrefs.filter((h, i) => hrefs.indexOf(h) !== i);
+assert.deepEqual(twice.filter((h) => h !== "/profile/publishing" && h !== "/nana"), [], "only Rates/Start publishing and Nana may sit in two places");
+
+// What doesn't apply drops out, and the tiles fill up from the next places.
+const plain = accountMenu({ ...base, canPublish: false, goLive: false, cycle: false, calToday: -1, wallet: false, messages: false, unreadDms: 0 });
+assert.equal(plain.tiles[0].label, "Start publishing");
+assert.ok(!plain.tiles.some((t) => ["Messages", "Calendar", "Wallet"].includes(t.label)));
+assert.equal(plain.tiles.length, TILE_COUNT);
+assert.ok(![...plain.tiles, ...plain.more].some((t) => ["Go live", "My Cycle", "Shipments"].includes(t.label)));
+assert.ok(!plain.sections[0].items.some((i) => i.label === "Organisation setup"));
+assert.ok(accountMenu({ ...base, isOrg: true }).sections[0].items.some((i) => i.label === "Organisation setup"));
+
+// Signed out: no tiles, just help and the apps.
+const out = accountMenu({ ...base, username: null });
+assert.deepEqual(out.tiles, []); assert.deepEqual(out.sections.map((s) => s.key), ["help", "apps"]);
+
+// Shortcuts: newest first, no repeats, at most six, never a tile, and only places still in the menu.
+let r: string[] = [];
+for (const h of ["/tickets", "/arcade", "/write", "/tickets", "/nope", "/badges", "/jobs", "/studio", "/giving", "/life"]) r = pushRecent(r, h);
+assert.equal(r.length, RECENT_MAX);
+assert.deepEqual(r, ["/life", "/giving", "/studio", "/jobs", "/badges", "/nope"]);
+assert.deepEqual(shortcutsFrom(["/write", "/arcade", "/nope", "/badges"], m).map((s) => s.label), ["Notes Arcade", "Verification badges"]);
+
+console.log("ACCOUNT MENU (new) OK");
