@@ -58,7 +58,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/install", label: "How to install →" },
   },
   {
-    title: "Notes Live Studio: a broadcast look for your live",
+    title: "Media Live Studio PRO: a broadcast studio for your live",
     tag: "Social",
     body: "In testing with the #NotesApp team: your logo, a lower third with the headline and the speaker's name, a scrolling ticker, subtitles, viewers' comments on air, intro and outro clips, a sponsor spot and screen sharing, with roles for an editor and moderators. Everyone watching sees the same picture.",
     detail: "Next: sending the same programme to LinkedIn Live at the same time, the studio's graphics in replays, automatic subtitles from speech, and background blur.",

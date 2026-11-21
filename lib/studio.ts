@@ -18,7 +18,7 @@
 // Opening it to everyone is this one switch.
 export const STUDIO_FOR_EVERYONE = false;
 export const studioAllowed = (r: { staffPass?: boolean }) => STUDIO_FOR_EVERYONE || r.staffPass === true;
-export const STUDIO_CLOSED = "Notes Live Studio is being tested by the #NotesApp team. It opens to everyone soon.";
+export const STUDIO_CLOSED = "Media Live Studio PRO is being tested by the #NotesApp team. It opens to everyone soon.";
 
 export const STUDIO_LAYOUTS = [
   { id: "auto", label: "Auto", hint: "Everyone on stage, side by side" },
