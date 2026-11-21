@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { isKidUid } from "./kids";
 import { notifyBell } from "./email";
 import type { NanaDeps } from "./nana-server";
+import { PromoError, pickVentureSlot, ventureCampaignFor } from "./promos-server";
 import {
   AGREE_TEXT, CALL_NAME, VETTING_SYSTEM, parseVetting, vetPrompt, type NanaRead, DEFAULT_CALL, LIMITS, OPEN_STATUSES, PICKS_MAX, PICKS_MIN, STATUS_NOTE, VENTURES_PATH,
   isKind, isPicks, isRegion, isSector, isStage, isStatus, quarterOf,
@@ -66,13 +67,17 @@ export async function sendPitch(db: Firestore, me: { uid: string; emailVerified:
   if (!u || u.suspended === true) throw new VenturesError(403, "Your account can't do that right now.");
   if (u.teen === true) throw new VenturesError(403, `${CALL_NAME} is for members aged 18 and over.`);
   if (!u.username) throw new VenturesError(400, "Finish setting up your profile first.");
-  if (!(await callSettings(db)).open) throw new VenturesError(409, `${CALL_NAME} is paused for now. Follow #NotesApp to hear when pitches open again.`);
+  // A promo code (e.g. DAVIDO-at-34) opens that campaign's venture slots, even while the regular call is paused (owner, 21 Nov 2026).
+  let campaign: string | null = null;
+  try { campaign = await ventureCampaignFor(db, b.promoCode, now); } catch (e) { if (e instanceof PromoError) throw new VenturesError(e.status, e.message); throw e; }
+  if (!campaign && !(await callSettings(db)).open) throw new VenturesError(409, `${CALL_NAME} is paused for now. Follow #NotesApp to hear when pitches open again.`);
   const quarter = quarterOf(now);
   if (b.agree !== true) throw new VenturesError(400, `Tick the box: "${AGREE_TEXT}"`);
   if (b.emergingMarkets !== true) throw new VenturesError(400, "Only ideas and ventures for emerging markets are welcome. Confirm yours is.");
   const app: Omit<Application, "id"> = {
     uid: me.uid, username: String(u.username), name: String(u.displayName ?? u.username),
     quarter, ...cleanPitch(b), status: "received", createdAt: now.toISOString(), updatedAt: now.toISOString(),
+    ...(campaign ? { campaign } : {}),
   };
   const mine = await db.collection(COL).where("uid", "==", me.uid).get();
   const inQuarter = mine.docs.filter((d) => d.data().quarter === quarter && d.data().status !== "withdrawn");
@@ -123,6 +128,10 @@ export async function decidePitch(db: Firestore, id: unknown, input: { status?: 
     if (!isStatus(input.status) || input.status === "withdrawn") throw new VenturesError(400, "Choose a status.");
     if (a.status === "withdrawn") throw new VenturesError(409, "The member withdrew this pitch.");
     patch.status = input.status;
+    // A campaign pitch (sent with a promo code) uses the campaign's own slots, not the quarter's: counted in a transaction below.
+    if (a.campaign && (input.status === "picked") !== (a.status === "picked")) {
+      patch.status = input.status;
+    } else
     // Up to picksPerQuarter picks a quarter (owner, 6 Nov 2026: what the team can build at its current strength; Admin → Limits).
     if (input.status === "picked" && a.status !== "picked") {
       const quarter = quarterOf(now);
@@ -136,7 +145,17 @@ export async function decidePitch(db: Firestore, id: unknown, input: { status?: 
   if (input.notes !== undefined) patch.notes = String(input.notes ?? "").slice(0, 2000);
   if (input.advice !== undefined) patch.advice = String(input.advice ?? "").trim().slice(0, LIMITS.advice);
   if (input.perksSent === true) patch.perksSentAt = now.toISOString();
-  await ref.update(patch);
+  const campaignPick = !!a.campaign && patch.status !== undefined && (patch.status === "picked") !== (a.status === "picked");
+  if (campaignPick) {
+    try {
+      await db.runTransaction(async (t) => {
+        const [fresh, counter] = await Promise.all([t.get(ref), t.get(db.doc(`promos/${a.campaign}`))]);
+        if ((fresh.data()?.status === "picked") === (patch.status === "picked")) return; // already done
+        pickVentureSlot(t, db, counter, a.campaign!, patch.status === "picked");
+        t.update(ref, patch);
+      });
+    } catch (e) { if (e instanceof PromoError) throw new VenturesError(e.status, e.message); throw e; }
+  } else await ref.update(patch);
   const st = patch.status as Status | undefined;
   const tell = st && st !== a.status ? STATUS_NOTE[st] : undefined;
   if (tell) await notifyBell({ uid: a.uid, type: "ventures", linkHref: VENTURES_PATH + "#mine", message: tell(a.title, picksPerQuarter) }).catch(() => {});

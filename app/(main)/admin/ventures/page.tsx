@@ -68,6 +68,7 @@ export default function AdminVenturesPage() {
             <li key={a.id} className="rounded-2xl border border-rule bg-card p-4 text-sm">
               <button type="button" onClick={() => setOpen(open === a.id ? null : a.id)} className="flex w-full flex-wrap items-baseline gap-2 text-left" aria-expanded={open === a.id}>
                 <b className="text-ink">{a.title}</b>
+                {a.campaign && <span className="rounded-full bg-crimson px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-paper" title="Sent with a promo code: picking it uses that campaign's venture slots, not the quarter's (Admin → Promos)">{a.campaign}</span>}
                 <span className="text-slate">· @{a.username} · {REGION_LABEL[a.region]} · {KIND_LABEL[a.kind]} · {a.quarter} · {a.createdAt.slice(0, 10)}</span>
                 <span className="ml-auto rounded-full bg-field px-2.5 py-0.5 text-xs font-semibold text-ink">{STATUS_LABEL[a.status]}</span>
               </button>

@@ -79,11 +79,11 @@ for (const a of HOUSE_ADS) {
 }
 const wideAd = HOUSE_ADS.find((a) => a.id === "house-davido34-wide")!;
 assert.deepEqual([...wideAd.placements].sort(), (Object.keys(AD_PLACEMENTS) as (keyof typeof AD_PLACEMENTS)[]).filter((p) => p !== "digest" && p !== "arcadesq").sort(), "every wide spot, Notes Life and the Arcade, never the digest");
-assert.equal(wideAd.href, "/journals/happy-34th-birthday-davido");
+assert.equal(wideAd.href, "/offers/DAVIDO-at-34");
 const squares = HOUSE_ADS.filter((a) => a.placements.includes("arcadesq"));
 for (const pin of ["ludo-yard-0", "ludo-yard-1", "ludo-yard-2", "ludo-yard-3", "ludo-centre", "landlord-tile"]) {
   const shown = forSpot(squares, pin);
-  assert.equal(shown.length, 1, `${pin}: its own design`); assert.equal(shown[0].href, "/arcade");
+  assert.equal(shown.length, 1, `${pin}: its own design`); assert.equal(shown[0].href, "/arcade/tournament");
 }
 assert.deepEqual(forSpot(squares, "ludo-yard-2")[0].square, "/ads/davido34/yard-2.jpg", "the yellow yard gets the yellow design");
 

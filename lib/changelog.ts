@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.196.0",
+    version: "v0.197.0",
     bump: "minor",
     date: "2026-11-21",
     changes: [
@@ -21,6 +21,19 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Square spots can carry their own design: each Ludo yard, the middle of the Ludo board and the squares beside Naija Landlord's dice can each show an advert made for that one spot." },
       { kind: "added", text: "Happy 34th birthday, Davido: a #NotesApp campaign runs until 21 December 2026 in the advert spots across the site, on Notes Life's billboards, under every Notes Arcade game and on Naija Run's billboards, with a design in each Ludo yard's colour, one for the middle of the board and one beside Naija Landlord's dice." },
       { kind: "changed", text: "Adverts in the Ludo yards now show at full strength instead of a faint wash, and the seed holder on top and the circles round each seed are lighter, so the picture reads clearly round your seeds." },
+    ],
+  },
+  {
+    version: "v0.196.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Happy 34th birthday, Davido: use the code DAVIDO-at-34 at notesapp.name.ng/offers/DAVIDO-at-34 to claim a free plan while they last: 34 Enterprise plans for a month, 34 Business plans for a month or 1,000 Pro plans for a year. One per account (and per organisation). When it ends, your account goes back to the plan you pay for, or Free Basic, and it doesn't use up your own free trial." },
+      { kind: "added", text: "Four venture slots with up to ₦5m support each: pitch your business idea to NotesApp Ventures with the code DAVIDO-at-34 while slots are open (subject to selection and terms)." },
+      { kind: "added", text: "The Davido at 34 Arcade Tournament runs tonight, 21 November, from 10 PM to midnight (Lagos time) at arcade.notesapp.name.ng/tournament: Naija Run, the same street for everyone, your best of 3 tries counts, and the leaderboard updates live as people play. Free entry for signed-in members aged 18 and over. Every run is checked: the server replays it and works out the score itself." },
+      { kind: "added", text: "The code works where the poster sends you: type DAVIDO-at-34 on the Arcade home (arcade.notesapp.name.ng), or go to notesapp.name.ng/davido, and you land on the offer. The journal post links there too." },
+      { kind: "added", text: "These birthday initiatives are #NotesApp's own way of celebrating Davido and supporting his idea of helping start-ups. They are not affiliated with or endorsed by Davido or his team; we'd welcome his team's collaboration to expand them. Every page of the offer says so." },
+      { kind: "added", text: "For our team: Admin → Promos shows what's left of each free plan, who claimed what, the pitches sent with the code and the tournament sign-ups. Birthday pitches are marked in Admin → Ventures and use their own four slots, not the quarter's." },
     ],
   },
   {

@@ -21,14 +21,14 @@ export const HOUSE_ADS: AdCreative[] = [
   {
     ...base, id: "house-davido34-wide", title: "Happy 34th birthday, Davido",
     text: "₦82.72M+ in NotesApp birthday initiatives. Code DAVIDO-at-34.",
-    image: PIC("wide.jpg"), billboard: PIC("billboard.jpg"), href: "/journals/happy-34th-birthday-davido", placements: WIDE,
+    image: PIC("wide.jpg"), billboard: PIC("billboard.jpg"), href: "/offers/DAVIDO-at-34", placements: WIDE,
   },
   ...YARDS.map((colour, n): AdCreative => ({
     ...base, id: `house-davido34-yard-${n}`, title: "Davido @34 tournament", text: `Notes Arcade Ludo, the ${colour} yard.`,
-    square: PIC(`yard-${n}.jpg`), href: "/arcade", placements: ["arcadesq"], pin: `ludo-yard-${n}`,
+    square: PIC(`yard-${n}.jpg`), href: "/arcade/tournament", placements: ["arcadesq"], pin: `ludo-yard-${n}`,
   })),
-  { ...base, id: "house-davido34-centre", title: "Davido @34 tournament", square: PIC("centre.jpg"), href: "/arcade", placements: ["arcadesq"], pin: "ludo-centre" },
-  { ...base, id: "house-davido34-landlord", title: "Davido @34 tournament", square: PIC("tile.jpg"), href: "/arcade", placements: ["arcadesq"], pin: "landlord-tile" },
+  { ...base, id: "house-davido34-centre", title: "Davido @34 tournament", square: PIC("centre.jpg"), href: "/arcade/tournament", placements: ["arcadesq"], pin: "ludo-centre" },
+  { ...base, id: "house-davido34-landlord", title: "Davido @34 tournament", square: PIC("tile.jpg"), href: "/arcade/tournament", placements: ["arcadesq"], pin: "landlord-tile" },
 ];
 
 export const HOUSE_ADS_END = END;

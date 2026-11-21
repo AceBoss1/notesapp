@@ -124,6 +124,7 @@ export type Application = {
   status: Status; createdAt: string; updatedAt: string;
   advice?: string; // the team's advice to the member (shown to them, with any decision)
   pickedQuarter?: string; // the quarter it was picked in (up to PICKS_PER_QUARTER a quarter)
+  campaign?: string; // sent with a promo code (lib/promos.ts, e.g. "davido-at-34"): picking it uses that campaign's venture slots, not the quarter's
   notes?: string; perksSentAt?: string; // the team's own (never shown to the member)
   nanaRead?: NanaRead; // Nana's three tests (team only, never shown to the member)
 };

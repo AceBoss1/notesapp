@@ -3,6 +3,7 @@
 import { ARCADE_GAMES } from "@/lib/arcade/catalogue";
 import { CITY_CARDS } from "@/lib/life/catalog";
 import { ArcadeFooter, ArcadeStyles, ArcadeTopbar, ArcadeWalletNote } from "./ArcadeShell";
+import ArcadePromoBanner from "@/components/promos/ArcadePromoBanner";
 
 // The Notes Arcade home: every game as a card with its screenshot, what it is and who plays. app/(arcade)/arcade/page.tsx.
 // The next Notes Life cities, shown as coming soon. A city not yet in the Notes Life city picker brings its own picture.
@@ -12,6 +13,7 @@ export default function ArcadeHome() {
   return (
     <section className="arc-page" aria-label="Notes Arcade">
       <ArcadeTopbar />
+      <ArcadePromoBanner />
       <div className="arch-hero">
         <p className="arc-kicker"><span>{String(ARCADE_GAMES.length).padStart(2, "0")}</span> &nbsp; GAMES · FREE · IN YOUR BROWSER</p>
         <h1>Pass the time,<br /><em>play a game.</em></h1>
