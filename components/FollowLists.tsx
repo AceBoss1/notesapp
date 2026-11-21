@@ -7,7 +7,8 @@ import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { type FollowPage, type ListedPerson } from "@/lib/social-graph";
 
-type Kind = "followers" | "following";
+export type FollowKind = "followers" | "following";
+type Kind = FollowKind;
 const NA_USERNAME = "na-notesapp";
 
 // "Followers · Following" under a profile. Each opens the list, 30 at a time. Shown only when both you and they have lists switched on (your own always);
@@ -20,12 +21,13 @@ export default function FollowLists({ username, owner = false, followerCount }: 
         <button type="button" onClick={() => setOpen("followers")} className="underline-offset-2 hover:underline">Followers{typeof followerCount === "number" ? ` (${followerCount})` : ""}</button>
         <button type="button" onClick={() => setOpen("following")} className="underline-offset-2 hover:underline">Following</button>
       </p>
-      {open && <ListDialog username={username} start={open} owner={owner && username === NA_USERNAME} onClose={() => setOpen(null)} />}
+      {open && <FollowListDialog username={username} start={open} owner={owner && username === NA_USERNAME} onClose={() => setOpen(null)} />}
     </>
   );
 }
 
-function ListDialog({ username, start, owner, onClose }: { username: string; start: Kind; owner: boolean; onClose: () => void }) {
+// The list itself, in a dialog (also opened from the profile's stats line, components/profile/ProfileHeader.tsx).
+export function FollowListDialog({ username, start, owner, onClose }: { username: string; start: Kind; owner: boolean; onClose: () => void }) {
   const [kind, setKind] = useState<Kind>(start);
   const [people, setPeople] = useState<ListedPerson[]>([]);
   const [next, setNext] = useState<string | null>(null);

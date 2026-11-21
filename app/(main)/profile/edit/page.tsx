@@ -152,7 +152,10 @@ export default function ProfileEditPage() {
           />
         </label>
 
-        <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
+        {/* #work: the pencil on the profile's Work section comes here. */}
+        <div id="work" className="scroll-mt-28">
+          <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
+        </div>
         {profile && profile.accountKind !== "organisation" && (
           <p className="text-sm text-slate">
             Is this account for a company, NGO, church, school or club?{" "}
