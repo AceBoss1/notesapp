@@ -15,7 +15,7 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-21",
     changes: [
-      { kind: "added", text: "Draughts now plays African rules by default, the way most players here know it: men capture backwards as well as forwards, kings fly any distance along a clear diagonal and capture from afar, and you must take the most pieces you can. English rules are one tap away in the new Rules menu, and the game remembers your choice." },
+      { kind: "added", text: "Draughts now plays African rules on the 10×10 board by default, 20 pieces each, the way most players here know it: men capture backwards as well as forwards, kings fly any distance along a clear diagonal and capture from afar, and you must take the most pieces you can. The new Rules menu also offers African rules on 8×8 and English draughts, and the game remembers your choice." },
     ],
   },
   {

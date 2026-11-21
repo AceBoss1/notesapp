@@ -20,8 +20,11 @@ const afr = (pieces: [number, number, Cell][], turn: Player = 0): DraughtsState 
 const key = (m: DraughtsMove) => `${m.from}>${m.path.join(">")}`;
 const keys = (s: DraughtsState) => legalMoves(s).map(key).sort();
 
-// African rules are the default.
+// African rules on 10×10 are the default; English is always 8×8.
 assert.equal(initialState().rules, "african");
+assert.equal(initialState().board.length, 100);
+assert.equal(initialState(undefined, { rules: "english", size: 10 }).board.length, 64);
+assert.equal(initialState(undefined, { size: 8 }).board.length, 64);
 
 // Start: 12 each on dark squares, light to move with 7 possible steps.
 const s0 = initialState(undefined, { rules: "english" });
@@ -144,8 +147,8 @@ assert.deepEqual(keys(pos([[4, 3, man(0)]])), [`${sq(4, 3)}>${sq(3, 2)}`, `${sq(
 
 // --- African rules ---
 
-// Same start, same 7 opening steps (men still step forward only).
-assert.equal(legalMoves(initialState()).length, 7);
+// African on 8×8: same start, same 7 opening steps (men still step forward only).
+assert.equal(legalMoves(initialState(undefined, { size: 8 })).length, 7);
 assert.deepEqual(keys(afr([[4, 3, man(0)]])), [`${sq(4, 3)}>${sq(3, 2)}`, `${sq(4, 3)}>${sq(3, 4)}`].sort());
 
 // Men capture backwards.
@@ -220,12 +223,48 @@ assert.deepEqual(keys(afr([[4, 3, man(0)]])), [`${sq(4, 3)}>${sq(3, 2)}`, `${sq(
   assert.equal(applyMove(end, m).board[sq(0, 3)]?.king, true);
 }
 
+// --- African on 10×10 ---
+{
+  const s = initialState();
+  const n = 10;
+  assert.deepEqual(countPieces(s.board, 0), { men: 20, kings: 0 });
+  assert.deepEqual(countPieces(s.board, 1), { men: 20, kings: 0 });
+  assert.ok(s.board.every((p, i) => !p || (Math.floor(i / n) + (i % n)) % 2 === 1), "dark squares only");
+  assert.ok(s.board.slice(40, 60).every((p) => p === null), "two empty middle rows");
+  assert.equal(s.board[9 * n]?.side, 0, "your bottom-left corner is a dark square with a man on it");
+}
+{
+  // Positions on 10×10.
+  const n = 10;
+  const at10 = (pieces: [number, number, Cell][], turn: Player = 0): DraughtsState => {
+    const board: Cell[] = Array(100).fill(null);
+    for (const [r, c, p] of pieces) board[r * n + c] = p;
+    return { ...initialState(), board, turn };
+  };
+  const q = (r: number, c: number) => r * n + c;
+  // A king in the corner flies all 9 squares of the long diagonal.
+  assert.equal(legalMoves(at10([[9, 0, king(0)], [0, 3, man(1)]])).length, 9);
+  // Men crown on row 0 and capture backwards here too.
+  const back = at10([[3, 2, man(0)], [4, 3, man(1)], [9, 0, man(0)], [0, 9, man(1)]]);
+  assert.deepEqual(legalMoves(back).map((m) => m.path[0]), [q(5, 4)]);
+  const crown = at10([[1, 2, man(0)], [9, 0, man(1)]]);
+  assert.ok(legalMoves(crown).every((m) => m.crowns));
+  // Dark crowns on row 9.
+  const dark = at10([[8, 3, man(1)], [0, 1, man(0)]], 1);
+  assert.ok(legalMoves(dark).every((m) => m.crowns && Math.floor(m.path[0] / n) === 9));
+  // Majority capture across pieces: the triple beats the double.
+  const most = at10([[9, 0, man(0)], [8, 1, man(1)], [6, 3, man(1)], [4, 5, man(1)], [9, 8, man(0)], [8, 7, man(1)], [6, 5, man(1)], [0, 1, man(1)]]);
+  assert.deepEqual([...new Set(legalMoves(most).map((m) => m.captures.length))], [3]);
+}
+
 // Full games between two computer players finish without an illegal move, under both rule sets.
-for (let seed = 1; seed <= 8; seed++) {
+for (let seed = 1; seed <= 9; seed++) {
   const rng = seededRng(seed);
   const levels = ["easy", "medium", "hard"] as const;
-  const rules: Rules = seed % 2 ? "english" : "african";
-  let s = initialState(rng, { rules });
+  const rules: Rules = seed % 3 === 0 ? "english" : "african";
+  const size = seed % 3 === 2 ? 8 : 10;
+  let s = initialState(rng, { rules, size });
+  const start = s.board.filter(Boolean).length;
   let guard = 0;
   while (!s.over) {
     const level = levels[(seed + s.turn) % 3];
@@ -233,7 +272,7 @@ for (let seed = 1; seed <= 8; seed++) {
     assert.ok(legalMoves(s).some((x) => key(x) === key(m)));
     s = applyMove(s, m);
     const total = countPieces(s.board, 0).men + countPieces(s.board, 0).kings + countPieces(s.board, 1).men + countPieces(s.board, 1).kings;
-    assert.ok(total <= 24);
+    assert.ok(total <= start);
     guard++;
     assert.ok(guard < 1000, "game must finish");
   }
