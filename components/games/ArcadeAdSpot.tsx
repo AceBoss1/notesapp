@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { loadAds, weightedOrder, type Ad } from "@/components/AdSlot";
-import { AD_FOOTER, fitsSpot, spotPicture } from "@/lib/ads";
+import { AD_FOOTER, fitsSpot, forSpot, spotPicture } from "@/lib/ads";
 
 // An advert spot inside Notes Arcade (owner, 20 Nov 2026: "advert spots in every game, the center of the ludo is a great advert
 // spot"). Same adverts, rotation, impressions and clicks as every other spot (Admin → Ads, placement "arcade"; components/AdSlot.tsx).
@@ -15,7 +15,8 @@ import { AD_FOOTER, fitsSpot, spotPicture } from "@/lib/ads";
 //   banner — a wide strip under a game's board
 //   yard   — a whole Ludo yard (owner, 21 Nov 2026): the picture laid see-through over the yard's colour, under the white seed holder;
 //            each of the four yards starts on a different advert (offset)
-export default function ArcadeAdSpot({ variant, game, offset = 0 }: { variant: "board" | "tile" | "banner" | "yard"; game: string; offset?: number }) {
+// pin: the spot's own id (lib/ads.ts forSpot): adverts pinned to it show there and nowhere else; with none, the unpinned rotate.
+export default function ArcadeAdSpot({ variant, game, offset = 0, pin }: { variant: "board" | "tile" | "banner" | "yard"; game: string; offset?: number; pin?: string }) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [i, setI] = useState(0);
   const [stay, setStay] = useState(30_000);
@@ -27,11 +28,11 @@ export default function ArcadeAdSpot({ variant, game, offset = 0 }: { variant: "
     let live = true;
     loadAds(placement).then((l) => {
       if (!live) return;
-      setAds(weightedOrder(l.ads.filter((a) => a.provider === "notesapp" && fitsSpot(a, shape))));
+      setAds(weightedOrder(forSpot(l.ads.filter((a) => a.provider === "notesapp" && fitsSpot(a, shape)), pin)));
       setStay(l.rotateSec * 1000);
     });
     return () => { live = false; };
-  }, [placement, shape]);
+  }, [placement, shape, pin]);
 
   useEffect(() => {
     if (ads.length < 2) return;

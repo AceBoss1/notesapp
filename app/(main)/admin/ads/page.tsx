@@ -13,6 +13,7 @@ import { AD_FOOTER, AD_PLACEMENTS, AdCreative, AdPlacement } from "@/lib/ads";
 import { AD_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX, BILLBOARD_IMAGE, SQUARE_IMAGE } from "@/lib/ad-config";
 import ImageCrop from "@/components/advertise/ImageCrop";
 import AdSettings from "@/components/admin/AdSettings";
+import { HOUSE_ADS, HOUSE_ADS_END } from "@/lib/house-ads";
 
 type Row = AdCreative & { createdAt?: string };
 const EMPTY = { title: "", text: "", image: "", billboard: "", square: "", href: "", placements: [] as AdPlacement[], weight: 5, active: true, startsAt: "", endsAt: "" };
@@ -161,6 +162,21 @@ export default function AdminAdsPage() {
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       <AdSettings user={user} />
+
+      {Date.now() <= new Date(HOUSE_ADS_END).getTime() && (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">House campaign (in code)</p>
+          <p className="mt-1 text-xs text-slate">
+            Set in <code>lib/house-ads.ts</code>, not editable here; it switches itself off after{" "}
+            {new Date(HOUSE_ADS_END).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" })}. The spot switches above still apply.
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-slate">
+            {HOUSE_ADS.map((a) => (
+              <li key={a.id}><span className="text-ink">{a.title}</span>{a.pin ? ` · pinned to ${a.pin}` : ""} · {a.placements.map((p) => AD_PLACEMENTS[p].label).join(", ")}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form onSubmit={save} className={`card relative mt-8 grid gap-3 p-5 sm:grid-cols-2 ${bannerDrop.dragging ? DROP_RING : ""}`} {...bannerDrop.bind}>
         {bannerDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as the ad image</div>}

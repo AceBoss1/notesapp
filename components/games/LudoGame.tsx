@@ -200,7 +200,7 @@ function BoardSquares({ active, yours }: { active: boolean[]; yours: boolean[] }
       {YARD_ORIGIN.map(([r, c], p) => (
         <div key={`y${p}`} className={`ludo-yard${active[p] ? "" : " is-empty"}`} style={{ gridArea: `${r + 1} / ${c + 1} / span 6 / span 6`, background: COLOURS[p] }}>
           {/* Each yard is a full-square advert spot under the seed holder (owner, 21 Nov 2026). */}
-          <ArcadeAdSpot variant="yard" game="ludo" offset={p} />
+          <ArcadeAdSpot variant="yard" game="ludo" offset={p} pin={`ludo-yard-${p}`} />
           <div className="ludo-yard-inner">
             {YARD_SPOTS.map((_, i) => <i key={i} style={{ background: `${COLOURS[p]}55` }} />)}
           </div>
@@ -218,7 +218,7 @@ function BoardSquares({ active, yours }: { active: boolean[]; yours: boolean[] }
         style={{ background: `conic-gradient(from -45deg, ${COLOURS[2]} 0 90deg, ${COLOURS[3]} 90deg 180deg, ${COLOURS[0]} 180deg 270deg, ${COLOURS[1]} 270deg 360deg)` }}
       >
         {/* The centre of the board is an advert spot (owner, 20 Nov 2026). */}
-        <ArcadeAdSpot variant="board" game="ludo" />
+        <ArcadeAdSpot variant="board" game="ludo" pin="ludo-centre" />
       </div>
     </>
   );

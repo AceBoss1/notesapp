@@ -50,6 +50,14 @@ export function fitsSpot(ad: Pictures, shape: SpotShape): boolean {
   if (shape === "billboard") return !!ad.billboard;
   return true;
 }
+// Pinned adverts (owner, 21 Nov 2026: a different design for each Ludo yard and the centre). An advert with a pin shows only
+// in that exact spot; a spot shows the adverts pinned to it if there are any, otherwise the unpinned ones, and never an advert
+// pinned elsewhere. Pins: ludo-yard-0 … ludo-yard-3 (green, red, yellow, blue), ludo-centre, landlord-tile.
+export function forSpot<T extends { pin?: string }>(ads: T[], pin?: string): T[] {
+  const mine = pin ? ads.filter((a) => a.pin === pin) : [];
+  return mine.length ? mine : ads.filter((a) => !a.pin);
+}
+
 // The picture to draw in a spot of that shape (undefined: none, show the title).
 export function spotPicture(ad: Pictures, shape: SpotShape): string | undefined {
   return shape === "square" ? ad.square : shape === "billboard" ? ad.billboard : ad.image;
@@ -62,6 +70,7 @@ export type AdCreative = {
   image?: string;
   billboard?: string; // the billboard picture (1600 × 900), for Notes Life and Naija Run's roadside boards
   square?: string; // the square picture (1080 × 1080), for Notes Arcade's square spots
+  pin?: string; // shows only in this one spot (forSpot), e.g. "ludo-centre"
   href: string;
   placements: AdPlacement[];
   weight: number; // 1–10, relative share of rotation

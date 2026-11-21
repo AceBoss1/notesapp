@@ -18,6 +18,8 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Square advert spots in Notes Arcade: tick \"Notes Arcade square spots\" on your campaign and add a 1080 × 1080 square picture, and your advert shows in the middle of the Ludo board, in its yards and beside Naija Landlord's dice. The campaign form crops your picture to a square, and there's a square template to download on the advert sizes page." },
       { kind: "changed", text: "Pictures always go in a spot of their own shape: square spots show only square pictures, the spot under each game the wide picture, and Naija Run's roadside billboards only billboard pictures, so nothing is squashed or stretched to fit." },
       { kind: "added", text: "A Notes Arcade campaign can add a 1600 × 900 billboard picture to stand on Naija Run's roadside billboards." },
+      { kind: "added", text: "Square spots can carry their own design: each Ludo yard, the middle of the Ludo board and the squares beside Naija Landlord's dice can each show an advert made for that one spot." },
+      { kind: "added", text: "Happy 34th birthday, Davido: a #NotesApp campaign runs until 21 December 2026 in the advert spots across the site, on Notes Life's billboards, under every Notes Arcade game and on Naija Run's billboards, with a design in each Ludo yard's colour, one for the middle of the board and one beside Naija Landlord's dice." },
     ],
   },
   {

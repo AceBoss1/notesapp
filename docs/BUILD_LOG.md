@@ -3478,3 +3478,15 @@ draw the square picture (cover) and count under `arcadesq`, the banner keeps the
 stretch the wide picture (`billboard || image` before): only adverts with a billboard picture go up, the rest of the street keeps
 "Your brand here". Notes Life already used only billboard pictures. The specifications page has a "Square picture (Notes Arcade)"
 section and `/api/ads/template?kind=square`. Tests: `test:ads`.
+
+Then, the same day, the owner asked to "deploy ads, different designs for each Ludo square, each in Ludo yard color, then one center...
+deploy directly on all games and all ad slots too... it should run 1 month". There is no database access from where the code is built, so
+"directly" means in code, live on merge. Adverts can carry a `pin`: `forSpot` (`lib/ads.ts`) shows a spot the adverts pinned to it,
+otherwise the unpinned ones, and never one pinned elsewhere; `/api/ads` returns pinned adverts only for `arcadesq`. Ludo passes
+`ludo-yard-${p}` (0 green, 1 red, 2 yellow, 3 blue) and `ludo-centre`, Naija Landlord `landlord-tile` to both tiles. `lib/house-ads.ts`
+holds the house campaign (`HOUSE_ADS`, weight 10, 21 Nov to 21 Dec 2026, Lagos time): the wide "Happy 34th birthday, Davido" advert
+with a billboard picture on every wide spot except the digest plus `life` and `arcade`, and six square designs pinned to the Ludo
+yards, the Ludo centre and the Landlord tiles, linking to `/arcade`. Links are site paths (they stay on the visitor's domain; the
+Life and Arcade hosts pass them on), and the digest is left out because its click link (`/api/digest/go`) reads `adCreatives/{id}` and
+wants an https link. `loadActiveAds` appends the open ones after the paid-campaign budget check, so `/api/ads/track` counts them like any
+advert; Admin → Ads lists them read-only. Tests: `test:ads` (forSpot, the window, no digest, the word limits, the pictures exist).

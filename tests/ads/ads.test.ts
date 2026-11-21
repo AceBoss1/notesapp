@@ -1,7 +1,9 @@
 // Adverts and boosts (lib/ad-config.ts) and the weekly digest's picking (lib/digest.ts). Run: npm run test:ads → "ALL OK".
 import assert from "node:assert/strict";
-import { AD_CONFIG_DEFAULTS, AD_IMAGE, BILLBOARD_IMAGE, cleanAdConfig, cropFor, imageProblem, rightShape, spotOn, SQUARE_IMAGE } from "../../lib/ad-config";
-import { AD_PLACEMENTS, fitsSpot, spotPicture } from "../../lib/ads";
+import { AD_CONFIG_DEFAULTS, AD_IMAGE, BILLBOARD_IMAGE, cleanAdConfig, cropFor, imageProblem, rightShape, spotOn, SQUARE_IMAGE, AD_TEXT_MAX, AD_TITLE_MAX } from "../../lib/ad-config";
+import { existsSync } from "node:fs";
+import { AD_PLACEMENTS, fitsSpot, forSpot, spotPicture } from "../../lib/ads";
+import { HOUSE_ADS, openHouseAds } from "../../lib/house-ads";
 import { fillSlots, pickItems, pickStories, renderDigestHtml, renderDigestText, type PoolItem, type PoolStory, type SlotCandidate } from "../../lib/digest";
 
 // ---- the settings ----
@@ -48,6 +50,42 @@ assert.ok(fitsSpot(wideOnly, "wide") && fitsSpot(titleOnly, "wide") && fitsSpot(
 assert.equal(spotPicture(all, "square"), "s.jpg"); assert.equal(spotPicture(all, "billboard"), "b.jpg"); assert.equal(spotPicture(all, "wide"), "w.jpg");
 assert.equal(spotPicture(sqOnly, "wide"), undefined, "the square picture is never drawn in a wide spot");
 assert.equal(spotPicture(wideOnly, "square"), undefined, "nor the wide one in a square spot");
+
+// ---- pinned spots ----
+type P = { id: string; pin?: string };
+const un1: P = { id: "u1" }, un2: P = { id: "u2" }, pY0: P = { id: "y0", pin: "ludo-yard-0" }, pC: P = { id: "c", pin: "ludo-centre" };
+const mix = [un1, pY0, un2, pC];
+assert.deepEqual(forSpot(mix, "ludo-yard-0").map((a) => a.id), ["y0"], "a spot with its own pinned advert shows only that");
+assert.deepEqual(forSpot(mix, "ludo-yard-1").map((a) => a.id), ["u1", "u2"], "no pin for this spot: the unpinned rotate");
+assert.deepEqual(forSpot(mix).map((a) => a.id), ["u1", "u2"], "a spot without an id never shows pinned adverts");
+assert.deepEqual(forSpot([pY0, pC], "landlord-tile"), [], "never an advert pinned elsewhere");
+
+// ---- the house campaign in code (lib/house-ads.ts) ----
+const ms = (s: string) => new Date(s).getTime();
+assert.equal(openHouseAds(ms("2026-11-20T22:59:59Z")).length, 0, "not before 21 Nov 2026 (Lagos)");
+assert.equal(openHouseAds(ms("2026-11-20T23:00:00Z")).length, HOUSE_ADS.length, "all on from midnight Lagos, 21 Nov");
+assert.equal(openHouseAds(ms("2026-12-21T22:59:59Z")).length, HOUSE_ADS.length, "still on at the end of 21 Dec (Lagos)");
+assert.equal(openHouseAds(ms("2026-12-21T23:00:00Z")).length, 0, "off after 21 Dec 2026");
+assert.equal(new Set(HOUSE_ADS.map((a) => a.id)).size, HOUSE_ADS.length, "ids are unique");
+for (const a of HOUSE_ADS) {
+  assert.ok(a.id.startsWith("house-davido34-") && a.provider === "notesapp" && a.weight === 10 && a.active, a.id);
+  assert.ok(!a.placements.includes("digest"), `${a.id}: never in the weekly digest`);
+  assert.ok(a.title.length <= AD_TITLE_MAX && (a.text ?? "").length <= AD_TEXT_MAX, `${a.id}: words within the limits`);
+  assert.ok(a.href.startsWith("/") && !a.href.startsWith("//"), `${a.id}: a site path, never a domain`);
+  for (const pic of [a.image, a.billboard, a.square].filter(Boolean) as string[]) assert.ok(existsSync(`public${pic}`), `${pic} exists`);
+  assert.ok(a.placements.every((p) => p in AD_PLACEMENTS), `${a.id}: known spots`);
+  if (a.placements.includes("arcadesq")) assert.ok(a.square && fitsSpot(a, "square"), `${a.id}: square spots need a square`);
+  if (a.placements.includes("life")) assert.ok(a.billboard, `${a.id}: Notes Life needs a billboard`);
+}
+const wideAd = HOUSE_ADS.find((a) => a.id === "house-davido34-wide")!;
+assert.deepEqual([...wideAd.placements].sort(), (Object.keys(AD_PLACEMENTS) as (keyof typeof AD_PLACEMENTS)[]).filter((p) => p !== "digest" && p !== "arcadesq").sort(), "every wide spot, Notes Life and the Arcade, never the digest");
+assert.equal(wideAd.href, "/journals/happy-34th-birthday-davido");
+const squares = HOUSE_ADS.filter((a) => a.placements.includes("arcadesq"));
+for (const pin of ["ludo-yard-0", "ludo-yard-1", "ludo-yard-2", "ludo-yard-3", "ludo-centre", "landlord-tile"]) {
+  const shown = forSpot(squares, pin);
+  assert.equal(shown.length, 1, `${pin}: its own design`); assert.equal(shown[0].href, "/arcade");
+}
+assert.deepEqual(forSpot(squares, "ludo-yard-2")[0].square, "/ads/davido34/yard-2.jpg", "the yellow yard gets the yellow design");
 
 // ---- the digest: stories on the reader's interests first ----
 const story = (id: string, tags: string[], views: number, author = "a"): PoolStory => ({ id, authorUid: `u_${author}`, authorUsername: author, tags, publishedAt: "2026-10-15T10:00:00Z", title: id, summary: "", href: `https://x/journals/${id}`, image: null, writerName: author, writerAvatar: "", readMinutes: 2, likes: 0, comments: 0, views, premium: false });
