@@ -8,7 +8,7 @@ import { arcadeStore } from "@/lib/arcade/store";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 import {
   DEFAULT_OPTIONS, HOME, HOME_COLUMN, START, STARS, TRACK, YARD, YARD_ORIGIN,
-  applyAction, applyMove, applyRoll, chooseAction, diceForSeed, legalActions, newGame, rollDice, seedCell, straightHomeSeed,
+  applyAction, applyMove, applyRoll, banked, chooseAction, diceForSeed, legalActions, newGame, rollDice, seedCell, straightHomeSeed,
   type LudoAction, type LudoEvent, type LudoOptions, type LudoState,
 } from "@/lib/arcade/ludo";
 
@@ -27,7 +27,7 @@ const PIPS: Record<number, number[]> = { 1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0,
 const HOME_SPOT: [number, number][] = [[8.45, 7.5], [7.5, 6.55], [6.55, 7.5], [7.5, 8.45]];
 const YARD_SPOTS: [number, number][] = [[2, 2], [2, 4], [4, 2], [4, 4]];
 
-const rolled = (dice: number[]) => (dice.length === 2 && dice[0] === dice[1] ? `double ${dice[0]}` : dice.join(" and "));
+const rolled = (dice: number[]) => (dice.length === 2 && dice[0] === dice[1] ? `double ${dice[0]}` : dice.length > 2 ? dice.join(", ") : dice.join(" and "));
 
 function describe(e: LudoEvent | null, options: LudoOptions): string {
   if (!e) return "";
@@ -42,33 +42,27 @@ function describe(e: LudoEvent | null, options: LudoOptions): string {
     const victims = e.captured.map((c) => (c.player === 0 ? "your seed" : `${NAMES[c.player]}'s seed`));
     const list = [...new Set(victims)].join(" and ");
     text = e.player === 0 ? `You sent ${list} back to the yard!` : `${NAMES[e.player]} sent ${list} back to the yard.`;
+    if (e.hitHome) text = `${text} ${e.player === 0 ? "Your seed goes" : "Its seed goes"} straight home.`;
   } else if (e.to === HOME) text = e.player === 0 ? "You got a seed home." : `${NAMES[e.player]} got a seed home.`;
   else if (e.from === YARD) text = e.player === 0 ? "Your seed is out." : `${NAMES[e.player]} brought a seed out.`;
   if (e.forfeited.length > 0) text = `${text} The ${e.forfeited.join(" and ")} couldn't be used.`.trim();
   return text;
 }
 
-// What to do with the roll in front of you.
+// What to do with the banked dice in front of you.
 function moveHint(g: LudoState): string {
   const actions = legalActions(g);
   const home = straightHomeSeed(g) !== null;
-  const left = g.dice.filter((_, i) => !g.used[i]);
-  if (g.options.dice === 1) {
-    if (home) return "You rolled 5 after a 6: tap 6+5 → HOME to send that seed straight home, or move it 5.";
-    return actions.length === 1 ? `You rolled ${g.dice[0]}. Moving your seed…` : `You rolled ${g.dice[0]}. Tap a glowing seed.`;
-  }
-  if (left.length === 2) {
-    const head = `You rolled ${rolled(g.dice)}`;
-    if (actions.length === 1) return `${head}. Moving your seed…`;
-    if (home) return `${head}: tap 6+5 → HOME to send a seed straight home, or pick a die and a seed.`;
-    if (g.dice[0] === 6 && g.dice[1] === 6) return `${head}: use each 6, then roll again.`;
-    const other = g.dice.find((d) => d !== 6);
-    if (other !== undefined && g.dice.includes(6) && g.seeds[0].includes(YARD)) return `${head}: bring a seed out with the 6, then move ${other}.`;
-    return `${head}: pick a die, then tap a glowing seed.`;
-  }
-  const before = describe(g.last, g.options);
-  if (actions.length === 1) return `${before} Now the ${left[0]}: moving your seed…`.trim();
-  return `${before} Now move ${left[0]}: tap a glowing seed.`.trim();
+  const left = banked(g);
+  const fresh = !g.used.some(Boolean);
+  const head = fresh ? `You rolled ${rolled(g.dice)}` : `${describe(g.last, g.options)} Now ${left.length === 1 ? `the ${left[0]}` : rolled(left)}`.trim();
+  if (actions.length === 1) return `${head}. Moving your seed…`;
+  if (home) return `${head}: tap 6+5 → HOME to send a seed straight home, or pick a die and a seed.`;
+  if (left.length === 1) return `${head}: tap a glowing seed.`;
+  if (new Set(actions.flatMap((a) => (a.kind === "step" ? [g.dice[a.die]] : []))).size === 1) return `${head}: tap a glowing seed.`;
+  const other = left.find((d) => d !== 6);
+  if (fresh && other !== undefined && left.includes(6) && g.seeds[0].includes(YARD)) return `${head}: bring a seed out with a 6, then spend the rest in any order.`;
+  return `${head}: pick a die, then tap a glowing seed. Spend them in any order.`;
 }
 
 function statusLine(g: LudoState, rolling: boolean): string {
@@ -76,17 +70,21 @@ function statusLine(g: LudoState, rolling: boolean): string {
   if (rolling) return g.turn === 0 ? "Rolling…" : `${NAMES[g.turn]} is rolling…`;
   const before = describe(g.last, g.options);
   const dice = g.options.dice === 2 ? "the dice" : "the die";
+  const bank = banked(g);
+  const last = g.last;
+  const afterCapture = !!last && last.kind === "move" && last.player === g.turn && last.bonus;
+  const six = g.options.dice === 2 ? "Double 6!" : "A six!";
   if (g.turn === 0) {
     if (g.phase === "move") return moveHint(g);
-    const last = g.last;
-    const mine = last && last.kind !== "pass" && last.kind !== "three-sixes" && last.player === 0 && last.bonus;
-    if (mine) return `${before || (g.options.dice === 2 ? "Double 6!" : "A six!")} Roll again.`.trim();
+    if (afterCapture) return `${before} Roll again${bank.length ? ` (still banked: ${rolled(bank)})` : ""}.`.trim();
+    if (bank.length) return `${six} Banked: ${rolled(bank)}. Roll again.`;
     return `${before} Your turn: roll ${dice}.`.trim();
   }
   if (g.phase === "move") {
     if (g.used.some(Boolean)) return `${before} ${NAMES[g.turn]} is thinking…`.trim();
     return `${NAMES[g.turn]} rolled ${rolled(g.dice)} and is thinking…`;
   }
+  if (bank.length && !afterCapture) return `${NAMES[g.turn]}: ${six.toLowerCase().replace("!", "")}, rolling again (banked: ${rolled(bank)}).`;
   return `${before} ${NAMES[g.turn]}'s turn.`.trim();
 }
 
@@ -357,9 +355,12 @@ export default function LudoGame() {
     [game, rolling, activeDie],
   );
   const canGoHome = started && !rolling && game.turn === 0 && straightHomeSeed(game) !== null;
-  // You can switch dice when both are unspent, different, and each moves something.
-  const pickable = two && activeDie !== null && game.used.every((u) => !u) && game.dice[0] !== game.dice[1]
-    && [0, 1].every((i) => game.seeds[0].some((_, seed) => diceForSeed(game, seed).includes(i)));
+  // Banked dice that can move something now; you can pick between them when they show different numbers.
+  const usableDice = useMemo(
+    () => (game.turn === 0 && game.phase === "move" ? game.dice.flatMap((_, i) => (game.seeds[0].some((__, seed) => diceForSeed(game, seed).includes(i)) ? [i] : [])) : []),
+    [game],
+  );
+  const pickable = activeDie !== null && new Set(usableDice.map((i) => game.dice[i])).size > 1;
 
   // Keyboard: Space or R rolls; 1–4 moves that seed; D switches die; H plays 6 + 5 straight home.
   useEffect(() => {
@@ -367,23 +368,34 @@ export default function LudoGame() {
       const el = e.target as HTMLElement | null;
       if (el && ["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A", "SUMMARY"].includes(el.tagName)) return;
       if ((e.key === " " || e.key === "r" || e.key === "R") && canRoll) { e.preventDefault(); startRoll(); return; }
-      if ((e.key === "d" || e.key === "D") && pickable && activeDie !== null) { e.preventDefault(); setPick(1 - activeDie); return; }
+      if ((e.key === "d" || e.key === "D") && pickable && activeDie !== null) {
+        // Next die with a different number.
+        e.preventDefault();
+        const order = usableDice.filter((i) => i > activeDie).concat(usableDice.filter((i) => i < activeDie));
+        const next = order.find((i) => game.dice[i] !== game.dice[activeDie]);
+        if (next !== undefined) setPick(next);
+        return;
+      }
       if ((e.key === "h" || e.key === "H") && canGoHome) { e.preventDefault(); goHome(); return; }
       const n = Number(e.key);
       if (n >= 1 && n <= 4 && movable.includes(n - 1)) { e.preventDefault(); moveSeed(n - 1); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canRoll, movable, startRoll, moveSeed, pickable, activeDie, canGoHome, goHome]);
+  }, [canRoll, movable, startRoll, moveSeed, pickable, activeDie, usableDice, game.dice, canGoHome, goHome]);
 
   const toggleSound = () => setMuted((m) => { mutedRef.current = !m; return !m; });
 
   const tokens = layoutTokens(game);
   const homeCount = (p: number) => game.seeds[p].filter((s) => s === HOME).length;
   const status = started ? statusLine(game, rolling) : "Press Start to play.";
+  // The dice on show: the bank (with the new roll spinning beside it while rolling), or the last roll seen.
   const count = game.options.dice;
-  const shown = rolling || game.dice.length !== count ? faces.slice(0, count) : [...game.dice];
-  while (shown.length < count) shown.push(6);
+  const bankNow = game.phase === "roll" ? banked(game) : [];
+  const spin = faces.slice(0, count);
+  while (spin.length < count) spin.push(6);
+  const shown = rolling ? [...bankNow, ...spin] : game.dice.length ? [...game.dice] : spin;
+  const spinningFrom = rolling ? bankNow.length : Infinity;
   const showUsed = !rolling && game.phase === "move";
 
   return (
@@ -401,6 +413,10 @@ export default function LudoGame() {
           <select className="arc-select" aria-label="6 and 5 sends a seed from the yard straight home (starts a new game)" value={options.sixFiveHome ? "on" : "off"} onChange={(e) => changeOptions({ sixFiveHome: e.target.value === "on" })}>
             <option value="off">6+5 HOME: OFF</option>
             <option value="on">6+5 HOME: ON</option>
+          </select>
+          <select className="arc-select" aria-label="A seed that captures goes straight home (starts a new game)" value={options.hitHome ? "on" : "off"} onChange={(e) => changeOptions({ hitHome: e.target.value === "on" })}>
+            <option value="on">HIT → HOME: ON</option>
+            <option value="off">HIT → HOME: OFF</option>
           </select>
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>
             {muted ? "SOUND OFF" : "SOUND ON"}
@@ -437,7 +453,7 @@ export default function LudoGame() {
 
           {!started && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">FOUR COLOURS · {two ? "TWO DICE" : "ONE DIE"}{game.options.sixFiveHome ? " · 6+5 HOME" : ""}</p>
+              <p className="arc-overlay-kicker">FOUR COLOURS · {two ? "TWO DICE" : "ONE DIE"}{game.options.sixFiveHome ? " · 6+5 HOME" : ""}{game.options.hitHome ? " · HIT → HOME" : ""}</p>
               <h2>Roll home.</h2>
               <p>You&apos;re green. {two ? "A six on either die brings a seed out." : "Roll a six to bring a seed out."}</p>
               <button type="button" className="arc-btn" onClick={() => restart(options)}>START</button>
@@ -469,10 +485,10 @@ export default function LudoGame() {
                 <Die
                   key={i}
                   value={value}
-                  rolling={rolling}
+                  rolling={i >= spinningFrom}
                   used={showUsed && game.used[i]}
                   picked={pickable && activeDie === i}
-                  onPick={pickable && !game.used[i] ? () => setPick(i) : undefined}
+                  onPick={pickable && usableDice.includes(i) ? () => setPick(i) : undefined}
                 />
               ))}
             </div>
@@ -516,7 +532,7 @@ export default function LudoGame() {
         .ludo-players i { width:10px; height:10px; border:1.5px solid #17251f; border-radius:50%; }
         .ludo-players b { color:#929b94; font-weight:600; }
         .ludo-roll { display:flex; align-items:center; gap:12px; }
-        .ludo-dice { display:flex; gap:8px; }
+        .ludo-dice { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; max-width:260px; }
         .ludo-die { display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:3px; width:46px; height:46px; padding:7px; box-sizing:border-box; border:1.5px solid #17251f; border-radius:9px; background:#fff; box-shadow:0 3px 0 #17251f22; }
         .ludo-pip { border-radius:50%; background:#17251f; }
         button.ludo-die { cursor:pointer; }

@@ -37,13 +37,13 @@ export const ARCADE_GAMES: ArcadeGame[] = [
   {
     slug: "ludo", path: "/arcade/ludo", name: "Ludo", kicker: "Board", headline: ["Roll", "home."],
     blurb: "Four colours, two dice (or one), race your four seeds home.",
-    description: "The race game every Nigerian home knows. Roll the dice, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard. Play with two dice or one, and switch on 6 + 5 straight home if that's how you play it at home.",
+    description: "The race game every Nigerian home knows. Roll the dice, bring your seeds out on a six, race them round the board and into your home column. Land on another colour and send it back to its yard. Play with two dice or one, send the hitter straight home or not, and switch on 6 + 5 straight home if that's how you play it at home.",
     howTo: [
       "Choose 2 dice (the default) or 1 die at the top. Changing it starts a new game.",
-      "With 2 dice, use each die on its own: on one seed or two, in either order. A 6 on either die brings a seed out of your yard. A die you can't use is lost.",
-      "With 2 dice, a double 6 gives you another roll. With 1 die, any 6 does. Three in a row and you lose the turn.",
-      "6+5 HOME is off unless you turn it on. Then a 6 and a 5 can send a seed from your yard straight home instead. With 1 die, that's a 6 that brings a seed out, then a 5 on the extra roll. It's your choice.",
-      "Land on another player's seed to send it back to its yard and roll again. Star and start squares are safe.",
+      "A 6 brings a seed out of your yard. With 2 dice, a 6 on either die does.",
+      "A double 6 (with 1 die, any 6) is banked and you roll again. Keep rolling until you throw something else, then spend every die you banked, one at a time, in any order, on one seed or several. A die you can't use is lost. Three in a row and you lose the turn.",
+      "6+5 HOME is off unless you turn it on. Then a banked 6 and 5 can send a seed from your yard straight home instead. It's your choice.",
+      "Land on another player's seed to send it back to its yard, and roll again at once; dice you haven't spent stay banked. With HIT → HOME on (the default), the seed that hits goes straight home. Only the star squares are safe: land on a start square and the seed sitting there goes back to its yard.",
       "You need the exact roll to get home. Get all four seeds home first to win.",
     ],
     players: "You vs 3 computer players",

@@ -1296,6 +1296,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     the yard colour, see-through under a see-through seed holder, each yard starting on a different advert (`offset`); Landlord has a
     second `tile` on the left (offset 1). Impressions count per spot and offset. Still to come with player vs player: conversations and
     calls between players in the Arcade, and duel rules (Nana on/off, 6+5 home).
+156. **Ludo banked rolls and unsafe start squares; African draughts (v0.193.0; owner, 21 Nov 2026):** a six roll (1 die: a 6; 2 dice: a
+    double 6) is banked in `state.dice` and the player rolls again (phase stays "roll" with unspent dice, see `banked()`); a non-six roll
+    ends the rolling and the whole bank is spent in any order (`legalActions` over every unspent die). A capture goes straight back to
+    "roll" with the unspent dice still banked. Three six rolls in a row lose the turn and the bank. 6+5 home works off any banked 6 and 5
+    (the old 1-die `released` seed tracking is gone). `SAFE` is the four stars only; a yard counts as threatening its colour's start
+    square in `threatAt`. Option `hitHome` (on by default; "HIT → HOME"): a capturing seed is moved to HOME, the move event carries
+    `hitHome: true` and `to` keeps the square it landed on. Draughts (`lib/arcade/draughts.ts`): `rules: "african" | "english"`, African the default on 10×10 (20 each;
+    `size: 8` also offered), English always 8×8. African = men capture backwards, flying kings, compulsory most-pieces capture, a man
+    crowns only if the move ends on the far row. The search deepens one ply at a time inside `NODE_BUDGET` positions so 10×10 stays
+    quick on phones and plays the same on every device.
 
 ## 3. How the work is done (please keep these)
 
