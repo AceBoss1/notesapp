@@ -129,6 +129,7 @@ export type UserProfile = {
   sitePages?: { about?: string; contact?: string; updatedAt?: string }; // their site's About and Contact pages, Markdown; written only by /api/site/pages
   org?: OrgInfo;
   trialUntil?: string; // a free trial's end (lib/trials.ts)
+  trialSource?: string; // "promo:<campaign>" when the trial fields carry a free plan from a promo code (lib/promos.ts), not a free trial
   trialTier?: AccountTier;
   trialUsedAt?: string; // the old 30-day organisation trial (counts as a Business trial, lib/trials.ts)
   trials?: { tier: string; startedAt: string; until: string }[]; // every free trial started (lib/trials.ts)

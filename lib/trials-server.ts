@@ -31,7 +31,7 @@ export async function startTrial(db: Firestore, uid: string, tier: unknown, opts
     const startedAt = now.toISOString();
     const until = new Date(now.getTime() + TRIAL_DAYS * 86_400_000).toISOString();
     if (rc) t.set(db.doc(`orgTrials/${rc}`), { uid, rcNumber: rc, startedAt, until });
-    t.set(ref, { accountTier: tr, trialTier: tr, trialUntil: until, trials: FieldValue.arrayUnion({ tier: tr, startedAt, until }), trialReminderSent: FieldValue.delete() }, { merge: true });
+    t.set(ref, { accountTier: tr, trialTier: tr, trialUntil: until, trialSource: FieldValue.delete(), trials: FieldValue.arrayUnion({ tier: tr, startedAt, until }), trialReminderSent: FieldValue.delete() }, { merge: true });
     return { tier: tr, until };
   });
 }

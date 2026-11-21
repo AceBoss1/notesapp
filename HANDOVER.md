@@ -1323,6 +1323,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     callback ref and re-fitted on resize and DPR change, because `ArcadeShell` mounts a game's board only after progress loads (a
     mount-only effect found no canvas and left it at 300×150).
 
+158. **Promo campaigns: DAVIDO-at-34 (v0.196.0; owner, 21 Nov 2026, the journal post "Happy 34th birthday, Davido"):** `lib/promos.ts`
+    (pure; the campaign config `DAVIDO_AT_34`, code matching ignores case/spaces/dashes, `claimCheck`) and `lib/promos-server.ts`. The owner's
+    answers: anyone picks a plan while that pool lasts (34 Enterprise × 30 days, 34 Business × 30 days, 1,000 Pro × 365 days), one claim per
+    account and per organisation RC number, live from launch until the slots run out; 4 venture slots open until all are picked; tournament
+    sign-ups on 21 Nov (Lagos) only. A claim is one transaction on `promos/{id}` (counters), `promoClaims/{id}_{uid}`, `promoOrgClaims/{id}_{rc}`
+    and the user's trial fields: `accountTier`, `trialTier`, `trialUntil` plus `trialSource: "promo:<id>"`, not added to `trials`, so it ends
+    through the daily trial job (lib/tier-billing.ts, promo wording) and doesn't use up a free trial; paying for a plan or starting a trial
+    clears `trialSource`. Ventures: a pitch with `promoCode` gets `campaign`, is accepted even while the call is paused, and picking it uses the
+    campaign's slots in a transaction (`pickVentureSlot`), not the quarter's. Pages: /offers/[code], Admin → Promos; API /api/promos,
+    /api/admin/promos. Tests: `test:promos`, `test:promos-server` (35 members racing for 34 Enterprise slots get exactly 34).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

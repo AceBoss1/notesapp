@@ -18,7 +18,7 @@ type Data = { call: CallSettings; quarter: string; mine: MyApplication[]; signed
 const field = "mt-1 block w-full rounded-xl border border-rule bg-card px-3 py-2.5 text-sm text-ink outline-none focus:border-crimson";
 const label = "block text-sm font-semibold text-ink";
 const hint = "mt-1 text-xs font-normal text-slate";
-const EMPTY = { kind: "product", sector: "", stage: "", region: "", countries: "", title: "", oneLiner: "", problem: "", solution: "", whyYou: "", traction: "", teamSize: "1", links: "", emergingMarkets: false, agree: false };
+const EMPTY = { kind: "product", sector: "", stage: "", region: "", countries: "", title: "", oneLiner: "", problem: "", solution: "", whyYou: "", traction: "", teamSize: "1", links: "", promoCode: "", emergingMarkets: false, agree: false };
 
 async function call<T>(user: User | null, method: "GET" | "POST", body?: unknown): Promise<T> {
   const r = await fetch("/api/ventures", { method, cache: "no-store", headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -45,20 +45,23 @@ export default function PitchForm() {
     } catch (e) { setCheckErr(e instanceof Error ? e.message : "Nana couldn't read it just now."); } finally { setChecking(false); }
   }
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+  // A promo code in the link (e.g. /ventures?code=DAVIDO-at-34#apply, from the offer page) opens that campaign's venture slots (lib/promos.ts).
+  const [linkCode, setLinkCode] = useState("");
+  useEffect(() => { const c = new URLSearchParams(window.location.search).get("code") ?? ""; if (c) { setLinkCode(c); setF((x) => ({ ...x, promoCode: c })); } }, []);
   const load = (u: User | null) => call<Data>(u, "GET").then(setData).catch(() => setData({ call: { open: true, picksPerQuarter: PICKS_PER_QUARTER }, quarter: "", mine: [], signedIn: !!u }));
   useEffect(() => { if (user !== undefined) void load(user); }, [user?.uid, user === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF({ ...f, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value });
 
   if (user === undefined || !data) return <p className="text-sm text-slate">Loading…</p>;
-  const closed = !data.call.open;
+  const closed = !data.call.open && !f.promoCode.trim(); // a promo code's venture slots stay open while the regular call is paused
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setMsg(null);
     try {
       await call(user!, "POST", { action: "apply", ...f, teamSize: Number(f.teamSize), links: f.links.split(/\s+/).filter(Boolean) });
-      setF(EMPTY);
+      setF({ ...EMPTY, promoCode: linkCode });
       setMsg({ ok: true, text: "Your pitch is in. It's kept confidential, and a person reads every one. We'll tell you in your NotesApp notifications as it moves on." });
       await load(user!);
       document.getElementById("mine")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -78,8 +81,8 @@ export default function PitchForm() {
           <p className="font-display text-2xl text-ink">Sign in to pitch</p>
           <p className="mt-1 text-sm text-slate">You pitch with your NotesApp account, so we can reply to you here. It&apos;s free, and every pitch is kept confidential.</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/login?next=/ventures%23apply" className="rounded-full bg-crimson px-5 py-2.5 font-ui text-sm font-semibold text-paper">Sign in</Link>
-            <Link href="/signup?next=/ventures%23apply" className="rounded-full border border-rule px-5 py-2.5 font-ui text-sm font-semibold text-ink">Create an account</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/ventures${linkCode ? `?code=${linkCode}` : ""}#apply`)}`} className="rounded-full bg-crimson px-5 py-2.5 font-ui text-sm font-semibold text-paper">Sign in</Link>
+            <Link href={`/signup?next=${encodeURIComponent(`/ventures${linkCode ? `?code=${linkCode}` : ""}#apply`)}`} className="rounded-full border border-rule px-5 py-2.5 font-ui text-sm font-semibold text-ink">Create an account</Link>
           </div>
         </div>
       ) : closed ? (
@@ -133,6 +136,8 @@ export default function PitchForm() {
           <div className="grid gap-5 sm:grid-cols-[160px,1fr]">
             <label className={label}>People on the team<input type="number" required min={1} max={LIMITS.teamSize} value={f.teamSize} onChange={set("teamSize")} className={field} /></label>
             <label className={label}>Links (optional)<textarea rows={2} value={f.links} onChange={set("links")} className={field} placeholder={"https://… (a demo, a deck, your LinkedIn); one per line, up to 5"} /></label>
+            <label className={label}>Promo code (optional)<span className={hint + " block"}>Have a code like DAVIDO-at-34? It enters your pitch for that offer&apos;s venture slots while they last.</span>
+              <input maxLength={40} value={f.promoCode} onChange={set("promoCode")} className={field} placeholder="DAVIDO-at-34" /></label>
           </div>
 
           <div className="grid gap-3 rounded-2xl bg-field p-4 text-sm text-ink">

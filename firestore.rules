@@ -1663,6 +1663,12 @@ service cloud.firestore {
     // NotesApp Ventures (lib/ventures-server.ts): pitches to Rewrite the Playbook, kept confidential, server only. settings/ventures (the round)
     // is under settings above.
     match /ventureApplications/{id} { allow read, write: if false; }
+    // Promo campaigns (lib/promos-server.ts, e.g. DAVIDO-at-34): counters, plan claims (per account and per organisation) and tournament
+    // sign-ups. Server only; the public numbers come from /api/promos.
+    match /promos/{id} { allow read, write: if false; }
+    match /promoClaims/{id} { allow read, write: if false; }
+    match /promoOrgClaims/{id} { allow read, write: if false; }
+    match /promoTournament/{id} { allow read, write: if false; }
     // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
     // settings/partners (tier terms) is under settings above.
     match /partnerApplications/{id} { allow read, write: if false; }

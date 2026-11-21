@@ -1,4 +1,5 @@
 import { getAdminDb } from "./firebase-admin";
+import { isPromoSource } from "./promos";
 import { FieldValue } from "firebase-admin/firestore";
 import { createPlan, disableSubscription, verifyTransaction, pricePaidKobo } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
@@ -218,10 +219,13 @@ export async function expireOrgTrials(): Promise<number> {
     const end = new Date(u.trialUntil).getTime();
     const email = await getUserEmail(d.id);
     const plan = planName(u.trialTier || "business");
+    // A free plan from a promo code (lib/promos.ts) ends the same way; only the words differ, and it's not a trial they used up.
+    const promo = isPromoSource(u.trialSource);
+    const what = promo ? `free ${plan} plan` : `free ${plan} trial`;
     if (end > now) {
       if (!u.trialReminderSent && email) {
         const price = TIERS.find((t) => t.tier === u.trialTier)?.monthlyKobo;
-        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free ${plan} trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep ${plan}${price ? ` (${nairaText(price)}/month)` : ""} from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: promo ? "Your free #NotesApp plan ends soon" : "Your #NotesApp free trial ends soon", text: `Your ${what} for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep ${plan}${price ? ` (${nairaText(price)}/month)` : ""} from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
         await d.ref.update({ trialReminderSent: true });
       }
       continue;
@@ -232,11 +236,12 @@ export async function expireOrgTrials(): Promise<number> {
       ...(u.accountTier === u.trialTier ? { accountTier: afterTrialTier(paidTier) as AccountTier } : {}),
       trialUntil: FieldValue.delete(),
       trialTier: FieldValue.delete(),
+      trialSource: FieldValue.delete(),
       trialReminderSent: FieldValue.delete(),
     });
     if (email) {
       const next = paidTier ? `your ${planName(paidTier)} plan` : "Free Basic";
-      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial has ended", text: `The free ${plan} trial for ${u.displayName} has ended, so the account is on ${next}. Everything you published stays. ${paidTier ? "" : `Upgrade any time at ${site}/pricing (another free trial needs a paid plan first).`}\n\n#NotesApp` }).catch(() => {});
+      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: promo ? "Your free #NotesApp plan has ended" : "Your #NotesApp free trial has ended", text: `The ${what} for ${u.displayName} has ended, so the account is on ${next}. Everything you published stays. ${paidTier ? "" : promo ? `Upgrade any time at ${site}/pricing.` : `Upgrade any time at ${site}/pricing (another free trial needs a paid plan first).`}\n\n#NotesApp` }).catch(() => {});
     }
     n++;
   }
