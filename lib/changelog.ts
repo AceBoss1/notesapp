@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.199.1",
+    bump: "patch",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "On the home and About pages, the Notes Arcade card shows every game as a tile you can tap to play, and the Ventures card carries the Rewrite the Playbook picture from the Ventures page." },
+    ],
+  },
+  {
     version: "v0.199.0",
     bump: "minor",
     date: "2026-11-21",
