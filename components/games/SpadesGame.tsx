@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
   SEAT_NAME, SUIT_NAME, applyMove, cardName, computerBid, computerMove, initialState, isLegal, rankLabel, teamOf,
   type Card, type Play, type Seat, type SpadesMove, type SpadesState, type Suit,
 } from "@/lib/arcade/spades";
+import { isHintCard, spadesTake, spadesTip, type SpadesHint } from "@/lib/arcade/nana-spades";
+import type { NanaTake } from "@/lib/arcade/nana";
 
 const RECORD_KEY = "notes-arcade-spades-record";
 const COMPUTER_DELAY = 600;
@@ -44,6 +47,11 @@ export default function SpadesGame() {
   const [pausing, setPausing] = useState(false);
   const [record, setRecord] = useState<Record_>({ won: 0, lost: 0 });
   const [muted, setMuted] = useState(false);
+  // Nana (owner, 21 Nov 2026): the card or bid she suggests, lit in gold until the game moves on, and her take on the last
+  // computer move (West, Partner or East).
+  const [hint, setHint] = useState<SpadesHint | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [round, setRound] = useState(0);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
 
@@ -70,6 +78,7 @@ export default function SpadesGame() {
   const commit = useCallback((prev: SpadesState, m: SpadesMove) => {
     const next = applyMove(prev, m);
     setGame(next);
+    if (prev.turn !== 0) setTake(spadesTake(prev, m, next));
     if (m.type === "play" && next.trick.length === 0) {
       setPausing(true);
       beep(teamOf(next.lastTrick?.winner ?? 0) === 0 ? 660 : 300, 0.12);
@@ -97,7 +106,15 @@ export default function SpadesGame() {
     return () => window.clearTimeout(t);
   }, [game, pausing, commit]);
 
-  const deal = () => { setPausing(false); setGame(initialState()); };
+  const deal = () => { setPausing(false); setGame(initialState()); setTake(null); setRound((r) => r + 1); };
+  // A hint belongs to one position: any move puts the gold away.
+  useEffect(() => { setHint(null); }, [game]);
+  const askNana = () => {
+    if (!game) return null;
+    const t = spadesTip(game);
+    setHint(t?.highlight ?? null);
+    return t?.tip ?? null;
+  };
   const myTurn = !!game && !pausing && game.turn === 0;
   const play = (card: Card) => { if (game && myTurn && game.phase === "play" && isLegal(game, card)) commit(game, { type: "play", card }); };
   const bid = (n: number) => { if (game && myTurn && game.phase === "bid") commit(game, { type: "bid", bid: n }); };
@@ -171,7 +188,7 @@ export default function SpadesGame() {
                 <span key={`${card.suit}${card.rank}`} className="sp-hand-cell">
                   <button
                     type="button"
-                    className={`sp-card is-hand${ok ? " is-ok" : ""}${game?.phase === "play" && myTurn && !ok ? " is-dim" : ""}`}
+                    className={`sp-card is-hand${ok ? " is-ok" : ""}${game?.phase === "play" && myTurn && !ok ? " is-dim" : ""}${isHintCard(hint, card) ? " is-nana" : ""}`}
                     style={{ transform: `translateY(${Math.abs(off) * Math.abs(off) * 0.5}px) rotate(${off * 1.8}deg)` }}
                     onClick={() => play(card)}
                     disabled={!ok}
@@ -189,7 +206,7 @@ export default function SpadesGame() {
               <p>HOW MANY TRICKS WILL YOU WIN?</p>
               <div className="sp-bid-grid">
                 {Array.from({ length: 14 }, (_, k) => (
-                  <button key={k} type="button" className="sp-bid-btn" onClick={() => bid(k)} aria-label={`Bid ${k}`}>{k}</button>
+                  <button key={k} type="button" className={`sp-bid-btn${hint?.type === "bid" && hint.bid === k ? " is-nana" : ""}`} onClick={() => bid(k)} aria-label={`Bid ${k}`}>{k}</button>
                 ))}
               </div>
               <span className="sp-bid-hint">
@@ -216,6 +233,14 @@ export default function SpadesGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <ArcadeNana
+          slug="spades"
+          canAsk={myTurn && (game?.phase === "bid" || game?.phase === "play")}
+          onAsk={askNana}
+          take={take}
+          resetKey={round}
+          onToggle={() => setHint(null)}
+        />
 
         {game && game.history.length > 0 && (
           <table className="sp-scores">
@@ -273,8 +298,11 @@ export default function SpadesGame() {
         .sp-scores th { color:#929b94; font:600 8px ui-monospace,monospace; letter-spacing:.1em; text-align:left; padding:5px 4px; border-bottom:1px solid #e4e7df; }
         .sp-scores td { padding:5px 4px; border-bottom:1px solid #f0f2ec; }.sp-scores td.is-neg { color:#c8323f; }
         .sp-scores tfoot td,.sp-scores tfoot th { border-bottom:0; font-weight:700; color:#17251f; }
+        /* Nana's suggestion: a gold ring and a lift (translate, so the fan's own rotate stays put). */
+        .sp-card.is-hand.is-nana { box-shadow:0 0 0 3px #ffd166,0 6px 16px #0007; translate:0 -14px; z-index:2; }
+        .sp-bid-btn.is-nana { box-shadow:0 0 0 3px #ffd166; background:#fff6dc; }
         @media(max-width:420px) { .sp-board { min-height:430px; padding:10px 6px 16px; }.sp-table { grid-template-columns:minmax(54px,1fr) minmax(0,2.6fr) minmax(54px,1fr); }.sp-seat { padding:5px 4px; }.sp-seat-line { font-size:7px; } }
-        @media(prefers-reduced-motion:reduce) { .sp-trick .sp-card { animation:none; }.sp-card.is-hand,.sp-seat { transition:none; } }
+        @media(prefers-reduced-motion:reduce) { .sp-trick .sp-card { animation:none; }.sp-card.is-hand,.sp-seat { transition:none; }.sp-card.is-hand.is-nana { translate:none; } }
       `}</style>
     </ArcadeShell>
   );

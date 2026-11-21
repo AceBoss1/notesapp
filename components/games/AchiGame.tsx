@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { ENTRY } from "@/lib/arcade/achi.entry";
 import { arcadeStore } from "@/lib/arcade/store";
 import { LINES, MOVE_CAP, PIECES, applyMove, chooseMove, initialState, legalMoves, phaseOf, piecesOf, targetsFrom, type AchiState, type Level, type Move, type Player } from "@/lib/arcade/achi";
+import type { NanaTake } from "@/lib/arcade/nana";
+import { achiTake, achiTip, type AchiHighlight } from "@/lib/arcade/nana-achi";
 
 type Phase = "ready" | "playing" | "over";
 type Piece = { id: number; player: Player; at: number };
@@ -45,6 +48,10 @@ export default function AchiGame() {
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(false);
   const [nextFirst, setNextFirst] = useState<Player>(0); // the loser starts the next game; a draw passes it over
+  // Nana (owner, 21 Nov 2026): a free hint lit up on the board, and her take on the computer's last move, both from the engine.
+  const [hint, setHint] = useState<AchiHighlight | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [gameNo, setGameNo] = useState(0);
   const nextId = useRef(1);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
@@ -86,6 +93,8 @@ export default function AchiGame() {
     setGame(next);
     setSelected(null);
     setNote(null);
+    setHint(null); // any move, yours or the computer's, makes an old hint stale
+    if (mover === 1) setTake(achiTake(state, m, next));
     setPieces((ps) => m.kind === "place"
       ? [...ps, { id: nextId.current++, player: mover, at: m.to }]
       : ps.map((p) => (p.at === m.from ? { ...p, at: m.to } : p)));
@@ -114,6 +123,9 @@ export default function AchiGame() {
     setSelected(null);
     setNote(nextFirst === 1 ? "The computer starts this game." : null);
     setPhase("playing");
+    setHint(null);
+    setTake(null);
+    setGameNo((n) => n + 1);
   };
 
   const myTurn = phase === "playing" && game.winner === null && game.turn === 0;
@@ -121,6 +133,14 @@ export default function AchiGame() {
   const legal = myTurn ? legalMoves(game) : [];
   const targets = myTurn && !placing && selected !== null ? targetsFrom(game, selected) : [];
   const movable = new Set(legal.flatMap((m) => (m.kind === "move" ? [m.from] : [])));
+
+  // Nana's hint: the move HARD would play for you, lit up in gold on the board until you move.
+  const askNana = () => {
+    const t = myTurn ? achiTip(game) : null;
+    setHint(t?.highlight ?? null);
+    return t?.tip ?? null;
+  };
+  const shownHint = myTurn ? hint : null;
 
   const tap = (i: number) => {
     if (!myTurn) return;
@@ -189,6 +209,9 @@ export default function AchiGame() {
               <circle key={`t${i}`} className={`achi-target${placing ? " is-place" : ""}`} cx={p.x} cy={p.y} r={placing ? 16 : 20} aria-hidden="true" />
             ))}
             {lastTo !== null && <circle className="achi-last" cx={XY[lastTo].x} cy={XY[lastTo].y} r={30} aria-hidden="true" />}
+            {shownHint && [shownHint.from, shownHint.to].map((pt, k) => pt !== null && (
+              <circle key={`nana${k}`} className={`achi-nana${k === 1 && shownHint.from !== null ? " is-dest" : ""}`} cx={XY[pt].x} cy={XY[pt].y} r={33} aria-hidden="true" />
+            ))}
             {pieces.map((pc) => (
               <g key={pc.id} className="achi-piece" style={{ transform: `translate(${XY[pc.at].x}px, ${XY[pc.at].y}px)` }} aria-hidden="true">
                 <circle r={24} fill={pc.player === 0 ? YOU : CPU} className={selected === pc.at ? "is-selected" : undefined} />
@@ -212,6 +235,7 @@ export default function AchiGame() {
           )}
         </div>
         <p className="arc-status" role="status" aria-live="polite">{status}</p>
+        <ArcadeNana slug="achi" canAsk={myTurn} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setHint(null)} />
       </div>
 
       <style jsx global>{`
@@ -230,7 +254,11 @@ export default function AchiGame() {
         .achi-hit[aria-disabled="true"] { cursor:default; }
         .achi-hit:focus-visible { stroke:#bdf36b; stroke-width:3; stroke-dasharray:4 4; }
         @media(hover:hover) { .achi-hit:not([aria-disabled="true"]):hover { fill:#ffffff0d; } }
-        @media(prefers-reduced-motion:reduce) { .achi-piece { transition:none; } }
+        /* Nana's hint: a gold ring on the piece to move (or the point to place on) and a dashed one where it goes. */
+        .achi-nana { fill:#ffd16614; stroke:#ffd166; stroke-width:3.5; pointer-events:none; filter:drop-shadow(0 0 6px #ffd166aa); animation:achi-nana 1.4s ease-in-out infinite; }
+        .achi-nana.is-dest { stroke-dasharray:6 5; }
+        @keyframes achi-nana { 50% { stroke-opacity:.45; } }
+        @media(prefers-reduced-motion:reduce) { .achi-piece { transition:none; } .achi-nana { animation:none; } }
       `}</style>
     </ArcadeShell>
   );

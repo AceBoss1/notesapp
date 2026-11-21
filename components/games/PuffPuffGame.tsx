@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import ArcadeNana from "@/components/games/ArcadeNana";
+import { newPuffWatch, puffCoach, puffStats, puffTip, watchPuff, type PuffStats } from "@/lib/arcade/nana-puffpuff";
 import { useCanvasFit, type CanvasSize } from "@/components/games/useCanvasFit";
 import { ENTRY } from "@/lib/arcade/puffpuff.entry";
 import { arcadeStore } from "@/lib/arcade/store";
@@ -331,6 +333,11 @@ export default function PuffPuffGame() {
   const stillRef = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const { ensure, play, mutedRef } = useSounds();
+  // Nana (lib/arcade/nana-puffpuff.ts, owner, 21 Nov 2026): she reads each state after it's stepped, never writes to it, and coaches
+  // when you pause or the game ends; a hint only while paused, since a mid-chase hint would just get you caught.
+  const nanaWatch = useRef(newPuffWatch());
+  const bestAtStart = useRef(0);
+  const [coachStats, setCoachStats] = useState<PuffStats | null>(null);
 
   uiRef.current = ui;
 
@@ -369,12 +376,13 @@ export default function PuffPuffGame() {
       const dir = pendingDir.current;
       pendingDir.current = null;
       const next = step(gameRef.current, dt, dir ? { dir } : {});
+      nanaWatch.current = watchPuff(nanaWatch.current, gameRef.current, next);
       gameRef.current = next;
       if (next.events.length) play(next.events);
       if (next.score > bestRef.current && next.events.includes("over")) saveBest(next.score);
       draw(now);
       syncHud();
-      if (next.phase === "over") { saveBest(next.score); return; }
+      if (next.phase === "over") { saveBest(next.score); setCoachStats(puffStats(next, nanaWatch.current, bestAtStart.current)); return; }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
@@ -388,11 +396,19 @@ export default function PuffPuffGame() {
     const seed = Math.floor(Math.random() * 2 ** 31); // fresh goats each game; the engine itself stays seeded
     gameRef.current = initialState({ seed, speed });
     pendingDir.current = null;
+    nanaWatch.current = newPuffWatch();
+    bestAtStart.current = bestRef.current;
     play(["start"]);
     setRunId((n) => n + 1);
     setUi("running");
     syncHud();
   }, [draw, ensure, mutedRef, play, speed, syncHud]);
+
+  // A pause is a breather: Nana gives her take on the game so far.
+  useEffect(() => {
+    if (ui === "paused" && gameRef.current.phase !== "over") setCoachStats(puffStats(gameRef.current, nanaWatch.current, bestAtStart.current));
+  }, [ui]);
+  const nanaTake = useMemo(() => puffCoach(coachStats), [coachStats]);
 
   const resume = useCallback(() => {
     if (!mutedRef.current) ensure();
@@ -518,6 +534,11 @@ export default function PuffPuffGame() {
         </div>
 
         <p className="arc-status" aria-live="polite">{hud.status}</p>
+        {/* Clicking Nana's buttons mustn't take focus from the board, or space and Enter would press them instead of starting a game. */}
+        <div onMouseDown={(e) => e.preventDefault()}>
+          <ArcadeNana slug="puffpuff" canAsk={ui === "paused" && !over}
+            onAsk={() => (uiRef.current === "paused" ? puffTip(gameRef.current) : null)} take={nanaTake} resetKey={runId} />
+        </div>
 
         <div className="pp-pad" aria-label="Touch controls">
           <div className="pp-pad-grid">

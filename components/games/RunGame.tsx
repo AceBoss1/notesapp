@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
+import ArcadeNana from "@/components/games/ArcadeNana";
+import { newRunWatch, runCoach, runStats, runTip, watchRun, type RunStats } from "@/lib/arcade/nana-run";
 import { useCanvasFit } from "@/components/games/useCanvasFit";
 import { loadAds, weightedOrder } from "@/components/AdSlot";
 import { fitsSpot } from "@/lib/ads";
@@ -62,6 +64,13 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
   const sizeRef = fit.size;
 
   const gameRef = useRef<RunState>(createRun(1, "normal"));
+  // Nana (lib/arcade/nana-run.ts, owner, 21 Nov 2026): she watches a practice run from the side, reading each state after it's stepped
+  // and never writing to it, then coaches between runs. In tournament mode none of this runs: she sits out, and the run, its seed and
+  // its recording are exactly what they'd be without her.
+  const nanaWatch = useRef(newRunWatch());
+  const bestNow = useRef(0);
+  const [lastRun, setLastRun] = useState<RunStats | null>(null);
+  const [runNo, setRunNo] = useState(0);
   const phaseRef = useRef<Phase>("ready");
   const inputs = useRef<RunInput[]>([]);
   const crashAt = useRef(0);
@@ -109,6 +118,7 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
   }, [trackAd]);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { bestNow.current = best; }, [best]);
   useEffect(() => { soundRef.current = soundOn; }, [soundOn]);
   useEffect(() => { stepsRef.current = stepsOn; }, [stepsOn]);
   useEffect(() => {
@@ -175,6 +185,8 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
   const freshRun = useCallback((lv: Speed) => {
     gameRef.current = createRun(newSeed(), lv);
     inputs.current = [];
+    nanaWatch.current = newRunWatch();
+    setRunNo((n) => n + 1);
     setHud({ score: 0, coins: 0, metres: 0 });
     setCrash(null); setNewBest(false); setPeppered(false);
   }, []);
@@ -218,6 +230,7 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
     phaseRef.current = "over";
     const t = tRef.current;
     if (t && runIdRef.current) { t.end(runIdRef.current, recRef.current.join(",")); runIdRef.current = null; }
+    if (!t) setLastRun(runStats(s, nanaWatch.current, bestNow.current));
     crashAt.current = performance.now();
     const sc = score(s);
     setHud({ score: sc, coins: s.coins, metres: Math.floor(s.distance) });
@@ -251,6 +264,7 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
         const d = tRef.current ? stepDt(dt) : dt;
         if (tRef.current) recRef.current.push(encodeStep(d, input));
         const next = step(gameRef.current, d, input);
+        if (!tRef.current) nanaWatch.current = watchRun(nanaWatch.current, gameRef.current, next, d);
         gameRef.current = next;
         playEvents(next.events);
         if (next.over) finish(next);
@@ -327,6 +341,10 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
     if (sw && !sw.done && performance.now() - sw.t < 350) send("jump");
   };
 
+  // Coaching between runs; never worked out for a tournament try.
+  const inTournament = !!tournament;
+  const nanaTake = useMemo(() => (inTournament ? null : runCoach(lastRun)), [inTournament, lastRun]);
+
   const status =
     phase === "ready" ? "Press space or tap Start. Arrows or swipes to run." :
     phase === "paused" ? "Paused. Carry on when you're ready." :
@@ -397,6 +415,12 @@ export default function RunGame({ tournament, extra }: { tournament?: RunTournam
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        {/* Clicking Nana's buttons mustn't take focus from the street, or space would press them instead of jumping. */}
+        <div onMouseDown={(e) => e.preventDefault()}>
+          {tournament
+            ? <ArcadeNana slug="run" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+            : <ArcadeNana slug="run" canAsk={phase === "paused"} onAsk={() => (phaseRef.current === "paused" ? runTip(gameRef.current) : null)} take={nanaTake} resetKey={runNo} />}
+        </div>
         {extra}
         <p className="run-boards">
           {booked && onBoard

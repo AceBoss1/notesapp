@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { ARCADE_GAMES, arcadeGame } from "@/lib/arcade/catalogue";
+import type { NanaTake } from "@/lib/arcade/nana";
+import { nchoTake, nchoTip } from "@/lib/arcade/nana-ncho";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
   AUTO_NEXT_ROUND_MS, MAX_ROUNDS, applyMove, autoStartsNextRound, chooseMove, directionOf, homeOf, housesOf, initialState,
@@ -140,6 +143,10 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   // Who starts the next game: 2 players, the loser of the last one (a tie passes it to the other player); 4 players,
   // you, unless you won (then the next player in turn order). You start the first.
   const [nextFirst, setNextFirst] = useState<Player>(0);
+  // Nana (owner, 21 Nov 2026): the hole she'd sow, lit up in gold, and her take on the latest computer move, both from the engine.
+  const [nanaHole, setNanaHole] = useState<number | null>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [gameNo, setGameNo] = useState(0);
   const startedBy = useRef<Player>(0);
   const timers = useRef<number[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
@@ -234,7 +241,11 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const play = useCallback((state: NchoState, hole: number) => {
     const next = applyMove(state, hole);
     const m = next.last!;
-    if (prefersReducedMotion()) { finishMove(next); return; }
+    setNanaHole(null); // any sowing makes an old hint stale
+    // Nana's take on a computer's sowing shows once its seeds have landed.
+    const t = state.turn !== 0 ? nchoTake(state, next) : null;
+    const done = () => { finishMove(next); if (t) setTake(t); };
+    if (prefersReducedMotion()) { done(); return; }
     setBusy(true);
     const frames = framesFor(state, m);
     const step = Math.max(MIN_STEP_MS, Math.min(STEP_MS, Math.floor(MAX_ANIM_MS / Math.max(1, frames.length))));
@@ -244,7 +255,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
         if (f.tone) beep(f.tone, f.tone >= 660 ? 0.14 : 0.05);
       }, step * i);
     });
-    later(() => finishMove(next), step * frames.length + (m.captures.length ? 300 : 0));
+    later(done, step * frames.length + (m.captures.length ? 300 : 0));
   }, [beep, finishMove, later]);
 
   const youAreOut = game.players === 4 && housesOf(game.owner, 0) === 0;
@@ -270,6 +281,9 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     setView(viewOf(s));
     setBusy(false);
     setPhase("playing");
+    setNanaHole(null);
+    setTake(null);
+    setGameNo((g) => g + 1);
     setStatus(s.turn === 0 ? "You start. Pick one of your holes." : `${Name(s.turn, P)} starts this game and is thinking…`);
   }, [clearTimers, holesPerSide, nextFirst, players, rounds, variant]);
 
@@ -277,6 +291,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     const prev = game.lastRound;
     setView(viewOf(game));
     setPhase("playing");
+    setNanaHole(null);
     // The summary stays in the status line after the round starts, so it can still be read.
     const recap = prev ? ` (Round ${prev.round} houses: ${everyone(game.players).map((p) => `${shortOf(p, game.players)} ${prev.houses[p]}`).join(" · ")}.)` : "";
     setStatus(game.turn === 0
@@ -321,6 +336,13 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const P = game.players;
   const canPlay = phase === "playing" && !busy && !reviewing && game.turn === 0 && !game.over;
   const legal = canPlay ? legalMoves(game) : [];
+  // Nana's hint: the hole HARD would sow for you (lib/arcade/nana-ncho.ts), lit up in gold until you sow.
+  const askNana = () => {
+    const t = canPlay ? nchoTip(game) : null;
+    setNanaHole(t?.highlight ?? null);
+    return t?.tip ?? null;
+  };
+  const hinted = canPlay ? nanaHole : null;
   const { top, bottom } = rowsFor(game.holesPerSide);
   const seedMax = 14;
   const n = game.pits.length;
@@ -334,7 +356,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     const conquered = who !== home;
     const isLegal = legal.includes(h);
     const own = who === 0 ? "own-you" : `own-them own-p${who}`;
-    const cls = `ncho-hole ${own}${conquered ? " is-conquered" : ""}${view.active === h ? " is-active" : ""}${view.taken.includes(h) ? " is-taken" : ""}${isLegal ? " is-legal" : ""}${game.last?.hole === h && !busy && phase === "playing" ? " is-last" : ""}`;
+    const cls = `ncho-hole ${own}${conquered ? " is-conquered" : ""}${view.active === h ? " is-active" : ""}${view.taken.includes(h) ? " is-taken" : ""}${isLegal ? " is-legal" : ""}${hinted === h ? " is-nana" : ""}${game.last?.hole === h && !busy && phase === "playing" ? " is-last" : ""}`;
     const whose = P === 2
       ? who === 0
         ? conquered ? "Your conquered hole on the computer's row" : "Your hole"
@@ -547,6 +569,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
+        <ArcadeNana slug={slug} canAsk={canPlay && legal.length > 0} onAsk={askNana} take={take} resetKey={`${gameNo}-${players}`} onToggle={() => setNanaHole(null)} />
         {phase === "playing" && recap && !reviewing && (
           <p className="ncho-watch">
             <button type="button" className="arc-btn-ghost" onClick={() => setReviewing(true)} aria-label={`Read the round ${recap.sum.round} summary again (pauses the game)`}>{`ROUND ${recap.sum.round} SUMMARY`}</button>
@@ -639,7 +662,10 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
         .ncho-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
         .ncho-watch { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 12px; margin:6px 0 0; color:#3f5a2c; font:600 12px ui-monospace,monospace; }
         @media(max-width:420px) { .ncho-store.is-half .ncho-store-label { display:block; font-size:6px; } .ncho-store.is-half { padding:12px 1px 4px; } }
-        @media(prefers-reduced-motion:reduce) { .ncho-hole { transition:none; } .ncho-hole.is-legal:hover { transform:none; } .ncho-rotate-icon { animation:none; } }
+        /* Nana's hint: a gold ring and glow on the hole she'd sow. */
+        .ncho-hole.is-nana, .ncho-hole.is-nana.is-legal:hover { box-shadow:inset 0 0 0 2px var(--own),inset 0 4px 9px #000b,0 0 0 3px #ffd166,0 0 14px #ffd166aa; animation:ncho-nana 1.4s ease-in-out infinite; }
+        @keyframes ncho-nana { 50% { box-shadow:inset 0 0 0 2px var(--own),inset 0 4px 9px #000b,0 0 0 3px #ffd16688,0 0 6px #ffd16666; } }
+        @media(prefers-reduced-motion:reduce) { .ncho-hole { transition:none; } .ncho-hole.is-legal:hover { transform:none; } .ncho-rotate-icon { animation:none; } .ncho-hole.is-nana { animation:none; } }
       `}</style>
     </ArcadeShell>
   );
