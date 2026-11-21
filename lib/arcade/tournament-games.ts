@@ -62,3 +62,20 @@ import { CHESS_TOURNAMENT } from "./replay-chess";
 export const TOURNAMENT_GAMES: TournamentGame[] = [WHOT_TOURNAMENT, RUN_TOURNAMENT, SNAKE_TOURNAMENT, CHESS_TOURNAMENT];
 
 export const tournamentGame = (slug: unknown): TournamentGame | undefined => TOURNAMENT_GAMES.find((g) => g.slug === slug);
+
+/**
+ * How a game component plays a tournament try (the prop is `tourney`). The page gets `seed`, `level` and `runId` from
+ * POST /api/arcade/tournaments/[id]/start and renders the game with this; the game then:
+ *   - deals/builds from `seed` at `level` (level select locked, Undo off, no "new game", Nana off: <ArcadeNana context={{ mode: "tournament" }} />),
+ *   - records every player action into a string the game's `replay` understands,
+ *   - calls `onFinish(recording)` once when the game ends (win, loss, crash), and shows `finishedText` if given.
+ * The computer players' choices must come from the seeded state only (no Math.random), so the server's replay reproduces them.
+ */
+export type TourneyProps = {
+  runId: string;
+  seed: number;
+  level: string;
+  onFinish: (recording: string) => void;
+  /** Shown after the try is sent, e.g. "Checked: 4,120 points. Best so far: 5,300. 1 try left." */
+  finishedText?: string;
+};
