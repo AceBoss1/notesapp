@@ -15,7 +15,9 @@ export default function NanaChat() {
   const [open, setOpen] = useState(false);
   const tabs = useBottomTabs();
   // The footer's Ask Nana button opens this chat (components/shell/FooterActions.tsx); where the chat isn't shown, it goes to /nana.
-  const hidden = pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/cycle" || pathname === "/messages" || pathname.startsWith("/messages/");
+  // Hidden where the page fills the screen with its own controls: the studio (its Leave button), the Notes Live feed and a live.
+  const hidden = pathname.startsWith("/admin") || pathname === "/nana" || pathname === "/cycle" || pathname === "/messages" || pathname.startsWith("/messages/")
+    || pathname === "/studio" || pathname === "/lives" || pathname.startsWith("/live/");
   useEffect(() => {
     const w = window as unknown as { __nanaChat?: boolean };
     w.__nanaChat = !hidden;

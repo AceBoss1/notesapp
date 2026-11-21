@@ -34,10 +34,28 @@
   .btn-following {
     @apply border-transparent bg-crimson/10 text-crimson hover:text-crimson-deep;
   }
-  /* A profile's buttons (Moda redesign): bigger pills. */
-  .profile-actions .btn-primary,
-  .profile-actions .btn-ghost {
-    @apply !px-7 !py-3.5 !text-[15px];
+  /* A profile's buttons (components/profile/ProfileHeader.tsx, after the owner's Facebook example): the two main ones share the row
+     equally (Dashboard and Create on your own profile, Follow and Message on someone else's), the rest are small pills under them. */
+  .profile-main > * {
+    flex: 1 1 0px;
+    min-width: 0;
+  }
+  .profile-main > :empty {
+    display: none;
+  }
+  .profile-main .btn-primary,
+  .profile-main .btn-ghost {
+    @apply !w-full !px-4 !py-2.5 !text-[15px];
+  }
+  .profile-main > .profile-main-fixed {
+    flex: none;
+  }
+  .profile-main > .profile-main-fixed .btn-ghost {
+    @apply !w-auto !px-3;
+  }
+  .profile-more .btn-primary,
+  .profile-more .btn-ghost {
+    @apply !px-4 !py-2 !text-xs;
   }
   .card {
     @apply rounded-xl2 border border-rule bg-card;

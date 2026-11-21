@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ShareMenu } from "@/components/share/ShareToNotesApp";
 import { GUEST_BEAT_MS, GUEST_NO_TEXT } from "@/lib/live-guests";
 import type { GuestView } from "@/lib/live-guests-server";
+import LivePlayer, { FeedGate, FollowPlus } from "./LivePlayer";
 
 // Watching a live without an account (docs/GUEST_LIVES.md; the approved mockups are docs/mockups/guest-lives). The live plays, with
 // the chat to read, the count and the likes; chatting, hearts, gifts and following open a sheet to join, which brings them back here.
@@ -21,7 +22,9 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
   return d as T;
 }
 
-export default function GuestLive({ id }: { id: string }) {
+// feed: inside Notes Live's swipe feed (components/lives/LiveFeed.tsx): the full-screen player (components/lives/LivePlayer.tsx), and
+// watching starts as the live snaps into view (the swipe is the tap), instead of the ▶ Watch button.
+export default function GuestLive({ id, feed }: { id: string; feed?: { onClose: () => void } }) {
   const [v, setV] = useState<GuestView | null>(null);
   const [err, setErr] = useState("");
   const [watching, setWatching] = useState(false);
@@ -106,7 +109,78 @@ export default function GuestLive({ id }: { id: string }) {
     };
   }, [watching, id]);
 
+  // In the feed: start watching once, as soon as the live is known to be open to guests.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!feed || autoStarted.current || !v || v.no) return;
+    autoStarted.current = true; setWatching(true);
+  }, [feed, v]);
+  const askedOnHeart = useRef(false);
+
   const back = `/live/${id}?from=guest`;
+  const joinSheet = sheet && v ? (
+    <div className="absolute inset-0 z-30 flex items-end bg-black/45" role="dialog" aria-modal="true" aria-label="Join #NotesApp" onClick={() => setSheet(null)}>
+      <div className="w-full rounded-t-3xl bg-card p-5 text-center text-ink" onClick={(e) => e.stopPropagation()}>
+        <p className="text-3xl" aria-hidden>{sheet === "gift" ? "🎁" : sheet === "heart" ? "❤️" : sheet === "follow" ? "➕" : "💬"}</p>
+        <h2 className="mt-1 font-display text-2xl">Join #NotesApp to {ACTION_TEXT[sheet]} {v.host.name}</h2>
+        <p className="mt-1 text-sm text-slate">Free. You&apos;ll come straight back to this live.</p>
+        <Link href={`/signup?next=${encodeURIComponent(back)}`} className="btn-primary mt-4 block w-full">Create a free account</Link>
+        <Link href={`/login?next=${encodeURIComponent(back)}`} className="mt-2 block w-full rounded-full border border-rule py-2.5 font-ui text-sm font-bold">I have an account: sign in</Link>
+        <button type="button" onClick={() => setSheet(null)} className="mt-3 text-xs text-slate underline">Keep watching</button>
+      </div>
+    </div>
+  ) : null;
+
+  if (feed) {
+    if (err) return <FeedGate title="Couldn't open this live" body={err} onClose={feed.onClose} />;
+    if (!v) return <LivePlayer idle title="" host={{ name: "", username: "", avatar: "" }} watching={0} likes={0} status="Loading…" onClose={feed.onClose} />;
+    if (v.no) {
+      const t = GUEST_NO_TEXT[v.no];
+      return (
+        <FeedGate poster={v.poster || v.host.avatar} ended={v.status !== "live"} eyebrow={`${v.host.name}${v.host.username ? ` · @${v.host.username}` : ""}`} heading={v.title}
+          title={v.no === "ended" ? "This live has ended" : t.title.replace("the host's", `${v.host.name}'s`)} body={v.no === "ended" ? `See ${v.host.name}'s replays and what's next on their profile.` : t.body} onClose={feed.onClose}>
+          {v.no === "ended" ? (v.host.username && <Link href={`/u/${v.host.username}`} className="mt-4 inline-block rounded-full bg-white px-5 py-2.5 font-ui text-sm font-bold text-ink">See @{v.host.username}&apos;s profile</Link>) : (
+            <>
+              <Link href={`/login?next=${encodeURIComponent(v.no === "paid" ? "/lives/paid" : back)}`} className="mt-4 inline-block rounded-full bg-white px-5 py-2.5 font-ui text-sm font-bold text-ink">{t.button}</Link>
+              <p className="mt-2 text-xs text-white/70">No account yet? <Link href={`/signup?next=${encodeURIComponent(back)}`} className="font-bold text-white underline">Join #NotesApp free</Link></p>
+            </>
+          )}
+        </FeedGate>
+      );
+    }
+    const lead = v.stage.find((s) => videos[s.uid]);
+    return (
+      <LivePlayer title={v.title} host={v.host} watching={v.watching} likes={v.likes}
+        video={lead ? videos[lead.uid] : null} poster={v.poster}
+        extraVideos={v.stage.filter((s) => s.uid !== lead?.uid && videos[s.uid]).map((s) => ({ key: s.uid, stream: videos[s.uid], label: s.name }))}
+        sounds={Object.entries(sounds).map(([uid, st]) => ({ key: uid, stream: st }))}
+        lines={v.chat.map((m) => ({ id: m.id, name: m.name, text: m.text, ...(m.ev ? { ev: m.ev } : {}) }))} pinned={v.pinned}
+        faces={v.stage.map((s, i) => ({ key: s.uid, name: s.name, avatar: s.avatar, badge: i === 0 ? "Host" : "On stage" }))}
+        follow={v.host.username ? <FollowPlus username={v.host.username} onGuest={() => setSheet("follow")} /> : null}
+        onClose={feed.onClose} onLike={() => { if (!askedOnHeart.current) { askedOnHeart.current = true; setTimeout(() => setSheet("heart"), 700); } }}
+        onGift={() => setSheet("gift")} onShare={() => setShare(true)}
+        more={[{ label: "Sign in", href: `/login?next=${encodeURIComponent(back)}` }, { label: "Join #NotesApp free", href: `/signup?next=${encodeURIComponent(back)}` }, { label: "🎟 Paid lives", href: "/lives/paid" }]}
+        comment={{ kind: "prompt", label: "Sign in to comment…", onClick: () => setSheet("chat") }}
+        status={watching && !Object.keys(sounds).length && !lead ? "Connecting…" : ""}
+        notice={note ? (
+          <div className="flex items-center gap-2 rounded-xl bg-white/95 px-3 py-2 text-xs text-ink" role="note">
+            <span aria-hidden>👀</span>
+            <span>You&apos;re watching as a guest. <Link href={`/login?next=${encodeURIComponent(back)}`} className="font-bold text-crimson">Sign in</Link> to comment, send a gift or follow {v.host.name}.</span>
+            <button type="button" onClick={() => setNote(false)} className="ml-auto px-1 font-bold" aria-label="Close">✕</button>
+          </div>
+        ) : null}>
+        {!watching && autoStarted.current && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/40">
+            <button type="button" onClick={() => { setTrouble(""); setWatching(true); }} className="rounded-full bg-white px-6 py-3 font-ui text-base font-bold text-crimson shadow-lg">▶ Watch again</button>
+            {trouble && <span className="max-w-xs text-center text-xs text-[#ffd6e0]" role="alert">{trouble}</span>}
+          </div>
+        )}
+        {joinSheet}
+        {share && <ShareMenu shareRef={null} url={`${window.location.origin}/live/${id}`} title={`${v.host.name} is live: ${v.title}`} onClose={() => setShare(false)} />}
+      </LivePlayer>
+    );
+  }
+
   if (err) return <p className="card p-6 text-sm text-crimson">{err}</p>;
   if (!v) return <p className="text-sm text-slate">Loading…</p>;
 
@@ -135,7 +209,7 @@ export default function GuestLive({ id }: { id: string }) {
           ) : (
             <>
               <p className="mt-1 text-sm text-slate">{t.body}</p>
-              <Link href={`/login?next=${encodeURIComponent(v.no === "paid" ? `/lives` : back)}`} className="btn-primary mt-4 inline-block">{t.button}</Link>
+              <Link href={`/login?next=${encodeURIComponent(v.no === "paid" ? `/lives/paid` : back)}`} className="btn-primary mt-4 inline-block">{t.button}</Link>
               <p className="mt-2 text-xs text-slate">No account yet? <Link href={`/signup?next=${encodeURIComponent(back)}`} className="text-crimson underline">Join #NotesApp free</Link></p>
             </>
           )}
@@ -194,18 +268,7 @@ export default function GuestLive({ id }: { id: string }) {
         <button type="button" onClick={() => setSheet("follow")} className="rounded-full bg-crimson px-4 py-3 font-ui text-sm font-bold text-white">Follow</button>
       </div>
 
-      {sheet && (
-        <div className="absolute inset-0 z-10 flex items-end bg-black/45" role="dialog" aria-modal="true" aria-label="Join #NotesApp" onClick={() => setSheet(null)}>
-          <div className="w-full rounded-t-3xl bg-card p-5 text-center text-ink" onClick={(e) => e.stopPropagation()}>
-            <p className="text-3xl" aria-hidden>{sheet === "gift" ? "🎁" : sheet === "heart" ? "❤️" : sheet === "follow" ? "➕" : "💬"}</p>
-            <h2 className="mt-1 font-display text-2xl">Join #NotesApp to {ACTION_TEXT[sheet]} {v.host.name}</h2>
-            <p className="mt-1 text-sm text-slate">Free. You&apos;ll come straight back to this live.</p>
-            <Link href={`/signup?next=${encodeURIComponent(back)}`} className="btn-primary mt-4 block w-full">Create a free account</Link>
-            <Link href={`/login?next=${encodeURIComponent(back)}`} className="mt-2 block w-full rounded-full border border-rule py-2.5 font-ui text-sm font-bold">I have an account: sign in</Link>
-            <button type="button" onClick={() => setSheet(null)} className="mt-3 text-xs text-slate underline">Keep watching</button>
-          </div>
-        </div>
-      )}
+      {joinSheet}
       {share && <ShareMenu shareRef={null} url={`${window.location.origin}/live/${id}`} title={`${v.host.name} is live: ${v.title}`} onClose={() => setShare(false)} />}
     </div>
   );
