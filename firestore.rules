@@ -1669,6 +1669,7 @@ service cloud.firestore {
     match /promoClaims/{id} { allow read, write: if false; }
     match /promoOrgClaims/{id} { allow read, write: if false; }
     match /promoTournament/{id} { allow read, write: if false; }
+    match /promoRuns/{id} { allow read, write: if false; } // tournament tries (lib/tournament-server.ts)
     // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
     // settings/partners (tier terms) is under settings above.
     match /partnerApplications/{id} { allow read, write: if false; }

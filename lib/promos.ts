@@ -23,7 +23,9 @@ export type Campaign = {
   endsAt: string | null; // …to here (null: until the slots run out)
   plans: PlanPool[];
   ventures: { slots: number; maxKoboPerVenture: number; totalKobo: number } | null;
-  tournament: { lagosDate: string; name: string; sponsorshipKobo: number; playFrom: string; playUntil: string } | null; // sign-ups on this Lagos date only; play in the window
+  // Sign-ups on this Lagos date only; play in the window: every entrant runs the same Naija Run street (the seed) at the same speed, `tries`
+  // times, and the best score counts (lib/tournament-server.ts).
+  tournament: { lagosDate: string; name: string; sponsorshipKobo: number; playFrom: string; playUntil: string; game: "run"; level: "normal"; seed: number; tries: number } | null;
   postPath: string; // where the campaign is announced
 };
 
@@ -40,7 +42,7 @@ export const DAVIDO_AT_34: Campaign = {
   ],
   ventures: { slots: 4, maxKoboPerVenture: 5_000_000 * 100, totalKobo: 20_000_000 * 100 },
   // Owner, 21 Nov 2026: "tournament must run today, maybe 10pm; we will announce as people play".
-  tournament: { lagosDate: "2026-11-21", name: "Davido at 34 Arcade Tournament", sponsorshipKobo: 10_000_000 * 100, playFrom: "2026-11-21T22:00:00+01:00", playUntil: "2026-11-22T00:00:00+01:00" },
+  tournament: { lagosDate: "2026-11-21", name: "Davido at 34 Arcade Tournament", sponsorshipKobo: 10_000_000 * 100, playFrom: "2026-11-21T22:00:00+01:00", playUntil: "2026-11-22T00:00:00+01:00", game: "run", level: "normal", seed: 34_211_126, tries: 3 },
   postPath: "/journals/happy-34th-birthday-davido",
 };
 
@@ -60,6 +62,9 @@ export const poolOf = (c: Campaign, tier: PromoTier) => c.plans.find((p) => p.ti
 // The calendar date in Lagos (UTC+1, no daylight saving).
 export const lagosDate = (now: Date) => new Date(now.getTime() + 3_600_000).toISOString().slice(0, 10);
 export const tournamentOpen = (c: Campaign, now: Date) => !!c.tournament && campaignLive(c, now) && lagosDate(now) === c.tournament.lagosDate;
+// Play: from playFrom to playUntil. A run started before the end may be sent in up to RUN_GRACE_MS after it.
+export const tournamentPlaying = (c: Campaign, now: Date) => !!c.tournament && now.getTime() >= Date.parse(c.tournament.playFrom) && now.getTime() < Date.parse(c.tournament.playUntil);
+export const RUN_GRACE_MS = 15 * 60_000;
 
 // Counters kept on promos/{id}: claims per tier and venture picks.
 export type PromoCounts = { plans: Partial<Record<PromoTier, number>>; venturePicks: number; tournamentEntries: number };
@@ -75,14 +80,14 @@ export type PromoStatus = {
   id: string; code: string; name: string; live: boolean; postPath: string;
   plans: { tier: PromoTier; label: string; valueText: string; slots: number; left: number; days: number }[];
   ventures: { slots: number; left: number; maxKoboPerVenture: number } | null;
-  tournament: { name: string; open: boolean; lagosDate: string; entries: number; playFrom: string; playUntil: string } | null;
+  tournament: { name: string; open: boolean; playing: boolean; lagosDate: string; entries: number; playFrom: string; playUntil: string; tries: number } | null;
 };
 export function publicStatus(c: Campaign, counts: PromoCounts, now: Date): PromoStatus {
   return {
     id: c.id, code: c.code, name: c.name, live: campaignLive(c, now), postPath: c.postPath,
     plans: c.plans.map((p) => ({ tier: p.tier, label: p.label, valueText: p.valueText, slots: p.slots, left: slotsLeft(c, counts, p.tier), days: p.days })),
     ventures: c.ventures ? { slots: c.ventures.slots, left: venturesLeft(c, counts), maxKoboPerVenture: c.ventures.maxKoboPerVenture } : null,
-    tournament: c.tournament ? { name: c.tournament.name, open: tournamentOpen(c, now), lagosDate: c.tournament.lagosDate, entries: counts.tournamentEntries, playFrom: c.tournament.playFrom, playUntil: c.tournament.playUntil } : null,
+    tournament: c.tournament ? { name: c.tournament.name, open: tournamentOpen(c, now), playing: tournamentPlaying(c, now), lagosDate: c.tournament.lagosDate, entries: counts.tournamentEntries, playFrom: c.tournament.playFrom, playUntil: c.tournament.playUntil, tries: c.tournament.tries } : null,
   };
 }
 

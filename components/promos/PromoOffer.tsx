@@ -89,12 +89,15 @@ export default function PromoOffer({ code }: { code: string }) {
           {data.tournament && (
             <>
               <h2 className="mt-10 font-display text-2xl text-ink">{data.tournament.name}</h2>
-              <p className="mt-2 text-sm text-slate">Free entry for signed-in members aged 18 and over. {data.tournament.open ? `Sign-ups are open today only (${new Date(data.tournament.lagosDate + "T12:00:00+01:00").toDateString()}, Lagos time).` : "Sign-ups are closed."} {data.tournament.entries.toLocaleString()} signed up. It runs tonight from {new Date(data.tournament.playFrom).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" })} (Lagos time); we&apos;ll announce the leaders as people play.</p>
+              <p className="mt-2 text-sm text-slate">Free entry for signed-in members aged 18 and over. {data.tournament.open ? `Sign-ups are open today only (${new Date(data.tournament.lagosDate + "T12:00:00+01:00").toDateString()}, Lagos time).` : "Sign-ups are closed."} {data.tournament.entries.toLocaleString()} signed up. It runs tonight from {new Date(data.tournament.playFrom).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" })} (Lagos time); the game is Naija Run, the same street for everyone, best of {data.tournament.tries} tries, and the leaderboard updates live as people play.</p>
               {data.mine?.tournament ? <p className="mt-3 text-sm font-semibold text-ink">You&apos;re signed up. ✓</p>
                 : data.tournament.open && (user
                   ? <button type="button" disabled={!!busy} onClick={() => void post("t", { action: "tournament" }, () => "You're signed up. It runs tonight from 10 PM, Lagos time.")} className="mt-3 rounded-full bg-crimson px-5 py-2.5 font-ui text-sm font-semibold text-paper disabled:opacity-40">{busy === "t" ? "Signing up…" : "Sign me up"}</button>
                   : signIn)}
-              <p className="mt-2"><Link href="/arcade" className="text-sm text-crimson underline">Practise in Notes Arcade</Link></p>
+              <p className="mt-3 flex flex-wrap gap-2">
+                <Link href="/arcade/tournament" className="rounded-full border border-crimson px-5 py-2.5 font-ui text-sm font-semibold text-crimson">{data.tournament.playing ? "Play now: best of 3 tries" : "The tournament page and leaderboard"}</Link>
+                <Link href="/arcade/run" className="rounded-full border border-rule px-5 py-2.5 font-ui text-sm font-semibold text-ink">Practise on Naija Run</Link>
+              </p>
             </>
           )}
           <p className="mt-10 text-xs text-slate">NotesApp birthday initiatives. Venture support is subject to selection and terms.</p>

@@ -5,6 +5,10 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { PromoError, adminPromo, claimPromoPlan, joinPromoTournament, myPromo, promoStatus } from "../../lib/promos-server";
 import { VenturesError, decidePitch, sendPitch } from "../../lib/ventures-server";
+import { finishTournamentRun, leaderboard, startTournamentRun } from "../../lib/tournament-server";
+import { createRun, step, type RunInput } from "../../lib/arcade/run";
+import { encodeStep } from "../../lib/arcade/run-replay";
+import { DAVIDO_AT_34 } from "../../lib/promos";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const now = new Date("2026-11-21T12:00:00Z");
@@ -94,6 +98,48 @@ const pitch = (title: string, promoCode?: string) => ({
   const a = await adminPromo(db, "davido-at-34", now);
   assert.equal(a.claims.length, 36); assert.equal(a.tournament.length, 2); assert.equal(a.pitches.length, 5);
   assert.equal(a.status.tournament!.entries, 2);
+
+  // Tournament play (lib/tournament-server.ts): 10 PM to midnight Lagos, best of 3 tries, the server's own score.
+  const T = DAVIDO_AT_34.tournament!;
+  const play = (dodgeEvery: number) => { // a run recorded like the browser does; returns the recording and how long it ran
+    let s = createRun(T.seed, T.level); const rec: number[] = []; let i = 0;
+    while (!s.over && i < 20_000) { const input: RunInput = dodgeEvery && i % dodgeEvery === 0 ? (["left", "right", "jump"] as RunInput[])[(i / dodgeEvery) % 3] : "none"; rec.push(encodeStep(16, input)); s = step(s, 16, input); i++; }
+    return { recording: rec.join(","), ms: rec.length * 16 };
+  };
+  const t0 = new Date("2026-11-21T21:05:00Z");
+  await rejects(startTournamentRun(db, me("u20"), "DAVIDO-at-34", new Date("2026-11-21T20:00:00Z")), /starts at/);
+  await rejects(startTournamentRun(db, me("u20"), "DAVIDO-at-34", new Date("2026-11-21T23:00:00Z")), /has ended/);
+  await rejects(startTournamentRun(db, me("teen"), "DAVIDO-at-34", t0), /18 and over/);
+  // u20 wasn't signed up: starting a try signs them up.
+  const s1 = await startTournamentRun(db, me("u20"), "DAVIDO-at-34", t0);
+  assert.equal(s1.seed, T.seed); assert.equal(s1.try, 1); assert.equal(s1.tries, 3);
+  const runA = play(37);
+  const f1 = await finishTournamentRun(db, me("u20"), "DAVIDO-at-34", s1.runId, runA.recording, new Date(t0.getTime() + runA.ms + 1000));
+  assert.ok(f1.score > 0); assert.equal(f1.best, f1.score); assert.equal(f1.rank, 1); assert.equal(f1.triesLeft, 2);
+  await rejects(finishTournamentRun(db, me("u20"), "DAVIDO-at-34", s1.runId, runA.recording, new Date(t0.getTime() + runA.ms + 2000)), /already in/);
+  // A run that claims more running time than has passed is refused (and still uses the try).
+  const s2 = await startTournamentRun(db, me("u20"), "DAVIDO-at-34", t0);
+  await rejects(finishTournamentRun(db, me("u20"), "DAVIDO-at-34", s2.runId, runA.recording, new Date(t0.getTime() + 1000)), /longer than it did/);
+  // Someone else's run can't be sent in.
+  const s3 = await startTournamentRun(db, me("u20"), "DAVIDO-at-34", t0);
+  await rejects(finishTournamentRun(db, me("u21"), "DAVIDO-at-34", s3.runId, runA.recording, new Date(t0.getTime() + runA.ms + 1000)), /wasn't found/);
+  // A worse run doesn't lower the best.
+  const runB = play(0);
+  const f3 = await finishTournamentRun(db, me("u20"), "DAVIDO-at-34", s3.runId, runB.recording, new Date(t0.getTime() + runA.ms + 1000));
+  assert.equal(f3.best, f1.score); assert.equal(f3.triesLeft, 0);
+  // Three tries, then no more.
+  await rejects(startTournamentRun(db, me("u20"), "DAVIDO-at-34", t0), /all 3 tries/);
+  // Another player: the leaderboard orders by best score.
+  const s4 = await startTournamentRun(db, me("u21"), "DAVIDO-at-34", t0);
+  await finishTournamentRun(db, me("u21"), "DAVIDO-at-34", s4.runId, runB.recording, new Date(t0.getTime() + runB.ms + 1000));
+  const board = await leaderboard(db, "DAVIDO-at-34", "u21");
+  assert.deepEqual(board.rows.map((r) => r.username), ["member20", "member21"]);
+  assert.equal(board.mine!.rank, 2); assert.equal(board.mine!.triesUsed, 1);
+  assert.equal(board.rows[0].best, f1.score);
+  assert.ok(!("uid" in board.rows[0]), "no uids on the public board");
+  // Runs sent in after midnight + 15 minutes are refused.
+  const s5 = await startTournamentRun(db, me("u22"), "DAVIDO-at-34", new Date("2026-11-21T22:59:00Z"));
+  await rejects(finishTournamentRun(db, me("u22"), "DAVIDO-at-34", s5.runId, runB.recording, new Date("2026-11-21T23:16:00Z")), /has ended/);
 
   console.log("PROMOS SERVER OK");
   process.exit(0);

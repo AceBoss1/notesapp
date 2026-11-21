@@ -1333,6 +1333,13 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     clears `trialSource`. Ventures: a pitch with `promoCode` gets `campaign`, is accepted even while the call is paused, and picking it uses the
     campaign's slots in a transaction (`pickVentureSlot`), not the quarter's. Pages: /offers/[code], Admin → Promos; API /api/promos,
     /api/admin/promos. Tests: `test:promos`, `test:promos-server` (35 members racing for 34 Enterprise slots get exactly 34).
+    The tournament (owner: "must run today, maybe 10pm; we will announce as people play"): `lib/tournament-server.ts`, "Same deal" from
+    docs/ARCADE_TOURNAMENTS.md on Naija Run: 21 Nov 22:00–24:00 Lagos (`playFrom`/`playUntil`), one seed and speed for everyone, 3 tries
+    (counted when a try starts, so an abandoned try is used), best score counts. `components/games/RunGame.tsx` takes a `tournament` prop:
+    whole-millisecond steps, each recorded as dt×5+input (`lib/arcade/run-replay.ts`); the server replays the recording with the game's
+    own `step` and keeps its own score, refuses a run that claims more time than passed since the try began, and takes runs up to 15 min after
+    the close. `promoRuns/{runId}`; best on the entry. Page /arcade/tournament (arcade.<domain>/tournament), live leaderboard via
+    `/api/promos?board=1` every 15 s. Prizes/payouts are not in code: winners are announced by the team.
 
 ## 3. How the work is done (please keep these)
 
