@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useDevice } from "@/lib/use-device";
@@ -52,10 +52,11 @@ const desktop: Record<"chrome" | "edge" | "safari" | "firefox", { name: string; 
 };
 const desktopKey = (b: BrowserName): keyof typeof desktop => (b === "edge" ? "edge" : b === "safari" ? "safari" : b === "firefox" ? "firefox" : "chrome"); // Brave and Opera install like Chrome
 
-function Steps({ list }: { list: readonly Step[] }) {
+// The steps are written for #NotesApp; another installable app (Notes Arcade) gets its own name in them.
+function Steps({ list, name }: { list: readonly Step[]; name: string }) {
   return (
     <ol className="mt-4 space-y-4">
-      {list.map(([t, d], i) => (
+      {list.map(([t0, d0]) => [t0.replaceAll("NotesApp", name), d0.replaceAll("NotesApp", name)] as const).map(([t, d], i) => (
         <li key={t} className="flex gap-4">
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-crimson font-ui text-sm font-bold text-paper" aria-hidden="true">{i + 1}</span>
           <span><span className="block font-ui text-base font-bold text-ink">{t}</span><span className="mt-0.5 block text-sm text-slate">{d}</span></span>
@@ -69,7 +70,14 @@ const tabOf = (d: Device | null): Tab => (!d || !isMobile(d) ? "desktop" : d.os 
 
 // How to install #NotesApp, for the visitor's own device: a phone or tablet (iPhone, iPad, Android) or a computer (Windows, Mac, Linux), and their browser.
 // Opens on the right section; when the browser offers a one-tap install, a button does it.
-export default function InstallGuide() {
+export type InstallApp = { name: string; icon: string; home: string; homeLabel: string; brand: ReactNode; calls: boolean };
+const NOTESAPP: InstallApp = {
+  name: "NotesApp", icon: "/images/brand/notesapp-icon.webp", home: "/", homeLabel: "← Back to the welcome screen", calls: true,
+  brand: <span className="font-ui text-lg font-extrabold tracking-tight text-ink">Notes<span className="text-crimson">App</span></span>,
+};
+
+export default function InstallGuide({ app = NOTESAPP }: { app?: InstallApp }) {
+  const name = app.name;
   const device = useDevice();
   const [tab, setTab] = useState<Tab>("desktop");
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
@@ -105,50 +113,50 @@ export default function InstallGuide() {
     <div className="min-h-screen bg-paper">
       <header className="border-b border-rule bg-card">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/images/brand/notesapp-icon.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
-            <span className="font-ui text-lg font-extrabold tracking-tight text-ink">Notes<span className="text-crimson">App</span></span>
+          <Link href={app.home} className="flex items-center gap-2.5">
+            <Image src={app.icon} alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
+            {app.brand}
           </Link>
           <Link href="/login" className="font-ui text-sm font-semibold text-crimson">Sign in</Link>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-10">
-        <h1 className="font-display text-4xl text-ink">Install NotesApp on {where}</h1>
+        <h1 className="font-display text-4xl text-ink">Install {name} on {where}</h1>
         <p className="mt-3 text-slate">
           {onComputer
-            ? "NotesApp installs straight from your browser, with no store and nothing to download by hand. It gets its own icon and its own window, and keeps you signed in."
-            : "NotesApp installs straight from your phone's browser, with no app store. It gets its own icon on your home screen, opens full screen and keeps you signed in."}
-          {" Allow notifications when it asks, and calls ring on your device even when NotesApp isn't open on your screen."}
+            ? `${name} installs straight from your browser, with no store and nothing to download by hand. It gets its own icon and its own window, and keeps you signed in.`
+            : `${name} installs straight from your phone's browser, with no app store. It gets its own icon on your home screen, opens full screen and keeps you signed in.`}
+          {app.calls ? " Allow notifications when it asks, and calls ring on your device even when NotesApp isn't open on your screen." : ""}
         </p>
 
         {device?.inApp && (
           <p className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-ink" role="alert">
-            You are inside another app&apos;s browser, which can&apos;t install NotesApp. Copy the address below and open it in {device.os === "ios" ? "Safari" : "Chrome"}.
+            You are inside another app&apos;s browser, which can&apos;t install {name}. Copy the address below and open it in {device.os === "ios" ? "Safari" : "Chrome"}.
           </p>
         )}
 
         {installed ? (
-          <p className="mt-6 rounded-xl border border-rule bg-card p-4 text-sm text-ink" role="status">NotesApp is already installed on this device. Open it from {onComputer ? (device?.os === "windows" ? "the Start menu or your taskbar" : device?.os === "mac" ? "Launchpad or the Dock" : "your apps") : "your home screen"}.</p>
+          <p className="mt-6 rounded-xl border border-rule bg-card p-4 text-sm text-ink" role="status">{name} is already installed on this device. Open it from {onComputer ? (device?.os === "windows" ? "the Start menu or your taskbar" : device?.os === "mac" ? "Launchpad or the Dock" : "your apps") : "your home screen"}.</p>
         ) : prompt ? (
           <div className="mt-6 rounded-xl border border-rule bg-card p-4">
-            <p className="text-sm text-ink">Your browser can install NotesApp in one click.</p>
-            <button type="button" onClick={async () => { await prompt.prompt(); const r = await prompt.userChoice; if (r.outcome === "accepted") setInstalled(true); setPrompt(null); }} className="btn-primary mt-3">Install NotesApp</button>
+            <p className="text-sm text-ink">Your browser can install {name} in one click.</p>
+            <button type="button" onClick={async () => { await prompt.prompt(); const r = await prompt.userChoice; if (r.outcome === "accepted") setInstalled(true); setPrompt(null); }} className="btn-primary mt-3">Install {name}</button>
           </div>
         ) : null}
 
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-rule bg-card p-4 text-sm">
-          <span className="text-slate">{onComputer ? "NotesApp address:" : "Open this address on your phone:"}</span>
+          <span className="text-slate">{onComputer ? `${name} address:` : "Open this address on your phone:"}</span>
           <code className="rounded bg-paper px-2 py-1 font-mono text-ink">https://{address}</code>
           <button type="button" onClick={copy} className="rounded-full border border-rule px-3 py-1 font-ui text-xs font-semibold hover:border-crimson">{copied ? "Copied" : "Copy"}</button>
         </div>
 
         <div role="tablist" aria-label="Your device" className="mt-8 flex flex-wrap gap-2">{tabBtn("desktop", "Windows, Mac or Linux")}{tabBtn("ios", "iPhone or iPad")}{tabBtn("android", "Android")}</div>
 
-        {tab === "ios" && <Steps list={ios} />}
+        {tab === "ios" && <Steps list={ios} name={name} />}
         {tab === "android" && (
           <>
-            <Steps list={android} />
+            <Steps list={android} name={name} />
             <ul className="mt-6 space-y-2 text-sm text-slate">{androidOther.map(([b, d]) => <li key={b}><span className="font-semibold text-ink">{b}:</span> {d}</li>)}</ul>
           </>
         )}
@@ -157,13 +165,13 @@ export default function InstallGuide() {
             {order.map((k) => (
               <section key={k}>
                 <h2 className="mt-4 font-display text-2xl text-ink">{desktop[k].name}{device && onComputer && k === mine ? " (your browser)" : ""}</h2>
-                <Steps list={desktop[k].steps} />
+                <Steps list={desktop[k].steps} name={name} />
               </section>
             ))}
             <section>
               <h2 className="font-display text-2xl text-ink">After you install</h2>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
-                <li><span className="font-semibold text-ink">Windows:</span> find NotesApp in the Start menu. Right-click it and choose “Pin to taskbar” to keep it close.</li>
+                <li><span className="font-semibold text-ink">Windows:</span> find {name} in the Start menu. Right-click it and choose “Pin to taskbar” to keep it close.</li>
                 <li><span className="font-semibold text-ink">Mac:</span> open it from Launchpad or the Dock; Chrome and Edge also put it in your Applications folder.</li>
                 <li><span className="font-semibold text-ink">Linux and Chromebook:</span> it appears in your app launcher.</li>
               </ul>
@@ -174,13 +182,13 @@ export default function InstallGuide() {
         <section className="mt-10">
           <h2 className="font-display text-2xl text-ink">If you don&apos;t see the option</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
-            <li>Open NotesApp in the browser itself, not inside another app, and in a normal (not private or incognito) window.</li>
+            <li>Open {name} in the browser itself, not inside another app, and in a normal (not private or incognito) window.</li>
             <li>Use Safari on iPhone, Chrome on Android, and Chrome or Edge on a computer.</li>
-            <li>Already installed? Look for the NotesApp icon on your home screen, Start menu, Dock or app list.</li>
+            <li>Already installed? Look for the {name} icon on your home screen, Start menu, Dock or app list.</li>
           </ul>
         </section>
 
-        <p className="mt-12"><Link href="/" className="font-ui text-sm font-semibold text-crimson">← Back to the welcome screen</Link></p>
+        <p className="mt-12"><Link href={app.home} className="font-ui text-sm font-semibold text-crimson">{app.homeLabel}</Link></p>
       </main>
     </div>
   );
