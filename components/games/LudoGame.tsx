@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
+import type { NanaTake } from "@/lib/arcade/nana";
+import { ludoTake, ludoTip, type LudoHighlight } from "@/lib/arcade/nana-ludo";
 import { arcadeStore } from "@/lib/arcade/store";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 import {
@@ -261,6 +264,12 @@ export default function LudoGame() {
   const [pick, setPick] = useState<number | null>(null); // the die you chose to move with (2 dice)
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(false);
+  // Nana (owner, 21 Nov 2026): the seed she'd move (and where it lands) lit up in gold, and her take on the computers' moves, all
+  // from the engine's own choice (lib/arcade/nana-ludo.ts).
+  const [nanaHint, setNanaHint] = useState<LudoHighlight>(null);
+  const [take, setTake] = useState<NanaTake | null>(null);
+  const [gameNo, setGameNo] = useState(0);
+  const prevGame = useRef<LudoState | null>(null);
   const rollTimers = useRef<number[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
@@ -316,6 +325,19 @@ export default function LudoGame() {
     else if (e.kind === "move" && e.captured.length > 0) beep(game.table.owner[e.player] === 0 ? 740 : 196, 0.22);
     else if (e.kind === "move") beep(e.to === HOME ? 660 : 420, 0.08);
   }, [game.last, game.phase, game.winner, game.loser, game.table, beep]);
+
+  // Nana: any change to the game (your move, a roll, a computer's turn) makes a lit-up hint stale; a computer's action or roll gets
+  // her take, worked out from the game just before it.
+  useEffect(() => {
+    const prev = prevGame.current;
+    prevGame.current = game;
+    setNanaHint(null);
+    if (!prev || prev === game || game.last === prev.last) return;
+    // Once none of your colours is playing (SKIP AHEAD can jump many moves at once), there's nothing useful to say.
+    if (!myColours(game).some((c) => inPlay(game, c))) return;
+    const t = ludoTake(prev, game);
+    if (t) setTake(t);
+  }, [game]);
 
   // Count a win once per game: a 4-player or 2 v 2 game you won, or the knockout final.
   useEffect(() => {
@@ -408,6 +430,9 @@ export default function LudoGame() {
     setFaces([6, 6]);
     setPick(null);
     countedRef.current = false;
+    prevGame.current = null; // a fresh game: nothing for Nana to compare with
+    setTake(null);
+    setGameNo((n) => n + 1);
     setGame(g);
     setStarted(true);
   }, [clearRollTimers]);
@@ -460,6 +485,24 @@ export default function LudoGame() {
     [game],
   );
   const pickable = activeDie !== null && new Set(usableDice.map((i) => game.dice[i])).size > 1;
+
+  // Nana: on your roll she says roll; on your move she lights up the seed and the square it lands on, and picks her die for you so
+  // tapping the glowing seed plays her move.
+  const canAskNana = started && !rolling && myTurn && !watching && (game.phase === "roll" || game.phase === "move");
+  const askNana = () => {
+    const t = canAskNana ? ludoTip(game) : null;
+    const h = t?.highlight ?? null;
+    setNanaHint(h);
+    if (h && h.die !== null) setPick(h.die);
+    return t?.tip ?? null;
+  };
+  const hint = canAskNana ? nanaHint : null;
+  const hintSpot = (() => {
+    if (!hint) return null;
+    if (hint.to >= HOME) return HOME_SPOT[hint.player];
+    const cell = seedCell(hint.player, hint.to);
+    return cell ? ([cell[0] + 0.5, cell[1] + 0.5] as [number, number]) : null;
+  })();
 
   // Keyboard: Space or R rolls; 1–4 moves that seed; D switches die; H plays 6 + 5 straight home.
   useEffect(() => {
@@ -560,20 +603,25 @@ export default function LudoGame() {
               } as CSSProperties;
               if (!mine(game, t.player)) return <span key={`${t.player}-${t.seed}`} className="ludo-seed" style={style} aria-hidden="true" />;
               const can = t.player === game.turn && movable.includes(t.seed);
+              const nana = hint !== null && hint.player === t.player && hint.seed === t.seed;
               const where = t.progress === YARD ? "in your yard" : t.progress >= HOME ? "home" : t.progress > 50 ? "in your home column" : `${t.progress} steps along`;
               const colour = mineNow.length > 1 ? `${NAMES[t.player].toLowerCase()} ` : "";
               return (
                 <button
                   key={`${t.player}-${t.seed}`}
                   type="button"
-                  className={`ludo-seed is-mine${can ? " is-movable" : ""}`}
+                  className={`ludo-seed is-mine${can ? " is-movable" : ""}${nana ? " is-nana" : ""}`}
                   style={style}
                   disabled={!can}
                   onClick={() => moveSeed(t.seed)}
-                  aria-label={`Your ${colour}seed ${t.seed + 1}, ${where}${can ? ". Move it" : ""}`}
+                  aria-label={`Your ${colour}seed ${t.seed + 1}, ${where}${can ? ". Move it" : ""}${nana ? ". Nana's pick" : ""}`}
                 />
               );
             })}
+            {hintSpot && (
+              <span className="ludo-nana-dest" aria-hidden="true"
+                style={{ left: `${(hintSpot[1] / 15) * 100}%`, top: `${(hintSpot[0] / 15) * 100}%`, width: `${(0.95 / 15) * 100}%` }} />
+            )}
           </div>
 
           {!started && (
@@ -694,7 +742,7 @@ export default function LudoGame() {
               ))}
             </div>
             {canGoHome && (
-              <button type="button" className="arc-btn-ghost ludo-home-btn" onClick={goHome} aria-label="Spend the 6 and the 5 to send a seed from your yard straight home">
+              <button type="button" className={`arc-btn-ghost ludo-home-btn${hint && hint.die === null ? " is-nana" : ""}`} onClick={goHome} aria-label="Spend the 6 and the 5 to send a seed from your yard straight home">
                 6+5 → HOME
               </button>
             )}
@@ -707,6 +755,7 @@ export default function LudoGame() {
         </div>
 
         <p className="arc-status" aria-live="polite">{watching ? `You're home. ${status}` : status}</p>
+        <ArcadeNana slug="ludo" canAsk={canAskNana} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setNanaHint(null)} />
       </div>
 
       <style jsx global>{`
@@ -763,7 +812,13 @@ export default function LudoGame() {
         .ludo-die.is-rolling { animation:ludo-shake .26s linear infinite; }
         @keyframes ludo-shake { 25% { transform:rotate(-12deg) translateY(-2px); } 75% { transform:rotate(12deg) translateY(-2px); } }
         @media(max-width:480px) { .ludo-wrap { padding:6px; } .ludo-seed { border-width:1.5px; } .ludo-players li { padding:5px 6px; font-size:8px; } .ludo-die { width:40px; height:40px; padding:6px; } .ludo-roll { gap:8px; } .ludo-dice { gap:6px; } .ludo-home-btn { padding:9px 8px; } .ludo-overlay { padding:12px; justify-content:safe center; } .ludo-overlay h2 { font-size:24px; margin-bottom:4px; } .ludo-overlay p { margin:0 0 10px; font-size:11px; } .ludo-picker { margin-bottom:10px; } .ludo-chip { padding:6px 8px; } .ludo-yard-tag { font-size:6px; padding:1px 3px; } }
-        @media(prefers-reduced-motion:reduce) { .ludo-seed { transition:none; } .ludo-seed.is-movable, .ludo-die.is-rolling { animation:none; } }
+        /* Nana's hint: a gold ring and glow on her seed, and a dashed gold ring on the square it lands on. */
+        .ludo-seed.is-nana { z-index:4; }
+        .ludo-seed.is-nana::after { content:""; position:absolute; inset:-6px; border-radius:50%; border:3px solid #ffd166; box-shadow:0 0 10px #ffd166cc; }
+        .ludo-nana-dest { position:absolute; z-index:1; aspect-ratio:1; border:3px dashed #ffd166; border-radius:50%; background:#ffd16626; box-shadow:0 0 10px #ffd166aa; transform:translate(-50%,-50%); pointer-events:none; animation:ludo-nana 1.4s ease-in-out infinite; }
+        @keyframes ludo-nana { 50% { opacity:.5; } }
+        .ludo-home-btn.is-nana { border-color:#ffd166; box-shadow:0 0 0 3px #ffd166, 0 0 12px #ffd166aa; }
+        @media(prefers-reduced-motion:reduce) { .ludo-seed { transition:none; } .ludo-seed.is-movable, .ludo-die.is-rolling, .ludo-nana-dest { animation:none; } }
       `}</style>
     </ArcadeShell>
   );
