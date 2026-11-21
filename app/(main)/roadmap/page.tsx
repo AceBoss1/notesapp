@@ -43,6 +43,20 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/life", label: "Play Notes Life →" },
   },
   {
+    title: "Notes Arcade: free games",
+    tag: "Live · Games",
+    body: "Live now: Ludo (1 or 2 dice, 2 v 2 yards and knockout), Whot, Ace of Spades, Ncho and Aka-Hausa (2 or 4 players), Achi, Chess, Draughts (African 10×10 by default), Naija Landlord, Naija Run, Puff-Puff Rush and Snake, against the computer at the level you choose. Anyone can play without signing in; members who sign in keep their progress and N$. It installs as its own app, Notes Arcade, and sponsors can book its advert spots.",
+    detail: "Next: a free Nana in the Arcade that suggests moves and explains the computer's (never in tournaments, and players can switch it off in a duel), sponsor-backed tournaments for signed-in members (prize tournaments 18+, practice tournaments for teens), then player-to-player games with friends, playing groups, messages and calls. N$ is game money: no game pays out real naira.",
+    link: { href: "/arcade", label: "Open Notes Arcade →" },
+  },
+  {
+    title: "NotesApp Ventures: Rewrite the Playbook",
+    tag: "Live · Ventures",
+    body: "Live now: pitch a feature, product or business for emerging markets. Applications are rolling, a person reads every pitch, and each quarter we pick a set number to build with their founders, with our engineers, platform and guidance, for equity and a board seat on terms that fit the project.",
+    detail: "Pitches are confidential. Nana can pressure-test a pitch privately before it's sent. Up to three pitches a quarter; everyone who pitches gets perks.",
+    link: { href: "/ventures", label: "Pitch your idea →" },
+  },
+  {
     title: "Notes Life: a pixel look and an HD look with a city map",
     tag: "Social",
     body: "Coming soon. Two looks to choose from, with the same game: a light pixel-art look (characters and places in pixel art, smooth on any computer or phone), and an HD look where you choose your own look in a dressing room, chat beside the scene, work jobs with a timer, and travel on an illustrated Abuja map where you can buy properties with game money.",

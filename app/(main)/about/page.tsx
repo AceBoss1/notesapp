@@ -3,6 +3,7 @@ import { SITE, VISION, MISSION, MISSION_PILLARS, VALUES, WHAT_IS_INTRO, WHAT_IS_
 import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
+import ArcadeVenturesCards from "@/components/ArcadeVenturesCards";
 import ProgramThanks from "@/components/ProgramThanks";
 import Image from "next/image";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
@@ -68,6 +69,15 @@ const LIVE = [
   { href: "/docs", title: "#NotesApp in your AI assistant (MCP)", copy: "AI assistants that support MCP can find creators, journals, Notes Market items and Notes Academy courses, show open session times and share booking links. With your API key, they can read your own profile, bookings, orders and earnings. It only reads; booking, buying and paying happen on #NotesApp." },
   { href: "/profile/analytics", title: "Analytics", copy: "Earnings, orders, customers, best sellers, stock running low, visits and where they came from, by plan: 7 days for everyone, 90 days with customers and a download on Pro, visits by page and source on Business." },
   { href: "/status", title: "Status & changelog", copy: "Live service health with response times and incident updates, plus a changelog of every release." },
+  { href: "/lives", title: "Notes Live & paid lives", copy: "Go live with viewers' chat, hearts and gifts, or sell tickets to a scheduled live with early-bird, normal and late prices. Anyone can watch a live that's open to everyone without an account, and joins to chat." },
+  { href: "/ppm", title: "Pay-per-minute sessions", copy: "A price per minute for voice and video calls, booked by everyone or only your subscribers, metered by #NotesApp, with unused minutes returned." },
+  { href: "/exam-prep", title: "Naija Exam Prep", copy: "Free JAMB, WAEC and NECO practice questions with full explanations, timed mocks and offline packs, every question original and reviewed." },
+  { href: "/arcade", title: "Notes Arcade", copy: "Free games: Ludo, Whot, Ace of Spades, Ncho and Aka-Hausa, Achi, Chess, Draughts, Naija Landlord, Naija Run, Puff-Puff Rush and Snake. No sign-in to play; sign in to save your progress and N$. Installs as its own app. No game pays out real naira." },
+  { href: "/life", title: "Notes Life", copy: "Our free life game: start in a room in Wuse, Abuja with N$ 100,000, work, learn and grow, with your NotesApp sign-in." },
+  { href: "/ventures", title: "NotesApp Ventures", copy: "Rewrite the Playbook: pitch a feature, product or business for emerging markets. Each quarter we pick a few to build with their founders for equity and a board seat. Confidential, with perks for everyone who pitches." },
+  { href: "/sounds", title: "NotesApp Sounds", copy: "Songs to use on Media posts, moments and lives; verified artists add theirs and earn royalties through ad share." },
+  { href: "/hotels", title: "Hotel kit", copy: "A hotel's website with rooms and online booking, orders from every department, a live staff board, a kitchen screen and tills." },
+  { href: "/books", title: "Business books", copy: "Walk-in sales with receipts, expenses, stock, money owed and profit, beside your online orders, with import from Excel, Google Sheets and Tralo." },
   { href: "/pricing", title: "Video on posts", copy: "Add a short video to a post — one MP4 or WebM up to 3 minutes — played in our own player that only loads when you press play." },
 ];
 
@@ -111,6 +121,7 @@ export default async function AboutPage() {
         />
       </div>
       <NotesLifeCard className="mt-10" />
+      <ArcadeVenturesCards className="mt-6" />
 
       <div className="mt-12 space-y-12 font-body text-ink">
         <section id="vision">
@@ -165,6 +176,8 @@ export default async function AboutPage() {
             Publish a journal, get booked from it and get paid in your local currency: naira through Paystack, and subscriptions in other currencies by card or mobile money{WALLET_LIVE ? " or a NotesApp Credit wallet" : ""}.
             Sell physical goods and downloads in Notes Market, and teach courses in Notes Academy with certificates anyone can
             check. Keep in touch by email{MESSAGES_LIVE ? ", messages and group chats" : ""}{CALLS_LIVE ? ", and free calls that are end-to-end encrypted" : ""}.
+            Go live, free or with tickets, for anyone to watch. Play free in Notes Life and Notes Arcade, and pitch your big idea to
+            NotesApp Ventures, where we build the ones we pick with their founders.
             Businesses run it on their own domain; Enterprises plug in with our API. Reading, commenting, booking and buying are
             free; we earn a commission when our members earn, set out in the open below.
           </p>
@@ -206,8 +219,8 @@ export default async function AboutPage() {
           <p className="eyebrow">Where we&apos;re going</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
           <p className="mt-4 text-lg text-slate">
-            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: our own
-            live streaming for communities, with bigger meetings; iOS and Android apps, with NotesApp Inc, our US company; payments across Africa (Kenya first, then Ghana); WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
+            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: Live Media
+            Studio Pro, the broadcast look for lives, now in testing; player-to-player games and tournaments in Notes Arcade; iOS and Android apps, with NotesApp Inc, our US company; payments across Africa (Kenya first, then Ghana); WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
@@ -222,8 +235,11 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          New: Day, Night or Auto for the whole app, our African pattern behind every chat, and emoji packs with Afro culture drawings and flags.
-          New too: giving and paid event tickets with QR check-in for communities. Still to come: live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
+          New: <Link href="/arcade" className="text-crimson underline underline-offset-2">Notes Arcade</Link>, free games you can play
+          without signing in; lives anyone can watch without an account; and <Link href="/ventures" className="text-crimson underline underline-offset-2">NotesApp Ventures</Link>,
+          our open call for ideas. New too: giving and paid event tickets with QR check-in for{" "}
+          <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, Day, Night or Auto for the whole app, and emoji packs with Afro culture drawings and flags.
+          Still to come: player-to-player games and tournaments in Notes Arcade, the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}

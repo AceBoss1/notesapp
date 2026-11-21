@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.198.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "changed", text: "Ludo: capturing a seed no longer earns another roll. Only a 6 (with 1 die) or a double 6 (with 2 dice) rolls again; after a capture you carry on spending the dice you have left, then the turn passes." },
+      { kind: "added", text: "The home page and About show Notes Arcade and NotesApp Ventures, with lives anyone can watch, pay-per-minute sessions, Naija Exam Prep, Notes Life, NotesApp Sounds, the Hotel kit and Business books among what you can do today." },
+      { kind: "changed", text: "About no longer lists live streaming as coming: lives are here. What's next now names Live Media Studio Pro and player-to-player games and tournaments in Notes Arcade." },
+      { kind: "added", text: "The roadmap has Notes Arcade and NotesApp Ventures, with what's next for each." },
+    ],
+  },
+  {
     version: "v0.197.0",
     bump: "minor",
     date: "2026-11-21",

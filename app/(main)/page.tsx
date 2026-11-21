@@ -2,6 +2,7 @@ import Link from "next/link";
 import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
+import ArcadeVenturesCards from "@/components/ArcadeVenturesCards";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
@@ -65,6 +66,12 @@ const FEATURES = [
   { title: "Community & Events", copy: "For churches, NGOs, schools and clubs: live audio rooms where you choose who speaks and everyone can chat, post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders, a Join live link and paid tickets checked in by QR code. Take offerings, tithes and donations with charges like a bank transfer and receipts for every giver. You choose what non-members see. Free up to 200 members." },
   { title: "Business books", copy: "Walk-in sales with receipts, expenses, stock, money owed to you and profit by day, week or month, beside your online orders, which come in by themselves, with import from Excel, Google Sheets and Tralo. Free on Free Basic up to a monthly limit.", href: "/books" },
   { title: "Hotel kit", copy: "A whole hotel on #NotesApp: its website with rooms and online booking, orders from every department to a room, a table or for pick-up, a live staff board, a kitchen screen and tills, on the plans you already have.", href: "/hotels" },
+  { title: "Notes Live and paid lives", copy: "Go live from your phone or computer with viewers' chat, hearts and gifts, or schedule a ticketed live with early-bird, normal and late prices, sold to everyone or only to your subscribers. Anyone can watch a live that's open to everyone, even without an account: they join to chat, and you see how many joined #NotesApp from your live. Live Media Studio Pro, our broadcast look with your logo, lower thirds and a ticker, is in testing.", href: "/lives" },
+  { title: "Pay-per-minute sessions", copy: "Set a price per minute for voice and video calls, and who can book: everyone, or only your Premium, VIP or VVIP subscribers. Callers hold minutes from their NotesApp Credit, the call is metered by #NotesApp, and unused minutes come back when it ends.", href: "/ppm" },
+  { title: "Naija Exam Prep", copy: "JAMB, WAEC and NECO practice: free questions in every subject with full explanations, timed mocks marked on the spot, and a pack per exam that works offline. Every question is original and checked by a reviewer. Students can ask a parent or sponsor to pay with a link.", href: "/exam-prep" },
+  { title: "Notes Life and Notes Arcade", copy: "Free games with your #NotesApp account. Notes Life is a life game that starts in a room in Wuse, Abuja. Notes Arcade has Ludo, Whot, Ace of Spades, Ncho and Aka-Hausa, Achi, Chess, Draughts, Naija Landlord, Naija Run, Puff-Puff Rush and Snake. Play without signing in; sign in to save your progress and N$. No game pays out real naira.", href: "/arcade" },
+  { title: "NotesApp Ventures", copy: "Rewrite the Playbook, our open call: pitch the feature, product or business you're sure the crowd would jump into. Each quarter we pick a few to build with their founders, with our engineers, platform and guidance, for equity and a board seat. Pitches are confidential, and Nana can pressure-test yours first, privately.", href: "/ventures" },
+  { title: "NotesApp Sounds", copy: "Songs to use on your Media posts, moments and lives, each with a page of what people made with it. Verified artists add their songs and earn royalties through ad share.", href: "/sounds" },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 
@@ -93,9 +100,10 @@ export default async function Home() {
               together. Along the way we saw that our clients and their
               customers aren&apos;t two markets, they&apos;re one family. So we
               built one home where everyone is welcome: write journals, take
-              bookings, sell in Notes Market, teach in Notes Academy, message
-              and call each other free, and get paid in your local currency, under your own
-              name or your own domain.
+              bookings, sell in Notes Market, teach in Notes Academy, go live,
+              message and call each other free, and get paid in your local currency, under your own
+              name or your own domain. When it&apos;s time to unwind, play free in Notes Life and
+              Notes Arcade, and when you have a big idea, pitch it to NotesApp Ventures.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link href="/journals" className="btn-primary">
@@ -163,7 +171,10 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><NotesLifeCard /></section>
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <NotesLifeCard />
+        <ArcadeVenturesCards className="mt-6" />
+      </section>
 
       {/* The loop */}
       <section className="border-y border-rule bg-ink py-20 text-paper">
