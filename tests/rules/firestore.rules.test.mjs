@@ -1977,3 +1977,11 @@ test("AI content checks: settings, flags, strikes, the cache, numbers, passes, c
     }
   }
 });
+
+test("Notes Arcade progress is server-only: not even the member reads or writes it from the browser (/api/arcade/progress does)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), "arcadeProgress/alice"), { kv: { "arcade-ncho-wins": "3" } }));
+  for (const db of [as("alice"), as("bob"), as("boss", { admin: true }), anon()]) {
+    await assertFails(getDoc(doc(db, "arcadeProgress/alice")));
+    await assertFails(setDoc(doc(db, "arcadeProgress/alice"), { kv: { "arcade-ncho-wins": "99" } }));
+  }
+});
