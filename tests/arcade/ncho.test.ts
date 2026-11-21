@@ -1,9 +1,9 @@
 // Ncho (lib/arcade/ncho.ts), the owner's rules of 21 Nov 2026: owned holes, relay sowing, the mover's last-seed 4, 4s made on the way going to the hole's owner,
-// rounds with counting, refilling and conquered houses, the end of the game, and computer play on both board sizes.
+// rounds with counting, refilling and conquered houses, the end of the game, and computer play. Ncho is 6 holes a side only (the owner: "there's no 12 hole ncho").
 // Run: npx -y tsx tests/arcade/ncho.test.ts
 import assert from "node:assert/strict";
 import {
-  AKAHAUSA_DEPTH, LEVEL_DEPTH, LONG_BOARD_DEPTH, MAX_SOWINGS, applyMove, chooseMove, depthFor, endRound, holeCount,
+  AKAHAUSA_DEPTH, LEVEL_DEPTH, MAX_SOWINGS, applyMove, chooseMove, depthFor, endRound, holeCount,
   housesOf, initialState, legalMoves, moveCap, seededRng, sow, startingOwner, totalSeeds,
   type HolesPerSide, type Level, type NchoState, type NchoVariant, type Player, type RoundsTarget,
 } from "../../lib/arcade/ncho";
@@ -33,20 +33,13 @@ ok("standard board: 12 holes of 4 (48 seeds), each owns their row, empty stores,
   assert.deepEqual(legalMoves(s), [0, 1, 2, 3, 4, 5]);
   assert.equal("chain" in s, false, "the old chain option is gone");
 });
-ok("Nchokoroto board: 24 holes of 4 (96 seeds); rounds and first player honoured", () => {
-  const s = initialState(undefined, 1, "akahausa", { holesPerSide: 12, rounds: "all" });
-  assert.equal(s.holesPerSide, 12);
-  assert.equal(holeCount(12), 24);
-  assert.deepEqual(s.pits, Array(24).fill(4));
-  assert.deepEqual(s.owner, startingOwner(12));
-  assert.equal(housesOf(s.owner, 0), 12);
-  assert.equal(sum(s), 96);
-  assert.equal(totalSeeds(12), 96);
+ok("there's no 12-hole Ncho: every game is 6 holes a side, 48 seeds", () => {
+  const s = initialState(undefined, 1, "akahausa", { rounds: "all" });
+  assert.equal(s.holesPerSide, 6);
+  assert.equal(holeCount(s.holesPerSide), 12);
+  assert.equal(totalSeeds(s.holesPerSide), 48);
   assert.equal(s.turn, 1);
   assert.equal(s.roundStarter, 1);
-  assert.equal(s.roundsTarget, "all");
-  assert.deepEqual(legalMoves(s), [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]);
-  assert.equal(initialState(undefined, 0, "ncho", { rounds: 7 }).roundsTarget, 7);
 });
 
 // --- Legal moves ---
@@ -203,10 +196,9 @@ ok("both variants mirror each other: Ncho anticlockwise, Aka-Hausa clockwise", (
   assert.deepEqual(a.last?.sowings[0].path, [4, 5, 6, 7]);
   const c = applyMove(initialState(undefined, 0, "akahausa"), 3);
   assert.deepEqual(c.last?.sowings[0].path, [2, 1, 0, 11]);
-  assert.deepEqual(applyMove(initialState(undefined, 0, "akahausa", { holesPerSide: 12 }), 0).last?.sowings[0].path, [23, 22, 21, 20]);
   // Reflect the board left-right (keeps each row): every Ncho move matches its mirrored Aka-Hausa move hole for hole.
   const rng = seededRng(11);
-  for (const half of [6, 12]) {
+  for (const half of [6]) {
     const n = half * 2;
     const m = (h: number) => (half - 1 - h + n) % n;
     for (let i = 0; i < 300; i++) {
@@ -253,7 +245,6 @@ ok("a round ends when the player to move has no seeds in holes they own; count, 
 });
 ok("the move cap ends the round as if the player to move couldn't play", () => {
   assert.equal(moveCap(6), 400);
-  assert.equal(moveCap(12), 800);
   const s = applyMove(at([1, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 0], { stores: [15, 12], roundMoves: 399 }), 0);
   assert.equal(s.lastRound?.reason, "move-cap");
   assert.equal(s.round, 2);
@@ -321,17 +312,11 @@ ok("endRound: the leftover hole goes to the larger remainder, 2-2 to the player 
   assert.deepEqual(e.leftover, { hole: 11, to: 0, seeds: 4 });
   assert.deepEqual(e.conquered, [{ hole: 11, from: 1, to: 0 }]);
   assert.deepEqual(e.houses, [7, 5]);
-  // On 12 holes: 30 + 66 → you fill 7 with 2 over, it fills 16 with 2 over; 5 of your holes go, the last of them
-  // to whoever didn't start.
-  const f = endRound(zeros(24), startingOwner(12), [30, 66], 1);
-  assert.deepEqual(f.leftover, { hole: 11, to: 0, seeds: 4 });
-  assert.deepEqual(f.houses, [8, 16]);
-  assert.equal(sum(f), 96);
 });
-ok("endRound conserves seeds (48 / 96) and fills every hole with 4, whatever the position", () => {
+ok("endRound conserves seeds (48) and fills every hole with 4, whatever the position", () => {
   const rng = seededRng(3);
   for (let i = 0; i < 2000; i++) {
-    const half = i % 2 ? 6 : 12;
+    const half = 6;
     const n = half * 2;
     const total = n * 4;
     const pits = zeros(n);
@@ -407,8 +392,6 @@ ok("depths: Aka-Hausa one deeper; the long board capped", () => {
     assert.equal(AKAHAUSA_DEPTH[level], LEVEL_DEPTH[level] + 1);
     assert.equal(depthFor("ncho", level), LEVEL_DEPTH[level]);
     assert.equal(depthFor("akahausa", level), AKAHAUSA_DEPTH[level]);
-    assert.equal(depthFor("ncho", level, 12), LONG_BOARD_DEPTH[level]);
-    assert.equal(depthFor("akahausa", level, 12), LONG_BOARD_DEPTH[level] + 1);
   }
 });
 ok("the computer takes an obvious 4", () => {
@@ -470,7 +453,7 @@ function playOut(holesPerSide: HolesPerSide, variant: NchoVariant, rounds: Round
   return { slowest, plies: s.plies, rounds: roundsSeen, reason: s.endReason, houses: `${a}-${b}` };
 }
 
-for (const holesPerSide of [6, 12] as const) {
+for (const holesPerSide of [6] as const) {
   for (const variant of ["ncho", "akahausa"] as const) {
     for (const rounds of [3, "all"] as const) {
       ok(`computer v computer: ${holesPerSide} holes, ${variant}, rounds ${rounds}`, () => {
@@ -487,16 +470,10 @@ for (const holesPerSide of [6, 12] as const) {
   }
 }
 
-ok("hard moves stay under 300ms on 12 holes (both variants)", () => {
-  let slowest = 0;
-  for (const variant of ["ncho", "akahausa"] as const) {
-    const r = playOut(12, variant, 3, 99, ["hard"]);
-    slowest = Math.max(slowest, r.slowest);
-  }
-  const six = Math.max(playOut(6, "akahausa", 3, 98, ["hard"]).slowest, playOut(6, "ncho", 3, 97, ["hard"]).slowest);
-  console.log(`        slowest hard move: ${slowest.toFixed(1)}ms on 12 holes, ${six.toFixed(1)}ms on 6 holes`);
+ok("hard moves stay under 300ms (both variants)", () => {
+  const slowest = Math.max(playOut(6, "akahausa", 3, 98, ["hard"]).slowest, playOut(6, "ncho", 3, 97, ["hard"]).slowest);
+  console.log(`        slowest hard move: ${slowest.toFixed(1)}ms`);
   assert.ok(slowest < 300, `slowest move ${slowest.toFixed(0)}ms`);
-  assert.ok(six < 300, `slowest 6-hole move ${six.toFixed(0)}ms`);
 });
 
 console.log(`ncho: all ${checks} tests passed`);

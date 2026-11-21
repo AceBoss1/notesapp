@@ -14,7 +14,6 @@ type View = { pits: number[]; stores: [number, number]; owner: Player[]; active:
 type Frame = { pits: number[]; stores: [number, number]; active: number | null; taken: number[]; tone: number | null };
 
 const STEP_MS = 110; // one seed per step: quick, but you can follow it
-const LONG_STEP_MS = 80; // the 12-hole board has longer sowings
 const MIN_STEP_MS = 28; // relays can be long: the step shortens so a move never drags on
 const MAX_ANIM_MS = 7000;
 const THINK_MS = 550;
@@ -89,14 +88,14 @@ function framesFor(state: NchoState, m: NchoMove): Frame[] {
 }
 
 // variant "akahausa" is Aka-Hausa: exactly the same game sown clockwise, with a computer that looks one move further
-// ahead (lib/arcade/ncho.ts has the rules). The board can be 6 holes a side (standard) or 12 (Nchokoroto), and the game
+// ahead (lib/arcade/ncho.ts has the rules). The board is 6 holes a side (there's no 12-hole Ncho), and the game
 // lasts the number of rounds the player picks. Whoever lost the last game starts the next one (a tie alternates).
 export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }) {
   const clockwise = variant === "akahausa";
   const slug = clockwise ? "akahausa" : "ncho";
   const gameName = clockwise ? "Aka-Hausa" : "Ncho";
   const WINS_KEY = WINS_KEYS[variant];
-  const [holesPerSide, setHolesPerSide] = useState<HolesPerSide>(6);
+  const holesPerSide: HolesPerSide = 6; // Ncho is always 6 holes a side
   const [rounds, setRounds] = useState<RoundsTarget>(3);
   const [game, setGame] = useState<NchoState>(() => initialState(undefined, 0, variant));
   const [view, setView] = useState<View>(() => viewOf(initialState(undefined, 0, variant)));
@@ -115,7 +114,6 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const timers = useRef<number[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
   const mutedRef = useRef(false);
-  const long = game.holesPerSide === 12;
 
   useEffect(() => {
     try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
@@ -192,7 +190,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     if (prefersReducedMotion()) { finishMove(next); return; }
     setBusy(true);
     const frames = framesFor(state, m);
-    const base = state.holesPerSide === 12 ? LONG_STEP_MS : STEP_MS;
+    const base = STEP_MS;
     const step = Math.max(MIN_STEP_MS, Math.min(base, Math.floor(MAX_ANIM_MS / Math.max(1, frames.length))));
     frames.forEach((f, i) => {
       later(() => {
@@ -229,7 +227,6 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     setStatus(game.turn === 0 ? `Round ${game.round}: you start. Pick one of your holes.` : `Round ${game.round}: the computer starts. Computer is thinking…`);
   };
 
-  const changeSize = (v: string) => { const n: HolesPerSide = v === "12" ? 12 : 6; setHolesPerSide(n); start({ holesPerSide: n }); };
   const changeRounds = (v: string) => {
     const t: RoundsTarget = v === "all" ? "all" : v === "5" ? 5 : v === "7" ? 7 : 3;
     setRounds(t);
@@ -241,7 +238,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const canPlay = phase === "playing" && !busy && game.turn === 0 && !game.over;
   const legal = canPlay ? legalMoves(game) : [];
   const { top, bottom } = rowsFor(game.holesPerSide);
-  const seedMax = long ? 8 : 14;
+  const seedMax = 14;
   const houses: [number, number] = [housesOf(view.owner, 0), housesOf(view.owner, 1)];
   const roundNo = game.lastRound && phase !== "playing" ? game.lastRound.round : game.round;
 
@@ -290,7 +287,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const nextLine = nextFirst === 0
     ? game.winner === "draw" ? "A tie, so you start the next game." : "You lost, so you start the next game."
     : game.winner === "draw" ? "A tie, so the computer starts the next game." : "The computer lost, so it starts the next game.";
-  const readyKicker = `${clockwise ? "AKA-HAUSA · SOWN CLOCKWISE" : "SOWN ANTICLOCKWISE"} · ${long ? "TWELVE" : "SIX"} HOLES EACH`;
+  const readyKicker = `${clockwise ? "AKA-HAUSA · SOWN CLOCKWISE" : "SOWN ANTICLOCKWISE"} · SIX HOLES EACH`;
   const showRotate = portraitPhone && !rotateDismissed;
 
   return (
@@ -305,10 +302,6 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
             <option value="easy">EASY</option>
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
-          </select>
-          <select className="arc-select" aria-label="Board size (starts a new game)" value={String(holesPerSide)} onChange={(e) => changeSize(e.target.value)}>
-            <option value="6">BOARD: 6 HOLES</option>
-            <option value="12">BOARD: 12 HOLES (NCHOKOROTO)</option>
           </select>
           <select className="arc-select" aria-label="Rounds (starts a new game)" value={String(rounds)} onChange={(e) => changeRounds(e.target.value)}>
             <option value="3">ROUNDS: 3</option>
@@ -339,16 +332,16 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
         </p>
 
         <div className="arc-board-wrap ncho-wrap">
-          <div className={`ncho-board${long ? " ncho-long" : ""}`} style={{ ["--ncho-n" as string]: game.holesPerSide }}
+          <div className="ncho-board" style={{ ["--ncho-n" as string]: game.holesPerSide }}
             aria-label={`${gameName} board, ${game.holesPerSide} holes a side. Green-ringed holes are yours, amber-ringed are the computer's; your store is on the right; seeds move ${clockwise ? "clockwise" : "anticlockwise"}.`}>
             <span className="ncho-dir" aria-hidden="true">{clockwise ? "↻ CLOCKWISE" : "↺ ANTICLOCKWISE"}</span>
             <div className="ncho-store ncho-store-them" role="img" aria-label={`Computer's store, ${view.stores[1]} seeds`}>
-              <span className="ncho-store-label">COMPUTER</span><Seeds n={view.stores[1]} max={long ? 24 : 30} /><b>{view.stores[1]}</b>
+              <span className="ncho-store-label">COMPUTER</span><Seeds n={view.stores[1]} max={30} /><b>{view.stores[1]}</b>
             </div>
             <div className="ncho-row ncho-top">{top.map((h) => hole(h))}</div>
             <div className="ncho-row ncho-bottom">{bottom.map((h) => hole(h))}</div>
             <div className="ncho-store ncho-store-you" role="img" aria-label={`Your store, ${view.stores[0]} seeds`}>
-              <span className="ncho-store-label">YOU</span><Seeds n={view.stores[0]} max={long ? 24 : 30} /><b>{view.stores[0]}</b>
+              <span className="ncho-store-label">YOU</span><Seeds n={view.stores[0]} max={30} /><b>{view.stores[0]}</b>
             </div>
           </div>
           {phase !== "playing" && (
@@ -429,28 +422,14 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
         .ncho-seeds { display:flex; flex-wrap:wrap; justify-content:center; gap:2px; max-width:78%; }
         .ncho-seeds i { display:block; width:clamp(4px,1.1vw,7px); height:clamp(4px,1.1vw,7px); border-radius:50%; box-shadow:inset -1px -1px 0 #0004,0 1px 1px #0006; }
         .ncho-final { color:#f6dca8 !important; font:600 12px ui-monospace,monospace; letter-spacing:.04em; }
-        /* Nchokoroto: twelve holes a row. Narrower stores, tighter gaps; the holes shrink and the seed dots go when they're tiny. */
-        .ncho-long { grid-template-columns:minmax(0,1fr) minmax(0,12fr) minmax(0,1fr); gap:clamp(3px,.9vw,8px); }
-        .ncho-long .ncho-row { gap:clamp(2px,.55vw,6px); }
-        .ncho-long .ncho-hole { padding:2px; gap:2px; }
-        .ncho-long .ncho-hole b { font-size:clamp(8px,1.5vw,11px); }
-        .ncho-long .ncho-seeds { gap:1px; max-width:84%; }
-        .ncho-long .ncho-seeds i { width:clamp(3px,.75vw,6px); height:clamp(3px,.75vw,6px); }
-        .ncho-long .ncho-store { padding:10px 2px; }
-        .ncho-long .ncho-store-label { display:none; } /* the pots are short here; the score row names them */
-        @media(max-width:520px) and (orientation:portrait) { .ncho-long .ncho-hole .ncho-seeds { display:none; } }
-        @media(max-width:420px) { .ncho-store-label { display:none; } .ncho-store { padding:8px 2px; } .ncho-long .ncho-store { padding:6px 1px; } .ncho-long { padding:14px 6px 6px; } .ncho-long .ncho-store .ncho-seeds { display:none; } }
+        @media(max-width:420px) { .ncho-store-label { display:none; } .ncho-store { padding:8px 2px; } }
         /* Phones turned sideways: use the full width, slimmer stores and gutters so the holes come out bigger. */
         @media(orientation:landscape) and (max-height:520px) {
           .ncho-wrap { padding-left:0; padding-right:0; }
           .ncho-board { grid-template-columns:minmax(0,.7fr) minmax(0,7fr) minmax(0,.7fr); gap:8px; padding:16px 8px 8px; }
-          .ncho-long { grid-template-columns:minmax(0,.8fr) minmax(0,13fr) minmax(0,.8fr); gap:5px; padding:16px 6px 6px; }
           .ncho-row { gap:8px; }
-          .ncho-long .ncho-row { gap:4px; }
           .ncho-hole b { font-size:13px; }
-          .ncho-long .ncho-hole b { font-size:11px; }
           .ncho-seeds i { width:7px; height:7px; }
-          .ncho-long .ncho-seeds i { width:4px; height:4px; }
           .ncho-store-label { display:none; }
           .ncho-info { margin-bottom:6px; }
         }

@@ -17,6 +17,7 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "fixed", text: "Ncho and Ncho Aka-Hausa now play the owner's full rules: relay sowing (lift and keep going until your last seed lands in an empty hole or makes 4), a 4 made with your last seed is yours, any 4 made along the way goes straight to that hole's owner, and rounds where each player refills their houses with 4s and loses the ones they can't fill. Choose 3, 5 or 7 rounds, or play until one side has every house; more houses wins. Aka-Hausa is the same, sown clockwise." },
       { kind: "added", text: "On a phone held upright, Ncho and Aka-Hausa suggest turning it sideways, where the holes are bigger." },
+      { kind: "changed", text: "Ncho and Aka-Hausa are played on 6 holes a side only: the 12-hole board is gone, because there's no 12-hole Ncho." },
     ],
   },
   {

@@ -1267,8 +1267,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     empty hole ends the turn, making exactly 4 lets the mover take it, otherwise lift and keep sowing (either side; 300-lap cap). A 4 made
     mid-sowing goes at once to that hole's owner. A round ends when the mover owns no seeds: each takes the seeds in their holes, refills
     their holes with 4s from first hole of their row onwards; holes they can't fill are conquered; the one leftover hole goes to the bigger
-    remainder (tie: the player who didn't start). Rounds 3/5/7/"all" (all capped at 50); more houses wins. `endRound` in `lib/arcade/ncho.ts`.
-    The chain option is gone. Portrait phones get a "turn sideways" prompt. Aka-Hausa: the same, clockwise.
+    remainder (tie: the player who didn't start). Rounds 3/5/7/"all" (all capped at 50); more houses wins. 6 holes a side only. `endRound` in `lib/arcade/ncho.ts`.
+    The chain option is gone, and so is the 12-hole board (owner: "there's no 12 hole ncho"; `HolesPerSide = 6`). Portrait phones get a
+    "turn sideways" prompt. Aka-Hausa: the same, clockwise.
 
 ## 3. How the work is done (please keep these)
 

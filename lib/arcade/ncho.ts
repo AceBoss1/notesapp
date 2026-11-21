@@ -2,8 +2,8 @@
 // or DOM, so tests and the UI share one set of rules.
 //
 // The board: two rows of holes ("houses"), one row per player, and a store for each player's captured seeds.
-//   Standard Ncho: 6 holes a side (12 holes). Nchokoroto / Ncho Ncho Kororo: 12 holes a side (24 holes). Same rules.
-//   Four seeds in every hole at the start (48 or 96 seeds, and that total never changes).
+//   Ncho is played on 6 holes a side, 12 holes in all (the owner, 21 Nov 2026: "there's no 12 hole ncho").
+//   Four seeds in every hole at the start: 48 seeds, and that total never changes.
 // Indexes: holes 0..n-1 are the bottom row (you, left to right); holes n..2n-1 are the top row (the computer, right to
 // left). Going up the indexes is anticlockwise round the board as drawn.
 //
@@ -40,11 +40,11 @@
 export type Player = 0 | 1;
 export type Level = "easy" | "medium" | "hard";
 export type NchoVariant = "ncho" | "akahausa";
-export type HolesPerSide = 6 | 12;
+export type HolesPerSide = 6;
 export type RoundsTarget = 3 | 5 | 7 | "all";
 
 export type NchoOptions = {
-  holesPerSide?: HolesPerSide; // 6 = standard Ncho, 12 = Nchokoroto
+  holesPerSide?: HolesPerSide; // always 6
   rounds?: RoundsTarget; // how many rounds the game lasts; "all" = until one side has every house (default 3)
 };
 
@@ -115,7 +115,7 @@ export const CAPTURE_AT = 4;
 // Relay cap: at most this many laps of sowing in one turn; when it's hit the turn simply ends.
 export const MAX_SOWINGS = 300;
 // Move cap per round: when it's hit the round ends as if the player to move couldn't play.
-export const moveCap = (holesPerSide: number) => (holesPerSide >= 12 ? 800 : 400);
+export const moveCap = (_holesPerSide: number) => 400;
 // Round cap for "until one side has every house": the game is decided on houses after this many rounds.
 export const MAX_ROUNDS = 50;
 export const ROUND_OPTIONS: RoundsTarget[] = [3, 5, 7, "all"];
@@ -149,7 +149,7 @@ export const directionOf = (variant: NchoVariant): 1 | -1 => (variant === "akaha
 
 // The rng is accepted so every arcade game shares one signature; Ncho's start is fixed.
 export function initialState(_rng?: () => number, first: Player = 0, variant: NchoVariant = "ncho", options: NchoOptions = {}): NchoState {
-  const holesPerSide: HolesPerSide = options.holesPerSide === 12 ? 12 : 6;
+  const holesPerSide: HolesPerSide = 6;
   const r = options.rounds;
   const roundsTarget: number | "all" = r === "all" ? "all" : r === 5 || r === 7 ? r : 3;
   return {
@@ -345,9 +345,8 @@ export const LEVEL_DEPTH: Record<Level, number> = { easy: 2, medium: 4, hard: 6 
 export const AKAHAUSA_DEPTH: Record<Level, number> = { easy: 3, medium: 5, hard: 7 };
 // Relays make moves long, and the 12-hole board has twice the choices, so the search there is capped to keep a hard
 // move well under 300ms (the tests measure it). Aka-Hausa still gets its extra move on top of these.
-export const LONG_BOARD_DEPTH: Record<Level, number> = { easy: 2, medium: 3, hard: 5 };
 export const depthFor = (variant: NchoVariant, level: Level, holesPerSide: number = 6) => {
-  const base = holesPerSide >= 12 ? LONG_BOARD_DEPTH[level] : LEVEL_DEPTH[level];
+  const base = LEVEL_DEPTH[level];
   return base + (variant === "akahausa" ? 1 : 0);
 };
 
