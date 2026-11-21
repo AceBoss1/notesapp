@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.192.0",
+    bump: "minor",
+    date: "2026-11-21",
+    changes: [
+      { kind: "added", text: "Draughts now plays African rules by default, the way most players here know it: men capture backwards as well as forwards, kings fly any distance along a clear diagonal and capture from afar, and you must take the most pieces you can. English rules are one tap away in the new Rules menu, and the game remembers your choice." },
+    ],
+  },
+  {
     version: "v0.191.1",
     bump: "patch",
     date: "2026-11-21",

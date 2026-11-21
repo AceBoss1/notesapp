@@ -1,9 +1,10 @@
-// Draughts (lib/arcade/draughts.ts): steps, compulsory captures, multi-jumps, crowning, kings, the end of the game, computer play.
+// Draughts (lib/arcade/draughts.ts): steps, compulsory captures, multi-jumps, crowning, kings, the end of the game, computer play,
+// under English rules first, then the African (international, on 8×8) differences.
 // Run: npx -y tsx tests/arcade/draughts.test.ts
 import assert from "node:assert/strict";
 import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, legalMoves, seededRng,
-  type Cell, type DraughtsMove, type DraughtsState, type Player,
+  type Cell, type DraughtsMove, type DraughtsState, type Player, type Rules,
 } from "../../lib/arcade/draughts";
 
 const sq = (r: number, c: number) => r * 8 + c;
@@ -13,13 +14,17 @@ const king = (side: Player): Cell => ({ side, king: true });
 const pos = (pieces: [number, number, Cell][], turn: Player = 0, extra: Partial<DraughtsState> = {}): DraughtsState => {
   const board = empty();
   for (const [r, c, p] of pieces) board[sq(r, c)] = p;
-  return { ...initialState(), board, turn, ...extra };
+  return { ...initialState(undefined, { rules: "english" }), board, turn, ...extra };
 };
+const afr = (pieces: [number, number, Cell][], turn: Player = 0): DraughtsState => pos(pieces, turn, { rules: "african" });
 const key = (m: DraughtsMove) => `${m.from}>${m.path.join(">")}`;
 const keys = (s: DraughtsState) => legalMoves(s).map(key).sort();
 
+// African rules are the default.
+assert.equal(initialState().rules, "african");
+
 // Start: 12 each on dark squares, light to move with 7 possible steps.
-const s0 = initialState();
+const s0 = initialState(undefined, { rules: "english" });
 assert.deepEqual(countPieces(s0.board, 0), { men: 12, kings: 0 });
 assert.deepEqual(countPieces(s0.board, 1), { men: 12, kings: 0 });
 assert.ok(s0.board.every((p, i) => !p || (Math.floor(i / 8) + (i % 8)) % 2 === 1));
@@ -137,11 +142,90 @@ assert.deepEqual(keys(pos([[4, 3, man(0)]])), [`${sq(4, 3)}>${sq(3, 2)}`, `${sq(
   }
 }
 
-// Full games between two computer players finish without an illegal move.
-for (let seed = 1; seed <= 6; seed++) {
+// --- African rules ---
+
+// Same start, same 7 opening steps (men still step forward only).
+assert.equal(legalMoves(initialState()).length, 7);
+assert.deepEqual(keys(afr([[4, 3, man(0)]])), [`${sq(4, 3)}>${sq(3, 2)}`, `${sq(4, 3)}>${sq(3, 4)}`].sort());
+
+// Men capture backwards.
+{
+  const s = afr([[3, 2, man(0)], [4, 3, man(1)], [7, 0, man(0)], [0, 7, man(1)]]);
+  assert.deepEqual(keys(s), [`${sq(3, 2)}>${sq(5, 4)}`]);
+}
+
+// The screenshot position: jump forward to (1,2), then backwards over (2,3) to (3,4).
+{
+  const s = afr([[3, 0, man(0)], [2, 1, man(1)], [2, 3, man(1)], [0, 1, man(1)], [0, 3, man(1)], [7, 6, man(0)]]);
+  const ms = legalMoves(s);
+  assert.equal(ms.length, 1);
+  assert.deepEqual(ms[0].path, [sq(1, 2), sq(3, 4)]);
+  assert.deepEqual(ms[0].captures, [sq(2, 1), sq(2, 3)]);
+}
+
+// You must take the most pieces: the double jump beats the single.
+{
+  const s = afr([[5, 0, man(0)], [4, 1, man(1)], [2, 3, man(1)], [5, 6, man(0)], [4, 7, man(1)], [0, 5, man(1)]]);
+  // (5,6) could take (4,7)? no: it would land off the board. (5,0)x(4,1)x(2,3) takes two.
+  const single = afr([[5, 0, man(0)], [4, 1, man(1)], [2, 3, man(1)], [5, 4, man(0)], [4, 5, man(1)], [0, 7, man(1)]]);
+  assert.deepEqual(legalMoves(s).map((m) => m.captures.length), [2]);
+  const counts = legalMoves(single).map((m) => m.captures.length);
+  assert.ok(counts.length > 0 && counts.every((c) => c === 2), "only the double jump is offered");
+  // English allows either.
+  assert.ok(legalMoves({ ...single, rules: "english" }).some((m) => m.captures.length === 1));
+}
+
+// Flying kings: slide the whole clear diagonal.
+{
+  const s = afr([[7, 0, king(0)], [0, 1, man(1)]]);
+  const ms = legalMoves(s);
+  assert.equal(ms.length, 7, "a1 king reaches every square to h8");
+  assert.ok(ms.some((m) => m.path[0] === sq(0, 7)));
+  // English king: one square.
+  assert.equal(legalMoves({ ...s, rules: "english" }).length, 1);
+}
+
+// Flying kings capture from afar and may land on any empty square beyond.
+{
+  const s = afr([[7, 0, king(0)], [4, 3, man(1)], [0, 1, man(1)]]);
+  const ms = legalMoves(s);
+  assert.deepEqual(ms.map((m) => m.path[0]).sort((a, b) => a - b), [sq(0, 7), sq(1, 6), sq(2, 5), sq(3, 4)].sort((a, b) => a - b));
+  assert.ok(ms.every((m) => m.captures[0] === sq(4, 3)));
+  // Two pieces in a row can't be jumped.
+  const blocked = afr([[7, 0, king(0)], [4, 3, man(1)], [3, 4, man(1)], [0, 1, man(1)]]);
+  assert.ok(legalMoves(blocked).every((m) => m.captures.length === 0));
+}
+
+// A flying king's multi-capture turns corners, and must pick the landing that keeps capturing.
+{
+  // King a1 takes (5,2); of its landings (4,3)…(1,6), only (4,3) lines up a second capture, of (2,1), landing on (1,0).
+  const s = afr([[7, 0, king(0)], [5, 2, man(1)], [2, 1, man(1)], [0, 7, man(1)]]);
+  const ms = legalMoves(s);
+  assert.ok(ms.length > 0 && ms.every((m) => m.captures.length === 2), "takes both");
+  assert.ok(ms.every((m) => m.path[0] === sq(4, 3) && m.path[1] === sq(1, 0)), "the only landing that goes on capturing");
+}
+
+// Passing through the far row mid-capture doesn't crown; ending there does.
+{
+  // Man (2,1) takes (1,2) to (0,3), then must go on backwards over (1,4) to (2,5): stays a man.
+  const s = afr([[2, 1, man(0)], [1, 2, man(1)], [1, 4, man(1)], [7, 0, man(0)], [5, 6, man(1)]]);
+  const ms = legalMoves(s);
+  assert.equal(ms.length, 1);
+  assert.deepEqual(ms[0].path, [sq(0, 3), sq(2, 5)]);
+  assert.equal(ms[0].crowns, false);
+  assert.equal(applyMove(s, ms[0]).board[sq(2, 5)]?.king, false);
+  const end = afr([[2, 1, man(0)], [1, 2, man(1)], [7, 0, man(0)], [5, 6, man(1)]]);
+  const m = legalMoves(end)[0];
+  assert.equal(m.crowns, true);
+  assert.equal(applyMove(end, m).board[sq(0, 3)]?.king, true);
+}
+
+// Full games between two computer players finish without an illegal move, under both rule sets.
+for (let seed = 1; seed <= 8; seed++) {
   const rng = seededRng(seed);
   const levels = ["easy", "medium", "hard"] as const;
-  let s = initialState(rng);
+  const rules: Rules = seed % 2 ? "english" : "african";
+  let s = initialState(rng, { rules });
   let guard = 0;
   while (!s.over) {
     const level = levels[(seed + s.turn) % 3];

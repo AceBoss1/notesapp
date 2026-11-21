@@ -6,7 +6,7 @@ import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves,
-  type Cell, type DraughtsState, type Level,
+  type Cell, type DraughtsState, type Level, type Rules,
 } from "@/lib/arcade/draughts";
 
 type Phase = "ready" | "playing" | "over";
@@ -14,6 +14,7 @@ type Phase = "ready" | "playing" | "over";
 const THINK_MS = 500;
 const HOP_MS = 260; // each hop of the computer's multi-jump
 const WINS_KEY = "arcade-draughts-wins";
+const RULES_KEY = "arcade-draughts-rules";
 const FILES = "abcdefgh";
 
 const name = (i: number) => `${FILES[i % 8]}${8 - Math.floor(i / 8)}`;
@@ -36,6 +37,7 @@ export default function DraughtsGame() {
   const [phase, setPhase] = useState<Phase>("ready");
   const [level, setLevel] = useState<Level>("medium");
   const [drawRule, setDrawRule] = useState(true);
+  const [rules, setRules] = useState<Rules>("african");
   const [selected, setSelected] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([]); // your landings so far in a multi-jump
   const [anim, setAnim] = useState<{ board: Cell[]; taken: number[]; at: number } | null>(null);
@@ -48,6 +50,10 @@ export default function DraughtsGame() {
 
   useEffect(() => {
     try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
+    try {
+      const saved = arcadeStore.getItem(RULES_KEY);
+      if (saved === "english" || saved === "african") { setRules(saved); setGame(initialState(undefined, { rules: saved })); }
+    } catch { /* storage blocked: African rules */ }
   }, []);
   const clearTimers = useCallback(() => { timers.current.forEach((t) => window.clearTimeout(t)); timers.current = []; }, []);
   useEffect(() => clearTimers, [clearTimers]);
@@ -121,13 +127,26 @@ export default function DraughtsGame() {
 
   const start = useCallback(() => {
     clearTimers();
-    setGame(initialState(undefined, { drawRule }));
+    setGame(initialState(undefined, { drawRule, rules }));
     setAnim(null);
     setSelected(null);
     setSteps([]);
     setPhase("playing");
     setStatus("Your turn. You play the light pieces.");
-  }, [clearTimers, drawRule]);
+  }, [clearTimers, drawRule, rules]);
+
+  // The rules change what's legal, so switching them sets up a fresh board.
+  const changeRules = (next: Rules) => {
+    clearTimers();
+    setRules(next);
+    try { arcadeStore.setItem(RULES_KEY, next); } catch { /* ignore */ }
+    setGame(initialState(undefined, { drawRule, rules: next }));
+    setAnim(null);
+    setSelected(null);
+    setSteps([]);
+    setPhase("ready");
+    setStatus(next === "african" ? "African rules: men take backwards, kings fly, take the most pieces. Press start." : "English rules: men move and take forward only, kings move one square. Press start.");
+  };
 
   const changeDrawRule = (on: boolean) => {
     setDrawRule(on);
@@ -179,6 +198,10 @@ export default function DraughtsGame() {
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
           </select>
+          <select className="arc-select" aria-label="Rules (changing them starts a new game)" value={rules} onChange={(e) => changeRules(e.target.value as Rules)}>
+            <option value="african">AFRICAN RULES</option>
+            <option value="english">ENGLISH RULES</option>
+          </select>
           <select className="arc-select" aria-label="Draw after 40 moves each without a capture" value={drawRule ? "on" : "off"} onChange={(e) => changeDrawRule(e.target.value === "on")}>
             <option value="on">40-MOVE DRAW: ON</option>
             <option value="off">40-MOVE DRAW: OFF</option>
@@ -209,9 +232,9 @@ export default function DraughtsGame() {
           </div>
           {phase !== "playing" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "8 × 8 · TWELVE EACH"}</p>
+              <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : `8 × 8 · ${rules === "african" ? "AFRICAN" : "ENGLISH"} RULES`}</p>
               <h2>{phase === "ready" ? "Jump and crown." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
-              <p>{phase === "ready" ? "You play light and go first." : game.winner === "draw" ? `${DRAW_PLIES / 2} moves each without a capture.` : `You have ${mine.men + mine.kings} left, the computer ${theirs.men + theirs.kings}.`}</p>
+              <p>{phase === "ready" ? (rules === "african" ? "You play light and go first. Men take backwards too, kings fly, and you must take the most pieces." : "You play light and go first. Men move and take forward only; kings move one square either way.") : game.winner === "draw" ? `${DRAW_PLIES / 2} moves each without a capture.` : `You have ${mine.men + mine.kings} left, the computer ${theirs.men + theirs.kings}.`}</p>
               <button type="button" className="arc-btn" onClick={start} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>
             </div>
           )}
