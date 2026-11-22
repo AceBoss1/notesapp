@@ -103,6 +103,10 @@ export type LudoState = {
   loser: number | null; // the one controller left unfinished when the game ended with only one left (knockout rounds, 2 v 2)
   captures: number[]; // seeds each colour has sent back, for the scoreboard
   last: LudoEvent | null;
+  // Rolls taken so far this game, by anyone. Normal play ignores it; tournaments (lib/arcade/replay-ludo.ts; owner, 21 Nov 2026:
+  // "add tournament versions of Ludo…") deal the k-th roll of the game from the tournament seed and k, so every entrant gets the same
+  // dice sequence and the browser and the server agree on which roll comes next without keeping a count of their own.
+  rolls: number;
 };
 
 export function newGame(options: Partial<LudoOptions> = {}, first = 0, table: Partial<LudoTable> = {}): LudoState {
@@ -123,6 +127,7 @@ export function newGame(options: Partial<LudoOptions> = {}, first = 0, table: Pa
     loser: null,
     captures: Array(PLAYERS).fill(0),
     last: null,
+    rolls: 0,
   };
   return state.table.active[first] ? state : { ...state, turn: nextPlayer(state, first) };
 }
@@ -257,7 +262,7 @@ export function applyRoll(state: LudoState, roll: number | readonly number[]): L
   const sixRoll = rolledNow.every((d) => d === 6);
   const sixes = sixRoll ? state.sixes + 1 : 0;
   const dice = [...banked(state), ...rolledNow];
-  const fresh = { ...state, dice, used: dice.map(() => false), sixes };
+  const fresh = { ...state, dice, used: dice.map(() => false), sixes, rolls: state.rolls + 1 };
   if (sixes === 3) return endTurn(fresh, { kind: "three-sixes", player }); // the whole bank goes with it
   if (sixRoll) return fresh; // banked: roll again
   const ready: LudoState = { ...fresh, phase: "move" };

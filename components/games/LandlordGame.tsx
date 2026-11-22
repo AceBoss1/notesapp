@@ -13,6 +13,8 @@ import {
   aiAction, applyAction, buildable, canBuy, createGame, formatNaira, netWorth, rentFor, squareCell,
   type Action, type Square, type State,
 } from "@/lib/arcade/landlord";
+import { encodeLandlordAction, landlordTourneyOver, landlordTourneyRng, landlordTourneyStart } from "@/lib/arcade/replay-landlord";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 const AI_DELAY = 600;
 const WINS_KEY = "notes-arcade-landlord-wins";
@@ -67,9 +69,18 @@ function squareInfo(g: State, i: number): string {
   }
 }
 
-export default function LandlordGame() {
-  const [game, setGame] = useState<State>(() => createGame());
-  const [started, setStarted] = useState(false);
+// Tournament mode (owner, 21 Nov 2026: "add tournament versions of Ludo, Ncho, Landlord…"; lib/arcade/tournament-games.ts
+// TourneyProps): the game starts from landlordTourneyStart and every action (yours and the computers') draws its dice and cards from
+// landlordTourneyRng, the same functions the server replays with, so both sides play the identical game. Each of your decisions is
+// recorded with encodeLandlordAction (the format replay-landlord.ts reads), and the recording goes to `onFinish` once, when your try
+// ends (the game is over or you're bankrupt). No new game, no Nana tips, and the practice wins count is left alone.
+export default function LandlordGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  const [game, setGame] = useState<State>(() => (tourney ? landlordTourneyStart(tourney.seed, tourney.level) : createGame()));
+  const [started, setStarted] = useState(!!tourney);
+  const tourneyRef = useRef(tourney);
+  tourneyRef.current = tourney;
+  const recRef = useRef<string[]>([]);
+  const sentRef = useRef(false);
   const [buildMode, setBuildMode] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [wins, setWins] = useState(0);
@@ -114,7 +125,19 @@ export default function LandlordGame() {
   }, [muted]);
 
   const act = useCallback((a: Action) => {
-    setGame((g) => {
+    const t = tourneyRef.current;
+    if (t) {
+      // Worked out from this render's game so the recording and the board can't disagree; a stale or illegal tap is ignored.
+      if (landlordTourneyOver(game) || game.turn !== 0) return;
+      let next: State;
+      try {
+        next = applyAction(game, a, landlordTourneyRng(t.seed, game));
+      } catch {
+        return;
+      }
+      recRef.current.push(encodeLandlordAction(a));
+      setGame(next);
+    } else setGame((g) => {
       try {
         return applyAction(g, a);
       } catch {
@@ -123,7 +146,31 @@ export default function LandlordGame() {
     });
     if (a.type === "roll") beep(520, 0.08);
     else if (a.type === "buy" || a.type === "build") beep(780, 0.12);
-  }, [beep]);
+  }, [beep, game]);
+
+  // A new try (a new run id) starts afresh from its seed with an empty recording.
+  const tourneyRun = tourney?.runId;
+  const firstRun = useRef(tourneyRun);
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || tourneyRun === firstRun.current) return; // the first try was set up by useState above
+    firstRun.current = tourneyRun;
+    recRef.current = [];
+    sentRef.current = false;
+    setBuildMode(false);
+    setSelected(null);
+    setTake(null);
+    setRound((r) => r + 1);
+    setGame(landlordTourneyStart(t.seed, t.level));
+  }, [tourneyRun]);
+
+  // The end of a tournament try (the game is over, or you're bankrupt): send the recording, once.
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || !finished || sentRef.current) return;
+    sentRef.current = true;
+    t.onFinish(recRef.current.join(","));
+  }, [finished]);
 
   // Computer turns, one action at a time so you can follow.
   useEffect(() => {
@@ -131,8 +178,9 @@ export default function LandlordGame() {
     const t = window.setTimeout(() => {
       // Worked out from this render's game (the effect re-runs on every change), so Nana's take matches the move just made.
       const a = aiAction(game);
-      const next = applyAction(game, a);
-      setTake(landlordTake(game, a, next));
+      const tt = tourneyRef.current;
+      const next = applyAction(game, a, tt ? landlordTourneyRng(tt.seed, game) : undefined);
+      if (!tt) setTake(landlordTake(game, a, next));
       setGame((g) => (g === game ? next : g));
     }, AI_DELAY);
     return () => window.clearTimeout(t);
@@ -140,7 +188,7 @@ export default function LandlordGame() {
 
   // Count a win once per game.
   useEffect(() => {
-    if (game.phase !== "over" || game.winner !== 0 || countedRef.current) return;
+    if (tourneyRef.current || game.phase !== "over" || game.winner !== 0 || countedRef.current) return; // tournament games aren't practice wins
     countedRef.current = true;
     setWins((w) => {
       const next = w + 1;
@@ -164,6 +212,7 @@ export default function LandlordGame() {
   }, [buildMode, myBuilds.length]);
 
   const newGame = useCallback(() => {
+    if (tourneyRef.current) return; // one game per tournament try
     setGame(createGame());
     setStarted(true);
     setBuildMode(false);
@@ -225,10 +274,12 @@ export default function LandlordGame() {
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOUR CASH</span><strong aria-live="polite">{formatNaira(me.cash)}</strong></div>
           <div className="arc-stat"><span className="arc-label">ROUND</span><strong>{game.round}/{ROUND_CAP}</strong></div>
-          <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>
+          {tourney
+            ? <div className="arc-stat"><span className="arc-label">TOURNAMENT</span><strong className="ll-same">same deal for everyone</strong></div>
+            : <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>}
           <span className="arc-spacer" />
           <button type="button" className="arc-btn-ghost" onClick={() => setMuted((m) => !m)} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn-ghost" onClick={newGame} aria-label="Start a new game">NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn-ghost" onClick={newGame} aria-label="Start a new game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap ll-wrap">
@@ -317,16 +368,22 @@ export default function LandlordGame() {
                     ? `Richest landlord: ${winnerName}, worth ${formatNaira(netWorth(game, game.winner ?? 0))}.`
                     : `${game.winner === 0 ? "You're" : `${winnerName} is`} the last landlord standing.`}
               </p>
-              <button type="button" className="arc-btn" onClick={newGame} aria-label="Play again">PLAY AGAIN</button>
+              {tourney
+                ? <p className="ll-sent" role="status">{tourney.finishedText ?? "Checking your game…"}</p>
+                : <button type="button" className="arc-btn" onClick={newGame} aria-label="Play again">PLAY AGAIN</button>}
             </div>
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
-        <ArcadeNana slug="landlord" canAsk={myTurn} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />
+        {tourney
+          ? <ArcadeNana slug="landlord" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+          : <ArcadeNana slug="landlord" canAsk={myTurn} onAsk={askNana} take={take} resetKey={round} onToggle={() => setHint(null)} />}
       </div>
 
       <style jsx global>{`
         .ll-wrap { padding:8px; background:#1b2a23; }
+        .ll-same { font-size:12px !important; letter-spacing:.02em; }
+        .ll-sent { font-weight:600; }
         .ll-board { display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:3px; }
         .ll-sq { position:relative; aspect-ratio:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:1px; padding:0 2px 6px; overflow:hidden; border:0; border-radius:5px; background:#f7f7f2; color:#17251f; cursor:pointer; font:inherit; text-align:center; }
         .ll-sq.is-special { background:color-mix(in srgb, var(--band) 45%, #f7f7f2); }
