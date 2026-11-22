@@ -7,6 +7,8 @@ import { ARCADE_GAMES, arcadeGame } from "@/lib/arcade/catalogue";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { nchoTake, nchoTip } from "@/lib/arcade/nana-ncho";
 import { arcadeStore } from "@/lib/arcade/store";
+import { NCHO_LEVELS, NCHO_TOURNEY_ROUNDS, encodeNcho, nchoTourneyReply, nchoTourneyStart } from "@/lib/arcade/replay-ncho";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 import {
   AUTO_NEXT_ROUND_MS, MAX_ROUNDS, applyMove, autoStartsNextRound, chooseMove, directionOf, homeOf, housesOf, initialState,
   legalMoves,
@@ -117,20 +119,26 @@ function framesFor(state: NchoState, m: NchoMove): Frame[] {
 // lasts the number of rounds the player picks. 2 players: you v the computer, and whoever lost the last game starts
 // the next one (a tie alternates). 4 players: you v three computers, 3 holes each; you start unless you won the last
 // game. When a computer starts a round, the round summary shows for a moment and the round begins by itself.
-export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }) {
+export default function NchoGame({ variant = "ncho", tourney }: { variant?: NchoVariant; tourney?: TourneyProps }) {
   const clockwise = variant === "akahausa";
   const slug = clockwise ? "akahausa" : "ncho";
   const gameName = clockwise ? "Aka-Hausa" : "Ncho";
   const holesPerSide: HolesPerSide = 6; // Ncho is always 6 holes a side
-  const [rounds, setRounds] = useState<RoundsTarget>(3);
+  // A tournament try (owner, 21 Nov 2026: "add tournament versions of … Ncho"; lib/arcade/replay-ncho.ts): you v the computer over 3
+  // rounds at the tournament's level, you sow first, the computer's sowings come from the seed (so the server's replay finds the same
+  // ones), no new game, and the game doesn't count towards your practice wins. Rounds still carry on as usual between them.
+  const tourneyLevel: Level | null = tourney ? (NCHO_LEVELS.includes(tourney.level as Level) ? (tourney.level as Level) : "medium") : null;
+  const [rounds, setRounds] = useState<RoundsTarget>(tourney ? NCHO_TOURNEY_ROUNDS : 3);
   const [players, setPlayers] = useState<PlayerCount>(2);
   const WINS_KEY = winsKey(variant, players);
-  const [game, setGame] = useState<NchoState>(() => initialState(undefined, 0, variant));
+  const [game, setGame] = useState<NchoState>(() => (tourney ? nchoTourneyStart(tourney.seed, tourneyLevel!, variant) : initialState(undefined, 0, variant)));
   const [view, setView] = useState<View>(() => viewOf(initialState(undefined, 0, variant)));
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [level, setLevel] = useState<Level>("medium");
+  const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
+  const [level, setLevel] = useState<Level>(tourneyLevel ?? "medium");
+  const mineRef = useRef<number[]>([]); // the holes you sowed this game, exactly what the replay reads
+  const sentRef = useRef(false);
   const [busy, setBusy] = useState(false); // sowing animation running
-  const [status, setStatus] = useState("Press start to play.");
+  const [status, setStatus] = useState(tourney ? "You start. Pick one of your holes." : "Press start to play.");
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(false);
   const [autoPaused, setAutoPaused] = useState(false); // "WAIT" on the round summary stops the automatic start
@@ -203,6 +211,11 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const endGame = useCallback((next: NchoState, said: string) => {
     setPhase("over");
     setStatus(gameOverStatus(next, said));
+    if (tourney) {
+      // The try ends once, after the last round: send your sowings; the server replays the computer's.
+      if (!sentRef.current) { sentRef.current = true; tourney.onFinish(encodeNcho(mineRef.current)); }
+      return;
+    }
     if (next.players === 2) setNextFirst(next.winner === 0 ? 1 : next.winner === 1 ? 0 : other(startedBy.current));
     else setNextFirst(next.winner === 0 ? (directionOf(next.variant) === 1 ? 1 : 3) : 0); // you won: the next player in turn order
     if (next.winner === 0) {
@@ -211,7 +224,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
         return w + 1;
       });
     }
-  }, [WINS_KEY, gameOverStatus]);
+  }, [WINS_KEY, gameOverStatus, tourney]);
 
   const finishMove = useCallback((next: NchoState) => {
     const m = next.last!;
@@ -241,9 +254,10 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const play = useCallback((state: NchoState, hole: number) => {
     const next = applyMove(state, hole);
     const m = next.last!;
+    if (state.turn === 0) mineRef.current = [...mineRef.current, hole];
     setNanaHole(null); // any sowing makes an old hint stale
-    // Nana's take on a computer's sowing shows once its seeds have landed.
-    const t = state.turn !== 0 ? nchoTake(state, next) : null;
+    // Nana's take on a computer's sowing shows once its seeds have landed (never in a tournament: she sits those out).
+    const t = state.turn !== 0 && !tourney ? nchoTake(state, next) : null;
     const done = () => { finishMove(next); if (t) setTake(t); };
     if (prefersReducedMotion()) { done(); return; }
     setBusy(true);
@@ -256,18 +270,19 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
       }, step * i);
     });
     later(done, step * frames.length + (m.captures.length ? 300 : 0));
-  }, [beep, finishMove, later]);
+  }, [beep, finishMove, later, tourney]);
 
   const youAreOut = game.players === 4 && housesOf(game.owner, 0) === 0;
 
   // A computer's turn.
   useEffect(() => {
     if (phase !== "playing" || busy || reviewing || game.over || game.turn === 0) return;
-    const t = window.setTimeout(() => play(game, chooseMove(game, level)), youAreOut ? WATCH_THINK_MS : THINK_MS);
+    const t = window.setTimeout(() => play(game, tourney ? nchoTourneyReply(game, level, tourney.seed) : chooseMove(game, level)), youAreOut ? WATCH_THINK_MS : THINK_MS);
     return () => window.clearTimeout(t);
-  }, [busy, game, level, phase, play, reviewing, youAreOut]);
+  }, [busy, game, level, phase, play, reviewing, tourney, youAreOut]);
 
   const start = useCallback((opts?: { rounds?: RoundsTarget; players?: PlayerCount }) => {
+    if (tourney) return; // a tournament game is never restarted from here; a new try comes with a new run id
     clearTimers();
     const target = opts?.rounds ?? rounds;
     const P = opts?.players ?? players;
@@ -285,7 +300,27 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
     setTake(null);
     setGameNo((g) => g + 1);
     setStatus(s.turn === 0 ? "You start. Pick one of your holes." : `${Name(s.turn, P)} starts this game and is thinking…`);
-  }, [clearTimers, holesPerSide, nextFirst, players, rounds, variant]);
+  }, [clearTimers, holesPerSide, nextFirst, players, rounds, tourney, variant]);
+
+  // A new tournament run (a new run id) starts the same game afresh.
+  const runId = tourney?.runId;
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    if (!tourney) return;
+    clearTimers();
+    const s = nchoTourneyStart(tourney.seed, tourneyLevel!, variant);
+    setRecap(null);
+    setReviewing(false);
+    setGame(s);
+    setView(viewOf(s));
+    setBusy(false);
+    setPhase("playing");
+    setStatus("You start. Pick one of your holes.");
+    mineRef.current = [];
+    sentRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
 
   const nextRound = useCallback(() => {
     const prev = game.lastRound;
@@ -338,7 +373,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   const legal = canPlay ? legalMoves(game) : [];
   // Nana's hint: the hole HARD would sow for you (lib/arcade/nana-ncho.ts), lit up in gold until you sow.
   const askNana = () => {
-    const t = canPlay ? nchoTip(game) : null;
+    const t = canPlay && !tourney ? nchoTip(game) : null; // Nana sits out tournaments
     setNanaHole(t?.highlight ?? null);
     return t?.tip ?? null;
   };
@@ -472,28 +507,29 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
   return (
     <ArcadeShell game={arcadeGame(slug)} index={ARCADE_GAMES.findIndex((g) => g.slug === slug) + 1}>
       <div className="arc-console">
+        {tourney && <p className="ncho-tourney">TOURNAMENT · same deal for everyone</p>}
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOUR STORE</span><strong aria-live="polite">{String(view.stores[0]).padStart(2, "0")}</strong></div>
           {P === 2 && <div className="arc-stat"><span className="arc-label">COMPUTER</span><strong>{String(view.stores[1]).padStart(2, "0")}</strong></div>}
           <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>
           <span className="arc-spacer" />
-          <select className="arc-select" aria-label="Players (starts a new game)" value={String(players)} onChange={(e) => changePlayers(e.target.value)}>
+          <select className="arc-select" aria-label="Players (starts a new game)" disabled={!!tourney} value={String(players)} onChange={(e) => changePlayers(e.target.value)}>
             <option value="2">PLAYERS: 2</option>
             <option value="4">PLAYERS: 4</option>
           </select>
-          <select className="arc-select" aria-label="Computer level" value={level} onChange={(e) => setLevel(e.target.value as Level)}>
+          <select className="arc-select" aria-label="Computer level" disabled={!!tourney} value={level} onChange={(e) => setLevel(e.target.value as Level)}>
             <option value="easy">EASY</option>
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
           </select>
-          <select className="arc-select" aria-label="Rounds (starts a new game)" value={String(rounds)} onChange={(e) => changeRounds(e.target.value)}>
+          <select className="arc-select" aria-label="Rounds (starts a new game)" disabled={!!tourney} value={String(rounds)} onChange={(e) => changeRounds(e.target.value)}>
             <option value="3">ROUNDS: 3</option>
             <option value="5">ROUNDS: 5</option>
             <option value="7">ROUNDS: 7</option>
             <option value="all">{players === 4 ? "ROUNDS: UNTIL ONE PLAYER HAS EVERY HOUSE" : "ROUNDS: UNTIL ONE SIDE HAS EVERY HOUSE"}</option>
           </select>
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn-ghost" onClick={() => start()} aria-label="New game">NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn-ghost" onClick={() => start()} aria-label="New game">NEW GAME</button>}
         </div>
 
         {showRotate && (
@@ -554,7 +590,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
                 <>
                   {r && roundOverlay(r, game.last?.sweep ?? null)}
                   <p className="ncho-final">{endLine()}</p>
-                  <p>{nextLine}</p>
+                  {tourney ? <p role="status">{tourney.finishedText ?? "Checking your game…"}</p> : <p>{nextLine}</p>}
                 </>
               )}
               {phase === "round"
@@ -564,12 +600,12 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
                     {autoNext && <button type="button" className="arc-btn-ghost" onClick={() => setAutoPaused(true)} aria-label="Wait: don't start the next round by itself">WAIT</button>}
                   </div>
                 )
-                : <button type="button" className="arc-btn" onClick={() => start()} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>}
+                : !tourney && <button type="button" className="arc-btn" onClick={() => start()} aria-label={phase === "over" ? "Play again" : "Start game"}>{phase === "over" ? "PLAY AGAIN" : "START GAME"}</button>}
             </div>
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
-        <ArcadeNana slug={slug} canAsk={canPlay && legal.length > 0} onAsk={askNana} take={take} resetKey={`${gameNo}-${players}`} onToggle={() => setNanaHole(null)} />
+        <ArcadeNana slug={slug} context={tourney ? { mode: "tournament" } : undefined} canAsk={!tourney && canPlay && legal.length > 0} onAsk={askNana} take={take} resetKey={`${gameNo}-${players}`} onToggle={() => setNanaHole(null)} />
         {phase === "playing" && recap && !reviewing && (
           <p className="ncho-watch">
             <button type="button" className="arc-btn-ghost" onClick={() => setReviewing(true)} aria-label={`Read the round ${recap.sum.round} summary again (pauses the game)`}>{`ROUND ${recap.sum.round} SUMMARY`}</button>
@@ -585,6 +621,7 @@ export default function NchoGame({ variant = "ncho" }: { variant?: NchoVariant }
 
       <style jsx global>{`
         .ncho-wrap { background:#1b2a23; }
+        .ncho-tourney { margin:0 4px 8px; color:#83b83c; font:700 9px ui-monospace,monospace; letter-spacing:.12em; }
         /* A short board on an upright phone: the start, round and game-over messages stay readable (the board keeps room for them). */
         @media(max-width:740px) { .ncho-wrap { min-height:230px; } .ncho-wrap .arc-overlay { padding:12px; } .ncho-wrap .arc-overlay h2 { font-size:24px; margin-bottom:4px; } .ncho-wrap .arc-overlay p { margin:0 0 10px; font-size:11.5px; line-height:1.5; } .ncho-wrap .arc-overlay-kicker { margin-bottom:4px; } }
         /* The round and game-over summaries can be longer than the board is tall: give them room, and scroll if need be. */
