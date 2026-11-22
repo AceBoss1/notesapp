@@ -40,6 +40,8 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
   const [switcher, setSwitcher] = useState(false);
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [managed, setManaged] = useState<Managed[]>([]);
+  // The two lists in the switcher fold like a drop-down (owner, 22 Nov 2026); closed at first, with a count, so the menu stays short.
+  const [unrolled, setUnrolled] = useState<{ work: boolean; groups: boolean }>({ work: false, groups: false });
   // While the menu is open, Nana's bubble slides off the screen (components/NanaChat.tsx reads this), so it never covers Sign out.
   useEffect(() => {
     const el = document.documentElement;
@@ -149,8 +151,11 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
                     <span className="flex-1 font-ui text-sm text-ink">Organisation setup</span><span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-slate">Organisation</span>
                   </Link>
                 )}
-                {runs !== null && managed.length > 0 && <p className="px-2 pb-1 pt-2 font-ui text-[11px] font-bold uppercase tracking-wide text-slate">Organisations and businesses you help run</p>}
-                {managed.map((m) => (
+                {runs !== null && managed.length > 0 && <button type="button" onClick={() => setUnrolled((u) => ({ ...u, work: !u.work }))} aria-expanded={unrolled.work} className="flex w-full items-center gap-2 rounded-xl px-2 pb-1 pt-2 text-left font-ui text-[11px] font-bold uppercase tracking-wide text-slate hover:text-ink">
+                  <span className="flex-1">Organisations and businesses you help run</span><span className="rounded-full bg-paper px-1.5 py-0.5 text-[10px] normal-case tracking-normal">{managed.length}</span>
+                  <MenuGlyph name="chevron" className={`h-4 w-4 transition-transform ${unrolled.work ? "rotate-180" : ""}`} />
+                </button>}
+                {unrolled.work && managed.map((m) => (
                   <div key={m.uid} className="rounded-xl px-2 py-2 hover:bg-paper">
                     <Link href={`/u/${m.username}`} onClick={() => went(`/u/${m.username}`)} className="flex items-center gap-3">
                       <Avatar src={m.avatar} alt="" size={32} square={m.org} />
@@ -164,8 +169,11 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
                     </div>
                   </div>
                 ))}
-                {runs !== null && runs.length > 0 && <p className="px-2 pb-1 pt-2 font-ui text-[11px] font-bold uppercase tracking-wide text-slate">Communities you run</p>}
-                {runs === null ? <p className="px-2 py-2 text-xs text-slate">Loading…</p> : runs.map((c) => (
+                {runs !== null && runs.length > 0 && <button type="button" onClick={() => setUnrolled((u) => ({ ...u, groups: !u.groups }))} aria-expanded={unrolled.groups} className="flex w-full items-center gap-2 rounded-xl px-2 pb-1 pt-2 text-left font-ui text-[11px] font-bold uppercase tracking-wide text-slate hover:text-ink">
+                  <span className="flex-1">Communities you run</span><span className="rounded-full bg-paper px-1.5 py-0.5 text-[10px] normal-case tracking-normal">{runs.length}</span>
+                  <MenuGlyph name="chevron" className={`h-4 w-4 transition-transform ${unrolled.groups ? "rotate-180" : ""}`} />
+                </button>}
+                {runs === null ? <p className="px-2 py-2 text-xs text-slate">Loading…</p> : unrolled.groups && runs.map((c) => (
                   <Link key={c.id} href={`/c/${c.id}`} onClick={() => went(`/c/${c.id}`)} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-paper">
                     <Avatar src={c.avatar} alt="" size={32} square />
                     <span className="min-w-0 flex-1"><span className="block truncate font-ui text-sm text-ink">{c.name}</span><span className="text-[11px] text-slate">{c.memberCount.toLocaleString()} members</span></span>

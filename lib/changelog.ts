@@ -18,6 +18,8 @@ export const CHANGELOG: Release[] = [
       { kind: "changed", text: "The menu shows four tiles (your journal, messages or wallet, calendar and store), with the rest one tap away under See more, so Sign out is always within reach." },
       { kind: "added", text: "The arrow beside your name in the menu now also lists the organisations and businesses you help run, with your role, and takes you straight to their books, inventory, team or jobs." },
       { kind: "fixed", text: "Ask Nana slides out of the way while the menu is open, and comes back when it closes." },
+      { kind: "changed", text: "In that list, organisations and businesses, and communities you run, fold away like a drop-down: tap a heading to show or hide them." },
+      { kind: "changed", text: "The round menu button at the bottom of the footer is gone; it only scrolled back up to the menu at the top." },
       { kind: "fixed", text: "Profiles no longer repeat themselves: your role, your job and your first link show once, at the top, and the sections below only add what isn't there (your industry, your other links)." },
     ],
   },

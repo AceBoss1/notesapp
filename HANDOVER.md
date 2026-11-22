@@ -1419,7 +1419,9 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     admins, team and jobs (`?org=`); each page checks the role itself. While the menu is mounted it sets `data-menu-open` on <html>, and
     `.nana-fab` (components/NanaChat.tsx, app/globals.css) slides off the screen. Profile: no repeats — the role stays under the name,
     the job and first link in the header facts; Details drops the role, Work drops the job line (keeps the industry), Links shows the
-    other links as "More links"; a section with nothing new is hidden, with "+ Add" prompts on your own profile when something is missing.
+    other links as "More links"; a section with nothing new is hidden, with "+ Add" prompts on your own profile when something is missing. Both switcher lists fold (state `unrolled`, closed at first, with a count). The footer's round Menu button
+    (components/shell/FooterActions.tsx) is gone, with `OPEN_MENU` and its listener in Masthead; the footer keeps Ask Nana only where
+    Nana's floating button isn't on the page.
 
 ## 3. How the work is done (please keep these)
 
