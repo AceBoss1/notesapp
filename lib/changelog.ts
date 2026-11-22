@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.203.0",
+    bump: "minor",
+    date: "2026-11-22",
+    changes: [
+      { kind: "added", text: "Add more roles to your profile, now and past: a second job, a board seat, teaching, or the jobs you had before, each with its dates. They show in Work on your profile, current ones first (Edit profile → More roles)." },
+      { kind: "added", text: "Every page of your own is now in the menu: My sounds, My media and Analytics under See more, and a new Business and jobs section with your books, inventory, website, hotel, discount codes, coupons, referrals, Promote and earn, events and your job search." },
+      { kind: "changed", text: "Wallet activity shows eight at a time, with Load more and See less." },
+      { kind: "added", text: "Admin → Users: with members selected you can now change their plan, unsuspend them, or resend the confirmation email to the ones who haven't confirmed, as well as notify and suspend." },
+    ],
+  },
+  {
     version: "v0.202.1",
     bump: "patch",
     date: "2026-11-22",

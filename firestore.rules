@@ -328,7 +328,20 @@ service cloud.firestore {
     function workOk(d) {
       return (!('industry' in d) || (d.industry is string && d.industry.size() <= 30))
         && (!('jobTitle' in d) || (d.jobTitle is string && d.jobTitle.size() <= 60))
-        && (!('workplace' in d) || (d.workplace is string && d.workplace.size() <= 80));
+        && (!('workplace' in d) || (d.workplace is string && d.workplace.size() <= 80))
+        && (!('experience' in d) || experienceOk(d.experience));
+    }
+    // Other roles, now and past (lib/profile-work.ts cleanExperience): at most ten, each a short title, organisation and two months.
+    function roleOk(e) {
+      return e.keys().hasOnly(['title', 'org', 'from', 'to', 'current'])
+        && e.title.size() <= 60 && e.org.size() <= 80 && e.from.size() <= 7 && e.to.size() <= 7;
+    }
+    function experienceOk(x) {
+      return x is list && x.size() <= 10
+        && (x.size() < 1 || roleOk(x[0])) && (x.size() < 2 || roleOk(x[1])) && (x.size() < 3 || roleOk(x[2]))
+        && (x.size() < 4 || roleOk(x[3])) && (x.size() < 5 || roleOk(x[4])) && (x.size() < 6 || roleOk(x[5]))
+        && (x.size() < 7 || roleOk(x[6])) && (x.size() < 8 || roleOk(x[7])) && (x.size() < 9 || roleOk(x[8]))
+        && (x.size() < 10 || roleOk(x[9]));
     }
 
     // Throwaway emails (Admin → People & trust → Throwaway emails, lib/throwaway-emails.ts): nobody can make a profile with a
@@ -415,6 +428,7 @@ service cloud.firestore {
                 'industry',
                 'jobTitle',
                 'workplace',
+                'experience',
                 'showOnline',
                 'showLists',
                 'checkPass'

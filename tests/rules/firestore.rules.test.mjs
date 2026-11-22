@@ -47,6 +47,14 @@ test("profile work lines: optional, short, and only on your own profile", async 
   await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { industry: "", jobTitle: "", workplace: "" })); // clearing them is fine
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { jobTitle: "x".repeat(61) }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { workplace: "x".repeat(81) }));
+  // Other roles, now and past: at most ten, each short and in shape.
+  const role = { title: "Lecturer", org: "Unilag", from: "2015-01", to: "2019-06", current: false };
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { experience: [role, { ...role, to: "", current: true }] }));
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { experience: Array(10).fill(role) }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { experience: Array(11).fill(role) }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { experience: [{ ...role, title: "x".repeat(61) }] }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { experience: [role, { ...role, extra: 1 }] }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { experience: "CEO" }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { industry: "x".repeat(31) }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { jobTitle: 42 }));
   await assertFails(updateDoc(doc(as("pub"), "users/alice"), { jobTitle: "CEO" })); // not someone else's

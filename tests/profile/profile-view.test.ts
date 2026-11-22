@@ -20,11 +20,26 @@ assert.match(joinedText("2026-10-12T09:00:00.000Z"), /^Joined October 2026$/);
 
 assert.deepEqual(workRows(null), []);
 assert.deepEqual(workRows({ jobTitle: "CEO", workplace: "Acme", industry: "tech" }), [
-  { kind: "role", text: "CEO at Acme" },
-  { kind: "industry", text: "Technology or software" },
+  { kind: "role", text: "CEO at Acme", key: "role" },
+  { kind: "industry", text: "Technology or software", key: "industry" },
 ]);
-assert.deepEqual(workRows({ workplace: "Acme", industry: "other" }), [{ kind: "role", text: "Acme" }]); // "Something else" says nothing
+assert.deepEqual(workRows({ workplace: "Acme", industry: "other" }), [{ kind: "role", text: "Acme", key: "role" }]); // "Something else" says nothing
 assert.deepEqual(workRows({ industry: "made-up" }), []);
+// Other roles, now and past (owner, 22 Nov 2026): current first, then the latest; tidied; bad months dropped; at most ten.
+assert.deepEqual(workRows({ experience: [
+  { title: "Lecturer", org: "Unilag", from: "2015-01", to: "2019-06", current: false },
+  { title: "Lead", org: "Precheks", from: "2024-02", to: "2025-01", current: true },
+  { title: "Volunteer", org: "", from: "", to: "", current: false },
+  { title: "", org: "" },
+  { title: "<i>Bad</i>", org: "X", from: "2020-13", to: "nope", current: false },
+] }), [
+  { kind: "now", text: "Lead at Precheks", key: "x0", sub: "Feb 2024 – now" },
+  { kind: "past", text: "Lecturer at Unilag", key: "x1", sub: "Past · Jan 2015 – Jun 2019" },
+  { kind: "past", text: "Volunteer", key: "x2", sub: "Past" }, // no dates: kept in the order typed
+  { kind: "past", text: "Bad at X", key: "x3", sub: "Past" },
+]);
+assert.equal(workRows({ experience: Array.from({ length: 30 }, (_, i) => ({ title: `R${i}`, org: "", from: "", to: "", current: false })) }).length, 10);
+assert.deepEqual(workRows({ experience: "not a list" }), []);
 
 assert.equal(bioIsLong("Therapist in Abuja."), false);
 assert.equal(bioIsLong("a".repeat(111)), true);

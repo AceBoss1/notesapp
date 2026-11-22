@@ -3,7 +3,9 @@
 //   1. Your profile, with ▾ to switch to a community you run, your store or your organisation (components/shell/AccountMenu.tsx)
 //   2. Your shortcuts: what you opened from this menu lately (kept in this browser)
 //   3. Four tiles, the places people use most, then "See more" for the rest
-//   4. Sections that fold: Settings and privacy, Upgrades, Help and support, More from #NotesApp
+//   4. Sections that fold: Settings and privacy, Business and jobs, Upgrades, Help and support, More from #NotesApp
+// Every page of your own is somewhere here (owner, 22 Nov 2026: "I didn't see my sounds… make sure we accommodate everything"); the
+// test (tests/account/account-menu.test.ts) checks each My account page (lib/account-nav.ts) is in the menu.
 //   5. Sign out
 // Icons are keys into components/shell/menuIcons.tsx: one line-icon set, no emoji.
 
@@ -11,10 +13,11 @@ export type IconKey =
   | "journal" | "messages" | "calendar" | "store" | "wallet" | "saved" | "bookings" | "orders" | "live" | "tickets" | "giving" | "shipments"
   | "invites" | "cycle" | "interests" | "family" | "profile" | "account" | "payouts" | "org" | "plans" | "badge" | "boost" | "stats"
   | "ads" | "nana" | "help" | "contact" | "terms" | "privacy" | "arcade" | "life" | "academy" | "ventures" | "market" | "explore"
-  | "trending" | "exam" | "community" | "link" | "jobs" | "studio";
+  | "trending" | "exam" | "community" | "link" | "jobs" | "studio" | "sounds" | "media" | "books" | "inventory" | "hotel" | "site"
+  | "discount" | "coupon" | "referral" | "jobsearch" | "events" | "affiliate";
 
 export type MenuItem = { href: string; label: string; icon: IconKey; badge?: number; note?: string };
-export type MenuSection = { key: "settings" | "upgrades" | "help" | "apps"; label: string; icon: "settings" | "upgrades" | "help" | "apps"; items: MenuItem[] };
+export type MenuSection = { key: "settings" | "business" | "upgrades" | "help" | "apps"; label: string; icon: "settings" | "business" | "upgrades" | "help" | "apps"; items: MenuItem[] };
 export type MenuCtx = {
   username: string | null; // null: not signed in
   canPublish: boolean;
@@ -25,6 +28,7 @@ export type MenuCtx = {
   wallet: boolean;
   messages: boolean;
   unreadDms: number;
+  media?: boolean; // Media on profiles is on (lib/media-rules.ts MEDIA_LIVE)
 };
 export type AccountMenu = { tiles: MenuItem[]; more: MenuItem[]; sections: MenuSection[] };
 
@@ -47,6 +51,9 @@ export function accountMenu(c: MenuCtx): AccountMenu {
     { href: "/bookings", label: "Bookings", icon: "bookings" },
     { href: "/orders", label: "Orders & parcels", icon: "orders" },
     ...(c.goLive ? [{ href: "/lives/start", label: "Go live", icon: "live" as const }] : []),
+    { href: "/profile/sounds", label: "My sounds", icon: "sounds" },
+    ...(c.media ? [{ href: "/profile/media", label: "My media", icon: "media" as const }] : []),
+    { href: "/profile/analytics", label: "Analytics", icon: "stats" },
     { href: "/tickets", label: "My tickets", icon: "tickets" },
     { href: "/giving", label: "My giving", icon: "giving" },
     ...(c.canPublish ? [{ href: "/shipments", label: "Shipments", icon: "shipments" as const }] : []),
@@ -69,11 +76,26 @@ export function accountMenu(c: MenuCtx): AccountMenu {
         ],
       },
       {
+        key: "business", label: "Business and jobs", icon: "business", items: [
+          { href: "/profile/books", label: "Business books", icon: "books" },
+          { href: "/profile/inventory", label: "Inventory", icon: "inventory" },
+          { href: "/profile/site", label: "Your website", icon: "site" },
+          { href: "/profile/hotel", label: "Your hotel", icon: "hotel" },
+          { href: "/profile/discounts", label: "Discount codes", icon: "discount" },
+          { href: "/profile/coupons", label: "My coupons", icon: "coupon" },
+          { href: "/profile/referrals", label: "Referrals", icon: "referral" },
+          { href: "/affiliates", label: "Promote and earn", icon: "affiliate" },
+          { href: "/events", label: "Events", icon: "events" },
+          { href: "/profile/applications", label: "My job search", icon: "jobsearch" },
+          ...(c.isOrg ? [{ href: "/profile/jobs", label: "Jobs you post", icon: "jobs" as const }] : []),
+        ],
+      },
+      {
         key: "upgrades", label: "Upgrades", icon: "upgrades", items: [
           { href: "/pricing", label: "Plans: Pro, Business, Enterprise", icon: "plans" },
           { href: "/badges", label: "Verification badges", icon: "badge" },
           { href: "/boost", label: "Boost a post", icon: "boost" },
-          { href: "/profile/boosts", label: "Boost performance", icon: "stats" },
+          { href: "/profile/boosts", label: "Boost performance", icon: "boost" },
           { href: "/advertise/campaigns", label: "My ad campaigns", icon: "ads" },
         ],
       },

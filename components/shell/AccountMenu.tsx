@@ -8,6 +8,7 @@ import { canPublish } from "@/lib/users";
 import { useMember } from "@/lib/member-client";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
+import { MEDIA_LIVE } from "@/lib/media-rules";
 import { useCycleMenu } from "@/lib/cycle-client";
 import { useCalendarToday } from "@/components/calendar/useCalendarToday";
 import { useGoLive } from "@/components/lives/useGoLive";
@@ -62,7 +63,7 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
   const menu = useMemo(() => {
     const m = accountMenu({
       username: profile?.username ?? null, canPublish: !!profile && canPublish(profile), isOrg: profile?.accountKind === "organisation",
-      goLive: !!goLive, cycle: !!cycle, calToday: calToday ?? 0, wallet: WALLET_LIVE, messages: MESSAGES_LIVE, unreadDms,
+      goLive: !!goLive, cycle: !!cycle, calToday: calToday ?? 0, wallet: WALLET_LIVE, messages: MESSAGES_LIVE, unreadDms, media: MEDIA_LIVE,
     });
     // The site's own links (Journals, Pricing, About…) join "More from #NotesApp" where they aren't there already.
     const apps = m.sections.find((s) => s.key === "apps");

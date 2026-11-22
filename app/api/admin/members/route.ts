@@ -7,7 +7,7 @@ import { notifyBell, sendEmail } from "@/lib/email";
 import { walletSummary } from "@/lib/wallet-server";
 import { collectExport } from "@/lib/account-server";
 import {
-  MemberError, USERS_DEPTS, addNote, deleteNote, detail, exportMember, logChange, markNotDuplicate, notifyMembers, resendVerification,
+  MemberError, USERS_DEPTS, addNote, deleteNote, detail, exportMember, logChange, markNotDuplicate, notifyMembers, resendVerification, resendVerificationMany,
   sendPasswordReset, signals, type Staff,
 } from "@/lib/admin-members-server";
 import { hasAnyDept } from "@/lib/admin-access";
@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       case "history": return NextResponse.json(await logChange(db, s, b.uid, b.what, b.detail));
       case "notify": return NextResponse.json(await notifyMembers(db, s, b.uids, b.message, b.link, notify));
       case "verify": return NextResponse.json(await resendVerification(db, auth, s, b.uid, mail));
+      case "verifyMany": return NextResponse.json(await resendVerificationMany(db, auth, s, b.uids, mail));
       case "reset": return NextResponse.json(await sendPasswordReset(db, auth, s, b.uid, mail));
       case "export": return NextResponse.json(await exportMember(db, auth, s, b.uid, b.reason, b.note, (uid, email) => collectExport(db, uid, email)));
       case "notDuplicate": return NextResponse.json(await markNotDuplicate(db, s, b.a, b.b));

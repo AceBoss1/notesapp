@@ -70,6 +70,12 @@ const db = getFirestore();
   await assert.rejects(M.resendVerification(db, auth, care, "m2", mail), /already confirmed/);
   await M.sendPasswordReset(db, auth, care, "m2", mail, now);
   assert.deepEqual(sent.map((x) => x.to), ["m1@example.test", "m2@example.test"]);
+  // Many at once (the bulk bar): confirmed and unknown ones are skipped, not errors.
+  await assert.rejects(M.resendVerificationMany(db, auth, money, ["m1"], mail), /account emails/);
+  await assert.rejects(M.resendVerificationMany(db, auth, care, [], mail), /Which members/);
+  await assert.rejects(M.resendVerificationMany(db, auth, care, Array.from({ length: 101 }, (_, i) => `u${i}`), mail), /At most 100/);
+  assert.deepEqual(await M.resendVerificationMany(db, auth, care, ["m1", "m2", "nobody", "m1"], mail, now), { sent: 1, skipped: 2 });
+  sent.splice(2);
   await assert.rejects(M.exportMember(db, auth, care, "m1", "Legal or data request", "", async () => ({})), /Only Legal/);
   await assert.rejects(M.exportMember(db, auth, legal, "m1", "nope", "", async () => ({})), /Say why/);
   const data = await M.exportMember(db, auth, legal, "m1", "Legal or data request", "DSAR #12", async (uid, email) => ({ uid, email }), now);

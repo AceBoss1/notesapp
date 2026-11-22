@@ -284,7 +284,7 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
   // No repeats (owner, 22 Nov 2026): the role is under the name and the job and first link are in the facts above, so the sections only
   // add what the header doesn't show (the industry, the other links).
   const allWork = suspended ? [] : workRows(realProfile);
-  const work: AboutRow[] = allWork.filter((r) => !(r.kind === "role" && facts.some((f) => f.key === "work"))).map((r) => ({ key: r.kind, icon: r.kind === "role" ? <BriefcaseIcon /> : <TagIcon />, text: r.text }));
+  const work: AboutRow[] = allWork.filter((r) => !(r.kind === "role" && facts.some((f) => f.key === "work"))).map((r) => ({ key: r.key, icon: r.kind === "industry" ? <TagIcon /> : <BriefcaseIcon />, text: r.text, ...(r.sub ? { sub: r.sub } : {}) }));
   const moreLinks = profileLinks(realProfile?.social).length > 1;
   const hasAbout = isOwnProfile || details.length > 0 || work.length > 0 || moreLinks;
 

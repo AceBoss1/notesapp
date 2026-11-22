@@ -20,6 +20,7 @@ import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded, getTierConfig } from "./tiers";
 import { ttlCache } from "./ttl-cache";
 import type { AccountKind, OrgInfo } from "./org";
+import type { Experience } from "./profile-work";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 import { cleanWork, type Work } from "./profile-work";
 
@@ -70,6 +71,7 @@ export type UserProfile = {
   industry?: string;
   jobTitle?: string;
   workplace?: string;
+  experience?: Experience[]; // other roles, now and past (lib/profile-work.ts cleanExperience); the main one is jobTitle/workplace
   // "staff" = in-house writers, "volunteer" = external contributing
   // writers (Precheks' own terms, in parens so the mapping's explicit
   // wherever this is surfaced). Neither currently grants note-publish
@@ -364,7 +366,7 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
 
 export async function updateProfile(
   uid: string,
-  data: Partial<Pick<UserProfile, "displayName" | "bio" | "avatar" | "social" | "industry" | "jobTitle" | "workplace">>
+  data: Partial<Pick<UserProfile, "displayName" | "bio" | "avatar" | "social" | "industry" | "jobTitle" | "workplace" | "experience">>
 ): Promise<void> {
   // AI content checks: a new name, bio or picture is checked first (firestore.rules ask for the pass). Throws if it breaks the rules.
   const shown = data.displayName !== undefined || data.bio !== undefined || data.avatar !== undefined;
