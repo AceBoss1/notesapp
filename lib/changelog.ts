@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.204.0",
+    bump: "minor",
+    date: "2026-11-22",
+    changes: [
+      { kind: "added", text: "Tournaments for seven more Notes Arcade games, so every board and card game can now run one: Ludo, Ncho, Ncho Aka-Hausa, Naija Landlord, Ace of Spades, Draughts, Achi, and Puff-Puff Rush. As before, everyone plays the same deal and the server replays every try to check it." },
+      { kind: "added", text: "Ludo: you against three computers, two dice, the same rolls for everyone; a win first, then your seeds home, then the fewest turns. Naija Landlord: the same dice and the same Market and Fortune cards at the same moments; up to 80 rounds, then the richest wins." },
+      { kind: "added", text: "Ace of Spades: five hands with the same deals, ranked by your team's points. Ncho and Aka-Hausa: three rounds, ranked by houses, then seeds. Achi: a win in the fewest turns. Draughts: African 10×10, African 8×8 or English rules, chosen per tournament." },
+      { kind: "added", text: "Puff-Puff Rush: the same maze and goats for everyone, until you lose your last life, clear nine markets or play 15 minutes; ranked by score." },
+      { kind: "changed", text: "Achi and Draughts tournaments have a RESIGN button; resigning counts as a finished game." },
+    ],
+  },
+  {
     version: "v0.203.0",
     bump: "minor",
     date: "2026-11-22",

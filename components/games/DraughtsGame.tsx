@@ -7,10 +7,12 @@ import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
 import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves, sizeOf,
-  type BoardSize, type Cell, type DraughtsState, type Level, type Rules,
+  type BoardSize, type Cell, type DraughtsMove, type DraughtsState, type Level, type Rules,
 } from "@/lib/arcade/draughts";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { draughtsTake, draughtsTip } from "@/lib/arcade/nana-draughts";
+import { DRAUGHTS_LEVELS, draughtsTourneyReply, draughtsTourneyStart, encodeDraughts, parseDraughtsLevel } from "@/lib/arcade/replay-draughts";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 type Phase = "ready" | "playing" | "over";
 
@@ -24,6 +26,8 @@ const name = (i: number, n: number) => `${FILES[i % n]}${n - Math.floor(i / n)}`
 
 // The rules menu: African on the 10×10 board (the default), African on 8×8, or English (always 8×8).
 type Variant = "african-10" | "african-8" | "english";
+// The tournament's boards (lib/arcade/replay-draughts.ts) map onto this menu's choices.
+const TOURNEY_VARIANT: Record<string, Variant> = { african10: "african-10", african8: "african-8", english: "english" };
 const VARIANTS: Record<Variant, { rules: Rules; size: BoardSize; label: string; intro: string }> = {
   "african-10": { rules: "african", size: 10, label: "AFRICAN 10×10", intro: "20 each. Men take backwards too, kings fly, and you must take the most pieces." },
   "african-8": { rules: "african", size: 8, label: "AFRICAN 8×8", intro: "12 each. Men take backwards too, kings fly, and you must take the most pieces." },
@@ -45,16 +49,25 @@ function midMove(board: Cell[], m: { from: number; path: number[]; captures: num
   return b;
 }
 
-export default function DraughtsGame() {
-  const [game, setGame] = useState<DraughtsState>(() => fresh("african-10"));
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [level, setLevel] = useState<Level>("medium");
+export default function DraughtsGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  // A tournament try (owner, 21 Nov 2026: "add tournament versions of … Draughts"; lib/arcade/replay-draughts.ts): the tournament's
+  // level sets the rules, the board and the computer's strength; you play light and move first, the 40-move draw is on, the computer's
+  // replies come from the seed with a position-capped search (so the server's replay finds the same moves), no new game, and the game
+  // doesn't count towards your practice wins or change your saved rules.
+  const tourneyLevel = tourney ? (parseDraughtsLevel(tourney.level) ? tourney.level : DRAUGHTS_LEVELS[0]) : null;
+  const tp = tourneyLevel ? parseDraughtsLevel(tourneyLevel)! : null;
+  const [game, setGame] = useState<DraughtsState>(() => (tourney ? draughtsTourneyStart(tourney.seed, tourneyLevel!) : fresh("african-10")));
+  const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
+  const [level, setLevel] = useState<Level>(tp?.level ?? "medium");
   const [drawRule, setDrawRule] = useState(true);
-  const [variant, setVariant] = useState<Variant>("african-10");
+  const [variant, setVariant] = useState<Variant>(tp ? TOURNEY_VARIANT[tp.board] : "african-10");
+  const [resigned, setResigned] = useState(false);
+  const mineRef = useRef<DraughtsMove[]>([]); // your moves this game, exactly what the replay reads
+  const sentRef = useRef(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [steps, setSteps] = useState<number[]>([]); // your landings so far in a multi-jump
   const [anim, setAnim] = useState<{ board: Cell[]; taken: number[]; at: number } | null>(null);
-  const [status, setStatus] = useState("Press start to play.");
+  const [status, setStatus] = useState(tourney ? "Your turn. You play the light pieces." : "Press start to play.");
   const [wins, setWins] = useState(0);
   const [muted, setMuted] = useState(false);
   // Nana (owner, 21 Nov 2026): a free hint from the engine itself, lit up in gold, and her take on each computer move.
@@ -67,10 +80,12 @@ export default function DraughtsGame() {
 
   useEffect(() => {
     try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
+    if (tourney) return; // the tournament sets the rules; your saved choice stays for practice
     try {
       const saved = arcadeStore.getItem(RULES_KEY);
       if (isVariant(saved)) { setVariant(saved); setGame(fresh(saved)); }
     } catch { /* storage blocked: African 10×10 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const clearTimers = useCallback(() => { timers.current.forEach((t) => window.clearTimeout(t)); timers.current = []; }, []);
   useEffect(() => clearTimers, [clearTimers]);
@@ -101,20 +116,29 @@ export default function DraughtsGame() {
   const destinations = new Set(candidates.map((m) => m.path[steps.length]).filter((x) => x !== undefined));
   const movable = new Set(game.turn === 0 ? legal.map((m) => m.from) : []);
 
+  // A tournament try ends once (a win, a loss, a draw, or resigning): send your moves; the server replays the computer's.
+  const finishTourney = useCallback((resign: boolean, board: Cell[]) => {
+    if (!tourney || sentRef.current) return;
+    sentRef.current = true;
+    tourney.onFinish(encodeDraughts(mineRef.current, sizeOf(board), resign));
+  }, [tourney]);
+
   // `before` is passed for the computer's move, so Nana can say what it was for.
   const commit = useCallback((next: DraughtsState, before?: DraughtsState) => {
     const m = next.last!;
     const mover = next.turn === 1 ? "You" : "Computer";
+    if (!before) mineRef.current = [...mineRef.current, m];
     setGame(next);
     setAnim(null);
     setSelected(null);
     setSteps([]);
     setHint(null);
-    if (before) setTake(draughtsTake(before, m, next));
+    if (before && !tourney) setTake(draughtsTake(before, m, next));
     beep(m.captures.length ? 520 : 380, 0.09);
     if (next.over) {
       setPhase("over");
       setStatus(next.winner === 0 ? "You win." : next.winner === 1 ? "Computer wins." : "A draw: 40 moves each with no capture.");
+      if (tourney) { finishTourney(false, next.board); return; }
       if (next.winner === 0) setWins((w) => { try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ } return w + 1; });
       return;
     }
@@ -124,13 +148,13 @@ export default function DraughtsGame() {
       const must = (legalMoves(next)[0]?.captures.length ?? 0) > 0;
       setStatus(`${took}Your turn${must ? ": you must capture" : ""}.`);
     }
-  }, [beep]);
+  }, [beep, finishTourney, tourney]);
 
   // Computer's turn: think, then play its move hop by hop.
   useEffect(() => {
-    if (phase !== "playing" || anim || game.over || game.turn !== 1) return;
+    if (phase !== "playing" || resigned || anim || game.over || game.turn !== 1) return;
     const t = window.setTimeout(() => {
-      const m = chooseMove(game, level);
+      const m = tourney ? draughtsTourneyReply(game, level, tourney.seed) : chooseMove(game, level);
       const next = applyMove(game, m);
       if (prefersReducedMotion() || m.path.length === 1) { commit(next, game); return; }
       m.path.forEach((_, i) => {
@@ -143,9 +167,10 @@ export default function DraughtsGame() {
       timers.current.push(window.setTimeout(() => commit(next, game), m.path.length * HOP_MS));
     }, THINK_MS);
     return () => window.clearTimeout(t);
-  }, [anim, beep, commit, game, level, phase]);
+  }, [anim, beep, commit, game, level, phase, resigned, tourney]);
 
   const start = useCallback(() => {
+    if (tourney) return; // a tournament game is never restarted from here; a new try comes with a new run id
     clearTimers();
     setGame(fresh(variant, drawRule));
     setAnim(null);
@@ -156,7 +181,37 @@ export default function DraughtsGame() {
     setGameNo((g) => g + 1);
     setPhase("playing");
     setStatus("Your turn. You play the light pieces.");
-  }, [clearTimers, drawRule, variant]);
+  }, [clearTimers, drawRule, tourney, variant]);
+
+  // A new tournament run (a new run id) starts the same game afresh.
+  const runId = tourney?.runId;
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    if (!tourney) return;
+    clearTimers();
+    setGame(draughtsTourneyStart(tourney.seed, tourneyLevel!));
+    setAnim(null);
+    setSelected(null);
+    setSteps([]);
+    setPhase("playing");
+    setResigned(false);
+    setStatus("Your turn. You play the light pieces.");
+    mineRef.current = [];
+    sentRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
+  const resign = () => {
+    if (!tourney || phase !== "playing" || game.over || resigned || anim) return;
+    clearTimers();
+    setResigned(true);
+    setSelected(null);
+    setSteps([]);
+    setPhase("over");
+    setStatus("You resigned. The computer wins.");
+    finishTourney(true, game.board);
+  };
 
   // The rules and board change what's legal, so switching them sets up a fresh board.
   const changeVariant = (next: Variant) => {
@@ -180,7 +235,7 @@ export default function DraughtsGame() {
   };
 
   const tap = (i: number) => {
-    if (phase !== "playing" || game.turn !== 0 || anim) return;
+    if (phase !== "playing" || resigned || game.turn !== 0 || anim) return;
     if (steps.length === 0 && movable.has(i)) {
       setSelected(selected === i ? null : i);
       return;
@@ -216,25 +271,28 @@ export default function DraughtsGame() {
   return (
     <ArcadeShell game={arcadeGame("draughts")} index={8}>
       <div className="arc-console">
+        {tourney && <p className="dr-tourney">TOURNAMENT · same deal for everyone</p>}
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOU</span><strong aria-live="polite">{mine.men + mine.kings}</strong></div>
           <div className="arc-stat"><span className="arc-label">COMPUTER</span><strong>{theirs.men + theirs.kings}</strong></div>
           <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>
           <span className="arc-spacer" />
-          <select className="arc-select" aria-label="Computer level" value={level} onChange={(e) => setLevel(e.target.value as Level)}>
+          <select className="arc-select" aria-label="Computer level" disabled={!!tourney} value={level} onChange={(e) => setLevel(e.target.value as Level)}>
             <option value="easy">EASY</option>
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
           </select>
-          <select className="arc-select" aria-label="Rules and board (changing them starts a new game)" value={variant} onChange={(e) => changeVariant(e.target.value as Variant)}>
+          <select className="arc-select" aria-label="Rules and board (changing them starts a new game)" disabled={!!tourney} value={variant} onChange={(e) => changeVariant(e.target.value as Variant)}>
             {(Object.keys(VARIANTS) as Variant[]).map((v) => <option key={v} value={v}>{VARIANTS[v].label}</option>)}
           </select>
-          <select className="arc-select" aria-label="Draw after 40 moves each without a capture" value={drawRule ? "on" : "off"} onChange={(e) => changeDrawRule(e.target.value === "on")}>
+          <select className="arc-select" aria-label="Draw after 40 moves each without a capture" disabled={!!tourney} value={drawRule ? "on" : "off"} onChange={(e) => changeDrawRule(e.target.value === "on")}>
             <option value="on">40-MOVE DRAW: ON</option>
             <option value="off">40-MOVE DRAW: OFF</option>
           </select>
           <button type="button" className="arc-btn-ghost" onClick={() => setMuted((m) => { mutedRef.current = !m; return !m; })} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn-ghost" onClick={start} aria-label="New game">NEW GAME</button>
+          {tourney
+            ? <button type="button" className="arc-btn-ghost" onClick={resign} disabled={phase !== "playing" || game.over || resigned || !!anim} aria-label="Resign this game (counts as a loss)">RESIGN</button>
+            : <button type="button" className="arc-btn-ghost" onClick={start} aria-label="New game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap dr-wrap">
@@ -258,7 +316,15 @@ export default function DraughtsGame() {
               );
             })}
           </div>
-          {phase !== "playing" && (
+          {tourney && phase === "over" && (
+            <div className="arc-overlay" role="dialog" aria-label="Game over">
+              <p className="arc-overlay-kicker">{resigned ? "RESIGNED" : "GAME OVER"}</p>
+              <h2>{resigned ? "You resigned." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
+              <p>{resigned ? "The computer wins." : game.winner === "draw" ? `${DRAW_PLIES / 2} moves each without a capture.` : `You have ${mine.men + mine.kings} left, the computer ${theirs.men + theirs.kings}.`}</p>
+              <p role="status">{tourney.finishedText ?? "Checking your game…"}</p>
+            </div>
+          )}
+          {!tourney && phase !== "playing" && (
             <div className="arc-overlay">
               <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : `${n} × ${n} · ${VARIANTS[variant].rules === "african" ? "AFRICAN" : "ENGLISH"} RULES`}</p>
               <h2>{phase === "ready" ? "Jump and crown." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
@@ -270,10 +336,11 @@ export default function DraughtsGame() {
         <p className="arc-status" role="status">{status}</p>
         <ArcadeNana
           slug="draughts"
-          canAsk={phase === "playing" && !game.over && game.turn === 0 && !anim && steps.length === 0}
+          context={tourney ? { mode: "tournament" } : undefined}
+          canAsk={!tourney && phase === "playing" && !game.over && game.turn === 0 && !anim && steps.length === 0}
           onAsk={() => {
             // Synchronous on tap: the hint search is capped (lib/arcade/nana-draughts.ts TIP_BUDGET) and comes back in tens of milliseconds.
-            const t = draughtsTip(game);
+            const t = tourney ? null : draughtsTip(game); // Nana sits out tournaments
             setHint(t ? t.highlight : null);
             return t ? t.tip : null;
           }}
@@ -284,6 +351,7 @@ export default function DraughtsGame() {
       </div>
 
       <style jsx global>{`
+        .dr-tourney { margin:0 4px 8px; color:#83b83c; font:700 9px ui-monospace,monospace; letter-spacing:.12em; }
         .dr-wrap { padding:clamp(6px,1.6vw,12px); }
         .dr-board { display:grid; aspect-ratio:1; border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px #ffffff14; }
         .dr-sq { position:relative; display:grid; place-items:center; aspect-ratio:1; min-width:0; padding:0; border:0; }

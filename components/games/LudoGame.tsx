@@ -15,6 +15,8 @@ import {
   legalActions, newGame, newKnockout, pairOwners, playOut, playOutKnockout, rollDice, seedCell, straightHomeSeed, twoYardsTable,
   type Knockout, type LudoAction, type LudoEvent, type LudoOptions, type LudoState,
 } from "@/lib/arcade/ludo";
+import { encodeLudoMove, ludoTourneyAction, ludoTourneyDice, ludoTourneyOver, ludoTourneyStart } from "@/lib/arcade/replay-ludo";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 // Colours clockwise from the bottom-left yard. Who plays each one is in game.table.owner: controller 0 is you.
 // Modes (owner, 21 Nov 2026): four players (you + 3 computers, one colour each), 2 v 2 yards (you pick any two colours, one
@@ -250,15 +252,24 @@ function YardPicker({ picks, onChange, them }: { picks: number[]; onChange: (p: 
   );
 }
 
-export default function LudoGame() {
+// Tournament mode (owner, 21 Nov 2026: "add tournament versions of Ludo, Ncho, Landlord…"; lib/arcade/tournament-games.ts
+// TourneyProps): four players with the standard rules, started from ludoTourneyStart, and every roll (yours and the computers') is
+// ludoTourneyDice(seed, roll number), the same functions the server replays with, so both sides play the identical game. Each seed you
+// move is recorded with encodeLudoMove (the format replay-ludo.ts reads), and the recording goes to `onFinish` once, when the game
+// ends. Mode, dice and rules are locked; no new game, no Nana tips, and the practice wins count is left alone.
+export default function LudoGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  const tourneyRef = useRef(tourney);
+  tourneyRef.current = tourney;
+  const recRef = useRef<string[]>([]);
+  const sentRef = useRef(false);
   const [options, setOptions] = useState<LudoOptions>(DEFAULT_OPTIONS);
   const [mode, setMode] = useState<Mode>("four");
   const [yards, setYards] = useState<number[]>(DEFAULT_YARDS); // your two yards in 2 v 2
   const [ko, setKo] = useState<Knockout | null>(null); // the knockout so far (rounds before this game)
   const [finalPick, setFinalPick] = useState<number[] | null>(null); // your yards for the knockout final
   const [rest, setRest] = useState<Knockout | null>(null); // the knockout played out by the computers after you went out
-  const [game, setGame] = useState<LudoState>(() => newGame(DEFAULT_OPTIONS));
-  const [started, setStarted] = useState(false);
+  const [game, setGame] = useState<LudoState>(() => (tourney ? ludoTourneyStart(tourney.seed, tourney.level) : newGame(DEFAULT_OPTIONS)));
+  const [started, setStarted] = useState(!!tourney);
   const [rolling, setRolling] = useState(false);
   const [faces, setFaces] = useState<number[]>([6, 6]);
   const [pick, setPick] = useState<number | null>(null); // the die you chose to move with (2 dice)
@@ -313,6 +324,8 @@ export default function LudoGame() {
   }, []);
 
   const myTurn = mine(game, game.turn);
+  // A tournament game is also over at the replay's roll cap (lib/arcade/replay-ludo.ts LUDO_ROLL_CAP; never reached in practice).
+  const over = game.phase === "over" || (!!tourney && ludoTourneyOver(game));
   // None of your colours is still taking turns (you've finished this knockout round): the computers speed up.
   const watching = started && game.phase !== "over" && !myColours(game).some((c) => inPlay(game, c));
 
@@ -332,7 +345,7 @@ export default function LudoGame() {
     const prev = prevGame.current;
     prevGame.current = game;
     setNanaHint(null);
-    if (!prev || prev === game || game.last === prev.last) return;
+    if (!prev || prev === game || game.last === prev.last || tourneyRef.current) return; // no takes in a tournament
     // Once none of your colours is playing (SKIP AHEAD can jump many moves at once), there's nothing useful to say.
     if (!myColours(game).some((c) => inPlay(game, c))) return;
     const t = ludoTake(prev, game);
@@ -341,7 +354,7 @@ export default function LudoGame() {
 
   // Count a win once per game: a 4-player or 2 v 2 game you won, or the knockout final.
   useEffect(() => {
-    if (game.phase !== "over" || countedRef.current) return;
+    if (game.phase !== "over" || countedRef.current || tourneyRef.current) return; // tournament games aren't practice wins
     countedRef.current = true;
     if (game.winner !== 0 || game.table.playToLast) return;
     setWins((w) => {
@@ -353,12 +366,15 @@ export default function LudoGame() {
 
   const startRoll = useCallback(() => {
     if (rolling) return;
-    const values = rollDice(game.options.dice);
+    const t = tourneyRef.current;
+    // A tournament roll is fixed by the seed and the roll number; it only lands on the game it was rolled for.
+    const k = game.rolls;
+    const values = t ? ludoTourneyDice(t.seed, k) : rollDice(game.options.dice);
     const finish = () => {
       setFaces(values);
       setRolling(false);
       setPick(null);
-      setGame((g) => (g.phase === "roll" && g.options.dice === values.length ? applyRoll(g, values) : g));
+      setGame((g) => (g.phase === "roll" && g.options.dice === values.length && (!t || (g.rolls === k && !ludoTourneyOver(g))) ? applyRoll(g, values) : g));
     };
     if (prefersReducedMotion() || watching) { finish(); return; }
     setRolling(true);
@@ -366,7 +382,7 @@ export default function LudoGame() {
     const spin = window.setInterval(() => setFaces(values.map(() => 1 + Math.floor(Math.random() * 6))), 70);
     const done = window.setTimeout(() => { clearRollTimers(); finish(); }, ROLL_MS);
     rollTimers.current.push(spin, done);
-  }, [rolling, game.options.dice, beep, clearRollTimers, watching]);
+  }, [rolling, game.options.dice, game.rolls, beep, clearRollTimers, watching]);
 
   // The die your taps move with: the one you picked, or else the highest die that can move something.
   const activeDie = useMemo(() => {
@@ -378,16 +394,29 @@ export default function LudoGame() {
     return usable.sort((a, b) => game.dice[b] - game.dice[a])[0] ?? null;
   }, [game, pick]);
 
+  // A tournament move: worked out from this render's game so the recording and the board can't disagree. The die is named by its
+  // value, and ludoTourneyAction turns that into the one action the replay plays (equal dice are interchangeable).
+  const tourneyMove = useCallback((seed: number, die: number) => {
+    if (!mine(game, game.turn) || game.phase !== "move" || ludoTourneyOver(game)) return;
+    const a = ludoTourneyAction(game, seed, game.dice[die]);
+    if (!a) return;
+    recRef.current.push(encodeLudoMove(game, a));
+    setGame(applyAction(game, a));
+  }, [game]);
+
   const play = useCallback((action: LudoAction) => {
+    if (tourneyRef.current) { if (action.kind === "step") tourneyMove(action.seed, action.die); return; }
     setGame((g) => (mine(g, g.turn) && g.phase === "move" && legalActions(g).some((a) => JSON.stringify(a) === JSON.stringify(action)) ? applyAction(g, action) : g));
-  }, []);
+  }, [tourneyMove]);
 
   const moveSeed = useCallback((seed: number) => {
     if (activeDie === null) return;
+    if (tourneyRef.current) { tourneyMove(seed, activeDie); return; }
     setGame((g) => (mine(g, g.turn) && g.phase === "move" && diceForSeed(g, seed).includes(activeDie) ? applyMove(g, seed, activeDie) : g));
-  }, [activeDie]);
+  }, [activeDie, tourneyMove]);
 
   const goHome = useCallback(() => {
+    if (tourneyRef.current) return; // 6 + 5 straight home is off in tournaments
     setGame((g) => {
       const seed = mine(g, g.turn) ? straightHomeSeed(g) : null;
       return seed === null ? g : applyAction(g, { kind: "home", seed });
@@ -396,7 +425,7 @@ export default function LudoGame() {
 
   // Computer turns, and your auto-move when only one move is possible.
   useEffect(() => {
-    if (!started || rolling || game.phase === "over") return;
+    if (!started || rolling || over) return;
     let t: number | undefined;
     const speed = watching ? FAST : 1;
     if (!myTurn) {
@@ -411,7 +440,29 @@ export default function LudoGame() {
       if (actions.length === 1) t = window.setTimeout(() => play(actions[0]), AUTO_MOVE_MS);
     }
     return () => window.clearTimeout(t);
-  }, [game, started, rolling, startRoll, play, myTurn, watching]);
+  }, [game, started, rolling, startRoll, play, myTurn, watching, over]);
+
+  // A new tournament try (a new run id) starts afresh from its seed with an empty recording.
+  const tourneyRun = tourney?.runId;
+  const firstRun = useRef(tourneyRun);
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || tourneyRun === firstRun.current) return; // the first try was set up by useState above
+    firstRun.current = tourneyRun;
+    recRef.current = [];
+    sentRef.current = false;
+    begin(ludoTourneyStart(t.seed, t.level));
+    // begin is declared further down (and never changes); the run id alone decides when a try restarts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourneyRun]);
+
+  // The end of a tournament game: send the recording, once.
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || !over || sentRef.current) return;
+    sentRef.current = true;
+    t.onFinish(recRef.current.join(""));
+  }, [over]);
 
   // The game for a mode: four players, 2 v 2 with your yards, or the knockout's current round.
   const makeGame = (opts: LudoOptions, m: Mode, myYards: number[], k: Knockout | null, finalYardsPick: number[] | null): LudoState => {
@@ -439,6 +490,7 @@ export default function LudoGame() {
 
   // A new game (a new knockout from round 1 in knockout mode).
   const restart = (opts: LudoOptions, m: Mode = mode, myYards: number[] = yards) => {
+    if (tourneyRef.current) return; // one game per tournament try
     const k = m === "knockout" ? newKnockout() : null;
     setKo(k);
     setRest(null);
@@ -448,6 +500,7 @@ export default function LudoGame() {
 
   // Changing the mode, dice or a rule starts a new game (or sets up the next one, before you press Start).
   const changeSetup = (next: Partial<LudoOptions>, m: Mode = mode, myYards: number[] = yards) => {
+    if (tourneyRef.current) return; // the tournament fixes the mode and rules
     const opts = { ...options, ...next };
     setOptions(opts);
     setMode(m);
@@ -473,7 +526,7 @@ export default function LudoGame() {
   const skipAhead = () => setGame((g) => playOut(g));
 
   const two = game.options.dice === 2;
-  const canRoll = started && !rolling && myTurn && game.phase === "roll";
+  const canRoll = started && !rolling && myTurn && game.phase === "roll" && !over;
   const movable = useMemo(
     () => (activeDie === null || rolling ? [] : game.seeds[game.turn].flatMap((_, seed) => (diceForSeed(game, seed).includes(activeDie) ? [seed] : []))),
     [game, rolling, activeDie],
@@ -488,7 +541,7 @@ export default function LudoGame() {
 
   // Nana: on your roll she says roll; on your move she lights up the seed and the square it lands on, and picks her die for you so
   // tapping the glowing seed plays her move.
-  const canAskNana = started && !rolling && myTurn && !watching && (game.phase === "roll" || game.phase === "move");
+  const canAskNana = !tourney && started && !rolling && myTurn && !watching && (game.phase === "roll" || game.phase === "move");
   const askNana = () => {
     const t = canAskNana ? ludoTip(game) : null;
     const h = t?.highlight ?? null;
@@ -566,10 +619,13 @@ export default function LudoGame() {
           <div className="arc-stat"><span className="arc-label">CAPTURES</span><strong>{myCaptures}</strong></div>
           {koNow ? (
             <div className="arc-stat"><span className="arc-label">ROUND</span><strong>{koNow.round === 3 ? "FINAL" : `${koNow.round}/3`}</strong></div>
+          ) : tourney ? (
+            <div className="arc-stat"><span className="arc-label">TOURNAMENT</span><strong className="ludo-same">same deal for everyone</strong></div>
           ) : (
             <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>
           )}
           <div className="arc-spacer" />
+          {!tourney && (<>
           <select className="arc-select" aria-label="Game mode (starts a new game)" value={mode} onChange={(e) => changeSetup({}, e.target.value as Mode)}>
             {(Object.keys(MODE_LABEL) as Mode[]).map((m) => <option key={m} value={m}>MODE: {MODE_LABEL[m]}</option>)}
           </select>
@@ -585,10 +641,11 @@ export default function LudoGame() {
             <option value="on">HIT → HOME: ON</option>
             <option value="off">HIT → HOME: OFF</option>
           </select>
+          </>)}
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>
             {muted ? "SOUND OFF" : "SOUND ON"}
           </button>
-          <button type="button" className="arc-btn-ghost" onClick={() => restart(options)} aria-label={mode === "knockout" ? "Start a new knockout" : "Start a new game"}>NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn-ghost" onClick={() => restart(options)} aria-label={mode === "knockout" ? "Start a new knockout" : "Start a new game"}>NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap ludo-wrap">
@@ -639,12 +696,14 @@ export default function LudoGame() {
               <button type="button" className="arc-btn" onClick={() => restart(options)}>START</button>
             </div>
           )}
-          {game.phase === "over" && mode !== "knockout" && (
+          {over && mode !== "knockout" && (
             <div className="arc-overlay ludo-overlay">
-              <p className="arc-overlay-kicker">GAME OVER</p>
-              <h2>{game.winner === 0 ? "You win!" : `${name(game.winner ?? 1)} wins.`}</h2>
-              <p>{game.winner === 0 ? `All ${myHome} seeds home. Nicely done.` : `You got ${myHome} of ${mineNow.length * 4} home. Go again?`}</p>
-              <button type="button" className="arc-btn" onClick={() => restart(options)}>PLAY AGAIN</button>
+              <p className="arc-overlay-kicker">{tourney ? `TOURNAMENT · ${rulesKicker}` : "GAME OVER"}</p>
+              <h2>{game.winner === 0 ? "You win!" : game.winner === null ? "Time's up." : `${name(game.winner ?? 1)} wins.`}</h2>
+              <p>{game.winner === 0 ? `All ${myHome} seeds home. Nicely done.` : `You got ${myHome} of ${mineNow.length * 4} home.${tourney ? "" : " Go again?"}`}</p>
+              {tourney
+                ? <p className="ludo-sent" role="status">{tourney.finishedText ?? "Checking your game…"}</p>
+                : <button type="button" className="arc-btn" onClick={() => restart(options)}>PLAY AGAIN</button>}
             </div>
           )}
           {game.phase === "over" && mode === "knockout" && ko && (() => {
@@ -746,7 +805,7 @@ export default function LudoGame() {
                 6+5 → HOME
               </button>
             )}
-            {watching ? (
+            {watching && !tourney ? (
               <button type="button" className="arc-btn" onClick={skipAhead} aria-label="Play out the rest of this round at once">SKIP AHEAD</button>
             ) : (
               <button type="button" className="arc-btn" onClick={startRoll} disabled={!canRoll} aria-label={two ? "Roll the dice" : "Roll the die"}>ROLL</button>
@@ -755,11 +814,15 @@ export default function LudoGame() {
         </div>
 
         <p className="arc-status" aria-live="polite">{watching ? `You're home. ${status}` : status}</p>
-        <ArcadeNana slug="ludo" canAsk={canAskNana} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setNanaHint(null)} />
+        {tourney
+          ? <ArcadeNana slug="ludo" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+          : <ArcadeNana slug="ludo" canAsk={canAskNana} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setNanaHint(null)} />}
       </div>
 
       <style jsx global>{`
         .ludo-wrap { padding:10px; }
+        .ludo-same { font-size:12px !important; letter-spacing:.02em; }
+        .ludo-sent { font-weight:600; }
         .ludo-board { position:relative; display:grid; grid-template-columns:repeat(15,1fr); grid-template-rows:repeat(15,1fr); gap:1px; width:100%; max-width:560px; aspect-ratio:1; margin:0 auto; overflow:hidden; border-radius:6px; background:#cfd5c9; }
         .ludo-sq { position:relative; display:grid; place-items:center; background:#f7f7f2; }
         .ludo-sq.is-home { filter:saturate(.85); }

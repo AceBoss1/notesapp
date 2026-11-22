@@ -8,6 +8,8 @@ import { arcadeStore } from "@/lib/arcade/store";
 import { LINES, MOVE_CAP, PIECES, applyMove, chooseMove, initialState, legalMoves, phaseOf, piecesOf, targetsFrom, type AchiState, type Level, type Move, type Player } from "@/lib/arcade/achi";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { achiTake, achiTip, type AchiHighlight } from "@/lib/arcade/nana-achi";
+import { ACHI_LEVELS, achiTourneyReply, achiTourneyStart, encodeAchi } from "@/lib/arcade/replay-achi";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 type Phase = "ready" | "playing" | "over";
 type Piece = { id: number; player: Player; at: number };
@@ -38,11 +40,18 @@ function turnText(s: AchiState, selected: number | null): string {
   return selected === null ? "Move a piece along a line" : "Now tap a highlighted point";
 }
 
-export default function AchiGame() {
-  const [game, setGame] = useState<AchiState>(() => initialState(0));
+export default function AchiGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  // A tournament try (owner, 21 Nov 2026: "add tournament versions of … Achi"; lib/arcade/replay-achi.ts): you place first at the
+  // tournament's level, the computer's turns come from the seed (so the server's replay finds the same ones), no new game, and the
+  // game doesn't count towards your practice wins.
+  const tourneyLevel: Level | null = tourney ? (ACHI_LEVELS.includes(tourney.level as Level) ? (tourney.level as Level) : "medium") : null;
+  const [game, setGame] = useState<AchiState>(() => (tourney ? achiTourneyStart(tourney.seed, tourneyLevel!) : initialState(0)));
   const [pieces, setPieces] = useState<Piece[]>([]);
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [level, setLevel] = useState<Level>("medium");
+  const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
+  const [level, setLevel] = useState<Level>(tourneyLevel ?? "medium");
+  const [resigned, setResigned] = useState(false);
+  const mineRef = useRef<Move[]>([]); // your turns this game, exactly what the replay reads
+  const sentRef = useRef(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null); // a one-off hint that replaces the status until the next move
   const [wins, setWins] = useState(0);
@@ -60,6 +69,13 @@ export default function AchiGame() {
     try { setWins(Number(arcadeStore.getItem(WINS_KEY)) || 0); } catch { /* storage blocked: start from 0 */ }
   }, []);
   useEffect(() => () => { void audioRef.current?.close(); }, []);
+
+  // A tournament try ends once (a line, stuck, a draw, or resigning): send your turns; the server replays the computer's.
+  const finishTourney = useCallback((resign: boolean) => {
+    if (!tourney || sentRef.current) return;
+    sentRef.current = true;
+    tourney.onFinish(encodeAchi(mineRef.current, resign));
+  }, [tourney]);
 
   // One note: frequency glide from f0 to f1, a soft attack and a quick fade.
   const tone = useCallback((f0: number, f1: number, dur: number, at = 0, type: OscillatorType = "sine", vol = 0.05) => {
@@ -94,12 +110,14 @@ export default function AchiGame() {
     setSelected(null);
     setNote(null);
     setHint(null); // any move, yours or the computer's, makes an old hint stale
-    if (mover === 1) setTake(achiTake(state, m, next));
+    if (mover === 1 && !tourney) setTake(achiTake(state, m, next));
+    if (mover === 0) mineRef.current = [...mineRef.current, m];
     setPieces((ps) => m.kind === "place"
       ? [...ps, { id: nextId.current++, player: mover, at: m.to }]
       : ps.map((p) => (p.at === m.from ? { ...p, at: m.to } : p)));
     if (next.winner === null) { sound(m.kind === "place" ? "place" : "move"); return; }
     setPhase("over");
+    if (tourney) { finishTourney(false); sound(next.winner === 0 ? "win" : next.winner === 1 ? "lose" : "draw"); return; }
     setNextFirst(next.winner === 0 ? 1 : next.winner === 1 ? 0 : other(state.startedBy));
     if (next.winner === 0) {
       sound("win");
@@ -108,16 +126,17 @@ export default function AchiGame() {
         return w + 1;
       });
     } else sound(next.winner === 1 ? "lose" : "draw");
-  }, [sound]);
+  }, [finishTourney, sound, tourney]);
 
   // The computer's turn, after a short pause so you can see what it does.
   useEffect(() => {
-    if (phase !== "playing" || game.winner !== null || game.turn !== 1) return;
-    const t = window.setTimeout(() => play(game, chooseMove(game, level)), THINK_MS);
+    if (phase !== "playing" || resigned || game.winner !== null || game.turn !== 1) return;
+    const t = window.setTimeout(() => play(game, tourney ? achiTourneyReply(game, level, tourney.seed) : chooseMove(game, level)), THINK_MS);
     return () => window.clearTimeout(t);
-  }, [game, level, phase, play]);
+  }, [game, level, phase, play, resigned, tourney]);
 
   const start = () => {
+    if (tourney) return; // a tournament game is never restarted from here; a new try comes with a new run id
     setGame(initialState(nextFirst));
     setPieces([]);
     setSelected(null);
@@ -128,7 +147,33 @@ export default function AchiGame() {
     setGameNo((n) => n + 1);
   };
 
-  const myTurn = phase === "playing" && game.winner === null && game.turn === 0;
+  // A new tournament run (a new run id) starts the same game afresh.
+  const runId = tourney?.runId;
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    if (!tourney) return;
+    setGame(achiTourneyStart(tourney.seed, tourneyLevel!));
+    setPieces([]);
+    setSelected(null);
+    setNote(null);
+    setPhase("playing");
+    setResigned(false);
+    mineRef.current = [];
+    sentRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
+  const resign = () => {
+    if (!tourney || phase !== "playing" || game.winner !== null || resigned) return;
+    setResigned(true);
+    setSelected(null);
+    setPhase("over");
+    sound("lose");
+    finishTourney(true);
+  };
+
+  const myTurn = phase === "playing" && !resigned && game.winner === null && game.turn === 0;
   const placing = phaseOf(game.board, 0) === "placing";
   const legal = myTurn ? legalMoves(game) : [];
   const targets = myTurn && !placing && selected !== null ? targetsFrom(game, selected) : [];
@@ -136,7 +181,7 @@ export default function AchiGame() {
 
   // Nana's hint: the move HARD would play for you, lit up in gold on the board until you move.
   const askNana = () => {
-    const t = myTurn ? achiTip(game) : null;
+    const t = myTurn && !tourney ? achiTip(game) : null; // Nana sits out tournaments
     setHint(t?.highlight ?? null);
     return t?.tip ?? null;
   };
@@ -171,7 +216,7 @@ export default function AchiGame() {
   };
 
   const status = phase === "ready" ? "Press start to play."
-    : phase === "over" ? endText(game)
+    : phase === "over" ? (resigned ? "You resigned. The computer wins." : endText(game))
     : note ? `${note} ${turnText(game, selected)}` : turnText(game, selected);
   const toPlace = (p: Player) => PIECES - piecesOf(game.board, p);
   const lastTo = game.last && game.turn === 0 && phase === "playing" ? game.last.to : null;
@@ -180,19 +225,22 @@ export default function AchiGame() {
   return (
     <ArcadeShell game={ENTRY}>
       <div className="arc-console">
+        {tourney && <p className="achi-tourney">TOURNAMENT · same deal for everyone</p>}
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">YOU · TO PLACE</span><strong>{toPlace(0)}</strong></div>
           <div className="arc-stat"><span className="arc-label">COMPUTER · TO PLACE</span><strong>{toPlace(1)}</strong></div>
           <div className="arc-stat"><span className="arc-label">WINS</span><strong>{wins}</strong></div>
           <span className="arc-spacer" />
-          <select className="arc-select" aria-label="Computer level" value={level} onChange={(e) => setLevel(e.target.value as Level)}>
+          <select className="arc-select" aria-label="Computer level" disabled={!!tourney} value={level} onChange={(e) => setLevel(e.target.value as Level)}>
             <option value="easy">EASY</option>
             <option value="medium">MEDIUM</option>
             <option value="hard">HARD</option>
           </select>
           <button type="button" className="arc-btn-ghost" aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}
             onClick={() => setMuted((m) => { mutedRef.current = !m; return !m; })}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn-ghost" onClick={start} aria-label="New game">NEW GAME</button>
+          {tourney
+            ? <button type="button" className="arc-btn-ghost" onClick={resign} disabled={phase !== "playing" || game.winner !== null || resigned} aria-label="Resign this game (counts as a loss)">RESIGN</button>
+            : <button type="button" className="arc-btn-ghost" onClick={start} aria-label="New game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap achi-wrap">
@@ -223,7 +271,15 @@ export default function AchiGame() {
                 aria-label={pointLabel(i)} aria-disabled={!myTurn} onClick={() => tap(i)} onKeyDown={(e) => onKey(e, i)} />
             ))}
           </svg>
-          {phase !== "playing" && (
+          {tourney && phase === "over" && (
+            <div className="arc-overlay" role="dialog" aria-label="Game over">
+              <p className="arc-overlay-kicker">{resigned ? "RESIGNED" : "GAME OVER"}</p>
+              <h2>{resigned ? "You resigned." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
+              <p>{resigned ? "The computer wins." : endText(game)}</p>
+              <p role="status">{tourney.finishedText ?? "Checking your game…"}</p>
+            </div>
+          )}
+          {!tourney && phase !== "playing" && (
             <div className="arc-overlay">
               <p className="arc-overlay-kicker">{phase === "over" ? "GAME OVER" : "THREE PIECES EACH · EIGHT LINES"}</p>
               <h2>{phase === "ready" ? "Three in a line." : game.winner === 0 ? "You win." : game.winner === 1 ? "Computer wins." : "A draw."}</h2>
@@ -235,10 +291,11 @@ export default function AchiGame() {
           )}
         </div>
         <p className="arc-status" role="status" aria-live="polite">{status}</p>
-        <ArcadeNana slug="achi" canAsk={myTurn} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setHint(null)} />
+        <ArcadeNana slug="achi" context={tourney ? { mode: "tournament" } : undefined} canAsk={myTurn && !tourney} onAsk={askNana} take={take} resetKey={gameNo} onToggle={() => setHint(null)} />
       </div>
 
       <style jsx global>{`
+        .achi-tourney { margin:0 4px 8px; color:#83b83c; font:700 9px ui-monospace,monospace; letter-spacing:.12em; }
         .achi-wrap { display:flex; justify-content:center; background:radial-gradient(120% 90% at 50% 0%,#24372d 0%,#1b2a23 70%); }
         .achi-board { display:block; width:min(100%,460px); height:auto; aspect-ratio:1; padding:clamp(6px,2vw,14px); touch-action:manipulation; user-select:none; -webkit-tap-highlight-color:transparent; }
         .achi-lines line { stroke:#c1e993; stroke-opacity:.42; stroke-width:4; stroke-linecap:round; }

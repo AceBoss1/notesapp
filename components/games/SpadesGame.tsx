@@ -11,6 +11,8 @@ import {
 } from "@/lib/arcade/spades";
 import { isHintCard, spadesTake, spadesTip, type SpadesHint } from "@/lib/arcade/nana-spades";
 import type { NanaTake } from "@/lib/arcade/nana";
+import { SPADES_TOURNEY_HANDS, encodeSpadesMove, spadesTourneyOver, spadesTourneyStart } from "@/lib/arcade/replay-spades";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 const RECORD_KEY = "notes-arcade-spades-record";
 const COMPUTER_DELAY = 600;
@@ -42,8 +44,17 @@ function PlayingCard({ card }: { card: Card }) {
 type Record_ = { won: number; lost: number };
 const SLOT = ["s", "w", "n", "e"] as const;
 
-export default function SpadesGame() {
-  const [game, setGame] = useState<SpadesState | null>(null);
+// Tournament mode (owner, 21 Nov 2026: "add tournament versions of … Spades …"; lib/arcade/tournament-games.ts TourneyProps): the deals
+// come from the tournament's seed through spadesTourneyStart, the same function the server replays from, and the try lasts
+// SPADES_TOURNEY_HANDS hands with no target. Every bid and card you play is recorded with encodeSpadesMove (the format replay-spades.ts
+// reads), and the recording goes to `onFinish` once, when the last hand is scored. No new game, no Nana, and the practice won/lost record
+// is left alone.
+export default function SpadesGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  const [game, setGame] = useState<SpadesState | null>(() => (tourney ? spadesTourneyStart(tourney.seed, tourney.level) : null));
+  const tourneyRef = useRef(tourney);
+  tourneyRef.current = tourney;
+  const recRef = useRef<string[]>([]);
+  const sentRef = useRef(false);
   const [pausing, setPausing] = useState(false);
   const [record, setRecord] = useState<Record_>({ won: 0, lost: 0 });
   const [muted, setMuted] = useState(false);
@@ -75,14 +86,36 @@ export default function SpadesGame() {
     } catch { /* no audio, no problem */ }
   }, []);
 
+  // A new try (a new run id) deals afresh from its seed with an empty recording.
+  const tourneyRun = tourney?.runId;
+  const firstRun = useRef(tourneyRun);
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || tourneyRun === firstRun.current) return; // the first try was dealt by useState above
+    firstRun.current = tourneyRun;
+    recRef.current = [];
+    sentRef.current = false;
+    setPausing(false);
+    setTake(null);
+    setRound((r) => r + 1);
+    setGame(spadesTourneyStart(t.seed, t.level));
+  }, [tourneyRun]);
+
   const commit = useCallback((prev: SpadesState, m: SpadesMove) => {
     const next = applyMove(prev, m);
     setGame(next);
-    if (prev.turn !== 0) setTake(spadesTake(prev, m, next));
+    const t = tourneyRef.current;
+    // Only your own bids and cards are recorded; the computer seats and NEXT HAND are the replay's to redo.
+    if (t && prev.turn === 0 && m.type !== "next") recRef.current.push(encodeSpadesMove(m));
+    if (!t && prev.turn !== 0) setTake(spadesTake(prev, m, next));
     if (m.type === "play" && next.trick.length === 0) {
       setPausing(true);
       beep(teamOf(next.lastTrick?.winner ?? 0) === 0 ? 660 : 300, 0.12);
     } else if (m.type === "play") beep(480, 0.05);
+    if (t) {
+      if (spadesTourneyOver(next) && !sentRef.current) { sentRef.current = true; t.onFinish(recRef.current.join(",")); }
+      return; // a tournament try never touches the practice record
+    }
     if (next.phase === "over") {
       setRecord((r) => {
         const updated = next.winner === 0 ? { ...r, won: r.won + 1 } : { ...r, lost: r.lost + 1 };
@@ -106,7 +139,9 @@ export default function SpadesGame() {
     return () => window.clearTimeout(t);
   }, [game, pausing, commit]);
 
-  const deal = () => { setPausing(false); setGame(initialState()); setTake(null); setRound((r) => r + 1); };
+  const deal = () => {
+    if (tourneyRef.current) return; // one deal per tournament try
+    setPausing(false); setGame(initialState()); setTake(null); setRound((r) => r + 1); };
   // A hint belongs to one position: any move puts the gold away.
   useEffect(() => { setHint(null); }, [game]);
   const askNana = () => {
@@ -125,9 +160,11 @@ export default function SpadesGame() {
   const hand = game?.hands[0] ?? [];
   const n = hand.length;
 
+  const tourneyDone = !!tourney && !!game && spadesTourneyOver(game);
   let status = "Deal to start.";
   if (game) {
     if (pausing && game.lastTrick) status = `${game.lastTrick.winner === 0 ? "You win" : `${SEAT_NAME[game.lastTrick.winner]} wins`} the trick.`;
+    else if (tourneyDone) status = `All ${SPADES_TOURNEY_HANDS} hands played.`;
     else if (game.phase === "over") status = game.winner === 0 ? "You and your partner win the game!" : "East and West win this one.";
     else if (game.phase === "handOver") status = "Hand over. Check the scores.";
     else if (game.phase === "bid") status = game.turn === 0 ? "Your bid: how many tricks will you win?" : `${SEAT_NAME[game.turn]} is bidding…`;
@@ -157,11 +194,18 @@ export default function SpadesGame() {
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">US</span><strong>{game?.scores[0] ?? 0}</strong></div>
           <div className="arc-stat"><span className="arc-label">THEM</span><strong>{game?.scores[1] ?? 0}</strong></div>
-          <div className="arc-stat"><span className="arc-label">TO WIN</span><strong>{game?.target ?? 250}</strong></div>
-          <div className="arc-stat"><span className="arc-label">WON · LOST</span><strong>{record.won} · {record.lost}</strong></div>
+          {tourney
+            ? <>
+                <div className="arc-stat"><span className="arc-label">HAND</span><strong>{Math.min(SPADES_TOURNEY_HANDS, (game?.history.length ?? 0) + (tourneyDone ? 0 : 1))} / {SPADES_TOURNEY_HANDS}</strong></div>
+                <div className="arc-stat"><span className="arc-label">TOURNAMENT</span><strong className="sp-same">same deal for everyone</strong></div>
+              </>
+            : <>
+                <div className="arc-stat"><span className="arc-label">TO WIN</span><strong>{game?.target ?? 250}</strong></div>
+                <div className="arc-stat"><span className="arc-label">WON · LOST</span><strong>{record.won} · {record.lost}</strong></div>
+              </>}
           <span className="arc-spacer" />
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn" onClick={deal} aria-label="Start a new game">NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn" onClick={deal} aria-label="Start a new game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap sp-board">
@@ -215,12 +259,19 @@ export default function SpadesGame() {
             </div>
           )}
 
-          {game?.phase === "handOver" && !pausing && last && (
+          {game?.phase === "handOver" && !pausing && last && !tourneyDone && (
             <div className="arc-overlay">
               <p className="arc-overlay-kicker">HAND {game.history.length}</p>
               <h2>{last.points[0] >= 0 ? "Bid made." : "Bid missed."}</h2>
               <p>Us: bid {last.bids[0]}, took {last.tricks[0]} ({last.points[0] >= 0 ? "+" : ""}{last.points[0]}). Them: bid {last.bids[1]}, took {last.tricks[1]} ({last.points[1] >= 0 ? "+" : ""}{last.points[1]}).</p>
               <button type="button" className="arc-btn" onClick={() => commit(game, { type: "next" })} aria-label="Deal the next hand">NEXT HAND</button>
+            </div>
+          )}
+          {tourney && tourneyDone && game && !pausing && (
+            <div className="arc-overlay">
+              <p className="arc-overlay-kicker">TOURNAMENT · ALL {SPADES_TOURNEY_HANDS} HANDS PLAYED</p>
+              <h2>Your team {game.scores[0]}, them {game.scores[1]}.</h2>
+              <p className="sp-sent" role="status">{tourney.finishedText ?? "Checking your game…"}</p>
             </div>
           )}
           {(!game || (game.phase === "over" && !pausing)) && (
@@ -233,14 +284,16 @@ export default function SpadesGame() {
           )}
         </div>
         <p className="arc-status" role="status">{status}</p>
-        <ArcadeNana
-          slug="spades"
-          canAsk={myTurn && (game?.phase === "bid" || game?.phase === "play")}
-          onAsk={askNana}
-          take={take}
-          resetKey={round}
-          onToggle={() => setHint(null)}
-        />
+        {tourney
+          ? <ArcadeNana slug="spades" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+          : <ArcadeNana
+              slug="spades"
+              canAsk={myTurn && (game?.phase === "bid" || game?.phase === "play")}
+              onAsk={askNana}
+              take={take}
+              resetKey={round}
+              onToggle={() => setHint(null)}
+            />}
 
         {game && game.history.length > 0 && (
           <table className="sp-scores">
@@ -300,6 +353,8 @@ export default function SpadesGame() {
         .sp-scores tfoot td,.sp-scores tfoot th { border-bottom:0; font-weight:700; color:#17251f; }
         /* Nana's suggestion: a gold ring and a lift (translate, so the fan's own rotate stays put). */
         .sp-card.is-hand.is-nana { box-shadow:0 0 0 3px #ffd166,0 6px 16px #0007; translate:0 -14px; z-index:2; }
+        .sp-same { font-size:12px !important; letter-spacing:.02em; }
+        .sp-sent { font-weight:600; }
         .sp-bid-btn.is-nana { box-shadow:0 0 0 3px #ffd166; background:#fff6dc; }
         @media(max-width:420px) { .sp-board { min-height:430px; padding:10px 6px 16px; }.sp-table { grid-template-columns:minmax(54px,1fr) minmax(0,2.6fr) minmax(54px,1fr); }.sp-seat { padding:5px 4px; }.sp-seat-line { font-size:7px; } }
         @media(prefers-reduced-motion:reduce) { .sp-trick .sp-card { animation:none; }.sp-card.is-hand,.sp-seat { transition:none; }.sp-card.is-hand.is-nana { translate:none; } }
