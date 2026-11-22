@@ -19,6 +19,14 @@ import { MenuGlyph } from "./menuIcons";
 
 type L = { href: string; label: string };
 type Run = { id: string; name: string; avatar: string; memberCount: number; role: string };
+type Managed = { uid: string; username: string; name: string; avatar: string; org: boolean; role: "admin" | "manager" | "cashier"; store: boolean };
+const ROLE_LABEL: Record<Managed["role"], string> = { admin: "Admin", manager: "Manager", cashier: "Cashier" };
+// Where you can work for an organisation or business you help run; each page checks the role again.
+const workLinks = (m: Managed): { href: string; label: string }[] => [
+  { href: `/profile/books?owner=${m.uid}`, label: "Books" },
+  ...(m.role !== "cashier" ? [{ href: `/profile/inventory?owner=${m.uid}`, label: "Inventory" }] : []),
+  ...(m.role === "admin" && m.org ? [{ href: `/organisation/team?org=${m.uid}`, label: "Team" }, { href: `/profile/jobs?org=${m.uid}`, label: "Jobs" }] : []),
+];
 
 // The account menu's body (lib/account-menu.ts), shared by the phone sheet and the computer's menu: your profile (▾ switches to a
 // community you run, your store or your organisation), your shortcuts, eight tiles and "See more", the sections that fold, Sign out.
@@ -31,6 +39,13 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
   const [open, setOpen] = useState<string | null>(null);
   const [switcher, setSwitcher] = useState(false);
   const [runs, setRuns] = useState<Run[] | null>(null);
+  const [managed, setManaged] = useState<Managed[]>([]);
+  // While the menu is open, Nana's bubble slides off the screen (components/NanaChat.tsx reads this), so it never covers Sign out.
+  useEffect(() => {
+    const el = document.documentElement;
+    el.dataset.menuOpen = "1";
+    return () => { delete el.dataset.menuOpen; };
+  }, []);
   const [recent, setRecent] = useState<string[]>([]);
   const [pinned, setPinned] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
@@ -62,11 +77,13 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
   const openSwitcher = async () => {
     setSwitcher((s) => !s);
     if (runs || !user) return;
-    try {
-      const r = await fetch("/api/community?run=1", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
-      const j = await r.json();
-      setRuns(Array.isArray(j.communities) ? j.communities : []);
-    } catch { setRuns([]); }
+    const headers = { Authorization: `Bearer ${await user.getIdToken()}` };
+    const [c, m] = await Promise.all([
+      fetch("/api/community?run=1", { headers }).then((r) => r.json()).catch(() => ({})),
+      fetch("/api/account/managed", { headers }).then((r) => r.json()).catch(() => ({})),
+    ]);
+    setManaged(Array.isArray(m.accounts) ? m.accounts : []);
+    setRuns(Array.isArray(c.communities) ? c.communities : []);
   };
 
   const tile = (i: MenuItem) => (
@@ -111,7 +128,7 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
                   <span className="block truncate text-xs text-slate">See your profile</span>
                 </span>
               </Link>
-              <button type="button" onClick={openSwitcher} aria-expanded={switcher} aria-label="Switch to a community, your store or your organisation" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-ink hover:bg-rule">
+              <button type="button" onClick={openSwitcher} aria-expanded={switcher} aria-label="Switch to an organisation, business or community you run, or your store" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-ink hover:bg-rule">
                 <MenuGlyph name="chevron" className={`h-5 w-5 transition-transform ${switcher ? "rotate-180" : ""}`} />
               </button>
             </div>
@@ -132,7 +149,23 @@ export default function AccountMenu({ onNavigate, siteLinks = [] }: { onNavigate
                     <span className="flex-1 font-ui text-sm text-ink">Organisation setup</span><span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-slate">Organisation</span>
                   </Link>
                 )}
-                {runs === null ? <p className="px-2 py-2 text-xs text-slate">Loading your communities…</p> : runs.map((c) => (
+                {runs !== null && managed.length > 0 && <p className="px-2 pb-1 pt-2 font-ui text-[11px] font-bold uppercase tracking-wide text-slate">Organisations and businesses you help run</p>}
+                {managed.map((m) => (
+                  <div key={m.uid} className="rounded-xl px-2 py-2 hover:bg-paper">
+                    <Link href={`/u/${m.username}`} onClick={() => went(`/u/${m.username}`)} className="flex items-center gap-3">
+                      <Avatar src={m.avatar} alt="" size={32} square={m.org} />
+                      <span className="min-w-0 flex-1"><span className="block truncate font-ui text-sm text-ink">{m.name}</span><span className="text-[11px] text-slate">@{m.username}</span></span>
+                      <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] text-slate">{ROLE_LABEL[m.role]}</span>
+                    </Link>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5 pl-11">
+                      {workLinks(m).map((l) => (
+                        <Link key={l.href} href={l.href} onClick={() => went(l.href)} className="rounded-full border border-rule bg-card px-2.5 py-1 font-ui text-[12px] font-semibold text-ink hover:border-crimson hover:text-crimson">{l.label}</Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {runs !== null && runs.length > 0 && <p className="px-2 pb-1 pt-2 font-ui text-[11px] font-bold uppercase tracking-wide text-slate">Communities you run</p>}
+                {runs === null ? <p className="px-2 py-2 text-xs text-slate">Loading…</p> : runs.map((c) => (
                   <Link key={c.id} href={`/c/${c.id}`} onClick={() => went(`/c/${c.id}`)} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-paper">
                     <Avatar src={c.avatar} alt="" size={32} square />
                     <span className="min-w-0 flex-1"><span className="block truncate font-ui text-sm text-ink">{c.name}</span><span className="text-[11px] text-slate">{c.memberCount.toLocaleString()} members</span></span>

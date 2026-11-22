@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.202.1",
+    bump: "patch",
+    date: "2026-11-22",
+    changes: [
+      { kind: "changed", text: "The menu shows four tiles (your journal, messages or wallet, calendar and store), with the rest one tap away under See more, so Sign out is always within reach." },
+      { kind: "added", text: "The arrow beside your name in the menu now also lists the organisations and businesses you help run, with your role, and takes you straight to their books, inventory, team or jobs." },
+      { kind: "fixed", text: "Ask Nana slides out of the way while the menu is open, and comes back when it closes." },
+      { kind: "fixed", text: "Profiles no longer repeat themselves: your role, your job and your first link show once, at the top, and the sections below only add what isn't there (your industry, your other links)." },
+    ],
+  },
+  {
     version: "v0.202.0",
     bump: "minor",
     date: "2026-11-21",

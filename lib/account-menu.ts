@@ -2,7 +2,7 @@
 // (components/shell/AccountSheet.tsx) and the computer's menu (components/AuthNav.tsx), so the two never drift apart again. Pure.
 //   1. Your profile, with ▾ to switch to a community you run, your store or your organisation (components/shell/AccountMenu.tsx)
 //   2. Your shortcuts: what you opened from this menu lately (kept in this browser)
-//   3. Eight tiles, the places people use most, then "See more" for the rest
+//   3. Four tiles, the places people use most, then "See more" for the rest
 //   4. Sections that fold: Settings and privacy, Upgrades, Help and support, More from #NotesApp
 //   5. Sign out
 // Icons are keys into components/shell/menuIcons.tsx: one line-icon set, no emoji.
@@ -28,7 +28,8 @@ export type MenuCtx = {
 };
 export type AccountMenu = { tiles: MenuItem[]; more: MenuItem[]; sections: MenuSection[] };
 
-export const TILE_COUNT = 8;
+// Four tiles (owner, 22 Nov 2026: eight pushed Sign out out of reach); the rest are one tap away under See more.
+export const TILE_COUNT = 4;
 
 export function accountMenu(c: MenuCtx): AccountMenu {
   if (!c.username) {

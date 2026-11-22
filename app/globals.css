@@ -178,3 +178,9 @@ html[data-theme="night"] .na-pattern:not(:is([data-site-theme], [data-theme-off]
 html[data-theme="night"] .na-emoji:not(:is([data-site-theme], [data-theme-off]) *) { color: #fbf6f2; }
 .bg-crimson .na-emoji { color: inherit; }
 .na-emoji-flag { font-family: "Noto Color Emoji", sans-serif; }
+
+/* While the account menu is open (components/shell/AccountMenu.tsx sets data-menu-open), Nana's bubble slides off the screen and
+   comes back when the menu closes (owner, 22 Nov 2026), so it never covers Sign out. */
+.nana-fab { transition: transform .28s ease, opacity .28s ease, box-shadow .15s; }
+html[data-menu-open] .nana-fab { transform: translateX(160%); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .nana-fab { transition: none; } }

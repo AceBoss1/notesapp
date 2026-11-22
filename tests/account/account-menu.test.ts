@@ -6,12 +6,12 @@ import { PINNED_MAX, RECENT_MAX, TILE_COUNT, accountMenu, allPlaces, forget, pin
 const base: MenuCtx = { username: "ada", canPublish: true, isOrg: false, goLive: true, cycle: true, calToday: 2, wallet: true, messages: true, unreadDms: 3 };
 const m = accountMenu(base);
 
-// Eight tiles, the most-used first; the rest under See more.
+// Four tiles, the most-used first; the rest under See more (owner, 22 Nov 2026: eight pushed Sign out out of reach).
 assert.equal(m.tiles.length, TILE_COUNT);
-assert.deepEqual(m.tiles.map((t) => t.label), ["My journal", "Messages", "Calendar", "My store", "Wallet", "Saved", "Bookings", "Orders & parcels"]);
+assert.deepEqual(m.tiles.map((t) => t.label), ["My journal", "Messages", "Calendar", "My store"]);
 assert.equal(m.tiles[1].badge, 3);
 assert.equal(m.tiles[2].note, "2 today");
-assert.deepEqual(m.more.map((t) => t.label), ["Go live", "My tickets", "My giving", "Shipments", "Co-author invites", "My Cycle", "Communities"]);
+assert.deepEqual(m.more.map((t) => t.label), ["Wallet", "Saved", "Bookings", "Orders & parcels", "Go live", "My tickets", "My giving", "Shipments", "Co-author invites", "My Cycle", "Communities"]);
 
 // The sections, in order, and "More from #NotesApp" as the owner listed it.
 assert.deepEqual(m.sections.map((s) => s.label), ["Settings and privacy", "Upgrades", "Help and support", "More from #NotesApp"]);
