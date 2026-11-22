@@ -10,6 +10,10 @@ import { arcadeStore } from "@/lib/arcade/store";
 import {
   DYING_MS, MAZES, actorPos, initialState, mazeForLevel, step, type Dir, type GameEvent, type Goat, type GoatKind, type Maze, type PuffState, type Speed,
 } from "@/lib/arcade/puffpuff";
+import {
+  PUFF_TOURNEY_MARKETS, PUFF_TOURNEY_MAX_MS, encodePuffStep, puffMarkets, puffStepDt, puffTourneyEnd, puffTourneyStart,
+} from "@/lib/arcade/replay-puffpuff";
+import type { TourneyProps } from "@/lib/arcade/tournament-games";
 
 // Puff-Puff Rush: the canvas, controls and sounds. All the rules live in lib/arcade/puffpuff.ts.
 
@@ -309,8 +313,21 @@ function useSounds() {
 
 // --- The game ---
 
-export default function PuffPuffGame() {
-  const [speed, setSpeed] = useState<Speed>("normal");
+// Tournament mode (owner, 21 Nov 2026: "add tournament versions of … Puff-Puff"; lib/arcade/tournament-games.ts TourneyProps): the run
+// starts from the tournament's seed at its speed through puffTourneyStart, the same function the server replays from. Every frame is
+// stepped with its time in whole milliseconds and recorded with encodePuffStep (the format replay-puffpuff.ts reads); the run ends on the
+// frame puffTourneyEnd says so (last life lost, the set markets cleared, or the game-time cap), and the recording goes to `onFinish` once.
+// Pausing is fine: game time stops with the loop. No new game, a locked speed, no Nana (she neither watches nor coaches), and the practice
+// best is left alone.
+export default function PuffPuffGame({ tourney }: { tourney?: TourneyProps } = {}) {
+  const tourneyRef = useRef(tourney);
+  tourneyRef.current = tourney;
+  const recRef = useRef<string[]>([]);
+  const sentRef = useRef(false);
+  const startedRef = useRef(false); // one run per tournament try
+  const tourneyEndedRef = useRef(false);
+  const [tourneyDone, setTourneyDone] = useState(false);
+  const [speed, setSpeed] = useState<Speed>(() => (tourney?.level as Speed | undefined) ?? "normal");
   const [ui, setUi] = useState<UiPhase>("idle");
   const [muted, setMuted] = useState(false);
   const [best, setBest] = useState(0);
@@ -319,7 +336,7 @@ export default function PuffPuffGame() {
     const s = initialState({ seed: 1 });
     return { score: 0, lives: s.lives, level: 1, phase: s.phase, status: statusFor(s, "idle") };
   });
-  const gameRef = useRef<PuffState>(initialState({ seed: 1, speed: "normal" }));
+  const gameRef = useRef<PuffState>(tourney ? puffTourneyStart(tourney.seed, tourney.level) : initialState({ seed: 1, speed: "normal" }));
   // Size the canvas to its box, sharp on high-density screens: the whole maze, as wide as the box allows but never
   // taller than most of the window, so the bottom rows are always in view.
   const fit = useCanvasFit((boxW, viewH) => {
@@ -368,14 +385,33 @@ export default function PuffPuffGame() {
   // The game loop: only runs while playing and the page is visible.
   useEffect(() => {
     if (ui !== "running") { draw(performance.now()); syncHud(); return; }
+    if (tourneyEndedRef.current) { draw(performance.now()); syncHud(); return; } // a finished try never steps again
     let raf = 0;
     let last = performance.now();
     const frame = (now: number) => {
-      const dt = Math.min(100, Math.max(0, now - last));
+      const raw = Math.min(100, Math.max(0, now - last));
       last = now;
       const dir = pendingDir.current;
       pendingDir.current = null;
-      const next = step(gameRef.current, dt, dir ? { dir } : {});
+      const t = tourneyRef.current;
+      if (t) {
+        // The frame exactly as the server will replay it: whole milliseconds, recorded before it's stepped.
+        recRef.current.push(encodePuffStep(raw, dir));
+        const next = step(gameRef.current, puffStepDt(raw), dir ? { dir } : {});
+        gameRef.current = next;
+        if (next.events.length) play(next.events);
+        draw(now);
+        syncHud();
+        if (puffTourneyEnd(next)) {
+          tourneyEndedRef.current = true;
+          setTourneyDone(true);
+          if (!sentRef.current) { sentRef.current = true; t.onFinish(recRef.current.join("")); }
+          return;
+        }
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      const next = step(gameRef.current, raw, dir ? { dir } : {});
       nanaWatch.current = watchPuff(nanaWatch.current, gameRef.current, next);
       gameRef.current = next;
       if (next.events.length) play(next.events);
@@ -392,9 +428,17 @@ export default function PuffPuffGame() {
   }, [ui, runId, draw, play, saveBest, syncHud]);
 
   const startGame = useCallback(() => {
+    const t = tourneyRef.current;
+    if (t && startedRef.current) return; // one run per tournament try: no restarting a bad start
     if (!mutedRef.current) ensure();
-    const seed = Math.floor(Math.random() * 2 ** 31); // fresh goats each game; the engine itself stays seeded
-    gameRef.current = initialState({ seed, speed });
+    if (t) {
+      startedRef.current = true;
+      recRef.current = [];
+      gameRef.current = puffTourneyStart(t.seed, t.level);
+    } else {
+      const seed = Math.floor(Math.random() * 2 ** 31); // fresh goats each game; the engine itself stays seeded
+      gameRef.current = initialState({ seed, speed });
+    }
     pendingDir.current = null;
     nanaWatch.current = newPuffWatch();
     bestAtStart.current = bestRef.current;
@@ -404,8 +448,28 @@ export default function PuffPuffGame() {
     syncHud();
   }, [draw, ensure, mutedRef, play, speed, syncHud]);
 
+  // The page's next try (a new run id) brings back the start screen, at the tournament's speed, with an empty recording.
+  const tourneyRun = tourney?.runId;
+  const firstRun = useRef(tourneyRun);
+  useEffect(() => {
+    const t = tourneyRef.current;
+    if (!t || tourneyRun === firstRun.current) return;
+    firstRun.current = tourneyRun;
+    startedRef.current = false;
+    sentRef.current = false;
+    tourneyEndedRef.current = false;
+    recRef.current = [];
+    pendingDir.current = null;
+    gameRef.current = puffTourneyStart(t.seed, t.level);
+    setTourneyDone(false);
+    setSpeed(t.level as Speed);
+    setUi("idle");
+    setRunId((n) => n + 1);
+  }, [tourneyRun]);
+
   // A pause is a breather: Nana gives her take on the game so far.
   useEffect(() => {
+    if (tourneyRef.current) return; // no Nana in tournaments, paused or not
     if (ui === "paused" && gameRef.current.phase !== "over") setCoachStats(puffStats(gameRef.current, nanaWatch.current, bestAtStart.current));
   }, [ui]);
   const nanaTake = useMemo(() => puffCoach(coachStats), [coachStats]);
@@ -416,6 +480,7 @@ export default function PuffPuffGame() {
   }, [ensure, mutedRef]);
 
   const steer = useCallback((dir: Dir) => {
+    if (tourneyEndedRef.current) return;
     if (uiRef.current === "running") pendingDir.current = dir;
     else if (uiRef.current === "paused") { pendingDir.current = dir; resume(); }
   }, [resume]);
@@ -427,7 +492,7 @@ export default function PuffPuffGame() {
       const typing = target && (target.tagName === "INPUT" || target.tagName === "SELECT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       if (typing) return;
       const dir = KEYS[e.key];
-      const over = gameRef.current.phase === "over";
+      const over = gameRef.current.phase === "over" || tourneyEndedRef.current;
       if (dir && uiRef.current !== "idle" && !over) { e.preventDefault(); steer(dir); return; }
       if ((e.key === " " || e.key === "Enter") && target?.tagName !== "BUTTON") {
         if (uiRef.current === "idle" || over) { e.preventDefault(); startGame(); }
@@ -464,7 +529,9 @@ export default function PuffPuffGame() {
   };
 
   const playing = ui === "running" && hud.phase !== "over";
-  const over = hud.phase === "over";
+  // A tournament try can also end by markets or the time cap, with the game itself still "playing"; it's over all the same.
+  const over = hud.phase === "over" || tourneyDone;
+  const endReason = tourneyDone ? puffTourneyEnd(gameRef.current) : null;
   const nextMaze = mazeForLevel(hud.level + 1).name;
   const pad = (dir: Dir, glyph: string, label: string) => (
     <button type="button" className={`pp-pad-btn pp-pad-${dir}`} aria-label={`Ride ${label}`}
@@ -479,20 +546,22 @@ export default function PuffPuffGame() {
       <div className="arc-console pp-console">
         <div className="arc-head">
           <div className="arc-stat"><span className="arc-label">SCORE</span><strong aria-live="off">{String(hud.score).padStart(4, "0")}</strong></div>
-          <div className="arc-stat"><span className="arc-label">BEST</span><strong>{String(Math.max(best, hud.score)).padStart(4, "0")}</strong></div>
+          {tourney
+            ? <div className="arc-stat"><span className="arc-label">TOURNAMENT</span><strong className="pp-same">same deal for everyone</strong></div>
+            : <div className="arc-stat"><span className="arc-label">BEST</span><strong>{String(Math.max(best, hud.score)).padStart(4, "0")}</strong></div>}
           <div className="arc-stat"><span className="arc-label">LIVES</span><strong className="pp-lives" aria-label={`${hud.lives} lives`}>{Array.from({ length: Math.max(0, hud.lives) }, (_, i) => <i key={i} />)}{hud.lives <= 0 ? "0" : null}</strong></div>
           <div className="arc-stat"><span className="arc-label">MARKET</span><strong>{hud.level}</strong></div>
           <span className="arc-spacer" />
           <label className="pp-speed">
             <span className="arc-label">SPEED</span>
-            <select className="arc-select" aria-label="Game speed" value={speed} disabled={playing} onChange={(e) => setSpeed(e.target.value as Speed)}>
+            <select className="arc-select" aria-label="Game speed" value={speed} disabled={playing || !!tourney} onChange={(e) => setSpeed(e.target.value as Speed)}>
               <option value="chill">CHILL</option>
               <option value="normal">NORMAL</option>
               <option value="fast">FAST</option>
             </select>
           </label>
           <button type="button" className="arc-btn-ghost" onClick={toggleSound} aria-pressed={!muted} aria-label={muted ? "Turn sound on" : "Turn sound off"}>{muted ? "SOUND OFF" : "SOUND ON"}</button>
-          <button type="button" className="arc-btn-ghost" onClick={startGame} aria-label="Start a new game">NEW GAME</button>
+          {!tourney && <button type="button" className="arc-btn-ghost" onClick={startGame} aria-label="Start a new game">NEW GAME</button>}
         </div>
 
         <div className="arc-board-wrap pp-board">
@@ -502,10 +571,10 @@ export default function PuffPuffGame() {
           </div>
           {ui === "idle" && (
             <div className="arc-overlay">
-              <p className="arc-overlay-kicker">READY WHEN YOU ARE</p>
+              <p className="arc-overlay-kicker">{tourney ? "TOURNAMENT · SAME DEAL FOR EVERYONE" : "READY WHEN YOU ARE"}</p>
               <h2>Puff-puff time.</h2>
-              <p>Ride the lanes, grab every puff-puff, keep clear of the goats.</p>
-              <button type="button" className="arc-btn" onClick={startGame} aria-label="Start game">START GAME <span aria-hidden="true">↗</span></button>
+              <p>{tourney ? `Same markets, same goats for every rider. One run: it ends when your last life goes, after ${PUFF_TOURNEY_MARKETS} markets, or after ${PUFF_TOURNEY_MAX_MS / 60_000} minutes of riding.` : "Ride the lanes, grab every puff-puff, keep clear of the goats."}</p>
+              <button type="button" className="arc-btn" onClick={startGame} aria-label="Start game">{tourney ? "START A TRY" : "START GAME"} <span aria-hidden="true">↗</span></button>
             </div>
           )}
           {ui === "paused" && !over && (
@@ -516,14 +585,22 @@ export default function PuffPuffGame() {
               <button type="button" className="arc-btn" onClick={resume} aria-label="Carry on playing">CARRY ON</button>
             </div>
           )}
-          {ui === "running" && hud.phase === "cleared" && (
+          {ui === "running" && hud.phase === "cleared" && !tourneyDone && (
             <div className="arc-overlay pp-overlay-soft" aria-live="polite">
               <p className="arc-overlay-kicker">MARKET CLEARED</p>
               <h2>Well ridden!</h2>
               <p>Next stop: {nextMaze}.</p>
             </div>
           )}
-          {over && ui !== "idle" && (
+          {tourney && tourneyDone && ui !== "idle" && (
+            <div className="arc-overlay" aria-live="polite">
+              <p className="arc-overlay-kicker">TOURNAMENT · THAT&apos;S A WRAP</p>
+              <h2>{endReason === "markets" ? "Every market cleared!" : endReason === "time" ? "Time's up." : "The goats got you."}</h2>
+              <p>{hud.score.toLocaleString("en-US")} points · {puffMarkets(gameRef.current)} {puffMarkets(gameRef.current) === 1 ? "market" : "markets"}</p>
+              <p className="pp-sent" role="status">{tourney.finishedText ?? "Checking your run…"}</p>
+            </div>
+          )}
+          {!tourney && over && ui !== "idle" && (
             <div className="arc-overlay" aria-live="polite">
               <p className="arc-overlay-kicker">THAT&apos;S A WRAP</p>
               <h2>The goats got you.</h2>
@@ -533,11 +610,13 @@ export default function PuffPuffGame() {
           )}
         </div>
 
-        <p className="arc-status" aria-live="polite">{hud.status}</p>
+        <p className="arc-status" aria-live="polite">{tourneyDone ? "Try over." : hud.status}</p>
         {/* Clicking Nana's buttons mustn't take focus from the board, or space and Enter would press them instead of starting a game. */}
         <div onMouseDown={(e) => e.preventDefault()}>
-          <ArcadeNana slug="puffpuff" canAsk={ui === "paused" && !over}
-            onAsk={() => (uiRef.current === "paused" ? puffTip(gameRef.current) : null)} take={nanaTake} resetKey={runId} />
+          {tourney
+            ? <ArcadeNana slug="puffpuff" context={{ mode: "tournament" }} canAsk={false} onAsk={() => null} />
+            : <ArcadeNana slug="puffpuff" canAsk={ui === "paused" && !over}
+                onAsk={() => (uiRef.current === "paused" ? puffTip(gameRef.current) : null)} take={nanaTake} resetKey={runId} />}
         </div>
 
         <div className="pp-pad" aria-label="Touch controls">
@@ -554,6 +633,8 @@ export default function PuffPuffGame() {
       <style jsx global>{`
         .pp-console .arc-head { gap:12px 16px; }
         .pp-speed { display:flex; align-items:center; gap:8px; }
+        .pp-same { font-size:12px !important; letter-spacing:.02em; }
+        .pp-sent { font-weight:600; }
         .pp-lives { display:flex; align-items:center; gap:4px; min-height:26px; }
         .pp-lives i { display:inline-block; width:10px; height:10px; border-radius:3px 3px 50% 50%; background:#ff816d; box-shadow:inset 0 -3px 0 #e5533d; }
         .pp-board { max-width:520px; margin:0 auto; }
