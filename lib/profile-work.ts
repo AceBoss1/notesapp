@@ -47,3 +47,39 @@ export function industryMix(people: Work[]): { rows: { key: Industry; label: str
   const rows = [...counts.entries()].map(([key, count]) => ({ key, label: INDUSTRY_LABEL[key], count })).sort((a, b) => b.count - a.count);
   return { rows, answered: rows.reduce((n, r) => n + r.count, 0), total: people.length };
 }
+
+// More roles (owner, 22 Nov 2026: "allow people to add more than 1 job and maybe even past jobs" — for venture founders, job seekers,
+// professionals and academics). The main role above stays the line under the name; these are the other roles, now and past, shown in
+// the profile's Work section. Months are "YYYY-MM" (an <input type="month">); `current` roles have no end.
+export const EXPERIENCE_MAX = 10;
+export type Experience = { title: string; org: string; from: string; to: string; current: boolean };
+const MONTH = /^(19[5-9]\d|20\d\d)-(0[1-9]|1[0-2])$/;
+const month = (v: unknown) => (typeof v === "string" && MONTH.test(v) ? v : "");
+
+// Tidied, empty rows dropped, an end before its start dropped, at most ten; current roles first, then the most recent.
+export function cleanExperience(list: unknown): Experience[] {
+  if (!Array.isArray(list)) return [];
+  const rows = list.slice(0, EXPERIENCE_MAX * 2).map((e): Experience => {
+    const r = (e ?? {}) as Record<string, unknown>;
+    const current = r.current === true;
+    const from = month(r.from);
+    let to = current ? "" : month(r.to);
+    if (from && to && to < from) to = "";
+    const str = (v: unknown) => (typeof v === "string" ? v : "");
+    return { title: tidy(str(r.title), JOB_TITLE_MAX), org: tidy(str(r.org), WORKPLACE_MAX), from, to, current };
+  }).filter((e) => e.title || e.org);
+  const end = (e: Experience) => (e.current ? "9999-99" : e.to || e.from);
+  return rows.sort((a, b) => end(b).localeCompare(end(a)) || b.from.localeCompare(a.from)).slice(0, EXPERIENCE_MAX);
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthText = (m: string) => (m ? `${MONTHS[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}` : "");
+// "Jan 2020 – now", "Jan 2018 – Mar 2021", "Until Mar 2021", "Now"; empty for a past role with no dates.
+export function experienceDates(e: Experience): string {
+  const f = monthText(e.from), t = e.current ? "now" : monthText(e.to);
+  if (f && t) return `${f} – ${t}`;
+  if (f) return `From ${f}`;
+  if (e.current) return "Now";
+  return t ? `Until ${t}` : "";
+}
+export const experienceHeadline = (e: Experience) => headline({ jobTitle: e.title, workplace: e.org });

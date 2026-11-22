@@ -1413,6 +1413,24 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     tests/arcade/tournaments.test.ts, replay-*.test.ts, `test:tournaments-server` (emulator, in CI). Not built yet: page-view counts in
     the sponsor report, share cards/sitemap per tournament, telling winners in Messages, per-game leaderboards; the other games' replays.
 
+164. **Menu and profile fixes (v0.202.1; owner, 22 Nov 2026):** `TILE_COUNT` is 4 (eight pushed Sign out out of reach). The switcher in
+    `components/shell/AccountMenu.tsx` also lists organisations and businesses you help run from `GET /api/account/managed` (orgMembers
+    role "admin", and bookStaff manager/cashier, like `booksAccounts`), with links to books and inventory (`?owner=`) and, for organisation
+    admins, team and jobs (`?org=`); each page checks the role itself. While the menu is mounted it sets `data-menu-open` on <html>, and
+    `.nana-fab` (components/NanaChat.tsx, app/globals.css) slides off the screen. Profile: no repeats — the role stays under the name,
+    the job and first link in the header facts; Details drops the role, Work drops the job line (keeps the industry), Links shows the
+    other links as "More links"; a section with nothing new is hidden, with "+ Add" prompts on your own profile when something is missing. Both switcher lists fold (state `unrolled`, closed at first, with a count). The footer's round Menu button
+    (components/shell/FooterActions.tsx) is gone, with `OPEN_MENU` and its listener in Masthead; the footer keeps Ask Nana only where
+    Nana's floating button isn't on the page.
+
+165. **More roles, a complete menu, shorter wallet activity, bulk admin actions (v0.203.0; owner, 22 Nov 2026):** Profiles take up to ten
+    other roles, now and past (`experience` on users: `{ title, org, from, to, current }`, months "YYYY-MM"; `cleanExperience` in
+    lib/profile-work.ts tidies and orders them; firestore.rules `experienceOk` checks shape and size; edited in components/RolesFields.tsx;
+    shown by `workRows` in lib/profile-view.ts). The account menu now has every page of your own (tests/account/account-menu.test.ts checks
+    each My account page is in it): My sounds, My media, Analytics under See more, and a "Business and jobs" section. Wallet activity pages
+    by eight (Load more / See less). Admin → Users' bulk bar adds Change plan (Finance), Unsuspend, and Resend confirmation email
+    (`verifyMany` → `resendVerificationMany`, up to 100, skips the confirmed).
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

@@ -42,15 +42,18 @@ function Rows({ rows }: { rows: AboutRow[] }) {
 
 const addLink = "inline-flex rounded-full border border-dashed border-crimson/50 px-4 py-1.5 font-ui text-xs font-semibold text-crimson hover:bg-crimson/5";
 
-export default function ProfileAbout({ own, details, work, social, extra }: {
+export default function ProfileAbout({ own, details, work, hasWork = work.length > 0, social, skipFirstLink = false, extra }: {
   own: boolean;
   details: AboutRow[];
-  work: AboutRow[];
+  work: AboutRow[]; // only what the header's facts don't already show
+  hasWork?: boolean; // the profile has any work at all (else your own profile gets "+ Add what you do")
   social?: SocialLinks;
+  skipFirstLink?: boolean; // the header already shows the first link
   extra?: ReactNode; // anything else the page adds under the sections
 }) {
   const [allLinks, setAllLinks] = useState(false);
-  const links = profileLinks(social);
+  const everyLink = profileLinks(social);
+  const links = skipFirstLink ? everyLink.slice(1) : everyLink;
   const shown = allLinks ? links : links.slice(0, 1);
   return (
     <div className="grid gap-3">
@@ -59,13 +62,13 @@ export default function ProfileAbout({ own, details, work, social, extra }: {
           <Rows rows={details} />
         </AboutSection>
       )}
-      {(work.length > 0 || own) && (
+      {(work.length > 0 || (own && !hasWork)) && (
         <AboutSection title="Work" editHref={own ? "/profile/edit#work" : undefined} editLabel="Edit your work">
           {work.length > 0 ? <Rows rows={work} /> : <Link href="/profile/edit#work" className={addLink}>+ Add what you do and where</Link>}
         </AboutSection>
       )}
-      {(links.length > 0 || own) && (
-        <AboutSection title="Links" editHref={own ? "/profile/edit#links" : undefined} editLabel="Edit your social links">
+      {(links.length > 0 || (own && everyLink.length === 0)) && (
+        <AboutSection title={skipFirstLink ? "More links" : "Links"} editHref={own ? "/profile/edit#links" : undefined} editLabel="Edit your social links">
           {links.length > 0 ? (
             <ul className="grid gap-2.5">
               {shown.map((l) => (

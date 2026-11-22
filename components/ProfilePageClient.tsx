@@ -46,7 +46,7 @@ import { ProfileLiveBanner } from "@/components/lives/ProfileLive";
 import ProfileHeader, { type Fact } from "@/components/profile/ProfileHeader";
 import ProfileAbout, { type AboutRow } from "@/components/profile/ProfileAbout";
 import ProfileMenu, { type MenuItem } from "@/components/profile/ProfileMenu";
-import { BriefcaseIcon, BuildingIcon, CalendarIcon, CameraIcon, DotsIcon, GaugeIcon, LinkIcon, LiveIcon, PencilIcon, PlusIcon, SettingsIcon, TagIcon, TrophyIcon, UserIcon, WalletIcon } from "@/components/profile/icons";
+import { BriefcaseIcon, BuildingIcon, CalendarIcon, CameraIcon, DotsIcon, GaugeIcon, LinkIcon, LiveIcon, PencilIcon, PlusIcon, SettingsIcon, TagIcon, TrophyIcon, WalletIcon } from "@/components/profile/icons";
 import { AcademyIcon, MarketIcon, PenIcon } from "@/components/shell/icons";
 import { workRows } from "@/lib/profile-view";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
@@ -279,11 +279,14 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
   const details: AboutRow[] = [
     ...(joined ? [{ key: "joined", icon: <CalendarIcon />, text: `Joined ${joined}` }] : []),
     ...(isOrgAcct ? [{ key: "org", icon: <BuildingIcon />, text: "Organisation", sub: realProfile?.org?.rcStatus === "verified" ? "Registration confirmed" : "Registration not yet confirmed" }] : []),
-    ...(!suspended && profile.roleLabel && !isOrgAcct ? [{ key: "role", icon: <UserIcon />, text: profile.roleLabel }] : []),
     ...(gold ? [{ key: "gold", icon: <TagIcon />, text: GOLD_BADGE_TITLE[gold].replace("Gold badge — ", "Gold ✔ · ") }] : []),
   ];
-  const work: AboutRow[] = suspended ? [] : workRows(realProfile).map((r) => ({ key: r.kind, icon: r.kind === "role" ? <BriefcaseIcon /> : <TagIcon />, text: r.text }));
-  const hasAbout = isOwnProfile || details.length > 0 || work.length > 0 || !!firstLink;
+  // No repeats (owner, 22 Nov 2026): the role is under the name and the job and first link are in the facts above, so the sections only
+  // add what the header doesn't show (the industry, the other links).
+  const allWork = suspended ? [] : workRows(realProfile);
+  const work: AboutRow[] = allWork.filter((r) => !(r.kind === "role" && facts.some((f) => f.key === "work"))).map((r) => ({ key: r.key, icon: r.kind === "industry" ? <TagIcon /> : <BriefcaseIcon />, text: r.text, ...(r.sub ? { sub: r.sub } : {}) }));
+  const moreLinks = profileLinks(realProfile?.social).length > 1;
+  const hasAbout = isOwnProfile || details.length > 0 || work.length > 0 || moreLinks;
 
   const own = isOwnProfile && realProfile;
   const ic = "h-[18px] w-[18px]";
@@ -434,7 +437,7 @@ export default function ProfilePageClient({ params, initialTab }: { params: { us
           the latest posts and store items, recommendations and recent activity. */}
       <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }}
         notes={notes} notesLoaded={notesLoaded || isOfficial} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} initialTab={initialTab} synthetic={synthetic} isOwn={isOwnProfile}
-        about={hasAbout ? <ProfileAbout own={isOwnProfile} details={details} work={work} social={realProfile?.social} /> : null}
+        about={hasAbout ? <ProfileAbout own={isOwnProfile} details={details} work={work} hasWork={allWork.length > 0} social={realProfile?.social} skipFirstLink={!!firstLink} /> : null}
         book={!synthetic ? (
           // Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session" above
           // comes here), and pay-per-minute voice and video sessions (lib/ppm.ts), hidden unless offered. Not on synthetic channel accounts.

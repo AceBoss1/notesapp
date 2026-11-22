@@ -211,6 +211,21 @@ export async function resendVerification(db: Firestore, auth: LinkAuth, s: Staff
   return { sent: true };
 }
 
+// The same for many selected members at once (owner, 22 Nov 2026: "what's the point of selecting if I can't do mass action"). Up to 100;
+// confirmed, email-less and missing accounts are skipped, not errors.
+export const VERIFY_MANY_MAX = 100;
+export async function resendVerificationMany(db: Firestore, auth: LinkAuth, s: Staff, uids: unknown, send: Mailer, now = new Date()) {
+  need(s, ["support"], "sending account emails");
+  const list = Array.isArray(uids) ? [...new Set(uids.filter(uidOk))] : [];
+  if (!list.length) throw new MemberError("Which members?");
+  if (list.length > VERIFY_MANY_MAX) throw new MemberError(`At most ${VERIFY_MANY_MAX} at a time.`);
+  let sent = 0, skipped = 0;
+  for (const uid of list) {
+    try { await resendVerification(db, auth, s, uid, send, now); sent++; } catch { skipped++; }
+  }
+  return { sent, skipped };
+}
+
 export async function sendPasswordReset(db: Firestore, auth: LinkAuth, s: Staff, uid: unknown, send: Mailer, now = new Date()) {
   need(s, ["support"], "sending account emails");
   const u = await auth.getUser(mustUid(uid)).catch(() => null);

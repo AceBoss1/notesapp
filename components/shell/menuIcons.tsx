@@ -7,7 +7,7 @@ const S = ({ className = "h-5 w-5", children }: P & { children: React.ReactNode 
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">{children}</svg>
 );
 
-const PATHS: Record<IconKey | "settings" | "upgrades" | "apps" | "chevron" | "signout" | "switch" | "plus" | "check", React.ReactNode> = {
+const PATHS: Record<IconKey | "settings" | "business" | "upgrades" | "apps" | "chevron" | "signout" | "switch" | "plus" | "check", React.ReactNode> = {
   journal: <><path d="M5 4.5h10.5L19 8v11.5H5z" /><path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" /></>,
   messages: <path d="M4 5.5h16v10H9l-5 4v-14Z" />,
   calendar: <><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" /></>,
@@ -49,6 +49,19 @@ const PATHS: Record<IconKey | "settings" | "upgrades" | "apps" | "chevron" | "si
   community: <><circle cx="9" cy="9" r="3" /><circle cx="17" cy="10" r="2.3" /><path d="M3.5 19c.9-3 3-4.5 5.5-4.5s4.6 1.5 5.5 4.5M14.5 15.3c.7-.5 1.6-.8 2.5-.8 1.9 0 3.3 1.2 4 3.5" /></>,
   jobs: <><rect x="3.5" y="7.5" width="17" height="12" rx="2" /><path d="M9 7.5V5.5h6v2M3.5 12.5h17" /></>,
   studio: <><rect x="3" y="4.5" width="18" height="12" rx="2" /><path d="M8 20h8M12 16.5V20" /><circle cx="8" cy="10.5" r="1.6" fill="currentColor" stroke="none" /><path d="M11.5 9h6M11.5 12h4" /></>,
+  sounds: <><path d="M9 18V6l10-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="16.5" cy="16" r="2.5" /></>,
+  media: <><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="m4 17 5-4.5 3.5 3 3-2.5 4.5 4" /></>,
+  books: <><path d="M5 4.5h11a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2v-13Z" /><path d="M5 17.5a2 2 0 0 1 2-2h11M9 8.5h5M9 11.5h3" /></>,
+  inventory: <><path d="M4 8 12 4l8 4v8l-8 4-8-4V8Z" /><path d="m4 8 8 4 8-4M12 12v8M8 6l8 4" /></>,
+  hotel: <><path d="M3.5 19.5v-11M3.5 15.5h17v4M20.5 15.5v-3a3 3 0 0 0-3-3h-6v6" /><circle cx="7.5" cy="12" r="1.8" /></>,
+  site: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5Z" /></>,
+  discount: <><path d="M4 12.5V5.5A1.5 1.5 0 0 1 5.5 4h7l7.5 7.5-8.5 8.5L4 12.5Z" /><circle cx="8.5" cy="8.5" r="1.3" /><path d="m10 15 5-5" /></>,
+  coupon: <><path d="M4 7.5h16v3a1.5 1.5 0 0 0 0 3v3H4v-3a1.5 1.5 0 0 0 0-3v-3Z" /><path d="m10 14 4-4M10 10h.01M14 14h.01" /></>,
+  referral: <><circle cx="7" cy="8" r="2.5" /><circle cx="17" cy="16" r="2.5" /><path d="M9.5 8H14a3 3 0 0 1 3 3v2.5M14.5 16H10a3 3 0 0 1-3-3v-2.5" /></>,
+  jobsearch: <><rect x="3.5" y="7.5" width="13" height="10" rx="2" /><path d="M7.5 7.5V5.5h5v2" /><circle cx="17" cy="16" r="2.8" /><path d="m19 18 2 2" /></>,
+  events: <><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" /><path d="m12 12.5.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 14.6l2-.3.9-1.8Z" /></>,
+  affiliate: <><path d="M4 12h6l2-3 2 6 2-3h4" /><circle cx="12" cy="12" r="8.5" /></>,
+  business: <><rect x="3.5" y="7.5" width="17" height="12" rx="2" /><path d="M9 7.5V5.5h6v2M3.5 12.5h17M12 11v3" /></>,
   link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" /></>,
   upgrades: <><rect x="4" y="4" width="7" height="7" rx="1.5" /><circle cx="16.5" cy="7.5" r="3.5" /><path d="m7.5 13.5 3.5 6.5H4l3.5-6.5Z" /><path d="M16.5 20s-3.5-2.1-3.5-4.5a1.9 1.9 0 0 1 3.5-1 1.9 1.9 0 0 1 3.5 1c0 2.4-3.5 4.5-3.5 4.5Z" /></>,
