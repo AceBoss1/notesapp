@@ -1412,6 +1412,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     tournaments (Growth). Sponsor takeover in `ArcadeAdSpot` (counted on the tournament, never as a booked ad's impression). Tests:
     tests/arcade/tournaments.test.ts, replay-*.test.ts, `test:tournaments-server` (emulator, in CI). Not built yet: page-view counts in
     the sponsor report, share cards/sitemap per tournament, telling winners in Messages, per-game leaderboards; the other games' replays.
+164. **Tournaments for the other Arcade games (v0.203.0; owner, 21 Nov 2026: "add tournament versions of Ludo, Ncho, Landlord,
+    Spades, Draughts, Achi and Puff-Puff"):** each has `lib/arcade/replay-<slug>.ts` (registered in tournament-games.ts; the page maps
+    slugs to components in ArcadeTournament.tsx, akahausa renders NchoGame variant="akahausa") and a `tourney` mode in its component.
+    Ludo: 4 players, 2 dice, 6+5 off, hit→home on; roll k = mulberry32(seed mixed with k) via a `rolls` counter on LudoState; recording
+    two chars per move (seed, die value); cap 1,200 rolls. Landlord: rng per (round, turn, doubles) so dice and cards line up for everyone;
+    ROUND_CAP 80; a try ends at game over or your bankruptcy; rank [won, standing, netWorth, ±rounds]. Spades: 5 hands, deals chained from
+    the seed, no target score; records bids b0–b13 and cards S/H/D/C+rank. Ncho/Aka-Hausa: 3 rounds, records sown holes; rank result,
+    houses, seeds. Achi: p4 / m3-4 / resign; default level medium (hard is the solved table: perfect play wins in 5 turns, so everyone
+    good would tie). Draughts: level = "<board>-<difficulty>" (african10/african8/english × easy/medium/hard), 40-move draw rule on,
+    standard numbering with every landing square ("28x19x10"); `TOURNEY_BUDGET` 5,000 (10×10) / 8,000 (8×8) positions so a replay takes
+    under ~2 s; never change it while a tournament runs. Puff-Puff: two base-36 chars per frame (dt 1–100 ms × 5 + direction); ends at
+    last life, 9 markets or 15 game minutes; maxRecording 500,000. Computer moves everywhere use a per-ply seeded rng (as chess), never
+    Math.random or a clock. Tests: tests/arcade/replay-{ludo,landlord,spades,ncho,achi,draughts,puffpuff}.test.ts.
 
 ## 3. How the work is done (please keep these)
 
