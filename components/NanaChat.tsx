@@ -40,7 +40,7 @@ export default function NanaChat() {
   return (
     <>
       {!open && (
-        <button type="button" onClick={() => setOpen(true)} aria-label={`Ask ${NANA_NAME}`} className={`fixed ${spot} z-40 flex items-center gap-2 rounded-full border border-rule bg-card py-1.5 pl-1.5 pr-1.5 shadow-lg transition hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-crimson lg:right-6 lg:bottom-6 lg:pr-4 ${tabs ? "" : "right-4 sm:bottom-6 sm:right-6 sm:pr-4"}`}>
+        <button type="button" onClick={() => setOpen(true)} aria-label={`Ask ${NANA_NAME}`} className={`nana-fab fixed ${spot} z-40 flex items-center gap-2 rounded-full border border-rule bg-card py-1.5 pl-1.5 pr-1.5 shadow-lg transition hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-crimson lg:right-6 lg:bottom-6 lg:pr-4 ${tabs ? "" : "right-4 sm:bottom-6 sm:right-6 sm:pr-4"}`}>
           <Image src="/images/nana/nana-sm.webp" alt="" width={44} height={44} className="h-11 w-11 rounded-full" />
           <span className={`hidden font-ui text-sm font-bold text-ink ${tabs ? "lg:inline" : "sm:inline"}`}>Ask Nana</span>
         </button>

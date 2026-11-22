@@ -1,25 +1,35 @@
-// The account menu (lib/account-menu.ts): eight tiles then "See more", the folding sections, "More from #NotesApp" in the owner's
+// The account menu (lib/account-menu.ts): four tiles then "See more", the folding sections, "More from #NotesApp" in the owner's
 // order, what drops out when it doesn't apply, the signed-out menu, and shortcuts from what was opened lately. Run: npm run test:menus
 import assert from "node:assert/strict";
+import { accountPages } from "../../lib/account-nav";
 import { PINNED_MAX, RECENT_MAX, TILE_COUNT, accountMenu, allPlaces, forget, pin, pushRecent, shortcutsFrom, unpin, type MenuCtx } from "../../lib/account-menu";
 
 const base: MenuCtx = { username: "ada", canPublish: true, isOrg: false, goLive: true, cycle: true, calToday: 2, wallet: true, messages: true, unreadDms: 3 };
 const m = accountMenu(base);
 
-// Eight tiles, the most-used first; the rest under See more.
+// Four tiles, the most-used first; the rest under See more (owner, 22 Nov 2026: eight pushed Sign out out of reach).
 assert.equal(m.tiles.length, TILE_COUNT);
-assert.deepEqual(m.tiles.map((t) => t.label), ["My journal", "Messages", "Calendar", "My store", "Wallet", "Saved", "Bookings", "Orders & parcels"]);
+assert.deepEqual(m.tiles.map((t) => t.label), ["My journal", "Messages", "Calendar", "My store"]);
 assert.equal(m.tiles[1].badge, 3);
 assert.equal(m.tiles[2].note, "2 today");
-assert.deepEqual(m.more.map((t) => t.label), ["Go live", "My tickets", "My giving", "Shipments", "Co-author invites", "My Cycle", "Communities"]);
+assert.deepEqual(m.more.map((t) => t.label), ["Wallet", "Saved", "Bookings", "Orders & parcels", "Go live", "My sounds", "Analytics", "My tickets", "My giving", "Shipments", "Co-author invites", "My Cycle", "Communities"]);
 
 // The sections, in order, and "More from #NotesApp" as the owner listed it.
-assert.deepEqual(m.sections.map((s) => s.label), ["Settings and privacy", "Upgrades", "Help and support", "More from #NotesApp"]);
+assert.deepEqual(m.sections.map((s) => s.label), ["Settings and privacy", "Business and jobs", "Upgrades", "Help and support", "More from #NotesApp"]);
 const apps = m.sections.find((s) => s.key === "apps")!;
 assert.deepEqual(apps.items.map((i) => i.label), ["Notes Arcade", "Notes Life", "Academy", "Exam Prep", "NotesApp Ventures", "Notes Jobs", "Nana", "Notes Live", "Media Live Studio PRO"]);
 assert.deepEqual(apps.items.map((i) => i.href), ["/arcade", "/life", "/academy", "/exam-prep", "/ventures", "/jobs", "/nana", "/lives", "/studio"]);
 
 // Nothing appears twice anywhere in the menu.
+// Every My account page (lib/account-nav.ts) and the other pages of your own are in the menu (owner, 22 Nov 2026: "I didn't see my sounds").
+{
+  const full = accountMenu({ ...base, isOrg: true, media: true });
+  const all = [...full.tiles, ...full.more, ...full.sections.flatMap((s) => s.items)].map((i) => i.href);
+  const own = [...accountPages({ wallet: true, media: true }).map((p) => p.href), "/profile/site", "/profile/jobs", "/profile/applications", "/profile/boosts", "/profile/account", "/profile/family"];
+  assert.deepEqual(own.filter((h) => !all.includes(h)), [], "a page of your own is missing from the menu");
+  assert.ok(!accountMenu(base).sections.flatMap((s) => s.items).some((i) => i.href === "/profile/jobs"), "Jobs you post is for organisations");
+  assert.ok(!accountMenu(base).more.some((i) => i.href === "/profile/media"), "My media only when Media is on");
+}
 const hrefs = [...m.tiles, ...m.more, ...m.sections.flatMap((s) => s.items)].map((i) => i.href);
 const twice = hrefs.filter((h, i) => hrefs.indexOf(h) !== i);
 assert.deepEqual(twice.filter((h) => h !== "/profile/publishing" && h !== "/nana"), [], "only Rates/Start publishing and Nana may sit in two places");

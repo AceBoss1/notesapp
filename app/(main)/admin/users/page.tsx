@@ -31,6 +31,7 @@ export default function AdminUsersPage() {
   const { user, access, loading } = useAdminAuth();
   const canMoney = hasDept(access, "finance"); // tiers and roles
   const canCare = hasAnyDept(access, ["support", "moderation"]); // gold badges, suspensions
+  const canEmails = hasAnyDept(access, ["support"]); // account emails (lib/admin-members-server.ts resendVerification)
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [error, setError] = useState("");
   const [emails, setEmails] = useState<Record<string, string>>({});
@@ -53,7 +54,8 @@ export default function AdminUsersPage() {
   const [finding, setFinding] = useState(false);
   const [findEmail, setFindEmail] = useState("");
   const [findError, setFindError] = useState("");
-  const [bulk, setBulk] = useState<"message" | "suspend" | null>(null);
+  const [bulk, setBulk] = useState<"message" | "suspend" | "tier" | null>(null);
+  const [bulkTier, setBulkTier] = useState<AccountTier>("pro");
   const [bulkText, setBulkText] = useState("");
   const [bulkNote, setBulkNote] = useState("");
   useEffect(() => {
@@ -169,6 +171,49 @@ export default function AdminUsersPage() {
       }
       setBulkNote(bulk === "message" ? `Sent to ${selected.size}.` : `Suspended the ones that weren't already.`);
       setBulk(null); setBulkText(""); setSelected(new Set()); reload();
+    } catch (e) { setBulkNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusyUid(null); }
+  }
+
+  // More things to do to everyone selected (owner, 22 Nov 2026: "upgrade tier, suspend, resend verification email etc"). Founders are
+  // never in a selection; each one is logged in the member's history like a single change.
+  const picked = () => Array.from(selected).map((uid) => nameOf(uid)).filter((m): m is UserProfile => !!m && !FOUNDER_USERNAMES.includes(m.username));
+  async function bulkTierSet() {
+    if (!user) return;
+    setBusyUid("bulk");
+    let n = 0;
+    try {
+      for (const m of picked()) {
+        const from = m.accountTier ?? "standard";
+        if (from === bulkTier) continue;
+        await updateUserTier(m.uid, bulkTier);
+        logged(m.uid, "tier", `${from} → ${bulkTier} (with ${selected.size - 1} others)`);
+        n++;
+      }
+      setBulkNote(`Moved ${n} to ${TIERS.find((t) => t.tier === bulkTier)?.label ?? bulkTier}; the rest were on it already.`);
+      setBulk(null); setSelected(new Set()); reload();
+    } catch (e) { setBulkNote(`${n} moved, then: ${e instanceof Error ? e.message : "something went wrong."}`); } finally { setBusyUid(null); }
+  }
+  async function bulkUnsuspend() {
+    if (!user) return;
+    const them = picked().filter((m) => m.suspended);
+    if (!them.length) { setBulkNote("None of them are suspended."); return; }
+    if (!confirm(`Unsuspend ${them.length} account${them.length === 1 ? "" : "s"}?`)) return;
+    setBusyUid("bulk");
+    try {
+      for (const m of them) { await unsuspendUser(m.uid, m.username, user.uid, false); logged(m.uid, "unsuspended", `Unsuspended (with ${them.length - 1} others)`); }
+      setBulkNote(`Unsuspended ${them.length}.`); setSelected(new Set()); reload();
+    } catch (e) { setBulkNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusyUid(null); }
+  }
+  async function bulkVerify() {
+    if (!user) return;
+    const uids = picked().filter((m) => !signals[m.uid]?.verified).map((m) => m.uid);
+    if (!uids.length) { setBulkNote("They have all confirmed their email."); return; }
+    if (!confirm(`Send the confirmation email again to ${uids.length} member${uids.length === 1 ? "" : "s"} who haven't confirmed?`)) return;
+    setBusyUid("bulk");
+    try {
+      const r = await membersCall<{ sent: number; skipped: number }>(user, { body: { action: "verifyMany", uids: uids.slice(0, 100) } });
+      setBulkNote(`Sent ${r.sent}${r.skipped ? `; skipped ${r.skipped} (already confirmed or no email)` : ""}${uids.length > 100 ? ". At most 100 at a time: send again for the rest." : "."}`);
+      setSelected(new Set());
     } catch (e) { setBulkNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusyUid(null); }
   }
 
@@ -371,10 +416,23 @@ export default function AdminUsersPage() {
               <b>{selected.size} selected</b>
               {canCare && <button type="button" onClick={() => { setBulk("message"); setBulkText(""); }} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25">Send a notification</button>}
               {canCare && <button type="button" onClick={() => { setBulk("suspend"); setBulkText(""); }} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25">Suspend</button>}
+              {canCare && <button type="button" disabled={busyUid === "bulk"} onClick={() => void bulkUnsuspend()} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25 disabled:opacity-50">Unsuspend</button>}
+              {canMoney && <button type="button" onClick={() => setBulk("tier")} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25 disabled:opacity-50">Change plan</button>}
+              {canEmails && <button type="button" disabled={busyUid === "bulk"} onClick={() => void bulkVerify()} className="rounded-full bg-paper/15 px-3 py-1 font-semibold hover:bg-paper/25 disabled:opacity-50">Resend confirmation email</button>}
               <button type="button" onClick={() => setSelected(new Set())} className="ml-auto text-paper/80 hover:text-paper">Clear</button>
             </div>
           )}
-          {bulk && (
+          {bulk === "tier" && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-rule bg-card p-3">
+              <p className="font-ui text-sm font-semibold text-ink">Move {selected.size} account{selected.size === 1 ? "" : "s"} to</p>
+              <select value={bulkTier} onChange={(e) => setBulkTier(e.target.value as AccountTier)} aria-label="Plan" className="rounded-lg border border-rule bg-paper px-2 py-2 text-sm">
+                {TIERS.map((t) => <option key={t.tier} value={t.tier}>{t.label}</option>)}
+              </select>
+              <button type="button" disabled={busyUid === "bulk"} onClick={() => { if (confirm(`Move ${selected.size} accounts to ${TIERS.find((t) => t.tier === bulkTier)?.label}? This changes their plan straight away, without payment.`)) void bulkTierSet(); }} className="rounded-lg bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper disabled:opacity-50">{busyUid === "bulk" ? "Working…" : "Change plan"}</button>
+              <button type="button" onClick={() => setBulk(null)} className="px-2 font-ui text-xs text-slate">Cancel</button>
+            </div>
+          )}
+          {(bulk === "message" || bulk === "suspend") && (
             <div className="mt-2 rounded-xl border border-rule bg-card p-3">
               <p className="font-ui text-sm font-semibold text-ink">{bulk === "message" ? `Notification to ${selected.size} member${selected.size === 1 ? "" : "s"}` : `Suspend ${selected.size} account${selected.size === 1 ? "" : "s"}`}</p>
               <div className="mt-2 flex flex-wrap gap-2">

@@ -1,7 +1,8 @@
 "use client";
 
 import WorkFields from "@/components/WorkFields";
-import { cleanWork, type Work } from "@/lib/profile-work";
+import RolesFields from "@/components/RolesFields";
+import { cleanExperience, cleanWork, type Experience, type Work } from "@/lib/profile-work";
 import MomentSettings from "@/components/moments/MomentSettings";
 import SiteReminder from "@/components/SiteReminder";
 import { canHaveSite } from "@/lib/site-themes";
@@ -43,6 +44,7 @@ export default function ProfileEditPage() {
   const [avatar, setAvatar] = useState("");
   const [social, setSocial] = useState<SocialLinks>({});
   const [work, setWork] = useState<Work>({});
+  const [roles, setRoles] = useState<Experience[]>([]);
   const [uploading, setUploading] = useState(false);
   // A picture dropped on the form, or pasted into it, becomes the profile picture.
   const avatarDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) void uploadAvatar(f); }, true);
@@ -65,6 +67,7 @@ export default function ProfileEditPage() {
         setAvatar(p.avatar);
         setSocial(p.social || {});
         setWork({ industry: p.industry, jobTitle: p.jobTitle, workplace: p.workplace });
+        setRoles(cleanExperience(p.experience));
       }
     });
     return unsub;
@@ -100,7 +103,8 @@ export default function ProfileEditPage() {
     const kept: SocialLinks = { ...clean, ...Object.fromEntries(bad.map((k) => [k, social[k]])) };
     setSocial(kept);
     setUnreadable(bad.map((k) => SOCIAL_FIELDS.find((f) => f.key === k)?.label ?? k));
-    await updateProfile(profile.uid, { displayName, bio, avatar, social: kept, ...cleanWork(profile.accountKind === "organisation" ? { industry: work.industry } : work) });
+    await updateProfile(profile.uid, { displayName, bio, avatar, social: kept, ...cleanWork(profile.accountKind === "organisation" ? { industry: work.industry } : work), ...(profile.accountKind === "organisation" ? {} : { experience: cleanExperience(roles) }) });
+    if (profile.accountKind !== "organisation") setRoles(cleanExperience(roles));
     if (avatar && avatar !== profile.avatar) { await notePictureChange(avatar, profile.avatar); setProfile({ ...profile, avatar }); }
     setSaving(false);
     setSaved(true);
@@ -155,6 +159,9 @@ export default function ProfileEditPage() {
         {/* #work: the pencil on the profile's Work section comes here. */}
         <div id="work" className="scroll-mt-28">
           <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
+          {profile && profile.accountKind !== "organisation" && (
+            <div className="mt-6"><RolesFields value={roles} onChange={setRoles} inputClass="mt-1 w-full rounded-xl border border-rule bg-paper px-4 py-3 font-body focus:border-gold outline-none" /></div>
+          )}
         </div>
         {profile && profile.accountKind !== "organisation" && (
           <p className="text-sm text-slate">

@@ -67,11 +67,15 @@ function TopUp({ user, onDone }: { user: User; onDone: () => void }) {
   );
 }
 
+const ACTIVITY_PAGE = 8;
+
 export default function WalletPage() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  // Activity shows a page at a time (owner, 22 Nov 2026: "too long"): Load more adds the next ones, See less folds back to the first.
+  const [shown, setShown] = useState(ACTIVITY_PAGE);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   async function load(u: User) {
     try {
@@ -127,13 +131,13 @@ export default function WalletPage() {
             <div className="card p-5" id="activity">
               <div className="flex items-center justify-between"><h2 className="font-ui text-sm font-bold text-ink">Activity</h2></div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-                {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={`rounded-full px-3 py-1 ${filter === id ? "bg-ink text-white" : "border border-rule"}`}>{label}</button>)}
+                {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => { setFilter(id); setShown(ACTIVITY_PAGE); }} className={`rounded-full px-3 py-1 ${filter === id ? "bg-ink text-white" : "border border-rule"}`}>{label}</button>)}
               </div>
               {!data ? <p className="mt-4 text-sm text-slate">Loading…</p> : rows.length === 0 ? (
                 <p className="mt-4 text-sm text-slate">{data.activity.length ? "Nothing here with this filter." : "Nothing yet. Top up to get started."}</p>
               ) : (
                 <ul className="mt-3 divide-y divide-rule">
-                  {rows.map((a) => (
+                  {rows.slice(0, shown).map((a) => (
                     <li key={a.id} className="flex items-start gap-3 py-3">
                       <span className="min-w-0 flex-1">
                         <b className="block truncate text-sm text-ink">{a.label}</b>
@@ -148,6 +152,13 @@ export default function WalletPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {rows.length > ACTIVITY_PAGE && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-rule pt-3">
+                  {shown < rows.length && <button type="button" onClick={() => setShown((n) => n + ACTIVITY_PAGE)} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold text-ink hover:border-crimson hover:text-crimson">Load more</button>}
+                  {shown > ACTIVITY_PAGE && <button type="button" onClick={() => { setShown(ACTIVITY_PAGE); document.getElementById("activity")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="rounded-full px-4 py-1.5 font-ui text-xs font-semibold text-crimson hover:bg-crimson/5">See less</button>}
+                  <span className="ml-auto text-[11px] text-slate">{Math.min(shown, rows.length)} of {rows.length}</span>
+                </div>
               )}
             </div>
             <div className="card p-5 text-sm">
