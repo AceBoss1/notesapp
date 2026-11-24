@@ -68,7 +68,7 @@ pitch.tech deck" note below.
 - Keep the claims as they stand: "processed", never "revenue"; Studio Pro, the team hub, Nana Lite and the portrait studio are "in
   testing"; NotesPhone and Anya are reservations only.
 
-### Deadlines at a glance (as of Thursday 19 November 2026; three added Tuesday 24 November)
+### Deadlines at a glance (as of Thursday 19 November 2026; four added Tuesday 24 November)
 
 Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
 registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
@@ -87,6 +87,7 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
 | **Mon 30 Nov 2026** (results 10 Dec) | Startup Showcase Global, November 2026 Campaign (top 5 get USD 10,000 each) | a listing on their site; **check for a fee first** | §29 |
+| **Rolling: apply now** (one listing says 31 Dec 2026) | **UNDP timbuktoo EdTech Hub**, pan-African incubation, for Exam Prep and the Nana tutor | §32's drafted answers | §32 |
 | **Open now: IB-03** (deadline not shown; last cycle closed 27 Dec) | **Innovate Bay IB-03** (Fremont, CA; up to USD 40,000), for NotesPhone and Anya | §31's drafted answers | §31 |
 | **Rolling: apply now** (cohort starts Feb 2027 in SF) | **Solo Founders Program** (USD 100k uncapped MFN SAFE + 2.5% equity) | the application; a US visa plan | §30 |
 
@@ -1733,4 +1734,73 @@ Built NotesApp. `[add any co-founder or advisor on the devices side]`
 
 **Attachments:** the deck (slide 10 updated to 24 November), a 60-second demo video of NotesApp and Nana, the devices page
 screenshot. Don't send the partner's name or quotes.
+
+
+
+---
+
+## 32. UNDP timbuktoo EdTech Hub: pan-African incubation (Exam Prep and the Nana tutor)
+
+> Status: **rolling, open now** (Menterprise Africa's LinkedIn post, 23 November 2026; one listing, fundsforNGOs, gives
+> **31 December 2026**; UNDP's own page, July 2026, shows no deadline). undp.org and the listings don't load from here, so the form's
+> questions are unread: **find the form from UNDP's timbuktoo page** (undp.org/africa/projects/timbuktoo), not from a repost. Free; UNDP
+> doesn't charge to apply. The earlier round, "Get Ready 4 timbuktoo EdTech" (closed 18 Feb 2026), took 50 startups from 1,429.
+
+- **What you get:** structured incubation with African incubators, mentors and sector experts, a pan-African founder network, the
+  SIGMA startup platform, investment-readiness and pitch support, and pathways to acceleration and early-stage investment. No grant or
+  equity terms are mentioned; ask.
+- **Who:** African startups in education, training or skills; **a prototype ready to test or deploy**; a committed team. UNDP
+  particularly encourages **women-led** startups, **rural** reach and **local languages or accessibility**.
+- **Fit: strong.** Apply as **NotesApp Learning: Naija Exam Prep + the Nana tutor** (NotesApp Technologies Ltd, Nigeria). We're live
+  (not just a prototype), the tutor speaks **Pidgin and Kiswahili** (Igbo, Hausa, Yoruba coming), and offline packs reach students with
+  little data. **Don't call us women-led** unless the founding team's ownership says so; do name the women on the team (Chief Legal
+  Officer, Chief Compliance Officer, Head of Customer Service and Community). The earlier round asked for 6–8 hours a week: say yes
+  only if someone can give it.
+
+**Drafted answers** (match each to the form's boxes; fill the `[…]` from `/admin` → Exam Prep on the day; say "in testing" for Nana Lite).
+
+**Startup name:** NotesApp (Naija Exam Prep and the Nana tutor) · **Website:** prep.naapp.tech · **Country:** Nigeria (members in
+seven more countries) · **Stage:** live product, early revenue · **Sector:** EdTech: exam preparation, AI tutoring, teacher courses.
+
+**One line:** Exam practice and an AI tutor for African secondary students that works on little data and explains in the language
+they think in.
+
+**The problem (≈ 100 words):**
+> Every year about two million Nigerian students sit JAMB, and many more WAEC and NECO, often with no tutor, few past papers and
+> expensive data. When a student gets a question wrong, nobody explains why, and the explanation they do find is in formal English,
+> not the Pidgin or Kiswahili they think in. Rural and low-income students fall furthest behind, and teachers have no time to explain
+> every wrong answer to every student.
+
+**The solution (≈ 150 words):**
+> **Naija Exam Prep** (prep.naapp.tech) has **4,090 original JAMB, WAEC and NECO practice questions in 19 subjects**, each checked by a
+> reviewer before students see it, with timed mock exams marked by the server. **Offline packs** work without data once downloaded, so
+> one shared phone can serve several students. Free questions in every subject; **₦1,000 opens a whole exam for 12 months**, and pay
+> links let a parent pay. The **Nana tutor** explains a wrong answer another way, in **English, Pidgin or Kiswahili**, answering only
+> from our reviewed explanations, so it doesn't make things up. Teachers can also build their own courses on **Notes Academy** and
+> switch the tutor on for their lessons. **Nana Lite** (in testing) runs small open models we host ourselves, so tutoring stays cheap
+> enough for every student, and later offline on the phone.
+
+**Innovation / what's different:** grounded AI (it explains our reviewed answers, never invents); local languages; offline and low-data
+first; priced in naira for a parent's pocket; built and run in Nigeria.
+
+**Inclusion (local languages, accessibility, rural):** Pidgin and Kiswahili today, Igbo, Hausa and Yoruba next; offline packs and short
+text answers for basic phones and shared devices; a free pilot for schools; voice in and out next, for low-literacy learners.
+
+**Traction:** Exam Prep: `[students who practised]`, `[questions answered]`, `[exam packs bought]`, `[schools on the pilot]` (from
+/admin). NotesApp overall: 628 members (600 in the last 30 days), ₦4.03M processed through the platform, ₦823K paid out to creators and
+teachers (24 November 2026). Special Recognition at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translation and
+speech work.
+
+**Business model:** ₦1,000 per exam for 12 months; schools by the term (the pilot is free); Notes Academy commission on paid courses.
+
+**Team:** Emmanuel Adams (founder and CEO; built the platform end to end; CTO at Aider); Emmanuela Emmanuel (co-founder, Chief Legal
+Officer: child safety and content rules); Ifenyinwa Akujobi (co-founder, Chief Compliance Officer); Ezurukam Ijeoma Pearl (co-founder,
+Head of Customer Service and Community); reviewers who check every question. Full time: `[who]`.
+
+**What you want from the incubation:** school partnerships and a measured pilot (practice time and score gains) in `[n]` schools,
+including rural ones; help with evidence of learning impact for education funders and ministries; investment readiness for our
+pre-seed; links to EdTech hubs in Kenya and Ghana, where we're growing next.
+
+**Attachments:** the deck (24 November numbers); a 60-second screen recording: a timed mock, a wrong answer, then the Nana tutor
+explaining it in Pidgin.
 
