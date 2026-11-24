@@ -4,6 +4,9 @@ const nextConfig = {
   // read their fonts and our badges from the disk.
   experimental: {
     outputFileTracingIncludes: {
+      // Notes Arcade tournaments' share cards (lib/arcade/tournament-card.tsx; owner, 24 Nov 2026): the Inter, Newsreader and mono fonts.
+      // The card still draws in the renderer's own font if these are missing, so a miss here never breaks a link preview.
+      "/arcade/tournaments/**": ["./assets/fonts/Inter-400.ttf", "./assets/fonts/Inter-700.ttf", "./assets/fonts/Newsreader-700.ttf", "./assets/fonts/JetBrainsMono-700.ttf"],
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
       // Course covers made with Nana (lib/cover-render.tsx): the fonts, our mark, and Next's own WebP encoder (WebAssembly).
       "/api/avatar-maker": ["./assets/fonts/Inter-800.ttf", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],

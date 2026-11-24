@@ -1699,6 +1699,8 @@ service cloud.firestore {
       match /entries/{uid} { allow read, write: if false; }
       match /runs/{runId} { allow read, write: if false; }
     }
+    // Views of the tournaments list per Lagos day, for sponsors' reports (owner, 24 Nov 2026). Server only.
+    match /tournamentStats/{id} { allow read, write: if false; }
     // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
     // settings/partners (tier terms) is under settings above.
     match /partnerApplications/{id} { allow read, write: if false; }

@@ -9,6 +9,8 @@ import { ACADEMY_LIVE } from "@/lib/courses";
 import { PREP_URL } from "@/lib/host";
 import { EXAM_IDS } from "@/lib/exam-prep";
 import { ARCADE_GAMES } from "@/lib/arcade/catalogue";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { sitemapTournaments, withTimeout } from "@/lib/arcade/tournament-share-server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -54,6 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE.url}/life/partners`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE.url}/arcade`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE.url}/arcade/partners`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE.url}/arcade/tournaments`, changeFrequency: "daily", priority: 0.5 },
     ...ARCADE_GAMES.map((g) => ({ url: `${SITE.url}${g.path}`, changeFrequency: "monthly" as const, priority: 0.4 })),
     { url: `${SITE.url}/advertise`, changeFrequency: "monthly", priority: 0.5 },
 
@@ -120,5 +123,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ? (await getAcademy()).map((c) => ({ url: `${SITE.url}/academy/${c.slug}`, lastModified: c.publishedAt ? new Date(c.publishedAt) : undefined, changeFrequency: "weekly" as const, priority: 0.6 }))
     : [];
 
-  return [...staticPages, ...notesappPostPages, ...notePages, ...coursePages, ...profilePages];
+  // Every public Notes Arcade tournament (owner, 24 Nov 2026: "share cards and sitemap entries for each tournament"; §2 "in the sitemap").
+  // Drafts never. Like the other Arcade pages, on the main address (/arcade/…), not arcade.<domain>. A build without Firestore, or a slow
+  // one, gives none rather than failing or hanging the build.
+  const tournaments = await withTimeout((async () => sitemapTournaments(getAdminDb()))(), 4000);
+  const tournamentPages: MetadataRoute.Sitemap = (tournaments ?? []).map((t) => ({
+    url: `${SITE.url}/arcade/tournaments/${t.id}`, lastModified: t.updatedAt ? new Date(t.updatedAt) : undefined, changeFrequency: "daily" as const, priority: 0.5,
+  }));
+
+  return [...staticPages, ...notesappPostPages, ...notePages, ...coursePages, ...tournamentPages, ...profilePages];
 }

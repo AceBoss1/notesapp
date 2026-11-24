@@ -14,8 +14,10 @@
 // types from here, and lagosWhen from ./lagos-time, so their bundles don't carry every game's replay code.
 import { compareRank, type TournamentGame } from "./tournament-games";
 import { lagosWhen } from "./lagos-time";
+import { listed, phase, type Phase } from "./tournament-phase";
 
-export { lagosWhen };
+export { lagosWhen, listed, phase };
+export type { Phase };
 
 export type TournamentStatus = "draft" | "open" | "closed" | "results";
 /** "adults": 18+ only (every prize tournament). "practice": teens may play too, and there are no prizes (owner, 21 Nov 2026, §8.2). */
@@ -49,34 +51,23 @@ export type Tournament = {
   entrants?: number;
   runs?: number;
   finished?: number;
-  sponsorStats?: { impressions?: number; clicks?: number };
+  // views: the tournament page, once per visitor per Lagos day (owner, 24 Nov 2026: "page-view counts in the sponsor's report").
+  sponsorStats?: { impressions?: number; clicks?: number; views?: number };
+  // Who was told in Messages that they placed (§5; owner, 24 Nov 2026: "telling winners in Messages"), so nobody is told twice.
+  winners?: Winner[];
+  winnersNotifiedAt?: string; // the last time Admin told winners
 };
 
-/** What the public sees: everything but the seed, who made it and the internal ticks. */
-export type PublicTournament = Omit<Tournament, "seed" | "createdBy" | "legalChecked" | "sponsorStats" | "runs" | "finished"> & { phase: Phase };
+/** One player told they placed: the place they were told, the prize (none in a tournament without prizes), when, and how. */
+export type Winner = { uid: string; username: string; place: number; prize: string; at: string; dm: boolean };
 
-export type Phase = "upcoming" | "playing" | "ended";
-
-/** Where a tournament is in time. A closed tournament (or one with results) has ended whatever the clock says; a draft is never playing. */
-export function phase(t: Pick<Tournament, "playFrom" | "playUntil" | "status">, now = new Date()): Phase {
-  if (t.status === "closed" || t.status === "results") return "ended";
-  const n = now.getTime();
-  if (n < Date.parse(t.playFrom)) return "upcoming";
-  if (n < Date.parse(t.playUntil)) return t.status === "open" ? "playing" : "upcoming";
-  return "ended";
-}
+/** What the public sees: everything but the seed, who made it, the internal ticks and counts, and the winners' account ids. */
+export type PublicTournament = Omit<Tournament, "seed" | "createdBy" | "legalChecked" | "sponsorStats" | "runs" | "finished" | "winners"> & { phase: Phase };
 
 export const publicTournament = (t: Tournament, now = new Date()): PublicTournament => {
-  const { seed: _s, createdBy: _c, legalChecked: _l, sponsorStats: _st, runs: _r, finished: _f, ...rest } = t; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { seed: _s, createdBy: _c, legalChecked: _l, sponsorStats: _st, runs: _r, finished: _f, winners: _w, ...rest } = t; // eslint-disable-line @typescript-eslint/no-unused-vars
   return { ...rest, phase: phase(t, now) };
 };
-
-/** Shown on the public list: open, closed or with results (never a draft), and an open one only from its entryFrom. */
-export function listed(t: Tournament, now = new Date()): boolean {
-  if (t.status === "draft") return false;
-  if (t.status === "open" && t.entryFrom && now.getTime() < Date.parse(t.entryFrom)) return false;
-  return true;
-}
 
 // Who may play a try. The server reads these from the account (users/{uid}, the token and the kids' uid prefix) inside its transaction.
 export type Member = {
