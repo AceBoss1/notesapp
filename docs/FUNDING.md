@@ -49,7 +49,7 @@ pitch.tech deck" note below.
 | # | Slide | # | Slide |
 |---|---|---|---|
 | 1 | Cover: "Africa's knowledge, shared, valued and rewarded." | 9 | Built for Africa, built for trust (local currency, Moments captioned live) |
-| 2 | The problem: five apps and a bank transfer | 10 | Traction, 19 Nov 2026 (484 members, ₦3.99M processed, ₦823K paid out, 8 countries) |
+| 2 | The problem: five apps and a bank transfer | 10 | Traction, 24 Nov 2026 (628 members, ₦4.03M processed, ₦823K paid out; text below in §1) |
 | 3 | The solution: one account, one link, paid in your currency | 11 | Business model |
 | 4 | What we've built: 291 releases, 164 test suites | 12 | Why now, why us (every founder a creator or instructor) |
 | 5 | The product: eight areas, all live | 13 | The next twelve months |
@@ -68,7 +68,7 @@ pitch.tech deck" note below.
 - Keep the claims as they stand: "processed", never "revenue"; Studio Pro, the team hub, Nana Lite and the portrait studio are "in
   testing"; NotesPhone and Anya are reservations only.
 
-### Deadlines at a glance (as of Thursday 19 November 2026)
+### Deadlines at a glance (as of Thursday 19 November 2026; two added Tuesday 24 November)
 
 Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
 registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
@@ -86,6 +86,8 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | **Sun 29 Nov 2026, 11:59 p.m. PT** (Mon 30 Nov, 08:59) | **Vercel X** (AI accelerator, San Francisco, no equity) | the answers in §25, a demo link, who travels | §25 |
 | **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
+| **Mon 30 Nov 2026** (results 10 Dec) | Startup Showcase Global, November 2026 Campaign (top 5 get USD 10,000 each) | a listing on their site; **check for a fee first** | §29 |
+| **Rolling: apply now** (cohort starts Feb 2027 in SF) | **Solo Founders Program** (USD 100k uncapped MFN SAFE + 2.5% equity) | the application; a US visa plan | §30 |
 
 **December and later:**
 
@@ -114,8 +116,8 @@ get paid for it, in their own currency.
 > today stitch together WhatsApp, a booking link, a blog, a shop page and bank transfers to earn from what they know, and they lose
 > sales and trust in the gaps. NotesApp puts it in one place: a public journal, live audio and video, a booking calendar, paid courses
 > (Notes Academy), a shop with delivery, communities, encrypted calls and payouts in local currency (naira first, and most African
-> currencies through Flutterwave), with Nana, our AI agent, doing the routine work. It is live, with 484 members in Nigeria and seven
-> other countries (19 November 2026); its Exam Prep has 4,090 original JAMB, WAEC and NECO questions, each checked by a reviewer
+> currencies through Flutterwave), with Nana, our AI agent, doing the routine work. It is live, with 628 members (24 November 2026),
+> in Nigeria and seven other countries at the last count; its Exam Prep has 4,090 original JAMB, WAEC and NECO questions, each checked by a reviewer
 > (some free, the rest ₦1,000 an exam for a year), and its Kiswahili translation and speech work earned a Special Recognition at the
 > Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware,
 > incorporated 9 November 2026) holds the mobile apps and the raise. Founder: Emmanuel Adams (CTO at Aider; lead consultant and
@@ -128,30 +130,39 @@ emmanuel@naapp.tech.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **19 November 2026**), with
-12 November beside it:
+**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **24 November 2026**), with
+19 and 12 November beside it:
 
-| | As of 19 Nov 2026 | 12 Nov 2026 |
-|---|---|---|
-| Registered members | **484**, 457 joined in the last 30 days | 248 (232 in 30 days) |
-| Publishers | 466 | 233 |
-| Sellers | 4, with 29 items listed | 3, 24 items |
-| Organisations | 8 | 7 |
-| Gold-verified accounts | 43 | 40 |
-| Paid transactions | 86, from 6 paying customers | 84, from 5 |
-| Money processed | ₦3,986,795 (₦2,542,099 in the last 30 days) | ₦3,978,795 |
-| Store orders / digital sales / sessions booked | 0 / 0 / 1 (held) | — |
-| Merch pre-orders | 5 | — |
-| Paid out to sellers and publishers | **₦823,072** in 9 payouts | ₦170 in 1 payout |
-| Held in escrow | ₦317,194 | ₦1,140,095.96 |
-| **Commission earned (our revenue)** | `[refresh from /admin]` | **₦121,168.80** (about USD 81 at ₦1,500) |
+| | As of 24 Nov 2026 | 19 Nov 2026 | 12 Nov 2026 |
+|---|---|---|---|
+| Registered members | **628**, 600 joined in the last 30 days | 484 (457 in 30 days) | 248 (232 in 30 days) |
+| Publishers | 601 | 466 | 233 |
+| Sellers | 4, with 29 items listed | 4, 29 items | 3, 24 items |
+| Organisations | 10 | 8 | 7 |
+| Gold-verified accounts | 43 | 43 | 40 |
+| Paid transactions | 87, from 6 paying customers | 86, from 6 | 84, from 5 |
+| Money processed | **₦4,031,795** (₦2,587,099 in the last 30 days) | ₦3,986,795 | ₦3,978,795 |
+| Store orders / digital sales / sessions booked | 0 / 0 / 1 (held) | 0 / 0 / 1 (held) | — |
+| Merch pre-orders | 5 | 5 | — |
+| Paid out to sellers and publishers | **₦823,072** in 9 payouts | ₦823,072 in 9 | ₦170 in 1 payout |
+| Held in escrow | ₦317,194 | ₦317,194 | ₦1,140,095.96 |
+| **Commission earned (our revenue)** | `[refresh from /admin]` | — | **₦121,168.80** (about USD 81 at ₦1,500) |
+
+**Slide 10 (Traction), as of 24 November 2026, ready to paste into the deck:**
+
+> **628 members** in 12 weeks live, **600 in the last 30 days** · **601 publishers** · **10 organisations** · **43 Gold-verified**
+> **₦4.03M processed** (₦2.59M in the last 30 days) · **87 paid transactions** · **₦823K paid out** to members in 9 payouts ·
+> ₦317K held in escrow until delivery · 5 merch pre-orders · Exam Prep: 4,090 reviewed questions · NKENNEAi Special Recognition
+
+(Check "12 weeks live" against the launch date before sending; drop it if unsure. Speaker note: our revenue is the commission,
+`[refresh from /admin]`; 87 transactions came from 6 paying customers.)
 
 (65% women was the 8 November count of 86 members; recount before quoting it again.)
 
-**How to say it honestly:** we're early. The strong numbers are growth (members nearly doubled in a week, 457 of 484 joined in the
-last 30 days) and money moving through to members (₦823K paid out). Say "processed", never "revenue": our revenue is the commission
-we earned (₦121,168.80 at 12 November; take the current figure before quoting). If asked, 86 transactions came from 6 customers, so
-say so; don't present it as 86 customers. Store orders and digital sales haven't started yet.
+**How to say it honestly:** we're early. The strong numbers are growth (members grew 2.5× in twelve days, 248 → 628; 600 of 628
+joined in the last 30 days) and money moving through to members (₦823K paid out). Say "processed", never "revenue": our revenue is the commission
+we earned (₦121,168.80 at 12 November; take the current figure before quoting). If asked, 87 transactions came from 6 customers, so
+say so; don't present it as 87 customers. Store orders and digital sales haven't started yet.
 
 ---
 
@@ -1602,3 +1613,36 @@ when the business tools (Business books, the hotel kit, Nana's operator for Busi
 that's a B2B AI story they could fund.
 
 **Global Startup Awards × HubSpot:** see §26 (apply).
+
+---
+
+## 29. Startup Showcase Global: November 2026 Campaign
+
+> Status: **deadline Monday 30 November 2026; results 10 December 2026.** From Startup Showcase Global's LinkedIn post, read
+> 24 November 2026. Their site (startupshowcaseglobal.com) didn't load from here, so the terms are unread.
+
+- **What:** "USD 50,000 Startup Grant": the **top 5** ideas or startups get **USD 10,000 each**; the top 10 are shortlisted and ranked.
+  Open worldwide, any industry. You enter by **listing your startup** on their site.
+- **Check before entering:** who runs it, how winners are judged, and **whether the listing costs money**. We found no independent
+  coverage or winners from earlier campaigns, and "list your startup" grants sometimes charge a listing fee. **If it asks for any
+  payment, don't enter**: a real grant doesn't charge to apply.
+- **Fit:** low effort if it's free: §1's paragraph, the deck (24 November numbers) and the logo. **Send by Sunday 29 November.**
+
+---
+
+## 30. Solo Founders Program (San Francisco, 2027 cohort)
+
+> Status: **apply now (rolling review; applications close February 2027); the cohort is in person in San Francisco for three months
+> from February 2027.** From [solofounders.com/program](https://solofounders.com/program) and a LinkedIn post, read 21–24 November 2026.
+
+- **Terms:** **2.5% equity** to take part, plus a **USD 100k investment on an uncapped MFN SAFE** ("designed to work alongside other
+  funding"). No programme fee. On our US$10M post-money pre-seed the SAFE takes the same cap (about 1%), so about **3.5% in all**;
+  with the US$1M pre-seed, about 13.5% sold before a priced round. **They don't lead rounds.** Read the SAFE and any side letter
+  (their site has a "Side Letter Explorer") with counsel; check what form the 2.5% takes.
+- **What you get:** weekly 1:1s with Julian (co-founder of On Deck), a desk in their SF office, a kickoff retreat, dinners and office
+  hours, USD 800k+ in credits (AWS, Anthropic, OpenAI, Supabase, Vercel, Cloudflare), optional housing at USD 1,500 a month.
+- **Who:** solo founders of technology companies, full-time, any stage. Through NotesApp Inc (Delaware), so no restructuring.
+- **The constraint:** **fully in person, no remote option**, and they **can't sponsor visas** (they "work with founders on various
+  visa types"). Check US visa timing for the founder now; say so in the application.
+- **Fit: good** if three months in SF is possible: low equity for an accelerator, and it sits alongside the pre-seed.
+
