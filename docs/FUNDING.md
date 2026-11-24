@@ -87,6 +87,7 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
 | **Mon 30 Nov 2026** (results 10 Dec) | Startup Showcase Global, November 2026 Campaign (top 5 get USD 10,000 each) | a listing on their site; **check for a fee first** | §29 |
+| **Check first: last cycle closed 27 Dec** (next date unconfirmed) | **Innovate Bay Scale Sprint** (Fremont, CA; USD 20,000 SAFE), for NotesPhone and Anya | §31's drafted answers | §31 |
 | **Rolling: apply now** (cohort starts Feb 2027 in SF) | **Solo Founders Program** (USD 100k uncapped MFN SAFE + 2.5% equity) | the application; a US visa plan | §30 |
 
 **December and later:**
@@ -1645,4 +1646,89 @@ that's a B2B AI story they could fund.
 - **The constraint:** **fully in person, no remote option**, and they **can't sponsor visas** (they "work with founders on various
   visa types"). Check US visa timing for the founder now; say so in the application.
 - **Fit: good** if three months in SF is possible: low equity for an accelerator, and it sits alongside the pre-seed.
+
+---
+
+## 31. Innovate Bay Scale Sprint (Fremont, California): for Notes Smart Devices
+
+> Status: **form at innovatebay.co/apply-founder; next deadline not confirmed.** innovatebay.co, sfbu.edu and luma.com don't load
+> from here (owner sent the link 24 November 2026), so this is from search results: Business Wire (29 Aug 2025), the SFBU press release
+> and flyer, and Fremont's July 2026 economy bulletin. The last cycle closed **27 December 2025** for a February–April 2026 sprint, so
+> a similar date (late December 2026 for early 2027) is likely but **unconfirmed**: check the form for its date.
+
+- **What:** an incubator run by San Francisco Bay University (SFBU) at its Fremont campus. A **12-week Scale Sprint** for **pre-seed
+  frontier-tech** founders (AI, robotics, climate tech, cybersecurity, Web3, **IoT**), ending in a Demo Day at Fremont Tech Week.
+- **What you get:** **USD 20,000 on a SAFE** (cap and discount not published), advisors, coworking space, investor introductions.
+  No fee mentioned anywhere. Contact: Rohan Brown, executive director (rohan.brown@sfbu.edu).
+- **Fit: medium.** Apply as **Notes Smart Devices** (NotesPhone + Anya glasses, with Nana as the AI on both): that's the IoT and AI
+  angle they ask for. NotesApp alone is a marketplace, a weaker fit. Through NotesApp Inc (Delaware).
+- **Check before submitting:** (1) the SAFE's cap: at USD 20,000 a cap under our USD 10M post-money would price us below the
+  pre-seed, so ask for USD 10M or an MFN; (2) whether it's **in person in Fremont** for the 12 weeks (likely; plan the visa as for §30);
+  (3) the deadline. **Be honest that the devices are reservations only:** the partner isn't signed, nothing has been ordered and
+  there's no price yet (`docs/DEVICES.md`). Don't name the partner.
+
+**Drafted answers** (the usual incubator questions; the form's own wording wasn't readable, so match each to its box and trim to
+any limit). Fill the `[…]` from Admin → Leads → Smart devices on the day.
+
+**Company / product name:** Notes Smart Devices, by NotesApp Inc (Delaware). Products: NotesPhone and Anya smart glasses.
+
+**Website:** devices.naapp.tech (main product: naapp.tech)
+
+**One line (≤ 140 characters):** Phones and smart glasses with Africa's knowledge platform and an AI agent, Nana, built in: learn, teach and earn from one device.
+
+**Sector:** IoT / consumer hardware + AI. **Stage:** pre-seed; software live, devices in reservation. **Location:** Lagos, Nigeria;
+company in Delaware.
+
+**What are you building? (≈ 150 words)**
+> NotesApp is a live platform where Africa's creators, teachers and professionals share what they know, teach it, sell it and get
+> paid in their own currency: 628 members and ₦4.03M processed (24 November 2026). Notes Smart Devices brings it into hardware.
+> **NotesPhone** is a white-label Android phone made by an established manufacturer, with NotesApp and our AI agent Nana in the core
+> of the OS: lessons, bookings, payments and offline Exam Prep (4,090 reviewed JAMB, WAEC and NECO questions) work from the first
+> boot. **Anya** is a family of smart glasses with Nana as the assistant: live translation (our Kiswahili speech work won a Special
+> Recognition at the NKENNEAi Hackathon), hands-free notes and lessons. We take free reservations today and order only when a model
+> reaches the factory's 500-unit minimum, so we never hold stock nobody wants.
+
+**What problem do you solve, and for whom?**
+> In Africa the phone is the computer, the classroom and the shop counter, but nothing on it is built for people who earn from what
+> they know. A tutor in Lagos or a coach in Nairobi stitches WhatsApp, a booking link, a shop page and bank transfers together, and
+> students revise for exams on patchy data. A device where the platform, the AI and the exam content are already there, and work
+> offline, removes the setup and the data cost for the people least able to pay for either.
+
+**Why now / why you?**
+> The software is built and used: NotesApp, Nana, Exam Prep, payouts in local currency. The founder, Emmanuel Adams, is CTO at Aider
+> and a working developer who built the platform end to end. A white-label partner removes the hardest part of a phone (the hardware
+> R&D) for the first model, so the money goes into the software, the content and distribution, which is where we're strong.
+
+**Traction:**
+> NotesApp: 628 members (600 in the last 30 days), 601 publishers, 10 organisations, 87 paid transactions (from 6 paying customers),
+> ₦4.03M processed, ₦823K paid out to members (24 November 2026). Devices: `[n]` NotesPhone and `[n]` Anya reservations since
+> 19 November 2026 (free, no payment taken). Partner terms agreed so far: one first model (NotesPhone E Pro), 500-unit minimum,
+> delivery 33 days after payment.
+
+**Business model:**
+> Margin on each device; NotesApp's commission on everything sold through it (courses, bookings, shop); Nana and premium
+> subscriptions. Schools and governments as bulk buyers (a Nana Lite pilot in 2,000 schools is in our plan).
+
+**Competition:**
+> Transsion (Tecno, Infinix, itel) owns African phone volume but ships no knowledge or earning platform; Meta's Ray-Ban glasses aren't
+> sold in most of Africa and don't speak its languages. We're the platform and AI first, with the device as the way in.
+
+**What would you use the USD 20,000 and the 12 weeks for?**
+> To turn reservations into the first order: confirm the partner's unit price and the cost of putting NotesApp in the OS, build and
+> test the OS integration and offline Exam Prep on the E Pro, prototype Anya's translation on an off-the-shelf frame, and line up
+> one school or distributor to pre-commit to part of the first 500. And to meet hardware investors and distributors in the Bay Area.
+
+**Biggest risk and how you'll handle it:**
+> Hardware cash: a 500-unit minimum is paid up front. We order only when reservations (or a school or distributor commitment) cover
+> it, and the partner, not us, carries the hardware R&D for the first model.
+
+**Team:** Emmanuel Adams, founder and CEO (full time). CTO at Aider; lead consultant and developer, Adams Consults; Forbes BLK member.
+Built NotesApp. `[add any co-founder or advisor on the devices side]`
+
+**Funding so far:** bootstrapped; raising a USD 1M pre-seed on a SAFE (USD 10M post-money cap).
+
+**Can you attend in person in Fremont for 12 weeks?** `[answer honestly once the visa timing is known]`
+
+**Attachments:** the deck (24 November numbers, slide 10 above), a 60-second demo video of NotesApp and Nana, the devices page
+screenshot. Don't send the partner's name or quotes.
 
