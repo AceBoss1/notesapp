@@ -49,7 +49,7 @@ pitch.tech deck" note below.
 | # | Slide | # | Slide |
 |---|---|---|---|
 | 1 | Cover: "Africa's knowledge, shared, valued and rewarded." | 9 | Built for Africa, built for trust (local currency, Moments captioned live) |
-| 2 | The problem: five apps and a bank transfer | 10 | Traction, 19 Nov 2026 (484 members, ₦3.99M processed, ₦823K paid out, 8 countries) |
+| 2 | The problem: five apps and a bank transfer | 10 | Traction, 24 Nov 2026 (628 members, ₦4.03M processed, ₦823K paid out; text below in §1) |
 | 3 | The solution: one account, one link, paid in your currency | 11 | Business model |
 | 4 | What we've built: 291 releases, 164 test suites | 12 | Why now, why us (every founder a creator or instructor) |
 | 5 | The product: eight areas, all live | 13 | The next twelve months |
@@ -68,7 +68,7 @@ pitch.tech deck" note below.
 - Keep the claims as they stand: "processed", never "revenue"; Studio Pro, the team hub, Nana Lite and the portrait studio are "in
   testing"; NotesPhone and Anya are reservations only.
 
-### Deadlines at a glance (as of Thursday 19 November 2026)
+### Deadlines at a glance (as of Thursday 19 November 2026; four added Tuesday 24 November)
 
 Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
 registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
@@ -86,6 +86,10 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | **Sun 29 Nov 2026, 11:59 p.m. PT** (Mon 30 Nov, 08:59) | **Vercel X** (AI accelerator, San Francisco, no equity) | the answers in §25, a demo link, who travels | §25 |
 | **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
+| **Mon 30 Nov 2026** (results 10 Dec) | Startup Showcase Global, November 2026 Campaign (top 5 get USD 10,000 each) | a listing on their site; **check for a fee first** | §29 |
+| **Rolling: apply now** (one listing says 31 Dec 2026) | **UNDP timbuktoo EdTech Hub**, pan-African incubation, for Exam Prep and the Nana tutor | §32's drafted answers | §32 |
+| **Open now: IB-03** (deadline not shown; last cycle closed 27 Dec) | **Innovate Bay IB-03** (Fremont, CA; up to USD 40,000), for NotesPhone and Anya | §31's drafted answers | §31 |
+| **Rolling: apply now** (cohort starts Feb 2027 in SF) | **Solo Founders Program** (USD 100k uncapped MFN SAFE + 2.5% equity) | the application; a US visa plan | §30 |
 
 **December and later:**
 
@@ -114,10 +118,10 @@ get paid for it, in their own currency.
 > today stitch together WhatsApp, a booking link, a blog, a shop page and bank transfers to earn from what they know, and they lose
 > sales and trust in the gaps. NotesApp puts it in one place: a public journal, live audio and video, a booking calendar, paid courses
 > (Notes Academy), a shop with delivery, communities, encrypted calls and payouts in local currency (naira first, and most African
-> currencies through Flutterwave), with Nana, our AI agent, doing the routine work. It is live, with 484 members in Nigeria and seven
-> other countries (19 November 2026); its Exam Prep has 4,090 original JAMB, WAEC and NECO questions, each checked by a reviewer
+> currencies through Flutterwave), with Nana, our AI agent, doing the routine work. It is live, with 628 members (24 November 2026),
+> in Nigeria and seven other countries at the last count; its Exam Prep has 4,090 original JAMB, WAEC and NECO questions, each checked by a reviewer
 > (some free, the rest ₦1,000 an exam for a year), and its Kiswahili translation and speech work earned a Special Recognition at the
-> Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware,
+> Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd (RC 9825642, incorporated 2 September 2026) runs it from Nigeria; NotesApp Inc (Delaware,
 > incorporated 9 November 2026) holds the mobile apps and the raise. Founder: Emmanuel Adams (CTO at Aider; lead consultant and
 > developer, Adams Consults; Forbes BLK member).
 
@@ -128,30 +132,39 @@ emmanuel@naapp.tech.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **19 November 2026**), with
-12 November beside it:
+**Numbers to fill before sending:** take them from `/admin` on the day. The latest snapshot (owner, **24 November 2026**), with
+19 and 12 November beside it:
 
-| | As of 19 Nov 2026 | 12 Nov 2026 |
-|---|---|---|
-| Registered members | **484**, 457 joined in the last 30 days | 248 (232 in 30 days) |
-| Publishers | 466 | 233 |
-| Sellers | 4, with 29 items listed | 3, 24 items |
-| Organisations | 8 | 7 |
-| Gold-verified accounts | 43 | 40 |
-| Paid transactions | 86, from 6 paying customers | 84, from 5 |
-| Money processed | ₦3,986,795 (₦2,542,099 in the last 30 days) | ₦3,978,795 |
-| Store orders / digital sales / sessions booked | 0 / 0 / 1 (held) | — |
-| Merch pre-orders | 5 | — |
-| Paid out to sellers and publishers | **₦823,072** in 9 payouts | ₦170 in 1 payout |
-| Held in escrow | ₦317,194 | ₦1,140,095.96 |
-| **Commission earned (our revenue)** | `[refresh from /admin]` | **₦121,168.80** (about USD 81 at ₦1,500) |
+| | As of 24 Nov 2026 | 19 Nov 2026 | 12 Nov 2026 |
+|---|---|---|---|
+| Registered members | **628**, 600 joined in the last 30 days | 484 (457 in 30 days) | 248 (232 in 30 days) |
+| Publishers | 601 | 466 | 233 |
+| Sellers | 4, with 29 items listed | 4, 29 items | 3, 24 items |
+| Organisations | 10 | 8 | 7 |
+| Gold-verified accounts | 43 | 43 | 40 |
+| Paid transactions | 87, from 6 paying customers | 86, from 6 | 84, from 5 |
+| Money processed | **₦4,031,795** (₦2,587,099 in the last 30 days) | ₦3,986,795 | ₦3,978,795 |
+| Store orders / digital sales / sessions booked | 0 / 0 / 1 (held) | 0 / 0 / 1 (held) | — |
+| Merch pre-orders | 5 | 5 | — |
+| Paid out to sellers and publishers | **₦823,072** in 9 payouts | ₦823,072 in 9 | ₦170 in 1 payout |
+| Held in escrow | ₦317,194 | ₦317,194 | ₦1,140,095.96 |
+| **Commission earned (our revenue)** | `[refresh from /admin]` | — | **₦121,168.80** (about USD 81 at ₦1,500) |
+
+**Slide 10 (Traction), as of 24 November 2026, ready to paste into the deck:**
+
+> **628 members** in 12 weeks live, **600 in the last 30 days** · **601 publishers** · **10 organisations** · **43 Gold-verified**
+> **₦4.03M processed** (₦2.59M in the last 30 days) · **87 paid transactions** · **₦823K paid out** to members in 9 payouts ·
+> ₦317K held in escrow until delivery · 5 merch pre-orders · Exam Prep: 4,090 reviewed questions · NKENNEAi Special Recognition
+
+(Check "12 weeks live" against the launch date before sending; drop it if unsure. Speaker note: our revenue is the commission,
+`[refresh from /admin]`; 87 transactions came from 6 paying customers.)
 
 (65% women was the 8 November count of 86 members; recount before quoting it again.)
 
-**How to say it honestly:** we're early. The strong numbers are growth (members nearly doubled in a week, 457 of 484 joined in the
-last 30 days) and money moving through to members (₦823K paid out). Say "processed", never "revenue": our revenue is the commission
-we earned (₦121,168.80 at 12 November; take the current figure before quoting). If asked, 86 transactions came from 6 customers, so
-say so; don't present it as 86 customers. Store orders and digital sales haven't started yet.
+**How to say it honestly:** we're early. The strong numbers are growth (members grew 2.5× in twelve days, 248 → 628; 600 of 628
+joined in the last 30 days) and money moving through to members (₦823K paid out). Say "processed", never "revenue": our revenue is the commission
+we earned (₦121,168.80 at 12 November; take the current figure before quoting). If asked, 87 transactions came from 6 customers, so
+say so; don't present it as 87 customers. Store orders and digital sales haven't started yet.
 
 ---
 
@@ -1602,3 +1615,192 @@ when the business tools (Business books, the hotel kit, Nana's operator for Busi
 that's a B2B AI story they could fund.
 
 **Global Startup Awards × HubSpot:** see §26 (apply).
+
+---
+
+## 29. Startup Showcase Global: November 2026 Campaign
+
+> Status: **deadline Monday 30 November 2026; results 10 December 2026.** From Startup Showcase Global's LinkedIn post, read
+> 24 November 2026. Their site (startupshowcaseglobal.com) didn't load from here, so the terms are unread.
+
+- **What:** "USD 50,000 Startup Grant": the **top 5** ideas or startups get **USD 10,000 each**; the top 10 are shortlisted and ranked.
+  Open worldwide, any industry. You enter by **listing your startup** on their site.
+- **Check before entering:** who runs it, how winners are judged, and **whether the listing costs money**. We found no independent
+  coverage or winners from earlier campaigns, and "list your startup" grants sometimes charge a listing fee. **If it asks for any
+  payment, don't enter**: a real grant doesn't charge to apply.
+- **Fit:** low effort if it's free: §1's paragraph, the deck (24 November numbers) and the logo. **Send by Sunday 29 November.**
+
+---
+
+## 30. Solo Founders Program (San Francisco, 2027 cohort)
+
+> Status: **apply now (rolling review; applications close February 2027); the cohort is in person in San Francisco for three months
+> from February 2027.** From [solofounders.com/program](https://solofounders.com/program) and a LinkedIn post, read 21–24 November 2026.
+
+- **Terms:** **2.5% equity** to take part, plus a **USD 100k investment on an uncapped MFN SAFE** ("designed to work alongside other
+  funding"). No programme fee. On our US$10M post-money pre-seed the SAFE takes the same cap (about 1%), so about **3.5% in all**;
+  with the US$1M pre-seed, about 13.5% sold before a priced round. **They don't lead rounds.** Read the SAFE and any side letter
+  (their site has a "Side Letter Explorer") with counsel; check what form the 2.5% takes.
+- **What you get:** weekly 1:1s with Julian (co-founder of On Deck), a desk in their SF office, a kickoff retreat, dinners and office
+  hours, USD 800k+ in credits (AWS, Anthropic, OpenAI, Supabase, Vercel, Cloudflare), optional housing at USD 1,500 a month.
+- **Who:** solo founders of technology companies, full-time, any stage. Through NotesApp Inc (Delaware), so no restructuring.
+- **The constraint:** **fully in person, no remote option**, and they **can't sponsor visas** (they "work with founders on various
+  visa types"). Check US visa timing for the founder now; say so in the application.
+- **Fit: good** if three months in SF is possible: low equity for an accelerator, and it sits alongside the pre-seed.
+
+---
+
+## 31. Innovate Bay IB-03, 12-week sprint (Fremont, California): for Notes Smart Devices
+
+> Status: **applications open for IB-03 at innovatebay.co/apply-founder; deadline not shown.** The page loads (24 November 2026)
+> and says: "Apply to Innovate Bay's IB-03 12-Week Sprint. Selected startups receive mentorship, coworking space, investor exposure,
+> pilot support, and **up to $40,000** in startup investment." The form itself is drawn by a host that's blocked here, so its
+> questions are unread. The rest is from Business Wire (29 Aug 2025), the SFBU press release and flyer, and Fremont's July 2026 bulletin. The last cycle closed **27 December 2025** for a February–April 2026 sprint, so
+> a similar date (late December 2026 for early 2027) is likely but **unconfirmed**: check the form for its date.
+
+- **What:** an incubator run by San Francisco Bay University (SFBU) at its Fremont campus. A **12-week Scale Sprint** for **pre-seed
+  frontier-tech** founders (AI, robotics, climate tech, cybersecurity, Web3, **IoT**), ending in a Demo Day at Fremont Tech Week.
+- **What you get:** **up to USD 40,000** in investment (IB-03; earlier cohorts: USD 20,000 on a SAFE; cap and discount not published),
+  mentorship, coworking space, investor exposure and **pilot support**.
+  No fee mentioned anywhere. Contact: Rohan Brown, executive director (rohan.brown@sfbu.edu).
+- **Fit: medium.** Apply as **Notes Smart Devices** (NotesPhone + Anya glasses, with Nana as the AI on both): that's the IoT and AI
+  angle they ask for. NotesApp alone is a marketplace, a weaker fit. Through NotesApp Inc (Delaware).
+- **Check before submitting:** (1) the SAFE's cap: a cap under our USD 10M post-money would price us below the
+  pre-seed, so ask for USD 10M or an MFN; (2) whether it's **in person in Fremont** for the 12 weeks (likely; plan the visa as for §30);
+  (3) the deadline. **Be honest that the devices are reservations only:** the partner isn't signed, nothing has been ordered and
+  there's no price yet (`docs/DEVICES.md`). Don't name the partner.
+
+**Drafted answers** (the usual incubator questions; the form's own wording wasn't readable, so match each to its box and trim to
+any limit). Fill the `[…]` from Admin → Leads → Smart devices on the day.
+
+**Company / product name:** Notes Smart Devices, by NotesApp Inc (Delaware). Products: NotesPhone and Anya smart glasses.
+
+**Website:** devices.naapp.tech (main product: naapp.tech)
+
+**One line (≤ 140 characters):** Phones and smart glasses with Africa's knowledge platform and an AI agent, Nana, built in: learn, teach and earn from one device.
+
+**Sector:** IoT / consumer hardware + AI. **Stage:** pre-seed; software live, devices in reservation. **Location:** Lagos, Nigeria;
+company in Delaware.
+
+**What are you building? (≈ 150 words)**
+> NotesApp is a live platform where Africa's creators, teachers and professionals share what they know, teach it, sell it and get
+> paid in their own currency: 628 members and ₦4.03M processed (24 November 2026). Notes Smart Devices brings it into hardware.
+> **NotesPhone** is a white-label Android phone made by an established manufacturer, with NotesApp and our AI agent Nana in the core
+> of the OS: lessons, bookings, payments and offline Exam Prep (4,090 reviewed JAMB, WAEC and NECO questions) work from the first
+> boot. **Anya** is a family of smart glasses with Nana as the assistant: live translation (our Kiswahili speech work won a Special
+> Recognition at the NKENNEAi Hackathon), hands-free notes and lessons. We take free reservations today and order only when a model
+> reaches the factory's 500-unit minimum, so we never hold stock nobody wants.
+
+**What problem do you solve, and for whom?**
+> In Africa the phone is the computer, the classroom and the shop counter, but nothing on it is built for people who earn from what
+> they know. A tutor in Lagos or a coach in Nairobi stitches WhatsApp, a booking link, a shop page and bank transfers together, and
+> students revise for exams on patchy data. A device where the platform, the AI and the exam content are already there, and work
+> offline, removes the setup and the data cost for the people least able to pay for either.
+
+**Why now / why you?**
+> The software is built and used: NotesApp, Nana, Exam Prep, payouts in local currency. The founder, Emmanuel Adams, is CTO at Aider
+> and a working developer who built the platform end to end. A white-label partner removes the hardest part of a phone (the hardware
+> R&D) for the first model, so the money goes into the software, the content and distribution, which is where we're strong.
+
+**Traction:**
+> NotesApp: 628 members (600 in the last 30 days), 601 publishers, 10 organisations, 87 paid transactions (from 6 paying customers),
+> ₦4.03M processed, ₦823K paid out to members (24 November 2026). Devices: `[n]` NotesPhone and `[n]` Anya reservations since
+> 19 November 2026 (free, no payment taken). Partner terms agreed so far: one first model (NotesPhone E Pro), 500-unit minimum,
+> delivery 33 days after payment.
+
+**Business model:**
+> Margin on each device; NotesApp's commission on everything sold through it (courses, bookings, shop); Nana and premium
+> subscriptions. Schools and governments as bulk buyers (a Nana Lite pilot in 2,000 schools is in our plan).
+
+**Competition:**
+> Transsion (Tecno, Infinix, itel) owns African phone volume but ships no knowledge or earning platform; Meta's Ray-Ban glasses aren't
+> sold in most of Africa and don't speak its languages. We're the platform and AI first, with the device as the way in.
+
+**What would you use the investment (up to USD 40,000) and the 12 weeks for?**
+> To turn reservations into the first order: confirm the partner's unit price and the cost of putting NotesApp in the OS, build and
+> test the OS integration and offline Exam Prep on the E Pro, prototype Anya's translation on an off-the-shelf frame, and line up
+> one school or distributor to pre-commit to part of the first 500 (the pilot support helps here). And to meet hardware investors and distributors in the Bay Area.
+
+**Biggest risk and how you'll handle it:**
+> Hardware cash: a 500-unit minimum is paid up front. We order only when reservations (or a school or distributor commitment) cover
+> it, and the partner, not us, carries the hardware R&D for the first model.
+
+**Team:** Emmanuel Adams, founder and CEO (full time). CTO at Aider; lead consultant and developer, Adams Consults; Forbes BLK member.
+Built NotesApp. `[add any co-founder or advisor on the devices side]`
+
+**Funding so far:** bootstrapped; raising a USD 1M pre-seed on a SAFE (USD 10M post-money cap).
+
+**Can you attend in person in Fremont for 12 weeks?** `[answer honestly once the visa timing is known]`
+
+**Attachments:** the deck (slide 10 updated to 24 November), a 60-second demo video of NotesApp and Nana, the devices page
+screenshot. Don't send the partner's name or quotes.
+
+
+
+---
+
+## 32. UNDP timbuktoo EdTech Hub: pan-African incubation (Exam Prep and the Nana tutor)
+
+> Status: **rolling, open now** (Menterprise Africa's LinkedIn post, 23 November 2026; one listing, fundsforNGOs, gives
+> **31 December 2026**; UNDP's own page, July 2026, shows no deadline). undp.org and the listings don't load from here, so the form's
+> questions are unread: **find the form from UNDP's timbuktoo page** (undp.org/africa/projects/timbuktoo), not from a repost. Free; UNDP
+> doesn't charge to apply. The earlier round, "Get Ready 4 timbuktoo EdTech" (closed 18 Feb 2026), took 50 startups from 1,429.
+
+- **What you get:** structured incubation with African incubators, mentors and sector experts, a pan-African founder network, the
+  SIGMA startup platform, investment-readiness and pitch support, and pathways to acceleration and early-stage investment. No grant or
+  equity terms are mentioned; ask.
+- **Who:** African startups in education, training or skills; **a prototype ready to test or deploy**; a committed team. UNDP
+  particularly encourages **women-led** startups, **rural** reach and **local languages or accessibility**.
+- **Fit: strong.** Apply as **NotesApp Learning: Naija Exam Prep + the Nana tutor** (NotesApp Technologies Ltd, Nigeria). We're live
+  (not just a prototype), the tutor speaks **Pidgin and Kiswahili** (Igbo, Hausa, Yoruba coming), and offline packs reach students with
+  little data. **Don't call us women-led** unless the founding team's ownership says so; do name the women on the team (Chief Legal
+  Officer, Chief Compliance Officer, Head of Customer Service and Community). The earlier round asked for 6–8 hours a week: say yes
+  only if someone can give it.
+
+**Drafted answers** (match each to the form's boxes; fill the `[…]` from `/admin` → Exam Prep on the day; say "in testing" for Nana Lite).
+
+**Startup name:** NotesApp (Naija Exam Prep and the Nana tutor) · **Website:** prep.naapp.tech · **Country:** Nigeria (members in
+seven more countries) · **Stage:** live product, early revenue · **Sector:** EdTech: exam preparation, AI tutoring, teacher courses.
+
+**One line:** Exam practice and an AI tutor for African secondary students that works on little data and explains in the language
+they think in.
+
+**The problem (≈ 100 words):**
+> Every year about two million Nigerian students sit JAMB, and many more WAEC and NECO, often with no tutor, few past papers and
+> expensive data. When a student gets a question wrong, nobody explains why, and the explanation they do find is in formal English,
+> not the Pidgin or Kiswahili they think in. Rural and low-income students fall furthest behind, and teachers have no time to explain
+> every wrong answer to every student.
+
+**The solution (≈ 150 words):**
+> **Naija Exam Prep** (prep.naapp.tech) has **4,090 original JAMB, WAEC and NECO practice questions in 19 subjects**, each checked by a
+> reviewer before students see it, with timed mock exams marked by the server. **Offline packs** work without data once downloaded, so
+> one shared phone can serve several students. Free questions in every subject; **₦1,000 opens a whole exam for 12 months**, and pay
+> links let a parent pay. The **Nana tutor** explains a wrong answer another way, in **English, Pidgin or Kiswahili**, answering only
+> from our reviewed explanations, so it doesn't make things up. Teachers can also build their own courses on **Notes Academy** and
+> switch the tutor on for their lessons. **Nana Lite** (in testing) runs small open models we host ourselves, so tutoring stays cheap
+> enough for every student, and later offline on the phone.
+
+**Innovation / what's different:** grounded AI (it explains our reviewed answers, never invents); local languages; offline and low-data
+first; priced in naira for a parent's pocket; built and run in Nigeria.
+
+**Inclusion (local languages, accessibility, rural):** Pidgin and Kiswahili today, Igbo, Hausa and Yoruba next; offline packs and short
+text answers for basic phones and shared devices; a free pilot for schools; voice in and out next, for low-literacy learners.
+
+**Traction:** Exam Prep: `[students who practised]`, `[questions answered]`, `[exam packs bought]`, `[schools on the pilot]` (from
+/admin). NotesApp overall: 628 members (600 in the last 30 days), ₦4.03M processed through the platform, ₦823K paid out to creators and
+teachers (24 November 2026). Special Recognition at the Build With NKENNEAi Hackathon (October 2026) for our Kiswahili translation and
+speech work.
+
+**Business model:** ₦1,000 per exam for 12 months; schools by the term (the pilot is free); Notes Academy commission on paid courses.
+
+**Team:** Emmanuel Adams (founder and CEO; built the platform end to end; CTO at Aider); Emmanuela Emmanuel (co-founder, Chief Legal
+Officer: child safety and content rules); Ifenyinwa Akujobi (co-founder, Chief Compliance Officer); Ezurukam Ijeoma Pearl (co-founder,
+Head of Customer Service and Community); reviewers who check every question. Full time: `[who]`.
+
+**What you want from the incubation:** school partnerships and a measured pilot (practice time and score gains) in `[n]` schools,
+including rural ones; help with evidence of learning impact for education funders and ministries; investment readiness for our
+pre-seed; links to EdTech hubs in Kenya and Ghana, where we're growing next.
+
+**Attachments:** the deck (24 November numbers); a 60-second screen recording: a timed mock, a wrong answer, then the Nana tutor
+explaining it in Pidgin.
+
