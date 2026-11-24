@@ -20,7 +20,9 @@ import type { TourneyProps } from "@/lib/arcade/tournament-games";
 type UiPhase = "idle" | "running" | "paused";
 type Hud = { score: number; lives: number; level: number; phase: PuffState["phase"]; status: string };
 
-const BEST_KEY = "puffpuff.best";
+// Was "puffpuff.best", which the account save refuses (keys must start arcade-, lib/arcade/progress.ts), so a member's best was never kept.
+// Now saved like every other game's, and read by the leaderboard (lib/arcade/boards.ts).
+const BEST_KEY = "arcade-puffpuff-best";
 const COLS = MAZES[0].width;
 const ROWS = MAZES[0].height;
 
@@ -364,7 +366,8 @@ export default function PuffPuffGame({ tourney }: { tourney?: TourneyProps } = {
   }, []);
 
   const saveBest = useCallback((score: number) => {
-    if (score <= bestRef.current) return;
+    // A tournament try isn't a practice best (it would land on the practice leaderboard; owner, 24 Nov 2026).
+    if (score <= bestRef.current || tourneyRef.current) return;
     bestRef.current = score;
     setBest(score);
     try { arcadeStore.setItem(BEST_KEY, String(score)); } catch { /* ignore */ }

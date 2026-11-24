@@ -7,6 +7,7 @@ import { ARCADE_GAMES, arcadeGame } from "@/lib/arcade/catalogue";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { nchoTake, nchoTip } from "@/lib/arcade/nana-ncho";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import { NCHO_LEVELS, NCHO_TOURNEY_ROUNDS, encodeNcho, nchoTourneyReply, nchoTourneyStart } from "@/lib/arcade/replay-ncho";
 import type { TourneyProps } from "@/lib/arcade/tournament-games";
 import {
@@ -135,6 +136,8 @@ export default function NchoGame({ variant = "ncho", tourney }: { variant?: Ncho
   const [view, setView] = useState<View>(() => viewOf(initialState(undefined, 0, variant)));
   const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
   const [level, setLevel] = useState<Level>(tourneyLevel ?? "medium");
+  const levelRef = useRef(level); // read when a game ends, to credit the computer at that level (lib/arcade/record-loss.ts)
+  levelRef.current = level;
   const mineRef = useRef<number[]>([]); // the holes you sowed this game, exactly what the replay reads
   const sentRef = useRef(false);
   const [busy, setBusy] = useState(false); // sowing animation running
@@ -223,8 +226,8 @@ export default function NchoGame({ variant = "ncho", tourney }: { variant?: Ncho
         try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ }
         return w + 1;
       });
-    }
-  }, [WINS_KEY, gameOverStatus, tourney]);
+    } else if (next.winner !== null && next.winner !== "draw") recordLoss(variant, levelRef.current); // a computer won: its leaderboard win
+  }, [WINS_KEY, gameOverStatus, tourney, variant]);
 
   const finishMove = useCallback((next: NchoState) => {
     const m = next.last!;

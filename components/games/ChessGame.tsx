@@ -5,6 +5,7 @@ import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import {
   BISHOP, KING, KNIGHT, QUEEN, ROOK, VALUE, applyMove, chooseMove, gameStatus, initialState, legalMoves, moveToSan,
   pieceColor, pieceType, squareName, type ChessState, type Color, type Level, type Move,
@@ -151,7 +152,9 @@ export default function ChessGame({ tourney }: { tourney?: TourneyProps } = {}) 
     countedRef.current = key;
     if (status.winner === side) { setWins((w) => w + 1); tone(880, 0.25); }
     else tone(status.winner ? 196 : 523, 0.25);
-  }, [status, game, side, tone]);
+    // Checkmated in practice: the computer at this level gets its leaderboard win (lib/arcade/record-loss.ts).
+    if (status.winner && status.winner !== side && !tourney) recordLoss("chess", levelRef.current);
+  }, [status, game, side, tone, tourney]);
 
   useEffect(() => {
     const el = movesRef.current;

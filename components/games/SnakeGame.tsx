@@ -13,6 +13,10 @@ import {
 import { encodeSnakeTick } from "@/lib/arcade/replay-snake";
 import type { TourneyProps } from "@/lib/arcade/tournament-games";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { arcadeReady, arcadeStore } from "@/lib/arcade/store";
+import ArcadeBoard from "./ArcadeBoard";
+
+const SNAKE_BEST_KEY = "arcade-snake-best";
 
 // The rules live in lib/arcade/snake.ts (owner, 21 Nov 2026: "start tournaments"), so a tournament run can be replayed on the server with
 // the same code. This component keeps the ticking clock, the keys, the sound and the look.
@@ -37,6 +41,17 @@ export default function SnakeGame({ tourney }: { tourney?: TourneyProps } = {}) 
   const bestRef = useRef(0);
   const bestAtStart = useRef(0);
   useEffect(() => { bestRef.current = best; }, [best]);
+  // Snake has its own page (not ArcadeShell), so it starts the account check itself: a member's saved best shows once it has loaded,
+  // and new bests are saved to their account (lib/arcade/store.ts). A guest's best lasts for this visit, as before.
+  useEffect(() => {
+    if (tourney) return;
+    let live = true;
+    arcadeReady().then(() => {
+      const saved = Number(arcadeStore.getItem(SNAKE_BEST_KEY)) || 0;
+      if (live && saved > 0) setBest((b) => Math.max(b, saved));
+    });
+    return () => { live = false; };
+  }, [tourney]);
   const nanaTake = useMemo(() => snakeCoach(lastRun), [lastRun]);
 
   const setBoth = useCallback((next: SnakeState) => { gameRef.current = next; setGame(next); }, []);
@@ -161,6 +176,8 @@ export default function SnakeGame({ tourney }: { tourney?: TourneyProps } = {}) 
         playSound(165, 0.2);
         setStatus("over");
         if (tourney && !sentRef.current) { sentRef.current = true; tourney.onFinish(recordingRef.current); }
+        // A new practice best is saved, so a signed-in member's best is kept and counts on the leaderboard (lib/arcade/boards.ts).
+        if (!tourney && before.score > bestAtStart.current) { try { arcadeStore.setItem(SNAKE_BEST_KEY, String(before.score)); } catch { /* ignore */ } }
         return;
       }
       if (after.score > before.score) {
@@ -264,7 +281,7 @@ export default function SnakeGame({ tourney }: { tourney?: TourneyProps } = {}) 
           </div>
         </div>
       </div>
-      <div className="snake-gallery"><ArcadeAdSpot variant="banner" game="snake" /><ArcadeGallery game={arcadeGame("snake")} /></div>
+      <div className="snake-gallery"><ArcadeBoard game={arcadeGame("snake")} /><ArcadeAdSpot variant="banner" game="snake" /><ArcadeGallery game={arcadeGame("snake")} /></div>
       <ArcadeFooter />
       <ArcadeStyles />
 
