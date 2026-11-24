@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 import ArcadeNana from "./ArcadeNana";
 import { landlordTake, landlordTip } from "@/lib/arcade/nana-landlord";
@@ -185,6 +186,16 @@ export default function LandlordGame({ tourney }: { tourney?: TourneyProps } = {
     }, AI_DELAY);
     return () => window.clearTimeout(t);
   }, [game, started, finished]);
+
+  // A loss for the leaderboard's computer players (lib/arcade/boards.ts): once per game, to the computer landlord who won.
+  const lostRef = useRef(false);
+  useEffect(() => {
+    if (game.phase !== "over") { lostRef.current = false; return; }
+    if (lostRef.current || tourneyRef.current) return;
+    lostRef.current = true;
+    const npc = game.winner === null || game.winner === 0 ? null : ["chidi", "amaka", "tunde"][game.winner - 1];
+    if (npc) recordLoss("landlord", npc);
+  }, [game.phase, game.winner]);
 
   // Count a win once per game.
   useEffect(() => {

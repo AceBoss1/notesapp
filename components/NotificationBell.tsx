@@ -24,6 +24,7 @@ const ICON: Record<NotificationType, string> = {
   unsuspended: "✓",
   appeal_rejected: "✕",
   content_check: "🛡",
+  arcade: "🏆",
   role_changed: "🎖",
   gift: "🎁",
   coauthor: "🤝",

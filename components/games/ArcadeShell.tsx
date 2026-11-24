@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { arcadeReady, subscribeArcadeAccount, type ArcadeAccount } from "@/lib/arcade/store";
 import { ARCADE_GAMES, type ArcadeGame } from "@/lib/arcade/catalogue";
 import ArcadeAdSpot from "./ArcadeAdSpot";
+import ArcadeBoard from "./ArcadeBoard";
 
 // The frame every Notes Arcade game sits in: the NOTES ARCADE top bar, the side panel (what the game is and how to play),
 // the game's own console on the right, and the footer. Same look as Snake (components/games/SnakeGame.tsx).
@@ -34,6 +35,7 @@ export default function ArcadeShell({ game, children }: { game: ArcadeGame; inde
         </div>
         <div className="arc-main">
           {ready ? children : <div className="arc-console arc-loading" aria-busy="true"><p className="arc-status">Loading your game…</p></div>}
+          <ArcadeBoard game={game} />
           <ArcadeAdSpot variant="banner" game={game.slug} />
           <ArcadeGallery game={game} />
         </div>
@@ -169,7 +171,7 @@ export function ArcadeWalletNote() {
         <li>Each game&apos;s leaderboard: the top computer players 🤖 and the top people</li>
         <li>A place on the Notesville rich list, the Billionaires List shared with Notes Life</li>
       </ul>
-      <p className="arc-wallet-soon">One profile and one N$ wallet with Notes Life. N$ is game money: no game pays out real naira. Saving your progress works now; N$ sync, leaderboards, friends and referral credit are coming next.</p>
+      <p className="arc-wallet-soon">One profile and one N$ wallet with Notes Life. N$ is game money: no game pays out real naira. Saving your progress and each game&apos;s leaderboard work now; N$ sync, friends and referral credit are coming next.</p>
       {!member && <a className="arc-wallet-link" href="/login?next=/arcade">SIGN IN TO SAVE ↗</a>}
       <style jsx global>{`
         .arc-wallet { max-width:340px; margin-top:22px; padding:14px 16px; border:1px solid #e3e6df; border-radius:12px; background:#fff; color:#5c685f; font-size:12px; line-height:1.65; }

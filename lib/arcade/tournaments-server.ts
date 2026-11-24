@@ -4,8 +4,13 @@ import { randomBytes, randomInt } from "crypto";
 import { isKidUid } from "../kids";
 import { TOURNAMENT_GAMES, compareRank, rankKey, tournamentGame, type TournamentGame } from "./tournament-games";
 import {
-  canEnter, listed, openBlocker, phase, publicTournament, validateDraft, type Best, type PublicTournament, type Tournament,
+  canEnter, listed, openBlocker, phase, publicTournament, validateDraft, type Best, type PublicTournament, type Tournament, type Winner,
 } from "./tournaments";
+import { ARCADE_GAMES } from "./catalogue";
+import { winnerBell, winnerMessage } from "./tournament-text";
+import { SITE_URL } from "../host";
+import { officialSender, sendOfficialMessage, type OfficialSender } from "../official-messages-server";
+import type { Alerts } from "../messages-server";
 
 // Notes Arcade tournaments on the server (docs/ARCADE_TOURNAMENTS.md §6, Phase 1; owner, 21 Nov 2026: "start tournaments"). Server only:
 // every collection here is closed to browsers (firestore.rules); the pages go through /api/arcade/tournaments.
@@ -200,6 +205,58 @@ export async function countSponsor(db: Firestore, id: unknown, event: unknown, v
   return { counted: true };
 }
 
+// ---- Page views (owner, 24 Nov 2026: "page-view counts in the sponsor's report") ----
+// The same idea as adverts and the takeover above: once per visitor per Lagos day, where a visitor is the route's salted hash of IP and
+// browser (never the IP itself), and the dedupe marks live in adSeen, which expires on its own (expireAt TTL).
+//   tournaments/{id}.sponsorStats.views     the tournament's own page
+//   tournamentStats/list-YYYYMMDD           the tournaments list page, per Lagos day, so a report can count the days its tournament ran
+
+const seenOnce = async (db: Firestore, key: string) => {
+  try {
+    await db.doc(`adSeen/${key}`).create({ at: new Date().toISOString(), expireAt: new Date(Date.now() + 2 * 86_400_000) });
+    return true;
+  } catch {
+    return false; // already counted today for this visitor
+  }
+};
+
+/** A view of /arcade/tournaments/[id]. Drafts and unlisted tournaments aren't counted (nobody can see them). */
+export async function countView(db: Firestore, id: unknown, visitor: string, day: string, o: Opts = {}) {
+  const t = await load(db, id);
+  if (!listed(t, o.now ?? new Date())) return { counted: false };
+  if (!(await seenOnce(db, `${visitor}_tour-${t.id}_view_${day}`))) return { counted: false };
+  await db.doc(`tournaments/${t.id}`).set({ sponsorStats: { views: FieldValue.increment(1) } }, { merge: true });
+  return { counted: true };
+}
+
+/** A view of /arcade/tournaments, the list. */
+export async function countListView(db: Firestore, visitor: string, day: string) {
+  if (!/^\d{8}$/.test(day)) throw new TournamentError(400, "Invalid day.");
+  if (!(await seenOnce(db, `${visitor}_tourlist_view_${day}`))) return { counted: false };
+  await db.doc(`tournamentStats/list-${day}`).set({ day, views: FieldValue.increment(1) }, { merge: true });
+  return { counted: true };
+}
+
+const lagosDayOf = (ms: number) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).replace(/-/g, "");
+/** Every Lagos day a window touches (YYYYMMDD). A window is 31 days at most (validateDraft), so this stays small. */
+export function lagosDaysBetween(fromIso: string, untilIso: string): string[] {
+  const days: string[] = [];
+  const end = lagosDayOf(Date.parse(untilIso) - 1);
+  for (let ms = Date.parse(fromIso); days.length < 40; ms += 86_400_000) {
+    const d = lagosDayOf(ms);
+    if (!days.includes(d)) days.push(d);
+    if (d >= end) break;
+  }
+  return days;
+}
+
+/** Views of the list page on the days the tournament ran. */
+async function listViewsDuring(db: Firestore, t: Tournament) {
+  const days = lagosDaysBetween(t.playFrom, t.playUntil);
+  const snaps = await db.getAll(...days.map((d) => db.doc(`tournamentStats/list-${d}`)));
+  return snaps.reduce((n, s) => n + Number(s.data()?.views ?? 0), 0);
+}
+
 // ---- Admin ----
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "tournament";
@@ -285,7 +342,8 @@ export async function adminResults(db: Firestore, id: unknown, limit = 20) {
   }));
 }
 
-/** The sponsor's report (§2 "The numbers"): entrants, tries, finished games, and their takeover's impressions and clicks. */
+/** The sponsor's report (§2 "The numbers"): entrants, tries, finished games, page views, their takeover's impressions and clicks, and
+ *  the winners told. */
 export async function sponsorReport(db: Firestore, id: unknown) {
   const t = await load(db, id);
   const runs = db.collection(`tournaments/${t.id}/runs`);
@@ -295,7 +353,118 @@ export async function sponsorReport(db: Firestore, id: unknown) {
     id: t.id, name: t.name, game: t.game, sponsor: t.sponsor ?? null, playFrom: t.playFrom, playUntil: t.playUntil,
     entrants: t.entrants ?? 0, tries: t.runs ?? 0, finished: done, rejected, abandoned, expired, open,
     sponsorImpressions: t.sponsorStats?.impressions ?? 0, sponsorClicks: t.sponsorStats?.clicks ?? 0,
-    // TODO(page views): the tournament page isn't counted yet; add a view counter when the sitemap/analytics work lands.
-    pageViews: null as number | null,
+    // Once per visitor per day (countView above): the tournament's page, and the list page on the days it ran.
+    pageViews: t.sponsorStats?.views ?? 0, listViews: await listViewsDuring(db, t),
+    // Who was told they placed, and when (tellWinners below). Usernames only, as on the public board.
+    winnersNotifiedAt: t.winnersNotifiedAt ?? null,
+    winners: (t.winners ?? []).map(({ uid: _u, ...w }) => w).sort((a, b) => a.place - b.place), // eslint-disable-line @typescript-eslint/no-unused-vars
   };
+}
+
+// ---- Telling the winners (§5; owner, 24 Nov 2026: "telling winners in Messages") ----
+// §5: "After the window closes: the top results are checked ... then winners are told in Messages and asked to confirm their details.
+// Nothing is handed over before that check." So this works only once "Results checked" is ticked. Each winner gets a direct message from
+// #NotesApp's own account (lib/official-messages-server.ts) and a bell linking to the tournament; who was told is kept on the tournament
+// (winners, winnersNotifiedAt), so pressing Send again never tells anyone twice.
+//
+// Who counts, re-checked now rather than trusted from entry: a deleted or suspended account is skipped (and the next player moves up, as
+// a disqualified entry would), and in a prize tournament so is anyone under 18 (entry already refuses them; this is the belt to that
+// brace). A tournament without prizes ("Tell the top players") sends a plain congratulations. Teens, who may play practice tournaments,
+// get only the bell: they take messages only from people they follow (docs/YOUNG_MEMBERS.md), and a congratulations doesn't need a chat.
+
+export type WinnerRow = {
+  place: number | null; uid: string; username: string; summary: string; prize: string;
+  action: "send" | "bell" | "told" | "skip"; why?: string; text: string;
+};
+type WinnerOpts = Opts & { sender?: OfficialSender; alerts?: Alerts };
+const MAX_TOP_PLAYERS = 10; // a tournament without prizes: congratulate up to the top ten
+const gameName = (t: Tournament, o: Opts) => (o.games ?? tournamentGame)(t.game)?.name ?? ARCADE_GAMES.find((g) => g.slug === t.game)?.name ?? t.game;
+export const tournamentUrl = (id: string) => `${SITE_URL}/arcade/tournaments/${id}`;
+
+/** What "Tell winners" would do for the top `count`: each row's place, prize, message and whether it will be sent, skipped or was sent. */
+export async function winnersPlan(db: Firestore, id: unknown, count?: unknown, o: WinnerOpts = {}) {
+  const t = await load(db, id);
+  if (t.status !== "results" || !t.resultsCheckedAt) throw new TournamentError(409, "Tick \"Results checked\" first: winners are told only after the top results are checked (§5).");
+  const max = t.prize ? t.prizes.length : MAX_TOP_PLAYERS;
+  const fallback = t.prize ? t.prizes.length : Math.min(3, max);
+  const n = count === undefined || count === null || count === "" ? fallback : Number(count);
+  if (!Number.isInteger(n) || n < 1 || n > max) throw new TournamentError(400, t.prize ? `Tell 1 to ${max} winners (one per prize).` : `Tell 1 to ${max} top players.`);
+  const s = await db.collection(`tournaments/${t.id}/entries`).orderBy("rankKey", "desc").limit(n + 40).get();
+  const entries = s.docs.map((d) => d.data() as EntryDoc).filter((e) => e.best)
+    .sort((a, b) => compareRank(b.best!.rank, a.best!.rank) || a.best!.at.localeCompare(b.best!.at));
+  const users = entries.length ? await db.getAll(...entries.map((e) => db.doc(`users/${e.uid}`))) : [];
+  const told = t.winners ?? [];
+  const name = gameName(t, o);
+  const url = tournamentUrl(t.id);
+  const rows: WinnerRow[] = [];
+  let place = 0;
+  for (const [i, e] of entries.entries()) {
+    if (place >= n) break;
+    const u = users[i]?.data();
+    const username = String(u?.username ?? e.username);
+    const base = { uid: e.uid, username, summary: e.best!.summary, prize: "", text: "" };
+    if (!u) { rows.push({ ...base, place: null, action: "skip", why: "Account deleted: skipped, the next player moves up." }); continue; }
+    if (u.suspended === true) { rows.push({ ...base, place: null, action: "skip", why: "Account suspended: skipped, the next player moves up." }); continue; }
+    const young = isKidUid(e.uid) || u.teen === true;
+    if (t.prize && young) { rows.push({ ...base, place: null, action: "skip", why: "Under 18: prize tournaments are for adults (§8.2). Skipped, the next player moves up." }); continue; }
+    place++;
+    const already = told.find((w) => w.uid === e.uid);
+    if (already) { rows.push({ ...base, place: already.place, prize: already.prize, action: "told", why: `Told ${already.at.slice(0, 16).replace("T", " ")} UTC.` }); continue; }
+    const clash = told.find((w) => w.place === place);
+    if (clash) { rows.push({ ...base, place, action: "skip", why: `@${clash.username} was already told they placed ${place}. Check the results by hand.` }); continue; }
+    const prize = t.prize ? t.prizes[place - 1] : undefined;
+    rows.push({
+      ...base, place, prize: prize?.prize ?? "", action: young ? "bell" : "send",
+      ...(young ? { why: "A teen: bell only (teens take messages only from people they follow)." } : {}),
+      text: winnerMessage(t, name, { username, place, ...(prize ? { prize } : {}) }, url),
+    });
+  }
+  const sender = o.sender ?? (await officialSender(db));
+  return {
+    id: t.id, name: t.name, prize: t.prize, count: n, max, rows, told: [...told].sort((a, b) => a.place - b.place), winnersNotifiedAt: t.winnersNotifiedAt ?? null,
+    sender: sender.ok ? { ok: true as const, username: sender.username } : { ok: false as const, error: sender.error },
+  };
+}
+
+/** Tell the top `count`: claims each winner on the tournament first (in a transaction, so two admins pressing Send can't both tell
+ *  someone), then sends the message and the bell. A message that fails gives the claim back, so Send can try that winner again. */
+export async function tellWinners(db: Firestore, id: unknown, count: unknown, o: WinnerOpts = {}) {
+  const now = o.now ?? new Date();
+  const sender = o.sender ?? (await officialSender(db));
+  const plan = await winnersPlan(db, id, count, { ...o, sender });
+  const due = plan.rows.filter((r) => r.action === "send" || r.action === "bell");
+  if (!due.length) throw new TournamentError(409, plan.rows.some((r) => r.action === "told") ? "Everyone in that list has already been told." : "There's no one to tell.");
+  if (due.some((r) => r.action === "send") && !sender.ok) throw new TournamentError(409, sender.error);
+  const tRef = db.doc(`tournaments/${plan.id}`);
+  const sent: { username: string; place: number; dm: boolean }[] = [];
+  const failed: { username: string; place: number; error: string }[] = [];
+  for (const r of due) {
+    const dm = r.action === "send";
+    const w: Winner = { uid: r.uid, username: r.username, place: r.place!, prize: r.prize, at: now.toISOString(), dm };
+    const claimed = await db.runTransaction(async (tx) => {
+      const cur = ((await tx.get(tRef)).data()?.winners ?? []) as Winner[];
+      if (cur.some((x) => x.uid === w.uid || x.place === w.place)) return false;
+      tx.update(tRef, { winners: [...cur, w], winnersNotifiedAt: w.at, updatedAt: w.at });
+      return true;
+    });
+    if (!claimed) continue;
+    if (dm) {
+      try {
+        await sendOfficialMessage(db, r.uid, r.text, { sender, now, ...(o.alerts ? { alerts: o.alerts } : {}) });
+      } catch (e) {
+        await db.runTransaction(async (tx) => {
+          const cur = ((await tx.get(tRef)).data()?.winners ?? []) as Winner[];
+          tx.update(tRef, { winners: cur.filter((x) => x.uid !== w.uid) });
+        });
+        failed.push({ username: r.username, place: w.place, error: e instanceof Error ? e.message : "Couldn't send." });
+        continue;
+      }
+    }
+    // The bell, written as lib/email.ts notifyBell writes it (server-only collection; firestore.rules lets members read and mark their own).
+    await db.collection("notifications").add({
+      recipientUid: r.uid, type: "arcade", message: winnerBell({ name: plan.name, prize: plan.prize }, w.place, dm), read: false, createdAt: now.toISOString(), linkHref: `/arcade/tournaments/${plan.id}`,
+    }).catch((e) => console.error("[tournaments] winner bell failed", e instanceof Error ? e.message : e));
+    sent.push({ username: r.username, place: w.place, dm });
+  }
+  return { sent, failed, skipped: plan.rows.filter((r) => r.action === "skip").map((r) => ({ username: r.username, why: r.why ?? "" })), tournament: await load(db, plan.id) };
 }

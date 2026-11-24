@@ -5,6 +5,7 @@ import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { arcadeGame } from "@/lib/arcade/catalogue";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import {
   DRAW_PLIES, applyMove, chooseMove, countPieces, initialState, isDark, legalMoves, sizeOf,
   type BoardSize, type Cell, type DraughtsMove, type DraughtsState, type Level, type Rules,
@@ -59,6 +60,8 @@ export default function DraughtsGame({ tourney }: { tourney?: TourneyProps } = {
   const [game, setGame] = useState<DraughtsState>(() => (tourney ? draughtsTourneyStart(tourney.seed, tourneyLevel!) : fresh("african-10")));
   const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
   const [level, setLevel] = useState<Level>(tp?.level ?? "medium");
+  const levelRef = useRef(level); // read when a game ends, to credit the computer at that level (lib/arcade/record-loss.ts)
+  levelRef.current = level;
   const [drawRule, setDrawRule] = useState(true);
   const [variant, setVariant] = useState<Variant>(tp ? TOURNEY_VARIANT[tp.board] : "african-10");
   const [resigned, setResigned] = useState(false);
@@ -140,6 +143,7 @@ export default function DraughtsGame({ tourney }: { tourney?: TourneyProps } = {
       setStatus(next.winner === 0 ? "You win." : next.winner === 1 ? "Computer wins." : "A draw: 40 moves each with no capture.");
       if (tourney) { finishTourney(false, next.board); return; }
       if (next.winner === 0) setWins((w) => { try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ } return w + 1; });
+      else if (next.winner === 1) recordLoss("draughts", levelRef.current); // the computer at this level gets its leaderboard win
       return;
     }
     const took = m.captures.length ? `${mover} took ${m.captures.length}${m.crowns ? " and crowned a king" : ""}. ` : m.crowns ? `${mover} crowned a king. ` : "";

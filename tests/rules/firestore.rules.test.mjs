@@ -2008,6 +2008,21 @@ test("Notes Arcade progress is server-only: not even the member reads or writes 
   }
 });
 
+test("Notes Arcade leaderboards are server-only, reads too: /api/arcade/boards applies the young-member rules before any name is shown", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "arcadeBoards/ludo"), { npcWins: { coral: 3 } });
+    await setDoc(doc(d, "arcadeBoards/ludo/people/alice"), { uid: "alice", value: 4 });
+  });
+  for (const db of [as("alice"), as("bob"), as("boss", { admin: true }), anon()]) {
+    for (const p of ["arcadeBoards/ludo", "arcadeBoards/ludo/people/alice"]) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { value: 999 }));
+    }
+    await assertFails(getDocs(collection(db, "arcadeBoards/ludo/people")));
+  }
+});
+
 test("Notes Arcade tournaments are server-only, reads too: the seed and every try go through /api/arcade/tournaments", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();

@@ -161,6 +161,35 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   }
 
   const attachments = ids.length ? await claimAttachments(db, fromUid, ids, files) : [];
+  return deliverDirect(db, fromUid, toUid, from.data(), to.data(), { text, attachments, ids, sticker, replyToId: input.replyToId, moment: input.moment, forwarded: input.forwarded }, now, notify, alerts);
+}
+
+/**
+ * A system message from #NotesApp's own account (lib/official-messages-server.ts), never from a member: no API route takes it from a
+ * browser. Narrow on purpose (owner, 24 Nov 2026: "telling winners in Messages"): plain text only, and it skips just the two checks that
+ * are about one member writing to another: "messages only from people they follow" (users.keepDmFollowers; callers don't send it to
+ * teens at all) and the sender's plan (emoji packs). Everything else stands: the recipient must exist and not be suspended, the sender's
+ * account must exist and not be suspended, and a member who blocked the account doesn't get it.
+ */
+export async function sendSystemMessage(db: Firestore, fromUid: string, toUid: string, textRaw: string, now = new Date(), notify: Notify = notifyBell, alerts?: Alerts): Promise<{ conversationId: string; messageId: string }> {
+  const text = String(textRaw ?? "").trim();
+  if (!text) throw new MessageError(400, "Write a message first.");
+  if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
+  if (!toUid || toUid === fromUid) throw new MessageError(400, "Pick someone else to message.");
+  const [from, to, blocked] = await Promise.all([db.doc(`users/${fromUid}`).get(), db.doc(`users/${toUid}`).get(), db.doc(`dmBlocks/${toUid}_${fromUid}`).get()]);
+  if (!from.exists || from.data()?.suspended === true) throw new MessageError(503, "#NotesApp's own account can't send messages right now.");
+  if (!to.exists || to.data()?.suspended === true) throw new MessageError(404, "That member wasn't found.");
+  if (blocked.exists) throw new MessageError(403, "That member has blocked #NotesApp's account.");
+  return deliverDirect(db, fromUid, toUid, from.data(), to.data(), { text, attachments: [], ids: [], sticker: "" }, now, notify, alerts);
+}
+
+type Delivery = { text: string; attachments: MessageAttachment[]; ids: string[]; sticker: string; replyToId?: string; moment?: MomentRef; forwarded?: boolean };
+
+// Writes one direct message once its checks have passed (sendMessage's for members, sendSystemMessage's for #NotesApp's own account),
+// then the bell, push and email for a new burst.
+async function deliverDirect(db: Firestore, fromUid: string, toUid: string, fromData: FirebaseFirestore.DocumentData | undefined, toData: FirebaseFirestore.DocumentData | undefined, d: Delivery, now: Date, notify: Notify, alerts?: Alerts): Promise<{ conversationId: string; messageId: string }> {
+  const { text, attachments, ids, sticker } = d;
+  const input = { moment: d.moment, forwarded: d.forwarded, replyToId: d.replyToId };
   const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);
   const cid = conversationId(fromUid, toUid);
   // A reply quotes one earlier message of this conversation: who wrote it and the start of what it said.
@@ -188,11 +217,11 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   for (const id of ids) await db.doc(`messageUploads/${id}`).update({ used: true }).catch(() => {});
   // Nana's operator (Business and Enterprise, switched on by the recipient): the first message of a burst is queued for Nana to draft a
   // reply in Nana's inbox (lib/agents/events-server.ts). Written text only; never blocks sending.
-  if (prevUnread === 0 && text) await queueMessageEvent(db, { toUid, to: to.data(), fromUid, cid, messageId }, now).catch((e) => console.error("[nana] queue failed", e instanceof Error ? e.message : e));
+  if (prevUnread === 0 && text) await queueMessageEvent(db, { toUid, to: toData, fromUid, cid, messageId }, now).catch((e) => console.error("[nana] queue failed", e instanceof Error ? e.message : e));
   // One bell, one push and (at most hourly, unless switched off) one email per burst: nothing new while the last message is still
   // unread. None of them carries what was written, only who it's from.
   if (prevUnread === 0 && !(await isMuted(db, toUid, cid))) {
-    const name = String(from.data()?.displayName ?? "A member");
+    const name = String(fromData?.displayName ?? "A member");
     const what = input.moment ? `${name} replied to your moment` : `New message from ${name}`;
     await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: what }).catch(() => {});
     const a = alerts ?? defaultAlerts();

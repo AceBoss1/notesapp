@@ -271,7 +271,8 @@ export default function RunGame({ tournament: davido, tourney, extra }: Props = 
     setCrash(s.crashedInto);
     setPeppered(false);
     setBest((b) => {
-      if (sc <= b) return b;
+      // A tournament try isn't a practice best (it would land on the practice leaderboard; owner, 24 Nov 2026).
+      if (sc <= b || tRef.current) return b;
       setNewBest(true);
       try { arcadeStore.setItem(BEST_KEY(s.level), String(sc)); } catch { /* storage blocked: keep it for this visit */ }
       return sc;

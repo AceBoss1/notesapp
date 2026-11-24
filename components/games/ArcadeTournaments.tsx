@@ -14,6 +14,8 @@ export default function ArcadeTournaments() {
   useEffect(() => {
     fetch("/api/arcade/tournaments").then((r) => r.json()).then((j) => (j.tournaments ? setList(j.tournaments) : setError(j.error || "Couldn't load tournaments.")))
       .catch(() => setError("Couldn't load tournaments."));
+    // One view of the list for the sponsors' reports (owner, 24 Nov 2026); counted once per visitor per day on the server, bots ignored.
+    fetch("/api/arcade/tournaments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "view" }), keepalive: true }).catch(() => {});
   }, []);
   const playing = (list ?? []).filter((t) => t.phase === "playing");
   const coming = (list ?? []).filter((t) => t.phase === "upcoming").reverse(); // soonest first

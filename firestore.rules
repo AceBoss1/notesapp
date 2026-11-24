@@ -1582,6 +1582,13 @@ service cloud.firestore {
     match /arcadeProgress/{uid} {
       allow read, write: if false;
     }
+    // Notes Arcade per-game leaderboards (lib/arcade/boards-server.ts; owner, Nov 2026: "each game has leaderboard makeup of top npc 🤖
+    // and top human"): the computer players' wins and each member's row. Server only, reads too: GET /api/arcade/boards/[slug] applies
+    // the young-member and privacy rules (teen mode and keepHidden off the board, child profiles never) before anyone sees a name.
+    match /arcadeBoards/{slug} {
+      allow read, write: if false;
+      match /people/{uid} { allow read, write: if false; }
+    }
 
     match /leads/{leadId} {
 
@@ -1692,6 +1699,8 @@ service cloud.firestore {
       match /entries/{uid} { allow read, write: if false; }
       match /runs/{runId} { allow read, write: if false; }
     }
+    // Views of the tournaments list per Lagos day, for sponsors' reports (owner, 24 Nov 2026). Server only.
+    match /tournamentStats/{id} { allow read, write: if false; }
     // NotesApp Partner Network (lib/partner-network-server.ts): applications, partners, requests to experts and members. Server only;
     // settings/partners (tier terms) is under settings above.
     match /partnerApplications/{id} { allow read, write: if false; }
