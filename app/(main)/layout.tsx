@@ -201,7 +201,7 @@ const site = await getSiteSettingsCached();
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-paper/45">
                 <p className="inline-flex flex-wrap items-center gap-1.5">
                   <NotesAppIcon />
-                  {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}
+                  {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber}
                   {COMPANY_INFO.smedanId ? ` · SMEDAN ${COMPANY_INFO.smedanId}` : ""}
                 </p>
                 <CurrencyPicker />

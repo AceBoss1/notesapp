@@ -120,7 +120,7 @@ get paid for it, in their own currency.
 > currencies through Flutterwave), with Nana, our AI agent, doing the routine work. It is live, with 628 members (24 November 2026),
 > in Nigeria and seven other countries at the last count; its Exam Prep has 4,090 original JAMB, WAEC and NECO questions, each checked by a reviewer
 > (some free, the rest ₦1,000 an exam for a year), and its Kiswahili translation and speech work earned a Special Recognition at the
-> Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware,
+> Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd (RC 9825642, incorporated 2 September 2026) runs it from Nigeria; NotesApp Inc (Delaware,
 > incorporated 9 November 2026) holds the mobile apps and the raise. Founder: Emmanuel Adams (CTO at Aider; lead consultant and
 > developer, Adams Consults; Forbes BLK member).
 
