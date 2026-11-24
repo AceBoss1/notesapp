@@ -68,7 +68,7 @@ pitch.tech deck" note below.
 - Keep the claims as they stand: "processed", never "revenue"; Studio Pro, the team hub, Nana Lite and the portrait studio are "in
   testing"; NotesPhone and Anya are reservations only.
 
-### Deadlines at a glance (as of Thursday 19 November 2026; two added Tuesday 24 November)
+### Deadlines at a glance (as of Thursday 19 November 2026; three added Tuesday 24 November)
 
 Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
 registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
@@ -87,7 +87,7 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | **Mon 30 Nov 2026**: send by **Sun 29 Nov** to be safe | **HubSpot for Startups Global Pitch Competition** (USD 10,000) | HubSpot for Startups membership (free; approval can take days, so join **today**), then the deck | §26 |
 | **Mon 30 Nov 2026** | 3MTT Delivery Network, Cohort 5 funding | the consortium's proposal | §21 |
 | **Mon 30 Nov 2026** (results 10 Dec) | Startup Showcase Global, November 2026 Campaign (top 5 get USD 10,000 each) | a listing on their site; **check for a fee first** | §29 |
-| **Check first: last cycle closed 27 Dec** (next date unconfirmed) | **Innovate Bay Scale Sprint** (Fremont, CA; USD 20,000 SAFE), for NotesPhone and Anya | §31's drafted answers | §31 |
+| **Open now: IB-03** (deadline not shown; last cycle closed 27 Dec) | **Innovate Bay IB-03** (Fremont, CA; up to USD 40,000), for NotesPhone and Anya | §31's drafted answers | §31 |
 | **Rolling: apply now** (cohort starts Feb 2027 in SF) | **Solo Founders Program** (USD 100k uncapped MFN SAFE + 2.5% equity) | the application; a US visa plan | §30 |
 
 **December and later:**
@@ -1649,20 +1649,22 @@ that's a B2B AI story they could fund.
 
 ---
 
-## 31. Innovate Bay Scale Sprint (Fremont, California): for Notes Smart Devices
+## 31. Innovate Bay IB-03, 12-week sprint (Fremont, California): for Notes Smart Devices
 
-> Status: **form at innovatebay.co/apply-founder; next deadline not confirmed.** innovatebay.co, sfbu.edu and luma.com don't load
-> from here (owner sent the link 24 November 2026), so this is from search results: Business Wire (29 Aug 2025), the SFBU press release
-> and flyer, and Fremont's July 2026 economy bulletin. The last cycle closed **27 December 2025** for a February–April 2026 sprint, so
+> Status: **applications open for IB-03 at innovatebay.co/apply-founder; deadline not shown.** The page loads (24 November 2026)
+> and says: "Apply to Innovate Bay's IB-03 12-Week Sprint. Selected startups receive mentorship, coworking space, investor exposure,
+> pilot support, and **up to $40,000** in startup investment." The form itself is drawn by a host that's blocked here, so its
+> questions are unread. The rest is from Business Wire (29 Aug 2025), the SFBU press release and flyer, and Fremont's July 2026 bulletin. The last cycle closed **27 December 2025** for a February–April 2026 sprint, so
 > a similar date (late December 2026 for early 2027) is likely but **unconfirmed**: check the form for its date.
 
 - **What:** an incubator run by San Francisco Bay University (SFBU) at its Fremont campus. A **12-week Scale Sprint** for **pre-seed
   frontier-tech** founders (AI, robotics, climate tech, cybersecurity, Web3, **IoT**), ending in a Demo Day at Fremont Tech Week.
-- **What you get:** **USD 20,000 on a SAFE** (cap and discount not published), advisors, coworking space, investor introductions.
+- **What you get:** **up to USD 40,000** in investment (IB-03; earlier cohorts: USD 20,000 on a SAFE; cap and discount not published),
+  mentorship, coworking space, investor exposure and **pilot support**.
   No fee mentioned anywhere. Contact: Rohan Brown, executive director (rohan.brown@sfbu.edu).
 - **Fit: medium.** Apply as **Notes Smart Devices** (NotesPhone + Anya glasses, with Nana as the AI on both): that's the IoT and AI
   angle they ask for. NotesApp alone is a marketplace, a weaker fit. Through NotesApp Inc (Delaware).
-- **Check before submitting:** (1) the SAFE's cap: at USD 20,000 a cap under our USD 10M post-money would price us below the
+- **Check before submitting:** (1) the SAFE's cap: a cap under our USD 10M post-money would price us below the
   pre-seed, so ask for USD 10M or an MFN; (2) whether it's **in person in Fremont** for the 12 weeks (likely; plan the visa as for §30);
   (3) the deadline. **Be honest that the devices are reservations only:** the partner isn't signed, nothing has been ordered and
   there's no price yet (`docs/DEVICES.md`). Don't name the partner.
@@ -1713,10 +1715,10 @@ company in Delaware.
 > Transsion (Tecno, Infinix, itel) owns African phone volume but ships no knowledge or earning platform; Meta's Ray-Ban glasses aren't
 > sold in most of Africa and don't speak its languages. We're the platform and AI first, with the device as the way in.
 
-**What would you use the USD 20,000 and the 12 weeks for?**
+**What would you use the investment (up to USD 40,000) and the 12 weeks for?**
 > To turn reservations into the first order: confirm the partner's unit price and the cost of putting NotesApp in the OS, build and
 > test the OS integration and offline Exam Prep on the E Pro, prototype Anya's translation on an off-the-shelf frame, and line up
-> one school or distributor to pre-commit to part of the first 500. And to meet hardware investors and distributors in the Bay Area.
+> one school or distributor to pre-commit to part of the first 500 (the pilot support helps here). And to meet hardware investors and distributors in the Bay Area.
 
 **Biggest risk and how you'll handle it:**
 > Hardware cash: a 500-unit minimum is paid up front. We order only when reservations (or a school or distributor commitment) cover
@@ -1729,6 +1731,6 @@ Built NotesApp. `[add any co-founder or advisor on the devices side]`
 
 **Can you attend in person in Fremont for 12 weeks?** `[answer honestly once the visa timing is known]`
 
-**Attachments:** the deck (24 November numbers, slide 10 above), a 60-second demo video of NotesApp and Nana, the devices page
+**Attachments:** the deck (slide 10 updated to 24 November), a 60-second demo video of NotesApp and Nana, the devices page
 screenshot. Don't send the partner's name or quotes.
 
