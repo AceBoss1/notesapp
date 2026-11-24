@@ -81,8 +81,10 @@ call and play together" work), so it comes after Format 1.
   Messages and asked to confirm their details. Nothing is handed over before that check.
   **Built (owner, 24 Nov 2026: "telling winners in Messages"):** Admin → Arcade tournaments → "Tell winners", only after "Results
   checked": pick how many (one per prize), preview each message, send. Each winner gets a direct message from #NotesApp's messaging
-  account (`OFFICIAL_MESSAGES_USERNAME`, a real account the team signs in as, so replies land somewhere; `lib/official-messages-server.ts`)
-  and a bell linking to the tournament. Deleted and suspended accounts, and anyone under 18, are skipped and the next player moves up.
+  account (`OFFICIAL_MESSAGES_USERNAME`, `lib/official-messages-server.ts`): by default the official account @na-notesapp itself
+  (owner, 24 Nov 2026: "Set OFFICIAL_MESSAGES_USERNAME is #NotesApp: naapp.tech/u/na-notesapp"), whose replies Customer care reads
+  and answers in Admin → #NotesApp inbox (`lib/official-inbox-server.ts`; members can only reply where it wrote first), or a real
+  account the team signs in as) and a bell linking to the tournament. Deleted and suspended accounts, and anyone under 18, are skipped and the next player moves up.
   Who was told is kept on the tournament (`winners`, `winnersNotifiedAt`), so it never tells anyone twice, and it's in the sponsor's
   report. Practice and no-prize tournaments get "Tell the top players", a congratulations with nothing to claim; teens get the bell only.
 - One account per person: an entrant needs a confirmed email; prize winners may be asked for their phone number too.

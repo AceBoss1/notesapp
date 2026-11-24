@@ -17,6 +17,7 @@ import { DEFAULT_CHAT_BACKGROUND, canChooseChatBackground, chatPicturePrefix, cl
 import { stripFormat } from "./message-format";
 import { safeFileName } from "./private-files";
 import { SITE_URL } from "@/lib/host";
+import { OFFICIAL_PERSON, OFFICIAL_UID, isOfficialUid } from "./official-account";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
 
@@ -136,6 +137,9 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   if (!text && !ids.length && !sticker) throw new MessageError(400, "Write a message first.");
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   if (!toUid || toUid === fromUid) throw new MessageError(400, "Pick someone else to message.");
+  // #NotesApp's official account (@na-notesapp) takes replies only: see officialReplyCheck.
+  const official = isOfficialUid(toUid);
+  if (official) await officialReplyCheck(db, fromUid, ids);
 
   const [from, to, blocked, iBlocked] = await Promise.all([
     db.doc(`users/${fromUid}`).get(),
@@ -143,7 +147,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     db.doc(`dmBlocks/${toUid}_${fromUid}`).get(), // recipient has blocked sender
     db.doc(`dmBlocks/${fromUid}_${toUid}`).get(), // sender has blocked recipient
   ]);
-  if (!to.exists) throw new MessageError(404, "That member wasn't found.");
+  if (!to.exists && !official) throw new MessageError(404, "That member wasn't found.");
   if (from.data()?.suspended === true) throw new MessageError(403, "Your account can't send messages right now.");
   const sender = from.data();
   const locked = sender ? lockedPackIn(text, effectiveTier({ username: String(sender.username ?? ""), role: sender.role, accountTier: sender.accountTier }), packCodesIn) : null;
@@ -164,6 +168,25 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   return deliverDirect(db, fromUid, toUid, from.data(), to.data(), { text, attachments, ids, sticker, replyToId: input.replyToId, moment: input.moment, forwarded: input.forwarded }, now, notify, alerts);
 }
 
+// How many messages a member can send @na-notesapp before the team has read them: a reply, a correction and a few more, not a flood
+// (the per-minute limit in app/api/messages still applies on top).
+export const OFFICIAL_UNREAD_MAX = 10;
+
+/**
+ * Members may write to #NotesApp's official account (@na-notesapp, NA_UID) only as a reply, in a conversation it started: winners
+ * answer "reply here to confirm your details" (owner, 24 Nov 2026: "Set OFFICIAL_MESSAGES_USERNAME is #NotesApp:
+ * naapp.tech/u/na-notesapp"). Nobody can open a new conversation with it (there's no "message #NotesApp" flow to reuse: questions go
+ * through /contact, Admin → Leads), so it can't be used to reach the team uninvited. Only sendSystemMessage creates such a
+ * conversation, so one existing proves the account wrote first. The team reads it in Admin → #NotesApp inbox, which shows text and
+ * stickers, so files aren't taken; and at most OFFICIAL_UNREAD_MAX messages wait unread there, so one member can't flood it.
+ */
+async function officialReplyCheck(db: Firestore, fromUid: string, attachmentIds: string[]): Promise<void> {
+  const conv = (await db.doc(`conversations/${conversationId(fromUid, OFFICIAL_UID)}`).get()).data();
+  if (!conv) throw new MessageError(403, "#NotesApp's account can't be messaged directly. To reach the team, use the Contact page.");
+  if (attachmentIds.length) throw new MessageError(400, "Only written replies reach the #NotesApp team here. Send files when they ask for them.");
+  if (((conv.unread?.[OFFICIAL_UID] as number | undefined) ?? 0) >= OFFICIAL_UNREAD_MAX) throw new MessageError(429, "The #NotesApp team hasn't read your last messages yet. They'll answer here, so please wait for them.");
+}
+
 /**
  * A system message from #NotesApp's own account (lib/official-messages-server.ts), never from a member: no API route takes it from a
  * browser. Narrow on purpose (owner, 24 Nov 2026: "telling winners in Messages"): plain text only, and it skips just the two checks that
@@ -177,10 +200,13 @@ export async function sendSystemMessage(db: Firestore, fromUid: string, toUid: s
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   if (!toUid || toUid === fromUid) throw new MessageError(400, "Pick someone else to message.");
   const [from, to, blocked] = await Promise.all([db.doc(`users/${fromUid}`).get(), db.doc(`users/${toUid}`).get(), db.doc(`dmBlocks/${toUid}_${fromUid}`).get()]);
-  if (!from.exists || from.data()?.suspended === true) throw new MessageError(503, "#NotesApp's own account can't send messages right now.");
+  // @na-notesapp has no `users` doc (no login, never suspended); the recipient's push names the channel.
+  const official = isOfficialUid(fromUid);
+  if (!official && (!from.exists || from.data()?.suspended === true)) throw new MessageError(503, "#NotesApp's own account can't send messages right now.");
   if (!to.exists || to.data()?.suspended === true) throw new MessageError(404, "That member wasn't found.");
   if (blocked.exists) throw new MessageError(403, "That member has blocked #NotesApp's account.");
-  return deliverDirect(db, fromUid, toUid, from.data(), to.data(), { text, attachments: [], ids: [], sticker: "" }, now, notify, alerts);
+  const fromData = official ? { displayName: OFFICIAL_PERSON.displayName, username: OFFICIAL_PERSON.username } : from.data();
+  return deliverDirect(db, fromUid, toUid, fromData, to.data(), { text, attachments: [], ids: [], sticker: "" }, now, notify, alerts);
 }
 
 type Delivery = { text: string; attachments: MessageAttachment[]; ids: string[]; sticker: string; replyToId?: string; moment?: MomentRef; forwarded?: boolean };
@@ -215,6 +241,9 @@ async function deliverDirect(db: Firestore, fromUid: string, toUid: string, from
     });
   });
   for (const id of ids) await db.doc(`messageUploads/${id}`).update({ used: true }).catch(() => {});
+  // A reply to @na-notesapp: no Nana, bell, push or email (it has no login, devices or plan). unread.na-notesapp, counted above, is
+  // what Admin → #NotesApp inbox shows (lib/official-inbox-server.ts).
+  if (isOfficialUid(toUid)) return { conversationId: cid, messageId };
   // Nana's operator (Business and Enterprise, switched on by the recipient): the first message of a burst is queued for Nana to draft a
   // reply in Nana's inbox (lib/agents/events-server.ts). Written text only; never blocks sending.
   if (prevUnread === 0 && text) await queueMessageEvent(db, { toUid, to: toData, fromUid, cid, messageId }, now).catch((e) => console.error("[nana] queue failed", e instanceof Error ? e.message : e));
@@ -333,7 +362,7 @@ export async function markRead(db: Firestore, uid: string, cid: string, now = ne
 // Reading a conversation: clears your unread count and stamps `readAt` on what the other person sent that you hadn't opened yet, so
 // they see the double tick and the time. `readMarker.<uid>` remembers the newest message already stamped, so each message gets its
 // time exactly once (opening the conversation again later doesn't move it).
-async function stampRead(db: Firestore, ref: ReturnType<Firestore["doc"]>, uid: string, now: Date): Promise<void> {
+export async function stampRead(db: Firestore, ref: ReturnType<Firestore["doc"]>, uid: string, now: Date): Promise<void> {
   const conv = (await ref.get()).data();
   const marker = (conv?.readMarker?.[uid] as string | undefined) ?? "";
   const snap = await ref.collection("messages").where("createdAt", ">", marker).orderBy("createdAt").limit(500).get();
