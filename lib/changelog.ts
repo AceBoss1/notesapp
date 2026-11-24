@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.205.0",
+    bump: "minor",
+    date: "2026-11-24",
+    changes: [
+      { kind: "added", text: "A leaderboard under every Notes Arcade game: the computer players 🤖 beside the people. Board and card games rank wins against the computer; Snake, Naija Run and Puff-Puff Rush rank best scores. The computer players are the games' own opponents (Ludo's colours, Chidi, Amaka and Tunde in Naija Landlord), with their wins against members; in the action games, each game's autopilot sets the score to beat. Sign in to get on the board." },
+      { kind: "added", text: "Leaderboards follow the young-member rules: kids never appear, and teens and members who keep hidden are left off the public list (they still see their own rank)." },
+      { kind: "fixed", text: "Puff-Puff Rush and Snake now save a signed-in member's best score, and a tournament try no longer counts as your practice best." },
+      { kind: "added", text: "Each tournament page has its own title and share card (name, game, sponsor, dates and prizes), and the tournaments are listed in the sitemap." },
+      { kind: "added", text: "For our team: the sponsor's report counts views of the tournament page (once per visitor a day, bots left out). After the results are checked, Admin → Arcade tournaments → Tell winners sends each winner a message and a notification asking them to reply to confirm their details; nobody is told twice. Practice tournaments can congratulate the top players." },
+    ],
+  },
+  {
     version: "v0.204.0",
     bump: "minor",
     date: "2026-11-22",
