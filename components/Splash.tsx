@@ -68,7 +68,7 @@ export default function Splash() {
   const legal = (
     <div className="relative px-6 pb-5 pt-2 text-left font-mono text-[11px] leading-relaxed text-paper/70 lg:px-8">
       <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
-      <p className="mt-0.5">{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}</p>
+      <p className="mt-0.5">{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber}</p>
     </div>
   );
 
@@ -118,7 +118,7 @@ export default function Splash() {
           </p>
           <div className="mt-6 text-[11px] leading-relaxed text-slate md:hidden">
             <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
-            <p>{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}</p>
+            <p>{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber}</p>
           </div>
           <p className="mt-3 text-xs md:hidden"><Link href="/install" className="font-semibold text-crimson underline">{device && !isMobile(device) ? "Install NotesApp on your computer" : "Install NotesApp on your phone"}</Link></p>
         </div>

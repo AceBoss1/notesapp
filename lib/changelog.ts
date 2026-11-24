@@ -22,6 +22,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.205.1",
+    bump: "patch",
+    date: "2026-11-24",
+    changes: [
+      { kind: "changed", text: "The site footer and the welcome screen show the company's name and RC number only. The tax number (TIN) stays where it's needed: on invoices and on the Security page." },
+    ],
+  },
+  {
     version: "v0.205.0",
     bump: "minor",
     date: "2026-11-24",
