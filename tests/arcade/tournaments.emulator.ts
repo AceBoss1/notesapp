@@ -6,9 +6,12 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import type { TournamentGame } from "../../lib/arcade/tournament-games";
 import {
-  TournamentError, activeSponsor, adminAction, adminList, adminResults, countSponsor, createTournament, finishRun, getTournament, leaderboard,
-  listTournaments, sponsorReport, startRun, updateTournament,
+  TournamentError, activeSponsor, adminAction, adminList, adminResults, countListView, countSponsor, countView, createTournament, finishRun, getTournament,
+  leaderboard, listTournaments, sponsorReport, startRun, tellWinners, updateTournament, winnersPlan,
 } from "../../lib/arcade/tournaments-server";
+import { shareTournament, sitemapTournaments } from "../../lib/arcade/tournament-share-server";
+import { officialSender } from "../../lib/official-messages-server";
+import { conversationId } from "../../lib/messages-rules";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -151,12 +154,42 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   assert.deepEqual(await countSponsor(db, t.id, "click", "v1", "20261129"), { counted: true });
   await countSponsor(db, t.id, "impression", "v2", "20261129");
 
+  // Page views (owner, 24 Nov 2026): once per visitor per Lagos day; a draft's page isn't counted. The list page counts per day, and
+  // the report adds up only the days the tournament ran (29 and 30 Nov here).
+  assert.deepEqual(await countView(db, t.id, "v1", "20261129", o(during)), { counted: true });
+  assert.deepEqual(await countView(db, t.id, "v1", "20261129", o(during)), { counted: false }, "same visitor, same day");
+  assert.deepEqual(await countView(db, t.id, "v2", "20261129", o(during)), { counted: true });
+  assert.deepEqual(await countView(db, t.id, "v1", "20261130", o(during)), { counted: true }, "the next day counts again");
+  const hidden = await createTournament(db, { ...draft, name: "Hidden Draft" }, "admin1", o(created));
+  assert.deepEqual(await countView(db, hidden.id, "v1", "20261129", o(during)), { counted: false }, "drafts aren't counted");
+  await rejects(countView(db, "no-such-cup", "v1", "20261129", o(during)), 404, /doesn't exist/);
+  assert.deepEqual(await countListView(db, "v1", "20261129"), { counted: true });
+  assert.deepEqual(await countListView(db, "v1", "20261129"), { counted: false });
+  await countListView(db, "v2", "20261130");
+  await countListView(db, "v3", "20261205"); // after the window: not in this report
+  assert.equal((await db.doc(`tournaments/${t.id}`).get()).data()!.sponsorStats.views, 3);
+
+  // Share card, title and sitemap read public tournaments only: never a draft.
+  assert.equal(await shareTournament(db, hidden.id), null, "a draft's share card 404s");
+  const share = await shareTournament(db, t.id);
+  assert.equal(share!.name, "The Ariaria Cup"); assert.equal(share!.sponsor!.name, "Ariaria Ltd"); assert.equal((share as Record<string, unknown>).seed, undefined);
+  const inMap = await sitemapTournaments(db);
+  assert.ok(inMap.some((x) => x.id === t.id && x.updatedAt)); assert.ok(!inMap.some((x) => x.id === hidden.id), "no drafts in the sitemap");
+
   // Results: not while playing; after closing, checked; then prizes sent.
   await rejects(adminAction(db, t.id, "results-checked", o(during)), 409, /after play has ended/);
   await rejects(adminAction(db, t.id, "prizes-sent", o(during)), 409, /Check the results first/);
   await rejects(updateTournament(db, t.id, { ...draft, legalChecked: true, level: "easy" }, o(during)), 409, /can't change/);
   await adminAction(db, t.id, "close", o(during));
   await rejects(startRun(db, me("a3"), t.id, o(during)), 409, /has ended/);
+  // §5: winners are told only after the results are checked.
+  await db.doc("users/team").set({ uid: "team", username: "notesteam", displayName: "#NotesApp" });
+  await db.doc("usernames/notesteam").set({ uid: "team" });
+  const sender = await officialSender(db, "notesteam");
+  assert.deepEqual(sender, { ok: true, uid: "team", username: "notesteam" });
+  const noAlerts = { email: async () => {}, push: async () => 0 };
+  await rejects(winnersPlan(db, t.id, undefined, { ...o(during), sender }), 409, /Results checked/);
+  await rejects(tellWinners(db, t.id, 1, { ...o(during), sender, alerts: noAlerts }), 409, /Results checked/);
   const results = await adminResults(db, t.id);
   assert.deepEqual(results.map((r) => r.username).sort(), ["adult1", "adult4", "adult6"], "only entrants with a checked best");
   assert.equal(results.find((r) => r.username === "adult1")!.runs.length, 3, "every try a member sent");
@@ -170,6 +203,39 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   assert.equal(rep.entrants, 6); assert.equal(rep.tries, 12); assert.equal(rep.finished, 5);
   assert.equal(rep.rejected, 5); assert.equal(rep.abandoned, 1); assert.equal(rep.expired, 1);
   assert.equal(rep.sponsorImpressions, 2); assert.equal(rep.sponsorClicks, 1);
+  assert.equal(rep.pageViews, 3); assert.equal(rep.listViews, 2, "list views on the days it ran only");
+  assert.deepEqual(rep.winners, []); assert.equal(rep.winnersNotifiedAt, null);
+
+  // Telling the winners (§5; owner, 24 Nov 2026). One prize, so one winner by default. adult4 led, but is suspended now: skipped, and
+  // adult1 (next on the board) moves up. adult1 takes messages only from people they follow; #NotesApp's system message still reaches them.
+  await db.doc("users/a4").update({ suspended: true });
+  await db.doc("users/a1").update({ keepDmFollowers: true });
+  const plan = await winnersPlan(db, t.id, undefined, { ...o(after()), sender });
+  assert.equal(plan.count, 1); assert.equal(plan.max, 1); assert.deepEqual(plan.sender, { ok: true, username: "notesteam" });
+  assert.deepEqual(plan.rows.map((r) => [r.username, r.place, r.action]), [["adult4", null, "skip"], ["adult1", 1, "send"]]);
+  assert.match(plan.rows[0].why!, /suspended/);
+  assert.equal(plan.rows[1].prize, "A phone");
+  assert.match(plan.rows[1].text, /^Congratulations, @adult1! You placed 1st in The Ariaria Cup \(Fake, 29–30 Nov 2026\)/);
+  assert.match(plan.rows[1].text, /A phone, from Ariaria Ltd/); assert.match(plan.rows[1].text, /Reply here to confirm your details/);
+  await rejects(winnersPlan(db, t.id, 2, { ...o(after()), sender }), 400, /one per prize/);
+  const told = await tellWinners(db, t.id, 1, { ...o(after()), sender, alerts: noAlerts });
+  assert.deepEqual(told.sent, [{ username: "adult1", place: 1, dm: true }]); assert.deepEqual(told.failed, []);
+  assert.deepEqual(told.skipped.map((s) => s.username), ["adult4"]);
+  const cid = conversationId("team", "a1");
+  const dms = await db.collection(`conversations/${cid}/messages`).get();
+  assert.equal(dms.size, 1); assert.equal(dms.docs[0].data().from, "team"); assert.match(dms.docs[0].data().text, /You placed 1st/);
+  const bells = await db.collection("notifications").where("recipientUid", "==", "a1").get();
+  assert.deepEqual(bells.docs.map((d) => [d.data().type, d.data().linkHref]), [["arcade", `/arcade/tournaments/${t.id}`]], "one bell, to the tournament; no extra 'new message' bell");
+  // Idempotent: Send again tells nobody twice.
+  await rejects(tellWinners(db, t.id, 1, { ...o(after()), sender, alerts: noAlerts }), 409, /already been told/);
+  assert.equal((await db.collection(`conversations/${cid}/messages`).get()).size, 1);
+  assert.equal((await winnersPlan(db, t.id, 1, { ...o(after()), sender })).rows[1].action, "told");
+  const rep2 = await sponsorReport(db, t.id);
+  assert.equal(rep2.winners.length, 1); assert.equal(rep2.winners[0].username, "adult1"); assert.equal(rep2.winners[0].prize, "A phone");
+  assert.equal((rep2.winners[0] as Record<string, unknown>).uid, undefined, "usernames only in the report"); assert.ok(rep2.winnersNotifiedAt);
+  assert.equal((await getTournament(db, t.id, undefined, o(after()))).tournament.winnersNotifiedAt, rep2.winnersNotifiedAt);
+  assert.equal(((await getTournament(db, t.id, undefined, o(after()))).tournament as Record<string, unknown>).winners, undefined, "no winners' uids in public");
+  await db.doc("users/a4").update({ suspended: false });
 
   // A practice tournament: teens play; kids still don't; no prizes allowed.
   const p = await createTournament(db, { ...draft, name: "Teen Practice", prize: false, prizes: [], ageRule: "practice", sponsor: undefined }, "admin1", o(created));
@@ -181,6 +247,34 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   assert.equal(tf.rank, 1);
   await rejects(adminAction(db, p.id, "prizes-sent", o(after())), 409, /practice tournament/);
   assert.equal(await activeSponsor(db, "fake", o(during)), null, "no sponsor, no takeover");
+
+  // "Tell the top players" in a practice tournament: a plain congratulations. A deleted account is skipped; the teen gets the bell only.
+  for (const [u, moves] of [["a2", 15], ["a3", 18]] as const) {
+    const r = await startRun(db, me(u), p.id, o(during));
+    await finishRun(db, me(u), p.id, r.runId, rec(p.seed, 1, moves), o(plus(during, 61_000)));
+  }
+  await adminAction(db, p.id, "results-checked", o(after()));
+  await db.doc("users/a2").delete();
+  const pp = await winnersPlan(db, p.id, undefined, { ...o(after()), sender });
+  assert.equal(pp.count, 3);
+  assert.deepEqual(pp.rows.map((r) => [r.username, r.place, r.action]), [["teen1", 1, "bell"], ["adult2", null, "skip"], ["adult3", 2, "send"]]);
+  assert.match(pp.rows[1].why!, /deleted/);
+  assert.match(pp.rows[2].text, /^Well played, @adult3! You finished 2nd/); assert.doesNotMatch(pp.rows[2].text, /confirm your details/);
+  // Without #NotesApp's messaging account set up, nothing is sent.
+  await rejects(tellWinners(db, p.id, 3, { ...o(after()), sender: await officialSender(db, ""), alerts: noAlerts }), 409, /OFFICIAL_MESSAGES_USERNAME/);
+  assert.equal((await db.doc(`tournaments/${p.id}`).get()).data()!.winners, undefined);
+  // A member who blocked the account isn't messaged; their claim is given back so Send can try again later.
+  await db.doc("dmBlocks/a3_team").set({ blocker: "a3", blocked: "team" });
+  const pt = await tellWinners(db, p.id, 3, { ...o(after()), sender, alerts: noAlerts });
+  assert.deepEqual(pt.sent, [{ username: "teen1", place: 1, dm: false }]);
+  assert.equal(pt.failed.length, 1); assert.match(pt.failed[0].error, /blocked/);
+  assert.deepEqual(((await db.doc(`tournaments/${p.id}`).get()).data()!.winners as { username: string }[]).map((w) => w.username), ["teen1"]);
+  assert.equal((await db.collection(`conversations/${conversationId("team", "teen")}/messages`).get()).size, 0, "no chat with a teen");
+  assert.equal((await db.collection("notifications").where("recipientUid", "==", "teen").get()).size, 1, "the teen's bell");
+  await db.doc("dmBlocks/a3_team").delete();
+  const pt2 = await tellWinners(db, p.id, 3, { ...o(after()), sender, alerts: noAlerts });
+  assert.deepEqual(pt2.sent, [{ username: "adult3", place: 2, dm: true }]);
+  assert.equal((await db.collection(`conversations/${conversationId("team", "a3")}/messages`).get()).size, 1);
 
   console.log("TOURNAMENTS SERVER OK");
   process.exit(0);

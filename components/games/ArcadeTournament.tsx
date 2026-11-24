@@ -54,6 +54,8 @@ export default function ArcadeTournament({ id }: { id: string }) {
   const [finishedText, setFinishedText] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   useEffect(() => onAuthStateChanged(auth, (u) => { userRef.current = u; setUser(u); }), []);
+  // One page view for the sponsor's report (owner, 24 Nov 2026); the server counts each visitor once a day and ignores bots.
+  useEffect(() => { fetch(`/api/arcade/tournaments/${encodeURIComponent(id)}/view`, { method: "POST", keepalive: true }).catch(() => {}); }, [id]);
 
   const api = useCallback(async (path: string, body?: Record<string, unknown>) => {
     const u = userRef.current;

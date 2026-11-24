@@ -1443,6 +1443,23 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     under ~2 s; never change it while a tournament runs. Puff-Puff: two base-36 chars per frame (dt 1–100 ms × 5 + direction); ends at
     last life, 9 markets or 15 game minutes; maxRecording 500,000. Computer moves everywhere use a per-ply seeded rng (as chess), never
     Math.random or a clock. Tests: tests/arcade/replay-{ludo,landlord,spades,ncho,achi,draughts,puffpuff}.test.ts.
+167. **Per-game leaderboards; tournament views, share cards, sitemap and telling winners (v0.205.0; owner, 24 Nov 2026: "build;
+    page-view counts in the sponsor's report, share cards and sitemap entries for each tournament, telling winners in Messages, per-game
+    leaderboards"):** Boards: `lib/arcade/boards.ts` (pure: per-game metric from the saved kv, caps per save/day/total, wins credited from
+    the rise since the last save), `lib/arcade/boards-server.ts` (runs inside POST /api/arcade/progress via `saveProgress`; writes
+    `arcadeBoards/{slug}` npcWins and `arcadeBoards/{slug}/people/{uid}`; names read at display time; kids/suspended/no-username never;
+    teens and keepHidden follow lib/young.ts like the Billionaires List), `lib/arcade/boards-bots.ts` (autopilot scores for the action
+    games, cached by `autopilotVersion`), `lib/arcade/record-loss.ts` (`arcade-<slug>-lost` = {computer: losses}, never in tournaments),
+    GET /api/arcade/boards/[slug], `components/games/ArcadeBoard.tsx` under every game. Puff-Puff's best moved to `arcade-puffpuff-best`
+    (the old key wasn't synced), Snake now saves `arcade-snake-best`; Run and Puff-Puff tournament tries don't set the practice best.
+    Tournaments: views via POST /api/arcade/tournaments/[id]/view (adSeen dedupe, salted visitor hash, `isBot`), list views in
+    `tournamentStats/list-YYYYMMDD`; titles/OG/Twitter cards (`lib/arcade/tournament-share-server.ts`, `tournament-card.tsx`; phase and
+    listed moved to `tournament-phase.ts`); sitemap entries with a 4 s timeout. Tell winners: `lib/arcade/tournament-text.ts` (messages),
+    `lib/official-messages-server.ts` + `sendSystemMessage` in messages-server (skips only the follow-only rule and the sender's plan;
+    still refuses blocked/suspended/missing), sent from the account named in the setting `OFFICIAL_MESSAGES_USERNAME` (must be a real
+    account the team signs in to; Send is refused until set). Winners are claimed in a transaction (`winners`, `winnersNotifiedAt`) and
+    the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
+    Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
 
 ## 3. How the work is done (please keep these)
 

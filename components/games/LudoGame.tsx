@@ -8,6 +8,7 @@ import { arcadeGame } from "@/lib/arcade/catalogue";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { ludoTake, ludoTip, type LudoHighlight } from "@/lib/arcade/nana-ludo";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import ArcadeAdSpot from "./ArcadeAdSpot";
 import {
   DEFAULT_OPTIONS, HOME, HOME_COLUMN, START, STARS, TRACK, YARD, YARD_ORIGIN,
@@ -356,13 +357,18 @@ export default function LudoGame({ tourney }: { tourney?: TourneyProps } = {}) {
   useEffect(() => {
     if (game.phase !== "over" || countedRef.current || tourneyRef.current) return; // tournament games aren't practice wins
     countedRef.current = true;
+    // A loss for the leaderboard's computer players (lib/arcade/boards.ts): a game a computer won, or a knockout round you were left
+    // last in (credited to that round's winner), by the colour that computer played.
+    const beatYou = game.table.playToLast ? (game.loser === 0 ? game.winner : null) : game.winner !== 0 ? game.winner : null;
+    const colour = beatYou === null ? -1 : game.table.owner.findIndex((o) => o === beatYou);
+    if (colour >= 0) recordLoss("ludo", NAMES[colour].toLowerCase());
     if (game.winner !== 0 || game.table.playToLast) return;
     setWins((w) => {
       const next = w + 1;
       try { arcadeStore.setItem(WINS_KEY, String(next)); } catch { /* storage blocked */ }
       return next;
     });
-  }, [game.phase, game.winner, game.table.playToLast]);
+  }, [game.phase, game.winner, game.table.playToLast, game.loser, game.table.owner]);
 
   const startRoll = useCallback(() => {
     if (rolling) return;

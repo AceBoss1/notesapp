@@ -5,6 +5,7 @@ import ArcadeNana from "@/components/games/ArcadeNana";
 import ArcadeShell from "@/components/games/ArcadeShell";
 import { ENTRY } from "@/lib/arcade/achi.entry";
 import { arcadeStore } from "@/lib/arcade/store";
+import { recordLoss } from "@/lib/arcade/record-loss";
 import { LINES, MOVE_CAP, PIECES, applyMove, chooseMove, initialState, legalMoves, phaseOf, piecesOf, targetsFrom, type AchiState, type Level, type Move, type Player } from "@/lib/arcade/achi";
 import type { NanaTake } from "@/lib/arcade/nana";
 import { achiTake, achiTip, type AchiHighlight } from "@/lib/arcade/nana-achi";
@@ -49,6 +50,8 @@ export default function AchiGame({ tourney }: { tourney?: TourneyProps } = {}) {
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [phase, setPhase] = useState<Phase>(tourney ? "playing" : "ready");
   const [level, setLevel] = useState<Level>(tourneyLevel ?? "medium");
+  const levelRef = useRef(level); // read when a game ends, to credit the computer at that level (lib/arcade/record-loss.ts)
+  levelRef.current = level;
   const [resigned, setResigned] = useState(false);
   const mineRef = useRef<Move[]>([]); // your turns this game, exactly what the replay reads
   const sentRef = useRef(false);
@@ -125,7 +128,10 @@ export default function AchiGame({ tourney }: { tourney?: TourneyProps } = {}) {
         try { arcadeStore.setItem(WINS_KEY, String(w + 1)); } catch { /* ignore */ }
         return w + 1;
       });
-    } else sound(next.winner === 1 ? "lose" : "draw");
+    } else {
+      sound(next.winner === 1 ? "lose" : "draw");
+      if (next.winner === 1) recordLoss("achi", levelRef.current); // the computer at this level gets its leaderboard win
+    }
   }, [finishTourney, sound, tourney]);
 
   // The computer's turn, after a short pause so you can see what it does.

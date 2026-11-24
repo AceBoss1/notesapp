@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { compareRank, rankKey, type TournamentGame } from "../../lib/arcade/tournament-games";
 import { canEnter, listed, openBlocker, phase, publicTournament, sortEntries, validateDraft, type Member, type Tournament } from "../../lib/arcade/tournaments";
+import { LIST_DESCRIPTION, LIST_TITLE, lagosDates, ordinal, prizesHeadline, tournamentShare, whoLine, winnerBell, winnerMessage } from "../../lib/arcade/tournament-text";
 
 const FAKE: TournamentGame = { slug: "fake", name: "Fake", levels: ["easy", "hard"], rankedBy: "Score", maxRecording: 100, replay: () => ({ ok: false, error: "x" }) };
 const games = [FAKE];
@@ -97,5 +98,51 @@ assert.ok(compareRank([1, -10], [0, 50]) > 0, "a win beats any loss");
 const e = (u: string, rank: number[] | null, at: string) => ({ u, best: rank ? { rank, rankKey: rankKey(rank), summary: "", score: 0, at } : null });
 const sorted = sortEntries([e("a", [0, 5], "2026-11-29T10:00:00Z"), e("b", [1, -9], "2026-11-29T11:00:00Z"), e("c", null, "x"), e("d", [1, -9], "2026-11-29T10:30:00Z"), e("f", [1, -2], "2026-11-29T12:00:00Z")]);
 assert.deepEqual(sorted.map((x) => x.u), ["f", "d", "b", "a"], "best rank first, an earlier best breaks a tie, no-finish left out");
+
+// ---- share text and the winners' messages (lib/arcade/tournament-text.ts; owner, 24 Nov 2026) ----
+{
+  // Dates in Lagos time (UTC+1): a window ending at Lagos midnight belongs to the day before.
+  assert.equal(lagosDates("2026-11-29T09:00:00Z", "2026-11-30T21:00:00Z"), "29–30 Nov 2026");
+  assert.equal(lagosDates("2026-11-29T09:00:00Z", "2026-11-29T21:00:00Z"), "29 Nov 2026");
+  assert.equal(lagosDates("2026-11-29T09:00:00Z", "2026-11-30T23:00:00Z"), "29–30 Nov 2026", "ends 00:00 Lagos on 1 Dec");
+  assert.equal(lagosDates("2026-11-30T09:00:00Z", "2026-12-02T12:00:00Z"), "30 Nov – 2 Dec 2026");
+  assert.equal(lagosDates("2026-12-31T09:00:00Z", "2027-01-01T12:00:00Z"), "31 Dec 2026 – 1 Jan 2027");
+  assert.equal(lagosDates("2026-11-28T23:30:00Z", "2026-11-29T12:00:00Z"), "29 Nov 2026", "23:30 UTC is already the 29th in Lagos");
+
+  assert.equal(prizesHeadline([]), "");
+  assert.equal(prizesHeadline([{ place: "1st", prize: "A phone" }]), "1st: A phone");
+  assert.equal(prizesHeadline([{ place: "1st", prize: "A phone" }, { place: "2nd", prize: "A voucher" }]), "1st: A phone, and 1 more prize");
+  assert.equal(prizesHeadline([{ place: "1st", prize: "A" }, { place: "2nd", prize: "B" }, { place: "3rd", prize: "C" }]), "1st: A, and 2 more prizes");
+
+  const t = { name: "The Ariaria Cup", playFrom: good.playFrom, playUntil: good.playUntil, prize: true, prizes: good.prizes, ageRule: "adults" as const, sponsor: { name: "Ariaria Ltd" } };
+  const s = tournamentShare(t, "Whot");
+  assert.equal(s.title, "The Ariaria Cup · Whot tournament · Notes Arcade");
+  assert.equal(tournamentShare({ ...t, name: "The Ariaria Cup, Whot, 29–30 Nov" }, "Whot").title, "The Ariaria Cup, Whot, 29–30 Nov · Notes Arcade", "the game named once");
+  assert.match(s.description, /^A free Whot tournament on Notes Arcade, sponsored by Ariaria Ltd, 29–30 Nov 2026 \(Lagos time\)\. Prizes: 1st: A phone\. 18\+\./);
+  const practice = tournamentShare({ ...t, prize: false, prizes: [], ageRule: "practice", sponsor: undefined }, "Ludo");
+  assert.match(practice.description, /^A free Ludo tournament on Notes Arcade, 29–30 Nov 2026 \(Lagos time\)\. A practice tournament: teens welcome, no prizes\./);
+  assert.doesNotMatch(practice.description, /sponsored/);
+  assert.equal(whoLine(t), "Free entry · prizes · 18+");
+  assert.equal(whoLine({ prize: false, ageRule: "practice" }), "Free entry · practice, teens welcome · no prizes");
+  assert.ok(LIST_TITLE.includes("Notes Arcade") && LIST_DESCRIPTION.length > 50);
+
+  // The winner's message: congratulations, the place, the prize as written, the sponsor, and §5's "confirm your details" line.
+  const m = winnerMessage(t, "Whot", { username: "ada", place: 1, prize: { place: "1st", prize: "A phone" } }, "https://x.test/arcade/tournaments/cup");
+  assert.match(m, /^Congratulations, @ada! You placed 1st in The Ariaria Cup \(Whot, 29–30 Nov 2026\)\./);
+  assert.match(m, /Your prize: A phone, from Ariaria Ltd, who sponsored the tournament\./);
+  assert.match(m, /Reply here to confirm your details; nothing is handed over until the team has checked\./);
+  assert.match(m, /https:\/\/x\.test\/arcade\/tournaments\/cup/);
+  assert.doesNotMatch(m, /₦|naira|cash/i, "promises only what the prize says");
+  const noSponsor = winnerMessage({ ...t, sponsor: undefined }, "Whot", { username: "ada", place: 2, prize: { place: "2nd", prize: "A voucher" } }, "u");
+  assert.match(noSponsor, /placed 2nd/); assert.match(noSponsor, /Your prize: A voucher\./); assert.doesNotMatch(noSponsor, /sponsored/);
+  const top = winnerMessage({ ...t, prize: false, prizes: [], ageRule: "practice" }, "Whot", { username: "kemi", place: 3 }, "u");
+  assert.match(top, /^Well played, @kemi! You finished 3rd/); assert.match(top, /practice tournament, so there's nothing to claim/);
+  assert.doesNotMatch(top, /confirm your details|Your prize/);
+  assert.ok(winnerMessage(t, "Whot", { username: "a".repeat(30), place: 10, prize: { place: "10th", prize: "x".repeat(200) } }, "https://x.test/" + "y".repeat(80)).length < 2000, "fits a message");
+  assert.equal(ordinal(1), "1st"); assert.equal(ordinal(2), "2nd"); assert.equal(ordinal(3), "3rd"); assert.equal(ordinal(11), "11th"); assert.equal(ordinal(22), "22nd");
+  assert.equal(winnerBell(t, 1, true), "🏆 You placed 1st in The Ariaria Cup! Check Messages: #NotesApp wrote to you about your prize.");
+  assert.equal(winnerBell({ name: "P", prize: false }, 2, false), "🏆 You placed 2nd in P! Well played!");
+  assert.ok(winnerBell({ name: "n".repeat(80), prize: true }, 1, true).length <= 280);
+}
 
 console.log("TOURNAMENTS OK");

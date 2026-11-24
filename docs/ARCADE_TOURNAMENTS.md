@@ -28,6 +28,11 @@ saves progress, N$, scores and referral credit through the Notes Life wallet), t
 | The winners | A results page and a post on #NotesApp's own account naming the winners and the sponsor |
 | The numbers | A report after: entrants, games played, page views, advert impressions and clicks (the same counts as Admin → Ads) |
 
+Built (owner, 24 Nov 2026: "page-view counts in the sponsor's report; share cards and sitemap entries for each tournament"): each
+public tournament has its own title, description and share card (`app/(arcade)/arcade/tournaments/[id]/opengraph-image.tsx`) and is in
+the sitemap; drafts never are. The report counts the tournament page's views and the list page's views on the days it ran, once per
+visitor per Lagos day like adverts (a salted hash of IP and browser, never the IP; bots and link previews left out).
+
 Packages (names and prices set by the owner in Admin, not in code): for example a **Weekend** (one game, two days), a **Month**
 (one game, weekly rounds and a final) and a **Season** (several games, a league table).
 
@@ -74,6 +79,12 @@ call and play together" work), so it comes after Format 1.
 - The sponsor's prizes are listed on the page before entry opens, with how many winners and how they're delivered.
 - After the window closes: the top results are checked (replays re-run, odd patterns looked at by a person), then winners are told in
   Messages and asked to confirm their details. Nothing is handed over before that check.
+  **Built (owner, 24 Nov 2026: "telling winners in Messages"):** Admin → Arcade tournaments → "Tell winners", only after "Results
+  checked": pick how many (one per prize), preview each message, send. Each winner gets a direct message from #NotesApp's messaging
+  account (`OFFICIAL_MESSAGES_USERNAME`, a real account the team signs in as, so replies land somewhere; `lib/official-messages-server.ts`)
+  and a bell linking to the tournament. Deleted and suspended accounts, and anyone under 18, are skipped and the next player moves up.
+  Who was told is kept on the tournament (`winners`, `winnersNotifiedAt`), so it never tells anyone twice, and it's in the sponsor's
+  report. Practice and no-prize tournaments get "Tell the top players", a congratulations with nothing to claim; teens get the bell only.
 - One account per person: an entrant needs a confirmed email; prize winners may be asked for their phone number too.
 - N$ prizes are paid straight into the Notes Life wallet.
 - **Legal check before the first prize tournament:** whether a free, skill-based contest with sponsor prizes needs any promotion
