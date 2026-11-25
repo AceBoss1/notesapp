@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.206.0",
+    version: "v0.207.0",
     bump: "minor",
     date: "2026-11-25",
     changes: [
@@ -19,6 +19,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Free trials show what you kept. While you try Pro or Business, a card on My account shows how much more you've kept than on your own plan, from your own payments. When the trial ends, Your trial (and the email) shows both totals side by side, payment by payment, and says honestly when the plan didn't pay for itself yet, with the point where it would." },
       { kind: "added", text: "After a trial that didn't pay yet, we send one message when your own last 30 days would have kept you more on the plan than it costs, and never more than once every two months." },
       { kind: "changed", text: "Pricing: Business and Enterprise say \"Verified badge included\", and Pro and Business say what you'll see at the end of a free trial." },
+      { kind: "changed", text: "The homepage, About and the roadmap list Notes Tasks as live: paid tasks with the reward held before you start." },
       { kind: "changed", text: "The roadmap: our own live streaming with video for communities is live; what's next is broadcasting to very large audiences." },
       { kind: "added", text: "For our team: Admin → Growth → Trials shows trials that ended, who paid after, the commission given up in trials and the plan payments that followed." },
     ],

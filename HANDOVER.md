@@ -1460,7 +1460,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     account the team signs in to; Send is refused until set). Winners are claimed in a transaction (`winners`, `winnersNotifiedAt`) and
     the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
     Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
-168. **Homepage doors and what a free trial kept you (v0.206.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
+169. **Homepage doors and what a free trial kept you (v0.207.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
     the 4-in-1 landing page"; `docs/GTM_DOORS_AND_TRIALS.md`):** Doors: `lib/home-doors.ts` (pure: DOORS, `doorFrom` for `/#for-<door>`
     campaign links, `QUOTES` (empty: add one only with written permission), `proofFigures` rounded down with floors) and
     `components/home/AudienceDoors.tsx` under the hero; the figures come from `storedTraction` (statCache, hourly). Trials:
