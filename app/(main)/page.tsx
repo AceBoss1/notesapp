@@ -19,6 +19,10 @@ import { inventoryAddonPrice, inventoryTrialDays, planRate, pct } from "@/lib/pr
 import { loadLivePricing } from "@/lib/pricing-server";
 import { getTierConfig } from "@/lib/tiers";
 import { ROOT_DOMAIN } from "@/lib/host";
+import AudienceDoors from "@/components/home/AudienceDoors";
+import { proofFigures } from "@/lib/home-doors";
+import { storedTraction } from "@/lib/traction-server";
+import { getAdminDb } from "@/lib/firebase-admin";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -77,7 +81,13 @@ const FEATURES = [
 
 export default async function Home() {
   await loadLivePricing(); // the rates and prices in FEATURES, as set in Admin → Pricing
-  const [referenceHost, shopHost] = await Promise.all([activeHostForUsername(REFERENCE_USERNAME), activeHostForUsername(SHOP_REFERENCE_USERNAME)]);
+  const [referenceHost, shopHost, traction] = await Promise.all([
+    activeHostForUsername(REFERENCE_USERNAME), activeHostForUsername(SHOP_REFERENCE_USERNAME),
+    storedTraction(getAdminDb()).catch(() => null), // the figures under the doors; none shown if they can't be read
+  ]);
+  const proof = proofFigures(traction
+    ? { processedKobo: traction.money.processedKobo, paidOutKobo: traction.money.payoutsKobo, organisations: traction.people.organisations }
+    : { processedKobo: 0, paidOutKobo: 0, organisations: 0 });
   return (
     <>
       <IndependenceDoodle />
@@ -86,7 +96,7 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:px-8 lg:py-28">
           <div>
-            <span className="eyebrow">Built for African creators, professionals and businesses</span>
+            <span className="eyebrow">Built for African professionals, educators, businesses and organisations</span>
             <h1 className="mt-6 font-display text-[2.75rem] leading-[1.05] tracking-tight text-ink sm:text-6xl">
               Publish a note.
               <br />
@@ -106,7 +116,10 @@ export default async function Home() {
               Notes Arcade, and when you have a big idea, pitch it to NotesApp Ventures.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
-              <Link href="/journals" className="btn-primary">
+              <a href="#doors" className="btn-primary">
+                Who are you here as? ↓
+              </a>
+              <Link href="/journals" className="btn-ghost">
                 Explore live journals
               </Link>
               <Link href="/booking" className="btn-ghost">
@@ -158,6 +171,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <AudienceDoors proof={proof} />
 
       <TrustedByStrip className="border-b border-rule bg-paper px-4 py-8" />
 

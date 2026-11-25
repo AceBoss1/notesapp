@@ -1,7 +1,7 @@
 # 🚪 Homepage doors, and what a trial kept you
 
-From Victory Adugbo's external GTM review (Nov 2026) and the owner's notes on 24 Nov 2026. **Status: mockups, waiting for the owner's
-approval.** Nothing is built yet.
+From Victory Adugbo's external GTM review (Nov 2026) and the owner's notes on 24 Nov 2026. **Status: built in v0.206.0 (25 Nov 2026)**
+after Victory agreed with the "4-in-1 landing page" and the owner approved. What changed from the mockups is at the end.
 
 ## Why
 
@@ -51,3 +51,30 @@ subscriptions and gifts, and Business from about ₦210,000.
 | Quotes | Collected by the owner (or a GTM contractor) from Precheks, ApexGlitz and the paying members, with written permission. |
 | The "pays for itself" point | Worked out from the live rates and price, so it moves when Admin → Pricing changes. |
 | The nudge | At most one message every 60 days, and none while a member is on a plan. |
+
+## Built in v0.206.0
+
+Screenshots from the real code on the emulators (sample data; the strip shows the real figures of 24 Nov 2026):
+[the doors](mockups/gtm-built/1-doors-desktop.webp), [a door on a phone](mockups/gtm-built/2-phone-organisations.webp),
+[pricing](mockups/gtm-built/4-pricing.webp), [the trial card](mockups/gtm-built/5-trial-card.webp),
+[a running trial](mockups/gtm-built/6-trial-running.webp), [a trial that paid](mockups/gtm-built/7-trial-paid.webp).
+
+- **Doors:** `lib/home-doors.ts`, `components/home/AudienceDoors.tsx`; campaign links `/#for-professionals`, `/#for-academics`,
+  `/#for-sellers`, `/#for-organisations`. Quotes live in `QUOTES` and are empty until customers give them with permission.
+- **Trials:** `lib/trial-earnings.ts`, `lib/trial-earnings-server.ts`, `/profile/trial`, the card on My account, the end-of-trial email,
+  the daily nudge (reminders cron, 08:00 UTC), Admin → Growth → Trials.
+- **Tests:** `npm run test:gtm`, `npm run test:gtm-server`, the rules test (`trialResults` server-only).
+
+## Changed from the mockups
+
+- **"Verified badge included", not "Gold badge included".** In the code the verified ✔ is included on Business and Enterprise, and the
+  gold ✔ costs the same on every plan. The owner said gold is free on Business and Enterprise; that needs a decision before the label changes.
+- **Ad share isn't in the trial comparison:** it is paid by monthly statement, not per payment, so it can't be split into a 15-day trial.
+- **The rates on the "what your plan takes" side are today's**, not the rates on the day of each payment; the trial plan's side is what
+  was actually taken.
+- **Not counted:** a member who pays during the trial (the trial ends there and then), and free plans from promo codes.
+
+## Owner steps
+
+- `firebase deploy --only firestore:rules` (for `trialResults`).
+- Collect real quotes (Precheks, ApexGlitz, paying members) with written permission and add them to `QUOTES` in `lib/home-doors.ts`.

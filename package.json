@@ -122,6 +122,8 @@
     "test:my-calendar": "npx -y tsx tests/my-calendar/my-calendar.test.ts",
     "test:planner": "npx -y tsx tests/planner/planner.test.ts",
     "test:live-guests": "npx -y tsx tests/live-guests/live-guests.test.ts",
+    "test:gtm": "npx -y tsx tests/gtm/gtm.test.ts",
+    "test:gtm-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/gtm/trial-earnings.emulator.ts\"",
     "test:live-guests-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/live-guests/live-guests.emulator.ts\"",
     "test:merch": "npx -y tsx tests/merch/merch.test.ts",
     "test:merch-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/merch/merch.emulator.ts\"",

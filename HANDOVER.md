@@ -1460,6 +1460,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     account the team signs in to; Send is refused until set). Winners are claimed in a transaction (`winners`, `winnersNotifiedAt`) and
     the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
     Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
+168. **Homepage doors and what a free trial kept you (v0.206.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
+    the 4-in-1 landing page"; `docs/GTM_DOORS_AND_TRIALS.md`):** Doors: `lib/home-doors.ts` (pure: DOORS, `doorFrom` for `/#for-<door>`
+    campaign links, `QUOTES` (empty: add one only with written permission), `proofFigures` rounded down with floors) and
+    `components/home/AudienceDoors.tsx` under the hero; the figures come from `storedTraction` (statCache, hourly). Trials:
+    `lib/trial-earnings.ts` (pure: `compareTrial` scales each payment's real commission by the two plans' rates, so fan-tier uplifts carry
+    across; kinds the plan doesn't change are left out; `outcome`, `breakEvenKobo`, `nudgeDue`, `trialStats`) and
+    `lib/trial-earnings-server.ts` (`trialView`, `recordTrialEnd` called from `expireOrgTrials` before the account moves back, never for a
+    promo plan; `trialResults/{uid}_{day}` server-only; `nudgesDue` reverses the comparison because those payments were charged at the
+    member's current plan; `trialStatsFor`). Screens: `/profile/trial`, the card on My account (`components/trial/TrialEarnings.tsx`),
+    Admin → Growth → Trials (`/api/admin/growth/trials`). The nudge runs from the reminders cron once a day (08:00 UTC). Not counted: a
+    member who pays during the trial (the trial fields are cleared then), and ad share (paid monthly). Tests: `test:gtm`,
+    `test:gtm-server`, the rules test. Deploy `firestore:rules` for `trialResults`.
 
 ## 3. How the work is done (please keep these)
 

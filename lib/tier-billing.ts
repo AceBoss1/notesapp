@@ -13,6 +13,7 @@ import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
 import { afterTrialTier, planName } from "./trials";
 import { recordPlanEarning } from "./referrals-server";
+import { markNudged, nudgesDue, recordTrialEnd, resultEmailText } from "./trial-earnings-server";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
 // (tier, interval), a `tierSubscriptions/{uid}` record per paying
@@ -232,6 +233,8 @@ export async function expireOrgTrials(): Promise<number> {
     }
     const paid = (await db.doc(`tierSubscriptions/${d.id}`).get()).data();
     const paidTier = paid && paid.status === "active" ? (paid.tier as string) : null;
+    // What the trial kept them, worked out before the account moves back (lib/trial-earnings-server.ts).
+    const result = promo ? null : await recordTrialEnd(db, d.id, u, paidTier).catch((e) => { console.error("Trial result failed:", e); return null; });
     await d.ref.update({
       ...(u.accountTier === u.trialTier ? { accountTier: afterTrialTier(paidTier) as AccountTier } : {}),
       trialUntil: FieldValue.delete(),
@@ -241,11 +244,28 @@ export async function expireOrgTrials(): Promise<number> {
     });
     if (email) {
       const next = paidTier ? `your ${planName(paidTier)} plan` : "Free Basic";
-      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: promo ? "Your free #NotesApp plan has ended" : "Your #NotesApp free trial has ended", text: `The ${what} for ${u.displayName} has ended, so the account is on ${next}. Everything you published stays. ${paidTier ? "" : promo ? `Upgrade any time at ${site}/pricing.` : `Upgrade any time at ${site}/pricing (another free trial needs a paid plan first).`}\n\n#NotesApp` }).catch(() => {});
+      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: promo ? "Your free #NotesApp plan has ended" : "Your #NotesApp free trial has ended", text: `The ${what} for ${u.displayName} has ended, so the account is on ${next}. Everything you published stays. ${paidTier ? "" : promo ? `Upgrade any time at ${site}/pricing.` : `Upgrade any time at ${site}/pricing (another free trial needs a paid plan first).`}${result && !promo ? `\n\n${resultEmailText(result)} See how we worked it out: ${site}/profile/trial` : ""}\n\n#NotesApp` }).catch(() => {});
     }
     n++;
   }
   return n;
+}
+
+// "Pro would have kept you ₦X more last month": the one message after a trial that didn't pay yet, when the member's own last 30 days pass the
+// point where the plan pays for itself (lib/trial-earnings-server.ts nudgesDue). At most once every 60 days.
+export async function sendTrialNudges(db = getAdminDb()): Promise<number> {
+  await ensurePricing();
+  const due = await nudgesDue(db);
+  for (const n of due) {
+    const email = await getUserEmail(n.uid);
+    const plan = planName(n.tier);
+    if (email) {
+      await sendEmail({ to: email, bell: { uid: n.uid, type: "plan", linkHref: "/profile/trial" }, subject: `${plan} would have kept you ${nairaText(n.extraKobo)} more last month`,
+        text: `In the last 30 days, ${plan} would have kept you ${nairaText(n.extraKobo)} more of what you earned than your plan did. ${plan} costs ${nairaText(n.monthlyKobo)} a month, so it would now pay for itself. See the numbers: ${SITE_URL}/profile/trial\n\nWe send this at most once every two months. #NotesApp` }).catch(() => {});
+    }
+    await markNudged(db, n.id, new Date().toISOString());
+  }
+  return due.length;
 }
 
 // Paystack's subscription list — used to find the subscription code + email

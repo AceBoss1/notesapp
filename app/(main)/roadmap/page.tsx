@@ -339,7 +339,7 @@ export default async function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>The two Enterprise course packages</li>
               <li>Notes Life: a pixel look, and an HD look with your own avatar and a city map of Abuja with properties</li>
-              <li>Our own live streaming for communities</li>
+              <li>Broadcasting to very large audiences for communities (our own live streaming with video is live today)</li>
               <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive (a paid add-on for publishers)</li>
               <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>

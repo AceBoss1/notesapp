@@ -342,6 +342,8 @@ export default async function PricingPage() {
             <p className="mt-3 flex-1 text-xs text-slate">
               {!t.canPublish ? "Read, comment, book sessions and buy." : `Paid sessions, subscriptions and gifts: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)} commission${t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}.`}
             </p>
+            {t.canPublish && badgeIncluded(t.tier) && <p className="mt-2 text-xs font-bold text-crimson">✔ Verified badge included</p>}
+            {(t.tier === "pro" || t.tier === "business") && <p className="mt-2 text-xs text-slate">Try it free for 15 days. When it ends we show you what you kept on it, next to what you&apos;d have kept without it.</p>}
             <a href="#compare" className="mt-4 inline-block rounded-full border border-crimson px-4 py-2 text-center font-ui text-xs font-bold text-crimson hover:bg-crimson hover:text-white">Compare this plan</a>
           </li>
         ))}

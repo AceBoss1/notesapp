@@ -82,6 +82,7 @@ jobs:
       - run: npm run test:site-nana
       - run: npm run test:merch
       - run: npm run test:live-guests
+      - run: npm run test:gtm
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups
@@ -170,6 +171,8 @@ jobs:
       - run: npm run test:merch-server
       # Watching a live without an account against the emulator: the guest view, the limit, receive-only relay steps, teens, sign-ups
       - run: npm run test:live-guests-server
+      # What a free trial kept you against the emulator: the running total, the result at the end, the one nudge, Admin's figures
+      - run: npm run test:gtm-server
       # Moments tidy up and captions: the pure rules, then trims and captions on a moment and the caption service on the emulator
       - run: npm run test:moments-tidy
       # the link-preview safety test listens on port 80, which needs root on the runner

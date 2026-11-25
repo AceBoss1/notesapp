@@ -1101,6 +1101,8 @@ service cloud.firestore {
     match /siteSetups/{id} { allow read, write: if false; }
     // The day's guest views, sign-ups and minutes in lives (lib/live-guests-server.ts), for Admin → Limits. Server only.
     match /liveGuestStats/{day} { allow read, write: if false; }
+    // What a free trial kept the member (lib/trial-earnings-server.ts): server only, even for its owner, who reads it through /api/account/trial.
+    match /trialResults/{id} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

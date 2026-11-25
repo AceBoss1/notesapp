@@ -610,6 +610,14 @@ Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the 
 **Weekly boards:** **Top gifted** (who received the most this week, on [Gifts](/gifts)) and each creator's **Top gifters** (who sent them the most, on their Gifts tab) start again at midnight going into Monday, Lagos time; **Last week** keeps the result. Anonymous gifts count for the receiver but never name the sender on Top gifters.
 
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("what-your-trial-kept-you", "What your free trial kept you", "Plans and pricing", `
+Try **Pro** or **Business** free for 15 days, with no card. While the trial runs, a card at the top of **My account** shows how much more you've kept on the plan than you would have on your own plan, from your own payments.
+
+**When it ends,** open **Your trial** (/profile/trial; the email links to it). You'll see what you earned, what you kept on the plan you tried and what you'd have kept on your own plan, side by side, with the plan's price. If it paid for itself, we say so. If it didn't yet, we say that too, and tell you the point where it would: about how much a month in sessions, subscriptions and gifts.
+
+**How we work it out:** for each payment in the trial we show what we actually took on the plan you tried, and what your own plan's rates take today. A fan tier's uplift is counted the same way on both. Refunded payments aren't counted, and ad share isn't in the comparison because it's paid monthly. Only you see these figures.
+
+**Later:** if your trial didn't pay yet and your own last 30 days pass the point where the plan would pay for itself, we send you one message, and never more than once every two months. Nothing is sent while you're on a paid plan.`),
     A("watch-a-live-without-an-account", "Watching a live without an account", "Publishing and earning", `
 Anyone can watch a live its host made open to **Everyone**, even without a #NotesApp account. Open the link, tap **▶ Watch**, and the live plays, with the chat to read, the number watching and the hearts.
 
