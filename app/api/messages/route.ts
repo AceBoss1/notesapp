@@ -8,6 +8,7 @@ import { MessageError, listConversations, sendMessage } from "@/lib/messages-ser
 import { sendGroupMessage } from "@/lib/groups-server";
 import { MESSAGES_PER_MINUTE } from "@/lib/messages-rules";
 import { authed, fail } from "@/lib/moments-api";
+import { messagePerson } from "@/lib/official-account";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,8 @@ export async function GET(req: NextRequest) {
       conversations: rows.map((r) => {
         if (r.kind === "group") return r;
         const u = byUid.get(r.withUid);
-        return { ...r, with: { uid: r.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } };
+        return { ...r, with: messagePerson(r.withUid, u) }; // @na-notesapp has no users doc: its channel name and picture
+
       }),
     });
   } catch (err) {

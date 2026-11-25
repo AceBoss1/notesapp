@@ -7,7 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import type { TournamentGame } from "../../lib/arcade/tournament-games";
 import {
   TournamentError, activeSponsor, adminAction, adminList, adminResults, countListView, countSponsor, countView, createTournament, finishRun, getTournament,
-  leaderboard, listTournaments, sponsorReport, startRun, tellWinners, updateTournament, winnersPlan,
+  leaderboard, listTournaments, prizesBlockerOf, publishResultsPost, resultsPostDraft, sponsorReport, startRun, tellWinners, updateTournament, winnersPlan,
 } from "../../lib/arcade/tournaments-server";
 import { shareTournament, sitemapTournaments } from "../../lib/arcade/tournament-share-server";
 import { officialSender } from "../../lib/official-messages-server";
@@ -190,13 +190,18 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   const noAlerts = { email: async () => {}, push: async () => 0 };
   await rejects(winnersPlan(db, t.id, undefined, { ...o(during), sender }), 409, /Results checked/);
   await rejects(tellWinners(db, t.id, 1, { ...o(during), sender, alerts: noAlerts }), 409, /Results checked/);
+  // The results post names the winners, so it waits for "Results checked" too.
+  await rejects(resultsPostDraft(db, t.id, o(during)), 409, /Results checked/);
+  await rejects(publishResultsPost(db, t.id, {}, "admin1", o(during)), 409, /Results checked/);
   const results = await adminResults(db, t.id);
   assert.deepEqual(results.map((r) => r.username).sort(), ["adult1", "adult4", "adult6"], "only entrants with a checked best");
   assert.equal(results.find((r) => r.username === "adult1")!.runs.length, 3, "every try a member sent");
   assert.equal(results[0].username, "adult4");
   const done = await adminAction(db, t.id, "results-checked", o(during));
   assert.equal(done.status, "results"); assert.ok(done.resultsCheckedAt);
-  assert.ok((await adminAction(db, t.id, "prizes-sent", o(during))).prizesSentAt);
+  // Owner, 24 Nov 2026: "Mark prizes sent" waits until the winners have been told.
+  await rejects(adminAction(db, t.id, "prizes-sent", o(during)), 409, /Tell winners first/);
+  assert.match(String(await prizesBlockerOf(db, t.id)), /Tell winners first/);
 
   // The sponsor's report.
   const rep = await sponsorReport(db, t.id);
@@ -210,6 +215,10 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   // adult1 (next on the board) moves up. adult1 takes messages only from people they follow; #NotesApp's system message still reaches them.
   await db.doc("users/a4").update({ suspended: true });
   await db.doc("users/a1").update({ keepDmFollowers: true });
+  // Before anyone is told, the results post's draft names the board's top with the same skips as "Tell winners": adult1, not adult4.
+  const d0 = await resultsPostDraft(db, t.id, o(after()));
+  assert.equal(d0.from, "board"); assert.deepEqual(d0.winners.map((w) => [w.place, w.username, w.prize]), [[1, "adult1", "A phone"]]);
+  assert.doesNotMatch(d0.body, /adult4/);
   const plan = await winnersPlan(db, t.id, undefined, { ...o(after()), sender });
   assert.equal(plan.count, 1); assert.equal(plan.max, 1); assert.deepEqual(plan.sender, { ok: true, username: "notesteam" });
   assert.deepEqual(plan.rows.map((r) => [r.username, r.place, r.action]), [["adult4", null, "skip"], ["adult1", 1, "send"]]);
@@ -235,6 +244,40 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   assert.equal((rep2.winners[0] as Record<string, unknown>).uid, undefined, "usernames only in the report"); assert.ok(rep2.winnersNotifiedAt);
   assert.equal((await getTournament(db, t.id, undefined, o(after()))).tournament.winnersNotifiedAt, rep2.winnersNotifiedAt);
   assert.equal(((await getTournament(db, t.id, undefined, o(after()))).tournament as Record<string, unknown>).winners, undefined, "no winners' uids in public");
+  // Every prize place told: now prizes can be marked sent.
+  assert.equal(await prizesBlockerOf(db, t.id), null);
+  assert.ok((await adminAction(db, t.id, "prizes-sent", o(after()))).prizesSentAt);
+
+  // The results post (§2 "The winners"; owner, 24 Nov 2026), published as #NotesApp (@na-notesapp) once. It names the winners told.
+  await db.doc("usernames/adult1").set({ uid: "a1" });
+  await db.doc("follows/a5_na-notesapp").set({ followerUid: "a5", username: "na-notesapp", followedAt: created.toISOString() });
+  const d1 = await resultsPostDraft(db, t.id, o(after()));
+  assert.equal(d1.from, "told"); assert.equal(d1.title, "Winners of The Ariaria Cup"); assert.equal(d1.resultsPost, null);
+  assert.match(d1.body, /Thank you to \*\*\[Ariaria Ltd\]\(https:\/\/ariaria\.example\)\*\*/); assert.match(d1.body, /> Shop local\./);
+  assert.match(d1.body, /- \*\*1st:\*\* @adult1, Won in 30 moves\. Prize: A phone\./); assert.match(d1.body, /6 members entered/);
+  assert.ok(d1.body.includes(`/arcade/tournaments/${t.id})`), "links the tournament page");
+  const pub = await publishResultsPost(db, t.id, { title: d1.title, body: `${d1.body}\n\nEdited by the team.` }, "admin1", o(after()));
+  const rp = pub.resultsPost;
+  assert.equal(rp.slug, "winners-of-the-ariaria-cup"); assert.equal(rp.by, "admin1"); assert.match(rp.url, /\/journals\/winners-of-the-ariaria-cup$/);
+  assert.deepEqual(pub.tournament.resultsPost, rp);
+  const note = (await db.doc(`notes/${rp.noteId}`).get()).data()!;
+  assert.equal(note.author, "NotesApp"); assert.equal(note.authorUsername, "na-notesapp"); assert.equal(note.authorUid, undefined, "the channel has no account");
+  assert.equal(note.author_role, "Official Channel"); assert.equal(note.author_avatar, "/images/brand/notesapp-icon.webp");
+  assert.equal(note.status, "published"); assert.equal(note.premium, false); assert.equal(note.slug, rp.slug); assert.equal(note.title, "Winners of The Ariaria Cup");
+  assert.deepEqual(note.topics, ["gaming"]); assert.equal(note.featured_image, `/arcade/tournaments/${t.id}/opengraph-image`);
+  assert.match(note.content, /@adult1/); assert.match(note.content, /Edited by the team\.$/); assert.equal(note.tournamentId, t.id);
+  assert.ok(note.newPostNotifiedAt, "followers told, as for any #NotesApp post");
+  const a5Bells = await db.collection("notifications").where("recipientUid", "==", "a5").where("type", "==", "new_post").get();
+  assert.equal(a5Bells.size, 1); assert.equal(a5Bells.docs[0].data().linkHref, `/journals/${rp.slug}`);
+  const a1Mention = await db.collection("notifications").where("recipientUid", "==", "a1").where("type", "==", "mention").get();
+  assert.equal(a1Mention.size, 1, "the winner gets a mention bell"); assert.equal(a1Mention.docs[0].data().actorUsername, "na-notesapp");
+  // Once only.
+  await rejects(publishResultsPost(db, t.id, {}, "admin1", o(after())), 409, /already up/);
+  assert.equal((await db.collection("notes").where("tournamentId", "==", t.id).get()).size, 1);
+  // The public page links to it (without which admin posted it); so does the sponsor's report.
+  const pubT = (await getTournament(db, t.id, undefined, o(after()))).tournament;
+  assert.equal(pubT.resultsPost!.slug, rp.slug); assert.equal((pubT.resultsPost as Record<string, unknown>).by, undefined);
+  assert.deepEqual((await sponsorReport(db, t.id)).resultsPost, { url: rp.url, slug: rp.slug, publishedAt: rp.publishedAt });
   await db.doc("users/a4").update({ suspended: false });
 
   // A practice tournament: teens play; kids still don't; no prizes allowed.
@@ -246,6 +289,7 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   const tf = await finishRun(db, me("teen"), p.id, ts.runId, rec(p.seed, 1, 12), o(plus(during, 61_000)));
   assert.equal(tf.rank, 1);
   await rejects(adminAction(db, p.id, "prizes-sent", o(after())), 409, /practice tournament/);
+  assert.match(String(await prizesBlockerOf(db, p.id)), /practice tournament: there are no prizes to send/);
   assert.equal(await activeSponsor(db, "fake", o(during)), null, "no sponsor, no takeover");
 
   // "Tell the top players" in a practice tournament: a plain congratulations. A deleted account is skipped; the teen gets the bell only.
@@ -275,6 +319,14 @@ const plus = (d: Date, ms: number) => new Date(d.getTime() + ms);
   const pt2 = await tellWinners(db, p.id, 3, { ...o(after()), sender, alerts: noAlerts });
   assert.deepEqual(pt2.sent, [{ username: "adult3", place: 2, dm: true }]);
   assert.equal((await db.collection(`conversations/${conversationId("team", "a3")}/messages`).get()).size, 1);
+  // The practice tournament's post: the teen who won isn't named in public (docs/YOUNG_MEMBERS.md); adult3 is. Its slug doesn't clash.
+  const pd = await resultsPostDraft(db, p.id, o(after()));
+  assert.deepEqual(pd.winners.map((w) => [w.place, w.unnamed ?? w.username]), [[1, "teen"], [2, "adult3"]]);
+  assert.doesNotMatch(pd.body, /teen1/); assert.match(pd.body, /1st:\*\* a player in teen mode/); assert.match(pd.body, /@adult3/);
+  assert.match(pd.body, /practice tournament: teens welcome, no prizes/); assert.doesNotMatch(pd.body, /Prize:/);
+  const pp2 = await publishResultsPost(db, p.id, { title: "Winners of The Ariaria Cup", body: pd.body }, "admin1", o(after()));
+  assert.equal(pp2.resultsPost.slug, "winners-of-the-ariaria-cup-2");
+  await rejects(publishResultsPost(db, p.id, { title: "x", body: pd.body }, "admin1", o(after())), 409, /already up/);
 
   console.log("TOURNAMENTS SERVER OK");
   process.exit(0);

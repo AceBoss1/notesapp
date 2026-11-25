@@ -203,6 +203,10 @@ jobs:
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: x
       NEXT_PUBLIC_FIREBASE_APP_ID: x
       FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      # The browser SDK too (lib/firebase.ts), during the build's prerender and in the smoke test's browser. Without it the client kept
+      # retrying the real Firestore for demo-notesapp ("PERMISSION_DENIED ... demo-notesapp") while pages prerendered, which pushed the
+      # build past the hour and timed out /messages/new (24 Nov 2026, on main and on #398). Never set on the live site.
+      NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
       GCLOUD_PROJECT: demo-notesapp
     steps:
       - uses: actions/checkout@v4

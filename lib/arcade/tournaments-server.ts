@@ -4,10 +4,17 @@ import { randomBytes, randomInt } from "crypto";
 import { isKidUid } from "../kids";
 import { TOURNAMENT_GAMES, compareRank, rankKey, tournamentGame, type TournamentGame } from "./tournament-games";
 import {
-  canEnter, listed, openBlocker, phase, publicTournament, validateDraft, type Best, type PublicTournament, type Tournament, type Winner,
+  canEnter, listed, openBlocker, phase, publicTournament, validateDraft, type Best, type PublicTournament, type ResultsPost, type Tournament, type Winner,
 } from "./tournaments";
 import { ARCADE_GAMES } from "./catalogue";
-import { winnerBell, winnerMessage } from "./tournament-text";
+import { ordinal, winnerBell, winnerMessage } from "./tournament-text";
+import { resultsPostBody, resultsPostTitle, type PostWinner, type Unnamed } from "./tournament-results";
+import { NA_NOTESAPP_PROFILE } from "../journals-directory";
+import { NA_UID } from "../social-graph";
+import { slugify as noteSlug } from "../firestore-notes";
+import { keptOffLists } from "../young";
+import { notifyNewPostServer } from "../new-post-notify";
+import { notifyMentions } from "../mentions-server";
 import { SITE_URL } from "../host";
 import { officialSender, sendOfficialMessage, type OfficialSender } from "../official-messages-server";
 import type { Alerts } from "../messages-server";
@@ -319,14 +326,38 @@ export async function adminAction(db: Firestore, id: unknown, action: unknown, o
     if (phase(t, now) !== "ended") throw new TournamentError(409, "Check results after play has ended (or close it first).");
     await ref.update({ status: "results", resultsCheckedAt: at, updatedAt: at });
   } else if (action === "prizes-sent") {
-    if (!t.prize) throw new TournamentError(409, "That's a practice tournament: there are no prizes to send.");
-    if (!t.resultsCheckedAt) throw new TournamentError(409, "Check the results first; nothing is handed over before that (§5).");
+    const why = await prizesSentBlocker(db, t);
+    if (why) throw new TournamentError(409, why);
     await ref.update({ prizesSentAt: at, updatedAt: at });
   } else {
     throw new TournamentError(400, "Unknown action.");
   }
   return load(db, t.id);
 }
+
+// "Mark prizes sent" waits until the winners have been told (owner, 24 Nov 2026: "making 'Mark prizes sent' wait until winners have
+// been told"; §5: winners are told in Messages and confirm their details, and nothing is handed over before that). The rule: winners
+// have been told (winnersNotifiedAt), and every prize place has been told, unless the board ran out of players who can take it (fewer
+// eligible finishers than prizes: then every place that CAN be told has been). A place whose message failed was given back by
+// tellWinners, so it counts as not told. A tournament without prizes has nothing to send.
+/** Why "Mark prizes sent" can't be pressed yet, or null. Admin shows the same words beside the greyed-out button. */
+export async function prizesSentBlocker(db: Firestore, t: Tournament): Promise<string | null> {
+  if (!t.prize) return t.ageRule === "practice" ? "That's a practice tournament: there are no prizes to send." : "That tournament has no prizes to send.";
+  if (!t.resultsCheckedAt) return "Check the results first; nothing is handed over before that (§5).";
+  const told = t.winners ?? [];
+  if (!t.winnersNotifiedAt || !told.length) return "Tell winners first: prizes are sent only after each winner has been told and asked to confirm their details (§5).";
+  const toldPlaces = new Set(told.map((w) => w.place));
+  if (t.prizes.every((_, i) => toldPlaces.has(i + 1))) return null;
+  // Some prize places aren't told: is anyone eligible waiting for one? (The same selection "Tell winners" uses.)
+  const waiting = (await pickPlaces(db, t, t.prizes.length))
+    .filter((p) => p.place !== null && !told.some((w) => w.uid === p.e.uid) && !toldPlaces.has(p.place));
+  if (!waiting.length) return null;
+  const places = waiting.map((p) => ordinal(p.place!));
+  return `Tell winners first: ${places.length === 1 ? `${places[0]} place hasn't` : `${places.slice(0, -1).join(", ")} and ${places[places.length - 1]} places haven't`} been told yet. Prizes are sent only after each winner has been told (§5).`;
+}
+
+/** The same, by tournament id (Admin's details panel). */
+export const prizesBlockerOf = async (db: Firestore, id: unknown) => prizesSentBlocker(db, await load(db, id));
 
 /** Check results: the top entrants with every try they sent, so a person can look for odd patterns (§5). Re-runs each best replay too. */
 export async function adminResults(db: Firestore, id: unknown, limit = 20) {
@@ -358,6 +389,8 @@ export async function sponsorReport(db: Firestore, id: unknown) {
     // Who was told they placed, and when (tellWinners below). Usernames only, as on the public board.
     winnersNotifiedAt: t.winnersNotifiedAt ?? null,
     winners: (t.winners ?? []).map(({ uid: _u, ...w }) => w).sort((a, b) => a.place - b.place), // eslint-disable-line @typescript-eslint/no-unused-vars
+    // The results post on #NotesApp's journal naming the winners and the sponsor (§2 "The winners"; publishResultsPost below).
+    resultsPost: t.resultsPost ? { url: t.resultsPost.url, slug: t.resultsPost.slug, publishedAt: t.resultsPost.publishedAt } : null,
   };
 }
 
@@ -381,44 +414,60 @@ const MAX_TOP_PLAYERS = 10; // a tournament without prizes: congratulate up to t
 const gameName = (t: Tournament, o: Opts) => (o.games ?? tournamentGame)(t.game)?.name ?? ARCADE_GAMES.find((g) => g.slug === t.game)?.name ?? t.game;
 export const tournamentUrl = (id: string) => `${SITE_URL}/arcade/tournaments/${id}`;
 
-/** What "Tell winners" would do for the top `count`: each row's place, prize, message and whether it will be sent, skipped or was sent. */
-export async function winnersPlan(db: Firestore, id: unknown, count?: unknown, o: WinnerOpts = {}) {
-  const t = await load(db, id);
-  if (t.status !== "results" || !t.resultsCheckedAt) throw new TournamentError(409, "Tick \"Results checked\" first: winners are told only after the top results are checked (§5).");
-  const max = t.prize ? t.prizes.length : MAX_TOP_PLAYERS;
-  const fallback = t.prize ? t.prizes.length : Math.min(3, max);
-  const n = count === undefined || count === null || count === "" ? fallback : Number(count);
-  if (!Number.isInteger(n) || n < 1 || n > max) throw new TournamentError(400, t.prize ? `Tell 1 to ${max} winners (one per prize).` : `Tell 1 to ${max} top players.`);
+// Who places, in board order: the one selection "Tell winners" and the results post share, so the post names exactly who was (or would
+// be) told. Deleted and suspended accounts, and in a prize tournament anyone under 18, are skipped with the reason, and the next player
+// moves up. Stops once `n` players have a place.
+type Pick = { e: EntryDoc & { best: Best }; u: FirebaseFirestore.DocumentData | undefined; username: string; place: number | null; why?: string; young: boolean };
+async function pickPlaces(db: Firestore, t: Tournament, n: number): Promise<Pick[]> {
   const s = await db.collection(`tournaments/${t.id}/entries`).orderBy("rankKey", "desc").limit(n + 40).get();
-  const entries = s.docs.map((d) => d.data() as EntryDoc).filter((e) => e.best)
-    .sort((a, b) => compareRank(b.best!.rank, a.best!.rank) || a.best!.at.localeCompare(b.best!.at));
+  const entries = s.docs.map((d) => d.data() as EntryDoc).filter((e): e is EntryDoc & { best: Best } => !!e.best)
+    .sort((a, b) => compareRank(b.best.rank, a.best.rank) || a.best.at.localeCompare(b.best.at));
   const users = entries.length ? await db.getAll(...entries.map((e) => db.doc(`users/${e.uid}`))) : [];
-  const told = t.winners ?? [];
-  const name = gameName(t, o);
-  const url = tournamentUrl(t.id);
-  const rows: WinnerRow[] = [];
+  const out: Pick[] = [];
   let place = 0;
   for (const [i, e] of entries.entries()) {
     if (place >= n) break;
     const u = users[i]?.data();
     const username = String(u?.username ?? e.username);
-    const base = { uid: e.uid, username, summary: e.best!.summary, prize: "", text: "" };
-    if (!u) { rows.push({ ...base, place: null, action: "skip", why: "Account deleted: skipped, the next player moves up." }); continue; }
-    if (u.suspended === true) { rows.push({ ...base, place: null, action: "skip", why: "Account suspended: skipped, the next player moves up." }); continue; }
-    const young = isKidUid(e.uid) || u.teen === true;
-    if (t.prize && young) { rows.push({ ...base, place: null, action: "skip", why: "Under 18: prize tournaments are for adults (§8.2). Skipped, the next player moves up." }); continue; }
-    place++;
-    const already = told.find((w) => w.uid === e.uid);
-    if (already) { rows.push({ ...base, place: already.place, prize: already.prize, action: "told", why: `Told ${already.at.slice(0, 16).replace("T", " ")} UTC.` }); continue; }
-    const clash = told.find((w) => w.place === place);
-    if (clash) { rows.push({ ...base, place, action: "skip", why: `@${clash.username} was already told they placed ${place}. Check the results by hand.` }); continue; }
-    const prize = t.prize ? t.prizes[place - 1] : undefined;
-    rows.push({
-      ...base, place, prize: prize?.prize ?? "", action: young ? "bell" : "send",
-      ...(young ? { why: "A teen: bell only (teens take messages only from people they follow)." } : {}),
-      text: winnerMessage(t, name, { username, place, ...(prize ? { prize } : {}) }, url),
-    });
+    const young = isKidUid(e.uid) || u?.teen === true;
+    const skip = (why: string) => out.push({ e, u, username, place: null, why, young });
+    if (!u) { skip("Account deleted: skipped, the next player moves up."); continue; }
+    if (u.suspended === true) { skip("Account suspended: skipped, the next player moves up."); continue; }
+    if (t.prize && young) { skip("Under 18: prize tournaments are for adults (§8.2). Skipped, the next player moves up."); continue; }
+    out.push({ e, u, username, place: ++place, young });
   }
+  return out;
+}
+
+/** How many "Tell winners" tells by default, and the results post names when nobody has been told yet: one per prize, or the top three
+ *  of a tournament without prizes. */
+const defaultWinnerCount = (t: Tournament) => (t.prize ? t.prizes.length : Math.min(3, MAX_TOP_PLAYERS));
+
+/** What "Tell winners" would do for the top `count`: each row's place, prize, message and whether it will be sent, skipped or was sent. */
+export async function winnersPlan(db: Firestore, id: unknown, count?: unknown, o: WinnerOpts = {}) {
+  const t = await load(db, id);
+  if (t.status !== "results" || !t.resultsCheckedAt) throw new TournamentError(409, "Tick \"Results checked\" first: winners are told only after the top results are checked (§5).");
+  const max = t.prize ? t.prizes.length : MAX_TOP_PLAYERS;
+  const n = count === undefined || count === null || count === "" ? defaultWinnerCount(t) : Number(count);
+  if (!Number.isInteger(n) || n < 1 || n > max) throw new TournamentError(400, t.prize ? `Tell 1 to ${max} winners (one per prize).` : `Tell 1 to ${max} top players.`);
+  const told = t.winners ?? [];
+  const name = gameName(t, o);
+  const url = tournamentUrl(t.id);
+  const rows = (await pickPlaces(db, t, n)).map((p): WinnerRow => {
+    const base = { uid: p.e.uid, username: p.username, summary: p.e.best.summary, prize: "", text: "" };
+    if (p.place === null) return { ...base, place: null, action: "skip", why: p.why };
+    const place = p.place;
+    const already = told.find((w) => w.uid === p.e.uid);
+    if (already) return { ...base, place: already.place, prize: already.prize, action: "told", why: `Told ${already.at.slice(0, 16).replace("T", " ")} UTC.` };
+    const clash = told.find((w) => w.place === place);
+    if (clash) return { ...base, place, action: "skip", why: `@${clash.username} was already told they placed ${place}. Check the results by hand.` };
+    const prize = t.prize ? t.prizes[place - 1] : undefined;
+    return {
+      ...base, place, prize: prize?.prize ?? "", action: p.young ? "bell" : "send",
+      ...(p.young ? { why: "A teen: bell only (teens take messages only from people they follow)." } : {}),
+      text: winnerMessage(t, name, { username: p.username, place, ...(prize ? { prize } : {}) }, url),
+    };
+  });
   const sender = o.sender ?? (await officialSender(db));
   return {
     id: t.id, name: t.name, prize: t.prize, count: n, max, rows, told: [...told].sort((a, b) => a.place - b.place), winnersNotifiedAt: t.winnersNotifiedAt ?? null,
@@ -467,4 +516,117 @@ export async function tellWinners(db: Firestore, id: unknown, count: unknown, o:
     sent.push({ username: r.username, place: w.place, dm });
   }
   return { sent, failed, skipped: plan.rows.filter((r) => r.action === "skip").map((r) => ({ username: r.username, why: r.why ?? "" })), tournament: await load(db, plan.id) };
+}
+
+// ---- The results post (§2 "The winners"; owner, 24 Nov 2026: "the results post on #NotesApp's account naming the winners and the sponsor") ----
+// Once results are checked, Admin gets a draft (lib/arcade/tournament-results.ts), edits it, and publishes it on @na-notesapp's journal.
+// The post is written exactly as NoteForm writes an admin's post under the "NotesApp" author toggle (a published `notes` document with
+// author "NotesApp", authorUsername "na-notesapp" and no authorUid, since the channel has no account of its own), so it shows on
+// /u/na-notesapp, in feeds, Explore, search and the sitemap like any other #NotesApp post, with comments and likes open. Followers get
+// the usual "new post" bell (lib/new-post-notify.ts), and winners @mentioned in it get a mention bell (lib/mentions-server.ts, which keeps
+// the young-member rules). The tournament keeps resultsPost, so it's never posted twice.
+//
+// The winners named are the same list "Tell winners" tells: the winners told (winners[]) once anyone has been told, otherwise the checked
+// board with the same skips (pickPlaces). Teens and members who keep their profile private aren't named (docs/YOUNG_MEMBERS.md).
+
+/** @na-notesapp's byline role, as NoteForm's author toggle writes it. */
+const NA_ROLE = "Official Channel";
+/** The tournament's share card (app/(arcade)/arcade/tournaments/[id]/opengraph-image.tsx): the post's cover image. A path on our own
+ *  site, so next/image and feeds load it without a remote-image allowance, and link previews resolve it against the site address. */
+export const shareCardPath = (id: string) => `/arcade/tournaments/${id}/opengraph-image`;
+
+const unnamedOf = (uid: string, u: FirebaseFirestore.DocumentData | undefined): { unnamed?: Unnamed } =>
+  !u || u.suspended === true ? { unnamed: "gone" } : isKidUid(uid) || u.teen === true ? { unnamed: "teen" } : keptOffLists(u) ? { unnamed: "private" } : {};
+
+/** The winners the post names, in place order (see above). */
+async function postWinners(db: Firestore, t: Tournament): Promise<{ winners: PostWinner[]; from: "told" | "board" }> {
+  const told = [...(t.winners ?? [])].sort((a, b) => a.place - b.place);
+  if (told.length) {
+    const [users, entries] = await Promise.all([
+      db.getAll(...told.map((w) => db.doc(`users/${w.uid}`))),
+      db.getAll(...told.map((w) => db.doc(`tournaments/${t.id}/entries/${w.uid}`))),
+    ]);
+    return {
+      from: "told",
+      winners: told.map((w, i) => {
+        const u = users[i].data();
+        return {
+          place: w.place, username: String(u?.username ?? w.username), summary: String((entries[i].data() as EntryDoc | undefined)?.best?.summary ?? "result checked"),
+          ...(w.prize ? { prize: w.prize } : {}), ...unnamedOf(w.uid, u),
+        };
+      }),
+    };
+  }
+  const picks = (await pickPlaces(db, t, defaultWinnerCount(t))).filter((p) => p.place !== null);
+  return {
+    from: "board",
+    winners: picks.map((p) => {
+      const prize = t.prize ? t.prizes[p.place! - 1] : undefined;
+      return { place: p.place!, username: p.username, summary: p.e.best.summary, ...(prize ? { prize: prize.prize } : {}), ...unnamedOf(p.e.uid, p.u) };
+    }),
+  };
+}
+
+const needsChecked = (t: Tournament) => {
+  if (t.status !== "results" || !t.resultsCheckedAt) throw new TournamentError(409, "Tick \"Results checked\" first: the results post names the winners, so it comes after the top results are checked (§5).");
+};
+
+/** The draft Admin edits: title, Markdown body, the winners it names (and whether they're the ones told or the board's top), the cover. */
+export async function resultsPostDraft(db: Firestore, id: unknown, o: Opts = {}) {
+  const t = await load(db, id);
+  needsChecked(t);
+  const { winners, from } = await postWinners(db, t);
+  const body = resultsPostBody(t, gameName(t, o), winners, {
+    tournament: tournamentUrl(t.id), list: `${SITE_URL}/arcade/tournaments`, partners: `${SITE_URL}/arcade/partners`,
+  });
+  return { id: t.id, title: resultsPostTitle(t), body, winners, from, cover: shareCardPath(t.id), resultsPost: t.resultsPost ?? null };
+}
+
+const cleanTitle = (v: unknown) => (typeof v === "string" ? v.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "");
+const cleanBody = (v: unknown) => (typeof v === "string" ? v.replace(/\u0000/g, "").trim().slice(0, 100_000) : "");
+
+/** Publish the post as #NotesApp (@na-notesapp). `title` and `body` are Admin's edits; left out, the draft is used as it is. Once only. */
+export async function publishResultsPost(db: Firestore, id: unknown, input: { title?: unknown; body?: unknown }, adminUid: string, o: Opts = {}) {
+  const now = o.now ?? new Date();
+  const t = await load(db, id);
+  needsChecked(t);
+  if (t.resultsPost) throw new TournamentError(409, `The results post is already up: ${t.resultsPost.url}`);
+  const draft = input.title === undefined || input.body === undefined ? await resultsPostDraft(db, t.id, o) : null;
+  const title = input.title === undefined ? draft!.title : cleanTitle(input.title);
+  const body = input.body === undefined ? draft!.body : cleanBody(input.body);
+  if (title.length < 3) throw new TournamentError(400, "Give the post a title (3 to 200 characters).");
+  if (body.length < 20) throw new TournamentError(400, "The post is nearly empty. Write the results first.");
+  // A slug nobody else uses (NoteForm checks the same before saving).
+  const base = noteSlug(title).slice(0, 80).replace(/-+$/, "") || `winners-${t.id}`;
+  let slug = base;
+  for (let i = 2; !(await db.collection("notes").where("slug", "==", slug).limit(1).get()).empty; i++) slug = i > 20 ? `${base}-${randomBytes(3).toString("hex")}` : `${base}-${i}`;
+  const at = now.toISOString();
+  const noteRef = db.collection("notes").doc();
+  const note = {
+    viewCount: 0, likeCount: 0, shareCount: 0,
+    slug, title, date: at, topics: ["gaming"], categories: ["Gaming"], tags: ["notes-arcade", "tournaments"],
+    featured_image: shareCardPath(t.id), content: body,
+    author: NA_NOTESAPP_PROFILE.displayName, author_role: NA_ROLE, author_avatar: NA_NOTESAPP_PROFILE.avatar, authorUsername: NA_NOTESAPP_PROFILE.username,
+    status: "published", premium: false, offerSwahili: false,
+    // Where it came from, like a replay's post (from: "replay"), so it can be traced back to its tournament.
+    from: "arcade-results", tournamentId: t.id,
+  };
+  const resultsPost: ResultsPost = { noteId: noteRef.id, slug, url: `${SITE_URL}/journals/${slug}`, publishedAt: at, by: adminUid };
+  const tRef = db.doc(`tournaments/${t.id}`);
+  // The claim and the post in one transaction: two admins pressing Publish together get one post, not two.
+  await db.runTransaction(async (tx) => {
+    const cur = (await tx.get(tRef)).data();
+    if (cur?.resultsPost) throw new TournamentError(409, `The results post is already up: ${cur.resultsPost.url}`);
+    tx.create(noteRef, note);
+    tx.update(tRef, { resultsPost, updatedAt: at });
+  });
+  // The bells a #NotesApp post gets when Admin publishes it from the editor (createNote → /api/notify/new-post and /api/notify/mentions).
+  // They never undo the post: a failure is logged.
+  await notifyNewPostServer(db, noteRef.id, now).catch((e) => console.error("[tournaments] results post new-post bells failed", e instanceof Error ? e.message : e));
+  await notifyMentions(db, {
+    kind: "journal", sourceId: noteRef.id, text: body, markdown: true,
+    author: { uid: NA_UID, name: NA_NOTESAPP_PROFILE.displayName, username: NA_NOTESAPP_PROFILE.username, avatar: NA_NOTESAPP_PROFILE.avatar },
+    where: `in “${title}”`, linkHref: `/journals/${slug}`,
+  }, now).catch((e) => console.error("[tournaments] results post mention bells failed", e instanceof Error ? e.message : e));
+  return { resultsPost, tournament: await load(db, t.id) };
 }

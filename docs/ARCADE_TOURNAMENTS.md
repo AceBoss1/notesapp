@@ -33,6 +33,19 @@ public tournament has its own title, description and share card (`app/(arcade)/a
 the sitemap; drafts never are. The report counts the tournament page's views and the list page's views on the days it ran, once per
 visitor per Lagos day like adverts (a salted hash of IP and browser, never the IP; bots and link previews left out).
 
+Built (owner, 24 Nov 2026: "the results post on #NotesApp's account naming the winners and the sponsor"): once "Results checked" is
+ticked, Admin → Arcade tournaments → **Results post** makes a draft (`lib/arcade/tournament-results.ts`): "Winners of …", thanks to the
+sponsor by name with their link and words, the winners in order with their checked results and prizes, the prizes as listed, how many
+entered, "same deal for everyone, every try checked by replaying it", the final leaderboard, and the next tournament and the partners
+page. Admin edits it (Markdown, like any journal) and presses **Publish as #NotesApp**: it becomes a published journal post on
+@na-notesapp, written exactly as an admin's post under NoteForm's "NotesApp" author toggle (`notes/{id}` with author "NotesApp",
+authorUsername "na-notesapp", topic Gaming, the share card as its cover), so it's on /u/na-notesapp, in feeds, Explore and the sitemap,
+with the usual followers' bell and mention bells. The tournament keeps `resultsPost` (note id, slug, address, when, which admin), so it
+can't be posted twice; the public page's results and the sponsor's report link to it. It names the same winners "Tell winners" tells:
+the ones told once anyone has been, otherwise the checked board with the same skips. Teens (practice tournaments) and members who keep
+their profile private (`keepHidden`) aren't named: the post says "a player in teen mode" or "a member who keeps their profile private"
+instead (docs/YOUNG_MEMBERS.md: nickname only, kept off public lists).
+
 Packages (names and prices set by the owner in Admin, not in code): for example a **Weekend** (one game, two days), a **Month**
 (one game, weekly rounds and a final) and a **Season** (several games, a league table).
 
@@ -81,10 +94,16 @@ call and play together" work), so it comes after Format 1.
   Messages and asked to confirm their details. Nothing is handed over before that check.
   **Built (owner, 24 Nov 2026: "telling winners in Messages"):** Admin → Arcade tournaments → "Tell winners", only after "Results
   checked": pick how many (one per prize), preview each message, send. Each winner gets a direct message from #NotesApp's messaging
-  account (`OFFICIAL_MESSAGES_USERNAME`, a real account the team signs in as, so replies land somewhere; `lib/official-messages-server.ts`)
-  and a bell linking to the tournament. Deleted and suspended accounts, and anyone under 18, are skipped and the next player moves up.
+  account (`OFFICIAL_MESSAGES_USERNAME`, `lib/official-messages-server.ts`): by default the official account @na-notesapp itself
+  (owner, 24 Nov 2026: "Set OFFICIAL_MESSAGES_USERNAME is #NotesApp: naapp.tech/u/na-notesapp"), whose replies Customer care reads
+  and answers in Admin → #NotesApp inbox (`lib/official-inbox-server.ts`; members can only reply where it wrote first), or a real
+  account the team signs in as) and a bell linking to the tournament. Deleted and suspended accounts, and anyone under 18, are skipped and the next player moves up.
   Who was told is kept on the tournament (`winners`, `winnersNotifiedAt`), so it never tells anyone twice, and it's in the sponsor's
   report. Practice and no-prize tournaments get "Tell the top players", a congratulations with nothing to claim; teens get the bell only.
+  **"Mark prizes sent" waits until winners have been told** (owner, 24 Nov 2026): refused by the server and greyed out in Admin with the
+  reason (`prizesSentBlocker`) until winners have been told (`winnersNotifiedAt`) and **every prize place** has been told, unless the
+  board ran out of players who can take one (fewer eligible finishers than prizes; then every place that can be told must be). A place
+  whose message failed was given back, so it counts as not told. Tournaments without prizes have no "Mark prizes sent" at all.
 - One account per person: an entrant needs a confirmed email; prize winners may be asked for their phone number too.
 - N$ prizes are paid straight into the Notes Life wallet.
 - **Legal check before the first prize tournament:** whether a free, skill-based contest with sponsor prizes needs any promotion

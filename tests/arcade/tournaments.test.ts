@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { compareRank, rankKey, type TournamentGame } from "../../lib/arcade/tournament-games";
 import { canEnter, listed, openBlocker, phase, publicTournament, sortEntries, validateDraft, type Member, type Tournament } from "../../lib/arcade/tournaments";
 import { LIST_DESCRIPTION, LIST_TITLE, lagosDates, ordinal, prizesHeadline, tournamentShare, whoLine, winnerBell, winnerMessage } from "../../lib/arcade/tournament-text";
+import { escapeMd, mdUrl, mention, resultsPostBody, resultsPostTitle, winnerName } from "../../lib/arcade/tournament-results";
 
 const FAKE: TournamentGame = { slug: "fake", name: "Fake", levels: ["easy", "hard"], rankedBy: "Score", maxRecording: 100, replay: () => ({ ok: false, error: "x" }) };
 const games = [FAKE];
@@ -145,4 +146,64 @@ assert.deepEqual(sorted.map((x) => x.u), ["f", "d", "b", "a"], "best rank first,
   assert.ok(winnerBell({ name: "n".repeat(80), prize: true }, 1, true).length <= 280);
 }
 
-console.log("TOURNAMENTS OK");
+// ---- the results post (lib/arcade/tournament-results.ts; owner, 24 Nov 2026: "the results post on #NotesApp's account naming the
+// winners and the sponsor") ----
+void (async () => {
+  const links = { tournament: "https://x.test/arcade/tournaments/cup", list: "https://x.test/arcade/tournaments", partners: "https://x.test/arcade/partners" };
+  const t = {
+    name: "The Ariaria Ludo Weekend", playFrom: good.playFrom, playUntil: good.playUntil, prize: true, ageRule: "adults" as const, entrants: 42,
+    prizes: [{ place: "1st", prize: "A phone" }, { place: "2nd", prize: "A ₦10,000 voucher" }],
+    sponsor: { name: "Ariaria Ltd", link: "https://ariaria.example/shop", words: "Shop local, play fair." },
+  };
+  assert.equal(resultsPostTitle(t), "Winners of The Ariaria Ludo Weekend");
+  // Given out of order: the post lists them by place.
+  const body = resultsPostBody(t, "Ludo", [
+    { place: 2, username: "kemi_o", summary: "Won, 3 seeds home", prize: "A ₦10,000 voucher" },
+    { place: 1, username: "ada", summary: "Won, 4 seeds home", prize: "A phone" },
+  ], links);
+  assert.match(body, /^The results of \*\*The Ariaria Ludo Weekend\*\* \(Ludo, 29–30 Nov 2026\) are in, and checked\./);
+  assert.match(body, /Thank you to \*\*\[Ariaria Ltd\]\(https:\/\/ariaria\.example\/shop\)\*\* for sponsoring The Ariaria Ludo Weekend and its prizes\. In their words:\n\n> Shop local, play fair\./);
+  const first = body.indexOf("- **1st:** @ada, Won, 4 seeds home. Prize: A phone.");
+  const second = body.indexOf("- **2nd:** @kemi_o, Won, 3 seeds home. Prize: A ₦10,000 voucher.");
+  assert.ok(first > 0 && second > first, "winners in place order, @username and their checked result");
+  assert.match(body, /## The prizes\n\nAs listed before entry opened, from Ariaria Ltd:\n\n- \*\*1st:\*\* A phone\n- \*\*2nd:\*\* A ₦10,000 voucher/);
+  assert.match(body, /42 members entered\. Entry was free, everyone played the same Ludo deal/);
+  assert.match(body, /every try was checked by replaying it/);
+  assert.match(body, /\[See the final leaderboard\]\(https:\/\/x\.test\/arcade\/tournaments\/cup\)/);
+  assert.match(body, /\[Notes Arcade tournaments\]\(https:\/\/x\.test\/arcade\/tournaments\)/);
+  assert.match(body, /\[sponsored tournaments\]\(https:\/\/x\.test\/arcade\/partners\)/);
+
+  // Teens (and members who keep their profile private) aren't named in a public post (docs/YOUNG_MEMBERS.md); a practice tournament
+  // says it had no prizes; no sponsor, no thanks line.
+  const practice = resultsPostBody({ ...t, prize: false, prizes: [], ageRule: "practice", sponsor: undefined, entrants: 1 }, "Ludo", [
+    { place: 1, username: "teenstar", summary: "Won", unnamed: "teen" },
+    { place: 2, username: "quiet1", summary: "Won", unnamed: "private" },
+    { place: 3, username: "bola", summary: "Lost" },
+  ], links);
+  assert.doesNotMatch(practice, /teenstar|quiet1/, "never their username");
+  assert.match(practice, /- \*\*1st:\*\* a player in teen mode, Won\./);
+  assert.match(practice, /- \*\*2nd:\*\* a member who keeps their profile private, Won\./);
+  assert.match(practice, /- \*\*3rd:\*\* @bola, Lost\./);
+  assert.match(practice, /practice tournament: teens welcome, no prizes/); assert.doesNotMatch(practice, /## The prizes|Prize:|Thank you to/);
+  assert.match(practice, /1 member entered\./);
+  assert.match(resultsPostBody({ ...t, sponsor: undefined }, "Ludo", [], links), /Nobody finished a try this time\./);
+
+  // Markdown safety: text from a sponsor or a game can't become emphasis, a link, HTML or a heading; a username that isn't one isn't
+  // linked; a leading underscore can't open emphasis.
+  assert.equal(escapeMd("*Best* [deals](javascript:alert(1)) <b>x</b> # _y_ `z`"), "\\*Best\\* \\[deals\\](javascript:alert(1)) \\<b\\>x\\</b\\> \\# \\_y\\_ \\`z\\`");
+  assert.equal(escapeMd("- one\ntwo"), "\\- one two"); assert.equal(escapeMd("1. first"), "1\\. first");
+  assert.equal(mention("ada_obi"), "@ada_obi"); assert.equal(mention("_ada"), "@\\_ada"); assert.equal(mention("bad name"), null); assert.equal(mention("x](y)"), null);
+  assert.equal(mdUrl("javascript:alert(1)"), null); assert.equal(mdUrl("http://a.example"), null); assert.equal(mdUrl("https://a.example/x y(1)"), "https://a.example/x%20y%281%29");
+  assert.equal(winnerName({ place: 1, username: "<script>", summary: "" }), "a player whose account is no longer active");
+  const nasty = resultsPostBody({
+    ...t, name: "Cup <img src=x onerror=alert(1)>", sponsor: { name: "*Evil* [click](javascript:alert(1))", link: "javascript:alert(1)", words: "# Heading\n<script>alert(1)</script>" },
+    prizes: [{ place: "1st", prize: "[free](javascript:x)" }],
+  }, "Ludo", [{ place: 1, username: "_ada_", summary: "Won *big*", prize: "[free](javascript:x)" }], links);
+  const { remark } = await import("remark");
+  const html = (await import("remark-html")).default;
+  const rendered = String(await remark().use(html).process(nasty));
+  assert.doesNotMatch(rendered, /<script|<img|javascript:"|href="javascript|<em>|<h1/i, rendered);
+  assert.match(rendered, /\*Evil\* \[click\]\(javascript:alert\(1\)\)/, "the sponsor's name shows as typed");
+  assert.match(rendered, /@_ada_, Won \*big\*/, "the username and summary show as typed");
+  console.log("TOURNAMENTS OK");
+})().catch((e) => { console.error(e); process.exit(1); });

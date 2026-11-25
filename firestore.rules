@@ -1263,6 +1263,14 @@ service cloud.firestore {
       }
     }
 
+    // Conversations with #NotesApp's official account (@na-notesapp) are ordinary ones whose other participant is its stand-in id
+    // "na-notesapp" (lib/official-account.ts): the member reads their own, nobody signs in as that id, and nothing is written from a
+    // browser. The team reads and answers them through the server (Admin → #NotesApp inbox); which team member wrote each answer is
+    // kept in officialReplies, server-only, so it never reaches the member.
+    match /officialReplies/{id} {
+      allow read, write: if false;
+    }
+
     match /conversations/{cid} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow write: if false;
