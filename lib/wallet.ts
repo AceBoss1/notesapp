@@ -95,7 +95,7 @@ export type WalletTx = {
 // ── Holds (pay-per-minute sessions, lib/ppm.ts) ──
 // Credit (never Bonus Credits) leaves the spendable balance when it's held and sits in walletHolds/{id} until it's settled: then the part
 // used is charged and the rest goes back. A hold can grow (the viewer adds minutes), never shrink until it's settled.
-export type WalletHold = { uid: string; kobo: number; status: "held" | "settled"; kind: string; label: string; createdAt: string; chargedKobo?: number; releasedKobo?: number; settledAt?: string };
+export type WalletHold = { uid: string; kobo: number; status: "held" | "settled"; kind: string; label: string; createdAt: string; chargedKobo?: number; releasedKobo?: number; settledAt?: string; paidOutKobo?: number };
 // Settling: what's charged (never more than the hold, never below 0) and what goes back.
 export function settleSplit(holdKobo: number, chargeKobo: number): { chargedKobo: number; releasedKobo: number } {
   const hold = Math.max(0, Math.round(holdKobo));

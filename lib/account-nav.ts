@@ -32,7 +32,7 @@ export const accountGroups = (pages: MenuPage[] = accountPages()) => groupPages(
 // Account pages that aren't in the menu still get their name in the phone bar ("My account / Account settings").
 const OTHER: Record<string, string> = {
   "/profile/account": "Account settings", "/profile/site": "Your site", "/profile/family": "Family", "/profile/jobs": "Jobs",
-  "/profile/applications": "Applications", "/profile/boosts": "Your boosts", "/profile/trial": "Your trial",
+  "/profile/applications": "Applications", "/profile/boosts": "Your boosts", "/profile/tasks": "My tasks", "/profile/trial": "Your trial",
 };
 export function whereAmI(pathname: string, pages: MenuPage[] = accountPages()): { group?: string; label?: string; page?: MenuPage } {
   const page = activePage(pages, pathname);

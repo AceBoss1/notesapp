@@ -1,5 +1,6 @@
 import { sweepPaidLives } from "@/lib/live-tickets-server";
 import { sweepPpm } from "@/lib/ppm-server";
+import { sweepTasks } from "@/lib/tasks-server";
 import { remindExpiringCoupons } from "@/lib/discounts-server";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
@@ -171,6 +172,8 @@ async function run() {
   // Pay-per-minute sessions (lib/ppm-server.ts): a call whose phones went quiet, or whose held minutes ran out and weren't topped up,
   // is ended and charged on the server's meter; a session whose call never started is ended and the hold given back.
   await job("ppmSessions", () => sweepPpm(db));
+  // Notes Tasks: unreviewed work approved and paid after its review days, workers past their time, tasks past their closing date.
+  await job("tasks", () => sweepTasks(db));
   // My Calendar (lib/my-calendar-server.ts), only what nothing else sends: a short bell before sessions and per-minute calls (her choice,
   // 10 minutes by default), an hour before an event for ticket holders not already reminded as going, and the day before a hotel check-in;
   // then, on Mondays from 7 AM Lagos, the optional week-ahead email, a few per run.

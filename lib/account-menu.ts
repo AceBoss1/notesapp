@@ -14,7 +14,7 @@ export type IconKey =
   | "invites" | "cycle" | "interests" | "family" | "profile" | "account" | "payouts" | "org" | "plans" | "badge" | "boost" | "stats"
   | "ads" | "nana" | "help" | "contact" | "terms" | "privacy" | "arcade" | "life" | "academy" | "ventures" | "market" | "explore"
   | "trending" | "exam" | "community" | "link" | "jobs" | "studio" | "sounds" | "media" | "books" | "inventory" | "hotel" | "site"
-  | "discount" | "coupon" | "referral" | "jobsearch" | "events" | "affiliate";
+  | "discount" | "coupon" | "referral" | "jobsearch" | "events" | "affiliate" | "tasks";
 
 export type MenuItem = { href: string; label: string; icon: IconKey; badge?: number; note?: string };
 export type MenuSection = { key: "settings" | "business" | "upgrades" | "help" | "apps"; label: string; icon: "settings" | "business" | "upgrades" | "help" | "apps"; items: MenuItem[] };
@@ -86,6 +86,7 @@ export function accountMenu(c: MenuCtx): AccountMenu {
           { href: "/profile/referrals", label: "Referrals", icon: "referral" },
           { href: "/affiliates", label: "Promote and earn", icon: "affiliate" },
           { href: "/events", label: "Events", icon: "events" },
+          { href: "/profile/tasks", label: "My tasks", icon: "tasks" },
           { href: "/profile/applications", label: "My job search", icon: "jobsearch" },
           ...(c.isOrg ? [{ href: "/profile/jobs", label: "Jobs you post", icon: "jobs" as const }] : []),
         ],
@@ -125,6 +126,7 @@ const apps = (): MenuSection => ({
     { href: "/exam-prep", label: "Exam Prep", icon: "exam" },
     { href: "/ventures", label: "NotesApp Ventures", icon: "ventures" },
     { href: "/jobs", label: "Notes Jobs", icon: "jobs" },
+    { href: "/tasks", label: "Notes Tasks", icon: "tasks" },
     { href: "/nana", label: "Nana", icon: "nana" },
     { href: "/lives", label: "Notes Live", icon: "live" },
     { href: "/studio", label: "Media Live Studio PRO", icon: "studio" },

@@ -185,6 +185,16 @@ export function settleHold(t: Transaction, db: Firestore, a: { wallet: FirebaseF
   return split;
 }
 
+// Takes part of an open hold without closing it (Notes Tasks, lib/tasks-server.ts: one reward per approved worker). The rest stays held
+// until settleHold gives it back. Inside the caller's transaction, after its reads; returns the hold as it now is.
+export function chargeFromHold(t: Transaction, db: Firestore, a: { holdId: string; hold: WalletHold | undefined; chargeKobo: number }): WalletHold {
+  if (!a.hold || a.hold.status !== "held") throw new WalletError(409, "That money is no longer held.");
+  if (!Number.isInteger(a.chargeKobo) || a.chargeKobo <= 0 || a.chargeKobo > a.hold.kobo) throw new WalletError(409, "Not enough is held for that.");
+  const next: WalletHold = { ...a.hold, kobo: a.hold.kobo - a.chargeKobo, paidOutKobo: (a.hold.paidOutKobo ?? 0) + a.chargeKobo };
+  t.set(holdDoc(db, a.holdId), next);
+  return next;
+}
+
 // Adds Bonus Credits to a wallet inside the caller's transaction (Notes Life invites). Pass the wallet as read in that transaction.
 // kind: what it's for in the wallet's history ("life_referral" for Notes Life invites, "referral_milestone" for referral milestones).
 export function grantBonus(t: Transaction, db: Firestore, uid: string, walletData: FirebaseFirestore.DocumentData | undefined, kobo: number, label: string, id: string, now = new Date(), kind = "life_referral") {
