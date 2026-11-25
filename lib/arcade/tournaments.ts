@@ -56,17 +56,28 @@ export type Tournament = {
   // Who was told in Messages that they placed (§5; owner, 24 Nov 2026: "telling winners in Messages"), so nobody is told twice.
   winners?: Winner[];
   winnersNotifiedAt?: string; // the last time Admin told winners
+  // The results post on @na-notesapp's journal (§2 "The winners"; owner, 24 Nov 2026: "the results post on #NotesApp's account naming the
+  // winners and the sponsor"). Set once, when Admin publishes it, so it can never be posted twice.
+  resultsPost?: ResultsPost;
 };
+
+/** The journal post announcing the winners: the note's id and slug, its address, when, and which admin published it (never public). */
+export type ResultsPost = { noteId: string; slug: string; url: string; publishedAt: string; by: string };
 
 /** One player told they placed: the place they were told, the prize (none in a tournament without prizes), when, and how. */
 export type Winner = { uid: string; username: string; place: number; prize: string; at: string; dm: boolean };
 
-/** What the public sees: everything but the seed, who made it, the internal ticks and counts, and the winners' account ids. */
-export type PublicTournament = Omit<Tournament, "seed" | "createdBy" | "legalChecked" | "sponsorStats" | "runs" | "finished" | "winners"> & { phase: Phase };
+/** What the public sees: everything but the seed, who made it, the internal ticks and counts, the winners' account ids, and which admin
+ *  published the results post. */
+export type PublicTournament = Omit<Tournament, "seed" | "createdBy" | "legalChecked" | "sponsorStats" | "runs" | "finished" | "winners" | "resultsPost"> & {
+  phase: Phase;
+  resultsPost?: Omit<ResultsPost, "by">;
+};
 
 export const publicTournament = (t: Tournament, now = new Date()): PublicTournament => {
-  const { seed: _s, createdBy: _c, legalChecked: _l, sponsorStats: _st, runs: _r, finished: _f, winners: _w, ...rest } = t; // eslint-disable-line @typescript-eslint/no-unused-vars
-  return { ...rest, phase: phase(t, now) };
+  const { seed: _s, createdBy: _c, legalChecked: _l, sponsorStats: _st, runs: _r, finished: _f, winners: _w, resultsPost, ...rest } = t; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const post = resultsPost ? (({ by: _b, ...p }) => p)(resultsPost) : undefined; // eslint-disable-line @typescript-eslint/no-unused-vars
+  return { ...rest, ...(post ? { resultsPost: post } : {}), phase: phase(t, now) };
 };
 
 // Who may play a try. The server reads these from the account (users/{uid}, the token and the kids' uid prefix) inside its transaction.

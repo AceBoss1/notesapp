@@ -58,7 +58,12 @@ import { activePage, groupPages, jumpTo, type MenuGroup } from "./side-menu";
 // Legal does the promotion-approval and Terms check before the first prize tournament (owner, 21 Nov 2026, §8.5). The API uses the same list.
 export const TOURNAMENT_ADMIN_DEPTS = ["growth", "marketing", "executive", "legal"] as const satisfies readonly Dept[];
 
-export type Section = { href: string; label: string; need: Need; exact?: boolean; group: string };
+// #NotesApp inbox: the conversations of the official account @na-notesapp (owner, 24 Nov 2026: "Set OFFICIAL_MESSAGES_USERNAME is
+// #NotesApp: naapp.tech/u/na-notesapp"), where tournament winners reply. Answering members is Customer care's work ("answers contact
+// messages"); super admins, the owner among them, have every department. The API uses the same list.
+export const OFFICIAL_INBOX_DEPTS = ["support"] as const satisfies readonly Dept[];
+
+export type Section ={ href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
   { href: "/admin/team", label: "Team hub", need: "all", group: "Workspace" },
@@ -88,6 +93,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/ad-share", label: "Ad share", need: ["finance"], group: "Money" },
   { href: "/admin/help", label: "Help & Nana", need: ["support", "product"], group: "People & Trust" },
   { href: "/admin/leads", label: "Leads", need: ["support", "growth"], group: "People & Trust" },
+  { href: "/admin/official-inbox", label: "#NotesApp inbox", need: OFFICIAL_INBOX_DEPTS, group: "People & Trust" },
   { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & Trust" },
   { href: "/admin/content-checks", label: "Content checks", need: ["moderation", "legal"], group: "People & Trust" }, // AI content checks: the review queue, strikes, figures, Legal's child-safety queue
   { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & Trust" },

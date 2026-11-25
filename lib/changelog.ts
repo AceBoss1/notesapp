@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.206.0",
+    version: "v0.207.0",
     bump: "minor",
     date: "2026-11-25",
     changes: [
@@ -21,6 +21,17 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Post anonymously: the task shows \"Verified organisation\" and your industry instead of your name. It's included on Business and Enterprise, or ₦5,000 per task on other plans." },
       { kind: "added", text: "Admin → Tasks for Trust & safety shows every task with who really posted it (anonymous ones too), the money held and paid, and the applications for disputes. Removing a task gives back what's held, tells everyone working on it, and shows the poster the reason." },
       { kind: "added", text: "Ratings both ways once work is decided. Posters see each applicant's rating and tasks done, and workers see the poster's rating. My tasks (/profile/tasks) lists what you posted and what you're working on." },
+    ],
+  },
+  {
+    version: "v0.206.0",
+    bump: "minor",
+    date: "2026-11-24",
+    changes: [
+      { kind: "changed", text: "Messages to Notes Arcade tournament winners now come from #NotesApp's own account, @na-notesapp, shown with its name, picture and badge. Winners can reply in that conversation to confirm their details." },
+      { kind: "added", text: "For our team: Admin → #NotesApp inbox, where Customer care reads and answers replies sent to @na-notesapp, answering as #NotesApp. Members can only reply where #NotesApp wrote first; for anything else, the Contact page." },
+      { kind: "added", text: "After a tournament's results are checked, Admin can publish a results post as #NotesApp: it thanks the sponsor by name, lists the winners with their checked results and the prizes, and links the leaderboard. It shows on #NotesApp's profile and in feeds, can be posted once, and the tournament page links to it. Teens and members who keep their profile private aren't named." },
+      { kind: "changed", text: "Mark prizes sent now waits until the winners have been told in Messages; the reason shows beside the button. Practice tournaments have no prizes to send." },
     ],
   },
   {

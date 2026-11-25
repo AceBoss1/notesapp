@@ -914,7 +914,29 @@ test("moments are API-only; conversations are readable only by their two members
     await setDoc(doc(d, "conversations/boss_pub"), { participants: ["boss", "pub"], unread: {} });
     await setDoc(doc(d, "conversations/g_crew"), { kind: "group", scope: "public", title: "Crew", participants: ["alice", "pub", "boss"], adminUids: ["alice"], unread: {} });
     await setDoc(doc(d, "conversations/g_crew/messages/1"), { from: "alice", text: "hi all", createdAt: "x" });
+    // A conversation #NotesApp's official account (@na-notesapp, stand-in id "na-notesapp") started; the team member who answered is
+    // in officialReplies, server-only (lib/official-inbox-server.ts).
+    await setDoc(doc(d, "conversations/alice_na-notesapp"), { participants: ["alice", "na-notesapp"], unread: { "na-notesapp": 1 } });
+    await setDoc(doc(d, "conversations/alice_na-notesapp/messages/1"), { from: "na-notesapp", text: "You won!", createdAt: "x" });
+    await setDoc(doc(d, "officialReplies/1"), { cid: "alice_na-notesapp", messageId: "1", sentByAdmin: "boss" });
   });
+  // The official account's conversations: the member reads their own; nobody else, and nobody writes, not as the member, not as
+  // "na-notesapp" (no one signs in as it; even a token claiming that uid can't write) and not staff. The answering admin stays hidden.
+  await assertSucceeds(getDoc(doc(as("alice"), "conversations/alice_na-notesapp")));
+  await assertSucceeds(getDoc(doc(as("alice"), "conversations/alice_na-notesapp/messages/1")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "conversations"), where("participants", "array-contains", "alice"))));
+  await assertFails(getDoc(doc(as("pub"), "conversations/alice_na-notesapp")));
+  await assertFails(getDoc(doc(as("pub"), "conversations/alice_na-notesapp/messages/1")));
+  await assertFails(getDoc(doc(as("boss", { admin: true }), "conversations/alice_na-notesapp/messages/1")));
+  await assertFails(setDoc(doc(as("alice"), "conversations/alice_na-notesapp/messages/2"), { from: "alice", text: "forged", createdAt: "y" }));
+  await assertFails(setDoc(doc(as("na-notesapp"), "conversations/alice_na-notesapp/messages/2"), { from: "na-notesapp", text: "forged", createdAt: "y" }));
+  await assertFails(setDoc(doc(as("boss", { admin: true }), "conversations/alice_na-notesapp/messages/2"), { from: "na-notesapp", text: "forged", createdAt: "y" }));
+  await assertFails(updateDoc(doc(as("alice"), "conversations/alice_na-notesapp"), { unread: {} }));
+  await assertFails(setDoc(doc(as("pub"), "conversations/na-notesapp_pub"), { participants: ["na-notesapp", "pub"] }));
+  for (const ctx of [as("alice"), as("boss", { admin: true }), as("na-notesapp"), anon()]) {
+    await assertFails(getDoc(doc(ctx, "officialReplies/1")));
+    await assertFails(setDoc(doc(ctx, "officialReplies/2"), { sentByAdmin: "x" }));
+  }
   // Moments: not even the owner, and not signed out.
   for (const ctx of [as("pub"), as("alice"), anon()]) {
     await assertFails(getDoc(doc(ctx, "moments/m1")));

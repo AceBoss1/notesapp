@@ -1460,8 +1460,21 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     account the team signs in to; Send is refused until set). Winners are claimed in a transaction (`winners`, `winnersNotifiedAt`) and
     the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
     Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
+168. **@na-notesapp sends and answers; tournament results post; prizes gate (v0.206.0; owner, 24 Nov 2026: "Set
+    OFFICIAL_MESSAGES_USERNAME is #NotesApp: naapp.tech/u/na-notesapp ... build the results post on #NotesApp's account naming the
+    winners and the sponsor; making 'Mark prizes sent' wait until winners have been told"):** `officialSender` defaults to @na-notesapp
+    (NA_UID, no users doc) when the setting is unset or any form of that name; a real member username still overrides.
+    `lib/official-account.ts` gives Messages its profile (name, picture, ✔, team mark). Members reply only where it wrote first (text and
+    stickers, `OFFICIAL_UNREAD_MAX` 10 unread, no bells/push/email to NA_UID); starting a conversation with it is a 403 pointing to Contact.
+    Admin → #NotesApp inbox (`lib/official-inbox-server.ts`, /api/admin/official-inbox; dept `support`, OFFICIAL_INBOX_DEPTS); who
+    answered is in server-only `officialReplies/{messageId}`. New index: conversations participants + lastMessageAt (falls back to an
+    in-memory sort of 500). Results post: `lib/arcade/tournament-results.ts` (pure, Markdown-escaped; teens/keepHidden unnamed),
+    `pickPlaces` shared with Tell winners, `resultsPostDraft` / `publishResultsPost` write a `notes/{id}` shaped like NoteForm's NotesApp
+    author (authorUsername na-notesapp, no authorUid, featured_image = the tournament's share card) and `tournaments/{id}.resultsPost` in
+    one transaction, then new-post and mention bells. Prizes gate: `prizesSentBlocker` (prize tournament, results checked, winners told
+    for every place the board can fill). Not built: an unread badge for the inbox in the Admin menu.
 
-168. **Notes Tasks (v0.206.0; owner, 25 Nov 2026: "a review and task platform… to upload the task and advertise the link, allowing for
+169. **Notes Tasks (v0.207.0; owner, 25 Nov 2026: "a review and task platform… to upload the task and advertise the link, allowing for
     anonymous company profiles (paid feature)"):** /tasks (board), /tasks/new, /tasks/<id>, /profile/tasks; API /api/tasks (one route,
     actions); rules lib/tasks.ts, server lib/tasks-server.ts. Posters: CAC-verified organisations or members with the ✔ (`hasVerifiedBadge`),
     email confirmed. Escrow: publishing `placeHold`s reward × places (hold `walletHolds/task_<id>`), the anonymous fee (ANON_FEE_KOBO, free

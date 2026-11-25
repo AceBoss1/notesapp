@@ -165,6 +165,8 @@ export default function ArcadeTournament({ id }: { id: string }) {
               {t.phase === "playing" && user === null && <p className="art-empty"><a href={`/login?next=${encodeURIComponent(next)}`}>Sign in to enter</a> (or <a href={`/signup?next=${encodeURIComponent(next)}`}>create an account</a>). Entry is free.</p>}
               {t.phase === "upcoming" && <p className="art-empty">Opens {lagosWhen(t.playFrom)} (Lagos time). Practise the game until then.</p>}
               {t.phase === "ended" && <p className="art-empty">This tournament has ended.{t.status === "results" ? " Results are checked." : " Results are being checked."}</p>}
+              {/* The results post on #NotesApp's journal naming the winners and the sponsor (§2 "The winners"; owner, 24 Nov 2026). */}
+              {t.status === "results" && t.resultsPost && <p className="art-empty">🏆 <a href={`/journals/${t.resultsPost.slug}`}>Read the results post</a> on #NotesApp: the winners and our thanks to {t.sponsor ? t.sponsor.name : "everyone who played"}.</p>}
               {user && data.mine && data.mine.tries > 0 && <p className="art-empty">You: {data.mine.tries} of {t.tries} tries used{data.mine.best ? `, best ${data.mine.best.summary}` : ""}{data.mine.rank ? `, ${ordinal(data.mine.rank)}` : ""}.</p>}
             </div>
 

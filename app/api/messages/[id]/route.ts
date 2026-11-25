@@ -8,6 +8,7 @@ import { copyObject, deleteObject, headObject, privateFilesConfigured } from "@/
 import { forwardMessage, keepMessage } from "@/lib/message-forward";
 import { rateLimit } from "@/lib/rate-limit";
 import { MESSAGES_PER_MINUTE } from "@/lib/messages-rules";
+import { messagePerson } from "@/lib/official-account";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
     const u = (await db.doc(`users/${t.withUid}`).get()).data();
     const blockedByMe = (await db.doc(`dmBlocks/${me.uid}_${t.withUid}`).get()).exists;
-    return NextResponse.json({ ...t, kind: "direct", blockedByMe, muted, with: { uid: t.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } });
+    return NextResponse.json({ ...t, kind: "direct", blockedByMe, muted, with: messagePerson(t.withUid, u) }); // @na-notesapp: its channel name and picture
   } catch (err) {
     return fail(err, "Couldn't load the conversation");
   }

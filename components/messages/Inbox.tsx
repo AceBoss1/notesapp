@@ -19,6 +19,7 @@ import { usePresence } from "@/lib/presence-client";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
 import type { GoldBadgeKind } from "@/lib/badges";
+import { OFFICIAL_PERSON, OFFICIAL_UID } from "@/lib/official-account";
 import { INBOX_TABS, filterInbox, tabCounts, type Contexts, type InboxTab } from "@/lib/chat-tools";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean; isOrg?: boolean };
@@ -58,6 +59,8 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
       async (snap) => {
         const docs = snap.docs.map((d) => ({ id: d.id, c: d.data() }));
         const others = Array.from(new Set(docs.filter(({ c }) => c.kind !== "group").map(({ c }) => (c.participants as string[]).find((p) => p !== uid) ?? uid)));
+        // #NotesApp's official account (@na-notesapp) has no users doc: it shows as the channel, with its ✔ and team mark.
+        if (others.includes(OFFICIAL_UID)) people.current.set(OFFICIAL_UID, OFFICIAL_PERSON);
         await Promise.all(others.filter((o) => !people.current.has(o)).map(async (o) => {
           // A profile that can't be read (or doesn't exist) shows as "Member" rather than breaking the list.
           const u = o ? await getDoc(doc(db, "users", o)).then((s) => s.data()).catch(() => undefined) : undefined;
