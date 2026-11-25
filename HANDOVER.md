@@ -1461,6 +1461,18 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
     Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
 
+168. **Notes Tasks (v0.206.0; owner, 25 Nov 2026: "a review and task platform… to upload the task and advertise the link, allowing for
+    anonymous company profiles (paid feature)"):** /tasks (board), /tasks/new, /tasks/<id>, /profile/tasks; API /api/tasks (one route,
+    actions); rules lib/tasks.ts, server lib/tasks-server.ts. Posters: CAC-verified organisations or members with the ✔ (`hasVerifiedBadge`),
+    email confirmed. Escrow: publishing `placeHold`s reward × places (hold `walletHolds/task_<id>`), the anonymous fee (ANON_FEE_KOBO, free
+    on Business/Enterprise) is taken out of that hold at once (`payments/task_anon_<id>`); each approval `chargeFromHold`s one reward (new
+    in lib/wallet-server.ts) into `payments/` and `ledger/task_<id>_<uid>` (kind "task", 10% commission), paid by `autoReleasePayouts`
+    after PAYOUT_HOLD_HOURS; closing `settleHold`s the rest back. Terms are public and agreed on applying; the brief and files are private
+    (`tasks/<id>/private/brief`, files in the private bucket via `taskUploads`, handed out as short-lived links). `sweepTasks` (cron) approves
+    work unreviewed for REVIEW_DAYS (5), ends workers past their time, closes tasks past their date or with every place approved. Ratings
+    both ways (counters on users: taskWorkerRating*, taskPosterRating*, tasksDone). Admins (moderation) remove a task with POST
+    {action:"remove"} (no screen yet). All task collections are closed to browsers. Tests: test:tasks, test:tasks-server.
+
 ## 3. How the work is done (please keep these)
 
 - **Never open a PR unless asked.** "Open the PR and merge" means: stop any running build → start the Firestore emulator

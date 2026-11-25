@@ -17,15 +17,15 @@ assert.deepEqual(m.more.map((t) => t.label), ["Wallet", "Saved", "Bookings", "Or
 // The sections, in order, and "More from #NotesApp" as the owner listed it.
 assert.deepEqual(m.sections.map((s) => s.label), ["Settings and privacy", "Business and jobs", "Upgrades", "Help and support", "More from #NotesApp"]);
 const apps = m.sections.find((s) => s.key === "apps")!;
-assert.deepEqual(apps.items.map((i) => i.label), ["Notes Arcade", "Notes Life", "Academy", "Exam Prep", "NotesApp Ventures", "Notes Jobs", "Nana", "Notes Live", "Media Live Studio PRO"]);
-assert.deepEqual(apps.items.map((i) => i.href), ["/arcade", "/life", "/academy", "/exam-prep", "/ventures", "/jobs", "/nana", "/lives", "/studio"]);
+assert.deepEqual(apps.items.map((i) => i.label), ["Notes Arcade", "Notes Life", "Academy", "Exam Prep", "NotesApp Ventures", "Notes Jobs", "Notes Tasks", "Nana", "Notes Live", "Media Live Studio PRO"]);
+assert.deepEqual(apps.items.map((i) => i.href), ["/arcade", "/life", "/academy", "/exam-prep", "/ventures", "/jobs", "/tasks", "/nana", "/lives", "/studio"]);
 
 // Nothing appears twice anywhere in the menu.
 // Every My account page (lib/account-nav.ts) and the other pages of your own are in the menu (owner, 22 Nov 2026: "I didn't see my sounds").
 {
   const full = accountMenu({ ...base, isOrg: true, media: true });
   const all = [...full.tiles, ...full.more, ...full.sections.flatMap((s) => s.items)].map((i) => i.href);
-  const own = [...accountPages({ wallet: true, media: true }).map((p) => p.href), "/profile/site", "/profile/jobs", "/profile/applications", "/profile/boosts", "/profile/account", "/profile/family"];
+  const own = [...accountPages({ wallet: true, media: true }).map((p) => p.href), "/profile/site", "/profile/jobs", "/profile/applications", "/profile/tasks", "/profile/boosts", "/profile/account", "/profile/family"];
   assert.deepEqual(own.filter((h) => !all.includes(h)), [], "a page of your own is missing from the menu");
   assert.ok(!accountMenu(base).sections.flatMap((s) => s.items).some((i) => i.href === "/profile/jobs"), "Jobs you post is for organisations");
   assert.ok(!accountMenu(base).more.some((i) => i.href === "/profile/media"), "My media only when Media is on");

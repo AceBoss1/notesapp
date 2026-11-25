@@ -61,6 +61,7 @@ const PATHS: Record<IconKey | "settings" | "business" | "upgrades" | "apps" | "c
   jobsearch: <><rect x="3.5" y="7.5" width="13" height="10" rx="2" /><path d="M7.5 7.5V5.5h5v2" /><circle cx="17" cy="16" r="2.8" /><path d="m19 18 2 2" /></>,
   events: <><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" /><path d="m12 12.5.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 14.6l2-.3.9-1.8Z" /></>,
   affiliate: <><path d="M4 12h6l2-3 2 6 2-3h4" /><circle cx="12" cy="12" r="8.5" /></>,
+  tasks: <><rect x="4.5" y="3.5" width="15" height="17" rx="2" /><path d="M9 3.5v2h6v-2M8.5 11l1.5 1.5 3-3M8.5 16.5h7" /></>,
   business: <><rect x="3.5" y="7.5" width="17" height="12" rx="2" /><path d="M9 7.5V5.5h6v2M3.5 12.5h17M12 11v3" /></>,
   link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" /></>,
