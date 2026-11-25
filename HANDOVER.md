@@ -1460,7 +1460,20 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     account the team signs in to; Send is refused until set). Winners are claimed in a transaction (`winners`, `winnersNotifiedAt`) and
     the claim is undone if the DM fails. Tests: boards.test.ts, `test:boards-server`, tournaments tests, tests/messages/official.emulator.ts.
     Not built: a results post on #NotesApp's account; "Mark prizes sent" doesn't require winners told first.
-169. **Homepage doors and what a free trial kept you (v0.207.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
+168. **@na-notesapp sends and answers; tournament results post; prizes gate (v0.206.0; owner, 24 Nov 2026: "Set
+    OFFICIAL_MESSAGES_USERNAME is #NotesApp: naapp.tech/u/na-notesapp ... build the results post on #NotesApp's account naming the
+    winners and the sponsor; making 'Mark prizes sent' wait until winners have been told"):** `officialSender` defaults to @na-notesapp
+    (NA_UID, no users doc) when the setting is unset or any form of that name; a real member username still overrides.
+    `lib/official-account.ts` gives Messages its profile (name, picture, ✔, team mark). Members reply only where it wrote first (text and
+    stickers, `OFFICIAL_UNREAD_MAX` 10 unread, no bells/push/email to NA_UID); starting a conversation with it is a 403 pointing to Contact.
+    Admin → #NotesApp inbox (`lib/official-inbox-server.ts`, /api/admin/official-inbox; dept `support`, OFFICIAL_INBOX_DEPTS); who
+    answered is in server-only `officialReplies/{messageId}`. New index: conversations participants + lastMessageAt (falls back to an
+    in-memory sort of 500). Results post: `lib/arcade/tournament-results.ts` (pure, Markdown-escaped; teens/keepHidden unnamed),
+    `pickPlaces` shared with Tell winners, `resultsPostDraft` / `publishResultsPost` write a `notes/{id}` shaped like NoteForm's NotesApp
+    author (authorUsername na-notesapp, no authorUid, featured_image = the tournament's share card) and `tournaments/{id}.resultsPost` in
+    one transaction, then new-post and mention bells. Prizes gate: `prizesSentBlocker` (prize tournament, results checked, winners told
+    for every place the board can fill). Not built: an unread badge for the inbox in the Admin menu.
+170. **Homepage doors and what a free trial kept you (v0.208.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
     the 4-in-1 landing page"; `docs/GTM_DOORS_AND_TRIALS.md`):** Doors: `lib/home-doors.ts` (pure: DOORS, `doorFrom` for `/#for-<door>`
     campaign links, `QUOTES` (empty: add one only with written permission), `proofFigures` rounded down with floors) and
     `components/home/AudienceDoors.tsx` under the hero; the figures come from `storedTraction` (statCache, hourly). Trials:

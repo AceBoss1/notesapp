@@ -45,6 +45,7 @@ import { placeCall } from "@/components/calls/CallManager";
 import { openGroupCall, useLiveGroupCalls } from "@/components/calls/GroupCall";
 import { groupCallText, present } from "@/lib/group-calls";
 import { CALLS_LIVE } from "@/lib/moments-rules";
+import { OFFICIAL_PERSON, isOfficialUid } from "@/lib/official-account";
 import { callLogText } from "@/lib/calls";
 import Avatar from "@/components/Avatar";
 import MomentViewer from "@/components/moments/MomentViewer";
@@ -115,6 +116,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [busy, setBusy] = useState(false);
   const [recordingVoice, setRecordingVoice] = useState(false); // the voice note recorder takes the composer's row
   const [blockedByMe, setBlockedByMe] = useState(false);
+  // A chat with #NotesApp's official account (@na-notesapp): replies only, in words (lib/messages-server.ts officialReplyCheck), so
+  // no calls, files or voice notes; the team answers from Admin → #NotesApp inbox.
+  const official = isOfficialUid(who?.uid);
   const [reporting, setReporting] = useState(false);
   const [reportingMsg, setReportingMsg] = useState<string | null>(null); // a message in a group
   const [people, setPeople] = useState<Record<string, Person>>({});
@@ -187,7 +191,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p), isOrg: p.accountKind === "organisation" } : { ...fallback, level: null };
       setPeople({
         [user.uid]: make(me, { name: user.displayName || "You", username: "", avatar: "" }),
-        [who.uid]: make(them, { name: who.displayName, username: who.username, avatar: who.avatar }),
+        // #NotesApp's official account (@na-notesapp) has no users doc: the channel's name, picture, ✔ and team mark.
+        [who.uid]: isOfficialUid(who.uid) ? { name: OFFICIAL_PERSON.displayName, username: OFFICIAL_PERSON.username, avatar: OFFICIAL_PERSON.avatar, level: OFFICIAL_PERSON.level, team: true } : make(them, { name: who.displayName, username: who.username, avatar: who.avatar }),
       });
     });
     return () => { live = false; };
@@ -499,7 +504,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           avatar={<Link href={`/u/${who.username}`} className="shrink-0"><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
           title={<><Link href={`/u/${who.username}`} className="truncate hover:underline">{people[who.uid]?.name || who.displayName}</Link><NameBadgeIcons username={who.username} size={16} badges={people[who.uid] ? { level: people[who.uid]!.level, goldKind: people[who.uid]!.goldKind, team: !!people[who.uid]!.team } : undefined} /></>}
           subtitle={<HandleLine username={who.username} status={presence.statuses[who.uid]} />}
-          actions={CALLS_LIVE && !blockedByMe ? (
+          actions={CALLS_LIVE && !blockedByMe && !official ? (
             <span className="flex shrink-0 items-center gap-0.5 lg:gap-3">
               <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "audio", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Voice call ${who.displayName}`} title="Voice call (free)" className={HEADER_BUTTON}>
                 <PhoneIcon size={22} />
@@ -516,7 +521,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "Chat background", icon: "🖼️", href: "/profile/account#chat-background" },
             { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
-            { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
+            { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE || official },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
             { label: muted ? "Unmute notifications" : "Mute notifications", icon: muted ? "🔔" : "🔕", onClick: toggleMute },
             { label: blockedByMe ? "Unblock" : "Block", icon: "⛔", onClick: toggleBlock, danger: !blockedByMe },
@@ -773,7 +778,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           )}
           <div className="relative flex items-end gap-1.5 border-t border-rule bg-card px-4 py-2.5 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0">
             <button type="button" onClick={() => picker.current?.click()} disabled={blockedByMe} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents"
-              className={`flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border border-rule bg-paper text-ink hover:border-crimson disabled:opacity-50 lg:h-14 lg:w-14 ${recordingVoice ? "!hidden" : ""}`}>
+              className={`flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border border-rule bg-paper text-ink hover:border-crimson disabled:opacity-50 lg:h-14 lg:w-14 ${recordingVoice || official ? "!hidden" : ""}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-5 w-5"><path d="m20 11.5-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" /></svg>
             </button>
             <MentionPicker target={box} value={text} onChange={typed} place="above" />
@@ -788,7 +793,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
               }}
               className={`${recordingVoice ? "hidden" : ""} max-h-40 min-h-[3rem] min-w-0 flex-1 resize-none rounded-3xl border border-transparent bg-paper px-4 py-3 text-[15px] leading-6 text-ink outline-none [field-sizing:content] placeholder:text-slate/80 focus:border-crimson/30 lg:min-h-[3.5rem] lg:rounded-2xl lg:py-4 lg:text-sm`}
             />
-            <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} onRecordingChange={setRecordingVoice} />
+            {!official && <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} onRecordingChange={setRecordingVoice} />}
             <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} aria-label={busy ? "Sending" : editing ? "Save" : "Send"} className={`${recordingVoice ? "!hidden" : ""} flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-crimson-bright text-white transition-colors hover:bg-crimson disabled:opacity-60 lg:h-12 lg:w-auto lg:bg-crimson lg:px-8 lg:font-ui lg:text-sm lg:font-semibold lg:hover:bg-crimson-bright`}>
               {editing ? <CheckIcon className="lg:hidden" /> : <SendIcon className="-mr-0.5 lg:hidden" />}
               <span className="hidden lg:inline">{busy ? "Sending…" : editing ? "Save" : "Send"}</span>

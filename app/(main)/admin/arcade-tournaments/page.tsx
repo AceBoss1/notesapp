@@ -8,7 +8,8 @@ import { lagosWhen } from "@/lib/arcade/lagos-time";
 import type { Best, Phase, Prize, Tournament, Winner } from "@/lib/arcade/tournaments";
 
 // Admin → Arcade tournaments (lib/arcade/tournaments-server.ts; owner, 21 Nov 2026: "start tournaments"; docs/ARCADE_TOURNAMENTS.md §6):
-// create and edit tournaments, open and close them, check the results, mark prizes sent, and the sponsor's report. The owner's decisions
+// create and edit tournaments, open and close them, check the results, tell the winners, publish the results post as #NotesApp, mark prizes
+// sent, and the sponsor's report. The owner's decisions
 // (§8): prize tournaments are 18+ only, practice tournaments (no prizes) let teens in; a prize tournament doesn't open for entries until the
 // legal check is ticked; our first pick is a Whot weekend, but admin can change the game, dates and sponsor here.
 
@@ -19,7 +20,10 @@ type Report = {
   entrants: number; tries: number; finished: number; rejected: number; abandoned: number; expired: number; open: number;
   sponsorImpressions: number; sponsorClicks: number; pageViews: number; listViews: number;
   winnersNotifiedAt: string | null; winners: Omit<Winner, "uid">[];
+  resultsPost: { url: string; slug: string; publishedAt: string } | null;
 };
+// The results post's draft (lib/arcade/tournaments-server.ts resultsPostDraft).
+type PostDraft = { title: string; body: string; from: "told" | "board"; cover: string; winners: { place: number; username: string; unnamed?: string }[] };
 // "Tell winners" previewed (lib/arcade/tournaments-server.ts winnersPlan).
 type PlanRow = { place: number | null; uid: string; username: string; summary: string; prize: string; action: "send" | "bell" | "told" | "skip"; why?: string; text: string };
 type Plan = { count: number; max: number; prize: boolean; rows: PlanRow[]; sender: { ok: true; username: string } | { ok: false; error: string } };
@@ -62,7 +66,7 @@ export default function AdminArcadeTournamentsPage() {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [editing, setEditing] = useState<{ id: string | null; form: Form } | null>(null);
-  const [open, setOpen] = useState<{ id: string; results: Result[]; report: Report } | null>(null);
+  const [open, setOpen] = useState<{ id: string; results: Result[]; report: Report; prizesBlocker: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const call = useCallback(async (method: "GET" | "POST", body?: unknown, query = "") => {
@@ -121,7 +125,7 @@ export default function AdminArcadeTournamentsPage() {
                 <p className="text-xs text-slate">
                   {lagosWhen(t.playFrom)} to {lagosWhen(t.playUntil)} (Lagos) · <b>{t.status}</b> ({t.phase}) · {t.prize ? "prize, 18+" : t.ageRule === "practice" ? "practice, teens welcome" : "no prizes, 18+"}
                   {t.sponsor ? ` · sponsor: ${t.sponsor.name}` : ""} · {t.entrants ?? 0} entrants, {t.runs ?? 0} tries · seed {t.seed}
-                  {t.prize && !t.legalChecked ? " · legal check not ticked" : ""}{t.resultsCheckedAt ? ` · results checked ${t.resultsCheckedAt.slice(0, 10)}` : ""}{t.winnersNotifiedAt ? ` · ${t.winners?.length ?? 0} told ${t.winnersNotifiedAt.slice(0, 10)}` : ""}{t.prizesSentAt ? ` · prizes sent ${t.prizesSentAt.slice(0, 10)}` : ""}
+                  {t.prize && !t.legalChecked ? " · legal check not ticked" : ""}{t.resultsCheckedAt ? ` · results checked ${t.resultsCheckedAt.slice(0, 10)}` : ""}{t.winnersNotifiedAt ? ` · ${t.winners?.length ?? 0} told ${t.winnersNotifiedAt.slice(0, 10)}` : ""}{t.prizesSentAt ? ` · prizes sent ${t.prizesSentAt.slice(0, 10)}` : ""}{t.resultsPost ? ` · results post ${t.resultsPost.publishedAt.slice(0, 10)}` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -209,7 +213,7 @@ function Editor({ value: f, locked, onChange, onSave, onCancel, busy }: { value:
 
 type Call = (method: "GET" | "POST", body?: unknown, query?: string) => Promise<Record<string, unknown>>;
 
-function Details({ t, data, busy, act, call, refresh }: { t: Row; data: { results: Result[]; report: Report }; busy: boolean; act: (b: Record<string, unknown>, done: string) => Promise<boolean>; call: Call; refresh: () => Promise<void> }) {
+function Details({ t, data, busy, act, call, refresh }: { t: Row; data: { results: Result[]; report: Report; prizesBlocker: string | null }; busy: boolean; act: (b: Record<string, unknown>, done: string) => Promise<boolean>; call: Call; refresh: () => Promise<void> }) {
   const r = data.report;
   return (
     <div className="mt-4 border-t border-rule pt-4 text-sm">
@@ -230,6 +234,11 @@ function Details({ t, data, busy, act, call, refresh }: { t: Row; data: { result
           {r.winners.map((w) => <li key={w.place}>{w.place}. @{w.username}{w.prize ? `: ${w.prize}` : ""} · told {w.at.slice(0, 16).replace("T", " ")} UTC{w.dm ? " in Messages" : " by the bell only"}</li>)}
         </ul>
       )}
+      <p className="mt-2 text-xs text-slate">
+        Results post on #NotesApp: {r.resultsPost
+          ? <><a href={r.resultsPost.url} className="text-crimson underline" target="_blank" rel="noreferrer">{r.resultsPost.url}</a> (published {r.resultsPost.publishedAt.slice(0, 10)})</>
+          : "not yet"}
+      </p>
 
       <h3 className="mt-5 font-display text-lg text-ink">Check results</h3>
       <p className="text-xs text-slate">The top entrants with every try they sent. Look for odd patterns (§5) before ticking; nothing is handed over before that check.</p>
@@ -252,16 +261,94 @@ function Details({ t, data, busy, act, call, refresh }: { t: Row; data: { result
         {t.status !== "results"
           ? <button className={btn} disabled={busy || t.phase !== "ended"} title={t.phase !== "ended" ? "After play has ended (or close it first)" : ""} onClick={() => act({ action: "results-checked", id: t.id }, "Results marked as checked; they show on the public page.")}>Results checked</button>
           : <span className="text-xs text-slate">✓ Results checked {t.resultsCheckedAt?.slice(0, 10)}</span>}
+        {/* A tournament without prizes has nothing to send, so no button. A prize tournament's waits until the winners have been told
+            (owner, 24 Nov 2026); the server says why (prizesSentBlocker) and refuses the same way. */}
         {t.prize && (t.prizesSentAt
           ? <span className="text-xs text-slate">✓ Prizes sent {t.prizesSentAt.slice(0, 10)}</span>
-          : <button className={btn} disabled={busy || !t.resultsCheckedAt} onClick={() => act({ action: "prizes-sent", id: t.id }, "Prizes marked as sent.")}>Mark prizes sent</button>)}
+          : <button className={btn} disabled={busy || !!data.prizesBlocker} title={data.prizesBlocker ?? ""} onClick={() => act({ action: "prizes-sent", id: t.id }, "Prizes marked as sent.")}>Mark prizes sent</button>)}
       </div>
+      {t.prize && !t.prizesSentAt && data.prizesBlocker && <p className="mt-1 text-xs text-slate">Mark prizes sent: {data.prizesBlocker}</p>}
       {t.status === "results" && t.resultsCheckedAt
         ? <TellWinners t={t} call={call} refresh={refresh} />
         : <p className="mt-3 text-xs text-slate">Tell winners comes after &quot;Results checked&quot;: nothing is handed over before that check (§5).</p>}
+      {t.status === "results" && t.resultsCheckedAt
+        ? <ResultsPost t={t} call={call} refresh={refresh} />
+        : <p className="mt-3 text-xs text-slate">The results post on #NotesApp comes after &quot;Results checked&quot;: it names the winners.</p>}
     </div>
   );
 }
+
+// The results post (owner, 24 Nov 2026: "the results post on #NotesApp's account naming the winners and the sponsor"; §2 "The winners"):
+// a draft made from the tournament, edited here in Markdown (the format journals use), then published once on @na-notesapp's journal.
+// It names the same winners "Tell winners" tells (the ones told, or the board's top with the same skips if nobody has been told yet).
+function ResultsPost({ t, call, refresh }: { t: Row; call: Call; refresh: () => Promise<void> }) {
+  const [draft, setDraft] = useState<PostDraft | null>(null);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  if (t.resultsPost) {
+    return (
+      <div className="mt-5 rounded-xl border border-rule p-3">
+        <h3 className="font-display text-lg text-ink">Results post</h3>
+        <p className="text-sm text-ink">
+          ✓ Published on #NotesApp {t.resultsPost.publishedAt.slice(0, 16).replace("T", " ")} UTC.{" "}
+          <Link href={`/journals/${t.resultsPost.slug}`} className="text-crimson underline">View post</Link>
+          <span className="text-xs text-slate"> · edit it like any journal from Admin → Journals</span>
+        </p>
+      </div>
+    );
+  }
+  const write = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const d = (await call("GET", undefined, `?id=${encodeURIComponent(t.id)}&resultsPost=1`)).draft as PostDraft;
+      setDraft(d); setTitle(d.title); setBody(d.body);
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Failed" }); }
+    finally { setBusy(false); }
+  };
+  const publish = async () => {
+    if (!window.confirm("Publish this on #NotesApp's journal (@na-notesapp) now? It's public, followers get a bell, and it can only be posted once.")) return;
+    setBusy(true); setMsg(null);
+    try {
+      await call("POST", { action: "publish-results-post", id: t.id, title, body });
+      setMsg({ ok: true, text: "Published on #NotesApp." });
+      await refresh();
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Failed" }); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="mt-5 rounded-xl border border-rule p-3">
+      <h3 className="font-display text-lg text-ink">Results post</h3>
+      <p className="text-xs text-slate">
+        A public post on #NotesApp&apos;s journal (@na-notesapp) naming the winners and thanking the sponsor, with the tournament&apos;s share card as
+        its cover. Teens and members who keep their profile private aren&apos;t named. It can be posted once.
+      </p>
+      {!draft && <button className={`${btn} mt-2`} disabled={busy} onClick={write}>Write the results post</button>}
+      {msg && <p className={`mt-2 text-sm ${msg.ok ? "text-ink" : "text-crimson"}`} role={msg.ok ? "status" : "alert"}>{msg.text}</p>}
+      {draft && (
+        <div className="mt-2 space-y-2">
+          <p className="text-xs text-slate">
+            {draft.from === "told" ? "Names the winners who were told." : "Nobody has been told yet, so it names the board's top players, with the same skips as Tell winners."}{" "}
+            {draft.winners.length ? draft.winners.map((w) => `${w.place}. ${w.unnamed ? `(not named: ${w.unnamed})` : `@${w.username}`}`).join(" · ") : "No winners to name."}
+          </p>
+          <label className="block text-xs text-slate">Title
+            <input className={input} value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
+          </label>
+          <label className="block text-xs text-slate">Post (Markdown, like any journal)
+            <textarea className={`${input} min-h-[18rem] font-mono text-xs`} value={body} onChange={(e) => setBody(e.target.value)} />
+          </label>
+          <p className="text-xs text-slate">Cover: the tournament&apos;s share card ({draft.cover}) · topic Gaming · #notes-arcade #tournaments</p>
+          <div className="flex flex-wrap gap-2">
+            <button className={primary} disabled={busy || title.trim().length < 3 || body.trim().length < 20} onClick={publish}>Publish as #NotesApp</button>
+            <button className={btn} disabled={busy} onClick={write}>Start again from the draft</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // "Tell winners" (owner, 24 Nov 2026: "telling winners in Messages"; §5): pick how many, preview each message, send. Each winner gets a
 // message from #NotesApp's own account and a bell; the server keeps who was told, so pressing Send again tells nobody twice. A tournament

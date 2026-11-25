@@ -1,6 +1,6 @@
 # 🚪 Homepage doors, and what a trial kept you
 
-From Victory Adugbo's external GTM review (Nov 2026) and the owner's notes on 24 Nov 2026. **Status: built in v0.207.0 (25 Nov 2026)**
+From Victory Adugbo's external GTM review (Nov 2026) and the owner's notes on 24 Nov 2026. **Status: built in v0.208.0 (25 Nov 2026)**
 after Victory agreed with the "4-in-1 landing page" and the owner approved. What changed from the mockups is at the end.
 
 ## Why
@@ -52,7 +52,7 @@ subscriptions and gifts, and Business from about ₦210,000.
 | The "pays for itself" point | Worked out from the live rates and price, so it moves when Admin → Pricing changes. |
 | The nudge | At most one message every 60 days, and none while a member is on a plan. |
 
-## Built in v0.207.0
+## Built in v0.208.0
 
 Screenshots from the real code on the emulators (sample data; the strip shows the real figures of 24 Nov 2026):
 [the doors](mockups/gtm-built/1-doors-desktop.webp), [a door on a phone](mockups/gtm-built/2-phone-organisations.webp),
