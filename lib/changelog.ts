@@ -19,6 +19,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "The reward is held from the poster's NotesApp Credit when a task is published, and paid to the worker's bank once their work is approved, less a 10% fee. Work that isn't reviewed in 5 days is approved automatically, and closing a task gives back whatever wasn't paid out." },
       { kind: "added", text: "Each task has public terms that people agree to when they apply, plus a private brief and files that only accepted workers see. Workers submit notes and files, and the poster approves, asks for changes (up to twice) or rejects." },
       { kind: "added", text: "Post anonymously: the task shows \"Verified organisation\" and your industry instead of your name. It's included on Business and Enterprise, or ₦5,000 per task on other plans." },
+      { kind: "added", text: "Admin → Tasks for Trust & safety shows every task with who really posted it (anonymous ones too), the money held and paid, and the applications for disputes. Removing a task gives back what's held, tells everyone working on it, and shows the poster the reason." },
       { kind: "added", text: "Ratings both ways once work is decided. Posters see each applicant's rating and tasks done, and workers see the poster's rating. My tasks (/profile/tasks) lists what you posted and what you're working on." },
     ],
   },

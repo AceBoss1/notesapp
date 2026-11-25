@@ -427,15 +427,43 @@ export async function closeTask(db: Firestore, me: Me, id: unknown, notify: Noti
 }
 
 // Admins (Trust & safety) take a task down: what's held goes back to the poster; anyone working on it is told.
-export async function removeTask(db: Firestore, id: unknown, reason: unknown, notify: Notify = bell, now = new Date()) {
+export async function removeTask(db: Firestore, id: unknown, reason: unknown, by: { uid: string; email: string } | null = null, notify: Notify = bell, now = new Date()) {
   const why = cleanFeedback(reason);
   if (why.length < 5) throw new TaskError(400, "Say why it's removed.");
   const tid = must(id);
+  const cur = await loadTask(db, tid);
+  if (cur.status !== "open") {
+    // A draft or a closed task holds nothing: it just comes down.
+    await taskRef(db, tid).update({ status: "removed", removedReason: why, closedAt: cur.closedAt ?? now.toISOString(), ...(by ? { removedBy: by.uid, removedByEmail: by.email } : {}) });
+    await notify({ uid: cur.posterUid, linkHref: "/tasks", message: `Your task "${cur.title}" was removed by #NotesApp: ${why}` }).catch(() => {});
+    return { removed: true };
+  }
   const before = (await db.collection("taskApplications").where("taskId", "==", tid).limit(500).get()).docs.map((d) => d.data() as TaskApplication).filter((a) => isActive(a.status));
   const r = await closeIt(db, tid, { force: true, remove: why }, now);
+  if (by) await taskRef(db, tid).update({ removedBy: by.uid, removedByEmail: by.email });
   await notify({ uid: r.task.posterUid, linkHref: "/tasks", message: `Your task "${r.task.title}" was removed by #NotesApp: ${why}${r.returnedKobo ? ` ${formatNaira(r.returnedKobo)} is back in your NotesApp Credit.` : ""}` }).catch(() => {});
   for (const a of before) await notify({ uid: a.uid, linkHref: "/tasks", message: `The task "${r.task.title}" was removed by #NotesApp, so your place on it has ended.` }).catch(() => {});
   return { removed: true };
+}
+
+// Admin → Tasks (Trust & safety): every task, newest first, with who really posted it (anonymous ones too), and on request one task's
+// applications, for disputes. ?status= narrows it; ?q= matches the title or the poster's username.
+export async function adminTasks(db: Firestore, opts: { status?: unknown; q?: unknown } = {}) {
+  const status = ["draft", "open", "closed", "removed"].includes(String(opts.status)) ? String(opts.status) : "";
+  const base = db.collection("tasks");
+  const snap = await (status ? base.where("status", "==", status) : base).limit(500).get();
+  const q = String(opts.q ?? "").trim().toLowerCase().replace(/^@/, "");
+  const tasks = snap.docs.map((d) => d.data() as Task & { removedBy?: string; removedByEmail?: string })
+    .filter((t) => !q || t.title.toLowerCase().includes(q) || t.posterUsername.toLowerCase().includes(q) || t.id === q)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const counts = { draft: 0, open: 0, closed: 0, removed: 0 } as Record<string, number>;
+  for (const t of snap.docs) counts[String(t.data().status)] = (counts[String(t.data().status)] ?? 0) + 1;
+  return { tasks, counts: status ? null : counts };
+}
+export async function adminTaskApplications(db: Firestore, id: unknown) {
+  const tid = must(id);
+  const apps = (await db.collection("taskApplications").where("taskId", "==", tid).limit(500).get()).docs.map((d) => d.data() as TaskApplication);
+  return { applications: apps.sort((a, b) => a.appliedAt.localeCompare(b.appliedAt)).map(({ note: _n, ...a }) => ({ ...a, hasNote: !!_n })) };
 }
 
 // The scheduled sweep (app/api/cron/reminders): submissions not reviewed in REVIEW_DAYS are approved and paid; workers past their time

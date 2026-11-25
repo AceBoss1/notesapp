@@ -1470,8 +1470,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     after PAYOUT_HOLD_HOURS; closing `settleHold`s the rest back. Terms are public and agreed on applying; the brief and files are private
     (`tasks/<id>/private/brief`, files in the private bucket via `taskUploads`, handed out as short-lived links). `sweepTasks` (cron) approves
     work unreviewed for REVIEW_DAYS (5), ends workers past their time, closes tasks past their date or with every place approved. Ratings
-    both ways (counters on users: taskWorkerRating*, taskPosterRating*, tasksDone). Admins (moderation) remove a task with POST
-    {action:"remove"} (no screen yet). All task collections are closed to browsers. Tests: test:tasks, test:tasks-server.
+    both ways (counters on users: taskWorkerRating*, taskPosterRating*, tasksDone). Admin → Tasks (/admin/tasks, /api/admin/tasks;
+    Trust & safety, Legal and Customer care see it, Trust & safety removes): `adminTasks` lists every task with the real poster,
+    `adminTaskApplications` one task's people (without the work itself), `removeTask` gives back what's held, ends active places, notes
+    `removedBy`, and tells the poster the reason. All task collections are closed to browsers. Tests: test:tasks, test:tasks-server.
 
 ## 3. How the work is done (please keep these)
 

@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
-  applyTo, closeTask, decide, publishTask, rate, review, saveTask, startUpload, submitWork, sweepTasks, viewTask, withdraw, type FileDeps,
+  adminTaskApplications, adminTasks, applyTo, closeTask, decide, publishTask, rate, removeTask, review, saveTask, startUpload, submitWork, sweepTasks, viewTask, withdraw, type FileDeps,
 } from "../../lib/tasks-server";
 import { ANON_FEE_KOBO, REVIEW_DAYS, type Task, type TaskApplication } from "../../lib/tasks";
 
@@ -135,6 +135,29 @@ async function main() {
   const r = await closeTask(db, me("acme"), second.id, notify);
   assert.equal(r.returnedKobo, 120_000 * 100); assert.equal(await credit("acme"), before + 120_000 * 100);
   assert.equal((await viewTask(db, null, second.id)).task.posterName, "Acme", "not anonymous: the name shows");
+  // Admin → Tasks: anonymous posters are named for staff; removing an open task gives back what's held and ends the places.
+  const third = await saveTask(db, me("acme"), "", { ...input, slots: 1, terms: "" });
+  await db.doc("wallets/acme").set({ creditKobo: 50_000 * 100, bonusLots: [] });
+  await publishTask(db, me("acme"), third.id);
+  await applyTo(db, me("ada"), third.id, { pitch: "Ready to start on this today." }, notify);
+  await decide(db, me("acme"), third.id, "ada", true, notify);
+  const all = await adminTasks(db, {});
+  assert.equal(all.counts?.open, 1); assert.equal(all.counts?.closed, 2);
+  const row = (await adminTasks(db, { q: "@acme", status: "open" })).tasks[0];
+  assert.equal(row.posterUid, "acme", "staff see who posted"); assert.equal(row.anonymous, true);
+  assert.equal((await adminTaskApplications(db, third.id)).applications[0].status, "accepted");
+  await assert.rejects(removeTask(db, third.id, "no", null, notify), /why/);
+  bells.length = 0;
+  await removeTask(db, third.id, "Asks workers to pay a deposit.", { uid: "staff1", email: "ts@notesapp.test" }, notify);
+  const gone = await task(third.id);
+  assert.equal(gone.status, "removed"); assert.equal((gone as Task & { removedBy?: string }).removedBy, "staff1");
+  assert.equal(await credit("acme"), (50_000 - 5_000) * 100, "the reward came back; the anonymous fee is kept");
+  assert.equal((await app(third.id, "ada")).status, "expired");
+  assert.ok(bells.some((b) => b.uid === "ada" && /removed/.test(b.message)) && bells.some((b) => b.uid === "acme" && /deposit/.test(b.message)));
+  await assert.rejects(viewTask(db, null, third.id), /isn't here/);
+  // A closed task can be taken down too.
+  await removeTask(db, second.id, "Misleading description.", null, notify);
+  assert.equal((await task(second.id)).status, "removed");
   console.log("TASKS SERVER OK");
 }
 main().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb, verifyAdminAccess, verifySignedInRequest } from "@/lib/firebase-admin";
+import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
-import { hasAnyDept } from "@/lib/admin-access";
 import { presignGet, presignUpload, privateFilesConfigured } from "@/lib/private-files";
 import { TaskError } from "@/lib/tasks";
 import {
-  applyTo, closeTask, decide, deleteDraft, fileLink, listOpen, myTasks, posterCheck, publishTask, rate, removeTask, review, saveTask, startUpload,
+  applyTo, closeTask, decide, deleteDraft, fileLink, listOpen, myTasks, posterCheck, publishTask, rate, review, saveTask, startUpload,
   submitWork, viewTask, withdraw, type FileDeps,
 } from "@/lib/tasks-server";
 import type { UserProfile } from "@/lib/users";
@@ -18,7 +17,8 @@ export const dynamic = "force-dynamic";
 //   GET ?id=                    one task as you may see it
 //   GET ?mine=1                 the tasks you posted and applied to; ?canPost=1 whether you may post
 //   GET ?id=&file=&worker=      a short-lived link to a brief's file (or, with worker, a submission's)
-//   POST { action, ... }        save · delete · publish · apply · withdraw · decide · upload · submit · review · rate · close · remove (admins)
+//   POST { action, ... }        save · delete · publish · apply · withdraw · decide · upload · submit · review · rate · close
+//   (Admins remove tasks through /api/admin/tasks.)
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 const files: FileDeps = {
   presignPut: (key, type, size) => presignUpload(key, type, size),
@@ -61,11 +61,6 @@ export async function POST(req: NextRequest) {
   try {
     const db = getAdminDb();
     const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    if (b.action === "remove") {
-      const a = await verifyAdminAccess(bearer(req)).catch(() => null);
-      if (!a || !hasAnyDept(a.access, ["moderation"])) throw new TaskError(403, "Trust & safety only.");
-      return NextResponse.json(await removeTask(db, b.id, b.reason));
-    }
     const me = await signedIn(req);
     const limited = await rateLimit(req, "tasks", me.uid, 60, 600);
     if (limited) return limited;
