@@ -14,7 +14,8 @@
 | by 22 Nov | Pitch deck **and/or** walkthrough video (one is enough). **Not sent yet (19 Nov).** The deck is ready; the video script is below, under "Show us" | `fund-deck-video` |
 | by 26 Nov | The remaining answers drafted (below) | `fund-answers` |
 | by 29 Nov | NotesApp checked working on **naapp.tech** | `fund-live-check`, `fund-site-live` |
-| **by 8 Dec** | Final read-through and **submit** (a week's margin) | `fund-final-review`, `fund-submit` |
+| **25 Nov** | **Submitted ✓** (owner, 25 November 2026). Reference **NEF-CDT7MT**; questions to noexcuses@get.tech | `fund-final-review`, `fund-submit` |
+| until 15 Jan 2027 | **Answer any question from them within 3 business days** (terms 4.4), and keep NotesApp live on naapp.tech (the consent says it stays live there; 24 months if granted) | |
 | 15 Dec 2026, 23:59 US Pacific | Submissions close (16 Dec, 08:59 Lagos) | |
 | 15 Jan 2027 | Everyone hears back, selected or not | |
 | within 60 days of that | Grants are paid; they come with up to USD 100K in credits, mentorship and investor introductions | |
