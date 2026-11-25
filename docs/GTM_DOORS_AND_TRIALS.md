@@ -38,8 +38,9 @@ Mockups: [trial-earnings/all-screens.webp](mockups/trial-earnings/all-screens.we
 - **Admin → Growth → Trials:** trials ended, paid after, the commission given up in trials against the plan payments that followed, and
   whether members who trialled stay longer (the week-4 view).
 
-The sample figures use the rates in `lib/tiers.ts` (sessions 35% on Free Basic, 25% on Pro). The real card reads the live rates from Admin →
-Pricing.
+The sample figures use the live rates on 25 Nov 2026 (Free Basic 20%, Pro ₦5,000 at 15%, Business ₦25,000 at 8%, Enterprise from ₦55,000
+and 6%). The real card reads them from Admin → Pricing. At these rates Pro pays for itself from about ₦100,000 a month of sessions,
+subscriptions and gifts, and Business from about ₦210,000.
 
 ## Decisions for the owner
 
