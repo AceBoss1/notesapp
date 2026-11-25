@@ -1,0 +1,155 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Homepage doors</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7;--gold:#C99A2E;--green:#17694a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:900px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px;align-items:flex-start}
+.item{width:330px}.item.wide{width:1010px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.dk{width:1010px;border-radius:14px;background:#2a2321;padding:26px 8px 8px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45);position:relative}
+.dk:before{content:"● ● ●";position:absolute;left:14px;top:6px;color:#8a7d78;font-size:10px;letter-spacing:2px}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.dk .sc{border-radius:8px}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.nav{display:flex;align-items:center;gap:18px;padding:12px 26px;border-bottom:1px solid var(--rule);background:#fff;font-size:13px;color:var(--slate)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.full{width:100%}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600;line-height:1.2}
+.sub{font-size:12px;color:var(--slate);line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--crimson);font-weight:700}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule);gap:8px}
+.row:first-of-type{border-top:0}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ok{background:#E3F4EC;border:1px solid #A9DCC3;border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;color:#0f4c35}
+.ph-slot{border:1.5px dashed #d1a3b1;background:#fdf3f6;border-radius:14px;padding:10px 12px;font-size:12px;line-height:1.45;color:#6b2a3c}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:19px;display:block;font-family:Fraunces,serif}.stat span{font-size:11px;color:var(--slate)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:11.5px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.gold{color:var(--gold);font-weight:800}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.4}
+.bars{display:flex;align-items:flex-end;gap:5px;height:54px}.bars div{flex:1;background:var(--crimson);border-radius:4px 4px 0 0;opacity:.85}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;padding:30px 34px 18px}
+.hero h2{font-family:Fraunces,serif;font-size:40px;line-height:1.05;font-weight:600}.hero h2 i{color:var(--crimson)}
+.doors{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:6px 34px 18px}
+.door{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.door.on{border-color:var(--crimson);box-shadow:0 10px 24px -14px rgba(122,3,40,.5)}
+.door .ic{font-size:24px}.door b{font-size:15px}.door p{font-size:12px;color:var(--slate);line-height:1.4}.door a{margin-top:auto;font-size:12px;font-weight:700;color:var(--crimson)}
+.proof{display:flex;gap:0;margin:0 34px 18px;background:var(--deep);color:#fff;border-radius:16px;overflow:hidden}
+.proof div{flex:1;padding:12px 14px;border-left:1px solid rgba(255,255,255,.15)}.proof div:first-child{border-left:0}
+.proof b{font-family:Fraunces,serif;font-size:22px;display:block}.proof span{font-size:11.5px;opacity:.85}
+.refs{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 34px 24px}
+.dash{background:#fff;border:1px solid var(--rule);border-radius:16px;overflow:hidden;font-size:12px}
+.dash .hd{background:var(--crimson);color:#fff;padding:8px 12px;font-weight:700;font-size:12px;display:flex;justify-content:space-between}
+.dash .bd{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.tag{display:inline-block;background:var(--field);border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700;color:var(--slate)}
+.plan{border:1px solid var(--rule);border-radius:14px;padding:10px 12px;background:#fff;font-size:11.5px;line-height:1.45}
+.plan h3{font-size:14px;display:flex;justify-content:space-between;align-items:baseline}.plan h3 span{font-size:12px;color:var(--slate);font-weight:600}
+.plan.hl{border-color:var(--crimson);background:#fbf0f3}
+.tick{color:var(--green);font-weight:800}
+</style></head><body>
+<h1>The homepage: a door for each audience</h1>
+<p class="lede">Sample screens for the owner (24 Nov 2026), from Victory Adugbo's GTM review: "a door per audience" and "proof, not claims". The headline stays. Under it, four doors, each opening a short page with the dashboard that audience gets once signed in, one real number and one real quote. Dashed pink boxes are slots for real quotes we still have to collect, with permission. Nothing on these pages is made up.</p>
+<div class="grid">
+
+<div class="item wide"><div class="dk"><div class="sc">
+  <div class="nav"><span class="logo">#NA</span><b style="color:var(--ink)">#NotesApp</b><span>Journals</span><span>Notes Market</span><span>Academy</span><span>Pricing</span><span class="sp"></span><span>Sign in</span><span class="btn pri" style="padding:7px 14px">Start free</span></div>
+  <div class="hero">
+    <div>
+      <span class="eyebrow">Built for African professionals, educators, businesses and organisations</span>
+      <h2 style="margin-top:10px">Publish a note.<br>Get <i>booked</i> for it.<br>Get paid, in your local currency.</h2>
+      <p class="sub" style="font-size:14px;margin-top:12px;max-width:470px">One home for your clients, students, customers or members: bookings, courses, a shop, lives and your own site, paid in naira through Paystack.</p>
+    </div>
+    <div style="align-self:center">
+      <p style="font-family:Fraunces,serif;font-size:22px;font-weight:600">Who are you here as?</p>
+      <p class="sub" style="margin-top:4px">Pick one and see what #NotesApp looks like for you. You get a dashboard made for it when you sign in, and you can change it any time.</p>
+    </div>
+  </div>
+  <div class="doors">
+    <div class="door on"><span class="ic">💼</span><b>Professionals</b><p>Coaches, consultants, therapists, lawyers, trainers. Bookings, paid sessions, client journals and your own site.</p><a>See it for you →</a></div>
+    <div class="door"><span class="ic">🎓</span><b>Academics &amp; students</b><p>Lecturers, tutors, exam prep. Free and paid courses, notes, live classes and certificates.</p><a>See it for you →</a></div>
+    <div class="door"><span class="ic">🛍️</span><b>SMEs &amp; sellers</b><p>Shops, makers, hotels, logistics. A store in Notes Market, business books, stock and delivery.</p><a>See it for you →</a></div>
+    <div class="door"><span class="ic">🏛️</span><b>Organisations</b><p>Churches, NGOs, schools, clubs. Members, events, lives, announcements and giving.</p><a>See it for you →</a></div>
+  </div>
+  <div class="proof">
+    <div><b>₦4M+</b><span>processed through #NotesApp</span></div>
+    <div><b>₦800k+</b><span>paid out to creators and sellers</span></div>
+    <div><b>10</b><span>organisations run on #NotesApp</span></div>
+    <div><b>Held until delivery</b><span>buyers' money waits in escrow until they get what they paid for</span></div>
+  </div>
+  <div class="refs">
+    <div class="ph-slot"><b>Precheks · consulting</b><br>"[Their words, in a sentence or two: what #NotesApp changed for their clients.]"<br><span class="mini">Collect from Precheks, with permission to use their name.</span></div>
+    <div class="ph-slot"><b>ApexGlitz Boutique · shop</b><br>"[Their words: selling, payments held until delivery, payouts.]"<br><span class="mini">Collect from ApexGlitz, with permission to use their name.</span></div>
+  </div>
+</div></div>
+<p class="cap"><b>1. The homepage, top of the page</b>The headline stays. Under it, <b>"Who are you here as?"</b> with four doors. The strip of figures is <b>real and live</b>: read from the same numbers as Admin → Traction and rounded down (₦4,031,795 processed and ₦823,072 paid out on 24 Nov 2026), so it can never say more than we can show. The two reference customers stay, with their own words once they give them. The long feature list moves lower down the page; nothing is removed.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>For professionals</div>
+  <div class="pad">
+    <span class="eyebrow">Coaches · consultants · therapists · lawyers</span>
+    <p class="h2">Your clients find you, book you, pay you and come back. All in one place.</p>
+    <p class="mini" style="font-weight:700;color:var(--ink)">What you see when you sign in</p>
+    <div class="dash"><div class="hd"><span>Your dashboard</span><span class="tag" style="background:#ffffff33;color:#fff">SAMPLE</span></div><div class="bd">
+      <div class="row"><span>📅 Today</span><b>2 sessions · 10:00, 14:30</b></div>
+      <div class="row"><span>💰 Earned this month</span><b>₦96,000</b></div>
+      <div class="row"><span>🔒 Waiting to be released</span><b>₦24,000</b></div>
+      <div class="row"><span>📝 Client journals</span><b>3 notes to write up</b></div>
+      <div class="row"><span>🌐 Your site</span><b>/s/chimdinma</b></div>
+    </div></div>
+    <div class="ph-slot">"[A quote from a professional who takes bookings on #NotesApp.]"<br><span class="mini">Precheks first; others as they agree.</span></div>
+    <div class="ph-slot" style="background:#fff">One real number for professionals, once it's worth showing, e.g. <b>sessions held</b> or <b>paid out to professionals</b>. Until then this box isn't shown.</div>
+    <span class="btn pri full">Start free</span>
+    <span class="btn sec full">Try Pro free for 15 days</span>
+  </div>
+</div></div>
+<p class="cap"><b>2. Behind a door: Professionals</b>One short page per audience at <b>/for/professionals</b>, and the same for the others. It shows the dashboard they'd get, marked <b>sample</b> (a screenshot of the real dashboard with demo data), one real quote and, when we have one worth showing, one real number for that group. Signing up from here starts them on that dashboard.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>For organisations</div>
+  <div class="pad">
+    <span class="eyebrow">Churches · NGOs · schools · clubs</span>
+    <p class="h2">Your members, events, lives and giving, under your own name.</p>
+    <div class="dash"><div class="hd"><span>Your organisation</span><span class="tag" style="background:#ffffff33;color:#fff">SAMPLE</span></div><div class="bd">
+      <div class="row"><span>👥 Members</span><b>214 · 9 waiting to join</b></div>
+      <div class="row"><span>📣 Announcement</span><b>Sunday service, 9am</b></div>
+      <div class="row"><span>🔴 Live room</span><b>Thursday prayer, 7pm</b></div>
+      <div class="row"><span>🙏 Giving this month</span><b>₦310,500</b></div>
+      <div class="row"><span>🎟️ Next event</span><b>Youth summit · 48 tickets</b></div>
+    </div></div>
+    <div class="card" style="font-size:12px;line-height:1.45"><span class="gold">✔ Gold badge included</span> on Business and Enterprise: your organisation verified, beside your name everywhere.</div>
+    <div class="stat"><div><b>10</b><span>organisations on #NotesApp</span></div><div><b>15 days</b><span>free Business trial, no card</span></div></div>
+    <div class="ph-slot">"[A quote from one of our organisations.]"</div>
+    <span class="btn pri full">Set up your organisation</span>
+  </div>
+</div></div>
+<p class="cap"><b>3. Behind a door: Organisations</b>The same pattern, with what matters to them: members, announcements, lives and giving. <b>"Gold badge included"</b> on Business and Enterprise is said here and on the pricing page, so nobody thinks it's an extra cost. "10 organisations" is real today.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Pricing</div>
+  <div class="pad">
+    <p class="h2">Start free. Upgrade when it pays.</p>
+    <div class="plan"><h3>Free Basic <span>₦0</span></h3>Publish, take bookings, sell, your own site at /s/your-name.</div>
+    <div class="plan"><h3>Pro <span>₦5,000/month</span></h3>A lower commission, ad share, paid courses, co-authoring.</div>
+    <div class="plan hl"><h3>Business <span>monthly plan</span></h3>Lower still, your own domain, course videos.<br><span class="gold">✔ Gold badge included</span></div>
+    <div class="plan"><h3>Enterprise <span>agreed with us</span></h3>Rates and seats agreed with you, full white label, API.<br><span class="gold">✔ Gold badge included</span></div>
+    <div class="ok"><b>Try Pro or Business free for 15 days.</b> No card. When it ends we show you what you actually kept on the plan, next to what you'd have kept without it, so you decide with your own numbers.</div>
+    <p class="mini">Prices and rates come from Admin → Pricing.</p>
+  </div>
+</div></div>
+<p class="cap"><b>4. The pricing page</b>No commission calculator up front (owner's choice: people upgrade when they're ready). Instead it says <b>"Gold badge included"</b> on Business and Enterprise, and points to the trial, which does the maths with their real earnings (the second sheet). Prices are read from Admin → Pricing as today.</p></div>
+
+</div></body></html>

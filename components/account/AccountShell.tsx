@@ -10,6 +10,7 @@ import SideShell from "@/components/shell/SideShell";
 import ThemeSwitch from "@/components/theme/ThemeSwitch";
 import Link from "next/link";
 import { useCampusMe } from "@/lib/campus-client";
+import { TrialCard } from "@/components/trial/TrialEarnings";
 
 // My account's frame (owner, 15 Nov 2026, the Moda "User Dashboard Redesign"): Back to NotesApp, MY ACCOUNT and the groups Profile,
 // Money, Store and Growth in a sidebar, with Day / Night / Auto and Sign out at the bottom; "MY ACCOUNT · MONEY" over the page in place
@@ -44,6 +45,7 @@ export default function AccountShell({ children }: { children: React.ReactNode }
     <SideShell title="My account" crumbTitle pages={pages} groups={groups} active={where.page} crumb={where} label="My account"
       back={{ href: "/journals", label: "Back to NotesApp" }} footer={footer} heading="hero" width="15.5rem"
       eyebrow={where.group ? `My account · ${where.group}` : "My account"}>
+      {pathname !== "/profile/trial" && <TrialCard />}
       {children}
     </SideShell>
   );

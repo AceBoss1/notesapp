@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import TrialsPanel from "@/components/admin/TrialsPanel";
 import {
   ANY_VALUE_TEXT, CHANNEL_ICON, CHANNEL_LABEL, RANGES, VALUE_TEXT, type Channel, type Funnel, type GrowthReport, type RangeDays,
 } from "@/lib/growth";
 
-type Tab = "overview" | "funnel" | "back" | "creators";
+type Tab = "overview" | "funnel" | "back" | "creators" | "trials";
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "Every channel" },
   { key: "funnel", label: "Funnel" },
   { key: "back", label: "Comes back?" },
   { key: "creators", label: "Creator links" },
+  { key: "trials", label: "Trials" },
 ];
 const p = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n}%`);
 const n = (v: number) => v.toLocaleString("en-NG");
@@ -111,6 +113,7 @@ export default function AdminGrowthPage() {
         !error && <p className="mt-8 text-sm text-slate">Counting…</p>
       ) : (
         <div className="mt-6">
+          {tab === "trials" && <TrialsPanel user={user} days={days} />}
           {tab === "overview" && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

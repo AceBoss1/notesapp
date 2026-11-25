@@ -1823,6 +1823,14 @@ test("Guests watching a live without an account: their seats and the daily figur
   }
 });
 
+test("What a free trial kept you: trial results are server-only, even for their owner (lib/trial-earnings-server.ts)", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "trialResults/alice_2026-11-16"), { uid: "alice", tier: "pro" }); });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    await assertFails(getDoc(doc(db, "trialResults/alice_2026-11-16")));
+    await assertFails(setDoc(doc(db, "trialResults/alice_2026-11-16"), { uid: "alice", tier: "business" }));
+  }
+});
+
 test("Nana sets up your site: answers, draft and the site before are server-only (lib/site-nana-server.ts)", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "siteSetups/alice"), { uid: "alice", answers: { what: "Cakes" } }); });
   for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {

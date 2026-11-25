@@ -19,6 +19,10 @@ import { inventoryAddonPrice, inventoryTrialDays, planRate, pct } from "@/lib/pr
 import { loadLivePricing } from "@/lib/pricing-server";
 import { getTierConfig } from "@/lib/tiers";
 import { ROOT_DOMAIN } from "@/lib/host";
+import AudienceDoors from "@/components/home/AudienceDoors";
+import { proofFigures } from "@/lib/home-doors";
+import { storedTraction } from "@/lib/traction-server";
+import { getAdminDb } from "@/lib/firebase-admin";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -64,6 +68,7 @@ const FEATURES = [
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
   { title: "Analytics for your business", copy: "See what you earned, your orders and average order, your best sellers and what's running low, and your visits, with a day-by-day chart. Pro adds 90 days, your customers and a sales download; Business adds visits by page and where visitors came from." },
   { title: "Community & Events", copy: "For churches, NGOs, schools and clubs: live audio rooms where you choose who speaks and everyone can chat, post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders, a Join live link and paid tickets checked in by QR code. Take offerings, tithes and donations with charges like a bank transfer and receipts for every giver. You choose what non-members see. Free up to 200 members." },
+  { title: "Notes Tasks: paid tasks, held before you start", copy: "Verified organisations and members post paid tasks: translation, writing, research, design, data entry, testing and software. The reward is held by #NotesApp when the task goes up and paid to your bank once your work is approved, and work that isn't reviewed in 5 days is approved for you. The brief and files are for accepted workers only; posters can appear as a verified organisation without their name (included on Business and Enterprise), and both sides rate each other.", href: "/tasks" },
   { title: "Business books", copy: "Walk-in sales with receipts, expenses, stock, money owed to you and profit by day, week or month, beside your online orders, which come in by themselves, with import from Excel, Google Sheets and Tralo. Free on Free Basic up to a monthly limit.", href: "/books" },
   { title: "Hotel kit", copy: "A whole hotel on #NotesApp: its website with rooms and online booking, orders from every department to a room, a table or for pick-up, a live staff board, a kitchen screen and tills, on the plans you already have.", href: "/hotels" },
   { title: "Notes Live and paid lives", copy: "Go live from your phone or computer with viewers' chat, hearts and gifts, or schedule a ticketed live with early-bird, normal and late prices, sold to everyone or only to your subscribers. Anyone can watch a live that's open to everyone, even without an account: they join to chat, and you see how many joined #NotesApp from your live. Live Media Studio Pro, our broadcast look with your logo, lower thirds and a ticker, is in testing.", href: "/lives" },
@@ -77,7 +82,13 @@ const FEATURES = [
 
 export default async function Home() {
   await loadLivePricing(); // the rates and prices in FEATURES, as set in Admin → Pricing
-  const [referenceHost, shopHost] = await Promise.all([activeHostForUsername(REFERENCE_USERNAME), activeHostForUsername(SHOP_REFERENCE_USERNAME)]);
+  const [referenceHost, shopHost, traction] = await Promise.all([
+    activeHostForUsername(REFERENCE_USERNAME), activeHostForUsername(SHOP_REFERENCE_USERNAME),
+    storedTraction(getAdminDb()).catch(() => null), // the figures under the doors; none shown if they can't be read
+  ]);
+  const proof = proofFigures(traction
+    ? { processedKobo: traction.money.processedKobo, paidOutKobo: traction.money.payoutsKobo, organisations: traction.people.organisations }
+    : { processedKobo: 0, paidOutKobo: 0, organisations: 0 });
   return (
     <>
       <IndependenceDoodle />
@@ -86,7 +97,7 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:px-8 lg:py-28">
           <div>
-            <span className="eyebrow">Built for African creators, professionals and businesses</span>
+            <span className="eyebrow">Built for African professionals, educators, businesses and organisations</span>
             <h1 className="mt-6 font-display text-[2.75rem] leading-[1.05] tracking-tight text-ink sm:text-6xl">
               Publish a note.
               <br />
@@ -106,7 +117,10 @@ export default async function Home() {
               Notes Arcade, and when you have a big idea, pitch it to NotesApp Ventures.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
-              <Link href="/journals" className="btn-primary">
+              <a href="#doors" className="btn-primary">
+                Who are you here as? ↓
+              </a>
+              <Link href="/journals" className="btn-ghost">
                 Explore live journals
               </Link>
               <Link href="/booking" className="btn-ghost">
@@ -158,6 +172,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <AudienceDoors proof={proof} />
 
       <TrustedByStrip className="border-b border-rule bg-paper px-4 py-8" />
 

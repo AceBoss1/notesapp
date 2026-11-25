@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
-import { expireTiers } from "@/lib/tier-billing";
+import { expireTiers, sendTrialNudges } from "@/lib/tier-billing";
 import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
 import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
@@ -112,6 +112,8 @@ async function run() {
   const firstRunThisHour = new Date().getUTCMinutes() < 15;
   const hourly = (name: string, fn: () => Promise<number>) => (firstRunThisHour ? job(name, fn) : Promise.resolve(0));
   const expired = await job("expireTiers", expireTiers);
+  // The one nudge after a "not yet" trial (lib/trial-earnings.ts): once a day, at 9am in Lagos.
+  if (firstRunThisHour && new Date().getUTCHours() === 8) await job("trialNudges", () => sendTrialNudges(db));
   const released = await job("releaseDueOrders", releaseDueOrders);
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
   await job("hotelHolds", () => sweepHolds(db)); // Hotel kit: unpaid bookings and orders past their hold are released (lib/hotel-server.ts)

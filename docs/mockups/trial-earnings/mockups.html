@@ -1,0 +1,152 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trial earnings card</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7;--gold:#C99A2E;--green:#17694a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:900px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px;align-items:flex-start}
+.item{width:330px}.item.wide{width:1010px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.dk{width:1010px;border-radius:14px;background:#2a2321;padding:26px 8px 8px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45);position:relative}
+.dk:before{content:"● ● ●";position:absolute;left:14px;top:6px;color:#8a7d78;font-size:10px;letter-spacing:2px}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.dk .sc{border-radius:8px}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.nav{display:flex;align-items:center;gap:18px;padding:12px 26px;border-bottom:1px solid var(--rule);background:#fff;font-size:13px;color:var(--slate)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.full{width:100%}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600;line-height:1.2}
+.sub{font-size:12px;color:var(--slate);line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--crimson);font-weight:700}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule);gap:8px}
+.row:first-of-type{border-top:0}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ok{background:#E3F4EC;border:1px solid #A9DCC3;border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;color:#0f4c35}
+.ph-slot{border:1.5px dashed #d1a3b1;background:#fdf3f6;border-radius:14px;padding:10px 12px;font-size:12px;line-height:1.45;color:#6b2a3c}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:19px;display:block;font-family:Fraunces,serif}.stat span{font-size:11px;color:var(--slate)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:11.5px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.gold{color:var(--gold);font-weight:800}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.4}
+.bars{display:flex;align-items:flex-end;gap:5px;height:54px}.bars div{flex:1;background:var(--crimson);border-radius:4px 4px 0 0;opacity:.85}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.cmp{display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;align-items:center;gap:8px;font-size:12px}.bar span{width:78px;color:var(--slate)}.bar i{display:block;height:22px;border-radius:6px;background:#d9cbc4}.bar i.c{background:var(--crimson)}.bar b{font-size:12.5px;white-space:nowrap}
+.big{font-family:Fraunces,serif;font-size:26px;font-weight:600;line-height:1.1}
+.prog{height:7px;border-radius:9px;background:#eadfd9;overflow:hidden}.prog div{height:100%;background:var(--crimson)}
+.t{width:100%;border-collapse:collapse;font-size:11.5px}.t td,.t th{padding:6px 4px;border-top:1px solid var(--rule);text-align:right}.t th{font-size:10.5px;color:var(--slate);font-weight:700}.t td:first-child,.t th:first-child{text-align:left}
+.t tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+</style></head><body>
+<h1>The end of a free trial: what you kept</h1>
+<p class="lede">Sample screens for the owner (24 Nov 2026). The pricing page doesn't do the commission maths up front (owner's choice). Instead, once someone tries Pro or Business free for 15 days, #NotesApp works it out from their real earnings in the trial: what they kept on the plan, next to what they'd have kept on their own plan. When the plan doesn't pay yet, the card says so. All figures here are sample figures at today's live rates (Free Basic 20% and Pro 15% commission on sessions, subscriptions and gifts; ad share 0% and 25%; Pro ₦5,000 a month). The real card reads the rates from Admin → Pricing.</p>
+<div class="grid">
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Dashboard</div>
+  <div class="pad">
+    <p class="h2">Good morning, Chimdinma</p>
+    <div class="card" style="border-color:var(--crimson)">
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>Pro trial</span><span style="color:var(--slate)">day 9 of 15</span></div>
+      <div class="prog" style="margin:8px 0"><div style="width:60%"></div></div>
+      <p style="font-size:13px;line-height:1.45">So far on Pro you've kept <b>₦5,600 more</b> than you would have on Free Basic.</p>
+      <p class="mini" style="margin-top:4px">From ₦112,000 you earned in sessions, subscriptions and gifts since 16 Nov.</p>
+      <p style="font-size:12px;font-weight:700;color:var(--crimson);margin-top:6px">See how we worked it out →</p>
+    </div>
+    <div class="stat"><div><b>2</b><span>sessions today</span></div><div><b>₦24,000</b><span>waiting to be released</span></div></div>
+    <div class="card" style="font-size:12px">📝 3 client journals to write up</div>
+    <div class="tabs"><div class="on"><b>🏠</b>Home</div><div><b>📅</b>Bookings</div><div><b>✍️</b>Write</div><div><b>💬</b>Messages</div><div><b>👤</b>Me</div></div>
+  </div>
+</div></div>
+<p class="cap"><b>1. During the trial</b>A card at the top of their dashboard keeps a running total: <b>how much more they've kept on the plan so far</b>, from their own payments. It's only shown to someone on a trial, so we never nudge anyone to upgrade before they've tried it.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Your Pro trial has ended</div>
+  <div class="pad">
+    <span class="eyebrow">16 Nov – 30 Nov · 15 days</span>
+    <p class="big">Pro kept you ₦10,000 more.</p>
+    <p class="sub">You earned ₦180,000 in sessions, subscriptions and gifts, and ₦4,000 of ads ran on your pages.</p>
+    <div class="card cmp">
+      <div class="bar"><span>Free Basic</span><i style="width:126px"></i><b>₦144,000</b></div>
+      <div class="bar"><span>Pro</span><i class="c" style="width:135px"></i><b>₦154,000</b></div>
+      <p class="mini">What you keep after commission, plus your ad share.</p>
+    </div>
+    <div class="row" style="border-top:0"><span>Pro costs</span><b>₦5,000 a month</b></div>
+    <div class="row"><span>At this pace, Pro gives you back</span><b>about ₦20,000 a month</b></div>
+    <div class="ok">Pro paid for itself <b>4 times over</b> in your trial.</div>
+    <span class="btn pri full">Keep Pro · ₦5,000 a month</span>
+    <span class="btn sec full">Go back to Free Basic</span>
+    <p class="mini" style="text-align:center">See how we worked it out</p>
+  </div>
+</div></div>
+<p class="cap"><b>2. When it paid</b>On the trial's last day (and in an email): what they kept on Pro, next to what they'd have kept on Free Basic, from the <b>same payments</b>. Then the plan's price and the monthly pace. The choice is theirs, with both buttons the same size.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Your Pro trial has ended</div>
+  <div class="pad">
+    <span class="eyebrow">16 Nov – 30 Nov · 15 days</span>
+    <p class="big">Free Basic suits you for now.</p>
+    <p class="sub">You earned ₦18,000 in sessions in your trial. On Pro you kept ₦900 more than on Free Basic, and 15 days of Pro cost about ₦2,500.</p>
+    <div class="card cmp">
+      <div class="bar"><span>Free Basic</span><i style="width:127px"></i><b>₦14,400</b></div>
+      <div class="bar"><span>Pro</span><i class="c" style="width:135px"></i><b>₦15,300</b></div>
+    </div>
+    <div class="note">Pro pays for itself once you earn about <b>₦100,000 a month</b> in sessions, subscriptions and gifts. We'll tell you when you get there.</div>
+    <p class="sub">You keep everything you made on Pro: your courses, co-authored posts and drafts stay where they are.</p>
+    <span class="btn pri full">Stay on Free Basic</span>
+    <span class="btn sec full">Get Pro anyway</span>
+  </div>
+</div></div>
+<p class="cap"><b>3. When it didn't pay (yet)</b>We say so, and tell them <b>the point where it would</b>. Then, when a Free Basic member's last 30 days pass that point, one message: "Pro would have kept you ₦X more last month." That's the only nudge, and it's backed by their own numbers.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>How we worked it out</div>
+  <div class="pad">
+    <p class="h2">Your Pro trial, payment by payment</p>
+    <table class="t">
+      <tr><th>What you earned</th><th>Paid</th><th>Free Basic</th><th>Pro</th></tr>
+      <tr><td>Sessions (6)</td><td>₦150,000</td><td>₦120,000</td><td>₦127,500</td></tr>
+      <tr><td>Subscriptions (8)</td><td>₦20,000</td><td>₦16,000</td><td>₦17,000</td></tr>
+      <tr><td>Gifts (5)</td><td>₦10,000</td><td>₦8,000</td><td>₦8,500</td></tr>
+      <tr><td>Shop items (0)</td><td>₦0</td><td>₦0</td><td>₦0</td></tr>
+      <tr><td>Ads on your pages</td><td>₦4,000</td><td>₦0</td><td>₦1,000</td></tr>
+      <tr class="tot"><td>You keep</td><td></td><td>₦144,000</td><td>₦154,000</td></tr>
+    </table>
+    <div class="card" style="font-size:11.5px;line-height:1.5">
+      Commission on sessions, subscriptions and gifts: <b>20%</b> on Free Basic, <b>15%</b> on Pro. Shop items at each plan's shop rates. Ad share: 0% / 25%.<br>
+      Payments that were refunded aren't counted. We use the rates on the day each payment came in.
+    </div>
+    <p class="mini">This is worked out from your own payments. Nobody else sees it.</p>
+  </div>
+</div></div>
+<p class="cap"><b>4. How we worked it out</b>Every line from the member's own payments in the trial, each kind at both plans' rates. This is the commission maths Victory asked for, shown only to someone who has tried the plan, and only about their own money.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Admin · Growth · Trials</div>
+  <div class="pad">
+    <p class="h2">Trials that ended in the last 30 days</p>
+    <div class="stat"><div><b>12</b><span>trials ended</span></div><div><b>4</b><span>paid for the plan after</span></div><div><b>5</b><span>told "it paid"</span></div><div><b>7</b><span>told "not yet"</span></div></div>
+    <div class="card" style="font-size:12px;line-height:1.5">
+      <div class="row"><span>"It paid" → paid for the plan</span><b>4 of 5</b></div>
+      <div class="row"><span>"Not yet" → paid anyway</span><b>0 of 7</b></div>
+      <div class="row"><span>Commission given up in trials (what members kept extra)</span><b>₦74,300</b></div>
+      <div class="row"><span>Plan payments after trials</span><b>₦20,000 a month</b></div>
+    </div>
+    <div class="note">"Not yet" members who later pass the point: <b>2</b> told this month.</div>
+    <p class="mini">Sample figures. Feeds the week-4 retention view: do members who trialled stay longer?</p>
+  </div>
+</div></div>
+<p class="cap"><b>5. What Admin sees</b>For the owner: how many trials ended, how many paid after, the commission given up in trials against the plan payments that followed. This answers <b>"do we lose money when people upgrade?"</b> with real numbers each month, and feeds the retention view in Admin → Growth.</p></div>
+
+</div></body></html>

@@ -1473,7 +1473,6 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     author (authorUsername na-notesapp, no authorUid, featured_image = the tournament's share card) and `tournaments/{id}.resultsPost` in
     one transaction, then new-post and mention bells. Prizes gate: `prizesSentBlocker` (prize tournament, results checked, winners told
     for every place the board can fill). Not built: an unread badge for the inbox in the Admin menu.
-
 169. **Notes Tasks (v0.207.0; owner, 25 Nov 2026: "a review and task platform… to upload the task and advertise the link, allowing for
     anonymous company profiles (paid feature)"):** /tasks (board), /tasks/new, /tasks/<id>, /profile/tasks; API /api/tasks (one route,
     actions); rules lib/tasks.ts, server lib/tasks-server.ts. Posters: CAC-verified organisations or members with the ✔ (`hasVerifiedBadge`),
@@ -1487,6 +1486,19 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Trust & safety, Legal and Customer care see it, Trust & safety removes): `adminTasks` lists every task with the real poster,
     `adminTaskApplications` one task's people (without the work itself), `removeTask` gives back what's held, ends active places, notes
     `removedBy`, and tells the poster the reason. All task collections are closed to browsers. Tests: test:tasks, test:tasks-server.
+170. **Homepage doors and what a free trial kept you (v0.208.0; owner, 25 Nov 2026, after Victory Adugbo's GTM review: "he is okay with
+    the 4-in-1 landing page"; `docs/GTM_DOORS_AND_TRIALS.md`):** Doors: `lib/home-doors.ts` (pure: DOORS, `doorFrom` for `/#for-<door>`
+    campaign links, `QUOTES` (empty: add one only with written permission), `proofFigures` rounded down with floors) and
+    `components/home/AudienceDoors.tsx` under the hero; the figures come from `storedTraction` (statCache, hourly). Trials:
+    `lib/trial-earnings.ts` (pure: `compareTrial` scales each payment's real commission by the two plans' rates, so fan-tier uplifts carry
+    across; kinds the plan doesn't change are left out; `outcome`, `breakEvenKobo`, `nudgeDue`, `trialStats`) and
+    `lib/trial-earnings-server.ts` (`trialView`, `recordTrialEnd` called from `expireOrgTrials` before the account moves back, never for a
+    promo plan; `trialResults/{uid}_{day}` server-only; `nudgesDue` reverses the comparison because those payments were charged at the
+    member's current plan; `trialStatsFor`). Screens: `/profile/trial`, the card on My account (`components/trial/TrialEarnings.tsx`),
+    Admin → Growth → Trials (`/api/admin/growth/trials`). The nudge runs from the reminders cron once a day (08:00 UTC). Not counted: a
+    member who pays during the trial (the trial fields are cleared then), and ad share (paid monthly). Tests: `test:gtm`,
+    `test:gtm-server`, the rules test. Deploy `firestore:rules` for `trialResults`.
+
 
 ## 3. How the work is done (please keep these)
 

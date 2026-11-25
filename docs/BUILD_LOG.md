@@ -3493,3 +3493,11 @@ advert; Admin → Ads lists them read-only. Tests: `test:ads` (forSpot, the wind
 Then the owner asked to "make the yard pictures stronger": the yard picture (`.arc-ad-yard img`) goes from opacity .42 to .95, the
 seed holder (`.ludo-yard-inner`) from `#f7f7f2b8` to `#f7f7f28c` without the blur, the circle round each seed from the yard colour at `55` alpha to `26`, and the yard's Sponsored label sits at the very top
 (top .6%) so the yard designs' top line stays clear of it.
+
+**Homepage doors and what a free trial kept you (v0.208.0, 25 Nov 2026)** — Victory Adugbo's external GTM review said the homepage spoke
+to everyone at once and that claims needed proof. The owner chose a door per audience on one landing page ("4-in-1", which Victory
+agreed with) and, instead of a commission calculator on the pricing page, the maths after a free trial, with the member's own payments.
+Rules kept: nothing made up (sample dashboards are marked, figures are rounded down and hidden below floors, quotes only with permission),
+and the trial card says "Free Basic suits you for now" when the plan didn't pay. The emulator test caught one real bug before shipping:
+the later nudge first compared last month's payments as if charged at the trial plan's rate; they were charged at the member's current
+plan, so the comparison runs the other way.
