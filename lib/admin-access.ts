@@ -97,6 +97,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/reports", label: "Reports", need: ["moderation", "legal"], group: "People & Trust" },
   { href: "/admin/content-checks", label: "Content checks", need: ["moderation", "legal"], group: "People & Trust" }, // AI content checks: the review queue, strikes, figures, Legal's child-safety queue
   { href: "/admin/recordings", label: "Live recordings", need: ["moderation", "legal"], group: "People & Trust" },
+  { href: "/admin/tasks", label: "Tasks", need: ["moderation", "legal", "support"], group: "People & Trust" }, // Notes Tasks: who really posted, money held, removing a task
   { href: "/admin/view-log", label: "View log", need: ["legal"], group: "People & Trust" },
   { href: "/admin/ventures", label: "Ventures (Rewrite the Playbook)", need: ["executive", "growth"], group: "Growth" },
   { href: "/admin/promos", label: "Promos (DAVIDO-at-34)", need: ["executive", "growth", "finance"], group: "Growth" },

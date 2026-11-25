@@ -105,11 +105,12 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
       // Event tickets wait like sessions (the event's end plus the problem-report window); gifts to a community wait their day
       // (releaseAfter, lib/giving.ts) and then go out on the same run.
       // Paid-live tickets: once the live has ended (awaitingLive cleared), its end plus the same window. Pay-per-minute sessions: the
-      // entry is written when the call ends (releaseAfter = the end), then the same window.
+      // entry is written when the call ends (releaseAfter = the end), then the same window. Notes Tasks: written when the work is approved, then
+      // the same window.
       if (l.awaitingLive) return false;
       // A gift withdrawal (lib/gift-earnings-server.ts) under the withdrawal line goes on the next run if sending it straight away failed;
       // one from the line up (needsApproval) waits for a person to release it in Admin → Payments.
-      const due = l.kind === "booking" || l.kind === "ticket" || l.kind === "live_ticket" || l.kind === "ppm" ? dueBefore
+      const due = l.kind === "booking" || l.kind === "ticket" || l.kind === "live_ticket" || l.kind === "ppm" || l.kind === "task" ? dueBefore
         : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" || (l.kind === "gift_payout" && !l.needsApproval) ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })

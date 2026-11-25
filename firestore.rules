@@ -1698,6 +1698,10 @@ service cloud.firestore {
     match /promoClaims/{id} { allow read, write: if false; }
     match /promoOrgClaims/{id} { allow read, write: if false; }
     match /promoTournament/{id} { allow read, write: if false; }
+    // Notes Tasks (lib/tasks-server.ts): everything goes through /api/tasks, so the escrow, the private briefs and the files stay server-side.
+    match /tasks/{id} { allow read, write: if false; match /private/{doc} { allow read, write: if false; } }
+    match /taskApplications/{id} { allow read, write: if false; }
+    match /taskUploads/{id} { allow read, write: if false; }
     match /promoRuns/{id} { allow read, write: if false; } // tournament tries (lib/tournament-server.ts)
     // Notes Arcade tournaments (lib/arcade/tournaments-server.ts; owner, 21 Nov 2026: "start tournaments"): the tournament (with its seed,
     // never shown before play), each entrant's tries and best, and every try's replayed result. Server only, reads too: the pages and
