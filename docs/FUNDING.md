@@ -70,8 +70,9 @@ pitch.tech deck" note below.
 
 ### Deadlines at a glance (as of Thursday 19 November 2026; four added Tuesday 24 November)
 
-Lagos times in brackets. Applied so far (owner, 19 November 2026): **Cloudflare for Startups** and the **No Excuses Fund**
-registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSES_APPLICATION.md`, "Show us").
+Lagos times in brackets. Applied so far: **Cloudflare for Startups** (19 November 2026) and the **No Excuses Fund: submitted
+25 November 2026** (reference **NEF-CDT7MT**; everyone hears on **15 January 2027**, selected or not; questions to
+noexcuses@get.tech). Nothing can be edited after submitting.
 
 **Still open in November, in order:**
 
@@ -79,7 +80,6 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 |---|---|---|---|
 | **Fri 20 Nov 2026 (tomorrow)** | .tech pitch competition | the form only (500-character problem box, drafted) | §3 |
 | **Fri 20 Nov 2026, 11:59 p.m. PST** (Sat 21 Nov, 08:59) | Mozilla Human-Scale AI Incubator | only if the Nana Lite pilot is running (§24) | §24 |
-| **Sun 22 Nov 2026** (our own date) | No Excuses Fund: the walkthrough video and/or the deck | the pitch deck (above) is ready; the video script is in `docs/NO_EXCUSES_APPLICATION.md` | NEF |
 | **Mon 23 Nov 2026** (priority; final 4 Dec) | Obama Foundation Leaders Africa (the CEO, as a person) | personal essays | §20 |
 | **Tue 24 Nov 2026** (pitch Mon 7 Dec) | HBS Alumni Angels of Greater New York, Pitch Night | the pitch deck, Gust profile, USD 50 fee | §23 |
 | **Wed 25 Nov 2026** | Atlas: the 83(b) postmarked (Atlas files; save the tracking number) | nothing to write | §5a |
@@ -96,7 +96,7 @@ registration; the No Excuses **deck or video is still to send** (`docs/NO_EXCUSE
 | When | What | § |
 |---|---|---|
 | As soon as possible (event 8–10 Dec, Dubai) | AngelSpark at Expand North Star | §17 |
-| **Tue 8 Dec 2026** (our own date) | No Excuses Fund: submit (closes **Tue 15 Dec, 23:59 US Pacific**, 16 Dec 08:59 Lagos) | `docs/NO_EXCUSES_APPLICATION.md` |
+| ~~Tue 8 Dec 2026~~ | No Excuses Fund: **submitted 25 Nov 2026** (NEF-CDT7MT); results **Fri 15 Jan 2027** | `docs/NO_EXCUSES_APPLICATION.md` |
 | **Fri 18 Dec 2026** | Yale Africa Startup Review, YASR30 2027 | §27 |
 | January 2027 (date not confirmed) | Aurora Tech Award and Aurora Ventures | §13 |
 | Rolling | Awesome Foundation (this month), The Pitch by Deel 2027 (pre-apply), Village Global Velocity, Emergent Ventures, the .tech domain programme, Antler Lagos (cohort starts 15 Mar 2027) | §15, §16, §6, §4, §2, §28 |
@@ -784,6 +784,11 @@ When the numbers are in, it can be made as a PDF from this text in the brand col
 ## 10. After submitting
 
 - Log each one here with the date and what was sent.
+
+| Submitted | Programme | Reference | Hear back | Sent |
+|---|---|---|---|---|
+| 25 Nov 2026 | .tech No Excuses Fund (§3) | NEF-CDT7MT | 15 Jan 2027, selected or not | the application on noexcuses.get.tech, the deck (24 November numbers) |
+
 - Use the same numbers everywhere; keep the filled-in version off the public repo if it holds private figures.
 - If naapp.tech is granted, start the move (§2) and note the 4-month deadline in HANDOVER.
 - Nothing that sells shares or a SAFE is signed before counsel has read it and the dilution is added up (§5, team hub
