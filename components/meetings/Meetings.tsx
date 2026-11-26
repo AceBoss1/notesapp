@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMember } from "@/lib/member-client";
 import { NIGERIAN_STATES } from "@/lib/merch";
 import { EVENT_CATEGORIES, EVENT_THEMES, FORMATS, cleanTheme, coverStyle, themeOf, whereLine } from "@/lib/event-kit";
-import { SEATS_MAX, SEATS_MIN, nextFrom, seatsLeft, type MeetingDoc } from "@/lib/meetings";
+import { SEATS_MAX, SEATS_MIN, nextFrom, roomOpenable, seatsLeft, type MeetingDoc } from "@/lib/meetings";
 import { whenText } from "@/lib/events";
 import { formatNaira } from "@/lib/booking-time";
 
@@ -29,7 +29,7 @@ export function MeetingForm({ existing, template, onSaved }: { existing?: Mt; te
   const [f, setF] = useState({
     title: base?.title ?? "", description: base?.description ?? "", category: base?.category ?? "", theme: base?.theme ?? "", pattern: base?.pattern ?? "none",
     startsAt: toLocalInput(base?.startsAt ?? ""), endsAt: toLocalInput(base?.endsAt ?? ""),
-    format: base?.where.format ?? "online", place: base?.where.place ?? "", state: base?.where.state ?? "", city: base?.where.city ?? "", link: base?.where.link ?? "",
+    format: base?.where.format ?? "online", online: (base?.where.online || "notesapp") as string, place: base?.where.place ?? "", state: base?.where.state ?? "", city: base?.where.city ?? "", link: base?.where.link ?? "",
     seats: String(base?.seats ?? 12), price: base?.priceKobo ? String(base.priceKobo / 100) : "", visibility: base?.visibility ?? "public",
   });
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,7 @@ export function MeetingForm({ existing, template, onSaved }: { existing?: Mt; te
   const save = useCallback(async () => {
     setBusy(true); setErr("");
     try {
-      const body = { ...f, theme: theme.theme, pattern: theme.pattern, seats: Number(f.seats), priceKobo: Math.round((Number(f.price.replace(/[,\s₦]/g, "")) || 0) * 100), startsAt: fromLocalInput(f.startsAt), endsAt: fromLocalInput(f.endsAt) };
+      const body = { ...f, theme: theme.theme, pattern: theme.pattern, seats: Number(f.seats), priceKobo: Math.round((Number(f.price.replace(/[,\s₦]/g, "")) || 0) * 100), startsAt: fromLocalInput(f.startsAt), endsAt: fromLocalInput(f.endsAt), link: f.online === "link" ? f.link : "" };
       const r = await capi<{ meeting: Mt }>("/api/meetings", existing ? { action: "update", id: existing.id, ...body } : { action: "create", ...body });
       onSaved(r.meeting);
     } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't save the meeting."); }
@@ -65,7 +65,8 @@ export function MeetingForm({ existing, template, onSaved }: { existing?: Mt; te
           <label className="text-xs text-slate">City<input value={f.city} onChange={set("city")} maxLength={60} className={`${field} mt-1`} /></label>
           <label className="text-xs text-slate">State<select value={f.state} onChange={set("state")} className={`${field} mt-1`}><option value="">—</option>{NIGERIAN_STATES.map((s) => <option key={s}>{s}</option>)}</select></label>
         </>}
-        {f.format !== "in_person" && <label className="text-xs text-slate">Online link (Zoom, Google Meet, Teams…)<input value={f.link} onChange={set("link")} inputMode="url" placeholder="https://…" className={`${field} mt-1`} /><span className="mt-1 block">Only people with a seat see it.</span></label>}
+        {f.format !== "in_person" && <label className="text-xs text-slate">Online on<select value={f.online} onChange={set("online")} className={`${field} mt-1`}><option value="notesapp">A #NotesApp meeting room (video, chat, raise a hand)</option><option value="link">My own link (Zoom, Google Meet, Teams…)</option></select></label>}
+        {f.format !== "in_person" && f.online === "link" && <label className="text-xs text-slate">The link<input value={f.link} onChange={set("link")} inputMode="url" placeholder="https://…" className={`${field} mt-1`} /><span className="mt-1 block">Only people with a seat see it.</span></label>}
         <label className="text-xs text-slate">Who can find it<select value={f.visibility} onChange={set("visibility")} className={`${field} mt-1`}><option value="public">On my calendar</option><option value="unlisted">Only people with the link</option></select></label>
         <label className="text-xs text-slate sm:col-span-2">Details<textarea value={f.description} onChange={set("description")} rows={4} maxLength={4000} className={`${field} mt-1`} /></label>
       </div>
@@ -75,7 +76,7 @@ export function MeetingForm({ existing, template, onSaved }: { existing?: Mt; te
   );
 }
 
-type Data = { meeting: Mt; left: number; seat: { status: string; amountKobo: number; refundKobo: number } | null; canManage: boolean; people?: { uid: string; name: string; paid: number }[] };
+type Data = { meeting: Mt; left: number; roomLive?: boolean; seat: { status: string; amountKobo: number; refundKobo: number } | null; canManage: boolean; people?: { uid: string; name: string; paid: number }[] };
 export function MeetingPage({ id }: { id: string }) {
   const { user } = useMember();
   const router = useRouter();
@@ -107,6 +108,10 @@ export function MeetingPage({ id }: { id: string }) {
           <p className="font-ui text-sm font-bold text-ink">🗓️ {whenText(new Date(m.startsAt), new Date(m.endsAt))}</p>
           <p className="font-ui text-sm font-bold text-ink">{m.where.format === "online" ? "💻" : "📍"} {whereLine(m.where)}</p>
           {m.where.link && <a href={m.where.link} target="_blank" rel="noopener noreferrer" className="btn-ghost inline-block !px-4 !py-2 text-xs">▶ Join online</a>}
+          {m.where.format !== "in_person" && m.where.online === "notesapp" && !m.cancelled && (d.canManage
+            ? <div className="flex flex-wrap items-center gap-2">{d.roomLive && m.roomId ? <Link href={`/live/${m.roomId}`} className="btn-primary !px-4 !py-2 text-xs">▶ Go to the meeting room</Link> : roomOpenable(m, new Date()) ? <button disabled={busy} className="btn-primary !px-4 !py-2 text-xs" onClick={() => act(async () => { const r = await capi<{ roomId: string }>("/api/meetings", { action: "room", id }); router.push(`/live/${r.roomId}`); })}>▶ Open the meeting room</button> : <span className="text-xs text-slate">You can open the #NotesApp meeting room from 30 minutes before the start.</span>}</div>
+            : booked ? (d.roomLive && m.roomId ? <Link href={`/live/${m.roomId}`} className="btn-primary inline-block !px-4 !py-2 text-xs">▶ Join the meeting room</Link> : <p className="text-xs text-slate">The meeting room opens on #NotesApp when the host starts it; we&apos;ll send you a bell.</p>)
+            : null)}
           {m.linkHidden && <p className="text-xs text-slate">The online link shows here once you have a seat.</p>}
           <p className="text-sm text-slate">{m.priceKobo ? `${formatNaira(m.priceKobo)} a seat` : "Free"} · {seatsLeft(m)} of {m.seats} seats left</p>
           {!m.cancelled && !d.canManage && (

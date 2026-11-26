@@ -1,6 +1,6 @@
 // Meetings (lib/meetings.ts). Pure. Run: npm run test:events-discover (with event-kit) → "ALL OK".
 import assert from "node:assert/strict";
-import { SEAT_PRICE_MIN_KOBO, cleanMeeting, forViewer, seatNo, seatsLeft, type MeetingDoc } from "../../lib/meetings";
+import { SEAT_PRICE_MIN_KOBO, cleanMeeting, forViewer, nextFrom, roomOpenable, seatNo, seatsLeft, type MeetingDoc } from "../../lib/meetings";
 
 const NOW = new Date("2026-11-26T09:00:00.000Z");
 const base = { title: "Founder office hours", startsAt: "2026-11-30T18:00:00.000Z", endsAt: "2026-11-30T19:00:00.000Z", format: "online", link: "https://meet.google.com/abc", seats: 12, priceKobo: 200_000 };
@@ -12,8 +12,9 @@ assert.equal(m.where.format, "online");
 assert.equal(m.where.link, "https://meet.google.com/abc");
 assert.equal(m.priceKobo, 200_000);
 assert.equal(m.visibility, "public");
-no({ ...base, link: "" }, /online link/);
-assert.doesNotMatch((cleanMeeting({ ...base, link: "" }, NOW, "u") as { error: string }).error, /#NotesApp video/, "meetings use the host's link for now");
+assert.equal(ok({ ...base, link: "" }).where.online, "notesapp", "no link: the #NotesApp meeting room");
+no({ ...base, online: "link", link: "" }, /online link/);
+assert.equal(ok({ ...base, online: "notesapp" }).where.link, "", "the room needs no link");
 assert.equal(ok({ ...base, format: "in_person", place: "Co-Creation Hub, Yaba", city: "Lagos", state: "Lagos", link: "" }).where.link, "");
 no({ ...base, format: "in_person", place: "" }, /where it is/);
 const hy = ok({ ...base, format: "hybrid", place: "The Library, Ikeja", city: "Lagos" });
@@ -45,4 +46,12 @@ assert.equal(out.where.link, "");
 assert.equal(out.linkHidden, true);
 assert.equal(forViewer({ ...doc, where: { ...doc.where, format: "in_person", link: "", online: "" } }, false).linkHidden, undefined);
 
+// The next one, a week on; the room's window.
+assert.deepEqual(nextFrom({ startsAt: "2026-11-30T18:00:00.000Z", endsAt: "2026-11-30T19:00:00.000Z" }, NOW), { startsAt: "2026-12-07T18:00:00.000Z", endsAt: "2026-12-07T19:00:00.000Z" });
+assert.deepEqual(nextFrom({ startsAt: "2026-11-02T18:00:00.000Z", endsAt: "2026-11-02T20:00:00.000Z" }, NOW).startsAt, "2026-11-30T18:00:00.000Z", "a past one moves to the next week to come");
+const room = { ...doc, where: { ...doc.where, online: "notesapp" as const, link: "" } };
+assert.equal(roomOpenable(room, new Date("2026-11-30T17:20:00.000Z")), false);
+assert.equal(roomOpenable(room, new Date("2026-11-30T17:31:00.000Z")), true, "30 minutes before");
+assert.equal(roomOpenable(room, new Date("2026-11-30T19:01:00.000Z")), false, "after the end");
+assert.equal(roomOpenable(doc, new Date("2026-11-30T18:00:00.000Z")), false, "a link meeting has no room");
 console.log("ALL OK");

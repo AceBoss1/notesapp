@@ -125,6 +125,23 @@ const H = 3_600_000;
   assert.equal((await db.doc(`meetings/${free.id}`).get()).data()!.cancelled, true);
   await fails(M.takeFreeSeat(db, "dee", free.id), 409, /cancelled/);
 
+  // ── A #NotesApp meeting room: only the host and people with a seat get in ──
+  const rm = await M.createMeeting(db, "host", { title: "Cohort call", startsAt: new Date(now.getTime() + 10 * 60_000).toISOString(), endsAt: at(1), format: "online", seats: 10, priceKobo: 0 });
+  assert.equal(rm.where.online, "notesapp");
+  await M.takeFreeSeat(db, "ada", rm.id);
+  await fails(M.startMeetingRoom(db, "ada", rm.id), 403);
+  const later = await M.createMeeting(db, "host", { title: "Later call", startsAt: at(30), format: "online", seats: 4, priceKobo: 0 });
+  await fails(M.startMeetingRoom(db, "host", later.id), 409, /30 minutes/);
+  const { roomId } = await M.startMeetingRoom(db, "host", rm.id);
+  const room = (await db.doc(`communityRooms/${roomId}`).get()).data()!;
+  assert.equal(room.profile.meetingId, rm.id);
+  const { mayWatchProfileLive } = await import("../../lib/rooms-server");
+  assert.equal(await mayWatchProfileLive(db, room.profile, "ada"), true, "a seat holder gets in");
+  assert.equal(await mayWatchProfileLive(db, room.profile, "cy"), false, "others don't, even followers");
+  assert.equal((await M.startMeetingRoom(db, "host", rm.id)).roomId, roomId, "opening it again goes back to the same room");
+  assert.equal((await M.getMeeting(db, rm.id, "ada")).roomLive, true);
+  assert.equal((await M.getMeeting(db, rm.id, "cy")).meeting.roomId, undefined);
+
   // ── Invitations: followers and emails, counted against the week ──
   const inv = await I.sendInvites(db, "host", { kind: "event", id: onl.id, followers: true, emails: "x@example.com, y@example.com, bad" });
   assert.deepEqual([inv.invited, inv.skipped], [4, 1]);

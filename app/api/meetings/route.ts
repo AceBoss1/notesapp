@@ -4,7 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { refundPayment } from "@/lib/refunds";
-import { MeetingError, cancelMeeting, cancelSeat, createMeeting, getMeeting, lastMeeting, myMeetings, takeFreeSeat, upcomingMeetings, updateMeeting } from "@/lib/meetings-server";
+import { MeetingError, startMeetingRoom, cancelMeeting, cancelSeat, createMeeting, getMeeting, lastMeeting, myMeetings, takeFreeSeat, upcomingMeetings, updateMeeting } from "@/lib/meetings-server";
 
 export const dynamic = "force-dynamic";
 const viewer = async (req: NextRequest) => (await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null))?.uid ?? null;
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   } catch (err) { return fail(err, "Couldn't load the meeting"); }
 }
 
-// POST { action: create | update | cancel | seat | leave, … } (signed in). A paid seat is bought through checkout (kind "meeting").
+// POST { action: create | update | cancel | seat | leave | room, … } (room: the host opens the #NotesApp meeting room) (signed in). A paid seat is bought through checkout (kind "meeting").
 export async function POST(req: NextRequest) {
   try {
     const uid = await viewer(req);
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     if (b.action === "create") return NextResponse.json({ meeting: await createMeeting(db, uid, b) });
     if (b.action === "update") return NextResponse.json({ meeting: await updateMeeting(db, uid, id, b) });
     if (b.action === "cancel") { await cancelMeeting(db, uid, id, refundPayment); return NextResponse.json({ ok: true }); }
+    if (b.action === "room") return NextResponse.json(await startMeetingRoom(db, uid, id));
     if (b.action === "seat") { await takeFreeSeat(db, uid, id); return NextResponse.json({ ok: true }); }
     if (b.action === "leave") return NextResponse.json(await cancelSeat(db, uid, id, refundPayment));
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

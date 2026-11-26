@@ -1,5 +1,6 @@
 // Meetings (docs/EVENTS_DISCOVER.md; owner approved 26 Nov 2026): a small group at a set time — office hours, a workshop, a cohort call,
-// group coaching. 2 to 50 seats, free or a price per seat; in person, online (the host's Zoom, Meet or Teams link) or both. Paid seats
+// group coaching. 2 to 50 seats, free or a price per seat; in person, online (a #NotesApp meeting room, or the host's Zoom, Meet or Teams
+// link) or both. Paid seats
 // carry the host's plan commission, like sessions, and the session cancellation policy (lib/cancellation.ts). Pure; the server side is
 // lib/meetings-server.ts.
 //
@@ -19,6 +20,7 @@ export type MeetingDoc = {
   title: string; description: string; category?: EventCategory; theme: EventThemeId; pattern: EventPattern;
   startsAt: string; endsAt: string; where: Where; seats: number; priceKobo: number; booked: number;
   visibility: "public" | "unlisted"; cancelled?: boolean; createdAt: string; updatedAt?: string;
+  roomId?: string; // the #NotesApp meeting room while it is open (online on #NotesApp)
 };
 export type SeatDoc = {
   meetingId: string; uid: string; name: string; status: "booked" | "cancelled" | "refunded";
@@ -26,7 +28,7 @@ export type SeatDoc = {
 };
 export type MeetingInput = {
   title?: unknown; description?: unknown; category?: unknown; theme?: unknown; pattern?: unknown; startsAt?: unknown; endsAt?: unknown;
-  format?: unknown; place?: unknown; state?: unknown; city?: unknown; link?: unknown; seats?: unknown; priceKobo?: unknown; visibility?: unknown;
+  format?: unknown; place?: unknown; state?: unknown; city?: unknown; online?: unknown; link?: unknown; seats?: unknown; priceKobo?: unknown; visibility?: unknown;
 };
 
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -45,9 +47,9 @@ export function cleanMeeting(v: MeetingInput, now: Date, seed: string, booked = 
   if (Number.isNaN(end.getTime())) end = new Date(start.getTime() + HOUR);
   if (end <= start) return { ok: false, error: "It has to end after it starts." };
   if (end.getTime() - start.getTime() > MEETING_MAX_HOURS * HOUR) return { ok: false, error: `A meeting can last up to ${MEETING_MAX_HOURS} hours.` };
-  // Online meetings use the host's own link for now (#NotesApp group video holds 4–6 people today).
-  const w = cleanWhere({ format: v.format, place: v.place, state: v.state, city: v.city, online: "link", link: v.link }, NIGERIAN_STATES);
-  if (!w.ok) return { ok: false, error: w.error.replace(", or choose #NotesApp video", "") };
+  // Online: a #NotesApp meeting room (a live room on the Cloudflare relay that only people with a seat can enter) or the host's own link.
+  const w = cleanWhere({ format: v.format, place: v.place, state: v.state, city: v.city, online: v.online ?? (String(v.link ?? "").trim() ? "link" : "notesapp"), link: v.link }, NIGERIAN_STATES);
+  if (!w.ok) return { ok: false, error: w.error };
   const seats = Math.floor(Number(v.seats));
   if (!Number.isFinite(seats) || seats < SEATS_MIN || seats > SEATS_MAX) return { ok: false, error: `Seats: ${SEATS_MIN} to ${SEATS_MAX}.` };
   if (seats < booked) return { ok: false, error: `${booked} seats are already booked; keep at least that many.` };
@@ -84,3 +86,7 @@ export function nextFrom(m: Pick<MeetingDoc, "startsAt" | "endsAt">, now: Date):
   while (start <= now.getTime()) start += 7 * 24 * HOUR;
   return { startsAt: new Date(start).toISOString(), endsAt: new Date(start + len).toISOString() };
 }
+// The host can open the #NotesApp meeting room from ROOM_EARLY_MS before the start until the end.
+export const ROOM_EARLY_MS = 30 * 60_000;
+export const roomOpenable = (m: Pick<MeetingDoc, "startsAt" | "endsAt" | "cancelled" | "where">, now: Date) =>
+  !m.cancelled && m.where.format !== "in_person" && m.where.online === "notesapp" && now.getTime() >= new Date(m.startsAt).getTime() - ROOM_EARLY_MS && now.getTime() <= new Date(m.endsAt).getTime();

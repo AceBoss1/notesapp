@@ -10,7 +10,8 @@ import type { PaymentRecord } from "./payments";
 import { refundFraction } from "./cancellation";
 import { whenText } from "./events";
 import { whereLine } from "./event-kit";
-import { MEETINGS_UPCOMING_MAX, cleanMeeting, forViewer, seatNo, seatsLeft, type MeetingDoc, type MeetingInput, type SeatDoc } from "./meetings";
+import { MEETINGS_UPCOMING_MAX, cleanMeeting, forViewer, roomOpenable, seatNo, seatsLeft, type MeetingDoc, type MeetingInput, type SeatDoc } from "./meetings";
+import { startProfileRoom } from "./rooms-server";
 import { formatNaira } from "./booking-time";
 
 // Meetings on the server (lib/meetings.ts has the rules). Payments go through /api/paystack/initialize (kind "meeting") and
@@ -83,8 +84,9 @@ export async function getMeeting(db: Firestore, id: string, viewerUid: string | 
   const seat = viewerUid ? ((await seatRef(db, id, viewerUid).get()).data() as SeatDoc | undefined) ?? null : null;
   const host = viewerUid === m.hostUid;
   const inIt = host || seat?.status === "booked";
+  const roomLive = inIt && !!m.roomId && (await db.doc(`communityRooms/${m.roomId}`).get()).data()?.status === "live";
   return {
-    meeting: forViewer(m, inIt), left: seatsLeft(m), seat: seat ? { status: seat.status, amountKobo: seat.amountKobo, refundKobo: seat.refundKobo ?? 0 } : null, canManage: host,
+    meeting: forViewer(inIt ? m : { ...m, roomId: undefined }, inIt), left: seatsLeft(m), roomLive, seat: seat ? { status: seat.status, amountKobo: seat.amountKobo, refundKobo: seat.refundKobo ?? 0 } : null, canManage: host,
     ...(host ? { people: (await seatsOf(db, id)).map((s) => ({ uid: s.uid, name: s.name, paid: s.amountKobo })) } : {}),
   };
 }
@@ -109,6 +111,24 @@ export async function myMeetings(db: Firestore, uid: string, now = new Date()) {
     booked: booked.filter(soon).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
     hosting: hosting.docs.map((d) => ({ ...(d.data() as MeetingDoc), id: d.id })).filter(soon).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
   };
+}
+
+// Online on #NotesApp: the host opens the meeting room, a live room on the Cloudflare relay (lib/rooms-server.ts) that only the host and
+// people with a seat can enter (profile.meetingId; mayWatchProfileLive checks the seat). Everyone with a seat is told it's open.
+export async function startMeetingRoom(db: Firestore, uid: string, id: string, now = new Date()): Promise<{ roomId: string }> {
+  const m = await meetingOf(db, id);
+  if (m.hostUid !== uid) throw new MeetingError(403, "Only the host opens the meeting room.");
+  if (m.where.online !== "notesapp" || m.where.format === "in_person") throw new MeetingError(409, "This meeting isn't online on #NotesApp.");
+  if (!roomOpenable(m, now)) throw new MeetingError(409, "The room opens 30 minutes before the start, until the end.");
+  if (m.roomId) {
+    const r = (await db.doc(`communityRooms/${m.roomId}`).get()).data();
+    if (r?.status === "live") return { roomId: m.roomId };
+  }
+  const r = await startProfileRoom(db, uid, { title: m.title, poster: "", profile: { audience: "followers", hostUsername: m.hostUsername, gifts: false, notified: false, meetingId: id }, record: false }, now);
+  await db.doc(`meetings/${id}`).update({ roomId: r.id });
+  const message = `${m.title} is open: join the meeting room.`;
+  for (const s of await seatsOf(db, id)) await notifyBell({ uid: s.uid, type: "booking", linkHref: `/live/${r.id}`, message }).catch(() => {});
+  return { roomId: r.id };
 }
 
 // The host's most recent meeting (any date), to start the next one from. The online link comes too: it's the host's own.
@@ -239,7 +259,8 @@ export async function sendMeetingReminders(db: Firestore, now = new Date()): Pro
     const key = db.doc(`meetingReminders/${m.id}_${kind}`);
     const first = await db.runTransaction(async (t) => { if ((await t.get(key)).exists) return false; t.set(key, { at: now.toISOString() }); return true; });
     if (!first) continue;
-    const where = m.where.format === "in_person" ? whereLine(m.where) : m.where.format === "online" ? `Online: ${m.where.link}` : `${whereLine(m.where)}, or online: ${m.where.link}`;
+    const online = m.where.online === "notesapp" ? "the #NotesApp meeting room (open it from the meeting's page)" : m.where.link;
+    const where = m.where.format === "in_person" ? whereLine(m.where) : m.where.format === "online" ? `Online: ${online}` : `${whereLine(m.where)}, or online: ${online}`;
     const message = kind === "hour" ? `${m.title} starts in an hour. ${where}` : `${m.title} is tomorrow: ${whenText(new Date(m.startsAt), new Date(m.endsAt))}. ${where}`;
     for (const s of [...(await seatsOf(db, m.id)).map((x) => x.uid), m.hostUid]) {
       const to = await getUserEmail(s).catch(() => null);
