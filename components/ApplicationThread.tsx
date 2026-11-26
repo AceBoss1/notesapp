@@ -8,7 +8,11 @@ import { INTERVIEW_MINUTES, INTERVIEW_NOTE_MAX, interviewWhen, maxInterviewers, 
 
 // The conversation on one job application (lib/app-replies.ts). Reviewers choose who a reply is from (HR, Nana-HR or themselves) and can
 // ask Nana-HR for a draft to edit; the applicant reads and replies. Opens on demand so a long list of applications stays light.
-export function ApplicationThread({ kind, applicationId, startOpen = false }: { kind: AppKind; applicationId: string; startOpen?: boolean }) {
+// Admin → #Nana-HR inbox uses it too, against its own route (endpoint: /api/admin/hr-inbox takes the same requests), and hears when a
+// conversation is opened (which marks it read) or a reply goes out (onActivity), so its list keeps up.
+export function ApplicationThread({ kind, applicationId, startOpen = false, endpoint = "/api/applications/replies", onActivity }: {
+  kind: AppKind; applicationId: string; startOpen?: boolean; endpoint?: string; onActivity?: () => void;
+}) {
   const [open, setOpen] = useState(startOpen);
   const [data, setData] = useState<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] } | null>(null);
   const [booking, setBooking] = useState(false);
@@ -21,37 +25,38 @@ export function ApplicationThread({ kind, applicationId, startOpen = false }: { 
   const q = `kind=${kind}&id=${encodeURIComponent(applicationId)}`;
   useEffect(() => {
     if (!open || data) return;
-    api<NonNullable<typeof data>>(`/api/applications/replies?${q}`).then(setData).catch((e) => setError(e instanceof Error ? e.message : "Couldn't load the messages."));
-  }, [open, data, q]);
+    api<NonNullable<typeof data>>(`${endpoint}?${q}`).then((d) => { setData(d); onActivity?.(); }).catch((e) => setError(e instanceof Error ? e.message : "Couldn't load the messages."));
+  }, [open, data, q, endpoint, onActivity]);
 
   async function send() {
     if (!text.trim() || busy || !data) return;
     setBusy(true); setError("");
     try {
-      const r = await api<{ reply: Reply }>("/api/applications/replies", { body: { action: "send", kind, id: applicationId, as, text } });
+      const r = await api<{ reply: Reply }>(endpoint, { body: { action: "send", kind, id: applicationId, as, text } });
       setData({ ...data, replies: [...data.replies, r.reply] }); setText(""); setIntent("");
+      onActivity?.();
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't send."); } finally { setBusy(false); }
   }
-  const reload = () => api<NonNullable<typeof data>>(`/api/applications/replies?${q}`).then(setData);
+  const reload = () => api<NonNullable<typeof data>>(`${endpoint}?${q}`).then(setData);
   async function book() {
     if (busy) return;
     setBusy(true); setError("");
     try {
-      await api("/api/applications/replies", { body: { action: "interview", kind, id: applicationId, ...iv } });
+      await api(endpoint, { body: { action: "interview", kind, id: applicationId, ...iv } });
       setBooking(false); await reload();
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't book the interview."); } finally { setBusy(false); }
   }
   async function cancel(id: string) {
     if (busy || !confirm("Cancel this interview? The applicant is told.")) return;
     setBusy(true); setError("");
-    try { await api("/api/applications/replies", { body: { action: "cancelInterview", interviewId: id } }); await reload(); }
+    try { await api(endpoint, { body: { action: "cancelInterview", interviewId: id } }); await reload(); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't cancel."); } finally { setBusy(false); }
   }
   async function draft() {
     if (!intent.trim() || busy) return;
     setBusy(true); setError("");
     try {
-      const r = await api<{ draft: string }>("/api/applications/replies", { body: { action: "draft", kind, id: applicationId, intent } });
+      const r = await api<{ draft: string }>(endpoint, { body: { action: "draft", kind, id: applicationId, intent } });
       setText(r.draft);
     } catch (e) { setError(e instanceof Error ? e.message : "Nana-HR couldn't draft that."); } finally { setBusy(false); }
   }

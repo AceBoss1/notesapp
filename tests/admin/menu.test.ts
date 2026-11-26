@@ -22,7 +22,15 @@ for (const p of campusPages({ lead: true, role: null })) assert.equal(p.group, "
 const groups = groupSections(all);
 assert.deepEqual(groups.map((g) => g.name), GROUP_ORDER.filter((g) => g !== "Campus"), "Campus pages come from lib/campus.ts");
 const count = Object.fromEntries(groups.map((g) => [g.name, g.pages.length]));
-assert.deepEqual(count, { Workspace: 9, Content: 6, "People & Trust": 12, Money: 9, Growth: 12, Platform: 7, Admin: 4 }, "the counts in the design, plus Content checks (v0.174.0), Growth (v0.175.0), Promos (v0.196.0), Arcade tournaments, Tasks and #NotesApp inbox");
+assert.deepEqual(count, { Workspace: 10, Content: 6, "People & Trust": 12, Money: 9, Growth: 12, Platform: 7, Admin: 4 }, "the counts in the design, plus Content checks (v0.174.0), Growth (v0.175.0), Promos (v0.196.0), Arcade tournaments, Tasks, #NotesApp inbox and #Nana-HR inbox");
+// #Nana-HR inbox: for whoever reviews #NotesApp's own applications (super admins and the Chief of Staff, HR_INBOX_NEED), not every
+// Executive office admin, and it sits beside Nana-HR & hiring.
+assert.equal(activeSection(all, "/admin/hr-inbox")?.label, "#Nana-HR inbox");
+assert.ok(pathAllowed({ role: "admin", depts: ["executive"], cos: true } as never, "/admin/hr-inbox"));
+assert.ok(!pathAllowed({ role: "admin", depts: ["executive"] } as never, "/admin/hr-inbox"));
+assert.ok(!pathAllowed({ role: "admin", depts: ["support"] } as never, "/admin/hr-inbox"));
+const ws = groups.find((g) => g.name === "Workspace")!.pages.map((p) => p.label);
+assert.equal(ws.indexOf("#Nana-HR inbox"), ws.indexOf("Nana-HR & hiring") + 1);
 assert.deepEqual(groups.find((g) => g.name === "People & Trust")!.pages.map((p) => p.label).slice(0, 3), ["Users", "Throwaway emails", "Organisations"]);
 
 assert.equal(activeSection(all, "/admin")?.label, "Dashboard");

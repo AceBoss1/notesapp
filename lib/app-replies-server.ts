@@ -57,8 +57,17 @@ const toReply = (id: string, d: FirebaseFirestore.DocumentData, forReviewer: boo
   ...(d.byUsername && (forReviewer || d.from === "me") ? { byUsername: String(d.byUsername) } : {}),
 });
 
-export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] }> {
+// The hiring team has read an application's conversation (Admin → #Nana-HR inbox, lib/hr-inbox-server.ts): hrReadAt on the application
+// itself, which is server-only (firestore.rules) and never in the applicant's own list (careers-server myCareerApplications), so read
+// state stays with the team. One stamp for the whole team, like a shared inbox: whoever reads it reads it for everyone.
+export async function markHrRead(db: Firestore, appId: string, uid: string, now = new Date()): Promise<void> {
+  await db.doc(`careerApplications/${appId}`).update({ hrReadAt: now.toISOString(), hrReadBy: uid }).catch(() => {});
+}
+
+export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown, o: { markRead?: boolean; now?: Date } = {}): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] }> {
   const c = await context(db, v, kind, appId);
+  // A reviewer opening the conversation (in the inbox or in the team hub) has read it, so it leaves the inbox's unread count.
+  if (c.reviewer && c.kind === "career" && o.markRead !== false) await markHrRead(db, c.appId, v.uid, o.now);
   const snap = await db.collection(COLL).where("kind", "==", c.kind).where("applicationId", "==", c.appId).get();
   const replies = snap.docs.map((d) => toReply(d.id, d.data(), c.reviewer)).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
   const me = c.reviewer ? (await db.doc(`users/${v.uid}`).get()).data() : null;
@@ -88,11 +97,14 @@ export async function sendReply(db: Firestore, v: Viewer, input: { kind?: unknow
     ...(byUsername ? { byUsername } : {}), createdAt: now.toISOString(), expireAt: new Date(now.getTime() + KEEP_DAYS * 86_400_000),
   };
   await ref.set(doc);
-  await db.doc(`${c.kind === "career" ? "careerApplications" : "jobApplications"}/${c.appId}`).update({ lastReplyAt: now.toISOString(), lastReplyFrom: from === "applicant" ? "applicant" : "team" }).catch(() => {});
+  await db.doc(`${c.kind === "career" ? "careerApplications" : "jobApplications"}/${c.appId}`).update({
+    lastReplyAt: now.toISOString(), lastReplyFrom: from === "applicant" ? "applicant" : "team",
+    ...(c.reviewer && c.kind === "career" ? { hrReadAt: now.toISOString(), hrReadBy: v.uid } : {}), // answering means it's been read
+  }).catch(() => {});
   if (c.reviewer) {
     await notifyBell({ uid: c.applicantUid, type: c.bellType, linkHref: "/profile/applications", message: `${label} replied about your application for ${c.title}.` }).catch(() => {});
   } else if (c.reviewerUid) {
-    await notifyBell({ uid: c.reviewerUid, type: c.bellType, linkHref: c.kind === "career" ? "/admin/team/hr" : "/profile/jobs", message: `${c.applicantName || "An applicant"} replied about ${c.title}.` }).catch(() => {});
+    await notifyBell({ uid: c.reviewerUid, type: c.bellType, linkHref: c.kind === "career" ? `/admin/hr-inbox?id=${encodeURIComponent(c.appId)}` : "/profile/jobs", message: `${c.applicantName || "An applicant"} replied about ${c.title}.` }).catch(() => {});
   }
   return toReply(ref.id, doc, c.reviewer);
 }

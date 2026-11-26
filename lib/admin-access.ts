@@ -63,6 +63,13 @@ export const TOURNAMENT_ADMIN_DEPTS = ["growth", "marketing", "executive", "lega
 // messages"); super admins, the owner among them, have every department. The API uses the same list.
 export const OFFICIAL_INBOX_DEPTS = ["support"] as const satisfies readonly Dept[];
 
+// #Nana-HR inbox (owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and answers replies there"): applicants' replies on #NotesApp's
+// own roles. Whoever reviews those applications today answers them: super admins and the Chief of Staff ("team", canManageTeam), the
+// same people as the team hub's hiring board (lib/careers-server.ts) and the reviewer check on every reply (lib/app-replies-server.ts
+// context()). There is no HR department yet; the Executive office handles people matters until there is, but of it only the Chief of
+// Staff reviews applications, so widening this means widening context() with it. The menu and /api/admin/hr-inbox use this value.
+export const HR_INBOX_NEED = "team" as const satisfies Need;
+
 export type Section ={ href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
@@ -72,6 +79,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/team/library", label: "Staff library", need: "all", group: "Workspace" },
   { href: "/admin/team/time", label: "Time", need: "all", group: "Workspace" },
   { href: "/admin/team/hr", label: "Nana-HR & hiring", need: "all", group: "Workspace" },
+  { href: "/admin/hr-inbox", label: "#Nana-HR inbox", need: HR_INBOX_NEED, group: "Workspace" }, // applicants' replies on our own roles
   { href: "/admin/team/finance", label: "Money ledger", need: ["finance", "product"], group: "Workspace" },
   { href: "/admin/team/grants", label: "Grants & subscriptions", need: ["finance", "product"], group: "Workspace" },
   { href: "/admin/journals", label: "Journals", need: ["content", "moderation"], group: "Content" },
