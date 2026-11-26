@@ -176,6 +176,8 @@ jobs:
       - run: npm run test:live-guests-server
       # What a free trial kept you against the emulator: the running total, the result at the end, the one nudge, Admin's figures
       - run: npm run test:gtm-server
+      # Events, meetings, sessions' places and invitations against the emulator
+      - run: npm run test:events-discover-server
       # Moments tidy up and captions: the pure rules, then trims and captions on a moment and the caption service on the emulator
       - run: npm run test:moments-tidy
       # the link-preview safety test listens on port 80, which needs root on the runner

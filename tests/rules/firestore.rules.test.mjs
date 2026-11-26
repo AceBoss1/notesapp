@@ -1824,6 +1824,17 @@ test("Guests watching a live without an account: their seats and the daily figur
   }
 });
 
+test("Events, meetings, sessions' places and invitations: server-only, even for their owners (docs/EVENTS_DISCOVER.md)", async () => {
+  const paths = ["eventAnnouncements/e1", "meetings/m1", "meetingSeats/m1_alice", "meetingReminders/m1_day", "sessionPlaces/alice", "inviteWeeks/alice_2026-11-23", "inviteJobs/j1", "invitePacks/alice"];
+  await env.withSecurityRulesDisabled(async (ctx) => { const fs = ctx.firestore(); for (const p of paths) await setDoc(doc(fs, p), { uid: "alice", hostUid: "alice" }); });
+  for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
+    for (const p of paths) {
+      await assertFails(getDoc(doc(db, p)));
+      await assertFails(setDoc(doc(db, p), { uid: "alice" }));
+    }
+  }
+});
+
 test("What a free trial kept you: trial results are server-only, even for their owner (lib/trial-earnings-server.ts)", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "trialResults/alice_2026-11-16"), { uid: "alice", tier: "pro" }); });
   for (const db of [as("alice"), as("bob"), as("staff", { admin: true, adminRole: "super" }), anon()]) {
