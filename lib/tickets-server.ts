@@ -21,6 +21,7 @@ export async function setTicketTypes(db: Firestore, uid: string, eventId: string
   if (!(await mayManage(db, e, uid))) throw new EventError(403, "Only the event's organiser sets its tickets.");
   if (e.cancelled) throw new EventError(409, "This event has been cancelled.");
   const list = Array.isArray(raw) ? raw : [];
+  if (list.length && e.approval) throw new EventError(409, "Tickets are for events without approval. Switch off \"Needs approval\" first.");
   if (list.length) {
     const payout = (await db.doc(`payoutAccounts/${e.hostUid}`).get()).data();
     if (!payout?.recipientCode) throw new EventError(409, "Ticket money is paid to the bank account of the event's host. Add it first, under Rates & payouts.");
@@ -30,6 +31,9 @@ export async function setTicketTypes(db: Firestore, uid: string, eventId: string
     const r = cleanTicketTypes(list, cur);
     if (!r.ok) throw new EventError(400, r.error);
     t.set(typesRef(db, eventId), { eventId, hostUid: e.hostUid, types: r.types, updatedAt: now.toISOString() });
+    // The cheapest ticket, for event cards in Discover (lib/event-kit.ts); none means free.
+    const from = r.types.length ? Math.min(...r.types.map((x) => x.priceKobo)) : 0;
+    t.update(db.doc(`events/${eventId}`), { priceFromKobo: from });
     return r.types;
   });
 }

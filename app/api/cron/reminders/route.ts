@@ -28,7 +28,7 @@ import { continueAnnouncements } from "@/lib/announcements-server";
 import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
-import { sendEventReminders } from "@/lib/events-server";
+import { sendAnnouncements, sendEventReminders } from "@/lib/events-server";
 import { sendInterviewReminders } from "@/lib/interviews-server";
 import { sendRatesReminder, sendRenewReminders } from "@/lib/global-pay-server";
 import { fridayNudges, sweepTimers } from "@/lib/time-server";
@@ -163,6 +163,7 @@ async function run() {
   await job("announcements", () => continueAnnouncements(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
   await job("eventReminders", () => sendEventReminders(db));
+  await job("eventAnnouncements", () => sendAnnouncements(db)); // a new public event, to the host's followers, in batches
   await job("interviewReminders", () => sendInterviewReminders(db)); // job interviews: a day and an hour before (lib/interviews-server.ts)
   await job("globalRenewals", () => sendRenewReminders(db)); // subscriptions paid in another currency: a bell 3 days before the month ends
   await job("ratesReminder", async () => ((await sendRatesReminder(db)) ? 1 : 0)); // Finance: exchange rates 36 hours old (and 48, when paying in other currencies pauses)

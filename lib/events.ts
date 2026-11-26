@@ -5,6 +5,7 @@
 // repeat, repeatUntil?, visibility, going, interested, cancelled?, createdAt }. RSVPs are eventRsvps/{eventId}_{uid} { status }.
 // Times are wall-clock Lagos (WAT), stored as ISO instants. Members-only events belong to a community and only its members see them.
 import { NIGERIAN_STATES } from "./merch";
+import { cleanTheme, cleanWhere, isCategory, type EventCategory, type EventPattern, type EventThemeId, type Format, type OnlineVia } from "./event-kit";
 
 export const REPEATS = [
   { id: "none", label: "Doesn't repeat" },
@@ -16,8 +17,15 @@ export type EventDoc = {
   id?: string; hostUid: string; hostName: string; hostUsername: string; cid?: string; communityName?: string;
   title: string; description: string; startsAt: string; endsAt: string; place: string; state: string; city: string; liveUrl: string;
   repeat: Repeat; repeatUntil?: string; visibility: "public" | "members"; going: number; interested: number; cancelled?: boolean; createdAt: string;
+  // Discover and the event kit (docs/EVENTS_DISCOVER.md, v0.210.0). All optional: events made before have none.
+  category?: EventCategory; cover?: string; theme?: EventThemeId; pattern?: EventPattern;
+  format?: Format; online?: OnlineVia | ""; // where: in person, online or both; online on #NotesApp (the host's live) or the host's link (liveUrl)
+  approval?: boolean; // free events only: people ask to join and the host accepts
+  capacity?: number; // the most people Going (0 or missing: no limit)
+  requested?: number; // people waiting for the host to accept
+  priceFromKobo?: number; // the cheapest ticket, kept by lib/tickets-server.ts, for cards
 };
-export type Rsvp = "going" | "interested";
+export type Rsvp = "going" | "interested" | "requested"; // requested: asked to join an event that needs the host's approval
 
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const para = (v: unknown, max: number) => String(v ?? "").replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
@@ -33,7 +41,13 @@ export function liveHost(url: string): string {
   try { const h = new URL(url).hostname.toLowerCase(); return LIVE_HOSTS.find(([re]) => re.test(h))?.[1] ?? "Join live"; } catch { return ""; }
 }
 
-export type EventInput = { title?: unknown; description?: unknown; startsAt?: unknown; endsAt?: unknown; place?: unknown; state?: unknown; city?: unknown; liveUrl?: unknown; repeat?: unknown; repeatUntil?: unknown; visibility?: unknown };
+export type EventInput = {
+  title?: unknown; description?: unknown; startsAt?: unknown; endsAt?: unknown; place?: unknown; state?: unknown; city?: unknown; liveUrl?: unknown; repeat?: unknown; repeatUntil?: unknown; visibility?: unknown;
+  category?: unknown; cover?: unknown; theme?: unknown; pattern?: unknown; format?: unknown; online?: unknown; approval?: unknown; capacity?: unknown;
+};
+export const CAPACITY_MAX = 100_000;
+// A cover is one of our own uploaded pictures (lib/upload.ts uploadMarked, purpose "event").
+export const isCoverUrl = (v: unknown): v is string => typeof v === "string" && /^https:\/\/[a-z0-9.-]+\/events\/[A-Za-z0-9_-]+\/[A-Za-z0-9._-]+$/.test(v) && v.length < 400;
 // What a host sends, made safe. Errors are words for the host.
 export function cleanEvent(v: EventInput, now: Date, opts: { community: boolean }): { ok: true; event: Omit<EventDoc, "hostUid" | "hostName" | "hostUsername" | "going" | "interested" | "createdAt"> } | { ok: false; error: string } {
   const title = t(v.title, 120);
@@ -46,18 +60,24 @@ export function cleanEvent(v: EventInput, now: Date, opts: { community: boolean 
   if (Number.isNaN(end.getTime())) end = new Date(start.getTime() + 2 * HOUR);
   if (end <= start) return { ok: false, error: "It has to end after it starts." };
   if (end.getTime() - start.getTime() > 14 * DAY) return { ok: false, error: "An event can last up to 14 days." };
+  // Where: in person, online or both. Events made before formats had a place and/or a Join live link; read those as they were.
   const liveRaw = t(v.liveUrl, 500);
-  const liveUrl = /^https:\/\/[^\s"'<>]+$/i.test(liveRaw) ? liveRaw : "";
-  if (liveRaw && !liveUrl) return { ok: false, error: "The Join live link has to start with https://." };
-  const place = t(v.place, 200);
-  if (!place && !liveUrl) return { ok: false, error: "Say where it is, or add a Join live link (or both)." };
-  const state = NIGERIAN_STATES.includes(String(v.state) as (typeof NIGERIAN_STATES)[number]) ? String(v.state) : "";
+  const hasPlace = !!t(v.place, 200);
+  const format = v.format ?? (hasPlace && liveRaw ? "hybrid" : liveRaw ? "online" : "in_person");
+  const w = cleanWhere({ format, place: v.place, state: v.state, city: v.city, online: v.online ?? (liveRaw ? "link" : "notesapp"), link: liveRaw }, NIGERIAN_STATES);
+  if (!w.ok) return { ok: false, error: w.error.replace("The online link", "The Join live link") };
+  const { place, state, city, link: liveUrl } = w.where;
+  const capacity = Math.max(0, Math.min(CAPACITY_MAX, Math.floor(Number(v.capacity) || 0)));
+  if (v.cover && !isCoverUrl(v.cover)) return { ok: false, error: "Upload the cover picture again." };
   const repeat: Repeat = REPEATS.some((r) => r.id === v.repeat) ? (v.repeat as Repeat) : "none";
   const until = new Date(String(v.repeatUntil ?? ""));
   return {
     ok: true,
     event: {
-      title, description: para(v.description, 4000), startsAt: start.toISOString(), endsAt: end.toISOString(), place, state, city: t(v.city, 60), liveUrl,
+      title, description: para(v.description, 4000), startsAt: start.toISOString(), endsAt: end.toISOString(), place, state, city, liveUrl,
+      format: w.where.format, online: w.where.online, ...cleanTheme({ theme: v.theme, pattern: v.pattern }, title),
+      ...(isCategory(v.category) ? { category: v.category } : {}), ...(isCoverUrl(v.cover) ? { cover: v.cover } : {}),
+      approval: v.approval === true, capacity,
       repeat, ...(repeat !== "none" && !Number.isNaN(until.getTime()) && until > start ? { repeatUntil: until.toISOString() } : {}),
       visibility: opts.community && v.visibility === "members" ? "members" : "public",
     },

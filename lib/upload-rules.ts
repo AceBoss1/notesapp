@@ -40,10 +40,10 @@ export async function looksLikeImage(file: File): Promise<boolean> {
 // the uploader's own folder and is then given the permanent NotesApp mark on our server (lib/mark-uploads-server.ts), which deletes the
 // clean upload: only the marked copy is kept (owner, 5 Nov 2026).
 export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "media" | "poster" | MarkPurpose;
-export const MARK_PURPOSES = ["shop", "service", "note"] as const;
+export const MARK_PURPOSES = ["shop", "service", "note", "event"] as const; // event: an event's cover (docs/EVENTS_DISCOVER.md)
 export type MarkPurpose = (typeof MARK_PURPOSES)[number];
 export const isMarkPurpose = (v: unknown): v is MarkPurpose => MARK_PURPOSES.includes(v as MarkPurpose);
-export const MARK_FOLDER: Record<MarkPurpose, string> = { shop: "shop", service: "services", note: "notes" };
+export const MARK_FOLDER: Record<MarkPurpose, string> = { shop: "shop", service: "services", note: "notes", event: "events" };
 // The larger (10 MB) picture limit: journal pictures and the marked kinds; everything else (avatars, ads, moments…) is 5 MB.
 export const bigPictureUpload = (purpose: UploadPurpose) => purpose === "journal" || isMarkPurpose(purpose);
 export const WEBP_QUALITY = 0.82;
