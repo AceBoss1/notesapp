@@ -14,14 +14,14 @@ export type Door = {
 export const DOORS: Door[] = [
   {
     key: "professionals", icon: "💼", title: "Professionals", who: "Coaches · consultants · therapists · lawyers · trainers",
-    blurb: "Bookings, paid sessions, client journals and your own site.",
+    blurb: "Sessions, group meetings, events, client journals and your own site.",
     headline: "Your clients find you, book you, pay you and come back. All in one place.",
     sample: { title: "Your dashboard", rows: [["📅 Today", "2 sessions · 10:00, 14:30"], ["💰 Earned this month", "₦96,000"], ["🔒 Waiting to be released", "₦24,000"], ["📝 Client journals", "3 notes to write up"], ["🌐 Your site", "/s/your-name"]] },
     cta: { label: "Start free", href: "/signup" }, alt: { label: "Try Pro free for 15 days", href: "/pricing#compare" },
   },
   {
     key: "academics", icon: "🎓", title: "Academics & students", who: "Lecturers · tutors · exam prep · students",
-    blurb: "Free and paid courses, notes, live classes and certificates.",
+    blurb: "Free and paid courses, notes, live classes, paid meetings and certificates.",
     headline: "Teach once, and let your notes, classes and courses work for you.",
     sample: { title: "Your teaching", rows: [["📚 Courses", "3 · 214 students"], ["🔴 Live class", "Thursday, 4pm"], ["🏅 Certificates issued", "38"], ["💰 From courses this month", "₦61,500"], ["📝 Exam prep", "WAEC, NECO, JAMB"]] },
     cta: { label: "Start teaching free", href: "/signup" }, alt: { label: "See Notes Academy", href: "/academy" },
@@ -35,7 +35,7 @@ export const DOORS: Door[] = [
   },
   {
     key: "organisations", icon: "🏛️", title: "Organisations", who: "Churches · NGOs · schools · clubs",
-    blurb: "Members, events, lives, announcements and giving.",
+    blurb: "Members, events with tickets, lives, announcements and giving.",
     headline: "Your members, events, lives and giving, under your own name.",
     sample: { title: "Your organisation", rows: [["👥 Members", "214 · 9 waiting to join"], ["📣 Announcement", "Sunday service, 9am"], ["🔴 Live room", "Thursday prayer, 7pm"], ["🙏 Giving this month", "₦310,500"], ["🎟️ Next event", "Youth summit · 48 tickets"]] },
     cta: { label: "Set up your organisation", href: "/organisations" }, alt: { label: "Free 15-day Business trial", href: "/organisations" },

@@ -39,7 +39,7 @@ export const WHAT_IS_INTRO =
   "#NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in your local currency, all in one place.";
 export const WHAT_YOU_CAN_DO = [
   "Write journals and share them with readers who follow you and the topics they care about",
-  "Take bookings for private 1:1 sessions",
+  "Take bookings for 1:1 sessions and small paid meetings, in person or online, and run events people find in Discover",
   "Sell physical goods, digital downloads, PDFs and video courses, in your own store and in Notes Market, with your own discount codes and coupons",
   "Teach free and paid courses in Notes Academy, on your own, with co-tutors or as an organisation, with quizzes, and give learners certificates anyone can check",
   "Prepare for JAMB, WAEC and NECO with Naija Exam Prep: free practice questions with explanations, timed mocks and packs that work offline",
