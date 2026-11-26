@@ -1054,11 +1054,11 @@ service cloud.firestore {
     }
     match /adminViewLog/{id} { allow read, write: if false; }
     match /careerRoles/{id} { allow read, write: if false; } // roles: public fields through /api/public/careers, the rest in the team hub (server only)
-    match /careerApplications/{id} { allow read, write: if false; } // applications, Nana-HR summaries; TTL purgeAt (server only)
+    match /careerApplications/{id} { allow read, write: if false; } // applications, Nana-HR summaries, the #Nana-HR inbox read stamp (hrReadAt/hrReadBy); TTL purgeAt (server only)
     // Notes Jobs (lib/jobs-server.ts): jobs, applications (TTL purgeAt), members' private job settings, invitations and the daily bell
     // counts (TTL expireAt). All through /api/jobs and /api/account/job-seeker.
     match /jobs/{id} { allow read, write: if false; }
-    match /jobApplications/{id} { allow read, write: if false; }
+    match /jobApplications/{id} { allow read, write: if false; } // also the firm's #Nana-HR inbox read stamp (hrReadAt/hrReadBy): never the applicant's to read
     match /jobSeekers/{id} { allow read, write: if false; }
     // Nana Jobs (lib/nana-jobs-server.ts): the scoring profile, the shortlist and statuses, the CV (encrypted), the watched company
     // boards and the shared pool of openings are written and read only by the server. Firms never see any of it.

@@ -109,6 +109,8 @@ jobs:
       - run: npm run test:team-server
       # Careers and Nana-HR: the drafting templates (offer, the contract agreements, grant, announcement), then hiring on the emulators
       - run: npm run test:hr
+      # Admin → #Nana-HR inbox: applicants' replies on our own roles, read and answered by the hiring team
+      - run: npm run test:hr-inbox
       - run: npm run test:maintenance
       - run: npm run test:ops-server
       - run: npm run test:pii-server

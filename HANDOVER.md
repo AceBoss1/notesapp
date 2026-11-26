@@ -1498,6 +1498,16 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     Admin → Growth → Trials (`/api/admin/growth/trials`). The nudge runs from the reminders cron once a day (08:00 UTC). Not counted: a
     member who pays during the trial (the trial fields are cleared then), and ad share (paid monthly). Tests: `test:gtm`,
     `test:gtm-server`, the rules test. Deploy `firestore:rules` for `trialResults`.
+171. **#Nana-HR inboxes and the People & HR privilege (v0.209.0; owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and
+    answers replies there"; "Notes Jobs: applications to other firms' jobs stay with those firms. Who sees it: ... owner or admin they
+    appoint with hr privilege"; firms answer "as HR, as owner, or with a Nana-HR draft"):** `lib/hr-inbox.ts` (pure: rows, unread after
+    hrReadAt, needs-reply, filters) and `lib/hr-inbox-server.ts` (no org → #NotesApp careers; an org → that firm's job threads only),
+    `components/HrInbox.tsx` shared by /admin/hr-inbox and /profile/jobs/hr-inbox (per firm, `?org=`). Access: `canReviewHiring` in
+    lib/admin-access.ts (super admins, Chief of Staff, new dept "hr" People & HR; page access "hiring") is the one rule for every
+    #NotesApp careers check (app-replies context, careers-server, interviews, /api/admin/hr); firms use `hiringTeamFor` (org + members with
+    hr: true). Send-as: careers hr | me | nana; firm jobs hr | owner (the firm's name) | nana, enforced on the server. hrReadAt/hrReadBy on
+    careerApplications and jobApplications (server-only; kept out of the applicant's list and data export). Bells on an applicant's reply go
+    to everyone with the hiring privilege for that thread. Tests: test:hr-inbox (hr-inbox and firm-hr-inbox emulator tests), replies, hr.
 
 
 ## 3. How the work is done (please keep these)

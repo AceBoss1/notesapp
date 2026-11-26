@@ -36,7 +36,7 @@ export type Job = {
   industry: string; topics: string[];
   status: JobStatus; createdAt: string; updatedAt: string; closesAt: string; postedByUid: string; applicationCount?: number;
   // "Apply with NotesApp" (on unless the firm switched it off): applications come in on NotesApp, where the firm can reply as HR,
-  // Nana-HR or a person (lib/app-replies.ts). Off: the job links to the firm's own page (applyUrl) and takes no applications here.
+  // as itself or with a Nana-HR draft (lib/app-replies.ts). Off: the job links to the firm's own page (applyUrl) and takes no applications here.
   applyWithNotesApp?: boolean; applyUrl?: string;
 };
 export type JobAppStatus = "new" | "reviewing" | "interview" | "offer" | "hired" | "declined" | "withdrawn";

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
-import { canManageTeam } from "@/lib/admin-access";
+import { canReviewHiring } from "@/lib/admin-access";
 import { CareersError } from "@/lib/careers";
 import { deleteRole, hiringBoard, listDrafts, makeDrafts, saveRole, setApplicationStatus, setRoleStatus, summarise } from "@/lib/careers-server";
 import { rateLimit } from "@/lib/rate-limit";
@@ -14,13 +14,13 @@ const fail = (err: unknown, fallback: string) => {
   return NextResponse.json({ error: f.message }, { status: f.status });
 };
 
-// Hiring and Nana-HR for super admins and the Chief of Staff.
+// Hiring and Nana-HR for whoever reviews hiring (lib/admin-access.ts canReviewHiring: super admins, the Chief of Staff and People & HR).
 // GET → roles, applications, onboarding drafts and the questions Nana-HR couldn't answer.
 // POST { action: "saveRole" | "roleStatus" | "deleteRole" | "appStatus" | "summarise" | "drafts", … }
 export async function GET(req: NextRequest) {
   try {
     const me = await verifyAdminAccess(bearer(req));
-    if (!canManageTeam(me.access)) return NextResponse.json({ manage: false });
+    if (!canReviewHiring(me.access)) return NextResponse.json({ manage: false });
     const db = getAdminDb();
     const [board, drafts, chats] = await Promise.all([
       hiringBoard(db, me),

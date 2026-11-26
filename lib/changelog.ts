@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.209.0",
+    bump: "minor",
+    date: "2026-11-26",
+    changes: [
+      { kind: "added", text: "Firms on Notes Jobs have their own #Nana-HR inbox (Your jobs → #Nana-HR inbox): every applicant conversation for the firm's jobs in one place, newest first, with unread and needs-reply. The firm's owner and team members given the HR privilege see it; nobody else does." },
+      { kind: "changed", text: "A firm answers applicants as HR, as the firm (its name, as the owner), or with a Nana-HR draft that a person edits and sends. Applicants never see which team member pressed send." },
+      { kind: "added", text: "For our team: Admin → #Nana-HR inbox gathers applicants' replies on #NotesApp's own roles, answered as HR, as yourself or with a Nana-HR draft. A new People & HR privilege lets the owner appoint admins to review #NotesApp's hiring, alongside the Chief of Staff." },
+      { kind: "changed", text: "When an applicant replies, everyone on that hiring team gets a notification linking to the conversation, not only the person who last moved the application." },
+    ],
+  },
+  {
     version: "v0.208.0",
     bump: "minor",
     date: "2026-11-25",

@@ -3,12 +3,17 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import Link from "next/link";
-import { INTENT_MAX, REPLY_MAX, type AppKind, type Reply, type SendAs } from "@/lib/app-replies";
+import { INTENT_MAX, REPLY_MAX, SEND_AS_FOR, type AppKind, type Reply, type SendAs } from "@/lib/app-replies";
 import { INTERVIEW_MINUTES, INTERVIEW_NOTE_MAX, interviewWhen, maxInterviewers, type Interview, type InterviewMode } from "@/lib/interviews";
 
-// The conversation on one job application (lib/app-replies.ts). Reviewers choose who a reply is from (HR, Nana-HR or themselves) and can
-// ask Nana-HR for a draft to edit; the applicant reads and replies. Opens on demand so a long list of applications stays light.
-export function ApplicationThread({ kind, applicationId, startOpen = false }: { kind: AppKind; applicationId: string; startOpen?: boolean }) {
+// The conversation on one job application (lib/app-replies.ts). Reviewers choose who a reply is from and can ask Nana-HR for a draft to
+// edit; the applicant reads and replies. On #NotesApp's roles: HR, Nana-HR or themselves; on a firm's job: HR, the firm itself (as owner,
+// the firm's name) or Nana-HR, never a team member's @username (SEND_AS_FOR). Opens on demand so a long list of applications stays light.
+// The #Nana-HR inboxes use it too, against their own routes (endpoint: /api/admin/hr-inbox, /api/jobs/hr-inbox take the same requests;
+// scope adds the firm to every request), and hear when a conversation is opened (which marks it read) or a reply goes out (onActivity).
+export function ApplicationThread({ kind, applicationId, startOpen = false, endpoint = "/api/applications/replies", scope, onActivity }: {
+  kind: AppKind; applicationId: string; startOpen?: boolean; endpoint?: string; scope?: { org: string }; onActivity?: () => void;
+}) {
   const [open, setOpen] = useState(startOpen);
   const [data, setData] = useState<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] } | null>(null);
   const [booking, setBooking] = useState(false);
@@ -18,40 +23,41 @@ export function ApplicationThread({ kind, applicationId, startOpen = false }: { 
   const [intent, setIntent] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const q = `kind=${kind}&id=${encodeURIComponent(applicationId)}`;
+  const q = `kind=${kind}&id=${encodeURIComponent(applicationId)}${scope ? `&org=${encodeURIComponent(scope.org)}` : ""}`;
   useEffect(() => {
     if (!open || data) return;
-    api<NonNullable<typeof data>>(`/api/applications/replies?${q}`).then(setData).catch((e) => setError(e instanceof Error ? e.message : "Couldn't load the messages."));
-  }, [open, data, q]);
+    api<NonNullable<typeof data>>(`${endpoint}?${q}`).then((d) => { setData(d); onActivity?.(); }).catch((e) => setError(e instanceof Error ? e.message : "Couldn't load the messages."));
+  }, [open, data, q, endpoint, onActivity]);
 
   async function send() {
     if (!text.trim() || busy || !data) return;
     setBusy(true); setError("");
     try {
-      const r = await api<{ reply: Reply }>("/api/applications/replies", { body: { action: "send", kind, id: applicationId, as, text } });
+      const r = await api<{ reply: Reply }>(endpoint, { body: { action: "send", kind, id: applicationId, as, text, ...scope } });
       setData({ ...data, replies: [...data.replies, r.reply] }); setText(""); setIntent("");
+      onActivity?.();
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't send."); } finally { setBusy(false); }
   }
-  const reload = () => api<NonNullable<typeof data>>(`/api/applications/replies?${q}`).then(setData);
+  const reload = () => api<NonNullable<typeof data>>(`${endpoint}?${q}`).then(setData);
   async function book() {
     if (busy) return;
     setBusy(true); setError("");
     try {
-      await api("/api/applications/replies", { body: { action: "interview", kind, id: applicationId, ...iv } });
+      await api(endpoint, { body: { action: "interview", kind, id: applicationId, ...iv, ...scope } });
       setBooking(false); await reload();
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't book the interview."); } finally { setBusy(false); }
   }
   async function cancel(id: string) {
     if (busy || !confirm("Cancel this interview? The applicant is told.")) return;
     setBusy(true); setError("");
-    try { await api("/api/applications/replies", { body: { action: "cancelInterview", interviewId: id } }); await reload(); }
+    try { await api(endpoint, { body: { action: "cancelInterview", interviewId: id, ...scope } }); await reload(); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't cancel."); } finally { setBusy(false); }
   }
   async function draft() {
     if (!intent.trim() || busy) return;
     setBusy(true); setError("");
     try {
-      const r = await api<{ draft: string }>("/api/applications/replies", { body: { action: "draft", kind, id: applicationId, intent } });
+      const r = await api<{ draft: string }>(endpoint, { body: { action: "draft", kind, id: applicationId, intent, ...scope } });
       setText(r.draft);
     } catch (e) { setError(e instanceof Error ? e.message : "Nana-HR couldn't draft that."); } finally { setBusy(false); }
   }
@@ -105,7 +111,7 @@ export function ApplicationThread({ kind, applicationId, startOpen = false }: { 
           {data.reviewer && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" role="group" aria-label="Send as">
               <span className="text-slate">Send as</span>
-              {([["hr", `HR, ${data.org}`], ["nana", "Nana-HR"], ["me", data.username ? `@${data.username}` : "Me"]] as [SendAs, string][]).map(([k, label]) => (
+              {SEND_AS_FOR[kind].map((k): [SendAs, string] => [k, k === "hr" ? `HR, ${data.org}` : k === "owner" ? `${data.org} (owner)` : k === "nana" ? "Nana-HR draft" : data.username ? `@${data.username}` : "Me"]).map(([k, label]) => (
                 <button key={k} onClick={() => setAs(k)} aria-pressed={as === k} disabled={k === "me" && !data.username}
                   className={`rounded-full px-3 py-1 font-semibold disabled:opacity-40 ${as === k ? "bg-crimson text-paper" : "border border-rule text-ink"}`}>{label}</button>
               ))}

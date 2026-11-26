@@ -1,6 +1,7 @@
 // Nana-HR, hiring and the staff library against the Firestore and Auth emulators: the library is seeded where each document belongs
 // (super admins see all), Nana-HR reads only what the person may open and only their own records, the five vacancies are seeded and
-// public, applying works once, only super admins and the Chief of Staff manage hiring, only a super admin opens or closes a role,
+// public, applying works once, only whoever reviews hiring (canReviewHiring: super admins, the Chief of Staff and People & HR) manages
+// it, only a super admin opens or closes a role,
 // closing starts the 6-month clock, applicants hear back, and Nana-HR's summary is saved.
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
@@ -20,6 +21,8 @@ const sup: Access = { role: "super", depts: [] };
 const cosA: Access = { role: "admin", depts: ["executive"], cos: true };
 const finA: Access = { role: "admin", depts: ["finance"] };
 const engA: Access = { role: "admin", depts: ["engineering"] };
+const hrA: Access = { role: "admin", depts: ["hr"] }; // People & HR
+const exeA: Access = { role: "admin", depts: ["executive"] };
 const staff = (uid: string, access: Access): Staff => ({ uid, email: `${uid}@x.test`, access, owner: false });
 const refused = async (p: Promise<unknown>, status: number) => { await assert.rejects(p, (e: unknown) => e instanceof CareersError && e.status === status); };
 
@@ -82,8 +85,13 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
   await refused(apply(db, { uid: "u_ada", email: "u_ada@x.test" }, "seed-care-lead", { coverNote: note, consent: true }), 409);
   await refused(apply(db, { uid: "u_ada", email: "u_ada@x.test" }, "nope", { coverNote: note, consent: true }), 404);
 
-  // Who manages hiring: super admins and the Chief of Staff; nobody else.
+  // Who manages hiring: super admins, the Chief of Staff and People & HR (owner, 26 Nov 2026: "admin they appoint with hr privilege");
+  // nobody else, not even another Executive office admin.
   await refused(hiringBoard(db, staff("u_fin", finA)), 403);
+  await refused(hiringBoard(db, staff("u_exe", exeA)), 403);
+  assert.equal((await hiringBoard(db, staff("u_hr", hrA))).canOpen, false, "People & HR sees the board; only a super admin opens roles");
+  await refused(summarise(db, staff("u_exe", exeA), "seed-care-lead_u_ada"), 403);
+  await refused(setApplicationStatus(db, staff("u_exe", exeA), "seed-care-lead_u_ada", "reviewing", ""), 403);
   const board = await hiringBoard(db, staff("u_cos", cosA));
   assert.equal(board.applications.length, 1);
   assert.equal(board.canOpen, false);
@@ -111,6 +119,7 @@ const refused = async (p: Promise<unknown>, status: number) => { await assert.re
   const d = await makeDrafts(db, staff("u_cos", cosA), { name: "Ada Obi", title: "Customer care team lead", arrangement: "salary" });
   assert.deepEqual(d.drafts.map((x) => x.kind), ["offer", "announcement"]);
   await refused(makeDrafts(db, staff("u_fin", finA), { name: "X", title: "Y" }), 403);
+  assert.ok((await makeDrafts(db, staff("u_hr", hrA), { name: "Ada Obi", title: "Customer care team lead", arrangement: "salary" })).drafts.length > 0, "People & HR drafts onboarding documents");
 
   // ── Deleting a vacancy ──
   {

@@ -1,20 +1,22 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { setting } from "@/lib/config";
-import { canManageTeam, type Access } from "./admin-access";
+import { canReviewHiring, type Access } from "./admin-access";
 import { notifyBell } from "./email";
 import { gemModel, realDeps, runAi, type NanaDeps } from "./nana-server";
 import { memberTier, type Meter } from "./nana-meter";
 import { hiringTeamFor } from "./jobs-server";
 import { SCREEN_SYSTEM } from "./careers-server";
 import {
-  INTENT_MAX, REPLIES_MAX, REPLY_DRAFT_SYSTEM, cleanReplyText, draftPrompt, isSendAs, senderLabel,
+  INTENT_MAX, REPLIES_MAX, REPLY_DRAFT_SYSTEM, cleanReplyText, draftPrompt, sendAsAllowed, senderLabel,
   type AppKind, type Reply, type ReplyFrom,
 } from "./app-replies";
 import type { Interview } from "./interviews";
 
 // Replies on job applications (lib/app-replies.ts has the rules). appReplies/{id} (server only; TTL on expireAt, 12 months): one message
-// in an application's thread. Reviewers: for #NotesApp's own roles, super admins and the Chief of Staff (canManageTeam); for a Notes Jobs
-// application, the organisation's hiring team: the organisation, its admins and its writers (jobs-server hiringTeamFor). The applicant is the person who applied.
+// in an application's thread. Reviewers: for #NotesApp's own roles, whoever reviews hiring (lib/admin-access.ts canReviewHiring: super
+// admins, the Chief of Staff and People & HR); for a Notes Jobs application, the organisation's hiring team: the organisation account and
+// the team members its owner put in HR (jobs-server hiringTeamFor). Owner, 26 Nov 2026: "applications to other firms' jobs stay with
+// those firms". The applicant is the person who applied.
 
 export class RepliesError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -24,7 +26,7 @@ const KEEP_DAYS = 365;
 export type Viewer = { uid: string; access?: Access | null };
 export type Ctx = {
   kind: AppKind; appId: string; applicantUid: string; applicantName: string; org: string; orgUid: string | null; title: string; status: string;
-  reviewer: boolean; bellType: "team" | "job"; reviewerUid: string | null;
+  reviewer: boolean; bellType: "team" | "job"; decidedBy: string | null;
 };
 const safeId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{1,200}$/.test(v);
 const isKind = (v: unknown): v is AppKind => v === "career" || v === "job";
@@ -35,9 +37,9 @@ export async function context(db: Firestore, v: Viewer, kind: unknown, appId: un
   if (kind === "career") {
     const a = (await db.doc(`careerApplications/${appId}`).get()).data();
     if (!a) throw new RepliesError("That application isn't there any more.", 404);
-    const reviewer = !!v.access && canManageTeam(v.access);
+    const reviewer = canReviewHiring(v.access);
     if (!reviewer && a.uid !== v.uid) throw new RepliesError("Only the applicant and the hiring team can see this.", 403);
-    return { kind, appId, applicantUid: String(a.uid), applicantName: String(a.name ?? ""), org: "#NotesApp", orgUid: null, title: String(a.roleTitle ?? "the role"), status: String(a.status ?? ""), reviewer, bellType: "team", reviewerUid: a.decidedBy ? String(a.decidedBy) : null };
+    return { kind, appId, applicantUid: String(a.uid), applicantName: String(a.name ?? ""), org: "#NotesApp", orgUid: null, title: String(a.roleTitle ?? "the role"), status: String(a.status ?? ""), reviewer, bellType: "team", decidedBy: a.decidedBy ? String(a.decidedBy) : null };
   }
   const a = (await db.doc(`jobApplications/${appId}`).get()).data();
   if (!a) throw new RepliesError("That application isn't there any more.", 404);
@@ -47,7 +49,7 @@ export async function context(db: Firestore, v: Viewer, kind: unknown, appId: un
     reviewer = true;
   }
   const org = (await db.doc(`users/${a.orgUid}`).get()).data() ?? {};
-  return { kind, appId, applicantUid: String(a.uid), applicantName: String(a.name ?? ""), org: String(org.displayName || org.username || "The organisation"), orgUid: String(a.orgUid), title: String(a.jobTitle ?? "the job"), status: String(a.status ?? ""), reviewer, bellType: "job", reviewerUid: String(a.orgUid) };
+  return { kind, appId, applicantUid: String(a.uid), applicantName: String(a.name ?? ""), org: String(org.displayName || org.username || "The organisation"), orgUid: String(a.orgUid), title: String(a.jobTitle ?? "the job"), status: String(a.status ?? ""), reviewer, bellType: "job", decidedBy: null };
 }
 
 const toReply = (id: string, d: FirebaseFirestore.DocumentData, forReviewer: boolean): Reply => ({
@@ -57,8 +59,43 @@ const toReply = (id: string, d: FirebaseFirestore.DocumentData, forReviewer: boo
   ...(d.byUsername && (forReviewer || d.from === "me") ? { byUsername: String(d.byUsername) } : {}),
 });
 
-export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] }> {
+const appPath = (kind: AppKind, appId: string) => `${kind === "career" ? "careerApplications" : "jobApplications"}/${appId}`;
+
+// The hiring team has read an application's conversation (the #Nana-HR inboxes, lib/hr-inbox-server.ts): hrReadAt/hrReadBy on the
+// application itself, careerApplications or jobApplications, both server-only (firestore.rules) and left out of the applicant's own
+// lists (careers-server myCareerApplications, jobs-server myApplications) and data export, so read state stays with the team. One stamp
+// for the whole team, like a shared inbox: whoever reads it reads it for everyone.
+export async function markHrRead(db: Firestore, kind: AppKind, appId: string, uid: string, now = new Date()): Promise<void> {
+  await db.doc(appPath(kind, appId)).update({ hrReadAt: now.toISOString(), hrReadBy: uid }).catch(() => {});
+}
+
+// Who hears that an applicant replied: the people with the hiring privilege for that role, each with a link to their inbox. On
+// #NotesApp's roles, everyone canReviewHiring (not only whoever last moved it on), into Admin → #Nana-HR inbox; read from the staff
+// accounts, falling back to whoever decided on it if they can't be listed. On a firm's job, its hiring team (hiringTeamFor: the
+// organisation account and its HR members) into the firm's inbox; never a kid's or teen's account (they can't be on a hiring team).
+async function hiringBells(db: Firestore, c: Ctx): Promise<{ uids: string[]; href: string }> {
+  if (c.kind === "career") {
+    const href = `/admin/hr-inbox?id=${encodeURIComponent(c.appId)}`;
+    try {
+      const { staffAccounts } = await import("./admin-access-server"); // loaded here: it pulls in firebase-admin/auth
+      return { uids: (await staffAccounts()).filter((s) => canReviewHiring(s.access)).map((s) => s.uid), href };
+    } catch {
+      return { uids: c.decidedBy ? [c.decidedBy] : [], href };
+    }
+  }
+  const org = String(c.orgUid);
+  const href = `/profile/jobs/hr-inbox?org=${encodeURIComponent(org)}&id=${encodeURIComponent(c.appId)}`;
+  const members = (await db.collection("orgMembers").where("orgUid", "==", org).where("hr", "==", true).get()).docs.map((d) => String(d.data().memberUid ?? "")).filter(Boolean);
+  const { isKidUid } = await import("./kids");
+  const ids = Array.from(new Set([org, ...members])).filter((u) => !isKidUid(u));
+  const users = ids.length ? await db.getAll(...ids.map((u) => db.doc(`users/${u}`))) : [];
+  return { uids: users.filter((u) => u.id === org || (u.exists && u.data()?.kid !== true && u.data()?.teen !== true)).map((u) => u.id), href };
+}
+
+export async function listReplies(db: Firestore, v: Viewer, kind: unknown, appId: unknown, o: { markRead?: boolean; now?: Date } = {}): Promise<{ replies: Reply[]; reviewer: boolean; org: string; username: string; interviews: Interview[] }> {
   const c = await context(db, v, kind, appId);
+  // A reviewer opening the conversation (in an inbox, the team hub or the firm's job page) has read it, so it leaves the unread count.
+  if (c.reviewer && o.markRead !== false) await markHrRead(db, c.kind, c.appId, v.uid, o.now);
   const snap = await db.collection(COLL).where("kind", "==", c.kind).where("applicationId", "==", c.appId).get();
   const replies = snap.docs.map((d) => toReply(d.id, d.data(), c.reviewer)).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
   const me = c.reviewer ? (await db.doc(`users/${v.uid}`).get()).data() : null;
@@ -74,7 +111,8 @@ export async function sendReply(db: Firestore, v: Viewer, input: { kind?: unknow
   if (count >= REPLIES_MAX) throw new RepliesError("This conversation is full. Carry on by message or email.", 409);
   let from: ReplyFrom, byUsername = "";
   if (c.reviewer) {
-    if (!isSendAs(input.as)) throw new RepliesError("Choose who it's from: HR, Nana-HR or you.");
+    // A firm answers as HR, as itself or with a Nana-HR draft, never as a team member's @username; "owner" is only for a firm.
+    if (!sendAsAllowed(c.kind, input.as)) throw new RepliesError(c.kind === "job" ? `Choose who it's from: HR, ${c.org} or a Nana-HR draft.` : "Choose who it's from: HR, Nana-HR or you.");
     from = input.as;
     byUsername = String((await db.doc(`users/${v.uid}`).get()).data()?.username ?? "");
     if (from === "me" && !byUsername) throw new RepliesError("Set a username on your profile to reply as yourself, or reply as HR.");
@@ -88,11 +126,16 @@ export async function sendReply(db: Firestore, v: Viewer, input: { kind?: unknow
     ...(byUsername ? { byUsername } : {}), createdAt: now.toISOString(), expireAt: new Date(now.getTime() + KEEP_DAYS * 86_400_000),
   };
   await ref.set(doc);
-  await db.doc(`${c.kind === "career" ? "careerApplications" : "jobApplications"}/${c.appId}`).update({ lastReplyAt: now.toISOString(), lastReplyFrom: from === "applicant" ? "applicant" : "team" }).catch(() => {});
+  await db.doc(appPath(c.kind, c.appId)).update({
+    lastReplyAt: now.toISOString(), lastReplyFrom: from === "applicant" ? "applicant" : "team",
+    ...(c.reviewer ? { hrReadAt: now.toISOString(), hrReadBy: v.uid } : {}), // answering means it's been read
+  }).catch(() => {});
   if (c.reviewer) {
     await notifyBell({ uid: c.applicantUid, type: c.bellType, linkHref: "/profile/applications", message: `${label} replied about your application for ${c.title}.` }).catch(() => {});
-  } else if (c.reviewerUid) {
-    await notifyBell({ uid: c.reviewerUid, type: c.bellType, linkHref: c.kind === "career" ? "/admin/team/hr" : "/profile/jobs", message: `${c.applicantName || "An applicant"} replied about ${c.title}.` }).catch(() => {});
+  } else {
+    const { uids, href } = await hiringBells(db, c).catch(() => ({ uids: [] as string[], href: "" }));
+    const message = `${c.applicantName || "An applicant"} replied about ${c.title}${c.kind === "job" ? ` at ${c.org}` : ""}.`;
+    for (const uid of uids) if (uid !== v.uid) await notifyBell({ uid, type: c.bellType, linkHref: href, message }).catch(() => {});
   }
   return toReply(ref.id, doc, c.reviewer);
 }

@@ -30,7 +30,8 @@ const bringIntoView = (el: HTMLElement | null) => {
 const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "");
 
 // Nana-HR and hiring (the Nana-HR spec): every staff member asks Nana-HR about the handbook, their SOPs and briefs and their own hours,
-// leave and pay; super admins and the Chief of Staff also run hiring here: roles (a super admin opens them on /careers), applications
+// leave and pay; whoever reviews hiring (lib/admin-access.ts canReviewHiring: super admins, the Chief of Staff and People & HR) also
+// runs hiring here: roles (a super admin opens them on /careers), applications
 // with Nana-HR's screening summaries, onboarding drafts (offer, option grant, announcement) and the questions Nana-HR couldn't answer.
 export default function NanaHrPage() {
   const { user, loading } = useAdminAuth();
@@ -55,6 +56,18 @@ export default function NanaHrPage() {
 
   const load = useCallback(() => call().then(setData).catch((e) => setError(e.message)), [call]);
   useEffect(() => { if (user) load(); }, [user, load]);
+  // "Open application" in Admin → #Nana-HR inbox links here with ?app=<id>: open that role's applications and bring the applicant
+  // into view, once.
+  const [linked, setLinked] = useState(false);
+  useEffect(() => {
+    if (linked || !data?.applications) return;
+    setLinked(true);
+    const id = new URLSearchParams(window.location.search).get("app");
+    const a = id ? data.applications.find((x) => x.id === id) : undefined;
+    if (!a) return;
+    setOpenRole(a.roleId);
+    setTimeout(() => bringIntoView(document.getElementById(`app-${a.id}`)), 50);
+  }, [data, linked]);
   async function run(body: Record<string, unknown>, done: string) {
     setBusy(true); setError(""); setNote("");
     try { const j = await call(body); setNote(done); await load(); return j; }
@@ -198,7 +211,7 @@ export default function NanaHrPage() {
                     <ul className="mt-4 space-y-3">
                       {mine.length === 0 && <li className="text-sm text-slate">No applications yet.</li>}
                       {mine.map((a) => (
-                        <li key={a.id} className="rounded-lg border border-rule p-4 text-sm">
+                        <li key={a.id} id={`app-${a.id}`} tabIndex={-1} className="rounded-lg border border-rule p-4 text-sm">
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
                               <p className="font-semibold text-ink">{a.name} <span className="font-normal text-slate">· {a.email}{a.phone ? ` · ${a.phone}` : ""}{a.city ? ` · ${a.city}` : ""}</span></p>

@@ -23,6 +23,8 @@ const field = "mt-1 block w-full rounded-xl border border-rule bg-card px-3 py-2
 
 // Your jobs (Notes Jobs, for a verified organisation and its admins): post a job, see and move on applications, close or delete a job;
 // on Business and Enterprise, suggested candidates (members who switched on "I need a job" and fit) and invitations to apply.
+// Applicants' replies across every job collect in the firm's #Nana-HR inbox (./hr-inbox), which links back here with ?org=&app= to
+// open that application.
 export default function FirmJobsPage() {
   const user = useAuthUser();
   const [firms, setFirms] = useState<Firm[] | null>(null);
@@ -33,11 +35,25 @@ export default function FirmJobsPage() {
   const [cands, setCands] = useState<Record<string, Candidate[]>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [focusApp, setFocusApp] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    jobsApi<{ firms: Firm[] }>(user, "/api/jobs/manage").then((d) => { setFirms(d.firms); if (d.firms[0]) setOrg(d.firms[0].uid); }).catch(() => setFirms([]));
+    // ?org= picks the firm (the account menu and the #Nana-HR inbox link here with it); ?app= opens that application.
+    const p = new URLSearchParams(window.location.search);
+    jobsApi<{ firms: Firm[] }>(user, "/api/jobs/manage").then((d) => {
+      setFirms(d.firms);
+      const pick = d.firms.find((f) => f.uid === p.get("org")) ?? d.firms[0];
+      if (pick) setOrg(pick.uid);
+      setFocusApp(p.get("app"));
+    }).catch(() => setFirms([]));
   }, [user]);
+  useEffect(() => {
+    const a = focusApp && board?.applications.find((x) => x.id === focusApp);
+    if (!a) return;
+    setOpenJob(a.jobId); setFocusApp(null);
+    setTimeout(() => document.getElementById(`app-${a.id}`)?.scrollIntoView({ block: "start" }), 50);
+  }, [focusApp, board]);
   const load = useCallback(async () => {
     if (!user || !org) return;
     const f = firms?.find((x) => x.uid === org);
@@ -75,6 +91,7 @@ export default function FirmJobsPage() {
             {firms.length > 1 && <label className="text-sm">Organisation<select value={org} onChange={(e) => setOrg(e.target.value)} className={`${field} max-w-sm`}>{firms.map((f) => <option key={f.uid} value={f.uid}>{f.name}</option>)}</select></label>}
             {firm && !firm.verified && <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-ink">{firm.name} isn&apos;t CAC-verified yet. Only verified organisations can post on {JOBS_BRAND}: verify it under Account → Organisation.</p>}
             {msg && <p className="mt-4 text-sm text-ink" role="status">{msg}</p>}
+            {firm && <p className="mt-4 text-sm"><Link href={`/profile/jobs/hr-inbox?org=${encodeURIComponent(firm.uid)}`} className="rounded-full border border-rule px-4 py-1.5 font-ui font-semibold text-ink hover:border-crimson">#Nana-HR inbox</Link> <span className="ml-2 text-xs text-slate">every applicant&apos;s replies in one place, unread first to see</span></p>}
             {firm?.verified && board && (
               <>
                 {!board.matching && <p className="mt-4 text-xs text-slate">On the Business and Enterprise plans your jobs are also matched to members: shown first to those they fit, a bell to members who need a job, and suggested candidates you can invite. <Link href="/pricing" className="underline">Plans</Link></p>}
@@ -93,7 +110,7 @@ export default function FirmJobsPage() {
                     <label>Pay up to, ₦ (optional)<input inputMode="numeric" value={form.payMax} onChange={(e) => setForm({ ...form, payMax: e.target.value })} className={field} /></label>
                     <label>Pay is<select value={form.payPeriod} onChange={(e) => setForm({ ...form, payPeriod: e.target.value })} className={field}>{PAY_PERIODS.map((p) => <option key={p} value={p}>{PAY_PERIOD_LABEL[p]}</option>)}</select></label>
                     <label>Open for (days)<input type="number" min={7} max={OPEN_DAYS_MAX} value={form.openDays} onChange={(e) => setForm({ ...form, openDays: e.target.value })} className={field} /></label>
-                    <label className="flex items-start gap-2 sm:col-span-2"><input type="checkbox" checked={form.applyWithNotesApp} onChange={(e) => setForm({ ...form, applyWithNotesApp: e.target.checked })} className="mt-1" /> <span><b>Apply with NotesApp</b>: people apply with their NotesApp account, and you reply to them here as HR, Nana-HR or yourself. Switch it off to send applicants to your own page instead.</span></label>
+                    <label className="flex items-start gap-2 sm:col-span-2"><input type="checkbox" checked={form.applyWithNotesApp} onChange={(e) => setForm({ ...form, applyWithNotesApp: e.target.checked })} className="mt-1" /> <span><b>Apply with NotesApp</b>: people apply with their NotesApp account, and you reply to them here as HR, as {firm?.name ?? "the organisation"} or with a Nana-HR draft. Switch it off to send applicants to your own page instead.</span></label>
                     {!form.applyWithNotesApp && <label className="sm:col-span-2">Where people apply (https://…)<input value={form.applyUrl} onChange={(e) => setForm({ ...form, applyUrl: e.target.value })} className={field} placeholder="https://yourcompany.com/careers/…" /></label>}
                     <label>Industry<select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={field}><option value="">Choose</option>{INDUSTRIES.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}</select></label>
                     <label>Topics (up to {MAX_TOPICS}; they help us match people)<select multiple value={form.topics} onChange={(e) => setForm({ ...form, topics: Array.from(e.target.selectedOptions).map((o) => o.value).slice(0, MAX_TOPICS) })} className={`${field} h-28`}>{TOPICS.map((t) => <option key={t.slug} value={t.slug}>{t.label}</option>)}</select></label>
@@ -143,14 +160,14 @@ export default function FirmJobsPage() {
                             )}
                             {apps.length === 0 ? <p className="text-sm text-slate">No applications yet.</p> : (
                               <ul className="space-y-3">{apps.map((a) => (
-                                <li key={a.id} className="rounded-lg border border-rule p-4 text-sm">
+                                <li key={a.id} id={`app-${a.id}`} className="rounded-lg border border-rule p-4 text-sm">
                                   <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div><Link href={`/u/${a.username}`} className="font-semibold text-crimson">{a.name}</Link> <span className="text-slate">@{a.username}</span>{a.headline && <p className="text-xs text-ink">{a.headline}</p>}<p className="text-xs text-slate">{[a.city, a.phone].filter(Boolean).join(" · ")} · applied {new Date(a.createdAt).toLocaleDateString("en-GB")}</p></div>
                                     <select value={a.status} disabled={busy || a.status === "withdrawn" || !board.canManage} onChange={(e) => void act({ action: "appStatus", id: a.id, status: e.target.value }, "Application updated.")} className="rounded-lg border border-rule bg-card px-2 py-1 text-xs">{Object.entries(JOB_APP_STATUS_LABEL).filter(([k]) => k !== "withdrawn").map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
                                   </div>
                                   <p className="mt-2 whitespace-pre-wrap text-ink">{a.coverNote}</p>
                                   {a.links.length > 0 && <p className="mt-2 text-xs">{a.links.map((l) => <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow" className="mr-3 text-crimson underline">{l.replace(/^https:\/\//, "").slice(0, 40)}</a>)}</p>}
-                                  <p className="mt-2 text-xs text-slate">Reply below as HR, Nana-HR or yourself; moving it to Interview, Offer or Not taken forward tells them too. Their profile: <Link href={`/u/${a.username}`} className="underline">@{a.username}</Link></p>
+                                  <p className="mt-2 text-xs text-slate">Reply below as HR, as {firm.name} or with a Nana-HR draft (the applicant never sees which of you sent it); moving it to Interview, Offer or Not taken forward tells them too. Their profile: <Link href={`/u/${a.username}`} className="underline">@{a.username}</Link></p>
                                   {a.summary ? (
                                     <div className="mt-3 rounded bg-paper p-3"><p className="eyebrow">Nana-HR summary · {new Date(a.summary.at).toLocaleDateString("en-GB")}</p><p className="mt-1 whitespace-pre-wrap text-xs text-ink">{a.summary.text}</p><p className="mt-1 text-[11px] text-slate">Checked against your stated requirements only. A person decides: Nana-HR never ranks or rejects anyone.</p></div>
                                   ) : (
