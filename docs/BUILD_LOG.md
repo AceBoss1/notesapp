@@ -3501,3 +3501,12 @@ Rules kept: nothing made up (sample dashboards are marked, figures are rounded d
 and the trial card says "Free Basic suits you for now" when the plan didn't pay. The emulator test caught one real bug before shipping:
 the later nudge first compared last month's payments as if charged at the trial plan's rate; they were charged at the member's current
 plan, so the comparison runs the other way.
+
+**Discover events, meetings, sessions in person or online, invitations (v0.210.0, 26 Nov 2026)** — the owner sent an event discovery page and
+a plan-pricing page as the idea and approved the sample screens with "build with your recommendations", adding that events, meetings and
+sessions should all work in person and online, and asking for an event kit. Decisions kept: tickets stay at the giving bands with no
+commission; meetings and sessions carry the plan's commission; invitations get a weekly allowance by plan with packs. Two privacy points
+came up while building: publisher settings are publicly readable, so a session's address and link live in a server-only `sessionPlaces`
+document and reach a client on their booking; and an event's online link is hidden from people who aren't in once the event has tickets
+or approval (older free events keep their public links, as before). Online meetings use the host's link for now: #NotesApp group calls
+hold 4–6 people.

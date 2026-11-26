@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { formatNaira, formatSlot } from "@/lib/booking-time";
+import { formatNaira, formatSlot, type SessionPlace } from "@/lib/booking-time";
 import { PAYOUT_HOLD_HOURS, RESCHEDULE_MAX, RESCHEDULE_MAX_DAYS, RESCHEDULE_MIN_HOURS, canReschedule, refundFraction } from "@/lib/cancellation";
 import { sessionEnd } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
@@ -28,6 +28,7 @@ type Booking = {
   refundKobo?: number;
   rescheduleCount?: number;
   reportedProblem?: { reason: string; at: string };
+  where?: SessionPlace; // in person or online (lib/booking-time.ts), fixed when it was booked
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -191,6 +192,13 @@ export default function BookingsPage() {
             {mine} · <Link href={`/u/${b.username}`} className="underline">@{b.username}</Link>
             {b.publisherUid === user!.uid && ` · client ${b.clientEmail}`} · {formatNaira(b.amountKobo)}
           </p>
+          {b.where && (
+            <p className="mt-1 text-xs text-ink">
+              {b.where.mode === "in_person" ? `📍 ${[b.where.place, b.where.city, b.where.state].filter(Boolean).join(", ")}`
+                : b.where.online === "link" && b.where.link ? <>💻 <a href={b.where.link} target="_blank" rel="noopener noreferrer" className="text-crimson underline">Join online</a></>
+                : <>💻 A call on #NotesApp: <Link href={`/messages/${[b.clientUid, b.publisherUid].sort().join("_")}`} className="text-crimson underline">open the conversation</Link> at the time (from 15 minutes before)</>}
+            </p>
+          )}
           <p className="mt-1 text-xs text-slate">
             {STATUS_LABEL[b.status] || b.status}
             {b.refundKobo ? ` · refunded ${formatNaira(b.refundKobo)}` : ""}

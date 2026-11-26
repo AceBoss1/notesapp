@@ -1,17 +1,19 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import PageHero from "@/components/PageHero";
-import EventsHub from "@/components/events/EventsHub";
+import { Suspense } from "react";
+import Discover from "@/components/events/Discover";
 import { bandsText } from "@/lib/giving";
 import { formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
-  title: "Events",
+  title: "Discover events",
   description: "Publish events on #NotesApp — services, meetings, launches, classes and outreaches — with Going and Interested, reminders, repeating events, a Join live link and paid tickets with QR check-in, on your profile and in Explore.",
 };
 
 const PARTS = [
-  ["For every account", "People, businesses and organisations publish events. Public ones show here under Upcoming, by state and city."],
+  ["For every account", "People, businesses and organisations publish events, in person, online or both. Public ones show in Discover, by category and city, and on the host's calendar."],
+  ["Covers and themes", "Add a cover picture, or pick a theme colour and the African pattern. Choose a category so people find it."],
+  ["Approval and limits", "Free events can need your approval: people ask to join and you accept them. Set a guest limit and it closes when it's full."],
   ["Who can see it", "Public, or members only for a community's events."],
   ["Going and Interested", "People tap Going or Interested, get a bell, a phone notification and an email 24 hours and 1 hour before, and can add it to their calendar."],
   ["Repeating events", "Weekly services, monthly meetings: set it once and it repeats."],
@@ -19,22 +21,19 @@ const PARTS = [
   ["Paid tickets", `Add ticket types (Regular, VIP …) with a price and how many. Buyers pay by card through #NotesApp checkout and get a QR code per ticket under My tickets; you check them in at the door by scanning or typing the code. You're paid after the event with no commission: like gifts to a community, each ticket has a small charge (${bandsText(formatNaira)}) plus the card charge at cost.`],
 ];
 
-// Events (lib/events.ts, docs/COMMUNITY.md): for every account, and the events part of Community.
+// /events: Discover events (docs/EVENTS_DISCOVER.md): featured events for your city, categories, calendars to follow and events by place.
+// How events work, for hosts, stays below.
 export default function EventsPage() {
   return (
-    <>
-      <PageHero eyebrow="Events" title={<>Your events, where your people already are</>}>
-        <p>Services, meetings, launches, classes and outreaches: publish them on #NotesApp, see who&apos;s coming, and remind them before it starts.</p>
-      </PageHero>
-      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-        <EventsHub />
-        <h2 className="mt-14 font-display text-2xl text-ink">How events work</h2>
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <Suspense fallback={<p className="text-sm text-slate">Loading…</p>}><Discover /></Suspense>
+      <details className="mt-14 border-t border-rule pt-6">
+        <summary className="cursor-pointer font-display text-2xl text-ink">How events work</summary>
         <ul className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           {PARTS.map(([h, t]) => <li key={h} className="card p-4"><strong className="text-ink">{h}</strong><p className="mt-1 text-slate">{t}</p></li>)}
         </ul>
-        <p className="mt-6 text-sm text-slate">Bought a ticket? It&apos;s under <Link href="/tickets" className="text-crimson underline">My tickets</Link>, with its QR code. Selling them? Read <Link href="/help/event-tickets" className="text-crimson underline">Paid event tickets and check-in</Link>.</p>
-        <p className="mt-4 text-sm text-slate">Running a church, NGO, school or club? Start a <Link href="/community" className="text-crimson underline">Community</Link> and add its events there, for everyone or for members only, and take offerings and donations with <Link href="/community#giving" className="text-crimson underline">Giving</Link>.</p>
-      </div>
-    </>
+        <p className="mt-6 text-sm text-slate">Bought a ticket? It&apos;s under <Link href="/tickets" className="text-crimson underline">My tickets</Link>, with its QR code. Setting up a meeting or sessions instead? See <Link href="/booking" className="text-crimson underline">Events, meetings and sessions</Link>.</p>
+      </details>
+    </div>
   );
 }

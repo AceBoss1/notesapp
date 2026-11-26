@@ -94,12 +94,13 @@ async function mayEnter(db: Firestore, r: RoomDoc, uid: string): Promise<boolean
   if (r.paid) return uid === r.hostUid || !!r.mods?.[uid] || (await holdsLiveTicket(db, r.paid.eventId, uid));
   return !!r.cid && !!(await roleIn(db, r.cid, uid));
 }
-export const NOT_IN_TEXT = (r: Pick<RoomDoc, "paid" | "profile">) => (r.profile
+export const NOT_IN_TEXT = (r: Pick<RoomDoc, "paid" | "profile">) => (r.profile?.meetingId ? "This meeting room is for people with a seat. Book one on the meeting's page." : r.profile
   ? (r.profile.audience === "subscribers" ? `This live is for @${r.profile.hostUsername}'s subscribers.` : `This live is for @${r.profile.hostUsername}'s followers. Follow them to join.`)
   : r.paid ? "This live is for ticket holders. Get a ticket in the lobby." : "Rooms are for the community's members.");
 // A free live from a profile (lib/profile-lives-server.ts): everyone signed in, the host's followers, or their subscribers (an active
 // subscription, as for replays).
 export async function mayWatchProfileLive(db: Firestore, p: NonNullable<RoomDoc["profile"]>, uid: string): Promise<boolean> {
+  if (p.meetingId) return (await db.doc(`meetingSeats/${p.meetingId}_${uid}`).get()).data()?.status === "booked";
   if (p.audience === "everyone") return true;
   if (p.audience === "followers") return (await db.doc(`follows/${uid}_${p.hostUsername}`).get()).exists;
   const sub = (await db.doc(`subscriptions/${uid}_${p.hostUsername}`).get()).data();

@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       ...(payment.nanaPack ? { nanaPack: payment.nanaPack } : {}),
       ...(payment.giving ? { giving: { cid: payment.giving.cid, communityName: payment.giving.communityName, fund: payment.giving.fund, giftKobo: payment.giving.giftKobo } } : {}),
       ...(payment.liveTicket ? { liveTicket: { eventId: payment.liveTicket.eventId, eventTitle: payment.liveTicket.eventTitle } } : {}),
+      ...(payment.meeting ? { meeting: { meetingId: payment.meeting.meetingId, title: payment.meeting.title } } : {}),
       ...(payment.ticket ? { ticket: { eventId: payment.ticket.eventId, eventTitle: payment.ticket.eventTitle, quantity: payment.ticket.quantity, typeName: payment.ticket.typeName } } : {}),
       ...(payment.certificate ? { certificate: { courseTitle: payment.certificate.courseTitle, issuedId: payment.certificate.issuedId ?? null } } : {}),
     });

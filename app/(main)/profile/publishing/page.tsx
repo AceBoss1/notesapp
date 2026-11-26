@@ -15,6 +15,7 @@ import BecomePublisher from "@/components/BecomePublisher";
 import PageHero from "@/components/PageHero";
 import { planRate } from "@/lib/pricing";
 import { useLivePricing } from "@/lib/useLivePricing";
+import SessionWhere, { draftOf, type WhereDraft } from "@/components/booking/SessionWhere";
 import MyCommission from "@/components/MyCommission";
 import TierSettings, { type TierForm } from "@/components/fans/TierSettings";
 import { SUB_TIERS, tierOffers } from "@/lib/fans";
@@ -41,6 +42,7 @@ export default function PublishingSettingsPage() {
   // Sessions are priced in the publisher's own currency (Rates & payouts → Readers in other currencies; lib/global-sales.ts).
   const homeCur = useHomeCurrency();
   const [minutes, setMinutes] = useState(45);
+  const [sessionWhere, setSessionWhere] = useState<WhereDraft>(draftOf());
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
   const [tiers, setTiers] = useState<TierForm>({ premium: { on: false, price: "2000", discount: "0" }, vip: { on: false, price: "7500", discount: "0" }, vvip: { on: false, price: "25000", discount: "0" } });
@@ -109,6 +111,8 @@ export default function PublishingSettingsPage() {
             setPrice(String(s.session.priceKobo / 10 ** currencyInfo(s.session.currency ?? "NGN").minor));
             setMinutes(s.session.minutes);
             setAvail(s.session.availability);
+            setSessionWhere(draftOf(s.session.where));
+            u.getIdToken().then((tk) => fetch("/api/publisher/settings", { headers: { Authorization: `Bearer ${tk}` } })).then((r) => r.json()).then((j) => { if (j.where) setSessionWhere(draftOf(j.where)); }).catch(() => {});
           }
           setSubOn(!!s.subscription?.enabled);
           if (s.subscription) {
@@ -145,7 +149,7 @@ export default function PublishingSettingsPage() {
     setMsg(null);
     try {
       await authedPost("/api/publisher/settings", {
-        session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
+        session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail, where: sessionWhere.format ? sessionWhere : null },
         subscription: { tiers: Object.fromEntries(SUB_TIERS.map((t) => [t, { enabled: subOn && tiers[t].on, priceNaira: Number(tiers[t].price), liveDiscountPct: Number(tiers[t].discount) || 0 }])) },
         fans: { hidden: fansHidden },
         ppm: { enabled: ppm.on, voiceNaira: ppm.voice, videoNaira: ppm.video, audience: ppm.audience },
@@ -303,6 +307,7 @@ export default function PublishingSettingsPage() {
                 </label>
               </div>
               <MyCommission kind="session" />
+              <SessionWhere value={sessionWhere} onChange={setSessionWhere} />
             </div>
           )}
           {(sessionOn || ppm.on) && (

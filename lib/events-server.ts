@@ -51,8 +51,10 @@ export async function createEvent(db: Firestore, uid: string, raw: EventInput & 
   const e: EventDoc = { ...r.event, hostUid: uid, hostName: p.displayName ?? "", hostUsername: p.username ?? "", ...(cid ? { cid, communityName } : {}), going: 0, interested: 0, createdAt: now.toISOString() };
   const doc = withNext(e, now);
   // AI content checks: what the event page shows, before it is listed.
-  await gateContent(db, { uid, kind: "event", label: e.title, text: [e.title, e.description, e.place].filter(Boolean).join("\n\n"), where: { ...(cid ? { cid } : {}), href: `/events/${ref.id}` }, path: ref.path, restore: { set: doc }, takedown: { delete: true } });
+  await gateContent(db, { uid, kind: "event", label: e.title, text: [e.title, e.description, e.place].filter(Boolean).join("\n\n"), ...(e.cover ? { pictures: [e.cover] } : {}), where: { ...(cid ? { cid } : {}), href: `/events/${ref.id}` }, path: ref.path, restore: { set: doc }, takedown: { delete: true } });
   await ref.set(doc);
+  // Followers of the host's calendar hear about a new public event (sent in batches by the cron: lib/events-server.ts sendAnnouncements).
+  if (e.visibility === "public" && !cid) await db.doc(`eventAnnouncements/${ref.id}`).set({ eventId: ref.id, hostUsername: e.hostUsername, after: "", done: false, sent: 0, createdAt: now.toISOString() });
   return { ...doc, id: ref.id };
 }
 export async function eventOf(db: Firestore, id: string): Promise<Ev> {
@@ -65,10 +67,11 @@ export async function updateEvent(db: Firestore, uid: string, id: string, raw: E
   if (!(await mayManage(db, e, uid))) throw new EventError(403, "Only the host can change this event.");
   const r = cleanEvent({ ...e, ...raw }, now, { community: !!e.cid });
   if (!r.ok) throw new EventError(400, r.error);
+  if (r.event.approval && !e.approval && ((await db.doc(`eventTickets/${id}`).get()).data()?.types ?? []).length) throw new EventError(409, "Approval is for free events. Remove the tickets first.");
   const next = withNext({ ...e, ...r.event }, now);
   const { id: _id, ...prev } = e;
   void _id;
-  await gateContent(db, { uid, kind: "event", label: next.title, text: [next.title, next.description, next.place].filter(Boolean).join("\n\n"), where: { ...(e.cid ? { cid: e.cid } : {}), href: `/events/${id}` }, path: `events/${id}`, restore: { set: next }, takedown: { update: { title: prev.title, description: prev.description, place: prev.place } } });
+  await gateContent(db, { uid, kind: "event", label: next.title, text: [next.title, next.description, next.place].filter(Boolean).join("\n\n"), ...(next.cover ? { pictures: [next.cover] } : {}), where: { ...(e.cid ? { cid: e.cid } : {}), href: `/events/${id}` }, path: `events/${id}`, restore: { set: next }, takedown: { update: { title: prev.title, description: prev.description, place: prev.place, cover: prev.cover ?? FieldValue.delete() } } });
   await db.doc(`events/${id}`).set(next);
   await tellAttendees(db, next, id, `${e.title} has changed: ${next.nextStartAt ? whenText(new Date(next.nextStartAt), new Date(new Date(next.nextStartAt).getTime() + (new Date(next.endsAt).getTime() - new Date(next.startsAt).getTime()))) : "see the event"}.`);
   return { ...next, id };
@@ -91,8 +94,12 @@ export async function getEvent(db: Firestore, id: string, viewerUid: string | nu
   // Paid tickets (lib/tickets.ts): each type's name, price and how many are left. None = free RSVP, as before.
   const types = (((await db.doc(`eventTickets/${id}`).get()).data()?.types ?? []) as TicketType[]);
   const canManage = viewerUid ? await mayManage(db, e, viewerUid) : false;
+  // The online link of a ticketed event or one that needs approval is for the people who are in (lib/event-kit.ts); other events'
+  // links stay public, as they always were (a public YouTube live, say).
+  const gated = !!e.liveUrl && (e.approval === true || types.length > 0) && !canManage && mine !== "going"
+    && !(viewerUid && (await db.collection("tickets").where("holderUid", "==", viewerUid).limit(500).get()).docs.some((d) => d.data().eventId === id && d.data().status === "valid"));
   return {
-    event: e, next: nextOccurrence(e, now), rsvp: mine, canManage,
+    event: gated ? { ...e, liveUrl: "", linkHidden: true } : e, next: nextOccurrence(e, now), rsvp: mine, canManage,
     tickets: types.map((t) => ({ id: t.id, name: t.name, priceKobo: t.priceKobo, left: ticketsLeft(t), ...(canManage ? { quantity: t.quantity, sold: t.sold } : {}) })),
   };
 }
@@ -122,8 +129,11 @@ export async function upcoming(db: Firestore, f: { state?: string; city?: string
     .filter((e) => !f.state || e.state === f.state)
     .filter((e) => !f.city || e.city.toLowerCase() === f.city.toLowerCase())
     .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)))
-    .slice(0, 100);
+    .slice(0, 100)
+    .map(publicView);
 }
+// Lists never carry the link of a ticketed event or one that needs approval (getEvent gives it to the people who are in).
+export const publicView = <T extends EventDoc>(e: T): T => (e.liveUrl && (e.approval || (e.priceFromKobo ?? 0) > 0) ? { ...e, liveUrl: "" } : e);
 
 // Explore and Trending: every listed event (lib/events.ts isListedEvent: public, not cancelled, not over, and not from an invite-only
 // community), with its next start worked out now, soonest first. One query on nextStartAt (a single-field index); two days back so an
@@ -137,7 +147,7 @@ export async function listedEvents(db: Firestore, now = new Date()): Promise<Ev[
   const findable = new Set(comms.filter((c) => c.exists && isDiscoverable(c.data() as Community)).map((c) => c.id));
   return all
     .filter((e) => isListedEvent(e, now, !!e.cid && findable.has(e.cid)))
-    .map((e) => ({ ...e, nextStartAt: nextOccurrence(e, now)!.start.toISOString() }))
+    .map((e) => publicView({ ...e, nextStartAt: nextOccurrence(e, now)!.start.toISOString() }))
     .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)));
 }
 
@@ -166,22 +176,64 @@ export async function trendingEvents(db: Firestore, days: number, views: Map<str
   ].slice(0, limit);
 }
 
-export async function rsvp(db: Firestore, uid: string, id: string, status: unknown, now = new Date()): Promise<{ going: number; interested: number; rsvp: Rsvp | null }> {
+export async function rsvp(db: Firestore, uid: string, id: string, status: unknown, now = new Date()): Promise<{ going: number; interested: number; requested: number; rsvp: Rsvp | null }> {
   const e = await eventOf(db, id);
   if (!(await mayView(db, e, uid))) throw new EventError(403, "This event is for the community's members.");
   if (e.cancelled) throw new EventError(409, "This event has been cancelled.");
-  const next: Rsvp | null = status === "going" || status === "interested" ? status : null;
+  const asked: Rsvp | null = status === "going" || status === "interested" ? status : null;
+  const host = await mayManage(db, e, uid);
   const ref = db.doc(`eventRsvps/${id}_${uid}`), eref = db.doc(`events/${id}`);
-  return db.runTransaction(async (t) => {
+  const r = await db.runTransaction(async (t) => {
     const cur = ((await t.get(ref)).data()?.status as Rsvp | undefined) ?? null;
     const ev = (await t.get(eref)).data() as Ev;
-    const counts = { going: Number(ev.going ?? 0), interested: Number(ev.interested ?? 0) };
+    // An event that needs approval: Going becomes a request, unless they're already in (or they run it).
+    const next: Rsvp | null = asked === "going" && ev.approval && !host && cur !== "going" ? "requested" : asked;
+    const counts = { going: Number(ev.going ?? 0), interested: Number(ev.interested ?? 0), requested: Number(ev.requested ?? 0) };
+    if (next === cur) return { ...counts, rsvp: cur, changed: false };
+    if (next === "going" && ev.capacity && counts.going >= ev.capacity) throw new EventError(409, "This event is full.");
     if (cur) counts[cur] = Math.max(0, counts[cur] - 1);
     if (next) counts[next] += 1;
     if (next) t.set(ref, { eventId: id, uid, status: next, at: now.toISOString() }); else t.delete(ref);
     t.update(eref, counts);
-    return { ...counts, rsvp: next };
+    return { ...counts, rsvp: next, changed: true };
   });
+  if (r.changed && r.rsvp === "requested") {
+    const p = (await db.doc(`users/${uid}`).get()).data() as UserProfile | undefined;
+    await notifyBell({ uid: e.hostUid, type: "event", linkHref: `/events/${id}?requests=1`, message: `${p?.displayName || "Someone"} asked to join ${e.title}.` }).catch(() => {});
+  }
+  return { going: r.going, interested: r.interested, requested: r.requested, rsvp: r.rsvp };
+}
+
+// The host's list of people asking to join (events that need approval), and accepting or declining one.
+export async function joinRequests(db: Firestore, uid: string, id: string): Promise<{ uid: string; name: string; username: string; avatar: string; at: string }[]> {
+  const e = await eventOf(db, id);
+  if (!(await mayManage(db, e, uid))) throw new EventError(403, "Only the host sees who asked to join.");
+  const rs = await db.collection("eventRsvps").where("eventId", "==", id).where("status", "==", "requested").limit(500).get();
+  const people = rs.size ? await db.getAll(...rs.docs.map((d) => db.doc(`users/${d.data().uid}`))) : [];
+  return rs.docs.map((d, i) => {
+    const p = (people[i]?.data() ?? {}) as UserProfile;
+    return { uid: String(d.data().uid), name: p.displayName ?? "", username: p.username ?? "", avatar: p.avatar ?? "", at: String(d.data().at) };
+  }).sort((a, b) => a.at.localeCompare(b.at));
+}
+export async function decideRequest(db: Firestore, uid: string, id: string, who: string, accept: boolean, now = new Date()): Promise<void> {
+  const e = await eventOf(db, id);
+  if (!(await mayManage(db, e, uid))) throw new EventError(403, "Only the host accepts people.");
+  const ref = db.doc(`eventRsvps/${id}_${who}`), eref = db.doc(`events/${id}`);
+  await db.runTransaction(async (t) => {
+    if ((await t.get(ref)).data()?.status !== "requested") throw new EventError(409, "That request has already been answered.");
+    const ev = (await t.get(eref)).data() as Ev;
+    const counts = { going: Number(ev.going ?? 0), requested: Math.max(0, Number(ev.requested ?? 0) - 1) };
+    if (accept) {
+      if (ev.capacity && counts.going >= ev.capacity) throw new EventError(409, "The event is full. Raise the guest limit to accept more.");
+      counts.going += 1;
+      t.set(ref, { eventId: id, uid: who, status: "going", at: now.toISOString(), acceptedAt: now.toISOString() });
+    } else t.delete(ref);
+    t.update(eref, counts);
+  });
+  const message = accept ? `You're in: ${e.title}. We'll remind you before it starts.` : `The host couldn't take you for ${e.title} this time.`;
+  const to = await getUserEmail(who).catch(() => null);
+  if (to) await sendEmail({ to, subject: accept ? `You're in: ${e.title}` : `About ${e.title}`, text: `${message}\n\n${SITE_URL}/events/${id}\n\n#NotesApp`, bell: { uid: who, type: "event", linkHref: `/events/${id}`, message } }).catch(() => {});
+  else await notifyBell({ uid: who, type: "event", linkHref: `/events/${id}`, message }).catch(() => {});
 }
 
 // The cron (every ~15 minutes): reminders 24 hours and 1 hour before each start, to everyone going or interested (bell, email and push), once
@@ -203,7 +255,7 @@ export async function sendEventReminders(db: Firestore, now = new Date(), push =
     const key = db.doc(`eventReminders/${e.id}_${e.nextStartAt.replace(/[:.]/g, "")}_${kind}`);
     const first = await db.runTransaction(async (t) => { if ((await t.get(key)).exists) return false; t.set(key, { at: now.toISOString() }); return true; });
     if (!first) continue;
-    const rs = await db.collection("eventRsvps").where("eventId", "==", e.id).limit(2000).get();
+    const rs = { docs: (await db.collection("eventRsvps").where("eventId", "==", e.id).limit(2000).get()).docs.filter((x) => x.data().status !== "requested") };
     const message = kind === "hour" ? `${e.title} starts in an hour${e.liveUrl ? " — the Join live link is on the event" : ""}.` : `${e.title} is tomorrow: ${whenText(start, new Date(start.getTime() + len))}.`;
     for (const r of rs.docs) {
       // Bell and email together (sendEmail adds the bell); just the bell when there's no address.
@@ -215,6 +267,35 @@ export async function sendEventReminders(db: Firestore, now = new Date(), push =
       await push(r.data().uid, { title: e.title, body: message, url: href }).catch(() => 0);
       sent++;
     }
+  }
+  return sent;
+}
+// A new public event, to the people who follow the host (follows/{uid}_{username}): a bell, a phone notification and an email, in batches
+// of ANNOUNCE_BATCH a run so a big calendar never holds up the cron. Each follower hears once per event.
+const ANNOUNCE_BATCH = 300;
+export async function sendAnnouncements(db: Firestore, now = new Date(), push = (uid: string, p: { title: string; body: string; url: string }) => sendPush(db, uid, p)): Promise<number> {
+  const open = await db.collection("eventAnnouncements").where("done", "==", false).limit(5).get();
+  let sent = 0;
+  for (const a of open.docs) {
+    const { eventId, hostUsername, after } = a.data() as { eventId: string; hostUsername: string; after: string };
+    const e = (await db.doc(`events/${eventId}`).get()).data() as Ev | undefined;
+    if (!e || e.cancelled || !e.nextStartAt || e.nextStartAt < now.toISOString()) { await a.ref.update({ done: true }); continue; }
+    let q = db.collection("follows").where("username", "==", hostUsername).orderBy("followedAt").limit(ANNOUNCE_BATCH);
+    if (after) q = q.startAfter(after);
+    const f = await q.get();
+    const href = withReturn(`/events/${eventId}`, "reminder");
+    const message = `${e.hostName} posted a new event: ${e.title}, ${whenText(new Date(e.nextStartAt), new Date(new Date(e.nextStartAt).getTime() + (new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime())))}.`;
+    for (const d of f.docs) {
+      const who = String(d.data().followerUid ?? "");
+      if (!who || who === e.hostUid) continue;
+      const to = await getUserEmail(who).catch(() => null);
+      if (to) await sendEmail({ to, subject: `New from ${e.hostName}: ${e.title}`, text: `${message}\n\n${SITE_URL}${href}\n\nYou're getting this because you follow ${e.hostName} on #NotesApp. #NotesApp`, bell: { uid: who, type: "event", linkHref: href, message } }).catch(() => {});
+      else await notifyBell({ uid: who, type: "event", linkHref: href, message }).catch(() => {});
+      await push(who, { title: e.title, body: message, url: href }).catch(() => 0);
+      sent++;
+    }
+    const last = f.docs[f.docs.length - 1];
+    await a.ref.update({ after: last ? String(last.data().followedAt) : after, done: f.size < ANNOUNCE_BATCH, sent: FieldValue.increment(f.size) });
   }
   return sent;
 }

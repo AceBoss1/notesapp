@@ -69,7 +69,10 @@ export async function startCall(db: Firestore, callerUid: string, toUid: unknown
   );
   if (b1.exists) throw new MessageError(404, "That member wasn't found.");
   if (b2.exists) throw new MessageError(403, "You've blocked this member. Unblock them to call.");
-  if ((!f1.exists && !isAutoFollowed(them.username)) || (!f2.exists && !isAutoFollowed(me.username))) throw new MessageError(403, `Calls are for people who follow each other. You and ${them.name} need to follow each other first.`);
+  // A booked 1:1 session online on #NotesApp (lib/booking-time.ts sessionPlace): its two people may call each other around its time,
+  // without following each other (blocks still apply, above).
+  const sessionNow = ((!f1.exists && !isAutoFollowed(them.username)) || (!f2.exists && !isAutoFollowed(me.username))) && await bookedSessionNow(db, callerUid, callee, now);
+  if (!sessionNow && ((!f1.exists && !isAutoFollowed(them.username)) || (!f2.exists && !isAutoFollowed(me.username)))) throw new MessageError(403, `Calls are for people who follow each other. You and ${them.name} need to follow each other first.`);
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const cid = conversationId(callerUid, callee);
   const doc: CallDoc = { callerUid, calleeUid: callee, kind, status: "ringing", cid, callerName: me.name, callerAvatar: me.avatar, calleeName: them.name, calleeAvatar: them.avatar, createdAt: now.toISOString() };
@@ -151,3 +154,18 @@ export async function clearCandidates(db: Firestore, id: string) {
 }
 
 export type { CallKind };
+
+// Is there a confirmed session between these two, online on #NotesApp, from 15 minutes before it starts until 15 minutes after it ends?
+export const SESSION_CALL_MARGIN_MS = 15 * 60_000;
+export async function bookedSessionNow(db: Firestore, a: string, b: string, now = new Date()): Promise<boolean> {
+  const [x, y] = await Promise.all([
+    db.collection("bookings").where("clientUid", "==", a).limit(200).get(),
+    db.collection("bookings").where("clientUid", "==", b).limit(200).get(),
+  ]);
+  const t = now.getTime();
+  return [...x.docs.map((d) => d.data()).filter((d) => d.publisherUid === b), ...y.docs.map((d) => d.data()).filter((d) => d.publisherUid === a)].some((d) => {
+    if (d.status !== "confirmed" || d.where?.mode !== "online" || d.where?.online !== "notesapp") return false;
+    const start = new Date(String(d.startsAt)).getTime(), end = start + Number(d.minutes ?? 60) * 60_000;
+    return t >= start - SESSION_CALL_MARGIN_MS && t <= end + SESSION_CALL_MARGIN_MS;
+  });
+}

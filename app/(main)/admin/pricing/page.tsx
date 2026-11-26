@@ -16,7 +16,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "autoWithdrawMaxKobo", "whatsappMonthlyKobo", "accountMonthlyKobo", "cardMachineMonthlyKobo", "housekeepingMonthlyKobo", "setupFromKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const KOBO_KEYS = new Set(["pack10kKobo", "pack25kKobo", "pack50kKobo", "monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "targetKobo", "fromKobo", "autoWithdrawMaxKobo", "whatsappMonthlyKobo", "accountMonthlyKobo", "cardMachineMonthlyKobo", "housekeepingMonthlyKobo", "setupFromKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
 const RATE_EXTRA = new Set(["weeklyRate", "capRate", "cutRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -26,7 +26,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "departmentsMax" || key === "branchesMax" || key === "holdMinutes" || key === "lateMinutes" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key.startsWith("perWeek") || key === "slots" || key === "minSenders" || key === "premiumPct" || key === "vipPct" || key === "quantityMax" || key === "liveTicketUpliftPct" || key === "ppmUpliftPct" || key === "departmentsMax" || key === "branchesMax" || key === "holdMinutes" || key === "lateMinutes" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -154,6 +154,19 @@ export default function PricingPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-slate">Enterprise has no fixed staff limit and Free Basic none. A customer paying what they owe from their statement link pays the seller like a store sale: by default with the seller&apos;s physical-goods commission, held, then paid out.</p>
+          </section>
+          <section className="card p-5">
+            <h2 className="font-display text-2xl text-ink">Event invitations</h2>
+            <p className="mt-1 text-xs text-slate">Invitations and newsletters a week to people not yet going or booked (followers and pasted email addresses), by plan; messages to people already in are always unlimited. The packs add more a week for a month (docs/EVENTS_DISCOVER.md).</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Free Basic, a week</span>{input(["invites", "perWeekBasic"], "", "Invitations a week on Free Basic")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Pro, a week</span>{input(["invites", "perWeekPro"], "", "Invitations a week on Pro")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Business, a week</span>{input(["invites", "perWeekBusiness"], "", "Invitations a week on Business")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Enterprise, a week (unless agreed)</span>{input(["invites", "perWeekEnterprise"], "", "Invitations a week on Enterprise")}</div>
+              <div className="flex items-center justify-between gap-3"><span>10,000 more a week, a month</span>{input(["invites", "pack10kKobo"], "₦", "Price of 10,000 more invitations a week")}</div>
+              <div className="flex items-center justify-between gap-3"><span>25,000 more a week, a month</span>{input(["invites", "pack25kKobo"], "₦", "Price of 25,000 more invitations a week")}</div>
+              <div className="flex items-center justify-between gap-3"><span>50,000 more a week, a month</span>{input(["invites", "pack50kKobo"], "₦", "Price of 50,000 more invitations a week")}</div>
+            </div>
           </section>
 
           <section className="card mt-6 p-5">

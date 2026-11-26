@@ -63,6 +63,9 @@ export type PricingConfig = {
   // the card-machine link, Housekeeping), the "from" price of Set it up for me, how many departments Hotel Standard and Grand may run
   // (Starter has one), how many branches Grand may add, how long an unpaid booking or order holds its room or items, and when a kitchen
   // order turns late. Help pages never print these figures.
+  // Event invitations (docs/EVENTS_DISCOVER.md, v0.210.0): invitations and newsletters a week to people not yet registered, by plan, and
+  // the monthly add-on packs. Messages to an event's own guests are always unlimited.
+  invites: { perWeekBasic: number; perWeekPro: number; perWeekBusiness: number; perWeekEnterprise: number; pack10kKobo: number; pack25kKobo: number; pack50kKobo: number };
   hotel: { whatsappMonthlyKobo: number; accountMonthlyKobo: number; cardMachineMonthlyKobo: number; housekeepingMonthlyKobo: number; setupFromKobo: number; departmentsMax: number; branchesMax: number; holdMinutes: number; lateMinutes: number };
   // Course covers made with Nana (lib/covers.ts): how many a member makes a day on each plan (new designs and edits count 1 each).
   // The owner's rule: Free Basic 3 a day; Free (Standard) can't publish, so 0. The Pearl tokens come from the Nana allowance as usual.
@@ -103,6 +106,7 @@ export function currentPricing(): PricingConfig {
     inventory: { ...INVENTORY },
     books: { ...BOOKS },
     hotel: { ...HOTEL },
+    invites: { ...INVITES },
     academyCovers: { ...ACADEMY_COVERS },
     nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo, resetEvery: NANA.resetEvery, allowanceGems: NANA.allowanceGems, usdKobo: NANA.usdKobo, rates: { pearl: { ...NANA.rates.pearl }, emerald: { ...NANA.rates.emerald }, ruby: { ...NANA.rates.ruby } } },
     badgeKobo: BADGE_PRICE_KOBO,
@@ -137,6 +141,9 @@ const INVENTORY: PricingConfig["inventory"] = { addonMonthlyKobo: 1_500 * 100, t
 // Staff roles, paying a debt online (2 Nov 2026, v0.119.0): Business 4 staff seats (as its team seats), Pro none until open question 4 is
 // answered; a debt paid online takes the store's commission and is held 7 days, until open question 5 is answered.
 const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500, staffSeatsPro: 0, staffSeatsBusiness: 4, debtCommission: "store", debtHoldDays: 7 };
+// Event invitations (owner approved 26 Nov 2026): 500 / 2,000 / 5,000 a week, agreed on Enterprise (20,000 to start); packs ₦10,000 /
+// ₦25,000 / ₦45,000 a month for 10,000 / 25,000 / 50,000 more a week.
+const INVITES: PricingConfig["invites"] = { perWeekBasic: 500, perWeekPro: 2_000, perWeekBusiness: 5_000, perWeekEnterprise: 20_000, pack10kKobo: 10_000 * 100, pack25kKobo: 25_000 * 100, pack50kKobo: 45_000 * 100 };
 // The Hotel kit's defaults (12 Nov 2026), until the owner sets them in Admin → Pricing.
 const HOTEL: PricingConfig["hotel"] = { whatsappMonthlyKobo: 10_000 * 100, accountMonthlyKobo: 5_000 * 100, cardMachineMonthlyKobo: 5_000 * 100, housekeepingMonthlyKobo: 3_000 * 100, setupFromKobo: 50_000 * 100, departmentsMax: 6, branchesMax: 10, holdMinutes: 30, lateMinutes: 20 };
 const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: TRIAL_DAYS, cutRate: 0.1, cutMinKobo: 100 * 100 };
@@ -197,6 +204,7 @@ export function applyPricing(c: PricingConfig): void {
   Object.assign(INVENTORY, c.inventory);
   Object.assign(BOOKS, c.books);
   if (c.hotel) Object.assign(HOTEL, c.hotel);
+  if (c.invites) Object.assign(INVITES, c.invites);
   Object.assign(ACADEMY_COVERS, c.academyCovers);
   Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
   NANA.resetEvery = c.nana.resetEvery; NANA.allowanceGems = c.nana.allowanceGems; NANA.usdKobo = c.nana.usdKobo;
@@ -285,6 +293,16 @@ export function cleanPricing(input: unknown): PricingConfig {
     departmentsMax: hn("departmentsMax", "Hotel kit, departments on Standard and Grand", 2, 50), branchesMax: hn("branchesMax", "Hotel kit, branches on Grand", 1, 200),
     holdMinutes: hn("holdMinutes", "Hotel kit, minutes an unpaid booking or order is held", 5, 1_440), lateMinutes: hn("lateMinutes", "Hotel kit, minutes before a kitchen order is late", 5, 240),
   };
+  // Event invitations (v0.210.0): a config saved before keeps the defaults, field by field.
+  const iv2 = i.invites === undefined ? d.invites : rec(i.invites);
+  const ik = (k: keyof PricingConfig["invites"], what: string) => (iv2[k] === undefined ? d.invites[k] : kobo(iv2[k], what, 100 * 100));
+  const inn = (k: keyof PricingConfig["invites"], what: string) => (iv2[k] === undefined ? d.invites[k] : count(iv2[k], what, 0, 10_000_000));
+  const invites = {
+    perWeekBasic: inn("perWeekBasic", "Invitations a week, Free Basic"), perWeekPro: inn("perWeekPro", "Invitations a week, Pro"),
+    perWeekBusiness: inn("perWeekBusiness", "Invitations a week, Business"), perWeekEnterprise: inn("perWeekEnterprise", "Invitations a week, Enterprise"),
+    pack10kKobo: ik("pack10kKobo", "10,000 more invitations a week, monthly price"), pack25kKobo: ik("pack25kKobo", "25,000 more invitations a week, monthly price"),
+    pack50kKobo: ik("pack50kKobo", "50,000 more invitations a week, monthly price"),
+  };
   // Added later too: a config without it keeps the default.
   const ac = i.academyCovers === undefined ? d.academyCovers : rec(i.academyCovers);
   const daily = (k: keyof CoverLimits, name: string) => {
@@ -337,7 +355,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
-    coursePackages, certificateLate, logistics, inventory, books, hotel, academyCovers, nana,
+    coursePackages, certificateLate, logistics, inventory, books, hotel, invites, academyCovers, nana,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
@@ -420,3 +438,6 @@ export function mergeCells(cells: string[]): { text: string; span: number; from:
   });
   return out;
 }
+
+// Event invitations: the live allowances and add-on packs (Admin → Pricing).
+export const invitesConfig = (): PricingConfig["invites"] => ({ ...INVITES });

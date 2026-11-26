@@ -1508,6 +1508,17 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     hr: true). Send-as: careers hr | me | nana; firm jobs hr | owner (the firm's name) | nana, enforced on the server. hrReadAt/hrReadBy on
     careerApplications and jobApplications (server-only; kept out of the applicant's list and data export). Bells on an applicant's reply go
     to everyone with the hiring privilege for that thread. Tests: test:hr-inbox (hr-inbox and firm-hr-inbox emulator tests), replies, hr.
+172. **Discover events, meetings, sessions in person or online, invitations (v0.210.0; owner, 26 Nov 2026: "Decisions approved, build
+    with your recommendations", "should support physical and virtual"; `docs/EVENTS_DISCOVER.md`):** `lib/event-kit.ts` (categories,
+    themes, where, Discover maths), `lib/events.ts`/`events-server.ts` (category, cover, theme, format, approval with `joinRequests`/
+    `decideRequest`, capacity, `priceFromKobo`, links hidden for ticketed/approval events, `sendAnnouncements` to followers),
+    `lib/events-discover-server.ts` (statCache `eventsDiscover`, 10 min), `lib/meetings*.ts` (payment kind `meeting`, `readForMeeting`/
+    `writeMeetingSeat` in fulfillPayment, refunds by `refundFraction`), sessions' `where` with the private part in `sessionPlaces/{uid}`
+    and `bookedSessionNow` in `lib/calls-server.ts`, `lib/event-invites*.ts` (pricing section `invites`, payment kind `invite_pack`,
+    `inviteWeeks`/`inviteJobs`/`invitePacks`); meeting rooms are profile lives with `profile.meetingId` (`startMeetingRoom`, seat check in
+    `mayWatchProfileLive`); discount targets `meeting`, `ticket`, `invite_pack`; packs earn referrals. Cron jobs: eventAnnouncements, meetingReminders, inviteJobs. New pages: /events (Discover),
+    /events/new, /events/calendar/<u>, /meetings/new, /meetings/<id>; /booking and /pricing#events rewritten. Tests: test:events-discover,
+    test:events-discover-server, rules. Deploy rules and indexes.
 
 
 ## 3. How the work is done (please keep these)

@@ -30,7 +30,7 @@ export async function startCheckout(
   user: User,
   // `code`: a discount code the buyer applied (components/DiscountCodeField.tsx); the server checks it again and prices the order.
   body: { code?: string } & (
-    | { kind: "booking"; username: string; date: string; slot: string }
+    | { kind: "booking"; username: string; date: string; slot: string; mode?: "in_person" | "online" }
     | { kind: "subscription"; username: string; tier?: "premium" | "vip" | "vvip" }
     | { kind: "boost"; noteId: string; packageId: string }
     | { kind: "boost"; itemId: string; packageId: string }
@@ -54,7 +54,9 @@ export async function startCheckout(
     | { kind: "certificate"; courseId: string; learnerName: string }
     | { kind: "giving"; cid: string; amountNaira: number; fund: string; note?: string; anonymous?: boolean; cover?: boolean }
     | { kind: "ticket"; eventId: string; typeId: string; quantity: number }
-    | { kind: "live_ticket"; eventId: string }),
+    | { kind: "live_ticket"; eventId: string }
+    | { kind: "meeting"; meetingId: string }
+    | { kind: "invite_pack"; pack: string }),
   // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
   // stayIfPaid: paid from the wallet already, so don't leave the page (a gift during a live: leaving would drop the sender out of
   // the room, and end it if they host). Returns { paid: true, reference } then; otherwise goes to the payment page as before.

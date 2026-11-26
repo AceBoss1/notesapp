@@ -17,7 +17,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
+import { invitesConfig, academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
 import { MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT } from "./courses";
 import { nanaResetText, yearlyFreeText, pct as rate } from "./pricing";
@@ -610,6 +610,22 @@ Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the 
 **Weekly boards:** **Top gifted** (who received the most this week, on [Gifts](/gifts)) and each creator's **Top gifters** (who sent them the most, on their Gifts tab) start again at midnight going into Monday, Lagos time; **Last week** keeps the result. Anonymous gifts count for the receiver but never name the sender on Top gifters.
 
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("events-meetings-sessions", "Events, meetings and sessions", "Publishing and earning", `
+There are three ways for people to book you on #NotesApp. Each can be **in person, online or both**, and each shows on your calendar.
+
+**Events** are one-to-many: a launch, a service, a class, a meetup. Add a cover picture or pick a theme colour (with the African pattern if you like) and a category so people find it in **Discover**. Events can be free, have paid tickets, or **need your approval** (free events only: people ask to join and you accept or decline them). Set a **guest limit** and it closes when it's full. Online on #NotesApp means you go live from your profile; you can also give your own Zoom, Meet, Teams or YouTube link. For an event with tickets or approval, the link shows only to people who are in. Each ticket carries a small charge (${bandsText(formatNaira)}) and we take no commission.
+
+**Meetings** are a small group at a set time: office hours, workshops, group coaching. Choose 2 to 50 seats, free or a price per seat, and where: a place, online, or both. Online means a **#NotesApp meeting room** (a live room on our Cloudflare relay with video on stage, raised hands and chat, that only people with a seat can enter; you open it from 30 minutes before) or your own Zoom, Meet or Teams link. Tap **Set up the next one** on a meeting to copy it a week on, and New meeting offers to start from your last one. Paid seats carry your plan's commission, as sessions do, and follow the same cancellation policy. If you cancel the meeting, everyone is refunded in full. Your discount codes can cover meeting seats too.
+
+**Sessions** are one-to-one, booked from your open times. Under **Rates & payouts → Where sessions happen**, choose in person (your address, shown to a client once they've booked), online (a #NotesApp call, or your own link) or either (the client chooses when they book). For a call on #NotesApp you and your client can call each other from 15 minutes before the session until 15 minutes after it.
+
+**Your calendar** is at /events/calendar/your-username. People who follow you get a bell and an email when you post a new public event, and can add your calendar to their phone.`),
+    A("event-invitations", "Inviting people to your events and meetings", "Publishing and earning", `
+On your event or meeting, tap **Invite people**. Choose **your followers**, paste **email addresses** (up to 500 at a time), and add a short note if you like. People already going or booked aren't invited again.
+
+**How many:** invitations count toward your week (Monday to Sunday, Lagos time). Free Basic includes ${invitesConfig().perWeekBasic.toLocaleString("en-NG")} a week, Pro ${invitesConfig().perWeekPro.toLocaleString("en-NG")}, Business ${invitesConfig().perWeekBusiness.toLocaleString("en-NG")} and Enterprise as agreed. Need more? Add a pack (discount codes work on packs, and a pack counts for whoever referred you) of 10,000 (${formatNaira(invitesConfig().pack10kKobo)}), 25,000 (${formatNaira(invitesConfig().pack25kKobo)}) or 50,000 (${formatNaira(invitesConfig().pack50kKobo)}) more a week for a month from the same panel. Reminders and updates to people already going or booked are always free and never count.
+
+Invitations go by email and, for members, as a bell. Each says who invited them and links to the event or meeting.`),
     A("what-your-trial-kept-you", "What your free trial kept you", "Plans and pricing", `
 Try **Pro** or **Business** free for 15 days, with no card. While the trial runs, a card at the top of **My account** shows how much more you've kept on the plan than you would have on your own plan, from your own payments.
 
@@ -1439,14 +1455,18 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 **Giving and tickets:** take offerings, tithes and donations with [Giving](/help/giving), and sell [paid event tickets](/help/event-tickets) with QR check-in.
 
 **More on each part:** [General](/help/community-general), [Spaces](/help/community-spaces), [Circles](/help/community-circles) and [Audio rooms](/help/community-audio-rooms), each with its own page on [Community](/community).`),
-    A("events", "Events", "Teams and organisations", `
-[Events](/events) are for every account: services, meetings, launches, classes and outreaches. Add one on the Events page (for yourself) or on your community's Events tab (for the community, open to everyone or members only).
+    A("events", "Events and Discover", "Teams and organisations", `
+[Events](/events) are for every account: services, meetings, launches, classes and outreaches. Tap **＋ Create** on Discover (for yourself) or add one on your community's Events tab (for the community, open to everyone or members only).
 
-An event has a start and end (Lagos time), where it is, and or a **Join live** link. For a talk in your community, host it in an [audio room](/help/community-audio-rooms) on #NotesApp (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${roomListeners} listening). For video or a bigger audience, which our own streaming doesn't do yet, the link can be YouTube Live, Facebook Live, Zoom, Google Meet or any https link. It can repeat **every week** or **every month**, until a date if you like.
+**Discover:** /events shows featured events for your city, the 12 categories with how many are coming up, **calendars to follow** and events by city (Nigeria, the rest of Africa, the diaspora and online). New events show there within about 10 minutes.
 
-People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city, in **Explore → Events**, and in **Trending → Events** when people are buying tickets, RSVPing or visiting. Members-only events and events of an invite-only community never are. If you change or cancel an event, everyone going or interested is told.
+**An event** has a start and end (Lagos time), a **category**, a **cover picture** or a **theme** (a colour, with the African pattern if you like), and where it happens: **in person**, **online** or **both**. Online on #NotesApp means you go live from your profile (lives run on our Cloudflare relay); you can also give your own YouTube, Zoom, Google Meet or Teams link. For a talk in your community, an [audio room](/help/community-audio-rooms) works too (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${roomListeners} listening).
 
-**Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ${money(TICKET_PRICE_MIN_KOBO)}) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
+**Who gets in:** free events can **need your approval**: people ask to join and you accept or decline them from the event's page. Set a **guest limit** and it closes when it's full. For an event with tickets or approval, the online link shows only to people who are in.
+
+People tap **Register** (or **Request to join**) or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. People who **follow your calendar** hear about each new public event. To bring more people, use **Invite people** on the event ([how invitations work](/help/event-invitations)).
+
+**Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ${money(TICKET_PRICE_MIN_KOBO)}) and how many. With none, the event stays free. Paid tickets need your bank account under Rates & payouts; your own discount codes can cover them. More in [Paid event tickets](/help/event-tickets) and [Events, meetings and sessions](/help/events-meetings-sessions).`),
     A("event-tickets", "Paid event tickets and check-in", "Teams and organisations", `
 **For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts.
 
@@ -1455,6 +1475,8 @@ People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour 
 **For buyers:** choose the type and how many (up to ${TICKETS_PER_ORDER_MAX} at a time) and pay by card or bank through Paystack. Each ticket gets its own code and **QR code**, under [My tickets](/tickets), on the event's page, and in your confirmation email. Each lets one person in, once. When a type is sold out, it says so before you pay.
 
 **Check-in at the door:** the organiser taps **Check-in** on the event (or opens /events/<event>/checkin) and types a code, or taps **Scan QR codes** where the browser can read them (Chrome on Android, for example). Pointing any phone camera at a ticket's QR also opens the check-in page and checks it. The page answers **Valid — Ada Obi, Regular**, **Already checked in at 18:05**, **Not a ticket for this event**, or **Not valid: refunded**, and counts who is in.
+
+**Discount codes:** make a code for **Event tickets** under Discount codes and buyers enter it when they pay; the small charge stays per ticket and the card charge follows what they actually pay.
 
 **Refunds:** a refunded ticket stops working straight away and goes back on sale.
 

@@ -8,7 +8,7 @@ import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo, disableSubscription } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { ensurePricing } from "./pricing-server";
-import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
+import { sessionEnd, sessionStart, formatSlot, formatNaira, sessionPlaceText } from "./booking-time";
 import { formatNaira as nairaText } from "./booking-time";
 import { moneyIn } from "./global-sales";
 import { notifyBell, sendEmail } from "./email";
@@ -38,6 +38,7 @@ import { announceGrandGift, readGiftDaily, readGiftTallies, writeGiftDaily, writ
 import { upliftedRate, type GiftContext, type GiftMotif, type GiftToKind } from "./gift-catalogue";
 import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
+import { afterPaidSeat, readForMeeting, writeMeetingSeat } from "./meetings-server";
 import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 import { handleOf, postRoomEvent } from "./room-events-server";
@@ -49,7 +50,7 @@ import { afterHotelPay, confirmPaylonyHotel, readHotelPay, writeHotelPay, type H
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon" | "meeting" | "invite_pack";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -57,7 +58,7 @@ export type PaymentRecord = {
   publisherUid: string;
   publisherUsername: string;
   commissionRate: number; // NotesApp's cut, 0–1, fixed at checkout time
-  booking?: { username: string; date: string; slot: string; minutes: number };
+  booking?: { username: string; date: string; slot: string; minutes: number; where?: import("./booking-time").SessionPlace };
   subscription?: { username: string; planCode: string; tier?: SubTier }; // tier: lib/fans.ts (Premium when missing)
   boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
   // referralFirst: a referred friend's first plan (lib/referrals.ts firstPeriodOffer): the card check or the year less a month now,
@@ -149,6 +150,7 @@ export type PaymentRecord = {
   // Paid event tickets (lib/tickets.ts): the type, how many, and the occurrence they are for. publisherUid is the event's host.
   // bandKobo / cardChargeKobo / netKobo: the charges fixed at checkout (lib/tickets.ts quoteTickets, since v0.117.0); a ticket bought
   // before then has none and keeps the commission recorded in commissionRate.
+  meeting?: { meetingId: string; title: string; startsAt: string; endsAt: string; name: string }; // a paid seat (lib/meetings-server.ts)
   ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string; bandKobo?: number; cardChargeKobo?: number; netKobo?: number };
   // A customer paying what they owe a Business books seller (lib/books-debt-server.ts): whose statement, which customer, and once paid
   // the payment's entry and the customer's receipt. publisherUid is the seller.
@@ -165,6 +167,7 @@ export type PaymentRecord = {
   paylony?: { account: { accountNumber: string; bankName: string; accountName: string; expiresAt: string }; lastVerify?: { at: string; state: string } };
   // A month of a Hotel kit add-on (lib/hotel.ts ADDONS), for the owner's hotels.
   hotelAddon?: { addon: string };
+  invitePack?: { pack: string; sends: number }; // a month of more event invitations a week (lib/event-invites.ts)
 };
 export type PpmPaymentInfo = { sessionId: string; kind: "voice" | "video"; perMinuteKobo: number; billedMinutes: number; heldKobo: number; baseRate: number; upliftPct: number };
 export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: string; band: "early" | "normal" | "late"; listKobo: number; discountPct: number; tier?: SubTier; holderName: string; baseRate: number; upliftPct: number };
@@ -184,7 +187,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm" | "hotel" | "task";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm" | "hotel" | "task" | "meeting";
   // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
   // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
   withdrawalOf?: number;
@@ -339,10 +342,12 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     // A discount code's running totals: read now (every read comes before any write), written with the paid status below.
     const codeRead = await readCodeForRedemption(t, db, current.discount);
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
+    const meetingRead = current.kind === "meeting" && current.meeting ? await readForMeeting(t, db, current) : null;
     const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
     const liveRead = current.kind === "live_ticket" && current.liveTicket ? await readForLiveTicket(t, db, current) : null;
     const hotelRead = current.kind === "hotel" && current.hotel ? await readHotelPay(t, db, current) : null;
     const addonHotel = current.kind === "hotel_addon" && current.hotelAddon ? await t.get(db.doc(`hotels/${current.uid}`)) : null;
+    const packRead = current.kind === "invite_pack" && current.invitePack ? await t.get(db.doc(`invitePacks/${current.uid}`)) : null;
     // A subscription replaces the subscriber's record with this creator (a tier change carries the days left over).
     const subPrev = current.kind === "subscription" && current.subscription ? (await t.get(db.doc(`subscriptions/${current.uid}_${current.subscription.username}`))).data() : undefined;
 
@@ -369,6 +374,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         reference,
         amountKobo: current.amountKobo,
         startsAt: sessionStart(date, slot).toISOString(),
+        ...(current.booking?.where ? { where: current.booking.where } : {}),
         status: "confirmed",
         reminder24Sent: false,
         reminder1Sent: false,
@@ -465,6 +471,14 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         ...(g.cardChargeKobo ? { cardChargeKobo: g.cardChargeKobo } : {}),
         status: "held", releaseAfter: givingReleaseAfter(new Date(now)).toISOString(), createdAt: now,
       } satisfies LedgerEntry);
+    } else if (current.kind === "meeting" && current.meeting && meetingRead) {
+      // A paid meeting seat (lib/meetings-server.ts): full or cancelled meanwhile → flagged for a refund, like a sold-out ticket. The
+      // host's money, after their plan's commission fixed at checkout, is held until the meeting ends, then the usual problem window.
+      if (!writeMeetingSeat(t, db, current, meetingRead, now)) {
+        t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
+        return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
+      }
+      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(current.meeting.endsAt), now)); // released after the end plus the usual window
     } else if (current.kind === "ticket" && current.ticket && ticketRead) {
       // Event tickets: one per admission, the sold count moved here. Not enough left (bought at the same moment as the last ones) →
       // flagged for a refund, like a sold-out shop order. The host's money, after the charges, is held until the event ends: like a
@@ -495,6 +509,13 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       // as late money; Business books; the owner's money held in the ledger.
       current.hotel = writeHotelPay(t, db, current, hotelRead, now);
       t.update(payRef, { hotel: current.hotel });
+    } else if (current.kind === "invite_pack" && current.invitePack && packRead) {
+      // A month of more event invitations a week: platform revenue (no ledger), running on from what's left of a pack of the same size;
+      // a different size replaces it from now.
+      const cur = packRead.data() as { sends?: number; until?: string } | undefined;
+      const same = cur?.sends === current.invitePack.sends && cur.until && Date.parse(cur.until) > Date.parse(now);
+      const from = same ? Date.parse(cur!.until!) : Date.parse(now);
+      t.set(packRead.ref, { uid: current.uid, pack: current.invitePack.pack, sends: current.invitePack.sends, until: new Date(from + 31 * 86_400_000).toISOString(), reference, updatedAt: now });
     } else if (current.kind === "hotel_addon" && current.hotelAddon && addonHotel) {
       // A month of a Hotel kit add-on: platform revenue (no ledger), running on from what's left.
       const cur = (addonHotel.data()?.addons ?? {})[current.hotelAddon.addon] as string | undefined;
@@ -722,6 +743,11 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const real = !(p.tier!.referralFirst && p.tier!.interval === "monthly");
       if (real) await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, `${p.tier!.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", p.reference, e));
     }
+    // Event invitation packs earn the member who referred the buyer, like a plan (lib/referrals-server.ts recordPlanEarning).
+    if (result.payment.kind === "invite_pack" && result.payment.invitePack) {
+      const p = result.payment;
+      await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, "Event invitation pack").catch((e) => console.error("invite pack earning", p.reference, e));
+    }
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
     }
@@ -849,6 +875,7 @@ async function notifyPaid(p: PaymentRecord) {
   }
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);
+  if (p.kind === "meeting" && p.meeting) return afterPaidSeat(getAdminDb(), p);
   if (p.kind === "ticket" && p.ticket) return notifyTickets(p);
   if (p.kind === "live_ticket" && p.liveTicket) return notifyLiveTicket(p);
   if (p.kind === "life_naira") {
@@ -1070,14 +1097,14 @@ async function notifyPaid(p: PaymentRecord) {
     to: p.email,
     subject: `Session confirmed — ${when}`,
     bell: { uid: p.uid, type: "booking", linkHref: "/bookings" },
-    text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
+    text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.${p.booking.where ? `\n${sessionPlaceText(p.booking.where)}` : ""}\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
   });
   if (pubEmail) {
     await sendEmail({
       to: pubEmail,
       subject: `New booking — ${when}`,
       bell: { uid: p.publisherUid, type: "booking", linkHref: "/bookings" },
-      text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.${p.booking.where ? `\n${sessionPlaceText(p.booking.where)}` : ""}\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
 }

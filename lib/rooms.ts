@@ -92,7 +92,8 @@ export type RoomDoc = {
   // come in: everyone signed in, the host's followers, or their subscribers. gifts: whether gifts can be sent in it. notified: followers
   // were sent a bell. Like a paid live, only the moderators the host names moderate.
   // guests: whether people without an account can watch (docs/GUEST_LIVES.md; only for an Everyone live; absent means yes).
-  profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean; guests?: boolean };
+  // meetingId: a meeting's room (lib/meetings-server.ts startMeetingRoom): only the host and people with a seat get in.
+  profile?: { audience: ProfileLiveAudience; hostUsername: string; gifts: boolean; notified: boolean; guests?: boolean; meetingId?: string };
   // Guests watching now (counted from guests/, like listening) and when; guestJoins: guests who joined #NotesApp from this live, and
   // guestSignIns: guests who signed in to an account they already had.
   guests?: number; guestsCountedAt?: string; guestJoins?: number; guestSignIns?: number;

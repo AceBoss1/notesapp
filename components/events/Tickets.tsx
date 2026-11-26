@@ -1,5 +1,6 @@
 "use client";
 
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -17,18 +18,19 @@ import AddToCalendar from "@/components/calendar/AddToCalendar";
 // and the check-in page at the door.
 export type TicketOffer = { id: string; name: string; priceKobo: number; left: number; quantity?: number; sold?: number };
 
-export function BuyTickets({ eventId, offers, signedIn }: { eventId: string; offers: TicketOffer[]; signedIn: boolean }) {
+export function BuyTickets({ eventId, offers, signedIn, hostUsername }: { eventId: string; offers: TicketOffer[]; signedIn: boolean; hostUsername?: string }) {
   const [typeId, setTypeId] = useState(offers.find((o) => o.left > 0)?.id ?? "");
   const [qty, setQty] = useState(1);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const sel = offers.find((o) => o.id === typeId);
   const max = Math.min(TICKETS_PER_ORDER_MAX, sel?.left ?? 0);
   async function buy() {
     const u = auth.currentUser;
     if (!u || !sel) return;
     setBusy(true); setErr("");
-    try { await startCheckout(u, { kind: "ticket", eventId, typeId: sel.id, quantity: qty }, { payWith: "card" }); }
+    try { await startCheckout(u, { kind: "ticket", eventId, typeId: sel.id, quantity: qty, ...(disc ? { code: disc.code } : {}) }, { payWith: "card" }); }
     catch (e) { setErr(e instanceof Error ? e.message : "Couldn't start the payment."); setBusy(false); }
   }
   return (
@@ -48,10 +50,11 @@ export function BuyTickets({ eventId, offers, signedIn }: { eventId: string; off
             <select value={qty} onChange={(e) => setQty(Number(e.target.value))} className="rounded-lg border border-rule bg-card px-2 py-1">{Array.from({ length: max }, (_, i) => i + 1).map((n) => <option key={n}>{n}</option>)}</select>
           </label>
           {signedIn
-            ? <button className="btn-primary !px-4 !py-2 text-xs" disabled={busy} onClick={buy}>{busy ? "Starting…" : `Pay ${formatNaira(sel.priceKobo * qty)}`}</button>
+            ? <button className="btn-primary !px-4 !py-2 text-xs" disabled={busy} onClick={buy}>{busy ? "Starting…" : `Pay ${formatNaira(Math.max(0, sel.priceKobo * qty - (disc?.discountKobo ?? 0)))}`}</button>
             : <Link href={`/login?next=/events/${eventId}`} className="btn-primary !px-4 !py-2 text-xs">Sign in to buy</Link>}
         </div>
       )}
+      {sel && sel.left > 0 && signedIn && hostUsername && <DiscountCodeField key={`${sel.id}-${qty}`} target="ticket" seller={hostUsername} itemId={eventId} subtotalKobo={sel.priceKobo * qty} onChange={setDisc} className="mt-3" />}
       <p className="mt-3 text-xs text-slate">Paid by card or bank through Paystack. Each ticket has its own QR code to show at the door; it lets one person in, once.</p>
       {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}
     </section>

@@ -1,0 +1,128 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Events, meetings and sessions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7;--gold:#C99A2E;--green:#17694a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:900px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px;align-items:flex-start}
+.item{width:330px}.item.wide{width:1010px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.dk{width:1010px;border-radius:14px;background:#2a2321;padding:26px 8px 8px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45);position:relative}
+.dk:before{content:"● ● ●";position:absolute;left:14px;top:6px;color:#8a7d78;font-size:10px;letter-spacing:2px}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.dk .sc{border-radius:8px}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.nav{display:flex;align-items:center;gap:18px;padding:12px 26px;border-bottom:1px solid var(--rule);background:#fff;font-size:13px;color:var(--slate)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.full{width:100%}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600;line-height:1.2}
+.sub{font-size:12px;color:var(--slate);line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--crimson);font-weight:700}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule);gap:8px}
+.row:first-of-type{border-top:0}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ok{background:#E3F4EC;border:1px solid #A9DCC3;border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;color:#0f4c35}
+.ph-slot{border:1.5px dashed #d1a3b1;background:#fdf3f6;border-radius:14px;padding:10px 12px;font-size:12px;line-height:1.45;color:#6b2a3c}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:19px;display:block;font-family:Fraunces,serif}.stat span{font-size:11px;color:var(--slate)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:11.5px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.gold{color:var(--gold);font-weight:800}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.4}
+.bars{display:flex;align-items:flex-end;gap:5px;height:54px}.bars div{flex:1;background:var(--crimson);border-radius:4px 4px 0 0;opacity:.85}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.wrap{padding:28px 40px;display:flex;flex-direction:column;gap:20px}
+.big{font-family:Fraunces,serif;font-size:32px;font-weight:600;line-height:1.1}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.k{background:#fff;border:1px solid var(--rule);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.k i{font-style:normal;font-size:26px}.k h3{font-size:17px}.k p{font-size:12.5px;color:var(--slate);line-height:1.45}
+.k .price{background:var(--field);border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45}.k .price b{color:var(--crimson)}
+.k ul{font-size:12px;line-height:1.55;padding-left:16px;color:var(--ink)}
+table.c{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+table.c th,table.c td{padding:8px 10px;border-top:1px solid var(--rule);text-align:left;vertical-align:top}
+table.c th{background:var(--crimson);color:#fff;font-size:12px;border-top:0}
+table.c td:first-child{font-weight:700;width:150px}
+.tog{display:inline-flex;background:var(--field);border-radius:999px;padding:3px;font-size:12px;font-weight:700}.tog span{padding:5px 14px;border-radius:999px;color:var(--slate)}.tog .on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pl{background:#fff;border:1px solid var(--rule);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.pl.hl{border-color:var(--crimson);box-shadow:0 14px 30px -18px rgba(122,3,40,.5)}
+.pl h3{font-size:16px}.pl .p{font-family:Fraunces,serif;font-size:26px;font-weight:600;color:var(--crimson)}.pl .pn{font-size:11.5px;color:var(--slate)}
+.pl ul{list-style:none;font-size:11.8px;line-height:1.45;display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.pl li:before{content:"✓ ";color:var(--green);font-weight:800}
+.pl .lead{font-size:11.5px;font-weight:700;margin-top:6px}
+.save{background:#E3F4EC;color:#0f4c35;border-radius:6px;padding:2px 6px;font-size:10.5px;font-weight:800;margin-left:6px}
+.addon{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+</style></head><body>
+<h1>Events, meetings and sessions, with what they cost</h1>
+<p class="lede">Sample screens for the owner (26 Nov 2026). /booking becomes "Events, meetings and sessions": three ways to be booked, each with its price. A new events-and-bookings section on /pricing lays out what each plan gives, in the style of the pricing the owner sent. Prices are today's live prices (Admin → Pricing); the invitation allowances and the add-on prices are proposals for the owner.</p>
+<div class="grid">
+
+<div class="item wide"><div class="dk"><div class="sc">
+  <div class="nav"><span class="logo">#NA</span><b style="color:var(--ink)">#NotesApp</b><span>Journals</span><span>Market</span><span>Academy</span><span style="color:var(--crimson);font-weight:700">Events</span><span>Pricing</span><span class="sp"></span><span class="btn pri" style="padding:6px 12px">+ Create</span></div>
+  <div class="wrap">
+    <div><span class="eyebrow">Booking</span><p class="big" style="margin-top:6px">Events, meetings and sessions</p><p class="sub" style="font-size:13.5px;margin-top:6px;max-width:720px">Three ways for people to book you, all on your profile, your calendar and Discover, paid in naira through Paystack or NotesApp Credit, with reminders 24 hours and 1 hour before.</p></div>
+    <div class="three">
+      <div class="k"><i>🎟️</i><h3>Events</h3><p>One-to-many at a set time: launches, services, classes, meetups, concerts. In person, online or both.</p>
+        <ul><li>Free, paid tickets (Regular, VIP…) or approval to join</li><li>Unlimited guests; QR tickets and check-in</li><li>Repeats weekly or monthly</li></ul>
+        <div class="price">Free events cost nothing. Tickets: <b>₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above</b>, per ticket, plus the card charge at cost. <b>No commission</b>, on every plan.</div>
+        <span class="btn pri">Create an event</span></div>
+      <div class="k"><i>👥</i><h3>Meetings</h3><p>A small group at a set time: office hours, workshops, cohort calls, group coaching. <b>New.</b></p>
+        <ul><li>Seats (2 to 50), free or a price per seat</li><li>On #NotesApp video, or your Zoom / Meet link</li><li>Weekly or one-off; your cancellation policy</li></ul>
+        <div class="price">Free meetings cost nothing. Paid seats: <b>your plan's commission</b>, the same as sessions: Free Basic 20%, Pro 15%, Business 8%, Enterprise from 6%.</div>
+        <span class="btn sec">Set up a meeting</span></div>
+      <div class="k"><i>🗓️</i><h3>Sessions</h3><p>One-to-one, booked from your open times: coaching, consulting, therapy, tutoring, legal advice.</p>
+        <ul><li>Your price (₦5,000–₦500,000) and length</li><li>Your weekly availability, reschedule and cancel</li><li>Paid out after the session</li></ul>
+        <div class="price">Your plan's commission: <b>Free Basic 20%, Pro 15%, Business 8%, Enterprise from 6%</b>. Try Pro or Business free for 15 days and see what you'd keep.</div>
+        <span class="btn sec">Open your sessions</span></div>
+    </div>
+    <table class="c">
+      <tr><th></th><th>Events</th><th>Meetings</th><th>Sessions</th></tr>
+      <tr><td>How many people</td><td>Unlimited, or a limit you set</td><td>2 to 50 seats</td><td>One</td></tr>
+      <tr><td>When</td><td>A set time (can repeat)</td><td>A set time (can repeat)</td><td>From your open times</td></tr>
+      <tr><td>What we take</td><td>₦10–₦50 a ticket, no commission</td><td>Your plan's commission on paid seats</td><td>Your plan's commission</td></tr>
+      <tr><td>Where</td><td>A place, Join live, or both</td><td>#NotesApp video or your link</td><td>#NotesApp call, your link or in person</td></tr>
+      <tr><td>Refunds</td><td>Your ticket policy</td><td>Your cancellation policy</td><td>The session policy, as today</td></tr>
+    </table>
+  </div>
+</div></div>
+<p class="cap"><b>1. /booking: events, meetings and sessions</b>Today's page only explains 1:1 sessions. It becomes the one place that shows all three, what each is for and what each costs, with a button to set one up. The figures come from Admin → Pricing, so they change when prices change.</p></div>
+
+<div class="item wide"><div class="dk"><div class="sc">
+  <div class="nav"><span class="logo">#NA</span><b style="color:var(--ink)">#NotesApp</b><span>Journals</span><span>Market</span><span>Academy</span><span>Events</span><span style="color:var(--crimson);font-weight:700">Pricing</span><span class="sp"></span><span class="btn pri" style="padding:6px 12px">Sign in</span></div>
+  <div class="wrap">
+    <div style="text-align:center"><p class="big">Events and bookings, priced for Nigeria</p><p class="sub" style="font-size:13.5px;margin-top:6px">Free with unlimited events and guests. Upgrade for a lower commission on meetings and sessions, more invitations and more help on the door.</p>
+      <div class="tog" style="margin-top:12px"><span class="on">Monthly</span><span>Yearly<span class="save">2 months free</span></span></div></div>
+    <div class="plans">
+      <div class="pl"><h3>Free Basic</h3><p class="p">₦0</p><p class="pn">free forever</p><span class="btn sec">Start free</span>
+        <ul><li>Unlimited events and guests</li><li>Reminders by email, bell and phone notification</li><li>Send up to 500 invitations a week</li><li>Ticket types and up to 10 tickets an order</li><li>QR tickets and check-in</li><li>Approval to join, guest limits, co-hosts</li><li>Download your guest list</li><li><b>Tickets ₦10–₦50 each</b>, no commission</li><li><b>20%</b> on paid meetings and sessions</li></ul></div>
+      <div class="pl"><h3>Pro</h3><p class="p">₦5,000</p><p class="pn">a month, or ₦50,000 a year</p><span class="btn sec">Try free for 15 days</span>
+        <p class="lead">Everything in Free Basic, plus:</p>
+        <ul><li><b>15%</b> on paid meetings and sessions</li><li>Send up to 2,000 invitations a week</li><li>Check-in helpers for the door</li><li>Your own questions when people register</li><li>25% of the ad revenue on your pages</li></ul></div>
+      <div class="pl hl"><h3>Business</h3><p class="p">₦25,000</p><p class="pn">a month, or ₦250,000 a year</p><span class="btn pri">Try free for 15 days</span>
+        <p class="lead">Everything in Pro, plus:</p>
+        <ul><li><b>8%</b> on paid meetings and sessions</li><li>Send up to 5,000 invitations a week</li><li>Your calendar and events on your own domain</li><li>5 calendar admins</li><li>Verified badge ✔ included</li><li>45% of the ad revenue on your pages</li></ul></div>
+      <div class="pl"><h3>Enterprise</h3><p class="p">From ₦55,000</p><p class="pn">a month · agreed with us</p><span class="btn sec">Talk to us</span>
+        <p class="lead">Everything in Business, plus:</p>
+        <ul><li>From <b>6%</b> on paid meetings and sessions</li><li>Invitations agreed with you</li><li>API and webhooks for events and bookings</li><li>More admins and seats</li><li>Full white label</li></ul></div>
+    </div>
+    <div class="addon">
+      <div><p class="h3" style="font-size:16px;font-weight:700">More invitations</p><p class="sub" style="margin-top:4px">Messages to the people on your event's guest list are always unlimited. Invitations and newsletters to people who haven't registered count toward your week.</p>
+        <table class="c" style="margin-top:10px"><tr><th>Invitations a week</th><th>Price</th></tr><tr><td>5,000</td><td>Included on Business</td></tr><tr><td>10,000</td><td>₦10,000 a month</td></tr><tr><td>25,000</td><td>₦25,000 a month</td></tr><tr><td>50,000</td><td>₦45,000 a month</td></tr></table></div>
+      <div class="note" style="align-self:start;font-size:12px;line-height:1.5">Card payments are charged by Paystack at cost (1.5% + ₦100, ₦100 waived under ₦2,500, at most ₦2,000), on top of what we take. Paying from NotesApp Credit has no card charge. Prices are in naira; buyers abroad pay in their own currency.</div>
+    </div>
+  </div>
+</div></div>
+<p class="cap"><b>2. Pricing: events and bookings</b>A section on /pricing (and linked from /booking) in the plan-card style the owner sent. What's real today: the plan prices, the session commission, ticket charges, reminders, QR check-in and ticket types. <b>Proposals for the owner:</b> meetings, invitations with weekly allowances (500 / 2,000 / 5,000) and their add-on prices, approval to join, guest limits, co-hosts, check-in helpers, registration questions and events on your own domain.</p></div>
+
+</div></body></html>

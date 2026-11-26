@@ -42,6 +42,7 @@ const FEATURES = [
   { title: "Notes Market", copy: "Every #NotesApp store in one place: items picked for you first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buying works just as it does in the seller's own store." },
   { title: "Notes Academy: free and paid courses", copy: `Teach free courses with lessons from your own YouTube, or sell paid ones on Pro and above with text lessons and PDFs, plus your own uploaded videos on Business and Enterprise, which never download and carry each viewer's name. Add quizzes with a pass mark, marked on the spot. Teach alone, with up to 4 co-tutors who each get their share of a sale, or as your organisation. Learners keep their progress, like, save and review courses, and get certificates anyone can check at ${ROOT_DOMAIN}/certificates.` },
   { title: "The Weekly Digest", copy: "On Sunday evenings, up to ten journals from the week, your interests first with people you follow mixed in, plus four items from Notes Market and four courses from Notes Academy. One click to unsubscribe." },
+  { title: "Events, meetings and sessions", copy: "Three ways to be booked, each in person, online or both. Events with covers, themes, tickets, approval to join and guest limits, found in Discover by city and category. Meetings for small groups, 2 to 50 seats, free or a price per seat, in a #NotesApp meeting room or your own link. And 1:1 sessions from your open times. Invite your followers and people by email; people follow your calendar to hear about what's next.", href: "/booking" },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price, and choose the currency your subscriptions pay you in while readers abroad pay in theirs. Earnings go to your verified bank or mobile money account." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
@@ -123,8 +124,8 @@ export default async function Home() {
               <Link href="/journals" className="btn-ghost">
                 Explore live journals
               </Link>
-              <Link href="/booking" className="btn-ghost">
-                See booking in action
+              <Link href="/events" className="btn-ghost">
+                Discover events
               </Link>
               <Link href="/boost" className="btn-ghost">
                 Boost a post

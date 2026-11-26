@@ -8,6 +8,7 @@ import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "@/lib/boost-config
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
 import TrialButton from "@/components/TrialButton";
+import EventsPricing from "@/components/pricing/EventsPricing";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
 import { onPlans } from "@/lib/courses";
@@ -348,6 +349,7 @@ export default async function PricingPage() {
           </li>
         ))}
       </ul>
+      <EventsPricing />
       <div id="compare" className="mt-12 overflow-x-auto rounded-2xl border border-rule shadow-sm scroll-mt-24">
         <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>

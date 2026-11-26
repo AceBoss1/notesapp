@@ -4,9 +4,9 @@
 // only ever take money off that publisher's own price.
 
 // What a code can apply to. A publisher's codes cover their own products; #NotesApp's codes cover #NotesApp's.
-export const PUBLISHER_TARGETS = ["store", "digital", "course", "booking"] as const;
+export const PUBLISHER_TARGETS = ["store", "digital", "course", "booking", "meeting", "ticket"] as const;
 // "plan": Pro and Business, the first payment only (Paystack plans take no coupons; the plan itself starts after that period).
-export const NOTESAPP_TARGETS = ["plan", "boost", "nana_credit", "merch", "logistics_addon", "inventory_addon", "hotel_addon"] as const;
+export const NOTESAPP_TARGETS = ["plan", "boost", "nana_credit", "merch", "logistics_addon", "inventory_addon", "hotel_addon", "invite_pack"] as const;
 export type PublisherTarget = (typeof PUBLISHER_TARGETS)[number];
 export type NotesAppTarget = (typeof NOTESAPP_TARGETS)[number];
 export type DiscountTarget = PublisherTarget | NotesAppTarget;
@@ -16,6 +16,8 @@ export const TARGET_LABEL: Record<DiscountTarget, string> = {
   digital: "Downloads",
   course: "Courses",
   booking: "Booked sessions",
+  meeting: "Meeting seats",
+  ticket: "Event tickets",
   plan: "Plans (first payment)",
   boost: "Boosts",
   nana_credit: "Nana credit",
@@ -23,6 +25,7 @@ export const TARGET_LABEL: Record<DiscountTarget, string> = {
   logistics_addon: "Logistics add-on",
   inventory_addon: "Inventory add-on",
   hotel_addon: "Hotel kit add-ons",
+  invite_pack: "Event invitation packs",
 };
 
 export const NOTESAPP_OWNER = "notesapp";
