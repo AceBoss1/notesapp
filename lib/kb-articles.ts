@@ -17,7 +17,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
+import { invitesConfig, academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
 import { MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT } from "./courses";
 import { nanaResetText, yearlyFreeText, pct as rate } from "./pricing";
@@ -610,6 +610,22 @@ Gifts marked ✔ (${verifiedRuleText()}) are for verified senders: you need the 
 **Weekly boards:** **Top gifted** (who received the most this week, on [Gifts](/gifts)) and each creator's **Top gifters** (who sent them the most, on their Gifts tab) start again at midnight going into Monday, Lagos time; **Last week** keeps the result. Anonymous gifts count for the receiver but never name the sender on Top gifters.
 
 Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
+    A("events-meetings-sessions", "Events, meetings and sessions", "Publishing and earning", `
+There are three ways for people to book you on #NotesApp. Each can be **in person, online or both**, and each shows on your calendar.
+
+**Events** are one-to-many: a launch, a service, a class, a meetup. Add a cover picture or pick a theme colour (with the African pattern if you like) and a category so people find it in **Discover**. Events can be free, have paid tickets, or **need your approval** (free events only: people ask to join and you accept or decline them). Set a **guest limit** and it closes when it's full. Online on #NotesApp means you go live from your profile; you can also give your own Zoom, Meet, Teams or YouTube link. For an event with tickets or approval, the link shows only to people who are in. Each ticket carries a small charge (${bandsText(formatNaira)}) and we take no commission.
+
+**Meetings** are a small group at a set time: office hours, workshops, group coaching. Choose 2 to 50 seats, free or a price per seat, and where: a place, your online link, or both. Paid seats carry your plan's commission, as sessions do, and follow the same cancellation policy. If you cancel the meeting, everyone is refunded in full.
+
+**Sessions** are one-to-one, booked from your open times. Under **Rates & payouts → Where sessions happen**, choose in person (your address, shown to a client once they've booked), online (a #NotesApp call, or your own link) or either (the client chooses when they book). For a call on #NotesApp you and your client can call each other from 15 minutes before the session until 15 minutes after it.
+
+**Your calendar** is at /events/calendar/your-username. People who follow you get a bell and an email when you post a new public event, and can add your calendar to their phone.`),
+    A("event-invitations", "Inviting people to your events and meetings", "Publishing and earning", `
+On your event or meeting, tap **Invite people**. Choose **your followers**, paste **email addresses** (up to 500 at a time), and add a short note if you like. People already going or booked aren't invited again.
+
+**How many:** invitations count toward your week (Monday to Sunday, Lagos time). Free Basic includes ${invitesConfig().perWeekBasic.toLocaleString("en-NG")} a week, Pro ${invitesConfig().perWeekPro.toLocaleString("en-NG")}, Business ${invitesConfig().perWeekBusiness.toLocaleString("en-NG")} and Enterprise as agreed. Need more? Add a pack of 10,000 (${formatNaira(invitesConfig().pack10kKobo)}), 25,000 (${formatNaira(invitesConfig().pack25kKobo)}) or 50,000 (${formatNaira(invitesConfig().pack50kKobo)}) more a week for a month from the same panel. Reminders and updates to people already going or booked are always free and never count.
+
+Invitations go by email and, for members, as a bell. Each says who invited them and links to the event or meeting.`),
     A("what-your-trial-kept-you", "What your free trial kept you", "Plans and pricing", `
 Try **Pro** or **Business** free for 15 days, with no card. While the trial runs, a card at the top of **My account** shows how much more you've kept on the plan than you would have on your own plan, from your own payments.
 

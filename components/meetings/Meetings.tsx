@@ -9,7 +9,7 @@ import { EVENT_CATEGORIES, EVENT_THEMES, FORMATS, cleanTheme, coverStyle, themeO
 import { SEATS_MAX, SEATS_MIN, seatsLeft, type MeetingDoc } from "@/lib/meetings";
 import { whenText } from "@/lib/events";
 import { formatNaira } from "@/lib/booking-time";
-import { POLICY_TEXT } from "@/lib/cancellation";
+
 import { capi, field, small } from "@/components/community/api";
 import { startCheckout } from "@/lib/checkout";
 import FollowCalendar from "@/components/events/FollowCalendar";
@@ -17,6 +17,8 @@ import InvitePanel from "@/components/events/InvitePanel";
 
 // Meetings (lib/meetings.ts, docs/EVENTS_DISCOVER.md): the form, and a meeting's page (book a seat, give it up, the host's list).
 export type Mt = MeetingDoc & { id: string; linkHidden?: boolean };
+// The session policy, as it applies to a seat (lib/cancellation.ts refundFraction).
+const MEETING_POLICY = "Give up your seat 48+ hours before: full refund · 24–48 hours before: half · under 24 hours: no refund. If the host cancels, everyone gets a full refund.";
 const toLocalInput = (iso: string) => (iso ? new Date(new Date(iso).getTime() + 3_600_000).toISOString().slice(0, 16) : "");
 const fromLocalInput = (v: string) => (v ? new Date(`${v}:00+01:00`).toISOString() : "");
 
@@ -105,11 +107,11 @@ export function MeetingPage({ id }: { id: string }) {
           <p className="text-sm text-slate">{m.priceKobo ? `${formatNaira(m.priceKobo)} a seat` : "Free"} · {seatsLeft(m)} of {m.seats} seats left</p>
           {!m.cancelled && !d.canManage && (
             !user ? <Link href={`/login?next=/meetings/${id}`} className="btn-primary inline-block !px-4 !py-2 text-xs" style={{ background: themeOf(theme.theme).accent }}>Sign in to book a seat</Link>
-              : booked ? <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">✓ You have a seat</span><button disabled={busy} className={small} onClick={() => { if (confirm(m.priceKobo ? `Give up your seat? ${POLICY_TEXT.split(" · ").slice(0, 3).join(" · ")}` : "Give up your seat?")) act(() => capi("/api/meetings", { action: "leave", id })); }}>Give up my seat</button></div>
+              : booked ? <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">✓ You have a seat</span><button disabled={busy} className={small} onClick={() => { if (confirm(m.priceKobo ? `Give up your seat? ${MEETING_POLICY}` : "Give up your seat?")) act(() => capi("/api/meetings", { action: "leave", id })); }}>Give up my seat</button></div>
               : <button disabled={busy || d.left <= 0} onClick={book} className="btn-primary !px-4 !py-2 text-xs" style={{ background: themeOf(theme.theme).accent }}>{d.left <= 0 ? "Full" : m.priceKobo ? `Book a seat · ${formatNaira(m.priceKobo)}` : "Book a free seat"}</button>
           )}
           {m.description && <p className="whitespace-pre-line pt-2 text-ink">{m.description}</p>}
-          {m.priceKobo > 0 && <p className="text-xs text-slate">{POLICY_TEXT.split(" · ").slice(0, 3).join(" · ")}</p>}
+          {m.priceKobo > 0 && <p className="text-xs text-slate">{MEETING_POLICY}</p>}
         </div>
         <aside className="space-y-3">
           <div className="card flex items-center gap-3 p-4">

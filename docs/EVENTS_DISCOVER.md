@@ -2,7 +2,7 @@
 
 The owner asked on 26 Nov 2026, with a screenshot of an event discovery page and a plan-pricing page as the idea: "scaffold and show me
 sample screenshot before build; adjust events to look like attached screenshot; adjust booking to appear as events/meetings/session with
-Pricing". **Status: sample screens, waiting for the owner's approval.** Nothing is built yet.
+Pricing". **Status: built in v0.210.0 (26 Nov 2026)** after the owner's "Decisions approved, build with your recommendations", with "the bookings section of events/meetings/sessions should support physical and virtual" and "Should we have event kit/theme too" (yes: themes and the African pattern). What was built, and what changed, is at the end.
 
 ## Today
 
@@ -53,3 +53,45 @@ Each has a recommendation; the build follows it unless the owner says otherwise.
 4. Invitations with weekly allowances and add-ons (Admin → Pricing), sent by email and the bell.
 5. `/booking` as Events, meetings and sessions; the events-and-bookings section on `/pricing`; help articles, changelog, README,
    HANDOVER, BUILD_LOG.
+
+## Built in v0.210.0
+
+Screenshots from the real code on the emulators (sample data): [Discover](mockups/events-built/1-discover.webp), [a category](mockups/events-built/1b-category.webp),
+[an event](mockups/events-built/2-event-page.webp), [a calendar](mockups/events-built/3-calendar.webp), [Create](mockups/events-built/4-create.webp),
+[a new event](mockups/events-built/4b-new-event.webp), [a meeting](mockups/events-built/5-meeting.webp), [Booking](mockups/events-built/6-booking.webp),
+[Pricing](mockups/events-built/7-pricing-events.webp), [Invite people](mockups/events-built/9-invite-host.webp).
+
+- **The kit** `lib/event-kit.ts` (pure): the 12 categories, 8 themes and the African pattern, where (in person / online / both; online
+  on #NotesApp or the host's link), Discover's places and regions, featured events and the counts.
+- **Events** (`lib/events.ts`, `lib/events-server.ts`): category, cover (marked, purpose `event`, checked with the event), theme,
+  format, approval (free events only: Going becomes a request; `joinRequests`, `decideRequest`), guest limit, `priceFromKobo` for cards.
+  The online link of an event with tickets or approval is only for people who are in (`getEvent`), and lists never carry it.
+  Followers hear of a new public event (`eventAnnouncements`, sent by the reminders cron in batches).
+- **Discover** (`lib/events-discover-server.ts`, `components/events/Discover.tsx`): one statCache snapshot every 10 minutes;
+  `/api/events?discover=1&city=` and `?list=1&category=&city=&region=`. Calendars to follow are the hosts with the most people going.
+- **Calendars** `/events/calendar/<username>` with Follow (the account follow) and a subscribable feed `/api/events/calendar/<username>`.
+- **+ Create** `/events/new`: an event, a meeting or sessions, each with its live price.
+- **Meetings** (`lib/meetings.ts`, `lib/meetings-server.ts`, `/api/meetings`, `/meetings/new`, `/meetings/<id>`): 2–50 seats, free or ₦500–
+  ₦500,000 a seat, in person / online (the host's link) / both; paid seats are payments of kind `meeting` at the host's session
+  commission, held to the end; refunds by `refundFraction` (host cancelling: full); reminders a day and an hour before.
+- **Sessions in person or online**: `session.where` on Rates & payouts; the address and link are in `sessionPlaces/{uid}`
+  (server-only, as publisher settings are public) and copied onto the booking; hybrid lets the client choose. A booked online session
+  on #NotesApp lets the two call each other from 15 minutes before to 15 after (`lib/calls-server.ts bookedSessionNow`).
+- **Invitations** (`lib/event-invites.ts`, `lib/event-invites-server.ts`, `/api/event-invites`): followers and pasted emails, the
+  week's allowance by plan from Admin → Pricing → Event invitations, packs (payment kind `invite_pack`, 31 days), sent in batches.
+- **Pages:** `/booking` is Events, meetings and sessions; `/pricing#events` is the plan-by-plan section.
+- **Tests:** `npm run test:events-discover` (pure) and `npm run test:events-discover-server` (emulator), both in CI; the rules test.
+
+## Changed from the mockups
+
+- **Online meetings use the host's link** (Zoom, Meet, Teams). #NotesApp group calls hold 4–6 people today, so "#NotesApp video" for
+  meetings waits for bigger group video.
+- **Meetings don't repeat yet**; set up the next one from the last (repeating meetings need seats per date).
+- **Admin can't pin a featured event yet**: featured is pinned (the `pinned` field, set by hand) then most Going this week, then soonest.
+- **Discover's counts are up to 10 minutes behind** (the snapshot); an event appears there within 10 minutes of publishing.
+- **Packs are sold without discount codes** (codes don't cover them yet).
+
+## Owner steps
+
+- `firebase deploy --only firestore:rules,firestore:indexes` (new server-only collections, and indexes for join requests and meetings).
+- Check the invitation allowances and pack prices in Admin → Pricing → Event invitations.

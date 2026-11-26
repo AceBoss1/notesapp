@@ -119,7 +119,7 @@ export default function Discover() {
             {EVENT_CATEGORIES.map((c) => (
               <li key={c.id}><Link href={`/events?category=${c.id}`} className="card flex items-center gap-3 p-3 hover:border-crimson/50">
                 <span className="w-7 text-center text-xl" aria-hidden>{c.icon}</span>
-                <span className="min-w-0"><span className="block truncate font-ui text-sm font-bold text-ink">{c.label}</span><span className="text-xs text-slate">{shortCount(d?.categories[c.id] ?? 0)} events</span></span>
+                <span className="min-w-0"><span className="block truncate font-ui text-sm font-bold text-ink">{c.label}</span><span className="text-xs text-slate">{shortCount(d?.categories[c.id] ?? 0)} event{(d?.categories[c.id] ?? 0) === 1 ? "" : "s"}</span></span>
               </Link></li>
             ))}
           </ul>
