@@ -6,6 +6,7 @@ import { formatNaira } from "@/lib/booking-time";
 import { startCheckout } from "@/lib/checkout";
 import { EMAILS_PER_SEND, INVITE_MESSAGE_MAX } from "@/lib/event-invites";
 import { capi, field } from "@/components/community/api";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 // Invite people to an event or a meeting (lib/event-invites.ts): your followers and pasted email addresses, counted against this week's
 // invitations for your plan (Admin → Pricing), with add-on packs for more. People already going or booked aren't invited again.
@@ -19,6 +20,8 @@ export default function InvitePanel({ kind, id }: { kind: "event" | "meeting"; i
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [pick, setPick] = useState<string>("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const load = () => capi<Week>("/api/event-invites").then(setW).catch(() => {});
   useEffect(() => { if (open && !w) load(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!open) return <button className="btn-ghost !px-4 !py-2 text-xs" onClick={() => setOpen(true)}>✉ Invite people</button>;
@@ -44,10 +47,15 @@ export default function InvitePanel({ kind, id }: { kind: "event" | "meeting"; i
           <summary className="cursor-pointer">Need more invitations?{w.pack ? ` (pack: ${w.pack.sends.toLocaleString()} more a week until ${new Date(w.pack.until).toDateString()})` : ""}</summary>
           <ul className="mt-2 space-y-2">
             {w.packs.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3"><span>{p.sends.toLocaleString()} more a week for a month</span>
-                <button className="btn-ghost !px-3 !py-1 text-xs" disabled={!user} onClick={() => user && startCheckout(user, { kind: "invite_pack", pack: p.id }, { payWith: "card" }).catch((e) => alert(e.message))}>{formatNaira(p.priceKobo)}</button></li>
+              <li key={p.id}><label className="flex cursor-pointer items-center justify-between gap-3"><span><input type="radio" name="pack" checked={pick === p.id} onChange={() => { setPick(p.id); setDisc(null); }} className="mr-2" />{p.sends.toLocaleString()} more a week for a month</span><b className="text-ink">{formatNaira(p.priceKobo)}</b></label></li>
             ))}
           </ul>
+          {pick && (() => { const p = w.packs.find((x) => x.id === pick)!; return (
+            <div className="mt-2 space-y-2">
+              <DiscountCodeField key={pick} target="invite_pack" subtotalKobo={p.priceKobo} onChange={setDisc} />
+              <button className="btn-primary !px-3 !py-1.5 text-xs" disabled={!user} onClick={() => user && startCheckout(user, { kind: "invite_pack", pack: p.id, ...(disc ? { code: disc.code } : {}) }, { payWith: "card" }).catch((e) => alert(e.message))}>Pay {formatNaira(Math.max(0, p.priceKobo - (disc?.discountKobo ?? 0)))}</button>
+            </div>
+          ); })()}
           <p className="mt-2">Business includes 5,000 a week; upgrading your plan also raises it. Prices are set in Admin → Pricing.</p>
         </details>
       </>}

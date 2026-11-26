@@ -4,7 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { refundPayment } from "@/lib/refunds";
-import { MeetingError, cancelMeeting, cancelSeat, createMeeting, getMeeting, myMeetings, takeFreeSeat, upcomingMeetings, updateMeeting } from "@/lib/meetings-server";
+import { MeetingError, cancelMeeting, cancelSeat, createMeeting, getMeeting, lastMeeting, myMeetings, takeFreeSeat, upcomingMeetings, updateMeeting } from "@/lib/meetings-server";
 
 export const dynamic = "force-dynamic";
 const viewer = async (req: NextRequest) => (await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null))?.uid ?? null;
@@ -16,7 +16,7 @@ const fail = (err: unknown, what: string) => {
   return NextResponse.json({ error: f.message }, { status: f.status });
 };
 
-// Meetings (lib/meetings.ts). GET ?id= → one meeting · ?host=<username> → { meetings } (public, upcoming) · ?mine=1 → { booked, hosting }
+// Meetings (lib/meetings.ts). GET ?id= → one meeting · ?host=<username> → { meetings } (public, upcoming) · ?mine=1 → { booked, hosting } · ?last=1 → { meeting }: my latest, to start the next from
 export async function GET(req: NextRequest) {
   try {
     const uid = await viewer(req);
@@ -25,6 +25,10 @@ export async function GET(req: NextRequest) {
     const noStore = { headers: { "Cache-Control": "no-store" } };
     if (q.get("id")) return NextResponse.json(await getMeeting(db, q.get("id")!, uid), noStore);
     if (q.get("host")) return NextResponse.json({ meetings: await upcomingMeetings(db, q.get("host")!.slice(0, 40)) }, noStore);
+    if (q.get("last")) {
+      if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+      return NextResponse.json({ meeting: await lastMeeting(db, uid) }, noStore);
+    }
     if (q.get("mine")) {
       if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
       return NextResponse.json(await myMeetings(db, uid), noStore);

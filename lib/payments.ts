@@ -743,6 +743,11 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const real = !(p.tier!.referralFirst && p.tier!.interval === "monthly");
       if (real) await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, `${p.tier!.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", p.reference, e));
     }
+    // Event invitation packs earn the member who referred the buyer, like a plan (lib/referrals-server.ts recordPlanEarning).
+    if (result.payment.kind === "invite_pack" && result.payment.invitePack) {
+      const p = result.payment;
+      await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, "Event invitation pack").catch((e) => console.error("invite pack earning", p.reference, e));
+    }
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
     }

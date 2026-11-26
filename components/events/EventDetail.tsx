@@ -112,7 +112,7 @@ export default function EventDetail({ id }: { id: string }) {
               {e.visibility === "public" && <ShareButton shareRef={{ kind: "event", id }} path={`/events/${id}`} title={e.title} className={`${small} !px-4 !py-2`} />}
             </div>
           )}
-          {!e.cancelled && d.next && paid && !d.canManage && <BuyTickets eventId={id} offers={d.tickets} signedIn={!!user} />}
+          {!e.cancelled && d.next && paid && !d.canManage && <BuyTickets eventId={id} offers={d.tickets} signedIn={!!user} hostUsername={e.hostUsername} />}
           {user && <MyTickets eventId={id} />}
           {e.description && <p className="whitespace-pre-line text-ink">{e.description}</p>}
         </div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMember } from "@/lib/member-client";
 import { NIGERIAN_STATES } from "@/lib/merch";
 import { EVENT_CATEGORIES, EVENT_THEMES, FORMATS, cleanTheme, coverStyle, themeOf, whereLine } from "@/lib/event-kit";
-import { SEATS_MAX, SEATS_MIN, seatsLeft, type MeetingDoc } from "@/lib/meetings";
+import { SEATS_MAX, SEATS_MIN, nextFrom, seatsLeft, type MeetingDoc } from "@/lib/meetings";
 import { whenText } from "@/lib/events";
 import { formatNaira } from "@/lib/booking-time";
 
@@ -14,6 +14,7 @@ import { capi, field, small } from "@/components/community/api";
 import { startCheckout } from "@/lib/checkout";
 import FollowCalendar from "@/components/events/FollowCalendar";
 import InvitePanel from "@/components/events/InvitePanel";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 // Meetings (lib/meetings.ts, docs/EVENTS_DISCOVER.md): the form, and a meeting's page (book a seat, give it up, the host's list).
 export type Mt = MeetingDoc & { id: string; linkHidden?: boolean };
@@ -22,12 +23,14 @@ const MEETING_POLICY = "Give up your seat 48+ hours before: full refund · 24–
 const toLocalInput = (iso: string) => (iso ? new Date(new Date(iso).getTime() + 3_600_000).toISOString().slice(0, 16) : "");
 const fromLocalInput = (v: string) => (v ? new Date(`${v}:00+01:00`).toISOString() : "");
 
-export function MeetingForm({ existing, onSaved }: { existing?: Mt; onSaved: (m: Mt) => void }) {
+export function MeetingForm({ existing, template, onSaved }: { existing?: Mt; template?: Mt; onSaved: (m: Mt) => void }) {
+  // From a template (the last meeting, or "Set up the next one"): everything copied, a week on, nobody booked.
+  const base = existing ?? (template ? { ...template, ...nextFrom(template, new Date()), booked: 0 } : undefined);
   const [f, setF] = useState({
-    title: existing?.title ?? "", description: existing?.description ?? "", category: existing?.category ?? "", theme: existing?.theme ?? "", pattern: existing?.pattern ?? "none",
-    startsAt: toLocalInput(existing?.startsAt ?? ""), endsAt: toLocalInput(existing?.endsAt ?? ""),
-    format: existing?.where.format ?? "online", place: existing?.where.place ?? "", state: existing?.where.state ?? "", city: existing?.where.city ?? "", link: existing?.where.link ?? "",
-    seats: String(existing?.seats ?? 12), price: existing?.priceKobo ? String(existing.priceKobo / 100) : "", visibility: existing?.visibility ?? "public",
+    title: base?.title ?? "", description: base?.description ?? "", category: base?.category ?? "", theme: base?.theme ?? "", pattern: base?.pattern ?? "none",
+    startsAt: toLocalInput(base?.startsAt ?? ""), endsAt: toLocalInput(base?.endsAt ?? ""),
+    format: base?.where.format ?? "online", place: base?.where.place ?? "", state: base?.where.state ?? "", city: base?.where.city ?? "", link: base?.where.link ?? "",
+    seats: String(base?.seats ?? 12), price: base?.priceKobo ? String(base.priceKobo / 100) : "", visibility: base?.visibility ?? "public",
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -80,6 +83,7 @@ export function MeetingPage({ id }: { id: string }) {
   const [err, setErr] = useState("");
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const load = useCallback(() => capi<Data>(`/api/meetings?id=${id}`).then(setD).catch((e) => setErr(e.message)), [id]);
   useEffect(() => { if (user !== undefined) load(); }, [user, load]);
   if (err) return <p className="card p-6 text-sm text-crimson">{err}</p>;
@@ -89,7 +93,7 @@ export function MeetingPage({ id }: { id: string }) {
   const booked = d.seat?.status === "booked";
   const act = async (fn: () => Promise<unknown>) => { setBusy(true); try { await fn(); await load(); } catch (x) { alert(x instanceof Error ? x.message : "Couldn't do that."); } finally { setBusy(false); } };
   const book = () => act(async () => {
-    if (m.priceKobo > 0 && user) await startCheckout(user, { kind: "meeting", meetingId: id }, { payWith: "card" });
+    if (m.priceKobo > 0 && user) await startCheckout(user, { kind: "meeting", meetingId: id, ...(disc ? { code: disc.code } : {}) }, { payWith: "card" });
     else await capi("/api/meetings", { action: "seat", id });
   });
   return (
@@ -108,7 +112,7 @@ export function MeetingPage({ id }: { id: string }) {
           {!m.cancelled && !d.canManage && (
             !user ? <Link href={`/login?next=/meetings/${id}`} className="btn-primary inline-block !px-4 !py-2 text-xs" style={{ background: themeOf(theme.theme).accent }}>Sign in to book a seat</Link>
               : booked ? <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">✓ You have a seat</span><button disabled={busy} className={small} onClick={() => { if (confirm(m.priceKobo ? `Give up your seat? ${MEETING_POLICY}` : "Give up your seat?")) act(() => capi("/api/meetings", { action: "leave", id })); }}>Give up my seat</button></div>
-              : <button disabled={busy || d.left <= 0} onClick={book} className="btn-primary !px-4 !py-2 text-xs" style={{ background: themeOf(theme.theme).accent }}>{d.left <= 0 ? "Full" : m.priceKobo ? `Book a seat · ${formatNaira(m.priceKobo)}` : "Book a free seat"}</button>
+              : <div className="space-y-2">{m.priceKobo > 0 && d.left > 0 && <DiscountCodeField target="meeting" seller={m.hostUsername} itemId={id} subtotalKobo={m.priceKobo} onChange={setDisc} />}<button disabled={busy || d.left <= 0} onClick={book} className="btn-primary !px-4 !py-2 text-xs" style={{ background: themeOf(theme.theme).accent }}>{d.left <= 0 ? "Full" : m.priceKobo ? `Book a seat · ${formatNaira(Math.max(0, m.priceKobo - (disc?.discountKobo ?? 0)))}` : "Book a free seat"}</button></div>
           )}
           {m.description && <p className="whitespace-pre-line pt-2 text-ink">{m.description}</p>}
           {m.priceKobo > 0 && <p className="text-xs text-slate">{MEETING_POLICY}</p>}
@@ -131,6 +135,7 @@ export function MeetingPage({ id }: { id: string }) {
           {editing ? <MeetingForm existing={m} onSaved={() => { setEditing(false); load(); }} /> : (
             <div className="flex flex-wrap gap-2">
               <button className={small} onClick={() => setEditing(true)}>Edit</button>
+              <Link href={`/meetings/new?from=${id}`} className={small}>↻ Set up the next one</Link>
               <button className={small} disabled={busy} onClick={() => { if (confirm("Cancel this meeting? Everyone with a seat is told and refunded in full.")) act(async () => { await capi("/api/meetings", { action: "cancel", id }); router.refresh(); }); }}>Cancel the meeting</button>
             </div>
           )}

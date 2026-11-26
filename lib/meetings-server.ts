@@ -111,6 +111,13 @@ export async function myMeetings(db: Firestore, uid: string, now = new Date()) {
   };
 }
 
+// The host's most recent meeting (any date), to start the next one from. The online link comes too: it's the host's own.
+export async function lastMeeting(db: Firestore, uid: string): Promise<Mt | null> {
+  const snap = await db.collection("meetings").where("hostUid", "==", uid).limit(200).get();
+  const all = snap.docs.map((d) => ({ ...(d.data() as MeetingDoc), id: d.id })).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  return all[0] ?? null;
+}
+
 // A free seat: taken here. A paid one goes through checkout (meetingCheckout), then fulfillPayment.
 export async function takeFreeSeat(db: Firestore, uid: string, id: string, now = new Date()): Promise<void> {
   const p = await profile(db, uid);

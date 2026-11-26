@@ -76,3 +76,11 @@ export function seatNo(m: Pick<MeetingDoc, "seats" | "booked" | "cancelled" | "s
 export function forViewer<M extends MeetingDoc>(m: M, inIt: boolean): M & { linkHidden?: boolean } {
   return inIt || !m.where.link ? m : { ...m, where: { ...m.where, link: "" }, linkHidden: true };
 }
+
+// The next one, from a meeting: the same day and time a week on (or a week after today, if that has passed too), same length.
+export function nextFrom(m: Pick<MeetingDoc, "startsAt" | "endsAt">, now: Date): { startsAt: string; endsAt: string } {
+  const len = new Date(m.endsAt).getTime() - new Date(m.startsAt).getTime();
+  let start = new Date(m.startsAt).getTime() + 7 * 24 * HOUR;
+  while (start <= now.getTime()) start += 7 * 24 * HOUR;
+  return { startsAt: new Date(start).toISOString(), endsAt: new Date(start + len).toISOString() };
+}

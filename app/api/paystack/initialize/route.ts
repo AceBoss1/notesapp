@@ -56,6 +56,7 @@ import { giftQuantity, giftUplift, isGiftContext, isGiftToKind, upliftedRate } f
 import { CommunityError } from "@/lib/community-server";
 import { MeetingError, meetingCheckout } from "@/lib/meetings-server";
 import { packOf } from "@/lib/event-invites";
+import { cardChargeKobo } from "@/lib/giving";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { LiveEventError, liveTicketCheckout } from "@/lib/live-tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -247,11 +248,15 @@ export async function POST(req: NextRequest) {
       let mt: Awaited<ReturnType<typeof meetingCheckout>>;
       try { mt = await meetingCheckout(db, user.uid, String(body.meetingId ?? "")); }
       catch (e) { if (e instanceof MeetingError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      // The host's own discount codes (target "meeting"), and an affiliate's, as on every sale.
+      const code = await codeFor(mt.hostUid, "meeting", mt.amountKobo, { itemId: mt.info.meetingId });
+      const amount = Math.max(0, mt.amountKobo - (code?.discountKobo ?? 0));
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initTx({ email: user.email, amountKobo: mt.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, meetingId: mt.info.meetingId } });
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, meetingId: mt.info.meetingId } });
       const record: PaymentRecord = {
-        reference, kind: "meeting", uid: user.uid, email: user.email, amountKobo: mt.amountKobo, status: "pending",
+        reference, kind: "meeting", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        ...(code ? { discount: paymentDiscount(code, mt.amountKobo) } : {}),
         publisherUid: mt.hostUid, publisherUsername: mt.hostUsername, commissionRate: mt.commissionRate, meeting: mt.info, createdAt: new Date().toISOString(),
       };
       await savePayment(record);
@@ -264,12 +269,18 @@ export async function POST(req: NextRequest) {
       let tk: Awaited<ReturnType<typeof ticketCheckout>>;
       try { tk = await ticketCheckout(db, user.uid, body); }
       catch (e) { if (e instanceof EventError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      // The organiser's own discount codes (target "ticket"): the buyer pays less; the band stays per ticket, the card charge follows
+      // what's actually paid, and the organiser's net is what's left.
+      const code = await codeFor(tk.hostUid, "ticket", tk.amountKobo, { itemId: tk.info.eventId });
+      const amount = Math.max(0, tk.amountKobo - (code?.discountKobo ?? 0));
+      const info = code ? { ...tk.info, cardChargeKobo: cardChargeKobo(amount), netKobo: Math.max(0, amount - (tk.info.bandKobo ?? 0) - cardChargeKobo(amount)) } : tk.info;
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initTx({ email: user.email, amountKobo: tk.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, eventId: tk.info.eventId } });
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, eventId: tk.info.eventId } });
       const record: PaymentRecord = {
-        reference, kind: "ticket", uid: user.uid, email: user.email, amountKobo: tk.amountKobo, status: "pending",
-        publisherUid: tk.hostUid, publisherUsername: tk.hostUsername, commissionRate: tk.commissionRate, ticket: tk.info, createdAt: new Date().toISOString(),
+        reference, kind: "ticket", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        ...(code ? { discount: paymentDiscount(code, tk.amountKobo) } : {}),
+        publisherUid: tk.hostUid, publisherUsername: tk.hostUsername, commissionRate: tk.commissionRate, ticket: info, createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
@@ -339,13 +350,15 @@ export async function POST(req: NextRequest) {
       // A month of more event invitations a week (lib/event-invites.ts INVITE_PACKS); the price is set in Admin → Pricing.
       const pack = packOf(body.pack);
       if (!pack) return NextResponse.json({ error: "Choose a pack." }, { status: 400 });
-      const amount = currentPricing().invites[pack.priceKey];
+      const full = currentPricing().invites[pack.priceKey];
+      const code = await codeFor(NOTESAPP_OWNER, "invite_pack", full);
+      const amount = full - (code?.discountKobo ?? 0);
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, pack: pack.id } });
       const record: PaymentRecord = {
         reference, kind: "invite_pack", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
-        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, invitePack: { pack: pack.id, sends: pack.sends }, createdAt: new Date().toISOString(),
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, invitePack: { pack: pack.id, sends: pack.sends }, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
