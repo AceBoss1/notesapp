@@ -1111,6 +1111,10 @@ service cloud.firestore {
     match /meetingReminders/{id} { allow read, write: if false; }
     // Where a publisher's sessions happen, with the address and the online link (app/api/publisher/settings). Server only: a client sees them on their booking.
     match /sessionPlaces/{uid} { allow read, write: if false; }
+    // Event and meeting invitations (lib/event-invites-server.ts): the week's count, the sends in progress, and the add-on packs. Server only.
+    match /inviteWeeks/{id} { allow read, write: if false; }
+    match /inviteJobs/{id} { allow read, write: if false; }
+    match /invitePacks/{uid} { allow read, write: if false; }
     // Signing in with Google and LinkedIn (lib/social-auth-server.ts), all server only, even for the account's owner and staff:
     match /authLinks/{id} { allow read, write: if false; }   // which account a Google or LinkedIn identity signs in to
     match /authStates/{id} { allow read, write: if false; }  // LinkedIn sign-ins in progress: state, nonce, browser binding (10 minutes, TTL expireAt)

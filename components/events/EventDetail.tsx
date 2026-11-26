@@ -11,6 +11,7 @@ import { recordView } from "@/lib/track";
 import { EventForm, type Ev } from "./Events";
 import { BuyTickets, MyTickets, TicketTypesEditor, type TicketOffer } from "./Tickets";
 import FollowCalendar from "./FollowCalendar";
+import InvitePanel from "./InvitePanel";
 import { ShareButton } from "@/components/share/ShareToNotesApp";
 
 // One event (docs/EVENTS_DISCOVER.md): the cover or the theme, when and where (in person, online or both), Going / Request to join /
@@ -127,6 +128,7 @@ export default function EventDetail({ id }: { id: string }) {
           {e.approval && !d.canManage && <p className="card p-3 text-xs text-slate">The host accepts each person. You&apos;ll get a bell and an email when they answer.</p>}
         </aside>
       </div>
+      {d.canManage && !e.cancelled && e.visibility === "public" && <div className="mt-6"><InvitePanel kind="event" id={id} /></div>}
       {d.canManage && !e.cancelled && e.approval && <Requests id={id} onDone={load} />}
       {d.canManage && !e.cancelled && (
         <div className="mt-8 border-t border-rule pt-6">

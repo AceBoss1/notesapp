@@ -13,6 +13,7 @@ import { POLICY_TEXT } from "@/lib/cancellation";
 import { capi, field, small } from "@/components/community/api";
 import { startCheckout } from "@/lib/checkout";
 import FollowCalendar from "@/components/events/FollowCalendar";
+import InvitePanel from "@/components/events/InvitePanel";
 
 // Meetings (lib/meetings.ts, docs/EVENTS_DISCOVER.md): the form, and a meeting's page (book a seat, give it up, the host's list).
 export type Mt = MeetingDoc & { id: string; linkHidden?: boolean };
@@ -122,6 +123,7 @@ export function MeetingPage({ id }: { id: string }) {
           )}
         </aside>
       </div>
+      {d.canManage && !m.cancelled && <div className="mt-6"><InvitePanel kind="meeting" id={id} /></div>}
       {d.canManage && !m.cancelled && (
         <div className="mt-8 border-t border-rule pt-6">
           {editing ? <MeetingForm existing={m} onSaved={() => { setEditing(false); load(); }} /> : (

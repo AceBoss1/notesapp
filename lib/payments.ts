@@ -50,7 +50,7 @@ import { afterHotelPay, confirmPaylonyHotel, readHotelPay, writeHotelPay, type H
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon" | "meeting";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon" | "meeting" | "invite_pack";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -167,6 +167,7 @@ export type PaymentRecord = {
   paylony?: { account: { accountNumber: string; bankName: string; accountName: string; expiresAt: string }; lastVerify?: { at: string; state: string } };
   // A month of a Hotel kit add-on (lib/hotel.ts ADDONS), for the owner's hotels.
   hotelAddon?: { addon: string };
+  invitePack?: { pack: string; sends: number }; // a month of more event invitations a week (lib/event-invites.ts)
 };
 export type PpmPaymentInfo = { sessionId: string; kind: "voice" | "video"; perMinuteKobo: number; billedMinutes: number; heldKobo: number; baseRate: number; upliftPct: number };
 export type LiveTicketInfo = { eventId: string; eventTitle: string; startsAt: string; band: "early" | "normal" | "late"; listKobo: number; discountPct: number; tier?: SubTier; holderName: string; baseRate: number; upliftPct: number };
@@ -346,6 +347,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     const liveRead = current.kind === "live_ticket" && current.liveTicket ? await readForLiveTicket(t, db, current) : null;
     const hotelRead = current.kind === "hotel" && current.hotel ? await readHotelPay(t, db, current) : null;
     const addonHotel = current.kind === "hotel_addon" && current.hotelAddon ? await t.get(db.doc(`hotels/${current.uid}`)) : null;
+    const packRead = current.kind === "invite_pack" && current.invitePack ? await t.get(db.doc(`invitePacks/${current.uid}`)) : null;
     // A subscription replaces the subscriber's record with this creator (a tier change carries the days left over).
     const subPrev = current.kind === "subscription" && current.subscription ? (await t.get(db.doc(`subscriptions/${current.uid}_${current.subscription.username}`))).data() : undefined;
 
@@ -507,6 +509,13 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       // as late money; Business books; the owner's money held in the ledger.
       current.hotel = writeHotelPay(t, db, current, hotelRead, now);
       t.update(payRef, { hotel: current.hotel });
+    } else if (current.kind === "invite_pack" && current.invitePack && packRead) {
+      // A month of more event invitations a week: platform revenue (no ledger), running on from what's left of a pack of the same size;
+      // a different size replaces it from now.
+      const cur = packRead.data() as { sends?: number; until?: string } | undefined;
+      const same = cur?.sends === current.invitePack.sends && cur.until && Date.parse(cur.until) > Date.parse(now);
+      const from = same ? Date.parse(cur!.until!) : Date.parse(now);
+      t.set(packRead.ref, { uid: current.uid, pack: current.invitePack.pack, sends: current.invitePack.sends, until: new Date(from + 31 * 86_400_000).toISOString(), reference, updatedAt: now });
     } else if (current.kind === "hotel_addon" && current.hotelAddon && addonHotel) {
       // A month of a Hotel kit add-on: platform revenue (no ledger), running on from what's left.
       const cur = (addonHotel.data()?.addons ?? {})[current.hotelAddon.addon] as string | undefined;

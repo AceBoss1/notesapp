@@ -55,6 +55,7 @@ import { GiftError, giftGate, priceAnimatedGift, senderVerified } from "@/lib/gi
 import { giftQuantity, giftUplift, isGiftContext, isGiftToKind, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
 import { MeetingError, meetingCheckout } from "@/lib/meetings-server";
+import { packOf } from "@/lib/event-invites";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { LiveEventError, liveTicketCheckout } from "@/lib/live-tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -329,6 +330,22 @@ export async function POST(req: NextRequest) {
       const record: PaymentRecord = {
         reference, kind: "inventory_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
         publisherUid: user.uid, publisherUsername: "", commissionRate: 0, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    if (kind === "invite_pack") {
+      // A month of more event invitations a week (lib/event-invites.ts INVITE_PACKS); the price is set in Admin → Pricing.
+      const pack = packOf(body.pack);
+      if (!pack) return NextResponse.json({ error: "Choose a pack." }, { status: 400 });
+      const amount = currentPricing().invites[pack.priceKey];
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, pack: pack.id } });
+      const record: PaymentRecord = {
+        reference, kind: "invite_pack", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, invitePack: { pack: pack.id, sends: pack.sends }, createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
