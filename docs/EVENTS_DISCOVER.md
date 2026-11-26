@@ -84,12 +84,16 @@ Screenshots from the real code on the emulators (sample data): [Discover](mockup
 
 ## Changed from the mockups
 
-- **Online meetings use the host's link** (Zoom, Meet, Teams). #NotesApp group calls hold 4–6 people today, so "#NotesApp video" for
-  meetings waits for bigger group video.
-- **Meetings don't repeat yet**; set up the next one from the last (repeating meetings need seats per date).
-- **Admin can't pin a featured event yet**: featured is pinned (the `pinned` field, set by hand) then most Going this week, then soonest.
-- **Discover's counts are up to 10 minutes behind** (the snapshot); an event appears there within 10 minutes of publishing.
-- **Packs are sold without discount codes** (codes don't cover them yet).
+- **Meetings online on #NotesApp** (owner, 26 Nov 2026: "with the Cloudflare it has 10,000 capacity"): a meeting room is a profile live on
+  the Cloudflare relay with `profile.meetingId`; `mayWatchProfileLive` lets in only the host and people with a seat. The host opens it
+  from 30 minutes before (`startMeetingRoom`); seat holders get a bell. The host's own link stays an option.
+- **Meetings don't repeat yet** (owner: "OK"); **Set up the next one** (`/meetings/new?from=<id>`, a week on) and New meeting's "start from
+  your last meeting" (`/api/meetings?last=1`) make a weekly meeting two taps.
+- **Admin can't pin a featured event yet** (owner: "OK"): featured is pinned (the `pinned` field) then most Going this week, then soonest.
+- **Discover's counts are up to 10 minutes behind** (owner: "OK").
+- **Discount codes and referrals** (owner: "REFERRAL and DISCOUNT SHOULD ALWAYS WORK"): new targets `meeting` and `ticket` (the host's
+  codes) and `invite_pack` (#NotesApp's codes) in `lib/discounts.ts`, applied at checkout; an invitation pack records a referral
+  earning like a plan (`recordPlanEarning`).
 
 ## Owner steps
 

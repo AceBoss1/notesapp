@@ -1515,7 +1515,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
     `lib/events-discover-server.ts` (statCache `eventsDiscover`, 10 min), `lib/meetings*.ts` (payment kind `meeting`, `readForMeeting`/
     `writeMeetingSeat` in fulfillPayment, refunds by `refundFraction`), sessions' `where` with the private part in `sessionPlaces/{uid}`
     and `bookedSessionNow` in `lib/calls-server.ts`, `lib/event-invites*.ts` (pricing section `invites`, payment kind `invite_pack`,
-    `inviteWeeks`/`inviteJobs`/`invitePacks`). Cron jobs: eventAnnouncements, meetingReminders, inviteJobs. New pages: /events (Discover),
+    `inviteWeeks`/`inviteJobs`/`invitePacks`); meeting rooms are profile lives with `profile.meetingId` (`startMeetingRoom`, seat check in
+    `mayWatchProfileLive`); discount targets `meeting`, `ticket`, `invite_pack`; packs earn referrals. Cron jobs: eventAnnouncements, meetingReminders, inviteJobs. New pages: /events (Discover),
     /events/new, /events/calendar/<u>, /meetings/new, /meetings/<id>; /booking and /pricing#events rewritten. Tests: test:events-discover,
     test:events-discover-server, rules. Deploy rules and indexes.
 
