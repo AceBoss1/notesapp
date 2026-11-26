@@ -142,6 +142,14 @@ const icsDate = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{
 const icsText = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
 // Long lines are folded at 75 characters, as the format asks.
 const fold = (line: string) => line.match(/.{1,74}/g)!.join("\r\n ");
+// A calendar people subscribe to: a host's public upcoming events, one file (/api/events/calendar/<username>).
+export function toIcsMany(list: (EventDoc & { id: string })[], urlOf: (id: string) => string, name: string, now = new Date()): string {
+  const events = list.flatMap((e) => toIcs(e, urlOf(e.id), now).split("\r\n").filter((l, i, all) => {
+    const b = all.indexOf("BEGIN:VEVENT"), en = all.indexOf("END:VEVENT");
+    return i >= b && i <= en;
+  }));
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//NotesApp//Events//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", fold(`X-WR-CALNAME:${icsText(name)}`), ...events, "END:VCALENDAR"].join("\r\n") + "\r\n";
+}
 export function toIcs(e: EventDoc & { id: string }, url: string, now = new Date()): string {
   const rule = e.repeat === "weekly" ? "FREQ=WEEKLY" : e.repeat === "monthly" ? "FREQ=MONTHLY" : "";
   const lines = [

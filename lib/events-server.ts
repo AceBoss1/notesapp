@@ -94,8 +94,12 @@ export async function getEvent(db: Firestore, id: string, viewerUid: string | nu
   // Paid tickets (lib/tickets.ts): each type's name, price and how many are left. None = free RSVP, as before.
   const types = (((await db.doc(`eventTickets/${id}`).get()).data()?.types ?? []) as TicketType[]);
   const canManage = viewerUid ? await mayManage(db, e, viewerUid) : false;
+  // The online link of a ticketed event or one that needs approval is for the people who are in (lib/event-kit.ts); other events'
+  // links stay public, as they always were (a public YouTube live, say).
+  const gated = !!e.liveUrl && (e.approval === true || types.length > 0) && !canManage && mine !== "going"
+    && !(viewerUid && (await db.collection("tickets").where("holderUid", "==", viewerUid).limit(500).get()).docs.some((d) => d.data().eventId === id && d.data().status === "valid"));
   return {
-    event: e, next: nextOccurrence(e, now), rsvp: mine, canManage,
+    event: gated ? { ...e, liveUrl: "", linkHidden: true } : e, next: nextOccurrence(e, now), rsvp: mine, canManage,
     tickets: types.map((t) => ({ id: t.id, name: t.name, priceKobo: t.priceKobo, left: ticketsLeft(t), ...(canManage ? { quantity: t.quantity, sold: t.sold } : {}) })),
   };
 }
@@ -125,8 +129,11 @@ export async function upcoming(db: Firestore, f: { state?: string; city?: string
     .filter((e) => !f.state || e.state === f.state)
     .filter((e) => !f.city || e.city.toLowerCase() === f.city.toLowerCase())
     .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)))
-    .slice(0, 100);
+    .slice(0, 100)
+    .map(publicView);
 }
+// Lists never carry the link of a ticketed event or one that needs approval (getEvent gives it to the people who are in).
+export const publicView = <T extends EventDoc>(e: T): T => (e.liveUrl && (e.approval || (e.priceFromKobo ?? 0) > 0) ? { ...e, liveUrl: "" } : e);
 
 // Explore and Trending: every listed event (lib/events.ts isListedEvent: public, not cancelled, not over, and not from an invite-only
 // community), with its next start worked out now, soonest first. One query on nextStartAt (a single-field index); two days back so an
@@ -140,7 +147,7 @@ export async function listedEvents(db: Firestore, now = new Date()): Promise<Ev[
   const findable = new Set(comms.filter((c) => c.exists && isDiscoverable(c.data() as Community)).map((c) => c.id));
   return all
     .filter((e) => isListedEvent(e, now, !!e.cid && findable.has(e.cid)))
-    .map((e) => ({ ...e, nextStartAt: nextOccurrence(e, now)!.start.toISOString() }))
+    .map((e) => publicView({ ...e, nextStartAt: nextOccurrence(e, now)!.start.toISOString() }))
     .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)));
 }
 
