@@ -14,7 +14,8 @@ import AddToCalendar from "@/components/calendar/AddToCalendar";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "giving" | "ticket" | "live_ticket";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "giving" | "ticket" | "live_ticket" | "meeting";
+  meeting?: { meetingId: string; title: string };
   liveTicket?: { eventId: string; eventTitle: string };
   giving?: { cid: string; communityName: string; fund: string; giftKobo: number };
   ticket?: { eventId: string; eventTitle: string; quantity: number; typeName: string };
@@ -196,6 +197,17 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">{result.ticket.quantity} × {result.ticket.typeName} for {result.ticket.eventTitle}. Show the QR code on each ticket at the door. Your tickets are on their way by email too.</p>
           <AppLink href="/tickets" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">My tickets</AppLink>
         </>
+      ) : result.status === "paid" && result.kind === "meeting" && result.meeting ? (
+        <div className="mt-8 text-center">
+          <p className="font-display text-2xl text-ink">Your seat is booked</p>
+          <p className="mt-3 text-sm text-slate">You&apos;re in for {result.meeting.title}. The address or the link is on the meeting&apos;s page, and we&apos;ll remind you a day and an hour before.</p>
+          <Link href={`/meetings/${result.meeting.meetingId}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">Open the meeting</Link>
+        </div>
+      ) : result.kind === "meeting" && result.meeting ? (
+        <div className="mt-8 text-center">
+          <p className="font-display text-2xl text-ink">That seat couldn&apos;t be booked</p>
+          <p className="mt-3 text-sm text-slate">The meeting filled up or was cancelled just as you paid. We&apos;ll refund you in full: contact us with reference {reference} if it doesn&apos;t arrive.</p>
+        </div>
       ) : result.status === "paid" && result.kind === "live_ticket" && result.liveTicket ? (
         <div className="mt-8 text-center">
           <p className="font-display text-2xl text-ink">Your ticket is ready</p>

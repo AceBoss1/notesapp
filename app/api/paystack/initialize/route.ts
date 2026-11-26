@@ -54,6 +54,7 @@ import { getFanSettings } from "@/lib/fans-server";
 import { GiftError, giftGate, priceAnimatedGift, senderVerified } from "@/lib/gifts-server";
 import { giftQuantity, giftUplift, isGiftContext, isGiftToKind, upliftedRate } from "@/lib/gift-catalogue";
 import { CommunityError } from "@/lib/community-server";
+import { MeetingError, meetingCheckout } from "@/lib/meetings-server";
 import { ticketCheckout } from "@/lib/tickets-server";
 import { LiveEventError, liveTicketCheckout } from "@/lib/live-tickets-server";
 import { EventError } from "@/lib/events-server";
@@ -237,6 +238,23 @@ export async function POST(req: NextRequest) {
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    // ---- a paid seat in a meeting (lib/meetings.ts): by card; the host's plan commission fixed now, like a session ----
+    if (kind === "meeting") {
+      if (payWith === "wallet") return NextResponse.json({ error: "Pay for a meeting seat by card or bank." }, { status: 400 });
+      let mt: Awaited<ReturnType<typeof meetingCheckout>>;
+      try { mt = await meetingCheckout(db, user.uid, String(body.meetingId ?? "")); }
+      catch (e) { if (e instanceof MeetingError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: mt.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, meetingId: mt.info.meetingId } });
+      const record: PaymentRecord = {
+        reference, kind: "meeting", uid: user.uid, email: user.email, amountKobo: mt.amountKobo, status: "pending",
+        publisherUid: mt.hostUid, publisherUsername: mt.hostUsername, commissionRate: mt.commissionRate, meeting: mt.info, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
     // ---- paid event tickets (lib/tickets.ts): by card; refused here when sold out; giving's charges, no commission ----

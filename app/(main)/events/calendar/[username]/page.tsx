@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { upcoming } from "@/lib/events-server";
+import { upcomingMeetings } from "@/lib/meetings-server";
 import { cleanTheme, coverStyle, whereLine } from "@/lib/event-kit";
 import { whenText } from "@/lib/events";
 import { formatNaira } from "@/lib/booking-time";
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: { params: { username: string 
 export default async function CalendarPage({ params }: { params: { username: string } }) {
   const p = await host(params.username);
   if (!p || p.suspended) notFound();
-  const list = await upcoming(getAdminDb(), { host: params.username }, null);
+  const [list, meetings] = await Promise.all([upcoming(getAdminDb(), { host: params.username }, null), upcomingMeetings(getAdminDb(), params.username)]);
   const theme = cleanTheme({ theme: list[0]?.theme, pattern: list[0]?.pattern }, p.uid);
   const feed = `${SITE_URL.replace(/^https?:/, "webcal:")}/api/events/calendar/${params.username}`;
   return (
@@ -63,6 +64,21 @@ export default async function CalendarPage({ params }: { params: { username: str
           })}
         </ul>
       )}
+      {meetings.length > 0 && <>
+        <h2 className="mt-8 font-ui text-lg font-bold">Meetings</h2>
+        <ul className="mt-3 grid gap-3">
+          {meetings.map((m) => (
+            <li key={m.id}><Link href={`/meetings/${m.id}`} className="card flex items-center gap-4 p-3 hover:border-crimson/50">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl text-2xl" style={coverStyle(cleanTheme({ theme: m.theme, pattern: m.pattern }, p.uid))}>👥</span>
+              <span className="min-w-0">
+                <span className="block text-xs text-slate">{whenText(new Date(m.startsAt), new Date(m.endsAt))}</span>
+                <span className="block font-ui text-sm font-bold text-ink">{m.title}</span>
+                <span className="block text-xs text-slate">{[whereLine(m.where), m.priceKobo ? `${formatNaira(m.priceKobo)} a seat` : "Free", `${Math.max(0, m.seats - m.booked)} seats left`].join(" · ")}</span>
+              </span>
+            </Link></li>
+          ))}
+        </ul>
+      </>}
       <p className="mt-6 text-xs text-slate">Following tells you about each new public event, with a bell and an email. &quot;Add to my calendar&quot; keeps your phone&apos;s calendar up to date with these events.</p>
     </div>
   );

@@ -38,6 +38,7 @@ import { announceGrandGift, readGiftDaily, readGiftTallies, writeGiftDaily, writ
 import { upliftedRate, type GiftContext, type GiftMotif, type GiftToKind } from "./gift-catalogue";
 import { givingReleaseAfter } from "./giving";
 import { readForTickets, writeTickets } from "./tickets-server";
+import { afterPaidSeat, readForMeeting, writeMeetingSeat } from "./meetings-server";
 import { notifyLiveTicket, readForLiveTicket, refundLiveTicketToCredit, writeLiveTicket } from "./live-tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 import { handleOf, postRoomEvent } from "./room-events-server";
@@ -49,7 +50,7 @@ import { afterHotelPay, confirmPaylonyHotel, readHotelPay, writeHotelPay, type H
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt" | "live_ticket" | "ppm" | "hotel" | "hotel_addon" | "task" | "task_anon" | "meeting";
   uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
@@ -149,6 +150,7 @@ export type PaymentRecord = {
   // Paid event tickets (lib/tickets.ts): the type, how many, and the occurrence they are for. publisherUid is the event's host.
   // bandKobo / cardChargeKobo / netKobo: the charges fixed at checkout (lib/tickets.ts quoteTickets, since v0.117.0); a ticket bought
   // before then has none and keeps the commission recorded in commissionRate.
+  meeting?: { meetingId: string; title: string; startsAt: string; endsAt: string; name: string }; // a paid seat (lib/meetings-server.ts)
   ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string; bandKobo?: number; cardChargeKobo?: number; netKobo?: number };
   // A customer paying what they owe a Business books seller (lib/books-debt-server.ts): whose statement, which customer, and once paid
   // the payment's entry and the customer's receipt. publisherUid is the seller.
@@ -184,7 +186,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm" | "hotel" | "task";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt" | "gift_payout" | "live_ticket" | "ppm" | "hotel" | "task" | "meeting";
   // Gift withdrawals (lib/gift-earnings-server.ts): a "gift_payout" entry carries how many gifts it gathered and, from the
   // withdrawal line up, needsApproval (it waits for a person to release it); each gathered gift entry carries withdrawalId.
   withdrawalOf?: number;
@@ -339,6 +341,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     // A discount code's running totals: read now (every read comes before any write), written with the paid status below.
     const codeRead = await readCodeForRedemption(t, db, current.discount);
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
+    const meetingRead = current.kind === "meeting" && current.meeting ? await readForMeeting(t, db, current) : null;
     const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
     const liveRead = current.kind === "live_ticket" && current.liveTicket ? await readForLiveTicket(t, db, current) : null;
     const hotelRead = current.kind === "hotel" && current.hotel ? await readHotelPay(t, db, current) : null;
@@ -465,6 +468,14 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         ...(g.cardChargeKobo ? { cardChargeKobo: g.cardChargeKobo } : {}),
         status: "held", releaseAfter: givingReleaseAfter(new Date(now)).toISOString(), createdAt: now,
       } satisfies LedgerEntry);
+    } else if (current.kind === "meeting" && current.meeting && meetingRead) {
+      // A paid meeting seat (lib/meetings-server.ts): full or cancelled meanwhile → flagged for a refund, like a sold-out ticket. The
+      // host's money, after their plan's commission fixed at checkout, is held until the meeting ends, then the usual problem window.
+      if (!writeMeetingSeat(t, db, current, meetingRead, now)) {
+        t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
+        return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
+      }
+      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(current.meeting.endsAt), now)); // released after the end plus the usual window
     } else if (current.kind === "ticket" && current.ticket && ticketRead) {
       // Event tickets: one per admission, the sold count moved here. Not enough left (bought at the same moment as the last ones) →
       // flagged for a refund, like a sold-out shop order. The host's money, after the charges, is held until the event ends: like a
@@ -849,6 +860,7 @@ async function notifyPaid(p: PaymentRecord) {
   }
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);
+  if (p.kind === "meeting" && p.meeting) return afterPaidSeat(getAdminDb(), p);
   if (p.kind === "ticket" && p.ticket) return notifyTickets(p);
   if (p.kind === "live_ticket" && p.liveTicket) return notifyLiveTicket(p);
   if (p.kind === "life_naira") {
