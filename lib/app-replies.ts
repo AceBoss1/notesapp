@@ -3,11 +3,18 @@
 // sent: Nana-HR never sends on her own) or themselves by @username. The applicant reads the thread and replies. It works on
 // #NotesApp's own roles (/careers, reviewed in the team hub) and on Notes Jobs, for a firm on NotesApp whose job takes applications
 // with "Apply with NotesApp". Pure rules here; the server is lib/app-replies-server.ts.
+// Who a reply can come from depends on whose role it is (owner, 26 Nov 2026: "you can reply as HR, as yourself, or ask Nana-HR for a
+// draft that you edit and then send. Nana-HR never sends on her own"). On #NotesApp's own roles: HR, Nana-HR or the person by
+// @username ("me"). On a firm's Notes Jobs: HR, the firm itself ("owner": the firm's name, never a team member's @username) or Nana-HR;
+// a firm's hiring team doesn't answer as individuals, and who pressed send stays with the firm's reviewers.
 
 export type AppKind = "career" | "job";
-export type SendAs = "hr" | "nana" | "me";
-export const SEND_AS: SendAs[] = ["hr", "nana", "me"];
+export type SendAs = "hr" | "nana" | "me" | "owner";
+export const SEND_AS: SendAs[] = ["hr", "nana", "me", "owner"];
 export const isSendAs = (v: unknown): v is SendAs => typeof v === "string" && (SEND_AS as string[]).includes(v);
+/** The senders a reviewer may choose on this kind of application, in the order the picker shows them. */
+export const SEND_AS_FOR: Record<AppKind, SendAs[]> = { career: ["hr", "nana", "me"], job: ["hr", "owner", "nana"] };
+export const sendAsAllowed = (kind: AppKind, as: unknown): as is SendAs => isSendAs(as) && SEND_AS_FOR[kind].includes(as);
 export type ReplyFrom = SendAs | "applicant";
 
 export const REPLY_MAX = 2_000;
@@ -16,15 +23,16 @@ export const REPLIES_MAX = 200; // per application
 
 export type Reply = {
   id: string; kind: AppKind; applicationId: string; from: ReplyFrom; text: string; createdAt: string;
-  byUsername?: string; // "me": who sent it (and for HR or Nana-HR replies, kept for the reviewers only)
+  byUsername?: string; // "me": who sent it (and for HR, owner or Nana-HR replies, kept for the reviewers only)
   label: string; // what the reader sees as the sender
 };
 
 export const cleanReplyText = (v: unknown, max = REPLY_MAX) => (typeof v === "string" ? v.replace(/\r\n/g, "\n").trim().slice(0, max) : "");
 
-// Who a reply shows as. org is "#NotesApp" for our own roles, else the firm's name.
+// Who a reply shows as. org is "#NotesApp" for our own roles, else the firm's name ("owner": the firm itself, just its name).
 export function senderLabel(from: ReplyFrom, org: string, username?: string, applicantName?: string): string {
   if (from === "hr") return `HR, ${org}`;
+  if (from === "owner") return org;
   if (from === "nana") return `Nana-HR for ${org}`;
   if (from === "me") return username ? `@${username}, ${org}` : org;
   return applicantName || "The applicant";

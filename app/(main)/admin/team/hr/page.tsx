@@ -30,7 +30,8 @@ const bringIntoView = (el: HTMLElement | null) => {
 const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "");
 
 // Nana-HR and hiring (the Nana-HR spec): every staff member asks Nana-HR about the handbook, their SOPs and briefs and their own hours,
-// leave and pay; super admins and the Chief of Staff also run hiring here: roles (a super admin opens them on /careers), applications
+// leave and pay; whoever reviews hiring (lib/admin-access.ts canReviewHiring: super admins, the Chief of Staff and People & HR) also
+// runs hiring here: roles (a super admin opens them on /careers), applications
 // with Nana-HR's screening summaries, onboarding drafts (offer, option grant, announcement) and the questions Nana-HR couldn't answer.
 export default function NanaHrPage() {
   const { user, loading } = useAdminAuth();

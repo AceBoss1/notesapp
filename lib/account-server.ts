@@ -67,7 +67,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     messagesSent: await sentMessages(db, uid), // direct messages and group messages you wrote
     socialAccounts: await socialAccountsOf(db, uid), // LinkedIn / X accounts you connected (never the access tokens)
     signInLinks: await docs(db, "authLinks", "uid", uid), // Google and LinkedIn accounts you sign in with (lib/social-auth-server.ts)
-    jobApplications: await docs(db, "jobApplications", "uid", uid), // Notes Jobs: the jobs you applied for (lib/jobs-server.ts)
+    jobApplications: strip(await docs(db, "jobApplications", "uid", uid), ["hrReadAt", "hrReadBy"]), // Notes Jobs: the jobs you applied for (lib/jobs-server.ts); the firm's read stamp stays with the firm
     jobSettings: (await db.doc(`jobSeekers/${uid}`).get()).data() ?? null, // "I need a job" and your city
     jobsPosted: await docs(db, "jobs", "orgUid", uid), // an organisation's jobs
     applicationMessages: await docs(db, "appReplies", "applicantUid", uid), // the conversations on your job applications (lib/app-replies-server.ts)

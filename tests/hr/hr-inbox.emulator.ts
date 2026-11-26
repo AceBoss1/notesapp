@@ -2,9 +2,13 @@
 // and answers replies there." Only #NotesApp's own roles show (never a firm's Notes Jobs conversation), unread counts the applicant's
 // replies after the team last read it, "needs reply" is the applicant writing last, opening (here or in the team hub) marks it read,
 // answering as HR or as yourself reaches the applicant with the right sender and a bell, Nana-HR only drafts, and only the people who
-// review applications (super admins and the Chief of Staff) get in. Run: npm run test:hr-inbox → "HR INBOX OK".
+// review applications get in: canReviewHiring (owner, 26 Nov 2026: "whoever already reviews ... probably owner or admin they appoint
+// with hr privilege"): super admins, the Chief of Staff and admins in People & HR, never another Executive office admin. An applicant's
+// reply bells everyone with that privilege (read from the accounts' claims on the Auth emulator), nobody else.
+// Run: npm run test:hr-inbox → "HR INBOX OK" (then tests/hr/firm-hr-inbox.emulator.ts, the firms' own inboxes).
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import type { Access } from "../../lib/admin-access";
 initializeApp({ projectId: "demo-notesapp" });
@@ -22,8 +26,20 @@ const db = getFirestore();
   const cos = { uid: "cos", access: { role: "admin", depts: ["executive"], cos: true } as Access };
   const exec = { uid: "exe", access: { role: "admin", depts: ["executive"] } as Access };
   const care = { uid: "care", access: { role: "admin", depts: ["support"] } as Access };
-  for (const [u, n] of [["sup", "ngozi"], ["cos", "chioma"], ["exe", "emeka"], ["care", "kemi"], ["bola", "bola"], ["tola", "tola"]]) {
+  const hra = { uid: "hra", access: { role: "admin", depts: ["hr"] } as Access }; // People & HR
+  for (const [u, n] of [["sup", "ngozi"], ["cos", "chioma"], ["exe", "emeka"], ["care", "kemi"], ["hra", "halima"], ["bola", "bola"], ["tola", "tola"]]) {
     await db.doc(`users/${u}`).set({ username: n, displayName: n[0].toUpperCase() + n.slice(1), avatar: "" });
+  }
+  // The same people as staff accounts, with the claims Team access gives them (lib/admin-access.ts accessFromClaims).
+  const auth = getAuth();
+  const claims: Record<string, Record<string, unknown>> = {
+    sup: { admin: true, adminRole: "super" }, cos: { admin: true, adminRole: "admin", depts: ["executive"], cos: true },
+    exe: { admin: true, adminRole: "admin", depts: ["executive"] }, care: { admin: true, adminRole: "admin", depts: ["support"] },
+    hra: { admin: true, adminRole: "admin", depts: ["hr"] },
+  };
+  for (const [uid, c] of Object.entries(claims)) {
+    await auth.createUser({ uid, email: `${uid}@x.test` }).catch(() => {});
+    await auth.setCustomUserClaims(uid, c);
   }
   const app = (roleId: string, roleTitle: string, uid: string, name: string, extra = {}) =>
     db.doc(`careerApplications/${roleId}_${uid}`).set({ roleId, roleTitle, uid, name, email: `${uid}@x.test`, status: "reviewing", createdAt: at(-600).toISOString(), ...extra });
@@ -39,7 +55,9 @@ const db = getFirestore();
   assert.equal(hr.label, "HR, #NotesApp");
   assert.ok((await bells("bola")).some((b) => b.message === "HR, #NotesApp replied about your application for Campus Ambassador." && b.linkHref === "/profile/applications"));
   await R.sendReply(db, { uid: "bola" }, { kind: "career", id: "r1_bola", text: "Thank you! When will I hear?" }, at(5));
-  assert.ok((await bells("sup")).some((b) => b.message.includes("Bola Ade replied about Campus Ambassador") && b.linkHref === "/admin/hr-inbox?id=r1_bola"));
+  // Everyone with the hiring privilege hears, not only whoever decided on it (sup); nobody without it.
+  for (const u of ["sup", "cos", "hra"]) assert.ok((await bells(u)).some((b) => b.message === "Bola Ade replied about Campus Ambassador." && b.linkHref === "/admin/hr-inbox?id=r1_bola"), `${u} hears`);
+  for (const u of ["exe", "care"]) assert.ok(!(await bells(u)).some((b) => b.message.includes("Bola Ade replied")), `${u} doesn't`);
   // Tola writes twice after the Chief of Staff wrote as herself.
   const cm = await H.hrReply(db, cos, { id: "r1_tola", as: "me", text: "Hi Tola, Chioma here." }, at(1));
   assert.equal(cm.label, "@chioma, #NotesApp");
@@ -73,6 +91,13 @@ const db = getFirestore();
   await refused(H.hrReply(db, sup, { id: "r1_bola", as: "boss", text: "x" }), 400);
   await refused(H.hrReply(db, sup, { id: "r1_bola", as: "hr", text: "  " }), 400);
   await refused(H.hrReply(db, sup, { id: "j1_bola", as: "hr", text: "x" }), 404); // a firm's application isn't one of ours
+  await refused(H.hrReply(db, sup, { id: "r1_bola", as: "owner", text: "x" }), 400); // "owner" is a firm's sender, never ours
+
+  // People & HR: an admin given the hr department reviews and answers like the Chief of Staff, in the inbox and the team hub.
+  assert.deepEqual((await H.hrInbox(db, hra)).rows.map((r) => r.id), ["r1_bola", "r1_tola"]);
+  const hm = await H.hrReply(db, hra, { id: "r1_bola", as: "me", text: "Hi Bola, Halima from People & HR." }, at(26));
+  assert.equal(hm.label, "@halima, #NotesApp");
+  assert.equal((await R.listReplies(db, hra, "career", "r1_bola", { markRead: false })).reviewer, true);
 
   // Nana-HR drafts from the person's instruction; nothing is sent until they send it.
   const before = (await db.collection("appReplies").get()).size;
@@ -97,6 +122,7 @@ const db = getFirestore();
 
   // Only the people who review applications: not an Executive office admin who isn't Chief of Staff, not Customer care, not applicants.
   for (const v of [exec, care, { uid: "bola" }, { uid: "bola", access: null }]) {
+    await refused(R.listReplies(db, { ...v, uid: v.uid === "bola" ? "tola" : v.uid }, "career", "r1_bola"), 403);
     await refused(H.hrInbox(db, v), 403);
     await refused(H.hrThread(db, v, "r1_bola"), 403);
     await refused(H.hrReply(db, v, { id: "r1_bola", as: "hr", text: "x" }), 403);

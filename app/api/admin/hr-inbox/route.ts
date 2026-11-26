@@ -11,8 +11,10 @@ import { hrDraft, hrInbox, hrMarkRead, hrReply, hrThread } from "@/lib/hr-inbox-
 export const dynamic = "force-dynamic";
 
 // Admin → #Nana-HR inbox (lib/hr-inbox-server.ts). Owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and answers replies there."
-// Applicants' replies on #NotesApp's own roles, for the people who review those applications (HR_INBOX_NEED: super admins and the
-// Chief of Staff). Rate limits share their buckets with /api/applications/replies, so answering from here or the team hub counts once.
+// Applicants' replies on #NotesApp's own roles, for the people who review those applications (HR_INBOX_NEED, canReviewHiring: super
+// admins, the Chief of Staff and People & HR). Career threads only: no org is ever passed on, so a firm's conversation can't be reached
+// from here (each firm has its own inbox, /api/jobs/hr-inbox). Rate limits share their buckets with /api/applications/replies, so
+// answering from here, the team hub or a firm's inbox counts once.
 //   GET ?filter=all|unread|needs-reply  → { rows, counts, unread }   newest activity first
 //   GET ?id=<applicationId>             → { replies, reviewer, org, username, interviews, application, hubHref }   and marks it read
 //   POST { id, as: "hr"|"nana"|"me", text }   → { reply }   (action "send" or none; components/ApplicationThread.tsx sends "send")
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
     if (b.action === "draft") {
       const limited = await rateLimit(req, "app-reply-draft", v.uid, 30, 3600);
       if (limited) return limited;
-      return NextResponse.json(await hrDraft(db, v, b));
+      return NextResponse.json(await hrDraft(db, v, { id: b.id, intent: b.intent }));
     }
     if (b.action === "interview") {
       const limited = await rateLimit(req, "app-interview", v.uid, 30, 3600);
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (b.action === "cancelInterview") { await cancelInterview(db, v, b.interviewId); return NextResponse.json({ ok: true }); }
     const limited = await rateLimit(req, "app-reply", v.uid, 60, 3600);
     if (limited) return limited;
-    return NextResponse.json({ reply: await hrReply(db, v, b) });
+    return NextResponse.json({ reply: await hrReply(db, v, { id: b.id, as: b.as, text: b.text }) });
   } catch (err) {
     return failed(err, "Couldn't send that");
   }

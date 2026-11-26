@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { getAdminApp } from "./firebase-admin";
-import { accessFromClaims } from "./admin-access";
+import { accessFromClaims, canReviewHiring } from "./admin-access";
 import { notifyBell } from "./email";
 import { APP_URL } from "./host";
 import { context, sendReply, type Viewer } from "./app-replies-server";
@@ -16,11 +16,12 @@ const COLL = "interviews";
 export const roomLink = (roomId: string) => `${APP_URL}/messages/${roomId}`;
 const toInterview = (id: string, d: FirebaseFirestore.DocumentData) => ({ ...(d as Omit<Interview, "id">), id }) as Interview;
 
-// Who may interview: on our own roles, staff; on Notes Jobs, the organisation account or an HR member of its team.
+// Who may interview: on our own roles, whoever reviews hiring (lib/admin-access.ts canReviewHiring: super admins, the Chief of Staff and
+// People & HR); on Notes Jobs, the organisation account or an HR member of its team.
 async function mayInterview(db: Firestore, kind: "career" | "job", orgUid: string | null, uid: string): Promise<boolean> {
   if (kind === "career") {
     const u = await getAuth(getAdminApp()).getUser(uid).catch(() => null);
-    return !!accessFromClaims((u?.customClaims ?? null) as Record<string, unknown> | null);
+    return canReviewHiring(accessFromClaims((u?.customClaims ?? null) as Record<string, unknown> | null));
   }
   if (!orgUid) return false;
   if (uid === orgUid) return true;

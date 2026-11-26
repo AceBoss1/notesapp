@@ -1,9 +1,10 @@
 import type { ReplyFrom } from "./app-replies";
 
-// Admin → #Nana-HR inbox (owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and answers replies there"): every conversation on an
-// application to #NotesApp's own roles (/careers), in one list, so an applicant's reply is seen without opening each role in the team
-// hub. Notes Jobs conversations belong to each firm and stay on its job pages. Pure rules here (tested in tests/hr/hr-inbox.test.ts);
-// the server is lib/hr-inbox-server.ts, and the replies themselves are lib/app-replies-server.ts.
+// The #Nana-HR inboxes (owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and answers replies there"): every conversation on a
+// hiring team's applications in one list, so an applicant's reply is seen without opening each role. Admin → #Nana-HR inbox has
+// #NotesApp's own roles (/careers); each firm has its own for its Notes Jobs ("applications to other firms' jobs stay with those
+// firms"), at /profile/jobs/hr-inbox. Pure rules here, the same for both (tested in tests/hr/hr-inbox.test.ts); the server is
+// lib/hr-inbox-server.ts, and the replies themselves are lib/app-replies-server.ts.
 
 export type HrInboxFilter = "all" | "unread" | "needs-reply";
 export const HR_INBOX_FILTERS: { key: HrInboxFilter; label: string }[] = [
@@ -12,9 +13,9 @@ export const HR_INBOX_FILTERS: { key: HrInboxFilter; label: string }[] = [
 export const isHrInboxFilter = (v: unknown): v is HrInboxFilter => HR_INBOX_FILTERS.some((f) => f.key === v);
 
 export type HrInboxRow = {
-  id: string; // the application (careerApplications/{roleId}_{uid})
+  id: string; // the application (careerApplications/{roleId}_{uid} or, in a firm's inbox, jobApplications/{jobId}_{uid})
   applicant: { uid: string; name: string; username: string; avatar: string };
-  roleId: string; roleTitle: string; status: string; statusLabel: string;
+  roleId: string; roleTitle: string; status: string; statusLabel: string; // roleId/roleTitle: the role, or the firm's job
   lastText: string; lastAt: string; lastFrom: ReplyFrom; lastLabel: string;
   count: number; unread: number; needsReply: boolean;
 };

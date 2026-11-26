@@ -29,7 +29,8 @@ const isOpen = (j: Pick<Job, "status" | "closesAt">, now: Date) => j.status === 
 // organisation must be CAC-verified and not suspended (the owner's rule: verified organisations only, to keep job scams out).
 // The organisation's hiring team (the owner, 9 Nov 2026): the organisation account, and the team members its owner gave the HR area
 // (orgMembers.hr, set on the organisation's team page), whether admins or writers. They post and manage jobs, read the applications,
-// move them on and reply to applicants (as HR, Nana-HR or themselves: lib/app-replies-server.ts), without the team hub.
+// move them on and reply to applicants (as HR, as the organisation or with a Nana-HR draft: lib/app-replies-server.ts), and they alone
+// see its #Nana-HR inbox (lib/hr-inbox-server.ts), without the team hub.
 export async function hiringTeamFor(db: Firestore, me: Me, orgUid: unknown): Promise<{ orgUid: string; org: UserProfile; role: "owner" | "hr" }> {
   const id = String(orgUid ?? "");
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new JobsError("Choose the organisation.");
@@ -175,8 +176,8 @@ export async function applyToJob(db: Firestore, me: { uid: string }, jobId: unkn
 
 export async function myApplications(db: Firestore, uid: string): Promise<JobApplication[]> {
   const snap = await db.collection(APPS).where("uid", "==", uid).get();
-  // The applicant's own list: without the hiring team's Nana-HR summary.
-  return snap.docs.map((d) => { const { summary: _s, ...a } = toApp(d.id, d.data()); return a as JobApplication; }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  // The applicant's own list: without the hiring team's Nana-HR summary or its read stamp (#Nana-HR inbox).
+  return snap.docs.map((d) => { const { summary: _s, hrReadAt: _r, hrReadBy: _b, ...a } = toApp(d.id, d.data()) as JobApplication & { hrReadAt?: string; hrReadBy?: string }; return a as JobApplication; }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 export async function withdrawApplication(db: Firestore, uid: string, appId: unknown, now = new Date()): Promise<void> {

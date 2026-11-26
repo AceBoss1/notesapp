@@ -1688,7 +1688,8 @@ test("Notes Jobs collections are server-only, even for the member they're about 
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, "jobs/j1"), { title: "Driver", orgUid: "org", status: "open" });
-    await setDoc(doc(db, "jobApplications/j1_alice"), { uid: "alice", jobId: "j1", orgUid: "org" });
+    // with the firm's #Nana-HR inbox read stamp, which stays with the firm (the applicant, alice, can't read it either)
+    await setDoc(doc(db, "jobApplications/j1_alice"), { uid: "alice", jobId: "j1", orgUid: "org", hrReadAt: "2026-11-26T12:00:00Z", hrReadBy: "org" });
     await setDoc(doc(db, "jobSeekers/alice"), { openToWork: true, city: "Lagos" });
   });
   for (const db of [as("alice"), as("org"), as("staff", { admin: true, adminRole: "super" }), anon()]) {

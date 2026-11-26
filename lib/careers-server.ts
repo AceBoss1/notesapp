@@ -3,7 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getAdminApp } from "./firebase-admin";
 import { notifyBell } from "./email";
 import { gemModel, realDeps, runAi, type NanaDeps } from "./nana-server";
-import { canManageTeam, isSuper, type Access } from "./admin-access";
+import { canReviewHiring, isSuper, type Access } from "./admin-access";
 import {
   APP_STATUS_LABEL, CareersError, KEEP_DAYS, SEED_ROLES, cleanApplication, cleanRole, isAppStatus, nextStatusAllowed,
   type Application, type CareerRole, type RoleStatus,
@@ -16,7 +16,9 @@ import { cleanTerms, draftsFor } from "./hr-drafts";
 //   hrDrafts/{id}               Nana-HR's onboarding drafts (offer, option grant, announcement) for the people who manage hiring
 export type Staff = { uid: string; email: string; access: Access; owner: boolean };
 const ROLES = "careerRoles", APPS = "careerApplications", DRAFTS = "hrDrafts";
-const need = (ok: boolean, msg = "Only super admins and the Chief of Staff manage hiring.", status = 403) => { if (!ok) throw new CareersError(msg, status); };
+// Hiring is for whoever reviews #NotesApp's applications (lib/admin-access.ts canReviewHiring: super admins, the Chief of Staff and
+// People & HR); opening or closing a role on /careers stays with super admins.
+const need = (ok: boolean, msg = "Only super admins, the Chief of Staff and People & HR manage hiring.", status = 403) => { if (!ok) throw new CareersError(msg, status); };
 const toRole = (id: string, d: FirebaseFirestore.DocumentData) => ({ ...(d as Omit<CareerRole, "id">), id }) as CareerRole;
 const toApp = (id: string, d: FirebaseFirestore.DocumentData) => { const { purgeAt: _p, ...rest } = d; return { ...(rest as Omit<Application, "id">), id } as Application; };
 
@@ -106,7 +108,7 @@ export async function myCareerApplications(db: Firestore, uid: string): Promise<
 // ── Team hub ──────────────────────────────────────────────────────────────────────────────────────────────
 
 export async function hiringBoard(db: Firestore, me: Staff) {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   await seedRoles(db).catch(() => {});
   const [roles, apps] = await Promise.all([db.collection(ROLES).get(), db.collection(APPS).get()]);
   return {
@@ -117,7 +119,7 @@ export async function hiringBoard(db: Firestore, me: Staff) {
 }
 
 export async function saveRole(db: Firestore, me: Staff, id: unknown, body: Record<string, unknown>, now = new Date()): Promise<CareerRole> {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   const clean = cleanRole(body);
   if (typeof id === "string" && id) {
     const ref = db.doc(`${ROLES}/${id}`);
@@ -153,7 +155,7 @@ export async function setRoleStatus(db: Firestore, me: Staff, id: unknown, to: u
 // withdrawn; kept are a hired applicant's (the person's record) and those who asked to be considered for future roles (deleted 6 months
 // from now, as when a role closes). A deleted seeded role isn't seeded again (seedRoles' marker lists it).
 export async function deleteRole(db: Firestore, me: Staff, id: unknown, now = new Date()): Promise<{ removed: number; kept: number }> {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   const ref = db.doc(`${ROLES}/${String(id ?? "")}`);
   const cur = (await ref.get()).data();
   if (!cur) throw new CareersError("That role isn't there any more.", 404);
@@ -187,7 +189,7 @@ const TELL: Partial<Record<keyof typeof APP_STATUS_LABEL, (role: string) => stri
 
 // A person moves an application on. The applicant hears at the steps that matter to them.
 export async function setApplicationStatus(db: Firestore, me: Staff, id: unknown, status: unknown, notes: unknown, now = new Date()): Promise<void> {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   if (!isAppStatus(status)) throw new CareersError("Choose a status.");
   const ref = db.doc(`${APPS}/${String(id)}`);
   const cur = (await ref.get()).data();
@@ -207,7 +209,7 @@ export const SCREEN_SYSTEM = `You are Nana-HR, the hiring helper inside the #Not
 - Plain British English, short lines, no preamble.`;
 
 export async function summarise(db: Firestore, me: Staff, id: unknown, deps: NanaDeps = realDeps(), now = new Date()): Promise<string> {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   const ref = db.doc(`${APPS}/${String(id)}`);
   const a = (await ref.get()).data();
   if (!a) throw new CareersError("That application isn't there any more.", 404);
@@ -223,7 +225,7 @@ export async function summarise(db: Firestore, me: Staff, id: unknown, deps: Nan
 
 // Onboarding drafts from the templates (lib/hr-drafts.ts): an offer letter, an option grant and the announcement, as the arrangement needs.
 export async function makeDrafts(db: Firestore, me: Staff, body: Record<string, unknown>, now = new Date()) {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   const terms = cleanTerms(body);
   if (!terms.name || !terms.title) throw new CareersError("Give the new hire's name and role.");
   const drafts = draftsFor(terms);
@@ -233,7 +235,7 @@ export async function makeDrafts(db: Firestore, me: Staff, body: Record<string, 
 }
 
 export async function listDrafts(db: Firestore, me: Staff) {
-  need(canManageTeam(me.access));
+  need(canReviewHiring(me.access));
   const s = await db.collection(DRAFTS).orderBy("createdAt", "desc").limit(30).get();
   return s.docs.map((d) => ({ id: d.id, ...(d.data() as { applicationId: string | null; drafts: { kind: string; title: string; markdown: string }[]; createdAt: string }) }));
 }

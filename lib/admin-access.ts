@@ -8,6 +8,8 @@
 //   depts: ["support", ...]          the departments an admin works in
 //   cos: true                        the Chief of Staff (an admin): until there is an HR team, assigns other admins to any department,
 //                                    moves them between departments and removes their access; never their own, never a super admin's
+// Hiring at #NotesApp (reviewing /careers applications and answering applicants) is canReviewHiring below: super admins, the Chief of
+// Staff and admins in People & HR.
 // The owner (OWNER_EMAIL, the founder) is a super admin who alone appoints and removes other super admins.
 
 export const DEPARTMENTS = [
@@ -21,6 +23,10 @@ export const DEPARTMENTS = [
   { key: "product", label: "Product & tech", blurb: "Errors, video storage, limits, site settings, API access and domains." },
   { key: "engineering", label: "Engineering", blurb: "Builds and ships the platform: the work board, errors, video storage, limits, API access and site settings, with Product & tech." },
   { key: "executive", label: "Executive office", blurb: "The Chief of Staff and executive assistants: the leadership's priorities, meetings and follow-ups, board papers, and people matters until there is an HR team." },
+  // People & HR (owner, 26 Nov 2026: "whoever already reviews firms' job applications, probably owner or admin they appoint with hr
+  // privilege"): #NotesApp's own HR privilege, given at Team access like any department. Until there is an HR team it works alongside
+  // the Executive office, whose Chief of Staff keeps reviewing applications too (canReviewHiring).
+  { key: "hr", label: "People & HR", blurb: "Hiring: roles, applications, replies to applicants and the #Nana-HR inbox, with Nana-HR's summaries and drafts. Until there is an HR team, alongside the Executive office." },
   { key: "legal", label: "Legal & compliance", blurb: "Reports and takedowns, member look-ups for data and legal requests, and the policies, contracts and templates in the staff library." },
 ] as const;
 export type Dept = (typeof DEPARTMENTS)[number]["key"];
@@ -48,10 +54,17 @@ export const canManageTeam = (a: Access | null | undefined) => isSuper(a) || isC
 // Super admins have every department; an admin has the ones they were given.
 export const hasDept = (a: Access | null | undefined, d: Dept) => !!a && (a.role === "super" || a.depts.includes(d));
 export const hasAnyDept = (a: Access | null | undefined, ds: readonly Dept[]) => ds.some((d) => hasDept(a, d));
+// Who reviews applications to #NotesApp's own roles (/careers): the ONE rule wherever they're reviewed: the reviewer check on every
+// reply (lib/app-replies-server.ts context()) and the applicant's reply bell, the Admin #Nana-HR inbox (HR_INBOX_NEED), the team hub's
+// hiring board, screening summaries, status changes and onboarding drafts (lib/careers-server.ts, /api/admin/hr) and who may sit on an
+// interview (lib/interviews-server.ts). Owner, 26 Nov 2026: "whoever already reviews ... probably owner or admin they appoint with hr
+// privilege": super admins (the owner among them), the Chief of Staff (who acts as HR until there is an HR team) and admins in People
+// & HR ("hr").
+export const canReviewHiring = (a: Access | null | undefined) => isChiefOfStaff(a) || hasDept(a, "hr");
 
 // Every page in the admin area and who can open it: "all" (any staff), "super", "team" (super admins and the Chief of Staff),
-// or the departments that include it.
-export type Need = "all" | "super" | "team" | readonly Dept[];
+// "hiring" (canReviewHiring), or the departments that include it.
+export type Need = "all" | "super" | "team" | "hiring" | readonly Dept[];
 import { activePage, groupPages, jumpTo, type MenuGroup } from "./side-menu";
 
 // Arcade tournaments: Sales & partnerships sign the sponsors, Marketing runs the Arcade's campaigns, the executive office follows them, and
@@ -64,11 +77,10 @@ export const TOURNAMENT_ADMIN_DEPTS = ["growth", "marketing", "executive", "lega
 export const OFFICIAL_INBOX_DEPTS = ["support"] as const satisfies readonly Dept[];
 
 // #Nana-HR inbox (owner, 26 Nov 2026: "Admin → #Nana-HR inbox: HR reads and answers replies there"): applicants' replies on #NotesApp's
-// own roles. Whoever reviews those applications today answers them: super admins and the Chief of Staff ("team", canManageTeam), the
-// same people as the team hub's hiring board (lib/careers-server.ts) and the reviewer check on every reply (lib/app-replies-server.ts
-// context()). There is no HR department yet; the Executive office handles people matters until there is, but of it only the Chief of
-// Staff reviews applications, so widening this means widening context() with it. The menu and /api/admin/hr-inbox use this value.
-export const HR_INBOX_NEED = "team" as const satisfies Need;
+// own roles, for whoever reviews those applications (canReviewHiring: super admins, the Chief of Staff and People & HR). Notes Jobs
+// conversations stay with each firm ("applications to other firms' jobs stay with those firms"), in the firm's own inbox at
+// /profile/jobs/hr-inbox. The menu and /api/admin/hr-inbox use this value.
+export const HR_INBOX_NEED = "hiring" as const satisfies Need;
 
 export type Section ={ href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
@@ -140,6 +152,7 @@ export function canOpen(a: Access | null | undefined, need: Need): boolean {
   if (need === "all") return true;
   if (need === "super") return a.role === "super";
   if (need === "team") return canManageTeam(a);
+  if (need === "hiring") return canReviewHiring(a);
   return hasAnyDept(a, need);
 }
 

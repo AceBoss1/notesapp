@@ -34,12 +34,14 @@ const db = getFirestore();
   await refused(J.postJob(db, { uid: "str" }, "org", { title: "X job", summary: "A summary that is long enough", requirements: ["y"], type: "full_time", mode: "remote" }), 403);
   await J.setApplicationStatus(db, { uid: "wri" }, app.id, "reviewing");
 
-  // replies: as HR (the applicant doesn't see who pressed send), as a person, and Nana-HR's draft sent by a writer
+  // replies: as HR (the applicant doesn't see who pressed send), as the firm itself (owner, 26 Nov 2026: for a firm, its name, never a
+  // team member's @username), and Nana-HR's draft sent by a writer
   const hr = await R.sendReply(db, { uid: "adm" }, { kind: "job", id: app.id, as: "hr", text: "Thanks Bola, we're reading your application." });
   assert.equal(hr.label, "HR, Acme Ltd");
   assert.ok((await bells("bola")).some((m) => m.includes("HR, Acme Ltd replied about your application for Community manager")));
-  const me = await R.sendReply(db, { uid: "wri" }, { kind: "job", id: app.id, as: "me", text: "Hi, I'm Wole from the team." });
-  assert.equal(me.label, "@wole, Acme Ltd");
+  const me = await R.sendReply(db, { uid: "wri" }, { kind: "job", id: app.id, as: "owner", text: "Hi, this is Acme." });
+  assert.equal(me.label, "Acme Ltd");
+  await refused(R.sendReply(db, { uid: "wri" }, { kind: "job", id: app.id, as: "me", text: "Hi, I'm Wole from the team." }), 400);
   const { draft } = await R.draftReply(db, { uid: "wri" }, { kind: "job", id: app.id, intent: "invite them to a call on Tuesday at 10am" }, deps as never);
   assert.ok(draft.includes("Tuesday") && prompt.includes("invite them to a call on Tuesday at 10am") && prompt.includes("HR, Acme Ltd: Thanks Bola"));
   const nana = await R.sendReply(db, { uid: "wri" }, { kind: "job", id: app.id, as: "nana", text: draft });
@@ -50,11 +52,13 @@ const db = getFirestore();
   // the applicant reads the thread (who sent the HR and Nana-HR replies stays with the team) and replies; the firm gets a bell
   const mine = await R.listReplies(db, { uid: "bola" }, "job", app.id);
   assert.equal(mine.reviewer, false);
-  assert.deepEqual(mine.replies.map((r) => [r.from, r.byUsername ?? null]), [["hr", null], ["me", "wole"], ["nana", null]]);
+  assert.deepEqual(mine.replies.map((r) => [r.from, r.label, r.byUsername ?? null]), [["hr", "HR, Acme Ltd", null], ["owner", "Acme Ltd", null], ["nana", "Nana-HR for Acme Ltd", null]]);
   assert.equal((await R.listReplies(db, { uid: "adm" }, "job", app.id)).replies[0].byUsername, "ada", "the team sees who sent it");
   await R.sendReply(db, { uid: "bola" }, { kind: "job", id: app.id, as: "hr", text: "Tuesday at 10 works, thank you!" });
   assert.equal((await R.listReplies(db, { uid: "adm" }, "job", app.id)).replies[3].from, "applicant", "an applicant can't pick a sender");
-  assert.ok((await bells("org")).some((m) => m.includes("Bola replied about Community manager")));
+  // the organisation and its HR members hear (Ada and Wole); Stranger, on the team without HR, doesn't
+  for (const u of ["org", "adm", "wri"]) assert.ok((await bells(u)).some((m) => m.includes("Bola replied about Community manager at Acme Ltd")), `${u} hears`);
+  assert.ok(!(await bells("str")).some((m) => m.includes("replied about Community manager")));
   await refused(R.draftReply(db, { uid: "bola" }, { kind: "job", id: app.id, intent: "x" }, deps as never), 403);
   await refused(R.listReplies(db, { uid: "str" }, "job", app.id), 403);
 
@@ -66,11 +70,13 @@ const db = getFirestore();
   assert.ok(!("summary" in (await J.myApplications(db, "bola"))[0]));
   assert.equal((await J.firmBoard(db, { uid: "adm" }, "org")).applications[0].summary?.text, "Requirement A: Met");
 
-  // #NotesApp's own roles: the hiring team (super admins and the Chief of Staff) and the applicant
+  // #NotesApp's own roles: the hiring team (canReviewHiring: super admins, the Chief of Staff and People & HR) and the applicant
   await db.doc("careerApplications/r1_bola").set({ roleId: "r1", roleTitle: "Campus Ambassador", uid: "bola", name: "Bola", status: "new", createdAt: "2026-11-09T09:00:00Z" });
   const superA = { role: "super" as const, depts: [] };
   const r = await R.sendReply(db, { uid: "staff", access: superA }, { kind: "career", id: "r1_bola", as: "me", text: "Thanks for applying!" });
   assert.equal(r.label, "@ngozi, #NotesApp");
+  await refused(R.sendReply(db, { uid: "staff", access: superA }, { kind: "career", id: "r1_bola", as: "owner", text: "x" }), 400);
+  assert.equal((await R.listReplies(db, { uid: "str", access: { role: "admin" as const, depts: ["hr" as const] } }, "career", "r1_bola")).reviewer, true, "People & HR reviews");
   await refused(R.listReplies(db, { uid: "str", access: { role: "admin" as const, depts: ["support" as const] } }, "career", "r1_bola"), 403);
   assert.equal((await R.listReplies(db, { uid: "bola" }, "career", "r1_bola")).replies.length, 1);
 
