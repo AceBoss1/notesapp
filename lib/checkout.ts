@@ -30,7 +30,7 @@ export async function startCheckout(
   user: User,
   // `code`: a discount code the buyer applied (components/DiscountCodeField.tsx); the server checks it again and prices the order.
   body: { code?: string } & (
-    | { kind: "booking"; username: string; date: string; slot: string }
+    | { kind: "booking"; username: string; date: string; slot: string; mode?: "in_person" | "online" }
     | { kind: "subscription"; username: string; tier?: "premium" | "vip" | "vvip" }
     | { kind: "boost"; noteId: string; packageId: string }
     | { kind: "boost"; itemId: string; packageId: string }

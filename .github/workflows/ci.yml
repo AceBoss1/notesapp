@@ -83,6 +83,7 @@ jobs:
       - run: npm run test:merch
       - run: npm run test:live-guests
       - run: npm run test:gtm
+      - run: npm run test:events-discover
       - run: npm run test:ops
       - run: npm run test:pii
       - run: npm run test:backups

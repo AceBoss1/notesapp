@@ -5,6 +5,8 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createPlan } from "@/lib/paystack";
 import { LIMITS, PublisherSettings } from "@/lib/booking-time";
+import { cleanWhere, type Where } from "@/lib/event-kit";
+import { NIGERIAN_STATES } from "@/lib/merch";
 import { rateLimit } from "@/lib/rate-limit";
 import { SUB_TIERS, TIER_NAME, tierOffers, tierRangeKobo, type TierOffer } from "@/lib/fans";
 import { getFanSettings } from "@/lib/fans-server";
@@ -18,6 +20,18 @@ const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 // price. Validation happens HERE (limits can't be trusted from the
 // browser). A new Paystack plan is created whenever the subscription
 // price changes; existing subscribers stay on their old plan.
+// GET → { where }: where my sessions happen, with the address and link (sessionPlaces/{uid}, server-only), for my settings page.
+export async function GET(req: NextRequest) {
+  try {
+    const uid = await verifyPublisherRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    const where = (await getAdminDb().doc(`sessionPlaces/${uid}`).get()).data()?.where ?? null;
+    return NextResponse.json({ where }, { headers: { "Cache-Control": "no-store" } });
+  } catch (err) {
+    const f = friendlyMessage(err, "Couldn't load your settings");
+    return NextResponse.json({ error: f.message }, { status: f.status });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -49,6 +63,21 @@ export async function POST(req: NextRequest) {
       }
       availability[String(d)] = Array.from(new Set(slots as string[])).sort();
     }
+    // Where sessions happen (lib/event-kit.ts cleanWhere): in person, online or the client's choice.
+    let sessionWhere: Where | undefined = existing?.session?.where;
+    if (sIn.where !== undefined) {
+      if (sIn.where === null) sessionWhere = undefined;
+      else {
+        const w = cleanWhere(sIn.where ?? {}, NIGERIAN_STATES);
+        if (!w.ok) return NextResponse.json({ error: `Where sessions happen: ${w.error}` }, { status: 400 });
+        sessionWhere = w.where;
+      }
+    }
+    if (sIn.where !== undefined) {
+      if (sessionWhere) await db.doc(`sessionPlaces/${uid}`).set({ uid, where: sessionWhere, updatedAt: new Date().toISOString() });
+      else await db.doc(`sessionPlaces/${uid}`).delete().catch(() => {});
+    }
+    if (sessionWhere && !sessionWhere.place && !sessionWhere.link) sessionWhere = ((await db.doc(`sessionPlaces/${uid}`).get()).data()?.where as Where | undefined) ?? sessionWhere;
     const sessionEnabled = !!sIn.enabled;
     // Pay-per-minute sessions (lib/ppm.ts) use the same weekly times.
     const ppmOn = body.ppm?.enabled === true;
@@ -115,6 +144,9 @@ export async function POST(req: NextRequest) {
         minutes: sessionEnabled ? minutes : existing?.session?.minutes ?? 45,
         availability,
         ...((sessionEnabled ? sessionCur : existing?.session?.currency ?? "NGN") !== "NGN" ? { currency: sessionEnabled ? sessionCur : existing!.session!.currency } : {}),
+        // Public (profiles read these settings): the format, city and state only. The address and the link are in sessionPlaces/{uid}
+        // (server-only) and reach a client on their booking.
+        ...(sessionWhere ? { where: { ...sessionWhere, place: "", link: "" } } : {}),
       },
       // enabled/priceKobo/planCode mirror Premium for older readers; tiers is the source of truth.
       subscription: {

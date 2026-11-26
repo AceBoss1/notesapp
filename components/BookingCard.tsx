@@ -5,6 +5,7 @@ import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
+import type { SessionMode } from "@/lib/booking-time";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import DiscountCodeField from "@/components/DiscountCodeField";
 import { ShareButton } from "@/components/share/ShareToNotesApp";
@@ -33,6 +34,7 @@ export default function BookingCard({
   title?: string; // "Book your appointment" on a beauty and wellness site
 }) {
   const [offered, setOffered] = useState<PublisherSettings["session"] | null>(null);
+  const [mode, setMode] = useState<SessionMode | "">("");
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState<Slots | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
@@ -78,9 +80,10 @@ export default function BookingCard({
       return setError("Sign in to book a session.");
     }
     if (!date || !slot) return setError("Pick a date and a time.");
+    if (offered?.where?.format === "hybrid" && !mode) return setError("Choose in person or online.");
     setBusy(true);
     try {
-      await startCheckout(viewer, { kind: "booking", username, date, slot, ...(disc ? { code: disc.code } : {}) }, { amountKobo: offered ? Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0)) : undefined, currency: offered?.currency ?? "NGN" });
+      await startCheckout(viewer, { kind: "booking", username, date, slot, ...(mode ? { mode } : {}), ...(disc ? { code: disc.code } : {}) }, { amountKobo: offered ? Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0)) : undefined, currency: offered?.currency ?? "NGN" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
@@ -100,6 +103,12 @@ export default function BookingCard({
       <p className="mt-2 text-sm text-slate">
         {offered.minutes} minutes · {formatNaira(offered.priceKobo)} · times shown in Lagos time (WAT).
       </p>
+      {offered.where && <p className="mt-1 text-xs text-slate">{offered.where.format === "hybrid" ? `In person${offered.where.city ? ` in ${offered.where.city}` : ""} or online` : offered.where.format === "online" ? (offered.where.online === "link" ? "Online, by the publisher's link" : "Online: a call on #NotesApp") : `In person${offered.where.city ? `, ${offered.where.city}` : ""}`} · the details come with your booking</p>}
+      {offered.where?.format === "hybrid" && (
+        <div className="mt-3 flex gap-2 text-xs" role="radiogroup" aria-label="In person or online">
+          {(["in_person", "online"] as const).map((m) => <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={`rounded-full border px-3 py-1 ${mode === m ? "border-crimson bg-crimson/5 font-bold" : "border-rule"}`}>{m === "in_person" ? "📍 In person" : "💻 Online"}</button>)}
+        </div>
+      )}
       <MonthCalendar
         value={date}
         min={tomorrow}

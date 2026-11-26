@@ -8,7 +8,7 @@ import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo, disableSubscription } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { ensurePricing } from "./pricing-server";
-import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
+import { sessionEnd, sessionStart, formatSlot, formatNaira, sessionPlaceText } from "./booking-time";
 import { formatNaira as nairaText } from "./booking-time";
 import { moneyIn } from "./global-sales";
 import { notifyBell, sendEmail } from "./email";
@@ -58,7 +58,7 @@ export type PaymentRecord = {
   publisherUid: string;
   publisherUsername: string;
   commissionRate: number; // NotesApp's cut, 0–1, fixed at checkout time
-  booking?: { username: string; date: string; slot: string; minutes: number };
+  booking?: { username: string; date: string; slot: string; minutes: number; where?: import("./booking-time").SessionPlace };
   subscription?: { username: string; planCode: string; tier?: SubTier }; // tier: lib/fans.ts (Premium when missing)
   boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
   // referralFirst: a referred friend's first plan (lib/referrals.ts firstPeriodOffer): the card check or the year less a month now,
@@ -372,6 +372,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         reference,
         amountKobo: current.amountKobo,
         startsAt: sessionStart(date, slot).toISOString(),
+        ...(current.booking?.where ? { where: current.booking.where } : {}),
         status: "confirmed",
         reminder24Sent: false,
         reminder1Sent: false,
@@ -1082,14 +1083,14 @@ async function notifyPaid(p: PaymentRecord) {
     to: p.email,
     subject: `Session confirmed — ${when}`,
     bell: { uid: p.uid, type: "booking", linkHref: "/bookings" },
-    text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
+    text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.${p.booking.where ? `\n${sessionPlaceText(p.booking.where)}` : ""}\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
   });
   if (pubEmail) {
     await sendEmail({
       to: pubEmail,
       subject: `New booking — ${when}`,
       bell: { uid: p.publisherUid, type: "booking", linkHref: "/bookings" },
-      text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.${p.booking.where ? `\n${sessionPlaceText(p.booking.where)}` : ""}\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
 }

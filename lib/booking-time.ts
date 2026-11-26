@@ -40,6 +40,9 @@ export type PublisherSettings = {
     minutes: number;
     availability: Availability;
     currency?: string; // the publisher's own currency when it isn't naira (lib/global-sales.ts)
+    // Where sessions happen (docs/EVENTS_DISCOVER.md): in person (the address, shown once booked), online (a #NotesApp call at the
+    // booked time, or the publisher's own link) or hybrid: the client chooses at booking. Missing on older settings: not said.
+    where?: import("./event-kit").Where;
   };
   // enabled/priceKobo/planCode: Premium, kept for older readers. tiers: Premium, VIP and VVIP (lib/fans.ts tierOffers).
   subscription: {
@@ -68,3 +71,25 @@ export const LIMITS = {
   sessionMinutes: [15, 30, 45, 60, 90, 120],
   maxSlotsPerDay: 30, // every half-hour start the editor offers (06:00–20:30)
 };
+
+// ── Where a session happens ──────────────────────────────────────────────────────────────────────────────────────────────────
+// What a booked session carries: the way it was booked (in person or online) and the details for it. `link` only for the two of them.
+export type SessionMode = "in_person" | "online";
+export type SessionPlace = { mode: SessionMode; place?: string; city?: string; state?: string; online?: "notesapp" | "link"; link?: string };
+// The modes a client can choose from: both for hybrid, else the one; none when the publisher hasn't said.
+export const sessionModes = (w?: import("./event-kit").Where): SessionMode[] => (!w ? [] : w.format === "hybrid" ? ["in_person", "online"] : [w.format === "online" ? "online" : "in_person"]);
+// The details of a booking, fixed at checkout. null when the mode chosen isn't offered.
+export function sessionPlace(w: import("./event-kit").Where | undefined, chosen: unknown): SessionPlace | null | undefined {
+  if (!w) return undefined;
+  const modes = sessionModes(w);
+  const mode = (modes.includes(chosen as SessionMode) ? chosen : modes.length === 1 ? modes[0] : null) as SessionMode | null;
+  if (!mode) return null;
+  return mode === "in_person"
+    ? { mode, place: w.place, ...(w.city ? { city: w.city } : {}), ...(w.state ? { state: w.state } : {}) }
+    : { mode, online: w.online === "link" ? "link" : "notesapp", ...(w.online === "link" && w.link ? { link: w.link } : {}) };
+}
+export function sessionPlaceText(p?: SessionPlace): string {
+  if (!p) return "";
+  if (p.mode === "in_person") return `In person: ${[p.place, p.city, p.state].filter(Boolean).join(", ")}`;
+  return p.online === "link" ? `Online: ${p.link ?? "the link is on your booking"}` : "Online: a call on #NotesApp at the booked time (open Messages, or your booking)";
+}

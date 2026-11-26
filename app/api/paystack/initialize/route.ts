@@ -12,7 +12,7 @@ import { getRates } from "@/lib/global-pay-server";
 import { SITE_URL } from "@/lib/host";
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
-import { formatNaira, weekdayOf } from "@/lib/booking-time";
+import { formatNaira, sessionPlace, weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
@@ -898,13 +898,16 @@ export async function POST(req: NextRequest) {
       if ((await db.doc(`slotLocks/${slotLockId(username, date, slot)}`).get()).exists) {
         return NextResponse.json({ error: "That slot was just taken — pick another." }, { status: 409 });
       }
+      // Where (lib/booking-time.ts): in person or online, chosen by the client when the publisher offers both.
+      const where = sessionPlace(s.where ? ((await db.doc(`sessionPlaces/${pub.uid}`).get()).data()?.where ?? s.where) : undefined, body.mode);
+      if (where === null) return NextResponse.json({ error: "Choose in person or online." }, { status: 400 });
       const code = await codeFor(pub.uid, "booking", s.priceKobo);
       record = {
         reference, kind: "booking", uid: user.uid, email: user.email, amountKobo: s.priceKobo - (code?.discountKobo ?? 0),
         ...(code ? { discount: paymentDiscount(code, s.priceKobo) } : {}),
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
         commissionRate: pub.commissionRate,
-        booking: { username, date, slot, minutes: s.minutes },
+        booking: { username, date, slot, minutes: s.minutes, ...(where ? { where } : {}) },
         createdAt: new Date().toISOString(),
       };
     } else if (kind === "subscription") {
