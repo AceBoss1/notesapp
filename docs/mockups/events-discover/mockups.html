@@ -1,0 +1,205 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discover events</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{--crimson:#7A0328;--bright:#A6093D;--deep:#4E0119;--ink:#1A1210;--paper:#FBF6F2;--slate:#5C534E;--rule:#E7DAD3;--field:#F3ECE7;--gold:#C99A2E;--green:#17694a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:#EFE6E0;color:var(--ink);padding:28px 16px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:30px;text-align:center}
+.lede{max-width:900px;margin:8px auto 0;text-align:center;color:var(--slate);font-size:14px;line-height:1.5}
+.grid{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;margin-top:26px;align-items:flex-start}
+.item{width:330px}.item.wide{width:1010px}
+.cap{font-size:13px;line-height:1.45;color:var(--slate);margin-top:10px}.cap b{color:var(--ink)}.cap>b:first-child{display:block;font-size:14px;margin-bottom:2px}
+.ph{width:330px;height:690px;border-radius:34px;background:#111;padding:9px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45)}
+.dk{width:1010px;border-radius:14px;background:#2a2321;padding:26px 8px 8px;box-shadow:0 18px 40px -18px rgba(60,0,20,.45);position:relative}
+.dk:before{content:"● ● ●";position:absolute;left:14px;top:6px;color:#8a7d78;font-size:10px;letter-spacing:2px}
+.sc{width:100%;height:100%;border-radius:26px;overflow:hidden;position:relative;background:var(--paper);display:flex;flex-direction:column}
+.dk .sc{border-radius:8px}
+.top{background:linear-gradient(90deg,var(--deep),var(--bright));color:#fff;display:flex;align-items:center;gap:8px;padding:12px 14px;font-weight:700;font-size:13px}
+.logo{background:#fff;color:var(--crimson);border-radius:7px;font-weight:800;padding:2px 6px;font-size:13px}
+.nav{display:flex;align-items:center;gap:18px;padding:12px 26px;border-bottom:1px solid var(--rule);background:#fff;font-size:13px;color:var(--slate)}
+.nav .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:13px;padding:9px 16px;border:0}
+.pri{background:var(--crimson);color:#fff}.sec{background:#fff;border:1px solid var(--rule);color:var(--ink)}
+.full{width:100%}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.h2{font-family:Fraunces,serif;font-size:19px;font-weight:600;line-height:1.2}
+.sub{font-size:12px;color:var(--slate);line-height:1.45}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--crimson);font-weight:700}
+.card{background:#fff;border:1px solid var(--rule);border-radius:16px;padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;padding:7px 0;border-top:1px solid var(--rule);gap:8px}
+.row:first-of-type{border-top:0}
+.note{background:#FFF4D6;border:1px solid #F1D48A;border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.4;color:#5a4300}
+.ok{background:#E3F4EC;border:1px solid #A9DCC3;border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;color:#0f4c35}
+.ph-slot{border:1.5px dashed #d1a3b1;background:#fdf3f6;border-radius:14px;padding:10px 12px;font-size:12px;line-height:1.45;color:#6b2a3c}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat div{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px}
+.stat b{font-size:19px;display:block;font-family:Fraunces,serif}.stat span{font-size:11px;color:var(--slate)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:5px 10px;font-size:11.5px}
+.chip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.tabs{display:flex;background:#fff;border-top:1px solid var(--rule);margin-top:auto}.tabs div{flex:1;text-align:center;font-size:10.5px;padding:7px 0;color:var(--slate)}.tabs div b{display:block;font-size:17px}.tabs .on{color:var(--crimson);font-weight:700}
+.gold{color:var(--gold);font-weight:800}
+.mini{font-size:10.5px;color:var(--slate);line-height:1.4}
+.bars{display:flex;align-items:flex-end;gap:5px;height:54px}.bars div{flex:1;background:var(--crimson);border-radius:4px 4px 0 0;opacity:.85}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:16px;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.wrap{padding:26px 40px;display:flex;flex-direction:column;gap:22px}
+.sec{border-top:1px solid var(--rule);padding-top:18px}
+.sec:first-of-type{border-top:0;padding-top:0}
+.hrow{display:flex;justify-content:space-between;align-items:flex-end}
+.h3{font-size:17px;font-weight:700}.city{font-size:15px;color:var(--slate);margin-top:2px}
+.pill{background:#fff;border:1px solid var(--rule);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:14px 30px;margin-top:12px}
+.ev{display:flex;gap:12px;align-items:center}
+.poster{width:62px;height:62px;border-radius:12px;flex-shrink:0;color:#fff;font-weight:800;font-size:11px;line-height:1.1;display:flex;align-items:flex-end;padding:6px;font-family:Fraunces,serif}
+.ev small{display:block;font-size:11.5px;color:var(--slate)}.ev b{display:block;font-size:13.5px;margin:2px 0}.ev span{font-size:11.5px;color:var(--slate)}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.cat{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:11px 13px;display:flex;gap:11px;align-items:center}
+.cat i{font-style:normal;font-size:20px;width:30px;text-align:center}.cat b{display:block;font-size:13px}.cat span{font-size:11px;color:var(--slate)}
+.cals{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.calc{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:13px;position:relative}
+.calc .lg{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+.calc .fl{position:absolute;right:12px;top:12px}
+.calc b{display:block;margin-top:9px;font-size:13.5px}.calc p{font-size:11.5px;color:var(--slate);line-height:1.4;margin-top:3px}
+.tabs2{display:flex;gap:6px;margin-top:10px}.tabs2 span{font-size:12px;padding:5px 10px;border-radius:8px;color:var(--slate)}.tabs2 .on{background:var(--field);color:var(--ink);font-weight:700}
+.locs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.loc{display:flex;gap:10px;align-items:center}.loc i{font-style:normal;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+.loc b{display:block;font-size:13px}.loc span{font-size:11px;color:var(--slate)}
+.cover{height:190px;display:flex;align-items:flex-end;padding:14px;color:#fff;font-family:Fraunces,serif;font-size:26px;font-weight:600;line-height:1.05}
+.meta{display:flex;gap:10px;align-items:center;font-size:12.5px}.meta i{font-style:normal;width:34px;height:34px;border-radius:9px;border:1px solid var(--rule);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--slate);line-height:1}
+.meta i b{font-size:13px;color:var(--ink)}
+.av{display:flex}.av span{width:24px;height:24px;border-radius:50%;border:2px solid var(--paper);margin-left:-6px;background:#c58a6b}.av span:first-child{margin-left:0}
+.kind{border:1px solid var(--rule);background:#fff;border-radius:14px;padding:11px 12px;display:flex;gap:10px}
+.kind.on{border-color:var(--crimson);background:#fbf0f3}.kind i{font-style:normal;font-size:22px}.kind b{display:block;font-size:13.5px}.kind p{font-size:11.5px;color:var(--slate);line-height:1.4;margin-top:2px}
+.kind em{font-style:normal;font-size:11px;font-weight:700;color:var(--crimson);display:block;margin-top:4px}
+</style></head><body>
+<h1>Discover events, and calendars to follow</h1>
+<p class="lede">Sample screens for the owner (26 Nov 2026), with the event discovery page the owner sent as the idea. /events becomes a place to find events near you: featured events for your city, categories with counts, calendars to follow (communities, organisations and creators) and events by city. Events get a cover picture and a category. Sample events and calendars: nothing here is real data.</p>
+<div class="grid">
+
+<div class="item wide"><div class="dk"><div class="sc">
+  <div class="nav"><span class="logo">#NA</span><b style="color:var(--ink)">#NotesApp</b><span>Journals</span><span>Market</span><span>Academy</span><span style="color:var(--crimson);font-weight:700">Events</span><span>Pricing</span><span class="sp"></span><span class="btn sec" style="padding:6px 12px">+ Create</span><span class="btn pri" style="padding:6px 12px">Sign in</span></div>
+  <div class="wrap">
+    <div class="sec"><p style="font-family:Fraunces,serif;font-size:30px;font-weight:600">Discover events</p><p class="sub" style="font-size:13px;margin-top:4px">Find what's on near you, browse by category, or follow the calendars of communities and creators you like.</p></div>
+    <div class="sec">
+      <div class="hrow"><div><p class="h3">Featured events</p><p class="city">Lagos ▾</p></div><span class="pill">View all →</span></div>
+      <div class="feat">
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#111,#3a3a3a)">Product Night</div><div><small>Tomorrow, 18:00</small><b>Lagos Product Night: shipping in Naira</b><span>The Workspace, Yaba · ₦3,000</span></div></div>
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#0f5132,#2fa37a)">Founders Brunch</div><div><small>Sat 28 Nov, 10:00</small><b>Founders' Brunch</b><span>Lekki Phase 1 · Free</span></div></div>
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#1d2b6b,#4b6bdc)">Women in Data</div><div><small>Sat 28 Nov, 12:00</small><b>Women in Data: Excel to Power BI</b><span>Online · Join live · Free</span></div></div>
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#4e0119,#a6093d)">Movie Night</div><div><small>Mon 30 Nov, 16:30</small><b>Campus Movie Night</b><span>University of Lagos · ₦1,500</span></div></div>
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#6b2fd6,#a77bf0)">Demo Day</div><div><small>Sat 5 Dec, 10:00</small><b>Builders' Demo Day</b><span>Victoria Island · Free · approval needed</span></div></div>
+        <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#c2410c,#f59e0b)">Pop-up Market</div><div><small>Sat 5 Dec, 12:30</small><b>December Pop-up Market</b><span>Ikoyi · ₦2,000</span></div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <p class="h3">Browse by category</p>
+      <div class="cats">
+        <div class="cat"><i>⛪</i><div><b>Faith</b><span>214 events</span></div></div>
+        <div class="cat"><i>💼</i><div><b>Business & careers</b><span>388 events</span></div></div>
+        <div class="cat"><i>💻</i><div><b>Tech</b><span>1.2k events</span></div></div>
+        <div class="cat"><i>🎓</i><div><b>Education</b><span>402 events</span></div></div>
+        <div class="cat"><i>🍲</i><div><b>Food & drink</b><span>156 events</span></div></div>
+        <div class="cat"><i>🎨</i><div><b>Arts & culture</b><span>290 events</span></div></div>
+        <div class="cat"><i>🏃</i><div><b>Fitness & running</b><span>133 events</span></div></div>
+        <div class="cat"><i>🧘</i><div><b>Health & wellness</b><span>178 events</span></div></div>
+        <div class="cat"><i>👪</i><div><b>Family & kids</b><span>97 events</span></div></div>
+        <div class="cat"><i>🎶</i><div><b>Music & nightlife</b><span>241 events</span></div></div>
+        <div class="cat"><i>🤝</i><div><b>Networking</b><span>320 events</span></div></div>
+        <div class="cat"><i>🌍</i><div><b>Community & causes</b><span>145 events</span></div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <p class="h3">Calendars to follow</p>
+      <div class="cals">
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#111">LP</div><b>Lagos Product Circle</b><p>Monthly product nights and demo days for builders in Lagos.</p></div>
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#7A0328">HG</div><b>House of Grace</b><p>Services, youth nights and outreaches. Faith · Abuja.</p></div>
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#1d2b6b">WD</div><b>Women in Data NG</b><p>Free workshops and mentoring for women in data, online and in 6 cities.</p></div>
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#0f5132">RR</div><b>Run Lekki</b><p>Saturday 5k and 10k runs, all paces welcome.</p></div>
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#c2410c">BK</div><b>Book Club Ikeja</b><p>A book a month, a table of friends, and good jollof.</p></div>
+        <div class="calc"><span class="pill fl">Follow</span><div class="lg" style="background:#6b2fd6">CA</div><b>Career Accelerator</b><p>Coaches and recruiters running CV clinics and mock interviews.</p></div>
+      </div>
+    </div>
+    <div class="sec">
+      <p class="h3">Explore local events</p>
+      <div class="tabs2"><span class="on">Nigeria</span><span>Rest of Africa</span><span>Diaspora</span><span>Online</span></div>
+      <div class="locs">
+        <div class="loc"><i style="background:#7A0328">🌉</i><div><b>Lagos</b><span>312 events</span></div></div>
+        <div class="loc"><i style="background:#0f5132">🏛️</i><div><b>Abuja</b><span>164 events</span></div></div>
+        <div class="loc"><i style="background:#1d2b6b">⚓</i><div><b>Port Harcourt</b><span>58 events</span></div></div>
+        <div class="loc"><i style="background:#c2410c">🏙️</i><div><b>Ibadan</b><span>41 events</span></div></div>
+        <div class="loc"><i style="background:#6b2fd6">⛰️</i><div><b>Enugu</b><span>33 events</span></div></div>
+        <div class="loc"><i style="background:#4e0119">🕌</i><div><b>Kano</b><span>27 events</span></div></div>
+        <div class="loc"><i style="background:#2fa37a">🌳</i><div><b>Benin City</b><span>19 events</span></div></div>
+        <div class="loc"><i style="background:#5C534E">🗺️</i><div><b>Every state</b><span>See all 37</span></div></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+<p class="cap"><b>1. Discover events (/events)</b>Featured events for your city (from your profile, or the city you choose), categories with live counts, calendars to follow and events by city. The country tabs start with Nigeria; <b>Rest of Africa</b>, <b>Diaspora</b> (London, Houston, Toronto…) and <b>Online</b> fill in as events are posted there. Counts are real once built; these are samples.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Lagos Product Night</div>
+  <div class="cover" style="background:linear-gradient(160deg,#111,#4e0119)">Lagos Product Night: shipping in Naira</div>
+  <div class="pad">
+    <div class="meta"><i>NOV<b>27</b></i><div><b>Thursday, 27 November</b><br><span class="mini">18:00 – 21:00 · Lagos time</span></div></div>
+    <div class="meta"><i>📍</i><div><b>The Workspace, Yaba</b><br><span class="mini">Lagos · map after you register</span></div></div>
+    <div class="card" style="padding:10px 12px"><div class="row" style="border:0;padding:0"><span><b>Regular</b> · ₦3,000</span><span class="mini">42 left</span></div><div class="row"><span><b>VIP</b> · ₦10,000</span><span class="mini">6 left</span></div></div>
+    <span class="btn pri full">Get tickets</span>
+    <div style="display:flex;align-items:center;gap:8px"><div class="av"><span></span><span style="background:#8a4f3a"></span><span style="background:#b7795a"></span><span style="background:#5b1426"></span></div><span class="mini"><b style="color:var(--ink)">86 going</b> · 3 people you follow</span></div>
+    <div class="card" style="display:flex;gap:10px;align-items:center;padding:10px"><div class="lg" style="background:#111;width:34px;height:34px;border-radius:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">LP</div><div style="flex:1"><b style="font-size:12.5px">Lagos Product Circle</b><br><span class="mini">Calendar · 1,240 followers</span></div><span class="pill">Follow</span></div>
+    <p class="sub">Three founders show what they shipped this month, then pizza. Bring a laptop if you want to demo.</p>
+  </div>
+</div></div>
+<p class="cap"><b>2. An event page</b>The cover, when and where, ticket types (or Register for a free one, or Request to join when approval is on), who's going, and the <b>calendar</b> it belongs to with Follow. Tickets work as today: QR code under My tickets, check-in at the door.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Lagos Product Circle</div>
+  <div class="pad">
+    <div style="display:flex;gap:12px;align-items:center"><div style="background:#111;width:54px;height:54px;border-radius:14px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">LP</div><div><p class="h2">Lagos Product Circle</p><p class="mini">1,240 followers · run by @tolu and 2 others</p></div></div>
+    <p class="sub">Monthly product nights and demo days for builders in Lagos.</p>
+    <div style="display:flex;gap:8px"><span class="btn pri" style="flex:1">Follow</span><span class="btn sec">Add to my calendar</span></div>
+    <div class="tabs2" style="margin-top:2px"><span class="on">Upcoming</span><span>Past</span></div>
+    <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#111,#3a3a3a)">Product Night</div><div><small>Thu 27 Nov, 18:00</small><b>Lagos Product Night</b><span>Yaba · ₦3,000</span></div></div>
+    <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#6b2fd6,#a77bf0)">Demo Day</div><div><small>Sat 5 Dec, 10:00</small><b>Builders' Demo Day</b><span>Victoria Island · Free</span></div></div>
+    <div class="ev"><div class="poster" style="background:linear-gradient(135deg,#0f5132,#2fa37a)">Office hours</div><div><small>Every Tuesday, 19:00</small><b>Founder office hours (meeting)</b><span>Online · ₦2,000 a seat · 12 seats</span></div></div>
+    <div class="note">Followers get a bell and an email when a new event goes up, and the usual reminders 24 hours and 1 hour before.</div>
+  </div>
+</div></div>
+<p class="cap"><b>3. A calendar</b>Every profile, community and organisation already has events; this gives them one page to follow, at <b>/u/name/events</b> (or your own domain on Business). Following tells you about new events; <b>Add to my calendar</b> uses the private calendar link My Calendar already has.</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>Create</div>
+  <div class="pad">
+    <p class="h2">What are you setting up?</p>
+    <div class="kind on"><i>🎟️</i><div><b>An event</b><p>One-to-many: a launch, a service, a class, a meetup. Free, paid tickets or approval to join. Unlimited guests.</p><em>Tickets: ₦10–₦50 each, no commission</em></div></div>
+    <div class="kind"><i>👥</i><div><b>A meeting</b><p>A small group at a set time: office hours, a workshop, a cohort call. Seats, a price per seat or free, on #NotesApp video or your Zoom/Meet link.</p><em>Paid seats: your plan's commission</em></div></div>
+    <div class="kind"><i>🗓️</i><div><b>Sessions</b><p>One-to-one, booked from your open times: coaching, consulting, therapy, tutoring. Your price and length.</p><em>Your plan's commission (Free Basic 20%)</em></div></div>
+    <p class="mini">Each shows on your calendar and in Discover (unless it's private), with reminders by email, bell and phone notification.</p>
+    <span class="btn pri full">Continue</span>
+  </div>
+</div></div>
+<p class="cap"><b>4. Create: event, meeting or sessions</b>One + Create button for all three, each with what it costs right where you choose. <b>Meetings are new</b>: a group booking at a set time, between an event (many, tickets) and a session (one, from your open times).</p></div>
+
+<div class="item"><div class="ph"><div class="sc">
+  <div class="top"><span class="logo">#NA</span>New event</div>
+  <div class="pad">
+    <div class="cover" style="height:110px;border-radius:14px;background:repeating-linear-gradient(45deg,#f3ece7 0 10px,#fbf6f2 10px 20px);color:var(--slate);font-family:Inter;font-size:13px;font-weight:600;align-items:center;justify-content:center;border:1.5px dashed var(--rule)">＋ Cover picture</div>
+    <div class="card" style="padding:10px 12px;font-size:12.5px">
+      <div class="row" style="border:0;padding-top:0"><span>Name</span><b>Lagos Product Night</b></div>
+      <div class="row"><span>Category</span><b>Tech ▾</b></div>
+      <div class="row"><span>When</span><b>Thu 27 Nov, 18:00–21:00</b></div>
+      <div class="row"><span>Where</span><b>The Workspace, Yaba</b></div>
+      <div class="row"><span>Calendar</span><b>Lagos Product Circle ▾</b></div>
+    </div>
+    <div class="card" style="padding:10px 12px;font-size:12.5px">
+      <div class="row" style="border:0;padding-top:0"><span>Tickets</span><b>Regular ₦3,000 · VIP ₦10,000</b></div>
+      <div class="row"><span>Needs approval</span><b>Off</b></div>
+      <div class="row"><span>How many</span><b>120</b></div>
+      <div class="row"><span>Who can see it</span><b>Everyone, in Discover</b></div>
+    </div>
+    <span class="btn pri full">Publish event</span>
+  </div>
+</div></div>
+<p class="cap"><b>5. A new event</b>Today's form plus a <b>cover picture</b> (with the NotesApp mark, as Media), a <b>category</b>, the <b>calendar</b> it goes on, <b>needs approval</b> and a <b>guest limit</b>. Tickets, repeats, Join live and members-only events stay as they are.</p></div>
+
+</div></body></html>
